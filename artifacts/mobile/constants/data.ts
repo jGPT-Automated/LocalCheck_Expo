@@ -24,6 +24,8 @@ export interface Player {
   sport?: CourtSport;
   courtId?: string;
   memberSince: string; // ISO date
+  visibility?: "public" | "friends" | "private";
+  isLocalPlus?: boolean;
 }
 
 export type EloTier = "PLATINUM" | "GOLD" | "SILVER" | "BRONZE" | "UNRANKED";
@@ -113,14 +115,14 @@ export interface MatchResult {
 // ─── Sample Data ──────────────────────────────────────────────────────────────
 
 export const SAMPLE_PLAYERS: Player[] = [
-  { id: "p1", name: "Marcus J.", elo: 1652, tier: "SILVER", avatar: "MJ", wins: 42, losses: 18, checkIns: 87, sport: "BASKETBALL", courtId: "c1", memberSince: "2024-01-15" },
-  { id: "p2", name: "Dre K.", elo: 1820, tier: "GOLD", avatar: "DK", wins: 61, losses: 22, checkIns: 134, sport: "BASKETBALL", courtId: "c3", memberSince: "2023-08-22" },
-  { id: "p3", name: "Zara M.", elo: 1445, tier: "BRONZE", avatar: "ZM", wins: 28, losses: 31, checkIns: 55, sport: "PICKLEBALL", courtId: "c4", memberSince: "2025-02-10" },
-  { id: "p4", name: "Tyler B.", elo: 1550, tier: "SILVER", avatar: "TB", wins: 35, losses: 25, checkIns: 62, sport: "BASKETBALL", courtId: "c1", memberSince: "2024-06-01" },
-  { id: "p5", name: "Keisha P.", elo: 1930, tier: "PLATINUM", avatar: "KP", wins: 78, losses: 14, checkIns: 201, sport: "PICKLEBALL", courtId: "c4", memberSince: "2023-03-15" },
-  { id: "p6", name: "Jay R.", elo: 1380, tier: "BRONZE", avatar: "JR", wins: 19, losses: 29, checkIns: 44, sport: "BASKETBALL", courtId: "c3", memberSince: "2025-01-05" },
-  { id: "p7", name: "Sam T.", elo: 1710, tier: "GOLD", avatar: "ST", wins: 53, losses: 19, checkIns: 110, sport: "PICKLEBALL", courtId: "c6", memberSince: "2024-04-20" },
-  { id: "p8", name: "Nadia V.", elo: 1490, tier: "BRONZE", avatar: "NV", wins: 22, losses: 26, checkIns: 39, sport: "BASKETBALL", courtId: "c2", memberSince: "2025-03-01" },
+  { id: "p1", name: "Marcus J.", elo: 1652, tier: "SILVER", avatar: "MJ", wins: 42, losses: 18, checkIns: 87, sport: "BASKETBALL", courtId: "c1", memberSince: "2024-01-15", visibility: "public", isLocalPlus: true },
+  { id: "p2", name: "Dre K.", elo: 1820, tier: "GOLD", avatar: "DK", wins: 61, losses: 22, checkIns: 134, sport: "BASKETBALL", courtId: "c3", memberSince: "2023-08-22", visibility: "public", isLocalPlus: true },
+  { id: "p3", name: "Zara M.", elo: 1445, tier: "BRONZE", avatar: "ZM", wins: 28, losses: 31, checkIns: 55, sport: "PICKLEBALL", courtId: "c4", memberSince: "2025-02-10", visibility: "public", isLocalPlus: false },
+  { id: "p4", name: "Tyler B.", elo: 1550, tier: "SILVER", avatar: "TB", wins: 35, losses: 25, checkIns: 62, sport: "BASKETBALL", courtId: "c1", memberSince: "2024-06-01", visibility: "public", isLocalPlus: false },
+  { id: "p5", name: "Keisha P.", elo: 1930, tier: "PLATINUM", avatar: "KP", wins: 78, losses: 14, checkIns: 201, sport: "PICKLEBALL", courtId: "c4", memberSince: "2023-03-15", visibility: "public", isLocalPlus: true },
+  { id: "p6", name: "Jay R.", elo: 1380, tier: "BRONZE", avatar: "JR", wins: 19, losses: 29, checkIns: 44, sport: "BASKETBALL", courtId: "c3", memberSince: "2025-01-05", visibility: "friends", isLocalPlus: false },
+  { id: "p7", name: "Sam T.", elo: 1710, tier: "GOLD", avatar: "ST", wins: 53, losses: 19, checkIns: 110, sport: "PICKLEBALL", courtId: "c6", memberSince: "2024-04-20", visibility: "public", isLocalPlus: true },
+  { id: "p8", name: "Nadia V.", elo: 1490, tier: "BRONZE", avatar: "NV", wins: 22, losses: 26, checkIns: 39, sport: "BASKETBALL", courtId: "c2", memberSince: "2025-03-01", visibility: "private", isLocalPlus: false },
 ];
 
 export const SAMPLE_COURTS: Court[] = [

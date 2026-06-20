@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -110,6 +111,7 @@ function MatchDetailModal({
 }
 
 export default function EloScreen() {
+  const router = useRouter();
   const { currentUser, matches } = useApp();
   const { top } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
@@ -186,7 +188,7 @@ export default function EloScreen() {
             </View>
             <View style={{ alignItems: "flex-end", gap: 6 }}>
               <PlayerAvatar initials={currentUser.avatar} size={44} />
-              <Pressable style={styles.settingsBtn} hitSlop={8}>
+              <Pressable style={styles.settingsBtn} hitSlop={8} onPress={() => router.push("/settings")}>
                 <Ionicons name="settings-outline" size={18} color={Colors.muted} />
               </Pressable>
             </View>

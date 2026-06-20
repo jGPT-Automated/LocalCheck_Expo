@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
   Platform,
@@ -30,7 +31,7 @@ type Scope = "GLOBAL" | "MY LOCAL";
 const SPORT_TABS: (CourtSport | "ALL")[] = ["ALL", "BASKETBALL", "PICKLEBALL"];
 
 export default function CompeteScreen() {
-  const { courts, localCourtId, currentUser } = useApp();
+  const { courts, localCourtId, currentUser, isLocalPlus, visibility } = useApp();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
 
@@ -40,15 +41,29 @@ export default function CompeteScreen() {
 
   const localCourt = localCourtId ? courts.find((c) => c.id === localCourtId) ?? null : null;
 
+  // Only LocalPlus users with public visibility show on public leaderboard
+  // Free users can see where they'd fall, but aren't listed publicly
   const leaderboardPlayers = SAMPLE_PLAYERS.filter((p) => {
+    const sportMatch = sportFilter === "ALL" || p.sport === sportFilter;
+    const scopeMatch =
+      scope === "GLOBAL" ? true : localCourtId ? p.courtId === localCourtId : true;
+    // Only public + LocalPlus users appear on public leaderboard
+    // Private users never appear, friends-only users appear only in local scope
+    const isVisible = p.visibility === "public" && p.isLocalPlus;
+    return sportMatch && scopeMatch && isVisible;
+  }).sort((a, b) => b.elo - a.elo);
+
+  // Compute my rank among all players (including hidden) to show where I'd fall
+  const allPlayersFiltered = SAMPLE_PLAYERS.filter((p) => {
     const sportMatch = sportFilter === "ALL" || p.sport === sportFilter;
     const scopeMatch =
       scope === "GLOBAL" ? true : localCourtId ? p.courtId === localCourtId : true;
     return sportMatch && scopeMatch;
   }).sort((a, b) => b.elo - a.elo);
 
-  const myRank =
-    leaderboardPlayers.findIndex((p) => p.name === currentUser.name) + 1;
+  const myRank = allPlayersFiltered.findIndex((p) => p.name === currentUser.name) + 1;
+  const amIVisible = visibility === "public" && isLocalPlus;
+  const showMyRank = myRank > 0 && amIVisible;
 
   return (
     <View style={styles.container}>
@@ -64,8 +79,10 @@ export default function CompeteScreen() {
         </View>
         {myRank > 0 && (
           <View style={styles.myRankBadge}>
-            <Text style={styles.myRankNum}>#{myRank}</Text>
-            <Text style={styles.myRankLabel}>YOUR RANK</Text>
+            <Text style={[styles.myRankNum, !showMyRank && styles.myRankNumDim]}>#{myRank}</Text>
+            <Text style={styles.myRankLabel}>
+              {showMyRank ? "YOUR RANK" : "HIDDEN — LOCALPLUS"}
+            </Text>
           </View>
         )}
       </View>
@@ -88,6 +105,9 @@ export default function CompeteScreen() {
       {tab === "LEADERBOARD" ? (
         <LeaderboardView
           players={leaderboardPlayers}
+          allPlayers={allPlayersFiltered}
+          myRank={myRank}
+          showMyRank={showMyRank}
           scope={scope}
           setScope={setScope}
           sportFilter={sportFilter}
@@ -106,6 +126,9 @@ export default function CompeteScreen() {
 
 function LeaderboardView({
   players,
+  allPlayers,
+  myRank,
+  showMyRank,
   scope,
   setScope,
   sportFilter,
@@ -114,6 +137,9 @@ function LeaderboardView({
   bottom,
 }: {
   players: ReturnType<typeof SAMPLE_PLAYERS.filter>;
+  allPlayers: ReturnType<typeof SAMPLE_PLAYERS.filter>;
+  myRank: number;
+  showMyRank: boolean;
   scope: Scope;
   setScope: (s: Scope) => void;
   sportFilter: CourtSport | "ALL";
@@ -185,42 +211,55 @@ function LeaderboardView({
           <Text style={styles.emptyText}>NO PLAYERS FOR THIS FILTER</Text>
         </View>
       ) : (
-        players.map((player, index) => {
-          const tierColor = getTierColor(player.tier);
-          const isTop3 = index < 3;
-          const sportColor = player.sport ? getSportColor(player.sport) : Colors.muted;
-          return (
-            <View
-              key={player.id}
-              style={[styles.leaderRow, index === 0 && styles.leaderRowFirst]}
-            >
-              <Text style={[styles.rank, isTop3 && styles.rankTop]}>
-                {index + 1}
-              </Text>
-              <PlayerAvatar initials={player.avatar} size={40} accent={index === 0} />
-              <View style={styles.playerInfo}>
-                <Text style={styles.playerName}>{player.name.toUpperCase()}</Text>
-                <View style={styles.playerBadges}>
-                  <Text style={[styles.tierText, { color: tierColor }]}>
-                    {player.tier}
-                  </Text>
-                  {player.sport && (
-                    <Text style={[styles.sportText, { color: sportColor }]}>
-                      {player.sport}
+        <>
+          {players.map((player, index) => {
+            const tierColor = getTierColor(player.tier);
+            const isTop3 = index < 3;
+            const sportColor = player.sport ? getSportColor(player.sport) : Colors.muted;
+            return (
+              <View
+                key={player.id}
+                style={[styles.leaderRow, index === 0 && styles.leaderRowFirst]}
+              >
+                <Text style={[styles.rank, isTop3 && styles.rankTop]}>
+                  {index + 1}
+                </Text>
+                <PlayerAvatar initials={player.avatar} size={40} accent={index === 0} />
+                <View style={styles.playerInfo}>
+                  <Text style={styles.playerName}>{player.name.toUpperCase()}</Text>
+                  <View style={styles.playerBadges}>
+                    <Text style={[styles.tierText, { color: tierColor }]}>
+                      {player.tier}
                     </Text>
-                  )}
-                  <Text style={styles.wlText}>
-                    {player.wins}W · {player.losses}L
-                  </Text>
+                    {player.sport && (
+                      <Text style={[styles.sportText, { color: sportColor }]}>
+                        {player.sport}
+                      </Text>
+                    )}
+                    <Text style={styles.wlText}>
+                      {player.wins}W · {player.losses}L
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.eloBlock}>
+                  <Text style={styles.eloVal}>{player.elo}</Text>
+                  <Text style={styles.eloLbl}>ELO</Text>
                 </View>
               </View>
-              <View style={styles.eloBlock}>
-                <Text style={styles.eloVal}>{player.elo}</Text>
-                <Text style={styles.eloLbl}>ELO</Text>
-              </View>
+            );
+          })}
+          {/* Show "Your Position" indicator if user is ranked but not visible in leaderboard */}
+          {!showMyRank && myRank > 0 && (
+            <View style={styles.yourPositionRow}>
+              <Text style={styles.yourPositionRank}>#{myRank}</Text>
+              <Ionicons name="person" size={16} color={Colors.muted} />
+              <Text style={styles.yourPositionText}>YOU — HIDDEN</Text>
+              <Text style={styles.yourPositionSub}>
+                Go public + LocalPlus to appear
+              </Text>
             </View>
-          );
-        })
+          )}
+        </>
       )}
     </ScrollView>
   );
@@ -468,11 +507,47 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     lineHeight: 24,
   },
+  myRankNumDim: {
+    color: Colors.muted,
+  },
   myRankLabel: {
     fontFamily: Typography.bodyMedium,
     fontSize: 8,
     color: Colors.muted,
     letterSpacing: 1.5,
+    textTransform: "uppercase" as const,
+  },
+
+  // ── Hidden position indicator ──
+  yourPositionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.surfaceHigh,
+  },
+  yourPositionRank: {
+    fontFamily: Typography.heading,
+    fontSize: 16,
+    color: Colors.muted,
+    width: 28,
+    textAlign: "center" as const,
+  },
+  yourPositionText: {
+    fontFamily: Typography.heading,
+    fontSize: 13,
+    color: Colors.muted,
+    letterSpacing: 0.5,
+    flex: 1,
+  },
+  yourPositionSub: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 9,
+    color: Colors.mutedDark,
+    letterSpacing: 1,
     textTransform: "uppercase" as const,
   },
 

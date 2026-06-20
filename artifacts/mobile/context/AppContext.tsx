@@ -23,6 +23,8 @@ import {
   getEloTier,
 } from "@/constants/data";
 
+export type Visibility = "public" | "friends" | "private";
+
 interface AppContextValue {
   currentUser: Player;
   courts: Court[];
@@ -32,6 +34,8 @@ interface AppContextValue {
   runs: GameRun[];
   feed: FeedItem[];
   matches: MatchResult[];
+  isLocalPlus: boolean;
+  visibility: Visibility;
   checkIn: (courtId: string) => Promise<void>;
   checkOut: () => Promise<void>;
   visitCourt: (courtId: string) => Promise<void>;
@@ -43,6 +47,8 @@ interface AppContextValue {
   recordLoss: (runId: string, eloDelta: number) => void;
   addCourt: (court: Court) => Promise<void>;
   setLocalCourt: (courtId: string) => Promise<void>;
+  setVisibility: (v: Visibility) => Promise<void>;
+  setIsLocalPlus: (v: boolean) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -55,6 +61,8 @@ const STORAGE_KEYS = {
   feed: "localcheck:feed",
   matches: "localcheck:matches",
   courts: "localcheck:courts",
+  visibility: "localcheck:visibility",
+  isLocalPlus: "localcheck:isLocalPlus",
 };
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -66,11 +74,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [runs, setRuns] = useState<GameRun[]>(SAMPLE_RUNS);
   const [feed, setFeed] = useState<FeedItem[]>(SAMPLE_FEED);
   const [matches, setMatches] = useState<MatchResult[]>(SAMPLE_MATCHES);
+  const [isLocalPlus, setIsLocalPlusState] = useState<boolean>(false);
+  const [visibility, setVisibilityState] = useState<Visibility>("public");
 
   useEffect(() => {
     (async () => {
       try {
-        const [userRaw, courtIdRaw, lastVisitedRaw, feedRaw, matchesRaw, localCourtRaw, courtsRaw] = await Promise.all([
+        const [userRaw, courtIdRaw, lastVisitedRaw, feedRaw, matchesRaw, localCourtRaw, courtsRaw, visibilityRaw, isLocalPlusRaw] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEYS.currentUser),
           AsyncStorage.getItem(STORAGE_KEYS.checkedInCourtId),
           AsyncStorage.getItem(STORAGE_KEYS.lastVisitedCourtId),
@@ -78,6 +88,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           AsyncStorage.getItem(STORAGE_KEYS.matches),
           AsyncStorage.getItem(STORAGE_KEYS.localCourtId),
           AsyncStorage.getItem(STORAGE_KEYS.courts),
+          AsyncStorage.getItem(STORAGE_KEYS.visibility),
+          AsyncStorage.getItem(STORAGE_KEYS.isLocalPlus),
         ]);
         if (userRaw) setCurrentUser(JSON.parse(userRaw));
         if (courtIdRaw) setCheckedInCourtId(courtIdRaw);
@@ -93,6 +105,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setCourts([...SAMPLE_COURTS, ...userAdded]);
           }
         }
+        if (visibilityRaw) setVisibilityState(visibilityRaw as Visibility);
+        if (isLocalPlusRaw === "true") setIsLocalPlusState(true);
       } catch {}
     })();
   }, []);
@@ -221,6 +235,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, [localCourtId]);
 
+  const setVisibility = useCallback(async (v: Visibility) => {
+    setVisibilityState(v);
+    await AsyncStorage.setItem(STORAGE_KEYS.visibility, v);
+  }, []);
+
+  const setIsLocalPlus = useCallback(async (v: boolean) => {
+    setIsLocalPlusState(v);
+    await AsyncStorage.setItem(STORAGE_KEYS.isLocalPlus, String(v));
+  }, []);
+
   const joinRun = useCallback(
     (runId: string, team: "A" | "B") => {
       setRuns((prev) =>
@@ -337,6 +361,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         runs,
         feed,
         matches,
+        isLocalPlus,
+        visibility,
         checkIn,
         checkOut,
         visitCourt,
@@ -348,6 +374,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         recordLoss,
         addCourt,
         setLocalCourt,
+        setVisibility,
+        setIsLocalPlus,
       }}
     >
       {children}
