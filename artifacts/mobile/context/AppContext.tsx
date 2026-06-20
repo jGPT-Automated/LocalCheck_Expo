@@ -37,6 +37,8 @@ interface AppContextValue {
   isLocalPlus: boolean;
   visibility: Visibility;
   friendIds: string[];
+  preferredSport: CourtSport | null;
+  preferredCourtId: string | null;
   checkIn: (courtId: string) => Promise<void>;
   checkOut: () => Promise<void>;
   visitCourt: (courtId: string) => Promise<void>;
@@ -50,6 +52,8 @@ interface AppContextValue {
   setLocalCourt: (courtId: string) => Promise<void>;
   setVisibility: (v: Visibility) => Promise<void>;
   setIsLocalPlus: (v: boolean) => Promise<void>;
+  setPreferredSport: (sport: CourtSport | null) => Promise<void>;
+  setPreferredCourtId: (courtId: string | null) => Promise<void>;
   addFriend: (playerId: string) => Promise<void>;
   removeFriend: (playerId: string) => Promise<void>;
   isFriend: (playerId: string) => boolean;
@@ -69,6 +73,8 @@ const STORAGE_KEYS = {
   visibility: "localcheck:visibility",
   isLocalPlus: "localcheck:isLocalPlus",
   friendIds: "localcheck:friendIds",
+  preferredSport: "localcheck:preferredSport",
+  preferredCourtId: "localcheck:preferredCourtId",
 };
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -83,11 +89,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isLocalPlus, setIsLocalPlusState] = useState<boolean>(false);
   const [visibility, setVisibilityState] = useState<Visibility>("public");
   const [friendIds, setFriendIds] = useState<string[]>([]);
+  const [preferredSport, setPreferredSportState] = useState<CourtSport | null>(null);
+  const [preferredCourtId, setPreferredCourtIdState] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const [userRaw, courtIdRaw, lastVisitedRaw, feedRaw, matchesRaw, localCourtRaw, courtsRaw, visibilityRaw, isLocalPlusRaw, friendIdsRaw] = await Promise.all([
+        const [userRaw, courtIdRaw, lastVisitedRaw, feedRaw, matchesRaw, localCourtRaw, courtsRaw, visibilityRaw, isLocalPlusRaw, friendIdsRaw, preferredSportRaw, preferredCourtIdRaw] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEYS.currentUser),
           AsyncStorage.getItem(STORAGE_KEYS.checkedInCourtId),
           AsyncStorage.getItem(STORAGE_KEYS.lastVisitedCourtId),
@@ -98,6 +106,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           AsyncStorage.getItem(STORAGE_KEYS.visibility),
           AsyncStorage.getItem(STORAGE_KEYS.isLocalPlus),
           AsyncStorage.getItem(STORAGE_KEYS.friendIds),
+          AsyncStorage.getItem(STORAGE_KEYS.preferredSport),
+          AsyncStorage.getItem(STORAGE_KEYS.preferredCourtId),
         ]);
         if (userRaw) {
           const parsed = JSON.parse(userRaw);
@@ -125,6 +135,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           // Default friends from sample data (Marcus J.)
           const defaultFriends = SAMPLE_PLAYERS[0].friendIds ?? [];
           setFriendIds(defaultFriends);
+        }
+        if (preferredSportRaw) {
+          setPreferredSportState(preferredSportRaw as CourtSport);
+        }
+        if (preferredCourtIdRaw) {
+          setPreferredCourtIdState(preferredCourtIdRaw);
         }
       } catch {}
     })();
@@ -262,6 +278,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const setIsLocalPlus = useCallback(async (v: boolean) => {
     setIsLocalPlusState(v);
     await AsyncStorage.setItem(STORAGE_KEYS.isLocalPlus, String(v));
+  }, []);
+
+  const setPreferredSport = useCallback(async (sport: CourtSport | null) => {
+    setPreferredSportState(sport);
+    if (sport) {
+      await AsyncStorage.setItem(STORAGE_KEYS.preferredSport, sport);
+    } else {
+      await AsyncStorage.removeItem(STORAGE_KEYS.preferredSport);
+    }
+  }, []);
+
+  const setPreferredCourtId = useCallback(async (courtId: string | null) => {
+    setPreferredCourtIdState(courtId);
+    if (courtId) {
+      await AsyncStorage.setItem(STORAGE_KEYS.preferredCourtId, courtId);
+    } else {
+      await AsyncStorage.removeItem(STORAGE_KEYS.preferredCourtId);
+    }
   }, []);
 
   const addFriend = useCallback(async (playerId: string) => {
@@ -419,6 +453,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isLocalPlus,
         visibility,
         friendIds,
+        preferredSport,
+        preferredCourtId,
         checkIn,
         checkOut,
         visitCourt,
@@ -432,6 +468,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setLocalCourt,
         setVisibility,
         setIsLocalPlus,
+        setPreferredSport,
+        setPreferredCourtId,
         addFriend,
         removeFriend,
         isFriend,

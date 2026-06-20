@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors, Radius } from "@/constants/colors";
+import { CourtSport, getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 
@@ -85,7 +86,7 @@ function LocalPlusModal({
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { currentUser, isLocalPlus, setVisibility, visibility } = useApp();
+  const { currentUser, isLocalPlus, setVisibility, visibility, courts, preferredSport, setPreferredSport, preferredCourtId, setPreferredCourtId } = useApp();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
 
@@ -94,6 +95,9 @@ export default function SettingsScreen() {
   const [locationSharing, setLocationSharing] = useState(true);
   const [haptics, setHaptics] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
+
+  const preferredCourt = courts.find((c) => c.id === preferredCourtId);
+  const localCourt = courts.find((c) => c.id === currentUser.courtId);
 
   const handleUpgrade = () => {
     setShowPlusModal(false);
@@ -273,6 +277,83 @@ export default function SettingsScreen() {
                 trackColor={{ false: Colors.mutedDark, true: Colors.accentDim }}
                 thumbColor={darkMode ? Colors.accent : Colors.muted}
               />
+            </View>
+          </View>
+        </View>
+
+        {/* Sport Preferences Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>SPORT PREFERENCES</Text>
+          <View style={styles.sectionCard}>
+            {/* Preferred Sport */}
+            <View style={styles.prefRow}>
+              <View style={styles.prefLeft}>
+                <Ionicons name="basketball-outline" size={18} color={Colors.text} />
+                <View>
+                  <Text style={styles.prefLabel}>PREFERRED SPORT</Text>
+                  <Text style={styles.prefDesc}>Default sport for compete & log game</Text>
+                </View>
+              </View>
+            </View>
+            <View style={styles.prefSportRow}>
+              {(["BASKETBALL", "PICKLEBALL"] as CourtSport[]).map((s) => (
+                <Pressable
+                  key={s}
+                  style={[
+                    styles.prefSportPill,
+                    preferredSport === s && styles.prefSportPillActive,
+                  ]}
+                  onPress={() => setPreferredSport(preferredSport === s ? null : s)}
+                >
+                  <View
+                    style={[
+                      styles.prefSportDot,
+                      { backgroundColor: getSportColor(s) },
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      styles.prefSportText,
+                      preferredSport === s && styles.prefSportTextActive,
+                    ]}
+                  >
+                    {s === "BASKETBALL" ? "BB" : "PB"}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <View style={styles.divider} />
+
+            {/* Preferred Court */}
+            <View style={styles.prefRow}>
+              <View style={styles.prefLeft}>
+                <Ionicons name="location-outline" size={18} color={Colors.text} />
+                <View>
+                  <Text style={styles.prefLabel}>PREFERRED COURT</Text>
+                  <Text style={styles.prefDesc}>Default court for log game</Text>
+                </View>
+              </View>
+            </View>
+            <View style={styles.prefCourtRow}>
+              {courts.map((c) => (
+                <Pressable
+                  key={c.id}
+                  style={[
+                    styles.prefCourtPill,
+                    preferredCourtId === c.id && styles.prefCourtPillActive,
+                  ]}
+                  onPress={() => setPreferredCourtId(preferredCourtId === c.id ? null : c.id)}
+                >
+                  <Text
+                    style={[
+                      styles.prefCourtText,
+                      preferredCourtId === c.id && styles.prefCourtTextActive,
+                    ]}
+                  >
+                    {c.name.toUpperCase()}
+                  </Text>
+                </Pressable>
+              ))}
             </View>
           </View>
         </View>
@@ -571,6 +652,88 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 20,
   },
+
+  // Sport Preferences
+  prefRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 4,
+    gap: 12,
+  },
+  prefLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  prefLabel: {
+    fontFamily: Typography.heading,
+    fontSize: 12,
+    color: Colors.text,
+    letterSpacing: 1,
+  },
+  prefDesc: {
+    fontFamily: Typography.body,
+    fontSize: 11,
+    color: Colors.mutedDark,
+    marginTop: 2,
+  },
+  prefSportRow: {
+    flexDirection: "row",
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  prefSportPill: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+    padding: 10,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.surface,
+    justifyContent: "center",
+  },
+  prefSportPillActive: {
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accentDim,
+  },
+  prefSportDot: { width: 8, height: 8, borderRadius: 4 },
+  prefSportText: {
+    fontFamily: Typography.heading,
+    fontSize: 12,
+    color: Colors.muted,
+    letterSpacing: 1,
+  },
+  prefSportTextActive: { color: Colors.text },
+  prefCourtRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+  },
+  prefCourtPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.surface,
+  },
+  prefCourtPillActive: {
+    borderColor: Colors.text,
+    backgroundColor: Colors.surfaceHigh,
+  },
+  prefCourtText: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    color: Colors.muted,
+  },
+  prefCourtTextActive: { color: Colors.text },
 
   // Modal
   modalOverlay: {

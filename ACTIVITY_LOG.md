@@ -4,6 +4,57 @@ A running record of development decisions, design choices, and implementation no
 
 ---
 
+## Session 3 — UI Fixes, Preferences, Leaderboard Clickability
+
+**Date:** June 20, 2026
+**Status:** Complete — all 6 tasks finished
+
+### What Changed
+
+**Bottom nav fix (T001):**
+- Disabled `NativeTabs` entirely — `TabLayout` always returns `<ClassicTabLayout />`
+- Full-width bar with orange active tint on all platforms (iOS, Android, Web)
+- iOS uses SF Symbols + `BlurView` background; Android/Web uses Feather icons
+
+**Sport/Court preferences (T002):**
+- Added `preferredSport` and `preferredCourtId` to `AppContext`
+- Persisted to `AsyncStorage` with keys `localcheck:preferredSport` and `localcheck:preferredCourtId`
+- Added `setPreferredSport()`, `setPreferredCourtId()` async setters
+- Preferences are nullable (tap to set, tap again to clear)
+
+**Settings UI (T003):**
+- New "SPORT PREFERENCES" section in Settings
+- BB / PB pill toggles for preferred sport
+- Court pills for all saved courts (tap to select/clear)
+- Added below the Profile section, above Preferences
+
+**Compete screen updates (T004):**
+- Leaderboard players are now clickable — navigate to `/player/[id]` on tap
+- Friend badge (green "FRIEND" label) shown on leaderboard rows for friends
+- Scope renamed: "MY LOCAL" → "LOCAL", added "REGIONAL" (3 scopes: GLOBAL/REGIONAL/LOCAL)
+- Default scope: LOCAL (was GLOBAL)
+- Default sport filter: `preferredSport` (was ALL)
+- Sport label: "BB" / "PB" (was "Ball" / "PB")
+- Header subtitle shows local court name when LOCAL scope is active
+
+**Log Game form reorganization (T005):**
+- New order: Court → Sport → Opponent → Score → Notes
+- Default court: `preferredCourtId` (fallback to `localCourtId`)
+- Default sport: `preferredSport`
+- Opponent dropdown: all players (no visibility filter)
+
+**README update (T006):**
+- Complete rewrite of README with all recent features documented
+- Added architecture section for `AppContext` state model
+- Added compete screen documentation (scope, filters, defaults, clickability)
+- Added player profile screen documentation
+- Added settings screen documentation
+- Added navigation section (ClassicTabLayout decision)
+- Added "Agent Onboarding Notes" section (10 rules for future development)
+- Updated design tokens to reflect dark theme + orange accent
+
+---
+
 ## Session 2 — Design Elevation + Mapbox Integration
 
 **Date:** March 29, 2026  

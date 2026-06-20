@@ -145,8 +145,7 @@ function ClassicTabLayout() {
 }
 
 export default function TabLayout() {
-  if (isLiquidGlassAvailable()) {
-    return <NativeTabLayout />;
-  }
+  // Always use ClassicTabLayout for consistent styling across platforms
+  // NativeTabs creates a floating pill nav on iOS which doesn't match our design
   return <ClassicTabLayout />;
 }

@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Platform,
@@ -23,41 +24,58 @@ import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 
 // BACKEND NOTE:
-// Leaderboard → GET /api/v1/leaderboard?sport=&scope=global|local
+// Leaderboard → GET /api/v1/leaderboard?sport=&scope=global|local|regional
 // Log game → POST /api/v1/matches { courtId, opponentId, score, sport }
 
 type Tab = "LEADERBOARD" | "LOG GAME";
-type Scope = "GLOBAL" | "MY LOCAL";
+type Scope = "GLOBAL" | "REGIONAL" | "LOCAL";
 const SPORT_TABS: (CourtSport | "ALL")[] = ["ALL", "BASKETBALL", "PICKLEBALL"];
 
 export default function CompeteScreen() {
-  const { courts, localCourtId, currentUser, isLocalPlus, visibility } = useApp();
+  const {
+    courts,
+    localCourtId,
+    currentUser,
+    isLocalPlus,
+    visibility,
+    preferredSport,
+    preferredCourtId,
+  } = useApp();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
 
   const [tab, setTab] = useState<Tab>("LEADERBOARD");
-  const [scope, setScope] = useState<Scope>("GLOBAL");
-  const [sportFilter, setSportFilter] = useState<CourtSport | "ALL">("ALL");
+  const [scope, setScope] = useState<Scope>("LOCAL");
+  const [sportFilter, setSportFilter] = useState<CourtSport | "ALL">(
+    preferredSport ?? "ALL"
+  );
 
   const localCourt = localCourtId ? courts.find((c) => c.id === localCourtId) ?? null : null;
 
-  // Only LocalPlus users with public visibility show on public leaderboard
-  // Free users can see where they'd fall, but aren't listed publicly
   const leaderboardPlayers = SAMPLE_PLAYERS.filter((p) => {
     const sportMatch = sportFilter === "ALL" || p.sport === sportFilter;
     const scopeMatch =
-      scope === "GLOBAL" ? true : localCourtId ? p.courtId === localCourtId : true;
-    // Only public + LocalPlus users appear on public leaderboard
-    // Private users never appear, friends-only users appear only in local scope
+      scope === "GLOBAL"
+        ? true
+        : scope === "LOCAL"
+        ? localCourtId
+          ? p.courtId === localCourtId
+          : true
+        : true; // regional - same as all for now
     const isVisible = p.visibility === "public" && p.isLocalPlus;
     return sportMatch && scopeMatch && isVisible;
   }).sort((a, b) => b.elo - a.elo);
 
-  // Compute my rank among all players (including hidden) to show where I'd fall
   const allPlayersFiltered = SAMPLE_PLAYERS.filter((p) => {
     const sportMatch = sportFilter === "ALL" || p.sport === sportFilter;
     const scopeMatch =
-      scope === "GLOBAL" ? true : localCourtId ? p.courtId === localCourtId : true;
+      scope === "GLOBAL"
+        ? true
+        : scope === "LOCAL"
+        ? localCourtId
+          ? p.courtId === localCourtId
+          : true
+        : true;
     return sportMatch && scopeMatch;
   }).sort((a, b) => b.elo - a.elo);
 
@@ -72,8 +90,12 @@ export default function CompeteScreen() {
         <View>
           <Text style={styles.headerTitle}>COMPETE</Text>
           <Text style={styles.headerSub}>
-            {scope === "MY LOCAL" && localCourt
+            {scope === "LOCAL" && localCourt
               ? localCourt.name.toUpperCase()
+              : scope === "LOCAL"
+              ? "LOCAL RANKINGS"
+              : scope === "REGIONAL"
+              ? "REGIONAL RANKINGS"
               : "GLOBAL RANKINGS"}
           </Text>
         </View>
@@ -116,7 +138,14 @@ export default function CompeteScreen() {
           bottom={bottom}
         />
       ) : (
-        <LogGameView currentUser={currentUser} courts={courts} bottom={bottom} />
+        <LogGameView
+          currentUser={currentUser}
+          courts={courts}
+          bottom={bottom}
+          preferredSport={preferredSport}
+          preferredCourtId={preferredCourtId}
+          localCourtId={localCourtId}
+        />
       )}
     </View>
   );
@@ -147,6 +176,9 @@ function LeaderboardView({
   localCourt: ReturnType<typeof Array.prototype.find> | null;
   bottom: number;
 }) {
+  const router = useRouter();
+  const { isFriend } = useApp();
+
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
@@ -157,7 +189,7 @@ function LeaderboardView({
       {/* Scope + sport filters */}
       <View style={styles.filtersRow}>
         <View style={styles.scopeToggle}>
-          {(["GLOBAL", "MY LOCAL"] as Scope[]).map((s) => (
+          {(["GLOBAL", "REGIONAL", "LOCAL"] as Scope[]).map((s) => (
             <Pressable
               key={s}
               style={[styles.scopeBtn, scope === s && styles.scopeBtnActive]}
@@ -186,7 +218,7 @@ function LeaderboardView({
                   sportFilter === sp && styles.sportPillTextActive,
                 ]}
               >
-                {sp === "ALL" ? "All" : sp === "BASKETBALL" ? "Ball" : "PB"}
+                {sp === "ALL" ? "All" : sp === "BASKETBALL" ? "BB" : "PB"}
               </Text>
             </Pressable>
           ))}
@@ -194,7 +226,7 @@ function LeaderboardView({
       </View>
 
       {/* Scope label */}
-      {scope === "MY LOCAL" && localCourt && (
+      {scope === "LOCAL" && localCourt && (
         <View style={styles.scopeLabel}>
           <View
             style={[
@@ -217,9 +249,10 @@ function LeaderboardView({
             const isTop3 = index < 3;
             const sportColor = player.sport ? getSportColor(player.sport) : Colors.muted;
             return (
-              <View
+              <Pressable
                 key={player.id}
                 style={[styles.leaderRow, index === 0 && styles.leaderRowFirst]}
+                onPress={() => router.push(`/player/${player.id}`)}
               >
                 <Text style={[styles.rank, isTop3 && styles.rankTop]}>
                   {index + 1}
@@ -244,8 +277,13 @@ function LeaderboardView({
                 <View style={styles.eloBlock}>
                   <Text style={styles.eloVal}>{player.elo}</Text>
                   <Text style={styles.eloLbl}>ELO</Text>
+                  {isFriend(player.id) && (
+                    <View style={styles.leaderFriendBadge}>
+                      <Text style={styles.leaderFriendBadgeText}>FRIEND</Text>
+                    </View>
+                  )}
                 </View>
-              </View>
+              </Pressable>
             );
           })}
           {/* Show "Your Position" indicator if user is ranked but not visible in leaderboard */}
@@ -281,19 +319,30 @@ function LogGameView({
   currentUser,
   courts,
   bottom,
+  preferredSport,
+  preferredCourtId,
+  localCourtId,
 }: {
   currentUser: ReturnType<typeof useApp>["currentUser"];
   courts: ReturnType<typeof useApp>["courts"];
   bottom: number;
+  preferredSport: CourtSport | null;
+  preferredCourtId: string | null;
+  localCourtId: string | null;
 }) {
   const { isFriend, getFriendsList } = useApp();
+
+  // Default court: preferredCourtId > localCourtId > empty
+  const defaultCourtId = preferredCourtId ?? localCourtId ?? "";
+  const defaultSport = preferredSport ?? "";
+
   const [form, setForm] = useState<GameLog>({
-    sport: "",
+    sport: defaultSport,
     myScore: "",
     theirScore: "",
     opponentName: "",
     opponentId: "",
-    courtId: "",
+    courtId: defaultCourtId,
     note: "",
   });
   const [submitted, setSubmitted] = useState(false);
@@ -314,10 +363,17 @@ function LogGameView({
 
   const handleSubmit = () => {
     if (!canSubmit) return;
-    // BACKEND NOTE: POST /api/v1/matches { sport, myScore, theirScore, opponentName, opponentId, courtId }
     setSubmitted(true);
     setTimeout(() => setSubmitted(false), 3000);
-    setForm({ sport: "", myScore: "", theirScore: "", opponentName: "", opponentId: "", courtId: "", note: "" });
+    setForm({
+      sport: defaultSport,
+      myScore: "",
+      theirScore: "",
+      opponentName: "",
+      opponentId: "",
+      courtId: defaultCourtId,
+      note: "",
+    });
   };
 
   // Opponent typeahead
@@ -365,6 +421,24 @@ function LogGameView({
       }}
       keyboardShouldPersistTaps="handled"
     >
+      {/* Court */}
+      <View style={styles.fieldGroup}>
+        <Text style={styles.fieldLabel}>COURT</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.courtPills}>
+          {courts.map((c) => (
+            <Pressable
+              key={c.id}
+              style={[styles.courtPill, form.courtId === c.id && styles.courtPillActive]}
+              onPress={() => setForm((f) => ({ ...f, courtId: c.id }))}
+            >
+              <Text style={[styles.courtPillText, form.courtId === c.id && styles.courtPillTextActive]}>
+                {c.name}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
       {/* Sport */}
       <View style={styles.fieldGroup}>
         <Text style={styles.fieldLabel}>SPORT</Text>
@@ -392,51 +466,6 @@ function LogGameView({
             </Pressable>
           ))}
         </View>
-      </View>
-
-      {/* Score */}
-      <View style={styles.fieldGroup}>
-        <Text style={styles.fieldLabel}>FINAL SCORE</Text>
-        <View style={styles.scoreRow}>
-          <View style={styles.scoreBlock}>
-            <Text style={styles.scorePlayerLabel}>{currentUser.name.split(" ")[0].toUpperCase()}</Text>
-            <TextInput
-              style={[
-                styles.scoreInput,
-                isWin && styles.scoreInputWin,
-                isLoss && styles.scoreInputLoss,
-              ]}
-              value={form.myScore}
-              onChangeText={(v) => setForm((f) => ({ ...f, myScore: v.replace(/\D/g, "") }))}
-              keyboardType="number-pad"
-              maxLength={3}
-              placeholder="—"
-              placeholderTextColor={Colors.mutedDark}
-            />
-          </View>
-          <Text style={styles.scoreDash}>:</Text>
-          <View style={styles.scoreBlock}>
-            <Text style={styles.scorePlayerLabel}>OPPONENT</Text>
-            <TextInput
-              style={[
-                styles.scoreInput,
-                isLoss && styles.scoreInputWin,
-                isWin && styles.scoreInputLoss,
-              ]}
-              value={form.theirScore}
-              onChangeText={(v) => setForm((f) => ({ ...f, theirScore: v.replace(/\D/g, "") }))}
-              keyboardType="number-pad"
-              maxLength={3}
-              placeholder="—"
-              placeholderTextColor={Colors.mutedDark}
-            />
-          </View>
-        </View>
-        {(isWin || isLoss) && (
-          <Text style={[styles.resultHint, { color: isWin ? Colors.win : Colors.loss }]}>
-            {isWin ? "WIN — POSITIVE ELO CHANGE" : "LOSS — NEGATIVE ELO CHANGE"}
-          </Text>
-        )}
       </View>
 
       {/* Opponent */}
@@ -509,22 +538,49 @@ function LogGameView({
         )}
       </View>
 
-      {/* Court */}
+      {/* Score */}
       <View style={styles.fieldGroup}>
-        <Text style={styles.fieldLabel}>COURT</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.courtPills}>
-          {courts.map((c) => (
-            <Pressable
-              key={c.id}
-              style={[styles.courtPill, form.courtId === c.id && styles.courtPillActive]}
-              onPress={() => setForm((f) => ({ ...f, courtId: c.id }))}
-            >
-              <Text style={[styles.courtPillText, form.courtId === c.id && styles.courtPillTextActive]}>
-                {c.name}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
+        <Text style={styles.fieldLabel}>FINAL SCORE</Text>
+        <View style={styles.scoreRow}>
+          <View style={styles.scoreBlock}>
+            <Text style={styles.scorePlayerLabel}>{currentUser.name.split(" ")[0].toUpperCase()}</Text>
+            <TextInput
+              style={[
+                styles.scoreInput,
+                isWin && styles.scoreInputWin,
+                isLoss && styles.scoreInputLoss,
+              ]}
+              value={form.myScore}
+              onChangeText={(v) => setForm((f) => ({ ...f, myScore: v.replace(/\D/g, "") }))}
+              keyboardType="number-pad"
+              maxLength={3}
+              placeholder="—"
+              placeholderTextColor={Colors.mutedDark}
+            />
+          </View>
+          <Text style={styles.scoreDash}>:</Text>
+          <View style={styles.scoreBlock}>
+            <Text style={styles.scorePlayerLabel}>OPPONENT</Text>
+            <TextInput
+              style={[
+                styles.scoreInput,
+                isLoss && styles.scoreInputWin,
+                isWin && styles.scoreInputLoss,
+              ]}
+              value={form.theirScore}
+              onChangeText={(v) => setForm((f) => ({ ...f, theirScore: v.replace(/\D/g, "") }))}
+              keyboardType="number-pad"
+              maxLength={3}
+              placeholder="—"
+              placeholderTextColor={Colors.mutedDark}
+            />
+          </View>
+        </View>
+        {(isWin || isLoss) && (
+          <Text style={[styles.resultHint, { color: isWin ? Colors.win : Colors.loss }]}>
+            {isWin ? "WIN — POSITIVE ELO CHANGE" : "LOSS — NEGATIVE ELO CHANGE"}
+          </Text>
+        )}
       </View>
 
       {/* Note */}
@@ -785,6 +841,19 @@ const styles = StyleSheet.create({
     color: Colors.muted,
     letterSpacing: 2,
     textTransform: "uppercase" as const,
+  },
+  leaderFriendBadge: {
+    marginTop: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderWidth: 0.5,
+    borderColor: Colors.win,
+  },
+  leaderFriendBadgeText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 7,
+    color: Colors.win,
+    letterSpacing: 0.5,
   },
   emptyState: {
     paddingVertical: 64,
