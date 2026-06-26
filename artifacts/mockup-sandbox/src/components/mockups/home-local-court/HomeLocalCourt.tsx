@@ -63,9 +63,14 @@ export function HomeLocalCourt() {
             <span className="text-xs text-white/70 font-semibold">72° ☀</span>
           </div>
 
-          <h1 className="font-['Oswald'] font-bold text-[32px] leading-none mb-1 uppercase tracking-wide">
-            RUCKER PARK
-          </h1>
+          <div className="flex justify-between items-start mb-1">
+            <h1 className="font-['Oswald'] font-bold text-[32px] leading-none uppercase tracking-wide">
+              RUCKER PARK
+            </h1>
+            <button className="text-[10px] font-bold text-white/50 uppercase tracking-wider flex items-center hover:text-[#DFFF00] transition-colors mt-2">
+              VIEW <ChevronRight className="w-3 h-3 ml-0.5" />
+            </button>
+          </div>
           <p className="text-sm text-white/50 mb-4">Harlem · New York</p>
 
           <div className="flex overflow-x-auto no-scrollbar space-x-2 pb-2 -mx-5 px-5">
@@ -78,9 +83,11 @@ export function HomeLocalCourt() {
         </div>
 
         {/* Check In Button */}
-        <button className="w-full bg-[#DFFF00] text-black font-['Oswald'] font-bold text-xl py-4 uppercase tracking-widest hover:bg-[#c9e600] transition-colors active:scale-[0.98]">
-          CHECK IN
-        </button>
+        <div className="px-4 py-3 bg-[#111111] border-b border-white/15">
+          <button className="w-full bg-[#DFFF00] text-black font-['Oswald'] font-bold text-xl py-4 uppercase tracking-widest hover:bg-[#c9e600] transition-colors active:scale-[0.98]">
+            CHECK IN
+          </button>
+        </div>
 
         {/* Who's Here */}
         <div className="p-5 border-b border-white/15">
