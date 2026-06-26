@@ -88,6 +88,7 @@ export default function CompeteScreen() {
       {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: topPad + 12 }]}>
         <View>
+          <Text style={styles.headerEyebrow}>LOCALCHECK</Text>
           <Text style={styles.headerTitle}>COMPETE</Text>
           <Text style={styles.headerSub}>
             {scope === "LOCAL" && localCourt
@@ -189,7 +190,7 @@ function LeaderboardView({
       {/* Scope + sport filters */}
       <View style={styles.filtersRow}>
         <View style={styles.scopeToggle}>
-          {(["GLOBAL", "REGIONAL", "LOCAL"] as Scope[]).map((s) => (
+          {(["LOCAL", "REGIONAL", "GLOBAL"] as Scope[]).map((s) => (
             <Pressable
               key={s}
               style={[styles.scopeBtn, scope === s && styles.scopeBtnActive]}
@@ -257,18 +258,25 @@ function LeaderboardView({
                 <Text style={[styles.rank, isTop3 && styles.rankTop]}>
                   {index + 1}
                 </Text>
-                <PlayerAvatar initials={player.avatar} size={40} accent={index === 0} />
+                <PlayerAvatar initials={player.avatar} size={36} accent={index === 0} />
                 <View style={styles.playerInfo}>
-                  <Text style={styles.playerName}>{player.name.toUpperCase()}</Text>
+                  <View style={styles.playerNameRow}>
+                    <Text style={styles.playerName} numberOfLines={1}>{player.name.toUpperCase()}</Text>
+                    {isFriend(player.id) && (
+                      <View style={styles.leaderFriendBadge}>
+                        <Text style={styles.leaderFriendBadgeText}>FRIEND</Text>
+                      </View>
+                    )}
+                  </View>
                   <View style={styles.playerBadges}>
+                    {player.sport && (
+                      <Text style={[styles.sportText, { color: sportColor }]}>
+                        {player.sport === "BASKETBALL" ? "BB" : "PB"}
+                      </Text>
+                    )}
                     <Text style={[styles.tierText, { color: tierColor }]}>
                       {player.tier}
                     </Text>
-                    {player.sport && (
-                      <Text style={[styles.sportText, { color: sportColor }]}>
-                        {player.sport}
-                      </Text>
-                    )}
                     <Text style={styles.wlText}>
                       {player.wins}W · {player.losses}L
                     </Text>
@@ -277,11 +285,6 @@ function LeaderboardView({
                 <View style={styles.eloBlock}>
                   <Text style={styles.eloVal}>{player.elo}</Text>
                   <Text style={styles.eloLbl}>ELO</Text>
-                  {isFriend(player.id) && (
-                    <View style={styles.leaderFriendBadge}>
-                      <Text style={styles.leaderFriendBadgeText}>FRIEND</Text>
-                    </View>
-                  )}
                 </View>
               </Pressable>
             );
@@ -625,6 +628,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,
   },
+  headerEyebrow: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.accent,
+    letterSpacing: 2.5,
+    textTransform: "uppercase" as const,
+    marginBottom: 2,
+  },
   headerTitle: {
     fontFamily: Typography.heading,
     fontSize: 32,
@@ -803,12 +814,18 @@ const styles = StyleSheet.create({
   },
   rankTop: { color: Colors.text, fontSize: 22 },
   playerInfo: { flex: 1 },
+  playerNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 3,
+  },
   playerName: {
     fontFamily: Typography.heading,
     fontSize: 14,
     color: Colors.text,
     letterSpacing: 0.3,
-    marginBottom: 3,
+    flex: 1,
   },
   playerBadges: { flexDirection: "row", gap: 8, alignItems: "center", flexWrap: "wrap" },
   tierText: {
@@ -843,11 +860,11 @@ const styles = StyleSheet.create({
     textTransform: "uppercase" as const,
   },
   leaderFriendBadge: {
-    marginTop: 4,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
     borderWidth: 0.5,
     borderColor: Colors.win,
+    borderRadius: 2,
   },
   leaderFriendBadgeText: {
     fontFamily: Typography.bodyBold,

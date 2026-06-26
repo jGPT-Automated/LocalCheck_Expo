@@ -1,7 +1,8 @@
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React from "react";
+import React, { useRef, useState } from "react";
 import {
+  Animated,
   Platform,
   Pressable,
   ScrollView,
@@ -20,13 +21,24 @@ import { getSportColor, SAMPLE_PLAYERS, SAMPLE_RUNS } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 
-// BACKEND NOTE: weather stub → GET /api/v1/weather?lat=&lng= (or device-side WeatherKit / OpenWeather)
 const WEATHER_STUB = "72° ☀";
+
+function getSportShort(sport?: string | null): string {
+  if (!sport) return "";
+  if (sport === "BASKETBALL") return "BB";
+  if (sport === "PICKLEBALL") return "PB";
+  return sport.slice(0, 2);
+}
+
+const COLLAPSE_THRESHOLD = 100;
 
 export function HomeScreen() {
   const { courts, localCourtId, checkedInCourtId, checkIn, checkOut, feed, isFriend } = useApp();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const localCourt = localCourtId ? courts.find((c) => c.id === localCourtId) ?? null : null;
   const isCheckedIn = checkedInCourtId === localCourt?.id;
@@ -36,7 +48,8 @@ export function HomeScreen() {
   }
 
   const sportColor = getSportColor(localCourt.sport);
-  // Sort active players: friends first, then by ELO
+  const sportShort = getSportShort(localCourt.sport);
+
   const rawPlayers = SAMPLE_PLAYERS.filter((p) => p.courtId === localCourt.id);
   const activePlayers = rawPlayers
     .sort((a, b) => {
@@ -75,31 +88,71 @@ export function HomeScreen() {
     { label: "ADDED", value: localCourt.addedDate ?? "—" },
   ];
 
+  const collapsedOpacity = scrollY.interpolate({
+    inputRange: [COLLAPSE_THRESHOLD - 20, COLLAPSE_THRESHOLD + 20],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
+  const expandedOpacity = scrollY.interpolate({
+    inputRange: [0, COLLAPSE_THRESHOLD - 20],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+
   return (
     <View style={styles.container}>
-      {/* ── Header ── */}
-      <View style={[styles.header, { paddingTop: topPad + 12 }]}>
-        <View>
-          <Text style={styles.headerEyebrow}>HOME</Text>
-          <Text style={styles.headerCourtName} numberOfLines={1}>
-            {localCourt.name.toUpperCase()}
-          </Text>
+      {/* ── Sticky Collapsed Header (appears on scroll) ── */}
+      <Animated.View
+        style={[styles.collapsedHeader, { paddingTop: topPad, opacity: collapsedOpacity }]}
+        pointerEvents={isCollapsed ? "auto" : "none"}
+      >
+        <Text style={styles.collapsedCourtName} numberOfLines={1}>
+          {localCourt.name.toUpperCase()}
+        </Text>
+        {localCourt.activeCount > 0 ? (
+          <View style={styles.collapsedCenter}>
+            <LivePulse size={4} color={Colors.accent} style={{ marginRight: 4 }} />
+            <Text style={styles.collapsedActiveCount}>{localCourt.activeCount}</Text>
+          </View>
+        ) : (
+          <View style={styles.collapsedCenter} />
+        )}
+        <View style={styles.collapsedRight}>
+          <Text style={styles.collapsedWeather}>{WEATHER_STUB}</Text>
+          {sportShort ? (
+            <View style={[styles.collapsedSportTag, { borderColor: sportColor }]}>
+              <Text style={[styles.collapsedSportText, { color: sportColor }]}>{sportShort}</Text>
+            </View>
+          ) : null}
         </View>
-        <View style={styles.headerRight}>
-          <Text style={styles.weatherText}>{WEATHER_STUB}</Text>
-          <Pressable
-            hitSlop={12}
-            onPress={() => router.push(`/court/${localCourt.id}`)}
-            style={styles.settingsBtn}
-          >
-            <Feather name="settings" size={17} color={Colors.muted} />
-          </Pressable>
-        </View>
-      </View>
+      </Animated.View>
 
-      <ScrollView
+      {/* ── Expanded Top Header ── */}
+      <Animated.View
+        style={[styles.header, { paddingTop: topPad + 12, opacity: expandedOpacity }]}
+      >
+        <View>
+          <Text style={styles.headerEyebrow}>LOCALCHECK</Text>
+          <Text style={styles.headerBrand}>HOME</Text>
+        </View>
+        <Text style={styles.weatherText}>{WEATHER_STUB}</Text>
+      </Animated.View>
+
+      <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 84 : bottom + 96 }}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          {
+            useNativeDriver: true,
+            listener: (e: any) => {
+              const y = e.nativeEvent.contentOffset.y;
+              setIsCollapsed(y > COLLAPSE_THRESHOLD);
+            },
+          }
+        )}
       >
         {/* ── Court Hero ── */}
         <View style={styles.heroCard}>
@@ -122,7 +175,6 @@ export function HomeScreen() {
             {localCourt.neighborhood} · {localCourt.city}
           </Text>
 
-          {/* Tags */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -308,7 +360,7 @@ export function HomeScreen() {
             })
           )}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -317,7 +369,10 @@ function NoCourtState({ topPad }: { topPad: number }) {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: topPad + 12 }]}>
-        <Text style={styles.headerEyebrow}>HOME</Text>
+        <View>
+          <Text style={styles.headerEyebrow}>LOCALCHECK</Text>
+          <Text style={styles.headerBrand}>HOME</Text>
+        </View>
       </View>
       <View style={styles.noCourtContainer}>
         <Feather name="map-pin" size={28} color={Colors.mutedDark} style={styles.noCourtIcon} />
@@ -339,6 +394,65 @@ function NoCourtState({ topPad }: { topPad: number }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
 
+  // ── Collapsed sticky header ──
+  collapsedHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+    backgroundColor: "rgba(13,13,16,0.94)",
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.border,
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  collapsedCourtName: {
+    fontFamily: Typography.heading,
+    fontSize: 14,
+    color: Colors.white,
+    letterSpacing: 0.5,
+    flex: 1,
+  },
+  collapsedCenter: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  collapsedActiveCount: {
+    fontFamily: Typography.heading,
+    fontSize: 16,
+    color: Colors.accent,
+    letterSpacing: 0.5,
+  },
+  collapsedRight: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 8,
+  },
+  collapsedWeather: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    color: Colors.muted,
+  },
+  collapsedSportTag: {
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  collapsedSportText: {
+    fontFamily: Typography.heading,
+    fontSize: 10,
+    letterSpacing: 1,
+  },
+
+  // ── Expanded header ──
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -352,31 +466,23 @@ const styles = StyleSheet.create({
   headerEyebrow: {
     fontFamily: Typography.bodyBold,
     fontSize: 9,
-    color: Colors.muted,
+    color: Colors.accent,
     letterSpacing: 2.5,
     textTransform: "uppercase" as const,
     marginBottom: 3,
   },
-  headerCourtName: {
+  headerBrand: {
     fontFamily: Typography.heading,
-    fontSize: 20,
+    fontSize: 32,
     color: Colors.text,
-    letterSpacing: 0.3,
-    maxWidth: 220,
-  },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingBottom: 2,
+    letterSpacing: 0.5,
+    lineHeight: 34,
   },
   weatherText: {
     fontFamily: Typography.bodyMedium,
     fontSize: 12,
     color: Colors.muted,
-  },
-  settingsBtn: {
-    padding: 2,
+    paddingBottom: 4,
   },
 
   // ── Hero ──
@@ -727,43 +833,42 @@ const styles = StyleSheet.create({
     color: Colors.muted,
     letterSpacing: 1,
     textTransform: "uppercase" as const,
-    paddingVertical: 12,
   },
 
-  // ── No Court State ──
+  // ── No Court ──
   noCourtContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 40,
+    paddingHorizontal: 40,
   },
-  noCourtIcon: { marginBottom: 20 },
+  noCourtIcon: { marginBottom: 16 },
   noCourtTitle: {
     fontFamily: Typography.heading,
-    fontSize: 22,
+    fontSize: 18,
     color: Colors.text,
-    letterSpacing: 2,
-    textAlign: "center",
+    letterSpacing: 3,
     marginBottom: 10,
+    textAlign: "center",
   },
   noCourtSub: {
     fontFamily: Typography.body,
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.muted,
     textAlign: "center",
-    lineHeight: 22,
-    marginBottom: 28,
+    lineHeight: 20,
+    marginBottom: 24,
   },
   findCourtBtn: {
-    backgroundColor: Colors.accent,
+    borderWidth: 1,
+    borderColor: Colors.accent,
     paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: Radius.xs,
+    paddingVertical: 12,
   },
   findCourtBtnText: {
     fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.black,
+    fontSize: 13,
+    color: Colors.accent,
     letterSpacing: 2,
   },
 });

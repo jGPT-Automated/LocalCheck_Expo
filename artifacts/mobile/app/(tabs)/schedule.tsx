@@ -61,6 +61,7 @@ export default function ScheduleScreen() {
       {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: topPad + 12 }]}>
         <View>
+          <Text style={styles.headerEyebrow}>LOCALCHECK</Text>
           <Text style={styles.headerTitle}>SCHEDULE</Text>
           <Text style={styles.headerSub}>YOUR UPCOMING RUNS</Text>
         </View>
@@ -227,6 +228,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,
+  },
+  headerEyebrow: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.accent,
+    letterSpacing: 2.5,
+    textTransform: "uppercase" as const,
+    marginBottom: 2,
   },
   headerTitle: {
     fontFamily: Typography.heading,

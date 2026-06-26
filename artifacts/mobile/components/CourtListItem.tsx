@@ -12,9 +12,16 @@ interface CourtListItemProps {
   isCheckedIn?: boolean;
 }
 
+function getSportShort(sport: string): string {
+  if (sport === "BASKETBALL") return "BB";
+  if (sport === "PICKLEBALL") return "PB";
+  return sport.slice(0, 2);
+}
+
 export function CourtListItem({ court, onPress, isCheckedIn }: CourtListItemProps) {
   const isActive = court.activeCount > 0;
   const sportColor = getSportColor(court.sport);
+  const sportShort = getSportShort(court.sport);
 
   return (
     <Pressable
@@ -24,19 +31,20 @@ export function CourtListItem({ court, onPress, isCheckedIn }: CourtListItemProp
     >
       <View style={[styles.sportBar, { backgroundColor: sportColor }]} />
       <View style={styles.body}>
+        {/* Left: name + neighborhood */}
         <View style={styles.left}>
           <Text style={styles.name}>{court.name}</Text>
-          <Text style={styles.meta}>{court.neighborhood} · {court.sport}</Text>
-          <View style={styles.badges}>
-            <Text style={styles.surface}>{court.surface}</Text>
-            {isCheckedIn && (
-              <View style={styles.checkedInBadge}>
-                <Text style={styles.checkedInText}>HERE</Text>
-              </View>
-            )}
-          </View>
+          <Text style={styles.meta}>{court.neighborhood}</Text>
+          {isCheckedIn && (
+            <View style={styles.checkedInBadge}>
+              <Text style={styles.checkedInText}>HERE</Text>
+            </View>
+          )}
+          <Text style={styles.surface}>{court.surface}</Text>
         </View>
-        <View style={styles.right}>
+
+        {/* Center: active count */}
+        <View style={styles.center}>
           {isActive ? (
             <>
               <LivePulse size={5} color={Colors.accent} style={{ marginBottom: 4 }} />
@@ -46,6 +54,13 @@ export function CourtListItem({ court, onPress, isCheckedIn }: CourtListItemProp
           ) : (
             <Text style={styles.emptyLabel}>EMPTY</Text>
           )}
+        </View>
+
+        {/* Right: sport tag */}
+        <View style={styles.right}>
+          <View style={[styles.sportTag, { borderColor: sportColor }]}>
+            <Text style={[styles.sportTagText, { color: sportColor }]}>{sportShort}</Text>
+          </View>
         </View>
       </View>
     </Pressable>
@@ -69,8 +84,8 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
     gap: 8,
   },
   left: { flex: 1 },
@@ -84,26 +99,24 @@ const styles = StyleSheet.create({
     fontFamily: Typography.body,
     fontSize: 12,
     color: Colors.muted,
-    marginTop: 3,
+    marginTop: 2,
   },
-  badges: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 7 },
   surface: {
     fontFamily: Typography.bodyMedium,
     fontSize: 9,
     color: Colors.muted,
     letterSpacing: 1,
     textTransform: "uppercase" as const,
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    borderRadius: Radius.xs,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    marginTop: 5,
   },
   checkedInBadge: {
+    alignSelf: "flex-start",
     backgroundColor: Colors.accent,
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: Radius.xs,
+    marginTop: 5,
+    marginBottom: 2,
   },
   checkedInText: {
     fontFamily: Typography.bodyBold,
@@ -112,8 +125,17 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     textTransform: "uppercase" as const,
   },
-  right: { alignItems: "center", minWidth: 52 },
-  activeCount: { fontFamily: Typography.heading, fontSize: 28, color: Colors.text, lineHeight: 30 },
+  center: {
+    alignItems: "center",
+    minWidth: 52,
+    paddingHorizontal: 4,
+  },
+  activeCount: {
+    fontFamily: Typography.heading,
+    fontSize: 28,
+    color: Colors.text,
+    lineHeight: 30,
+  },
   activeLabel: {
     fontFamily: Typography.bodyMedium,
     fontSize: 8,
@@ -127,5 +149,22 @@ const styles = StyleSheet.create({
     color: Colors.mutedDark,
     letterSpacing: 1.5,
     textTransform: "uppercase" as const,
+  },
+  right: {
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 36,
+  },
+  sportTag: {
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: Radius.xs,
+    alignItems: "center",
+  },
+  sportTagText: {
+    fontFamily: Typography.heading,
+    fontSize: 11,
+    letterSpacing: 1,
   },
 });

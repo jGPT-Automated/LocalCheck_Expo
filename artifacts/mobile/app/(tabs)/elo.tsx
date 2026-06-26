@@ -186,16 +186,13 @@ export default function EloScreen() {
                 <Text style={styles.memberValue}>{memberDays}</Text>
               </View>
             </View>
-            <View style={{ alignItems: "flex-end", gap: 6 }}>
-              <PlayerAvatar initials={currentUser.avatar} size={44} />
-              <View style={{ flexDirection: "row", gap: 8 }}>
-                <Pressable style={styles.iconBtn} hitSlop={8} onPress={() => router.push("/friends")}>
-                  <Ionicons name="people-outline" size={18} color={Colors.muted} />
-                </Pressable>
-                <Pressable style={styles.iconBtn} hitSlop={8} onPress={() => router.push("/settings")}>
-                  <Ionicons name="settings-outline" size={18} color={Colors.muted} />
-                </Pressable>
-              </View>
+            <View style={{ flexDirection: "row", gap: 8, alignItems: "flex-start" }}>
+              <Pressable style={styles.iconBtn} hitSlop={8} onPress={() => router.push("/friends")}>
+                <Ionicons name="people-outline" size={18} color={Colors.muted} />
+              </Pressable>
+              <Pressable style={styles.iconBtn} hitSlop={8} onPress={() => router.push("/settings")}>
+                <Ionicons name="settings-outline" size={18} color={Colors.muted} />
+              </Pressable>
             </View>
           </View>
 
