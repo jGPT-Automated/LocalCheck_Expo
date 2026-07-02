@@ -19,6 +19,7 @@ import { Colors, Radius } from "@/constants/colors";
 import { CourtSport, getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
 
 type Visibility = "public" | "friends" | "private";
 
@@ -87,6 +88,7 @@ function LocalPlusModal({
 export default function SettingsScreen() {
   const router = useRouter();
   const { currentUser, isLocalPlus, setVisibility, visibility, courts, preferredSport, setPreferredSport, preferredCourtId, setPreferredCourtId } = useApp();
+  const { user, profile, signOut } = useAuth();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
 
@@ -108,7 +110,14 @@ export default function SettingsScreen() {
   const handleLogout = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
-      { text: "Log Out", style: "destructive", onPress: () => router.replace("/") },
+      {
+        text: "Log Out",
+        style: "destructive",
+        onPress: async () => {
+          await signOut();
+          router.push("/auth");
+        },
+      },
     ]);
   };
 
@@ -362,6 +371,21 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>ACCOUNT</Text>
           <View style={styles.sectionCard}>
+            <Pressable style={styles.actionRow} onPress={() => router.push("/auth")}>
+              <View style={styles.actionLeft}>
+                <Ionicons name="person-circle-outline" size={18} color={Colors.text} />
+                <View>
+                  <Text style={styles.actionLabel}>{user ? "MANAGE ACCOUNT" : "SIGN IN"}</Text>
+                  {user && (
+                    <Text style={[styles.actionLabel, { fontSize: 10, color: Colors.muted, letterSpacing: 0.5 }]}>
+                      {profile?.display_name ?? user.email}
+                    </Text>
+                  )}
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={Colors.muted} />
+            </Pressable>
+            <View style={styles.divider} />
             <Pressable style={styles.actionRow}>
               <View style={styles.actionLeft}>
                 <Ionicons name="shield-outline" size={18} color={Colors.text} />

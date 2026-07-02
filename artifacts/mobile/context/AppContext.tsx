@@ -120,9 +120,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (matchesRaw) setMatches(JSON.parse(matchesRaw));
         if (localCourtRaw) setLocalCourtId(localCourtRaw);
 
-        // Try loading courts from Supabase; merge user-added courts on top
+        // Load courts from Supabase; never fall back to the 59k-row CSV sample data
         const remoteCourts = await fetchCourtsFromSupabase();
-        const baseCourts = remoteCourts ?? SAMPLE_COURTS;
+        const baseCourts = remoteCourts ?? [];
         if (courtsRaw) {
           const saved: Court[] = JSON.parse(courtsRaw);
           const baseIds = new Set(baseCourts.map((c) => c.id));

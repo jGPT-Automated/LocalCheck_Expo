@@ -13,16 +13,24 @@ import { supabase } from "@/lib/supabase";
 
 import type { Session, User } from "@supabase/supabase-js";
 
+// Matches the actual `profiles` table schema
 export interface UserProfile {
   id: string;
-  display_name: string | null;
+  email: string | null;
+  display_name: string;
+  username: string;
   avatar_url: string | null;
-  elo: number;
+  elo_rating: number;
   wins: number;
   losses: number;
-  check_ins: number;
-  tier: string;
+  total_court_time_minutes: number;
+  apple_private_email: boolean;
+  push_notifications_enabled: boolean;
+  check_in_reminders_enabled: boolean;
+  game_alerts_enabled: boolean;
+  local_court_id: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 interface AuthContextValue {
@@ -38,6 +46,16 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+/** Generate a username candidate from email or display name */
+function generateUsername(email: string | undefined, displayName: string | undefined): string {
+  const base = (email?.split("@")[0] ?? displayName ?? "player")
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "_")
+    .slice(0, 20);
+  const suffix = Math.floor(Math.random() * 9000 + 1000); // 4-digit number
+  return `${base}_${suffix}`;
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -77,14 +95,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         currentUser.email?.split("@")[0] ??
         "Player";
 
+      const username = generateUsername(currentUser.email, displayName);
+
       await supabase.from("profiles").insert({
         id: currentUser.id,
+        email: currentUser.email ?? null,
         display_name: displayName,
-        elo: 1200,
+        username,
+        avatar_url: currentUser.user_metadata?.avatar_url ?? null,
+        elo_rating: 1200,
         wins: 0,
         losses: 0,
-        check_ins: 0,
-        tier: "BRONZE",
+        total_court_time_minutes: 0,
+        apple_private_email: false,
+        push_notifications_enabled: true,
+        check_in_reminders_enabled: true,
+        game_alerts_enabled: true,
+        local_court_id: null,
       });
     }
 
@@ -177,7 +204,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return { error: error?.message ?? null };
     } catch (err: any) {
-      // ERR_REQUEST_CANCELED means the user dismissed the sheet
+      // ERR_REQUEST_CANCELED means the user dismissed the sheet — not a real error
       if (err?.code === "ERR_REQUEST_CANCELED") {
         return { error: null };
       }

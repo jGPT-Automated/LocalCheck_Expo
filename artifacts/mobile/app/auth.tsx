@@ -119,7 +119,7 @@ export default function AuthScreen() {
             <Text style={styles.statusValue}>{user.email}</Text>
             {profile && (
               <Text style={styles.statusValue}>
-                {profile.display_name ?? "—"} · {profile.tier} · {profile.elo} ELO
+                {profile.display_name ?? "—"} · {profile.elo_rating} ELO
               </Text>
             )}
             <Pressable
