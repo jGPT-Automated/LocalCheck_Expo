@@ -16,9 +16,10 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { RunCard } from "@/components/RunCard";
 import { StatBlock } from "@/components/StatBlock";
 import { Colors, Radius } from "@/constants/colors";
-import { SAMPLE_PLAYERS, getSportColor } from "@/constants/data";
+import { Court, SAMPLE_PLAYERS, getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { fetchCourtById } from "@/services/courtService";
 
 // BACKEND NOTE: court detail → GET /api/v1/courts/:id
 // Roster (live) → GET /api/v1/courts/:id/roster
@@ -28,12 +29,25 @@ import { useApp } from "@/context/AppContext";
 
 export default function CourtProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { courts, runs, checkIn, checkOut, checkedInCourtId, setLocalCourt, localCourtId } =
+  const { courts, runs, checkIn, checkOut, checkedInCourtId, setLocalCourt, localCourtId, localCourt: ctxLocalCourt } =
     useApp();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
 
-  const court = courts.find((c) => c.id === id);
+  // Courts list is no longer preloaded; try local cache then fetch from Supabase
+  const [court, setCourt] = React.useState<Court | null>(
+    courts.find((c) => c.id === id) ?? (ctxLocalCourt?.id === id ? ctxLocalCourt : null)
+  );
+  const [fetchError, setFetchError] = React.useState(false);
+
+  React.useEffect(() => {
+    if (court) return; // already resolved
+    fetchCourtById(String(id)).then((c) => {
+      if (c) setCourt(c);
+      else setFetchError(true);
+    });
+  }, [id]);
+
   const courtRuns = runs.filter((r) => r.courtId === id);
   const isCheckedIn = checkedInCourtId === id;
   const isMyLocal = localCourtId === id;
@@ -41,8 +55,8 @@ export default function CourtProfileScreen() {
   if (!court) {
     return (
       <View style={styles.notFound}>
-        <Text style={styles.notFoundText}>COURT NOT FOUND</Text>
-        <BrutalistButton label="GO BACK" onPress={() => router.back()} variant="outline" />
+        <Text style={styles.notFoundText}>{fetchError ? "COURT NOT FOUND" : "LOADING…"}</Text>
+        {fetchError && <BrutalistButton label="GO BACK" onPress={() => router.back()} variant="outline" />}
       </View>
     );
   }

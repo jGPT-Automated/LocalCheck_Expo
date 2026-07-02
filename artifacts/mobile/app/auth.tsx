@@ -30,50 +30,38 @@ export default function AuthScreen() {
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const canGoBack = router.canGoBack();
+
+  function goHome() {
+    router.replace("/(tabs)");
+  }
+
   async function handleSignIn() {
-    if (!email || !password) {
-      setErrorMsg("Enter email and password.");
-      return;
-    }
-    setBusy(true);
-    setErrorMsg(null);
+    if (!email || !password) { setErrorMsg("Enter email and password."); return; }
+    setBusy(true); setErrorMsg(null);
     const { error } = await signInWithEmail(email.trim(), password);
     setBusy(false);
-    if (error) {
-      setErrorMsg(error);
-    } else {
-      router.back();
-    }
+    if (error) { setErrorMsg(error); }
+    else { goHome(); }
   }
 
   async function handleSignUp() {
-    if (!email || !password) {
-      setErrorMsg("Enter email and password.");
-      return;
-    }
-    setBusy(true);
-    setErrorMsg(null);
+    if (!email || !password) { setErrorMsg("Enter email and password."); return; }
+    setBusy(true); setErrorMsg(null);
     const { error } = await signUpWithEmail(email.trim(), password);
     setBusy(false);
-    if (error) {
-      setErrorMsg(error);
-    } else {
-      Alert.alert("Account created", "Check your email to confirm your address, then sign in.", [
-        { text: "OK" },
-      ]);
+    if (error) { setErrorMsg(error); }
+    else {
+      Alert.alert("Account created", "Check your email to confirm, then sign in.", [{ text: "OK" }]);
     }
   }
 
   async function handleAppleSignIn() {
-    setBusy(true);
-    setErrorMsg(null);
+    setBusy(true); setErrorMsg(null);
     const { error } = await signInWithApple();
     setBusy(false);
-    if (error) {
-      setErrorMsg(error);
-    } else if (!error) {
-      router.back();
-    }
+    if (error) { setErrorMsg(error); }
+    else { goHome(); }
   }
 
   async function handleSignOut() {
@@ -84,35 +72,31 @@ export default function AuthScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { paddingTop: topPad }]}>
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
         <ActivityIndicator color={Colors.accent} />
       </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView
-        contentContainerStyle={[
-          styles.container,
-          { paddingTop: topPad + 20, paddingBottom: bottom + 40 },
-        ]}
+        contentContainerStyle={[styles.container, { paddingTop: topPad + 20, paddingBottom: bottom + 40 }]}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
-            <Text style={styles.backText}>← BACK</Text>
-          </Pressable>
-        </View>
+        {/* Back button — only shown if there's something to go back to */}
+        {canGoBack && (
+          <View style={styles.headerRow}>
+            <Pressable onPress={() => router.back()} hitSlop={12}>
+              <Text style={styles.backText}>← BACK</Text>
+            </Pressable>
+          </View>
+        )}
 
         <Text style={styles.title}>LOCALCHECK</Text>
         <Text style={styles.subtitle}>ACCOUNT</Text>
 
-        {/* Status banner — shows when signed in */}
+        {/* Signed-in state */}
         {user && (
           <View style={styles.statusBanner}>
             <Text style={styles.statusLabel}>SIGNED IN AS</Text>
@@ -132,6 +116,7 @@ export default function AuthScreen() {
           </View>
         )}
 
+        {/* Sign-in / sign-up form */}
         {!user && (
           <>
             {errorMsg && (
@@ -168,11 +153,7 @@ export default function AuthScreen() {
             </View>
 
             <Pressable style={[styles.btn, busy && styles.btnDisabled]} onPress={handleSignIn} disabled={busy}>
-              {busy ? (
-                <ActivityIndicator color={Colors.black} size="small" />
-              ) : (
-                <Text style={styles.btnText}>SIGN IN</Text>
-              )}
+              {busy ? <ActivityIndicator color={Colors.black} size="small" /> : <Text style={styles.btnText}>SIGN IN</Text>}
             </Pressable>
 
             <Pressable style={[styles.btn, styles.btnOutline, busy && styles.btnDisabled]} onPress={handleSignUp} disabled={busy}>
@@ -193,7 +174,7 @@ export default function AuthScreen() {
 
         <View style={styles.divider} />
         <Text style={styles.note}>
-          Your session persists across launches. Courts, ELO, and check-ins sync to the cloud when you're signed in.
+          Your session persists across launches. Courts, ELO, and check-ins sync to the cloud when signed in.
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -206,10 +187,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     paddingHorizontal: 24,
   },
-  headerRow: {
-    marginBottom: 32,
-  },
-  backBtn: {},
+  headerRow: { marginBottom: 32 },
   backText: {
     fontFamily: Typography.bodyMedium,
     fontSize: 11,
@@ -264,9 +242,7 @@ const styles = StyleSheet.create({
     color: "#FF5050",
     letterSpacing: 0.5,
   },
-  field: {
-    marginBottom: 16,
-  },
+  field: { marginBottom: 16 },
   label: {
     fontFamily: Typography.bodyMedium,
     fontSize: 10,
@@ -291,9 +267,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 12,
   },
-  btnDisabled: {
-    opacity: 0.6,
-  },
+  btnDisabled: { opacity: 0.6 },
   btnText: {
     fontFamily: Typography.heading,
     fontSize: 13,
@@ -311,10 +285,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     letterSpacing: 2,
   },
-  appleBtn: {
-    height: 48,
-    marginBottom: 12,
-  },
+  appleBtn: { height: 48, marginBottom: 12 },
   divider: {
     height: 1,
     backgroundColor: Colors.border,

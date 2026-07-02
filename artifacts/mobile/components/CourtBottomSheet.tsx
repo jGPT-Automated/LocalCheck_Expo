@@ -205,7 +205,7 @@ export function CourtBottomSheet({ court, onClose }: CourtBottomSheetProps) {
           />
           <BrutalistButton
             label={isMyLocal ? "MY LOCAL ★" : "MY LOCAL"}
-            onPress={() => setLocalCourt(court.id)}
+            onPress={() => setLocalCourt(court.id, court)}
             variant={isMyLocal ? "accent" : "dark"}
             style={styles.localBtn}
           />

@@ -87,7 +87,7 @@ function LocalPlusModal({
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { currentUser, isLocalPlus, setVisibility, visibility, courts, preferredSport, setPreferredSport, preferredCourtId, setPreferredCourtId } = useApp();
+  const { currentUser, isLocalPlus, setVisibility, visibility, preferredSport, setPreferredSport, preferredCourtId, setPreferredCourtId, localCourt } = useApp();
   const { user, profile, signOut } = useAuth();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
@@ -97,9 +97,6 @@ export default function SettingsScreen() {
   const [locationSharing, setLocationSharing] = useState(true);
   const [haptics, setHaptics] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
-
-  const preferredCourt = courts.find((c) => c.id === preferredCourtId);
-  const localCourt = courts.find((c) => c.id === currentUser.courtId);
 
   const handleUpgrade = () => {
     setShowPlusModal(false);
@@ -294,7 +291,6 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>SPORT PREFERENCES</Text>
           <View style={styles.sectionCard}>
-            {/* Preferred Sport */}
             <View style={styles.prefRow}>
               <View style={styles.prefLeft}>
                 <Ionicons name="basketball-outline" size={18} color={Colors.text} />
@@ -314,18 +310,8 @@ export default function SettingsScreen() {
                   ]}
                   onPress={() => setPreferredSport(preferredSport === s ? null : s)}
                 >
-                  <View
-                    style={[
-                      styles.prefSportDot,
-                      { backgroundColor: getSportColor(s) },
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.prefSportText,
-                      preferredSport === s && styles.prefSportTextActive,
-                    ]}
-                  >
+                  <View style={[styles.prefSportDot, { backgroundColor: getSportColor(s) }]} />
+                  <Text style={[styles.prefSportText, preferredSport === s && styles.prefSportTextActive]}>
                     {s === "BASKETBALL" ? "BB" : "PB"}
                   </Text>
                 </Pressable>
@@ -333,37 +319,19 @@ export default function SettingsScreen() {
             </View>
             <View style={styles.divider} />
 
-            {/* Preferred Court */}
-            <View style={styles.prefRow}>
-              <View style={styles.prefLeft}>
+            {/* Local court — set via Explore, not a list */}
+            <Pressable style={styles.actionRow} onPress={() => router.push("/(tabs)/explore")}>
+              <View style={styles.actionLeft}>
                 <Ionicons name="location-outline" size={18} color={Colors.text} />
                 <View>
-                  <Text style={styles.prefLabel}>PREFERRED COURT</Text>
-                  <Text style={styles.prefDesc}>Default court for log game</Text>
+                  <Text style={styles.prefLabel}>LOCAL COURT</Text>
+                  <Text style={styles.prefDesc}>
+                    {localCourt ? localCourt.name : "Not set — tap to explore"}
+                  </Text>
                 </View>
               </View>
-            </View>
-            <View style={styles.prefCourtRow}>
-              {courts.map((c) => (
-                <Pressable
-                  key={c.id}
-                  style={[
-                    styles.prefCourtPill,
-                    preferredCourtId === c.id && styles.prefCourtPillActive,
-                  ]}
-                  onPress={() => setPreferredCourtId(preferredCourtId === c.id ? null : c.id)}
-                >
-                  <Text
-                    style={[
-                      styles.prefCourtText,
-                      preferredCourtId === c.id && styles.prefCourtTextActive,
-                    ]}
-                  >
-                    {c.name.toUpperCase()}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+              <Ionicons name="chevron-forward" size={18} color={Colors.muted} />
+            </Pressable>
           </View>
         </View>
 

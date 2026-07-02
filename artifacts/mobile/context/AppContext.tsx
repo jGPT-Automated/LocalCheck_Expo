@@ -15,14 +15,13 @@ import {
   GameRun,
   MatchResult,
   Player,
-  SAMPLE_COURTS,
   SAMPLE_FEED,
   SAMPLE_MATCHES,
   SAMPLE_PLAYERS,
   SAMPLE_RUNS,
   getEloTier,
 } from "@/constants/data";
-import { fetchCourtsFromSupabase } from "@/services/courtService";
+import { fetchCourtById } from "@/services/courtService";
 
 export type Visibility = "public" | "friends" | "private";
 
@@ -32,6 +31,7 @@ interface AppContextValue {
   checkedInCourtId: string | null;
   lastVisitedCourtId: string | null;
   localCourtId: string | null;
+  localCourt: Court | null;
   runs: GameRun[];
   feed: FeedItem[];
   matches: MatchResult[];
@@ -50,7 +50,7 @@ interface AppContextValue {
   recordWin: (runId: string, eloDelta: number) => void;
   recordLoss: (runId: string, eloDelta: number) => void;
   addCourt: (court: Court) => Promise<void>;
-  setLocalCourt: (courtId: string) => Promise<void>;
+  setLocalCourt: (courtId: string, courtObj?: Court) => Promise<void>;
   setVisibility: (v: Visibility) => Promise<void>;
   setIsLocalPlus: (v: boolean) => Promise<void>;
   setPreferredSport: (sport: CourtSport | null) => Promise<void>;
@@ -80,7 +80,8 @@ const STORAGE_KEYS = {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<Player>(SAMPLE_PLAYERS[0]);
-  const [courts, setCourts] = useState<Court[]>(SAMPLE_COURTS);
+  const [courts, setCourts] = useState<Court[]>([]);
+  const [localCourt, setLocalCourtObj] = useState<Court | null>(null);
   const [checkedInCourtId, setCheckedInCourtId] = useState<string | null>(null);
   const [lastVisitedCourtId, setLastVisitedCourtId] = useState<string | null>(null);
   const [localCourtId, setLocalCourtId] = useState<string | null>(null);
@@ -118,18 +119,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (lastVisitedRaw) setLastVisitedCourtId(lastVisitedRaw);
         if (feedRaw) setFeed(JSON.parse(feedRaw));
         if (matchesRaw) setMatches(JSON.parse(matchesRaw));
-        if (localCourtRaw) setLocalCourtId(localCourtRaw);
+        if (localCourtRaw) {
+          setLocalCourtId(localCourtRaw);
+          // Hydrate the local court object in the background
+          fetchCourtById(localCourtRaw).then((c) => { if (c) setLocalCourtObj(c); });
+        }
 
-        // Load courts from Supabase; never fall back to the 59k-row CSV sample data
-        const remoteCourts = await fetchCourtsFromSupabase();
-        const baseCourts = remoteCourts ?? [];
+        // Courts are loaded lazily by CourtsScreen; only restore user-added courts here
         if (courtsRaw) {
-          const saved: Court[] = JSON.parse(courtsRaw);
-          const baseIds = new Set(baseCourts.map((c) => c.id));
-          const userAdded = saved.filter((c) => !baseIds.has(c.id));
-          setCourts(userAdded.length > 0 ? [...baseCourts, ...userAdded] : baseCourts);
-        } else {
-          setCourts(baseCourts);
+          try { setCourts(JSON.parse(courtsRaw)); } catch { /* ignore */ }
         }
 
         if (visibilityRaw) setVisibilityState(visibilityRaw as Visibility);
@@ -246,35 +244,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const setLocalCourt = useCallback(async (courtId: string) => {
-    const prev = localCourtId;
+  const setLocalCourt = useCallback(async (courtId: string, courtObj?: Court) => {
     setLocalCourtId(courtId);
     await AsyncStorage.setItem(STORAGE_KEYS.localCourtId, courtId);
-
-    setCourts((prevCourts) => {
-      const updated = prevCourts.map((c) => {
-        if (c.id === prev && prev !== courtId) {
-          const newLocalCount = Math.max(0, c.localCount - 1);
-          return {
-            ...c,
-            localCount: newLocalCount,
-            status: (newLocalCount >= 5 ? "community" : "confirmed") as CourtStatus,
-          };
-        }
-        if (c.id === courtId && prev !== courtId) {
-          const newLocalCount = c.localCount + 1;
-          return {
-            ...c,
-            localCount: newLocalCount,
-            status: (newLocalCount >= 5 ? "community" : "confirmed") as CourtStatus,
-          };
-        }
-        return c;
-      });
-      AsyncStorage.setItem(STORAGE_KEYS.courts, JSON.stringify(updated));
-      return updated;
-    });
-  }, [localCourtId]);
+    // Populate the localCourt object immediately if provided, else fetch it
+    if (courtObj) {
+      setLocalCourtObj(courtObj);
+    } else {
+      fetchCourtById(courtId).then((c) => { if (c) setLocalCourtObj(c); });
+    }
+  }, []);
 
   const setVisibility = useCallback(async (v: Visibility) => {
     setVisibilityState(v);
@@ -453,6 +432,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         checkedInCourtId,
         lastVisitedCourtId,
         localCourtId,
+        localCourt,
         runs,
         feed,
         matches,

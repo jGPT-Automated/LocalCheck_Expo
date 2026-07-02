@@ -29,14 +29,12 @@ const TIER_COLORS: Record<string, string> = {
 };
 
 export default function FeedScreen() {
-  const { feed, courts, localCourtId } = useApp();
+  const { feed, localCourtId, localCourt } = useApp();
   const { top } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
   const [section, setSection] = useState<Section>("ACTIVITY");
   const [sportFilter, setSportFilter] = useState<CourtSport | "ALL">("ALL");
   const [selectedCourtId, setSelectedCourtId] = useState<string | null>(null);
-
-  const localCourt = courts.find((c) => c.id === localCourtId);
 
   // Filter feed to local court activity when in ACTIVITY mode and local court is set
   const baseFeed =
@@ -47,10 +45,6 @@ export default function FeedScreen() {
   const filteredFeed =
     sportFilter === "ALL" ? baseFeed : baseFeed.filter((item) => item.sport === sportFilter);
 
-  const activeCourts = courts.filter((c) =>
-    SAMPLE_PLAYERS.some((p) => p.courtId === c.id)
-  );
-
   const leaderboardPlayers = SAMPLE_PLAYERS
     .filter((p) => {
       const courtMatch = selectedCourtId ? p.courtId === selectedCourtId : true;
@@ -58,10 +52,6 @@ export default function FeedScreen() {
       return courtMatch && sportMatch;
     })
     .sort((a, b) => b.elo - a.elo);
-
-  const selectedCourtName = selectedCourtId
-    ? courts.find((c) => c.id === selectedCourtId)?.name ?? null
-    : null;
 
   return (
     <View style={styles.container}>
@@ -72,7 +62,7 @@ export default function FeedScreen() {
             <Text style={styles.headerSub}>
               {localCourt
                 ? `${localCourt.name.toUpperCase()} ACTIVITY`
-                : "LOCAL ACTIVITY"}
+                : "ALL COURTS"}
             </Text>
           </View>
         </View>
@@ -148,29 +138,7 @@ export default function FeedScreen() {
                 All Courts
               </Text>
             </Pressable>
-            {activeCourts.map((court) => (
-              <Pressable
-                key={court.id}
-                onPress={() => setSelectedCourtId(court.id === selectedCourtId ? null : court.id)}
-                style={[
-                  styles.courtPill,
-                  selectedCourtId === court.id && styles.courtPillActive,
-                ]}
-              >
-                <Text style={[styles.courtPillText, selectedCourtId === court.id && styles.courtPillTextActive]}>
-                  {court.name}
-                </Text>
-              </Pressable>
-            ))}
           </ScrollView>
-
-          {selectedCourtName && (
-            <View style={styles.courtScopeLabel}>
-              <Text style={styles.courtScopeLabelText}>
-                {selectedCourtName.toUpperCase()} · {sportFilter === "ALL" ? "ALL SPORTS" : sportFilter}
-              </Text>
-            </View>
-          )}
 
           {leaderboardPlayers.length === 0 ? (
             <View style={styles.empty}>

@@ -16,9 +16,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MatchRow } from "@/components/MatchRow";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors } from "@/constants/colors";
-import { getTierColor, MatchResult } from "@/constants/data";
+import { getTierColor, getEloTier, MatchResult } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
 
 function daysSince(dateStr: string): number {
   const start = new Date(dateStr).getTime();
@@ -113,10 +114,19 @@ function MatchDetailModal({
 export default function EloScreen() {
   const router = useRouter();
   const { currentUser, matches } = useApp();
+  const { user, profile } = useAuth();
   const { top } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
 
-  const [displayElo, setDisplayElo] = useState(currentUser.elo - 80);
+  // Use real profile data when signed in, fall back to AppContext stub
+  const displayName = profile?.display_name ?? currentUser.name;
+  const elo = profile?.elo_rating ?? currentUser.elo;
+  const wins = profile?.wins ?? currentUser.wins;
+  const losses = profile?.losses ?? currentUser.losses;
+  const memberSince = profile?.created_at ?? currentUser.memberSince;
+  const tier = getEloTier(elo);
+
+  const [displayElo, setDisplayElo] = useState(elo - 80);
   const [scrollY, setScrollY] = useState(0);
   const [selectedMatch, setSelectedMatch] = useState<MatchResult | null>(null);
   const [showDetail, setShowDetail] = useState(false);
@@ -124,7 +134,7 @@ export default function EloScreen() {
   const barAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const target = currentUser.elo;
+    const target = elo;
     const start = target - 80;
     const duration = 900;
     const startTime = Date.now();
@@ -137,19 +147,19 @@ export default function EloScreen() {
     };
     requestAnimationFrame(tick);
     Animated.timing(barAnim, { toValue: 1, duration: 1000, delay: 200, useNativeDriver: false }).start();
-  }, [currentUser.elo]);
+  }, [elo]);
 
-  const tierColor = getTierColor(currentUser.tier);
-  const total = currentUser.wins + currentUser.losses;
-  const winRate = total > 0 ? Math.round((currentUser.wins / total) * 100) : 0;
+  const tierColor = getTierColor(tier);
+  const total = wins + losses;
+  const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
   const isUnranked = total < 5;
-  const memberDays = daysSince(currentUser.memberSince);
+  const memberDays = daysSince(memberSince);
 
   const tierRanges: Record<string, [number, number]> = {
     BRONZE: [0, 1499], SILVER: [1500, 1699], GOLD: [1700, 1899], PLATINUM: [1900, 2200],
   };
-  const [tierMin, tierMax] = tierRanges[currentUser.tier] ?? [0, 2200];
-  const tierPct = Math.min(1, Math.max(0, (currentUser.elo - tierMin) / (tierMax - tierMin)));
+  const [tierMin, tierMax] = tierRanges[tier] ?? [0, 2200];
+  const tierPct = Math.min(1, Math.max(0, (elo - tierMin) / (tierMax - tierMin)));
   const tierBarWidth = barAnim.interpolate({ inputRange: [0, 1], outputRange: ["0%", `${tierPct * 100}%`] });
 
   const isCollapsed = scrollY > 120;
@@ -161,10 +171,10 @@ export default function EloScreen() {
         pointerEvents={isCollapsed ? "auto" : "none"}
         style={[styles.stickyHeader, { paddingTop: topPad + 12, opacity: isCollapsed ? 1 : 0 }]}
       >
-        <Text style={styles.stickyName}>{currentUser.name.toUpperCase()}</Text>
+        <Text style={styles.stickyName}>{displayName.toUpperCase()}</Text>
         <View style={styles.stickyRight}>
-          <Text style={[styles.stickyElo, { color: tierColor }]}>{currentUser.elo}</Text>
-          <Text style={styles.stickyWins}>W {currentUser.wins} · L {currentUser.losses} · {winRate}%</Text>
+          <Text style={[styles.stickyElo, { color: tierColor }]}>{elo}</Text>
+          <Text style={styles.stickyWins}>W {wins} · L {losses} · {winRate}%</Text>
         </View>
       </View>
 
@@ -179,10 +189,10 @@ export default function EloScreen() {
         <View style={[styles.hero, { paddingTop: topPad + 16 }]}>
           <View style={styles.heroTop}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.heroName}>{currentUser.name.toUpperCase()}</Text>
+              <Text style={styles.heroName}>{displayName.toUpperCase()}</Text>
               <View style={styles.memberRow}>
                 <Text style={styles.memberLabel}>MEMBER SINCE</Text>
-                <Text style={styles.memberValue}>{formatJoinDate(currentUser.memberSince)}</Text>
+                <Text style={styles.memberValue}>{formatJoinDate(memberSince)}</Text>
               </View>
               <View style={styles.memberRow}>
                 <Text style={styles.memberLabel}>DAYS ACTIVE</Text>
@@ -211,7 +221,7 @@ export default function EloScreen() {
                 <Text style={styles.eloNumber}>{displayElo}</Text>
                 <View style={styles.tierPill}>
                   <View style={[styles.tierDot, { backgroundColor: tierColor }]} />
-                  <Text style={[styles.tierLabel, { color: tierColor }]}>{currentUser.tier}</Text>
+                  <Text style={[styles.tierLabel, { color: tierColor }]}>{tier}</Text>
                 </View>
               </View>
               <View style={styles.tierBarTrack}>
@@ -228,11 +238,11 @@ export default function EloScreen() {
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
           <View style={styles.statCell}>
-            <Text style={[styles.statVal, { color: Colors.win }]}>W {currentUser.wins}</Text>
+            <Text style={[styles.statVal, { color: Colors.win }]}>W {wins}</Text>
             <Text style={styles.statLbl}>WINS</Text>
           </View>
           <View style={[styles.statCell, styles.statCellBorder]}>
-            <Text style={[styles.statVal, { color: Colors.loss }]}>L {currentUser.losses}</Text>
+            <Text style={[styles.statVal, { color: Colors.loss }]}>L {losses}</Text>
             <Text style={styles.statLbl}>LOSSES</Text>
           </View>
           <View style={styles.statCell}>
@@ -243,7 +253,7 @@ export default function EloScreen() {
 
         <View style={styles.statsGrid}>
           <View style={styles.statCell}>
-            <Text style={styles.statVal}>{currentUser.checkIns}</Text>
+            <Text style={styles.statVal}>{profile?.total_court_time_minutes ?? 0}</Text>
             <Text style={styles.statLbl}>CHECK-INS</Text>
           </View>
           <View style={[styles.statCell, styles.statCellBorder]}>
@@ -251,7 +261,7 @@ export default function EloScreen() {
             <Text style={styles.statLbl}>GAMES</Text>
           </View>
           <View style={styles.statCell}>
-            <Text style={[styles.statVal, { color: tierColor }]}>{currentUser.tier}</Text>
+            <Text style={[styles.statVal, { color: tierColor }]}>{tier}</Text>
             <Text style={styles.statLbl}>TIER</Text>
           </View>
         </View>

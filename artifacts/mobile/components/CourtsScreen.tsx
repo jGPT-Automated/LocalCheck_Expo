@@ -1,45 +1,110 @@
 import * as Haptics from "expo-haptics";
-import React, { useEffect, useRef, useState } from "react";
+import * as Location from "expo-location";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 
-import { BrutalistButton } from "@/components/BrutalistButton";
 import { CourtBottomSheet } from "@/components/CourtBottomSheet";
 import { CourtListItem } from "@/components/CourtListItem";
-import { LivePulse } from "@/components/LivePulse";
 import { MapScreen } from "@/components/MapScreen";
 import { Colors, Radius } from "@/constants/colors";
-import { Court, CourtSport, getSportColor, SAMPLE_RUNS } from "@/constants/data";
+import { Court, CourtSport } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { fetchNearbyCourts, searchCourts } from "@/services/courtService";
 
 type SportFilter = CourtSport | "ALL";
 
-function getClosestLabel(sport: CourtSport | null): string {
-  if (sport === "BASKETBALL") return "CLOSEST BB COURT";
-  if (sport === "PICKLEBALL") return "CLOSEST PB COURT";
-  return "CLOSEST COURT";
-}
-
 export function CourtsScreen() {
-  const { courts, checkedInCourtId, lastVisitedCourtId, checkIn, checkOut, visitCourt, preferredSport } = useApp();
-  const { top, bottom } = useSafeAreaInsets();
-  const [mode, setMode] = useState<"COURTS" | "MAP">("COURTS");
-  const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
-  const [sportFilter, setSportFilter] = useState<SportFilter>(preferredSport ?? "ALL");
+  const { checkedInCourtId, lastVisitedCourtId, checkIn, checkOut, visitCourt, preferredSport, setLocalCourt, localCourtId } = useApp();
+  const { top } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
-  const [mapMounted, setMapMounted] = useState(false);
-  const mapAnim = useRef(new Animated.Value(0)).current;
 
+  // ── View state ──────────────────────────────────────────────────────────────
+  const [mode, setMode] = useState<"COURTS" | "MAP">("COURTS");
+  const [sportFilter, setSportFilter] = useState<SportFilter>(preferredSport ?? "ALL");
+  const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
+  const mapAnim = useRef(new Animated.Value(0)).current;
+  const [mapMounted, setMapMounted] = useState(false);
+
+  // ── Courts data (own state, not AppContext) ─────────────────────────────────
+  const [nearbyCourts, setNearbyCourts] = useState<Court[]>([]);
+  const [loading, setLoading] = useState(true);
+  const userLoc = useRef<{ lat: number; lng: number } | null>(null);
+
+  // ── Search state ────────────────────────────────────────────────────────────
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Court[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Load nearby courts ───────────────────────────────────────────────────────
+  const loadNearby = useCallback(async (sport: SportFilter) => {
+    setLoading(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      let lat = 34.0522; // LA default
+      let lng = -118.2437;
+      if (status === "granted") {
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        lat = loc.coords.latitude;
+        lng = loc.coords.longitude;
+      }
+      // Always store coords (fallback or real) so sport-filter reloads work
+      userLoc.current = { lat, lng };
+      const courts = await fetchNearbyCourts(lat, lng, sport === "ALL" ? null : sport, 20);
+      setNearbyCourts(courts);
+    } catch {
+      setNearbyCourts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadNearby(sportFilter);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reload when sport filter changes (skip first render, handled above)
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    // userLoc.current is always set (real or fallback LA coords)
+    const loc = userLoc.current ?? { lat: 34.0522, lng: -118.2437 };
+    setLoading(true);
+    fetchNearbyCourts(loc.lat, loc.lng, sportFilter === "ALL" ? null : sportFilter, 20)
+      .then((c) => setNearbyCourts(c))
+      .finally(() => setLoading(false));
+  }, [sportFilter]);
+
+  // ── Typeahead search with 300ms debounce ─────────────────────────────────────
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    const q = searchQuery.trim();
+    if (q.length < 2) { setSearchResults([]); setSearchLoading(false); return; }
+    setSearchLoading(true);
+    searchTimerRef.current = setTimeout(async () => {
+      const results = await searchCourts(q, sportFilter === "ALL" ? null : sportFilter, 15);
+      setSearchResults(results);
+      setSearchLoading(false);
+    }, 300);
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+  }, [searchQuery, sportFilter]);
+
+  // ── Map animation ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (mode === "MAP" && !mapMounted) setMapMounted(true);
     Animated.timing(mapAnim, {
@@ -49,67 +114,59 @@ export function CourtsScreen() {
     }).start();
   }, [mode, mapAnim, mapMounted]);
 
-  const activeCourts = courts.filter((c) => c.activeCount > 0);
-  const checkedInCourt = checkedInCourtId ? courts.find((c) => c.id === checkedInCourtId) ?? null : null;
-  const lastVisitedCourt = lastVisitedCourtId ? courts.find((c) => c.id === lastVisitedCourtId) ?? null : null;
-  const featuredCourt = checkedInCourt ?? lastVisitedCourt ?? activeCourts[0] ?? courts[0] ?? null;
+  const mapOpacity = mapAnim;
+  const mapTranslateX = mapAnim.interpolate({ inputRange: [0, 1], outputRange: [50, 0] });
+
+  // ── Derived ──────────────────────────────────────────────────────────────────
+  const isSearchMode = searchQuery.trim().length >= 2;
+  const displayList = isSearchMode ? searchResults : nearbyCourts;
+  const featuredCourt = !isSearchMode && nearbyCourts.length > 0 ? nearbyCourts[0] : null;
+  const listCourts = !isSearchMode ? nearbyCourts.slice(1) : displayList;
   const isCheckedIn = checkedInCourtId === featuredCourt?.id;
-  const sportColor = featuredCourt ? getSportColor(featuredCourt.sport) : Colors.accent;
-
-  const filteredNearbyCourts = courts
-    .filter((c) => {
-      if (c.id === featuredCourt?.id) return false;
-      if (sportFilter === "ALL") return true;
-      return c.sport === sportFilter;
-    })
-    .sort((a, b) => b.activeCount - a.activeCount);
-
-  const liveNearbyCount = filteredNearbyCourts.filter((c) => c.activeCount > 0).length;
-
-  const nextRun = featuredCourt
-    ? SAMPLE_RUNS.find((r) => r.courtId === featuredCourt.id) ?? null
-    : null;
 
   const handleCheckIn = async () => {
     if (!featuredCourt) return;
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (isCheckedIn) {
       await checkOut();
     } else {
       await checkIn(featuredCourt.id);
-      if (Platform.OS !== "web") {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
 
-  const mapOpacity = mapAnim;
-  const mapTranslateX = mapAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [50, 0],
-  });
-
   return (
     <View style={styles.container}>
-      {/* ── Header ── */}
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <View style={[styles.header, { paddingTop: topPad + 12 }]}>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerEyebrow}>LOCALCHECK</Text>
           <Text style={styles.headerTitle}>EXPLORE</Text>
         </View>
-        <Pressable
-          onPress={() => setMode("MAP")}
-          style={styles.mapToggleBtn}
-          testID="map-toggle-btn"
-        >
+        <Pressable onPress={() => setMode("MAP")} style={styles.mapToggleBtn}>
           <Feather name="map" size={14} color={Colors.muted} />
           <Text style={styles.mapToggleText}>MAP</Text>
         </Pressable>
       </View>
 
-      {/* ── Sport Filter Strip ── */}
+      {/* ── Search bar ─────────────────────────────────────────────────────── */}
+      <View style={styles.searchRow}>
+        <Feather name="search" size={15} color={Colors.muted} style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Search courts..."
+          placeholderTextColor={Colors.mutedDark}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="search"
+          clearButtonMode="while-editing"
+        />
+        {searchLoading && <ActivityIndicator size="small" color={Colors.muted} style={{ marginRight: 12 }} />}
+      </View>
+
+      {/* ── Sport filter ───────────────────────────────────────────────────── */}
       <View style={styles.filterStrip}>
         {(["ALL", "BASKETBALL", "PICKLEBALL"] as SportFilter[]).map((s) => (
           <Pressable
@@ -124,120 +181,106 @@ export function CourtsScreen() {
         ))}
       </View>
 
+      {/* ── Courts list ────────────────────────────────────────────────────── */}
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: Platform.OS === "web" ? 84 : 100 },
-        ]}
+        contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 84 : 100 }}
+        keyboardShouldPersistTaps="handled"
       >
-        {featuredCourt && (
-          <View style={styles.myCourtSection}>
-            <Text style={styles.sectionLabel}>
-              {getClosestLabel(preferredSport)}
-            </Text>
-
-            <View style={[styles.myCourtCard, { borderLeftColor: sportColor }]}>
-              <View style={styles.myCourtTop}>
-                <View style={styles.myCourtInfo}>
-                  <View style={styles.sportRow}>
-                    <View style={[styles.sportDot, { backgroundColor: sportColor }]} />
-                    <Text style={[styles.sportLabel, { color: sportColor }]}>
-                      {featuredCourt.sport}
-                    </Text>
-                  </View>
-                  <Text style={styles.myCourtName}>{featuredCourt.name}</Text>
-                  <Text style={styles.myCourtMeta}>
-                    {featuredCourt.neighborhood} · {featuredCourt.city}
-                  </Text>
-                </View>
-
-                <View style={styles.myCourtLiveBadge}>
-                  {featuredCourt.activeCount > 0 ? (
-                    <>
-                      <LivePulse size={5} color={Colors.accent} style={{ marginBottom: 5 }} />
-                      <Text style={styles.liveCount}>{featuredCourt.activeCount}</Text>
-                      <Text style={styles.liveLabel}>PLAYING</Text>
-                    </>
-                  ) : (
-                    <>
-                      <Text style={styles.emptyDash}>—</Text>
-                      <Text style={styles.liveLabel}>EMPTY</Text>
-                    </>
-                  )}
-                </View>
-              </View>
-
-              {nextRun && (
-                <View style={styles.nextRunBanner}>
-                  <Text style={styles.nextRunEyebrow}>NEXT RUN</Text>
-                  <Text style={styles.nextRunDetails}>
-                    {nextRun.date} · {nextRun.time} · {nextRun.title}
-                  </Text>
-                </View>
-              )}
-
-              <View style={styles.cardActions}>
-                <BrutalistButton
-                  label={isCheckedIn ? "CHECKED IN ✓" : "CHECK IN"}
-                  onPress={handleCheckIn}
-                  variant={isCheckedIn ? "outline" : "accent"}
-                  style={styles.checkInBtn}
-                  testID="home-check-in-btn"
-                />
-                <BrutalistButton
-                  label="VIEW"
-                  onPress={() => {
-                    setSelectedCourt(featuredCourt);
-                    if (featuredCourt) visitCourt(featuredCourt.id);
-                  }}
-                  variant="dark"
-                  style={styles.viewCourtBtn}
-                />
-              </View>
-            </View>
+        {loading && !isSearchMode && (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator color={Colors.accent} />
+            <Text style={styles.loadingText}>FINDING NEARBY COURTS...</Text>
           </View>
         )}
 
-        {filteredNearbyCourts.length > 0 && (
-          <View style={styles.nearbySection}>
-            <View style={styles.nearbySectionHeader}>
-              <Text style={styles.sectionLabel}>NEARBY COURTS</Text>
-              {liveNearbyCount > 0 && (
-                <View style={styles.liveNearbyBadge}>
-                  <LivePulse size={4} color={Colors.accent} style={{ marginRight: 4 }} />
-                  <Text style={styles.liveNearbyText}>{liveNearbyCount} LIVE NEARBY</Text>
+        {/* Featured / nearest court */}
+        {!isSearchMode && featuredCourt && (
+          <View style={styles.featuredSection}>
+            <Text style={styles.sectionLabel}>NEAREST COURT</Text>
+            <Pressable
+              style={[styles.featuredCard, { borderLeftColor: Colors.accent }]}
+              onPress={() => { setSelectedCourt(featuredCourt); visitCourt(featuredCourt.id); }}
+            >
+              <View style={styles.featuredTop}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.featuredName}>{featuredCourt.name}</Text>
+                  <Text style={styles.featuredMeta}>
+                    {featuredCourt.address}
+                  </Text>
+                  <Text style={styles.featuredSport}>{featuredCourt.sport}</Text>
                 </View>
-              )}
-            </View>
-            {filteredNearbyCourts.map((court) => (
+                {featuredCourt.activeCount > 0 && (
+                  <View style={styles.liveChip}>
+                    <Text style={styles.liveCount}>{featuredCourt.activeCount}</Text>
+                    <Text style={styles.liveLabel}>LIVE</Text>
+                  </View>
+                )}
+              </View>
+              <View style={styles.featuredActions}>
+                <Pressable
+                  style={[styles.actionBtn, styles.actionBtnAccent]}
+                  onPress={handleCheckIn}
+                >
+                  <Text style={styles.actionBtnAccentText}>
+                    {isCheckedIn ? "CHECKED IN ✓" : "CHECK IN"}
+                  </Text>
+                </Pressable>
+                {localCourtId !== featuredCourt.id && (
+                  <Pressable
+                    style={[styles.actionBtn, styles.actionBtnGhost]}
+                    onPress={() => setLocalCourt(featuredCourt.id, featuredCourt)}
+                  >
+                    <Feather name="home" size={12} color={Colors.muted} />
+                    <Text style={styles.actionBtnGhostText}>SET AS MY COURT</Text>
+                  </Pressable>
+                )}
+                {localCourtId === featuredCourt.id && (
+                  <View style={[styles.actionBtn, styles.actionBtnGhost, { opacity: 0.5 }]}>
+                    <Feather name="home" size={12} color={Colors.accent} />
+                    <Text style={[styles.actionBtnGhostText, { color: Colors.accent }]}>MY COURT</Text>
+                  </View>
+                )}
+              </View>
+            </Pressable>
+          </View>
+        )}
+
+        {/* Nearby / search list */}
+        {(listCourts.length > 0 || isSearchMode) && (
+          <View style={styles.nearbySection}>
+            <Text style={styles.sectionLabel}>
+              {isSearchMode
+                ? `${searchResults.length} RESULT${searchResults.length !== 1 ? "S" : ""}`
+                : `NEARBY COURTS (${listCourts.length})`}
+            </Text>
+            {listCourts.map((court) => (
               <CourtListItem
                 key={court.id}
                 court={court}
-                onPress={(c) => {
-                  setSelectedCourt(c);
-                  visitCourt(c.id);
-                }}
+                onPress={(c) => { setSelectedCourt(c); visitCourt(c.id); }}
                 isCheckedIn={checkedInCourtId === court.id}
               />
             ))}
+            {isSearchMode && listCourts.length === 0 && !searchLoading && (
+              <Text style={styles.emptyText}>NO COURTS MATCH "{searchQuery.toUpperCase()}"</Text>
+            )}
           </View>
         )}
 
-        {filteredNearbyCourts.length === 0 && featuredCourt && (
-          <View style={styles.emptyNearby}>
-            <Text style={styles.emptyNearbyText}>
-              NO {sportFilter === "ALL" ? "" : sportFilter === "BASKETBALL" ? "BB " : "PB "}COURTS NEARBY
-            </Text>
-            <Pressable onPress={() => setSportFilter("ALL")}>
-              <Text style={styles.emptyNearbyLink}>SHOW ALL SPORTS →</Text>
-            </Pressable>
+        {!loading && !isSearchMode && nearbyCourts.length === 0 && (
+          <View style={styles.emptyState}>
+            <Feather name="map-pin" size={28} color={Colors.mutedDark} />
+            <Text style={styles.emptyText}>NO COURTS FOUND NEARBY</Text>
+            <Text style={styles.emptySubText}>Try a different sport or enable location</Text>
           </View>
         )}
       </ScrollView>
 
+      {/* Court detail sheet */}
       <CourtBottomSheet court={selectedCourt} onClose={() => setSelectedCourt(null)} />
 
+      {/* Map overlay */}
       <Animated.View
         style={[
           StyleSheet.absoluteFill,
@@ -308,7 +351,25 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
 
-  // ── Sport filter strip ──
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.surface,
+    borderBottomWidth: 0.5,
+    borderColor: Colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  searchIcon: { marginLeft: 2 },
+  searchInput: {
+    flex: 1,
+    fontFamily: Typography.body,
+    fontSize: 14,
+    color: Colors.text,
+    paddingVertical: 4,
+  },
+
   filterStrip: {
     flexDirection: "row",
     backgroundColor: Colors.surface,
@@ -325,18 +386,134 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: Radius.xs,
   },
-  filterPillActive: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
-  },
+  filterPillActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
   filterPillText: {
     fontFamily: Typography.heading,
     fontSize: 11,
     color: Colors.muted,
     letterSpacing: 1.5,
   },
-  filterPillTextActive: {
+  filterPillTextActive: { color: Colors.black },
+
+  loadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 32,
+  },
+  loadingText: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    color: Colors.muted,
+    letterSpacing: 2,
+  },
+
+  featuredSection: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 4 },
+  sectionLabel: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 10,
+    color: Colors.muted,
+    letterSpacing: 2.5,
+    textTransform: "uppercase" as const,
+    marginBottom: 10,
+  },
+  featuredCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+    borderLeftWidth: 3,
+    padding: 16,
+    gap: 14,
+  },
+  featuredTop: { flexDirection: "row", gap: 12 },
+  featuredName: {
+    fontFamily: Typography.heading,
+    fontSize: 20,
+    color: Colors.text,
+    letterSpacing: 0.2,
+    lineHeight: 24,
+    marginBottom: 4,
+  },
+  featuredMeta: {
+    fontFamily: Typography.body,
+    fontSize: 12,
+    color: Colors.muted,
+    marginBottom: 4,
+  },
+  featuredSport: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 10,
+    color: Colors.accent,
+    letterSpacing: 2,
+    textTransform: "uppercase" as const,
+  },
+  liveChip: { alignItems: "center", minWidth: 44 },
+  liveCount: {
+    fontFamily: Typography.heading,
+    fontSize: 28,
+    color: Colors.text,
+    lineHeight: 30,
+  },
+  liveLabel: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 8,
+    color: Colors.muted,
+    letterSpacing: 1.5,
+    textTransform: "uppercase" as const,
+    marginTop: 2,
+  },
+  featuredActions: { flexDirection: "row", gap: 8 },
+  actionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    gap: 5,
+    borderRadius: Radius.xs,
+  },
+  actionBtnAccent: { backgroundColor: Colors.accent },
+  actionBtnAccentText: {
+    fontFamily: Typography.heading,
+    fontSize: 11,
     color: Colors.black,
+    letterSpacing: 1.5,
+  },
+  actionBtnGhost: {
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+    backgroundColor: "transparent",
+  },
+  actionBtnGhostText: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 10,
+    color: Colors.muted,
+    letterSpacing: 1,
+  },
+
+  nearbySection: { marginTop: 22 },
+
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 48,
+    gap: 12,
+  },
+  emptyText: {
+    fontFamily: Typography.heading,
+    fontSize: 12,
+    color: Colors.muted,
+    letterSpacing: 2,
+    textAlign: "center",
+    paddingHorizontal: 32,
+    marginTop: 8,
+  },
+  emptySubText: {
+    fontFamily: Typography.body,
+    fontSize: 11,
+    color: Colors.mutedDark,
+    letterSpacing: 0.3,
   },
 
   mapBackBtn: {
@@ -351,162 +528,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.12)",
     zIndex: 200,
-  },
-
-  scrollContent: {},
-
-  myCourtSection: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 4,
-  },
-  sectionLabel: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 10,
-    color: Colors.muted,
-    letterSpacing: 2.5,
-    textTransform: "uppercase" as const,
-    marginBottom: 10,
-  },
-
-  myCourtCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.md,
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    borderLeftWidth: 3,
-    overflow: "hidden",
-    padding: 16,
-  },
-  myCourtTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 14,
-  },
-  myCourtInfo: { flex: 1 },
-  sportRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    marginBottom: 5,
-  },
-  sportDot: { width: 7, height: 7, borderRadius: 4 },
-  sportLabel: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 10,
-    letterSpacing: 2,
-    textTransform: "uppercase" as const,
-  },
-  myCourtName: {
-    fontFamily: Typography.heading,
-    fontSize: 22,
-    color: Colors.text,
-    letterSpacing: 0.2,
-    lineHeight: 26,
-  },
-  myCourtMeta: {
-    fontFamily: Typography.body,
-    fontSize: 12,
-    color: Colors.muted,
-    marginTop: 4,
-  },
-  myCourtLiveBadge: {
-    alignItems: "center",
-    minWidth: 56,
-    paddingLeft: 12,
-    paddingTop: 2,
-  },
-  liveCount: {
-    fontFamily: Typography.heading,
-    fontSize: 32,
-    color: Colors.text,
-    lineHeight: 34,
-  },
-  emptyDash: {
-    fontFamily: Typography.heading,
-    fontSize: 28,
-    color: Colors.mutedDark,
-    lineHeight: 32,
-    marginBottom: 5,
-  },
-  liveLabel: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 8,
-    color: Colors.muted,
-    letterSpacing: 1.5,
-    textTransform: "uppercase" as const,
-    marginTop: 2,
-  },
-
-  nextRunBanner: {
-    backgroundColor: Colors.surfaceHigh,
-    borderRadius: Radius.sm,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 14,
-  },
-  nextRunEyebrow: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.muted,
-    letterSpacing: 2,
-    textTransform: "uppercase" as const,
-    marginBottom: 3,
-  },
-  nextRunDetails: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 13,
-    color: Colors.text,
-    letterSpacing: 0.1,
-  },
-
-  cardActions: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  checkInBtn: { flex: 2 },
-  viewCourtBtn: { flex: 1 },
-
-  nearbySection: {
-    marginTop: 22,
-  },
-  nearbySectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    marginBottom: 10,
-  },
-  liveNearbyBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  liveNearbyText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 10,
-    color: Colors.accent,
-    letterSpacing: 1.5,
-    textTransform: "uppercase" as const,
-  },
-
-  emptyNearby: {
-    alignItems: "center",
-    paddingVertical: 40,
-    paddingHorizontal: 40,
-    gap: 12,
-  },
-  emptyNearbyText: {
-    fontFamily: Typography.heading,
-    fontSize: 13,
-    color: Colors.muted,
-    letterSpacing: 2,
-    textAlign: "center",
-  },
-  emptyNearbyLink: {
-    fontFamily: Typography.heading,
-    fontSize: 11,
-    color: Colors.accent,
-    letterSpacing: 1.5,
   },
 });

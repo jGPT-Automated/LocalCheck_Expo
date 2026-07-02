@@ -20,6 +20,7 @@ import { Colors, Radius } from "@/constants/colors";
 import { getSportColor, SAMPLE_PLAYERS, SAMPLE_RUNS } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
 
 const WEATHER_STUB = "72° ☀";
 
@@ -33,18 +34,18 @@ function getSportShort(sport?: string | null): string {
 const COLLAPSE_THRESHOLD = 100;
 
 export function HomeScreen() {
-  const { courts, localCourtId, checkedInCourtId, checkIn, checkOut, feed, isFriend } = useApp();
+  const { localCourt, localCourtId, checkedInCourtId, checkIn, checkOut, feed, isFriend } = useApp();
+  const { user } = useAuth();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const localCourt = localCourtId ? courts.find((c) => c.id === localCourtId) ?? null : null;
   const isCheckedIn = checkedInCourtId === localCourt?.id;
 
   if (!localCourt) {
-    return <NoCourtState topPad={topPad} />;
+    return <NoCourtState topPad={topPad} isSignedIn={!!user} />;
   }
 
   const sportColor = getSportColor(localCourt.sport);
@@ -344,27 +345,60 @@ export function HomeScreen() {
   );
 }
 
-function NoCourtState({ topPad }: { topPad: number }) {
-  return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: topPad + 12 }]}>
-        <View>
-          <Text style={styles.headerEyebrow}>LOCALCHECK</Text>
-          <Text style={styles.headerBrand}>HOME</Text>
+function NoCourtState({ topPad, isSignedIn }: { topPad: number; isSignedIn: boolean }) {
+  if (isSignedIn) {
+    // Signed in but no local court set yet → focused CTA
+    return (
+      <View style={styles.container}>
+        <View style={[styles.header, { paddingTop: topPad + 12 }]}>
+          <View>
+            <Text style={styles.headerEyebrow}>LOCALCHECK</Text>
+            <Text style={styles.headerBrand}>HOME</Text>
+          </View>
+        </View>
+        <View style={styles.noCourtContainer}>
+          <Feather name="map-pin" size={28} color={Colors.accent} style={styles.noCourtIcon} />
+          <Text style={styles.noCourtTitle}>FIND A COURT</Text>
+          <Text style={styles.noCourtSub}>
+            Pick a court as your home base.{"\n"}Get live check-ins and run updates.
+          </Text>
+          <Pressable style={styles.findCourtBtn} onPress={() => router.push("/(tabs)/explore")}>
+            <Text style={styles.findCourtBtnText}>EXPLORE COURTS →</Text>
+          </Pressable>
         </View>
       </View>
-      <View style={styles.noCourtContainer}>
-        <Feather name="map-pin" size={28} color={Colors.mutedDark} style={styles.noCourtIcon} />
-        <Text style={styles.noCourtTitle}>SET YOUR LOCAL COURT</Text>
-        <Text style={styles.noCourtSub}>
-          Claim a court as your home base.{"\n"}Get live updates and check in fast.
-        </Text>
-        <Pressable
-          style={styles.findCourtBtn}
-          onPress={() => router.push("/(tabs)/explore")}
-        >
-          <Text style={styles.findCourtBtnText}>FIND A COURT →</Text>
+    );
+  }
+
+  // Not signed in → welcome / landing page
+  return (
+    <View style={[styles.container, { justifyContent: "space-between" }]}>
+      {/* Logo area */}
+      <View style={[styles.welcomeTop, { paddingTop: topPad + 40 }]}>
+        <Text style={styles.welcomeBrand}>LOCALCHECK</Text>
+        <View style={[styles.welcomeAccentBar, { backgroundColor: Colors.accent }]} />
+        <Text style={styles.welcomeTagline}>STREET SPORTS.{"\n"}YOUR LOCAL COURT.</Text>
+      </View>
+
+      {/* CTAs */}
+      <View style={styles.welcomeCtas}>
+        <Pressable style={styles.welcomeBtnPrimary} onPress={() => router.push("/auth")}>
+          <Text style={styles.welcomeBtnPrimaryText}>SIGN IN</Text>
         </Pressable>
+        <Pressable style={styles.welcomeBtnSecondary} onPress={() => router.push("/auth")}>
+          <Text style={styles.welcomeBtnSecondaryText}>CREATE ACCOUNT</Text>
+        </Pressable>
+        <Pressable style={styles.welcomeBtnGhost} onPress={() => router.push("/(tabs)/explore")}>
+          <Feather name="map" size={13} color={Colors.muted} />
+          <Text style={styles.welcomeBtnGhostText}>EXPLORE COURTS</Text>
+        </Pressable>
+      </View>
+
+      {/* Footer */}
+      <View style={styles.welcomeFooter}>
+        <Text style={styles.welcomeFooterText}>
+          BASKETBALL · PICKLEBALL · TENNIS
+        </Text>
       </View>
     </View>
   );
@@ -814,7 +848,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase" as const,
   },
 
-  // ── No Court ──
+  // ── No Court / Find Court ──
   noCourtContainer: {
     flex: 1,
     alignItems: "center",
@@ -849,5 +883,84 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.accent,
     letterSpacing: 2,
+  },
+
+  // ── Welcome / Landing ──
+  welcomeTop: {
+    paddingHorizontal: 28,
+    paddingBottom: 24,
+  },
+  welcomeBrand: {
+    fontFamily: Typography.heading,
+    fontSize: 42,
+    color: Colors.text,
+    letterSpacing: 3,
+    lineHeight: 46,
+    marginBottom: 16,
+  },
+  welcomeAccentBar: {
+    width: 40,
+    height: 3,
+    marginBottom: 20,
+  },
+  welcomeTagline: {
+    fontFamily: Typography.heading,
+    fontSize: 22,
+    color: Colors.muted,
+    letterSpacing: 1,
+    lineHeight: 28,
+  },
+  welcomeCtas: {
+    paddingHorizontal: 28,
+    gap: 12,
+    paddingBottom: 40,
+  },
+  welcomeBtnPrimary: {
+    backgroundColor: Colors.accent,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  welcomeBtnPrimaryText: {
+    fontFamily: Typography.heading,
+    fontSize: 14,
+    color: Colors.black,
+    letterSpacing: 3,
+  },
+  welcomeBtnSecondary: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  welcomeBtnSecondaryText: {
+    fontFamily: Typography.heading,
+    fontSize: 14,
+    color: Colors.text,
+    letterSpacing: 3,
+  },
+  welcomeBtnGhost: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+  },
+  welcomeBtnGhostText: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 12,
+    color: Colors.muted,
+    letterSpacing: 2,
+  },
+  welcomeFooter: {
+    paddingBottom: 40,
+    alignItems: "center",
+  },
+  welcomeFooterText: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 9,
+    color: Colors.mutedDark,
+    letterSpacing: 3,
+    textTransform: "uppercase" as const,
   },
 });

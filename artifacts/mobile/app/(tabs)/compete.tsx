@@ -33,8 +33,8 @@ const SPORT_TABS: (CourtSport | "ALL")[] = ["ALL", "BASKETBALL", "PICKLEBALL"];
 
 export default function CompeteScreen() {
   const {
-    courts,
     localCourtId,
+    localCourt,
     currentUser,
     isLocalPlus,
     visibility,
@@ -50,7 +50,7 @@ export default function CompeteScreen() {
     preferredSport ?? "ALL"
   );
 
-  const localCourt = localCourtId ? courts.find((c) => c.id === localCourtId) ?? null : null;
+  // localCourt is now populated via AppContext from Supabase
 
   const leaderboardPlayers = SAMPLE_PLAYERS.filter((p) => {
     const sportMatch = sportFilter === "ALL" || p.sport === sportFilter;
@@ -141,7 +141,7 @@ export default function CompeteScreen() {
       ) : (
         <LogGameView
           currentUser={currentUser}
-          courts={courts}
+          courts={localCourt ? [localCourt] : []}
           bottom={bottom}
           preferredSport={preferredSport}
           preferredCourtId={preferredCourtId}
@@ -327,7 +327,7 @@ function LogGameView({
   localCourtId,
 }: {
   currentUser: ReturnType<typeof useApp>["currentUser"];
-  courts: ReturnType<typeof useApp>["courts"];
+  courts: ReturnType<typeof useApp>["courts"] | { id: string; name: string }[];
   bottom: number;
   preferredSport: CourtSport | null;
   preferredCourtId: string | null;
