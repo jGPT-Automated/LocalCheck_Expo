@@ -42,20 +42,9 @@ interface AuthContextValue {
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
   signInWithApple: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
-  ensureProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-/** Generate a username candidate from email or display name */
-function generateUsername(email: string | undefined, displayName: string | undefined): string {
-  const base = (email?.split("@")[0] ?? displayName ?? "player")
-    .toLowerCase()
-    .replace(/[^a-z0-9_]/g, "_")
-    .slice(0, 20);
-  const suffix = Math.floor(Math.random() * 9000 + 1000); // 4-digit number
-  return `${base}_${suffix}`;
-}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -63,68 +52,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchProfile = useCallback(async (userId: string) => {
-    try {
+  const waitForProfile = useCallback(async (userId: string): Promise<{ error: string | null }> => {
+    const maxAttempts = 5;
+    const retryDelayMs = 300;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       const { data } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
+
       if (data) {
         setProfile(data as UserProfile);
+        return { error: null };
       }
-    } catch {
-      // Profile may not exist yet
+
+      if (attempt < maxAttempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      }
     }
+
+    setProfile(null);
+    return {
+      error: "Profile provisioning failed. Please retry.",
+    };
   }, []);
-
-  const ensureProfile = useCallback(async () => {
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    if (!currentUser) return;
-
-    const { data: existing } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("id", currentUser.id)
-      .single();
-
-    if (!existing) {
-      const displayName =
-        currentUser.user_metadata?.display_name ??
-        currentUser.user_metadata?.full_name ??
-        currentUser.email?.split("@")[0] ??
-        "Player";
-
-      const username = generateUsername(currentUser.email, displayName);
-
-      await supabase.from("profiles").insert({
-        id: currentUser.id,
-        email: currentUser.email ?? null,
-        display_name: displayName,
-        username,
-        avatar_url: currentUser.user_metadata?.avatar_url ?? null,
-        elo_rating: 1200,
-        wins: 0,
-        losses: 0,
-        total_court_time_minutes: 0,
-        apple_private_email: false,
-        push_notifications_enabled: true,
-        check_in_reminders_enabled: true,
-        game_alerts_enabled: true,
-        local_court_id: null,
-      });
-    }
-
-    await fetchProfile(currentUser.id);
-  }, [fetchProfile]);
 
   useEffect(() => {
     // Restore session on mount
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
-        fetchProfile(s.user.id);
+        await waitForProfile(s.user.id);
       }
       setIsLoading(false);
     });
@@ -135,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(s);
         setUser(s?.user ?? null);
         if (s?.user) {
-          await fetchProfile(s.user.id);
+          await waitForProfile(s.user.id);
         } else {
           setProfile(null);
         }
@@ -144,34 +105,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     return () => subscription.unsubscribe();
-  }, [fetchProfile]);
+  }, [waitForProfile]);
 
   const signUpWithEmail = useCallback(
     async (email: string, password: string, displayName?: string) => {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: { display_name: displayName },
         },
       });
-      if (!error) {
-        await ensureProfile();
+      if (error) {
+        return { error: error.message };
       }
-      return { error: error?.message ?? null };
+      if (data.user) {
+        return await waitForProfile(data.user.id);
+      }
+      return { error: null };
     },
-    [ensureProfile]
+    [waitForProfile]
   );
 
   const signInWithEmail = useCallback(
     async (email: string, password: string) => {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (!error) {
-        await ensureProfile();
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        return { error: error.message };
       }
-      return { error: error?.message ?? null };
+      if (data.user) {
+        return await waitForProfile(data.user.id);
+      }
+      return { error: null };
     },
-    [ensureProfile]
+    [waitForProfile]
   );
 
   const signInWithApple = useCallback(async () => {
@@ -193,16 +160,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         nonce: hashedNonce,
       });
 
-      const { error } = await supabase.auth.signInWithIdToken({
+      const { data, error } = await supabase.auth.signInWithIdToken({
         provider: "apple",
         token: credential.identityToken!,
         nonce,
       });
 
-      if (!error) {
-        await ensureProfile();
+      if (error) {
+        return { error: error.message };
       }
-      return { error: error?.message ?? null };
+      if (data.user) {
+        return await waitForProfile(data.user.id);
+      }
+      return { error: null };
     } catch (err: any) {
       // ERR_REQUEST_CANCELED means the user dismissed the sheet — not a real error
       if (err?.code === "ERR_REQUEST_CANCELED") {
@@ -210,7 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return { error: err?.message ?? "Apple Sign-In failed" };
     }
-  }, [ensureProfile]);
+  }, [waitForProfile]);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
@@ -228,7 +198,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signInWithEmail,
         signInWithApple,
         signOut,
-        ensureProfile,
       }}
     >
       {children}
