@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 
 import { Colors, Radius } from "@/constants/colors";
-import { getSportColor, SAMPLE_RUNS } from "@/constants/data";
+import { getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 
@@ -37,7 +37,7 @@ function getWeekDays(): { label: string; dayOfWeek: string; isToday: boolean; da
 }
 
 export default function ScheduleScreen() {
-  const { courts, localCourtId } = useApp();
+  const { localCourt, runs } = useApp();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
 
@@ -45,10 +45,8 @@ export default function ScheduleScreen() {
   const todayIndex = weekDays.findIndex((d) => d.isToday);
   const [selectedDay, setSelectedDay] = useState(todayIndex);
 
-  const localCourt = localCourtId ? courts.find((c) => c.id === localCourtId) ?? null : null;
-
-  // Map sample runs to days (TODAY = selectedDay if today, TOMORROW = next day)
-  const runsForDay = SAMPLE_RUNS.filter((r) => {
+  // Map real scheduled games to days (TODAY = selectedDay if today, TOMORROW = next day)
+  const runsForDay = runs.filter((r) => {
     if (selectedDay === todayIndex) return r.date === "TODAY";
     if (selectedDay === todayIndex + 1) return r.date === "TOMORROW";
     return false;
@@ -186,7 +184,7 @@ export default function ScheduleScreen() {
         {/* ── All upcoming runs ── */}
         <View style={styles.allSection}>
           <Text style={styles.allSectionTitle}>ALL UPCOMING</Text>
-          {SAMPLE_RUNS.map((run) => {
+          {runs.map((run) => {
             const sportColor = getSportColor(run.sport);
             const filled =
               run.teamA.filter(Boolean).length + run.teamB.filter(Boolean).length;

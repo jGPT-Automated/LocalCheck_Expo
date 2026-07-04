@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Platform,
   Pressable,
@@ -13,9 +14,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeedCard } from "@/components/FeedCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors, Radius } from "@/constants/colors";
-import { CourtSport, SAMPLE_PLAYERS } from "@/constants/data";
+import { CourtSport, Player } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { fetchLeaderboard } from "@/services/profileService";
 
 type Section = "ACTIVITY" | "LEADERS";
 const SPORT_FILTERS: (CourtSport | "ALL")[] = ["ALL", "BASKETBALL", "PICKLEBALL"];
@@ -35,6 +37,8 @@ export default function FeedScreen() {
   const [section, setSection] = useState<Section>("ACTIVITY");
   const [sportFilter, setSportFilter] = useState<CourtSport | "ALL">("ALL");
   const [selectedCourtId, setSelectedCourtId] = useState<string | null>(null);
+  const [leaderboardPlayers, setLeaderboardPlayers] = useState<Player[]>([]);
+  const [leadersLoading, setLeadersLoading] = useState(false);
 
   // Filter feed to local court activity when in ACTIVITY mode and local court is set
   const baseFeed =
@@ -45,13 +49,22 @@ export default function FeedScreen() {
   const filteredFeed =
     sportFilter === "ALL" ? baseFeed : baseFeed.filter((item) => item.sport === sportFilter);
 
-  const leaderboardPlayers = SAMPLE_PLAYERS
-    .filter((p) => {
-      const courtMatch = selectedCourtId ? p.courtId === selectedCourtId : true;
-      const sportMatch = sportFilter === "ALL" ? true : p.sport === sportFilter;
-      return courtMatch && sportMatch;
-    })
-    .sort((a, b) => b.elo - a.elo);
+  // Fetch real leaderboard for the LEADERS tab
+  useEffect(() => {
+    let mounted = true;
+    setLeadersLoading(true);
+    fetchLeaderboard(
+      selectedCourtId ? "LOCAL" : "GLOBAL",
+      selectedCourtId,
+      sportFilter === "ALL" ? null : sportFilter
+    )
+      .then((players) => {
+        if (!mounted) return;
+        setLeaderboardPlayers(players);
+      })
+      .finally(() => { if (mounted) setLeadersLoading(false); });
+    return () => { mounted = false; };
+  }, [selectedCourtId, sportFilter]);
 
   return (
     <View style={styles.container}>
@@ -140,7 +153,11 @@ export default function FeedScreen() {
             </Pressable>
           </ScrollView>
 
-          {leaderboardPlayers.length === 0 ? (
+          {leadersLoading ? (
+            <View style={styles.empty}>
+              <ActivityIndicator color={Colors.accent} />
+            </View>
+          ) : leaderboardPlayers.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyText}>No players for this court.</Text>
             </View>

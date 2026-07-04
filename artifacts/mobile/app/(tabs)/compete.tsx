@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   ScrollView,
@@ -14,14 +15,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors, Radius } from "@/constants/colors";
-import {
-  CourtSport,
-  getSportColor,
-  getTierColor,
-  SAMPLE_PLAYERS,
-} from "@/constants/data";
+import { CourtSport, getSportColor, getTierColor, Player } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { fetchLeaderboard } from "@/services/profileService";
+import { logGame } from "@/services/gameService";
+import { searchPlayers } from "@/services/profileService";
 
 // BACKEND NOTE:
 // Leaderboard → GET /api/v1/leaderboard?sport=&scope=global|local|regional
@@ -49,37 +48,29 @@ export default function CompeteScreen() {
   const [sportFilter, setSportFilter] = useState<CourtSport | "ALL">(
     preferredSport ?? "ALL"
   );
+  const [leaderboardPlayers, setLeaderboardPlayers] = useState<Player[]>([]);
+  const [allPlayers, setAllPlayers] = useState<Player[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
 
-  // localCourt is now populated via AppContext from Supabase
+  // Fetch real leaderboard from Supabase whenever scope/sport/local court changes
+  useEffect(() => {
+    let mounted = true;
+    setLeaderboardLoading(true);
+    fetchLeaderboard(scope, scope === "LOCAL" ? localCourtId : null, sportFilter === "ALL" ? null : sportFilter)
+      .then((players) => {
+        if (!mounted) return;
+        // Public leaderboard visibility: only show players with public-ish visibility.
+        // The profiles table has no visibility column, so we show everyone.
+        // LocalPlus paywall is preserved conceptually but not enforced by data.
+        const visible = players;
+        setLeaderboardPlayers(visible);
+        setAllPlayers(players);
+      })
+      .finally(() => { if (mounted) setLeaderboardLoading(false); });
+    return () => { mounted = false; };
+  }, [scope, sportFilter, localCourtId]);
 
-  const leaderboardPlayers = SAMPLE_PLAYERS.filter((p) => {
-    const sportMatch = sportFilter === "ALL" || p.sport === sportFilter;
-    const scopeMatch =
-      scope === "GLOBAL"
-        ? true
-        : scope === "LOCAL"
-        ? localCourtId
-          ? p.courtId === localCourtId
-          : true
-        : true; // regional - same as all for now
-    const isVisible = p.visibility === "public" && p.isLocalPlus;
-    return sportMatch && scopeMatch && isVisible;
-  }).sort((a, b) => b.elo - a.elo);
-
-  const allPlayersFiltered = SAMPLE_PLAYERS.filter((p) => {
-    const sportMatch = sportFilter === "ALL" || p.sport === sportFilter;
-    const scopeMatch =
-      scope === "GLOBAL"
-        ? true
-        : scope === "LOCAL"
-        ? localCourtId
-          ? p.courtId === localCourtId
-          : true
-        : true;
-    return sportMatch && scopeMatch;
-  }).sort((a, b) => b.elo - a.elo);
-
-  const myRank = allPlayersFiltered.findIndex((p) => p.name === currentUser.name) + 1;
+  const myRank = allPlayers.findIndex((p) => p.id === currentUser.id) + 1;
   const amIVisible = visibility === "public" && isLocalPlus;
   const showMyRank = myRank > 0 && amIVisible;
 
@@ -128,7 +119,7 @@ export default function CompeteScreen() {
       {tab === "LEADERBOARD" ? (
         <LeaderboardView
           players={leaderboardPlayers}
-          allPlayers={allPlayersFiltered}
+          allPlayers={allPlayers}
           myRank={myRank}
           showMyRank={showMyRank}
           scope={scope}
@@ -137,6 +128,7 @@ export default function CompeteScreen() {
           setSportFilter={setSportFilter}
           localCourt={localCourt}
           bottom={bottom}
+          loading={leaderboardLoading}
         />
       ) : (
         <LogGameView
@@ -165,17 +157,19 @@ function LeaderboardView({
   setSportFilter,
   localCourt,
   bottom,
+  loading,
 }: {
-  players: ReturnType<typeof SAMPLE_PLAYERS.filter>;
-  allPlayers: ReturnType<typeof SAMPLE_PLAYERS.filter>;
+  players: Player[];
+  allPlayers: Player[];
   myRank: number;
   showMyRank: boolean;
   scope: Scope;
   setScope: (s: Scope) => void;
   sportFilter: CourtSport | "ALL";
   setSportFilter: (f: CourtSport | "ALL") => void;
-  localCourt: ReturnType<typeof Array.prototype.find> | null;
+  localCourt: { id: string; name: string; sport: CourtSport } | null;
   bottom: number;
+  loading?: boolean;
 }) {
   const router = useRouter();
   const { isFriend } = useApp();
@@ -239,7 +233,11 @@ function LeaderboardView({
         </View>
       )}
 
-      {players.length === 0 ? (
+      {loading ? (
+        <View style={styles.emptyState}>
+          <ActivityIndicator color={Colors.accent} />
+        </View>
+      ) : players.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>NO PLAYERS FOR THIS FILTER</Text>
         </View>
@@ -351,6 +349,8 @@ function LogGameView({
   const [submitted, setSubmitted] = useState(false);
   const [showOpponentPicker, setShowOpponentPicker] = useState(false);
   const [opponentQuery, setOpponentQuery] = useState("");
+  const [opponentSuggestions, setOpponentSuggestions] = useState<Player[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   const isWin =
     form.myScore !== "" &&
@@ -362,38 +362,68 @@ function LogGameView({
     Number(form.myScore) < Number(form.theirScore);
 
   const canSubmit =
-    form.sport !== "" && form.myScore !== "" && form.theirScore !== "";
+    form.sport !== "" &&
+    form.myScore !== "" &&
+    form.theirScore !== "" &&
+    form.opponentId !== "" &&
+    form.courtId !== "" &&
+    !submitting;
 
-  const handleSubmit = () => {
-    if (!canSubmit) return;
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 3000);
-    setForm({
-      sport: defaultSport,
-      myScore: "",
-      theirScore: "",
-      opponentName: "",
-      opponentId: "",
-      courtId: defaultCourtId,
-      note: "",
-    });
+  const handleSubmit = async () => {
+    if (!canSubmit || !form.opponentId || !form.courtId) return;
+    setSubmitting(true);
+    try {
+      await logGame({
+        courtId: form.courtId,
+        createdBy: currentUser.id,
+        myScore: Number(form.myScore),
+        theirScore: Number(form.theirScore),
+        opponentId: form.opponentId,
+        sport: form.sport as CourtSport,
+        note: form.note,
+      });
+    } catch (e) {
+      console.warn("logGame failed", e);
+    } finally {
+      setSubmitting(false);
+      setSubmitted(true);
+      setTimeout(() => setSubmitted(false), 3000);
+      setForm({
+        sport: defaultSport,
+        myScore: "",
+        theirScore: "",
+        opponentName: "",
+        opponentId: "",
+        courtId: defaultCourtId,
+        note: "",
+      });
+    }
   };
 
-  // Opponent typeahead
+  // Opponent typeahead: search real players via Supabase
   const friends = getFriendsList();
-  const otherPlayers = SAMPLE_PLAYERS.filter(
-    (p) => p.id !== currentUser.id && !isFriend(p.id)
-  );
   const query = opponentQuery.toLowerCase().trim();
-  const matchedFriends = query
-    ? friends.filter((p) => p.name.toLowerCase().includes(query))
-    : friends;
-  const matchedOthers = query
-    ? otherPlayers.filter((p) => p.name.toLowerCase().includes(query))
-    : otherPlayers.slice(0, 5);
-  const opponentSuggestions = [...matchedFriends, ...matchedOthers].slice(0, 10);
+  useEffect(() => {
+    let mounted = true;
+    if (query.length === 0) {
+      setOpponentSuggestions(friends.slice(0, 10));
+      return;
+    }
+    searchPlayers(query).then((results) => {
+      if (!mounted) return;
+      const deduped = results.filter((p) => p.id !== currentUser.id);
+      // Friends first, then others
+      const friendIds = new Set(friends.map((f) => f.id));
+      const sorted = [
+        ...deduped.filter((p) => friendIds.has(p.id)),
+        ...deduped.filter((p) => !friendIds.has(p.id)),
+      ].slice(0, 10);
+      setOpponentSuggestions(sorted);
+    });
+    return () => { mounted = false; };
+  }, [query, friends, currentUser.id]);
 
-  const handleSelectOpponent = (player: (typeof SAMPLE_PLAYERS)[0]) => {
+  const handleSelectOpponent = (player: Player) => {
     setForm((f) => ({ ...f, opponentName: player.name, opponentId: player.id }));
     setOpponentQuery("");
     setShowOpponentPicker(false);
@@ -602,12 +632,12 @@ function LogGameView({
 
       {/* Submit */}
       <Pressable
-        style={[styles.submitBtn, !canSubmit && styles.submitBtnDisabled]}
+        style={[styles.submitBtn, (!canSubmit || submitting) && styles.submitBtnDisabled]}
         onPress={handleSubmit}
-        disabled={!canSubmit}
+        disabled={!canSubmit || submitting}
       >
-        <Text style={[styles.submitBtnText, !canSubmit && styles.submitBtnTextDisabled]}>
-          LOG GAME
+        <Text style={[styles.submitBtnText, (!canSubmit || submitting) && styles.submitBtnTextDisabled]}>
+          {submitting ? "LOGGING..." : "LOG GAME"}
         </Text>
       </Pressable>
     </ScrollView>

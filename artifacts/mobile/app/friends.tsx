@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -14,29 +14,45 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors } from "@/constants/colors";
-import { getTierColor, Player, SAMPLE_PLAYERS } from "@/constants/data";
+import { getTierColor, Player } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { searchPlayers } from "@/services/profileService";
 
 export default function FriendsScreen() {
   const router = useRouter();
-  const { friendIds, isFriend, addFriend, removeFriend, getFriendsList } = useApp();
+  const { friendIds, isFriend, addFriend, removeFriend, getFriendsList, currentUser } = useApp();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
 
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<"FRIENDS" | "DISCOVER">("FRIENDS");
+  const [discoverResults, setDiscoverResults] = useState<Player[]>([]);
+  const [discoverLoading, setDiscoverLoading] = useState(false);
 
   const friends = getFriendsList();
-  const allPlayers = SAMPLE_PLAYERS.filter((p) => p.id !== "p1"); // exclude current user
+
+  // Search real players in Supabase when typing in DISCOVER tab
+  useEffect(() => {
+    if (activeTab !== "DISCOVER") return;
+    let mounted = true;
+    const query = search.trim().toLowerCase();
+    if (query.length < 2) {
+      setDiscoverResults([]);
+      return;
+    }
+    setDiscoverLoading(true);
+    searchPlayers(query).then((results) => {
+      if (!mounted) return;
+      setDiscoverResults(results.filter((p) => p.id !== currentUser.id));
+      setDiscoverLoading(false);
+    });
+    return () => { mounted = false; };
+  }, [activeTab, search, currentUser.id]);
 
   const filtered = activeTab === "FRIENDS"
     ? friends.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
-    : allPlayers.filter((p) => {
-        const match = p.name.toLowerCase().includes(search.toLowerCase());
-        const notAlreadyFriend = !isFriend(p.id);
-        return match && notAlreadyFriend;
-      });
+    : discoverResults;
 
   return (
     <View style={styles.container}>

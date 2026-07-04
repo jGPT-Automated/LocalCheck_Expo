@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Modal,
   Platform,
@@ -18,11 +18,11 @@ import {
   getTierColor,
   MatchResult,
   Player,
-  SAMPLE_MATCHES,
-  SAMPLE_PLAYERS,
 } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { fetchGamesByPlayer } from "@/services/gameService";
+import { fetchProfile } from "@/services/profileService";
 
 function getHeadToHeadStats(user: Player, opponent: Player, allMatches: MatchResult[]) {
   // In a real app, matches would include opponent IDs. We simulate by
@@ -86,8 +86,34 @@ export default function PlayerProfileScreen() {
   const topPad = Platform.OS === "web" ? 67 : top;
 
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [player, setPlayer] = useState<Player | null>(null);
+  const [playerMatches, setPlayerMatches] = useState<MatchResult[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const player = SAMPLE_PLAYERS.find((p) => p.id === id);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      const [p, m] = await Promise.all([
+        fetchProfile(id),
+        fetchGamesByPlayer(id),
+      ]);
+      if (!mounted) return;
+      setPlayer(p);
+      setPlayerMatches(m);
+      setLoading(false);
+    })();
+    return () => { mounted = false; };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { paddingTop: topPad + 20, alignItems: "center" }]}>
+        <Text style={styles.notFound}>LOADING…</Text>
+      </View>
+    );
+  }
+
   if (!player) {
     return (
       <View style={[styles.container, { paddingTop: topPad + 20 }]}>

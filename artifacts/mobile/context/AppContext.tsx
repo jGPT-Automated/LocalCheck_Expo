@@ -4,24 +4,28 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
 import {
   Court,
   CourtSport,
-  CourtStatus,
   FeedItem,
   GameRun,
   MatchResult,
   Player,
-  SAMPLE_FEED,
-  SAMPLE_MATCHES,
   SAMPLE_PLAYERS,
-  SAMPLE_RUNS,
   getEloTier,
 } from "@/constants/data";
+import { checkInToCourt, checkOutOfCourt, fetchActiveCheckIns, fetchCheckedInCourtId } from "@/services/checkInService";
+import { addFriend, fetchFriends, removeFriend } from "@/services/friendshipService";
+import { fetchFeed } from "@/services/feedService";
+import { fetchGamesByPlayer } from "@/services/gameService";
+import { fetchScheduledGames, joinScheduledGame } from "@/services/scheduledGameService";
 import { fetchCourtById } from "@/services/courtService";
+import { fetchLocals, updateLocalCourtId } from "@/services/profileService";
+import { useAuth } from "@/context/AuthContext";
 
 export type Visibility = "public" | "friends" | "private";
 
@@ -59,159 +63,250 @@ interface AppContextValue {
   removeFriend: (playerId: string) => Promise<void>;
   isFriend: (playerId: string) => boolean;
   getFriendsList: () => Player[];
+  refreshCourtState: () => Promise<void>;
+  refreshFeed: () => Promise<void>;
+  refreshRuns: () => Promise<void>;
+  refreshMatches: () => Promise<void>;
+  refreshFriends: () => Promise<void>;
+  localPlayers: Player[];
+  activePlayers: Player[];
+  isLoading: boolean;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
 
 const STORAGE_KEYS = {
-  currentUser: "localcheck:currentUser",
-  checkedInCourtId: "localcheck:checkedInCourtId",
   lastVisitedCourtId: "localcheck:lastVisitedCourtId",
   localCourtId: "localcheck:localCourtId",
-  feed: "localcheck:feed",
-  matches: "localcheck:matches",
-  courts: "localcheck:courts",
   visibility: "localcheck:visibility",
   isLocalPlus: "localcheck:isLocalPlus",
   friendIds: "localcheck:friendIds",
   preferredSport: "localcheck:preferredSport",
   preferredCourtId: "localcheck:preferredCourtId",
+  courts: "localcheck:courts",
 };
 
+function profileToPlayer(profile: ReturnType<typeof useAuth>["profile"]): Player {
+  if (!profile) return SAMPLE_PLAYERS[0];
+  const name = profile.display_name || profile.username || "Player";
+  const initials = name
+    .split(" ")
+    .filter(Boolean)
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+  const elo = profile.elo_rating ?? 1200;
+  return {
+    id: profile.id,
+    name,
+    elo,
+    tier: getEloTier(elo),
+    avatar: initials,
+    wins: profile.wins ?? 0,
+    losses: profile.losses ?? 0,
+    checkIns: profile.total_court_time_minutes ?? 0,
+    memberSince: profile.created_at,
+    courtId: profile.local_court_id ?? undefined,
+    sport: undefined,
+    visibility: "public",
+    isLocalPlus: false,
+    friendIds: [],
+  };
+}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<Player>(SAMPLE_PLAYERS[0]);
+  const { user, profile } = useAuth();
+  const userId = user?.id ?? null;
+
   const [courts, setCourts] = useState<Court[]>([]);
   const [localCourt, setLocalCourtObj] = useState<Court | null>(null);
   const [checkedInCourtId, setCheckedInCourtId] = useState<string | null>(null);
   const [lastVisitedCourtId, setLastVisitedCourtId] = useState<string | null>(null);
   const [localCourtId, setLocalCourtId] = useState<string | null>(null);
-  const [runs, setRuns] = useState<GameRun[]>(SAMPLE_RUNS);
-  const [feed, setFeed] = useState<FeedItem[]>(SAMPLE_FEED);
-  const [matches, setMatches] = useState<MatchResult[]>(SAMPLE_MATCHES);
+  const [runs, setRuns] = useState<GameRun[]>([]);
+  const [feed, setFeed] = useState<FeedItem[]>([]);
+  const [matches, setMatches] = useState<MatchResult[]>([]);
   const [isLocalPlus, setIsLocalPlusState] = useState<boolean>(false);
   const [visibility, setVisibilityState] = useState<Visibility>("public");
   const [friendIds, setFriendIds] = useState<string[]>([]);
+  const [friends, setFriends] = useState<Player[]>([]);
   const [preferredSport, setPreferredSportState] = useState<CourtSport | null>(null);
   const [preferredCourtId, setPreferredCourtIdState] = useState<string | null>(null);
+  const [localPlayers, setLocalPlayers] = useState<Player[]>([]);
+  const [activePlayers, setActivePlayers] = useState<Player[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
+  const currentUser = useMemo(() => profileToPlayer(profile), [profile]);
+
+  // ─── Hydration from local storage (UI prefs + local court fallback) ────────
   useEffect(() => {
     (async () => {
       try {
-        const [userRaw, courtIdRaw, lastVisitedRaw, feedRaw, matchesRaw, localCourtRaw, courtsRaw, visibilityRaw, isLocalPlusRaw, friendIdsRaw, preferredSportRaw, preferredCourtIdRaw] = await Promise.all([
-          AsyncStorage.getItem(STORAGE_KEYS.currentUser),
-          AsyncStorage.getItem(STORAGE_KEYS.checkedInCourtId),
+        const [lastVisitedRaw, localCourtRaw, visibilityRaw, isLocalPlusRaw, friendIdsRaw, preferredSportRaw, preferredCourtIdRaw, courtsRaw] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEYS.lastVisitedCourtId),
-          AsyncStorage.getItem(STORAGE_KEYS.feed),
-          AsyncStorage.getItem(STORAGE_KEYS.matches),
           AsyncStorage.getItem(STORAGE_KEYS.localCourtId),
-          AsyncStorage.getItem(STORAGE_KEYS.courts),
           AsyncStorage.getItem(STORAGE_KEYS.visibility),
           AsyncStorage.getItem(STORAGE_KEYS.isLocalPlus),
           AsyncStorage.getItem(STORAGE_KEYS.friendIds),
           AsyncStorage.getItem(STORAGE_KEYS.preferredSport),
           AsyncStorage.getItem(STORAGE_KEYS.preferredCourtId),
+          AsyncStorage.getItem(STORAGE_KEYS.courts),
         ]);
-        if (userRaw) {
-          const parsed = JSON.parse(userRaw);
-          setCurrentUser(parsed);
-        }
-        if (courtIdRaw) setCheckedInCourtId(courtIdRaw);
         if (lastVisitedRaw) setLastVisitedCourtId(lastVisitedRaw);
-        if (feedRaw) setFeed(JSON.parse(feedRaw));
-        if (matchesRaw) setMatches(JSON.parse(matchesRaw));
-        if (localCourtRaw) {
-          setLocalCourtId(localCourtRaw);
-          // Hydrate the local court object in the background
-          fetchCourtById(localCourtRaw).then((c) => { if (c) setLocalCourtObj(c); });
-        }
-
-        // Courts are loaded lazily by CourtsScreen; only restore user-added courts here
-        if (courtsRaw) {
-          try { setCourts(JSON.parse(courtsRaw)); } catch { /* ignore */ }
-        }
-
+        if (localCourtRaw) setLocalCourtId(localCourtRaw);
         if (visibilityRaw) setVisibilityState(visibilityRaw as Visibility);
         if (isLocalPlusRaw === "true") setIsLocalPlusState(true);
         if (friendIdsRaw) {
-          const parsed = JSON.parse(friendIdsRaw);
-          setFriendIds(Array.isArray(parsed) ? parsed : []);
-        } else {
-          // Default friends from sample data (Marcus J.)
-          const defaultFriends = SAMPLE_PLAYERS[0].friendIds ?? [];
-          setFriendIds(defaultFriends);
+          try { setFriendIds(JSON.parse(friendIdsRaw)); } catch { }
         }
-        if (preferredSportRaw) {
-          setPreferredSportState(preferredSportRaw as CourtSport);
+        if (preferredSportRaw) setPreferredSportState(preferredSportRaw as CourtSport);
+        if (preferredCourtIdRaw) setPreferredCourtIdState(preferredCourtIdRaw);
+        if (courtsRaw) {
+          try { setCourts(JSON.parse(courtsRaw)); } catch { }
         }
-        if (preferredCourtIdRaw) {
-          setPreferredCourtIdState(preferredCourtIdRaw);
-        }
-      } catch {}
+      } catch { }
     })();
   }, []);
 
+  // ─── When auth user or localCourtId changes, hydrate local court object ────
+  const hydrateLocalCourt = useCallback(async () => {
+    const id = profile?.local_court_id ?? localCourtId;
+    if (!id) {
+      setLocalCourtObj(null);
+      return;
+    }
+    // If device stored id differs from server profile, update device storage silently
+    if (profile?.local_court_id && profile.local_court_id !== localCourtId) {
+      setLocalCourtId(profile.local_court_id);
+      await AsyncStorage.setItem(STORAGE_KEYS.localCourtId, profile.local_court_id);
+    }
+    const court = await fetchCourtById(id);
+    setLocalCourtObj(court);
+  }, [profile?.local_court_id, localCourtId]);
+
+  useEffect(() => {
+    hydrateLocalCourt();
+  }, [hydrateLocalCourt]);
+
+  // ─── Refresh court state: locals + active check-ins ─────────────────────────
+  const refreshCourtState = useCallback(async () => {
+    const id = localCourt?.id;
+    if (!id) {
+      setLocalPlayers([]);
+      setActivePlayers([]);
+      return;
+    }
+    const [locals, active] = await Promise.all([
+      fetchLocals(id),
+      fetchActiveCheckIns(id),
+    ]);
+    setLocalPlayers(locals);
+    setActivePlayers(active);
+  }, [localCourt?.id]);
+
+  useEffect(() => {
+    refreshCourtState();
+  }, [refreshCourtState]);
+
+  // ─── Refresh signed-in user's checked-in court ──────────────────────────────
+  const refreshCheckedIn = useCallback(async () => {
+    if (!userId) return;
+    const courtId = await fetchCheckedInCourtId(userId);
+    setCheckedInCourtId(courtId);
+  }, [userId]);
+
+  useEffect(() => {
+    refreshCheckedIn();
+  }, [refreshCheckedIn]);
+
+  // ─── Refresh runs, feed, matches, friends ───────────────────────────────────
+  const refreshRuns = useCallback(async () => {
+    const courtId = localCourt?.id;
+    const from = new Date();
+    const to = new Date();
+    to.setDate(to.getDate() + 7);
+    const games = await fetchScheduledGames(courtId ? { courtId, from, to } : { from, to });
+    setRuns(games);
+  }, [localCourt?.id]);
+
+  const refreshFeed = useCallback(async () => {
+    const items = await fetchFeed(localCourt?.id ?? undefined);
+    setFeed(items);
+  }, [localCourt?.id]);
+
+  const refreshMatches = useCallback(async () => {
+    if (!userId) {
+      setMatches([]);
+      return;
+    }
+    const items = await fetchGamesByPlayer(userId);
+    setMatches(items);
+  }, [userId]);
+
+  const refreshFriends = useCallback(async () => {
+    if (!userId) return;
+    const list = await fetchFriends(userId);
+    setFriends(list);
+    setFriendIds(list.map((f) => f.id));
+  }, [userId]);
+
+  // Initial data load + polling when user or local court changes
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setIsLoading(true);
+      await Promise.all([
+        refreshRuns(),
+        refreshFeed(),
+        refreshMatches(),
+        refreshFriends(),
+      ]);
+      if (mounted) setIsLoading(false);
+    })();
+    return () => { mounted = false; };
+  }, [refreshRuns, refreshFeed, refreshMatches, refreshFriends]);
+
+  // Poll shared state every 30s so two devices see each other quickly
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshCourtState();
+      refreshFeed();
+      refreshRuns();
+      refreshFriends();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [refreshCourtState, refreshFeed, refreshRuns, refreshFriends]);
+
+  // ─── Actions ───────────────────────────────────────────────────────────────
   const checkIn = useCallback(
     async (courtId: string) => {
-      if (checkedInCourtId) {
-        setCourts((prev) =>
-          prev.map((c) =>
-            c.id === checkedInCourtId
-              ? { ...c, activeCount: Math.max(0, c.activeCount - 1) }
-              : c
-          )
-        );
-      }
-
-      const court = courts.find((c) => c.id === courtId);
-      setCourts((prev) =>
-        prev.map((c) =>
-          c.id === courtId ? { ...c, activeCount: c.activeCount + 1 } : c
-        )
-      );
+      if (!userId) return;
+      // Optimistic UI
+      const court = await fetchCourtById(courtId);
+      if (court) setActivePlayers((prev) => {
+        const exists = prev.some((p) => p.id === userId);
+        if (exists) return prev;
+        return [currentUser, ...prev];
+      });
+      await checkInToCourt(userId, courtId, undefined, visibility);
       setCheckedInCourtId(courtId);
       setLastVisitedCourtId(courtId);
-      await Promise.all([
-        AsyncStorage.setItem(STORAGE_KEYS.checkedInCourtId, courtId),
-        AsyncStorage.setItem(STORAGE_KEYS.lastVisitedCourtId, courtId),
-      ]);
-
-      const newFeedItem: FeedItem = {
-        id: `f${Date.now()}`,
-        type: "checkin",
-        playerId: currentUser.id,
-        playerName: currentUser.name.toUpperCase(),
-        courtName: court?.name.toUpperCase() ?? courtId.toUpperCase(),
-        courtId,
-        sport: court?.sport,
-        message: `${currentUser.name.toUpperCase()} CHECKED INTO ${court?.name.toUpperCase() ?? courtId.toUpperCase()}`,
-        timestamp: "JUST NOW",
-        hypeCount: 0,
-      };
-      setFeed((prev) => {
-        const updated = [newFeedItem, ...prev];
-        AsyncStorage.setItem(STORAGE_KEYS.feed, JSON.stringify(updated));
-        return updated;
-      });
-
-      const updatedUser = { ...currentUser, checkIns: currentUser.checkIns + 1 };
-      setCurrentUser(updatedUser);
-      await AsyncStorage.setItem(STORAGE_KEYS.currentUser, JSON.stringify(updatedUser));
+      await AsyncStorage.setItem(STORAGE_KEYS.lastVisitedCourtId, courtId);
+      // Refresh shared state
+      refreshCourtState();
+      refreshFeed();
     },
-    [checkedInCourtId, courts, currentUser]
+    [userId, visibility, currentUser, refreshCourtState, refreshFeed]
   );
 
   const checkOut = useCallback(async () => {
-    if (!checkedInCourtId) return;
-    setCourts((prev) =>
-      prev.map((c) =>
-        c.id === checkedInCourtId
-          ? { ...c, activeCount: Math.max(0, c.activeCount - 1) }
-          : c
-      )
-    );
+    if (!userId) return;
+    await checkOutOfCourt(userId);
     setCheckedInCourtId(null);
-    await AsyncStorage.removeItem(STORAGE_KEYS.checkedInCourtId);
-  }, [checkedInCourtId]);
+    refreshCourtState();
+    refreshFeed();
+  }, [userId, refreshCourtState, refreshFeed]);
 
   const visitCourt = useCallback(async (courtId: string) => {
     setLastVisitedCourtId(courtId);
@@ -224,36 +319,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       AsyncStorage.setItem(STORAGE_KEYS.courts, JSON.stringify(updated));
       return updated;
     });
-
-    const newFeedItem: FeedItem = {
-      id: `f${Date.now()}`,
-      type: "new_court",
-      playerId: court.addedBy ?? "unknown",
-      playerName: "YOU",
-      courtName: court.name.toUpperCase(),
-      courtId: court.id,
-      sport: court.sport,
-      message: `YOU ADDED ${court.name.toUpperCase()} TO THE MAP`,
-      timestamp: "JUST NOW",
-      hypeCount: 0,
-    };
-    setFeed((prev) => {
-      const updated = [newFeedItem, ...prev];
-      AsyncStorage.setItem(STORAGE_KEYS.feed, JSON.stringify(updated));
-      return updated;
-    });
   }, []);
 
   const setLocalCourt = useCallback(async (courtId: string, courtObj?: Court) => {
     setLocalCourtId(courtId);
     await AsyncStorage.setItem(STORAGE_KEYS.localCourtId, courtId);
-    // Populate the localCourt object immediately if provided, else fetch it
     if (courtObj) {
       setLocalCourtObj(courtObj);
     } else {
-      fetchCourtById(courtId).then((c) => { if (c) setLocalCourtObj(c); });
+      const court = await fetchCourtById(courtId);
+      setLocalCourtObj(court);
     }
-  }, []);
+    if (userId) {
+      await updateLocalCourtId(userId, courtId);
+    }
+  }, [userId]);
 
   const setVisibility = useCallback(async (v: Visibility) => {
     setVisibilityState(v);
@@ -283,44 +363,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const addFriend = useCallback(async (playerId: string) => {
-    setFriendIds((prev) => {
-      if (prev.includes(playerId)) return prev;
-      const updated = [...prev, playerId];
-      AsyncStorage.setItem(STORAGE_KEYS.friendIds, JSON.stringify(updated));
-      return updated;
-    });
-    // Also update currentUser's friendIds
-    setCurrentUser((prev) => {
-      const updated = { ...prev, friendIds: [...(prev.friendIds ?? []), playerId] };
-      AsyncStorage.setItem(STORAGE_KEYS.currentUser, JSON.stringify(updated));
-      return updated;
-    });
-  }, []);
+  const addFriendAction = useCallback(async (playerId: string) => {
+    if (!userId) return;
+    setFriendIds((prev) => (prev.includes(playerId) ? prev : [...prev, playerId]));
+    await addFriend(userId, playerId);
+    await refreshFriends();
+  }, [userId, refreshFriends]);
 
-  const removeFriend = useCallback(async (playerId: string) => {
-    setFriendIds((prev) => {
-      const updated = prev.filter((id) => id !== playerId);
-      AsyncStorage.setItem(STORAGE_KEYS.friendIds, JSON.stringify(updated));
-      return updated;
-    });
-    setCurrentUser((prev) => {
-      const updated = { ...prev, friendIds: (prev.friendIds ?? []).filter((id) => id !== playerId) };
-      AsyncStorage.setItem(STORAGE_KEYS.currentUser, JSON.stringify(updated));
-      return updated;
-    });
-  }, []);
+  const removeFriendAction = useCallback(async (playerId: string) => {
+    if (!userId) return;
+    setFriendIds((prev) => prev.filter((id) => id !== playerId));
+    await removeFriend(userId, playerId);
+    await refreshFriends();
+  }, [userId, refreshFriends]);
 
-  const isFriend = useCallback((playerId: string) => {
-    return friendIds.includes(playerId);
-  }, [friendIds]);
-
-  const getFriendsList = useCallback(() => {
-    return SAMPLE_PLAYERS.filter((p) => friendIds.includes(p.id));
-  }, [friendIds]);
+  const isFriend = useCallback((playerId: string) => friendIds.includes(playerId), [friendIds]);
+  const getFriendsList = useCallback(() => friends, [friends]);
 
   const joinRun = useCallback(
     (runId: string, team: "A" | "B") => {
+      if (!userId) return;
+      joinScheduledGame(runId, userId, team);
+      // Optimistic local update
       setRuns((prev) =>
         prev.map((run) => {
           if (run.id !== runId) return run;
@@ -333,29 +397,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         })
       );
     },
-    [currentUser]
+    [userId, currentUser]
   );
 
   const hypeItem = useCallback((feedId: string) => {
     setFeed((prev) =>
       prev.map((item) =>
-        item.id === feedId
-          ? { ...item, hypeCount: item.hypeCount + 1 }
-          : item
+        item.id === feedId ? { ...item, hypeCount: item.hypeCount + 1 } : item
       )
     );
   }, []);
 
-  const addMatchResult = useCallback(
-    (result: MatchResult) => {
-      setMatches((prev) => {
-        const updated = [result, ...prev];
-        AsyncStorage.setItem(STORAGE_KEYS.matches, JSON.stringify(updated));
-        return updated;
-      });
-    },
-    []
-  );
+  const addMatchResult = useCallback((result: MatchResult) => {
+    setMatches((prev) => [result, ...prev]);
+  }, []);
 
   const recordResult = useCallback(
     (runId: string, winner: "A" | "B") => {
@@ -364,12 +419,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const isOnTeamA = run.teamA.some((p) => p?.id === currentUser.id);
       const isWin = (winner === "A" && isOnTeamA) || (winner === "B" && !isOnTeamA);
       const delta = 15;
-
-      if (isWin) {
-        recordWin(runId, delta);
-      } else {
-        recordLoss(runId, delta);
-      }
+      if (isWin) recordWin(runId, delta);
+      else recordLoss(runId, delta);
     },
     [runs, currentUser]
   );
@@ -377,14 +428,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const recordWin = useCallback(
     (runId: string, eloDelta: number) => {
       const run = runs.find((r) => r.id === runId);
-      const updatedUser = {
-        ...currentUser,
-        elo: currentUser.elo + eloDelta,
-        wins: currentUser.wins + 1,
-        tier: getEloTier(currentUser.elo + eloDelta),
-      };
-      setCurrentUser(updatedUser);
-      AsyncStorage.setItem(STORAGE_KEYS.currentUser, JSON.stringify(updatedUser));
       addMatchResult({
         id: `m${Date.now()}`,
         date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase(),
@@ -396,20 +439,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         opposingScore: "14",
       });
     },
-    [currentUser, runs, addMatchResult]
+    [runs, addMatchResult]
   );
 
   const recordLoss = useCallback(
     (runId: string, eloDelta: number) => {
       const run = runs.find((r) => r.id === runId);
-      const updatedUser = {
-        ...currentUser,
-        elo: Math.max(0, currentUser.elo - eloDelta),
-        losses: currentUser.losses + 1,
-        tier: getEloTier(Math.max(0, currentUser.elo - eloDelta)),
-      };
-      setCurrentUser(updatedUser);
-      AsyncStorage.setItem(STORAGE_KEYS.currentUser, JSON.stringify(updatedUser));
       addMatchResult({
         id: `m${Date.now()}`,
         date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase(),
@@ -421,7 +456,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         opposingScore: "21",
       });
     },
-    [currentUser, runs, addMatchResult]
+    [runs, addMatchResult]
   );
 
   return (
@@ -456,10 +491,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setIsLocalPlus,
         setPreferredSport,
         setPreferredCourtId,
-        addFriend,
-        removeFriend,
+        addFriend: addFriendAction,
+        removeFriend: removeFriendAction,
         isFriend,
         getFriendsList,
+        refreshCourtState,
+        refreshFeed,
+        refreshRuns,
+        refreshMatches,
+        refreshFriends,
+        localPlayers,
+        activePlayers,
+        isLoading,
       }}
     >
       {children}

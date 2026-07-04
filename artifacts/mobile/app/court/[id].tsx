@@ -16,10 +16,12 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { RunCard } from "@/components/RunCard";
 import { StatBlock } from "@/components/StatBlock";
 import { Colors, Radius } from "@/constants/colors";
-import { Court, SAMPLE_PLAYERS, getSportColor } from "@/constants/data";
+import { Court, Player, getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { fetchActiveCheckIns } from "@/services/checkInService";
 import { fetchCourtById } from "@/services/courtService";
+import { fetchLocalCount } from "@/services/profileService";
 
 // BACKEND NOTE: court detail → GET /api/v1/courts/:id
 // Roster (live) → GET /api/v1/courts/:id/roster
@@ -39,6 +41,8 @@ export default function CourtProfileScreen() {
     courts.find((c) => c.id === id) ?? (ctxLocalCourt?.id === id ? ctxLocalCourt : null)
   );
   const [fetchError, setFetchError] = React.useState(false);
+  const [activePlayers, setActivePlayers] = React.useState<Player[]>([]);
+  const [localCount, setLocalCount] = React.useState(0);
 
   React.useEffect(() => {
     if (court) return; // already resolved
@@ -47,6 +51,16 @@ export default function CourtProfileScreen() {
       else setFetchError(true);
     });
   }, [id]);
+
+  React.useEffect(() => {
+    if (!id) return;
+    Promise.all([fetchActiveCheckIns(String(id)), fetchLocalCount(String(id))]).then(
+      ([players, count]) => {
+        setActivePlayers(players);
+        setLocalCount(count);
+      }
+    );
+  }, [id, checkedInCourtId, localCourtId]);
 
   const courtRuns = runs.filter((r) => r.courtId === id);
   const isCheckedIn = checkedInCourtId === id;
@@ -62,11 +76,8 @@ export default function CourtProfileScreen() {
   }
 
   const sportColor = getSportColor(court.sport);
-  const activePlayers = SAMPLE_PLAYERS.filter((p) => p.courtId === court.id).slice(
-    0,
-    court.activeCount
-  );
-  const occupancyPct = Math.round((court.activeCount / court.maxCapacity) * 100);
+  const activeCount = activePlayers.length;
+  const occupancyPct = Math.round((activeCount / court.maxCapacity) * 100);
 
   const courtDetails: { label: string; value: string }[] = [
     { label: "Courts", value: String(court.courtCount ?? 1) },
@@ -104,7 +115,7 @@ export default function CourtProfileScreen() {
               <View style={[styles.sportDot, { backgroundColor: sportColor }]} />
               <Text style={[styles.sportText, { color: sportColor }]}>{court.sport}</Text>
             </View>
-            {court.activeCount > 0 && (
+            {activeCount > 0 && (
               <View style={styles.liveChip}>
                 <LivePulse size={4} color={Colors.black} style={{ marginRight: 4 }} />
                 <Text style={styles.liveText}>LIVE</Text>
@@ -121,7 +132,7 @@ export default function CourtProfileScreen() {
 
         {/* ── Stats Bar ── */}
         <View style={styles.statsBar}>
-          <StatBlock value={court.activeCount} label="On Court" />
+          <StatBlock value={activeCount} label="On Court" />
           <View style={styles.statDiv} />
           <StatBlock value={`${occupancyPct}%`} label="Full" />
           <View style={styles.statDiv} />
@@ -195,7 +206,7 @@ export default function CourtProfileScreen() {
             </Text>
             {!isMyLocal && (
               <Text style={styles.localBtnSub}>
-                {court.localCount} local{court.localCount !== 1 ? "s" : ""} · 
+                {localCount} local{localCount !== 1 ? "s" : ""} · 
                 {court.status === "community" ? " Community Court" : " Confirmed Court"}
               </Text>
             )}

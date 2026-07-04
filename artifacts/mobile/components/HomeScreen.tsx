@@ -17,7 +17,7 @@ import { BrutalistButton } from "@/components/BrutalistButton";
 import { LivePulse } from "@/components/LivePulse";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors, Radius } from "@/constants/colors";
-import { getSportColor, SAMPLE_PLAYERS, SAMPLE_RUNS } from "@/constants/data";
+import { getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
@@ -34,7 +34,7 @@ function getSportShort(sport?: string | null): string {
 const COLLAPSE_THRESHOLD = 100;
 
 export function HomeScreen() {
-  const { localCourt, localCourtId, checkedInCourtId, checkIn, checkOut, feed, isFriend } = useApp();
+  const { localCourt, localCourtId, checkedInCourtId, checkIn, checkOut, feed, runs, isFriend, activePlayers, localPlayers, isLoading } = useApp();
   const { user } = useAuth();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
@@ -51,8 +51,8 @@ export function HomeScreen() {
   const sportColor = getSportColor(localCourt.sport);
   const sportShort = getSportShort(localCourt.sport);
 
-  const rawPlayers = SAMPLE_PLAYERS.filter((p) => p.courtId === localCourt.id);
-  const activePlayers = rawPlayers
+  const rawPlayers = activePlayers;
+  const sortedPlayers = rawPlayers
     .sort((a, b) => {
       const aFriend = isFriend(a.id) ? 1 : 0;
       const bFriend = isFriend(b.id) ? 1 : 0;
@@ -60,9 +60,11 @@ export function HomeScreen() {
       return b.elo - a.elo;
     })
     .slice(0, 8);
-  const overflowCount = Math.max(0, localCourt.activeCount - activePlayers.length);
-  const courtRuns = SAMPLE_RUNS.filter((r) => r.courtId === localCourt.id);
+  const activeCount = activePlayers.length;
+  const overflowCount = Math.max(0, activeCount - sortedPlayers.length);
+  const courtRuns = runs.filter((r) => r.courtId === localCourt.id);
   const courtFeed = feed.filter((f) => f.courtId === localCourt.id).slice(0, 5);
+  const localCount = localPlayers.length;
 
   const handleCheckIn = async () => {
     if (Platform.OS !== "web") {
@@ -111,10 +113,10 @@ export function HomeScreen() {
         <Text style={styles.collapsedCourtName} numberOfLines={1}>
           {localCourt.name.toUpperCase()}
         </Text>
-        {localCourt.activeCount > 0 ? (
+        {activeCount > 0 ? (
           <View style={styles.collapsedCenter}>
             <LivePulse size={4} color={Colors.accent} style={{ marginRight: 4 }} />
-            <Text style={styles.collapsedActiveCount}>{localCourt.activeCount}</Text>
+            <Text style={styles.collapsedActiveCount}>{activeCount}</Text>
           </View>
         ) : (
           <View style={styles.collapsedCenter} />
@@ -162,10 +164,10 @@ export function HomeScreen() {
               <View style={[styles.sportDot, { backgroundColor: sportColor }]} />
               <Text style={[styles.sportText, { color: sportColor }]}>{localCourt.sport}</Text>
             </View>
-            {localCourt.activeCount > 0 && (
+            {activeCount > 0 && (
               <View style={styles.liveChip}>
                 <LivePulse size={4} color={Colors.black} style={{ marginRight: 4 }} />
-                <Text style={styles.liveChipText}>{localCourt.activeCount} ON COURT</Text>
+                <Text style={styles.liveChipText}>{activeCount} ON COURT</Text>
               </View>
             )}
           </View>
@@ -209,7 +211,7 @@ export function HomeScreen() {
             )}
             <View style={styles.tag}>
               <Text style={styles.tagText}>
-                {localCourt.localCount} LOCAL{localCourt.localCount !== 1 ? "S" : ""}
+                {localCount} LOCAL{localCount !== 1 ? "S" : ""}
               </Text>
             </View>
           </ScrollView>
@@ -233,18 +235,18 @@ export function HomeScreen() {
         </View>
 
         {/* ── Who's Here ── */}
-        {localCourt.activeCount > 0 && (
+        {activeCount > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>WHO'S HERE</Text>
-              <Text style={styles.sectionAccent}>{localCourt.activeCount} ACTIVE</Text>
+              <Text style={styles.sectionAccent}>{activeCount} ACTIVE</Text>
             </View>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.rosterRow}
             >
-              {activePlayers.map((p) => {
+              {sortedPlayers.map((p) => {
                 const isFriendStatus = isFriend(p.id);
                 return (
                   <Pressable
