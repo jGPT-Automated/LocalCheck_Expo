@@ -33,14 +33,22 @@ export interface UserProfile {
   updated_at: string;
 }
 
+interface AuthResult {
+  error: string | null;
+}
+
+interface SignUpResult extends AuthResult {
+  needsEmailConfirmation: boolean;
+}
+
 interface AuthContextValue {
   session: Session | null;
   user: User | null;
   profile: UserProfile | null;
   isLoading: boolean;
-  signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<{ error: string | null }>;
-  signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
-  signInWithApple: () => Promise<{ error: string | null }>;
+  signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<SignUpResult>;
+  signInWithEmail: (email: string, password: string) => Promise<AuthResult>;
+  signInWithApple: () => Promise<AuthResult>;
   signOut: () => Promise<void>;
 }
 
@@ -117,12 +125,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       });
       if (error) {
-        return { error: error.message };
+        return { error: error.message, needsEmailConfirmation: false };
       }
-      if (data.user) {
-        return await waitForProfile(data.user.id);
+      if (!data.session) {
+        return { error: null, needsEmailConfirmation: true };
       }
-      return { error: null };
+      const profileResult = await waitForProfile(data.session.user.id);
+      return { ...profileResult, needsEmailConfirmation: false };
     },
     [waitForProfile]
   );

@@ -48,11 +48,13 @@ export default function AuthScreen() {
   async function handleSignUp() {
     if (!email || !password) { setErrorMsg("Enter email and password."); return; }
     setBusy(true); setErrorMsg(null);
-    const { error } = await signUpWithEmail(email.trim(), password);
+    const { error, needsEmailConfirmation } = await signUpWithEmail(email.trim(), password);
     setBusy(false);
     if (error) { setErrorMsg(error); }
-    else {
+    else if (needsEmailConfirmation) {
       Alert.alert("Account created", "Check your email to confirm, then sign in.", [{ text: "OK" }]);
+    } else {
+      goHome();
     }
   }
 
