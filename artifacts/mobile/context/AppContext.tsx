@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from "expo-location";
 import React, {
   createContext,
   useCallback,
@@ -15,7 +15,6 @@ import {
   GameRun,
   MatchResult,
   Player,
-  SAMPLE_PLAYERS,
   getEloTier,
 } from "@/constants/data";
 import { checkInToCourt, checkOutOfCourt, fetchActiveCheckIns, fetchCheckedInCourtId } from "@/services/checkInService";
@@ -23,9 +22,11 @@ import { addFriend, fetchFriends, removeFriend } from "@/services/friendshipServ
 import { fetchFeed } from "@/services/feedService";
 import { fetchGamesByPlayer } from "@/services/gameService";
 import { fetchScheduledGames, joinScheduledGame } from "@/services/scheduledGameService";
-import { fetchCourtById } from "@/services/courtService";
-import { fetchLocals, updateLocalCourtId } from "@/services/profileService";
+import { createCourt, fetchCourtById, fetchNearbyCourts } from "@/services/courtService";
+import { fetchLocals, updateLocalCourtId, updateProfileFields } from "@/services/profileService";
 import { useAuth } from "@/context/AuthContext";
+
+const LA_FALLBACK = { lat: 34.0522, lng: -118.2437 };
 
 export type Visibility = "public" | "friends" | "private";
 
@@ -75,19 +76,25 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-const STORAGE_KEYS = {
-  lastVisitedCourtId: "localcheck:lastVisitedCourtId",
-  localCourtId: "localcheck:localCourtId",
-  visibility: "localcheck:visibility",
-  isLocalPlus: "localcheck:isLocalPlus",
-  friendIds: "localcheck:friendIds",
-  preferredSport: "localcheck:preferredSport",
-  preferredCourtId: "localcheck:preferredCourtId",
-  courts: "localcheck:courts",
+const EMPTY_PLAYER: Player = {
+  id: "",
+  name: "Player",
+  elo: 1200,
+  tier: getEloTier(1200),
+  avatar: "",
+  wins: 0,
+  losses: 0,
+  checkIns: 0,
+  memberSince: new Date().toISOString(),
+  courtId: undefined,
+  sport: undefined,
+  visibility: "public",
+  isLocalPlus: false,
+  friendIds: [],
 };
 
 function profileToPlayer(profile: ReturnType<typeof useAuth>["profile"]): Player {
-  if (!profile) return SAMPLE_PLAYERS[0];
+  if (!profile) return EMPTY_PLAYER;
   const name = profile.display_name || profile.username || "Player";
   const initials = name
     .split(" ")
@@ -108,9 +115,9 @@ function profileToPlayer(profile: ReturnType<typeof useAuth>["profile"]): Player
     checkIns: profile.total_court_time_minutes ?? 0,
     memberSince: profile.created_at,
     courtId: profile.local_court_id ?? undefined,
-    sport: undefined,
+    sport: (profile.preferred_sport?.toUpperCase() as CourtSport) ?? undefined,
     visibility: "public",
-    isLocalPlus: false,
+    isLocalPlus: !!profile.is_pro,
     friendIds: [],
   };
 }
@@ -139,47 +146,59 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const currentUser = useMemo(() => profileToPlayer(profile), [profile]);
 
-  // ─── Hydration from local storage (UI prefs + local court fallback) ────────
+  // ─── Derive UI preferences from the authoritative Supabase profile ─────────
   useEffect(() => {
-    (async () => {
-      try {
-        const [lastVisitedRaw, localCourtRaw, visibilityRaw, isLocalPlusRaw, friendIdsRaw, preferredSportRaw, preferredCourtIdRaw, courtsRaw] = await Promise.all([
-          AsyncStorage.getItem(STORAGE_KEYS.lastVisitedCourtId),
-          AsyncStorage.getItem(STORAGE_KEYS.localCourtId),
-          AsyncStorage.getItem(STORAGE_KEYS.visibility),
-          AsyncStorage.getItem(STORAGE_KEYS.isLocalPlus),
-          AsyncStorage.getItem(STORAGE_KEYS.friendIds),
-          AsyncStorage.getItem(STORAGE_KEYS.preferredSport),
-          AsyncStorage.getItem(STORAGE_KEYS.preferredCourtId),
-          AsyncStorage.getItem(STORAGE_KEYS.courts),
-        ]);
-        if (lastVisitedRaw) setLastVisitedCourtId(lastVisitedRaw);
-        if (localCourtRaw) setLocalCourtId(localCourtRaw);
-        if (visibilityRaw) setVisibilityState(visibilityRaw as Visibility);
-        if (isLocalPlusRaw === "true") setIsLocalPlusState(true);
-        if (friendIdsRaw) {
-          try { setFriendIds(JSON.parse(friendIdsRaw)); } catch { }
-        }
-        if (preferredSportRaw) setPreferredSportState(preferredSportRaw as CourtSport);
-        if (preferredCourtIdRaw) setPreferredCourtIdState(preferredCourtIdRaw);
-        if (courtsRaw) {
-          try { setCourts(JSON.parse(courtsRaw)); } catch { }
-        }
-      } catch { }
-    })();
-  }, []);
+    if (!profile) {
+      setLocalCourtId(null);
+      setIsLocalPlusState(false);
+      setPreferredSportState(null);
+      return;
+    }
+    setLocalCourtId(profile.local_court_id ?? null);
+    setIsLocalPlusState(!!profile.is_pro);
+    setPreferredSportState(
+      profile.preferred_sport ? (profile.preferred_sport.toUpperCase() as CourtSport) : null
+    );
+  }, [profile]);
 
-  // ─── When auth user or localCourtId changes, hydrate local court object ────
+  // ─── Load nearby courts from Supabase using device GPS (LA fallback) ───────
+  const loadCourts = useCallback(async () => {
+    if (!userId) {
+      setCourts([]);
+      return;
+    }
+    let { lat, lng } = LA_FALLBACK;
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === "granted") {
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        lat = loc.coords.latitude;
+        lng = loc.coords.longitude;
+      }
+    } catch {
+      // Keep fallback coords.
+    }
+    const nearby = await fetchNearbyCourts(lat, lng, preferredSport ?? null, 30);
+    setCourts(nearby);
+    // Auto-select the nearest court as the user's local court on first run.
+    if (!profile?.local_court_id && nearby.length > 0) {
+      const nearest = nearby[0];
+      setLocalCourtId(nearest.id);
+      setLocalCourtObj(nearest);
+      await updateProfileFields(userId, { local_court_id: nearest.id });
+    }
+  }, [userId, preferredSport, profile?.local_court_id]);
+
+  useEffect(() => {
+    loadCourts();
+  }, [loadCourts]);
+
+  // ─── Hydrate the local court object from its id ────────────────────────────
   const hydrateLocalCourt = useCallback(async () => {
     const id = profile?.local_court_id ?? localCourtId;
     if (!id) {
       setLocalCourtObj(null);
       return;
-    }
-    // If device stored id differs from server profile, update device storage silently
-    if (profile?.local_court_id && profile.local_court_id !== localCourtId) {
-      setLocalCourtId(profile.local_court_id);
-      await AsyncStorage.setItem(STORAGE_KEYS.localCourtId, profile.local_court_id);
     }
     const court = await fetchCourtById(id);
     setLocalCourtObj(court);
@@ -292,7 +311,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await checkInToCourt(userId, courtId, undefined, visibility);
       setCheckedInCourtId(courtId);
       setLastVisitedCourtId(courtId);
-      await AsyncStorage.setItem(STORAGE_KEYS.lastVisitedCourtId, courtId);
       // Refresh shared state
       refreshCourtState();
       refreshFeed();
@@ -310,20 +328,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const visitCourt = useCallback(async (courtId: string) => {
     setLastVisitedCourtId(courtId);
-    await AsyncStorage.setItem(STORAGE_KEYS.lastVisitedCourtId, courtId);
   }, []);
 
   const addCourt = useCallback(async (court: Court) => {
-    setCourts((prev) => {
-      const updated = [...prev, court];
-      AsyncStorage.setItem(STORAGE_KEYS.courts, JSON.stringify(updated));
-      return updated;
-    });
-  }, []);
+    if (!userId) return;
+    const created = await createCourt(
+      {
+        name: court.name,
+        address: court.address,
+        latitude: court.latitude,
+        longitude: court.longitude,
+        sport: court.sport,
+        imageUrl: court.imageUri ?? null,
+      },
+      userId
+    );
+    if (created) {
+      setCourts((prev) => [created, ...prev]);
+    }
+  }, [userId]);
 
   const setLocalCourt = useCallback(async (courtId: string, courtObj?: Court) => {
     setLocalCourtId(courtId);
-    await AsyncStorage.setItem(STORAGE_KEYS.localCourtId, courtId);
     if (courtObj) {
       setLocalCourtObj(courtObj);
     } else {
@@ -336,31 +362,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [userId]);
 
   const setVisibility = useCallback(async (v: Visibility) => {
+    // Session-scoped check-in visibility (persisted per check-in row, not device).
     setVisibilityState(v);
-    await AsyncStorage.setItem(STORAGE_KEYS.visibility, v);
   }, []);
 
   const setIsLocalPlus = useCallback(async (v: boolean) => {
     setIsLocalPlusState(v);
-    await AsyncStorage.setItem(STORAGE_KEYS.isLocalPlus, String(v));
-  }, []);
+    if (userId) await updateProfileFields(userId, { is_pro: v });
+  }, [userId]);
 
   const setPreferredSport = useCallback(async (sport: CourtSport | null) => {
     setPreferredSportState(sport);
-    if (sport) {
-      await AsyncStorage.setItem(STORAGE_KEYS.preferredSport, sport);
-    } else {
-      await AsyncStorage.removeItem(STORAGE_KEYS.preferredSport);
+    if (userId) {
+      await updateProfileFields(userId, { preferred_sport: sport ? sport.toLowerCase() : null });
     }
-  }, []);
+  }, [userId]);
 
   const setPreferredCourtId = useCallback(async (courtId: string | null) => {
+    // In-memory only: a transient filter selection, not a persisted preference.
     setPreferredCourtIdState(courtId);
-    if (courtId) {
-      await AsyncStorage.setItem(STORAGE_KEYS.preferredCourtId, courtId);
-    } else {
-      await AsyncStorage.removeItem(STORAGE_KEYS.preferredCourtId);
-    }
   }, []);
 
   const addFriendAction = useCallback(async (playerId: string) => {

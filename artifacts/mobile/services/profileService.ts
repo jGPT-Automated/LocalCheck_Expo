@@ -93,13 +93,25 @@ export async function fetchLocalCount(courtId: string): Promise<number> {
 
 /** Update the signed-in user's local court in Supabase. */
 export async function updateLocalCourtId(userId: string, courtId: string | null): Promise<void> {
+  await updateProfileFields(userId, { local_court_id: courtId });
+}
+
+/** Persist arbitrary profile preference fields to Supabase. */
+export async function updateProfileFields(
+  userId: string,
+  fields: Partial<{
+    local_court_id: string | null;
+    preferred_sport: string | null;
+    is_pro: boolean;
+  }>
+): Promise<void> {
   try {
     await supabase
       .from("profiles")
-      .update({ local_court_id: courtId, updated_at: new Date().toISOString() })
+      .update({ ...fields, updated_at: new Date().toISOString() })
       .eq("id", userId);
   } catch {
-    // Silently fail — local court is also stored in device storage as fallback
+    // Non-fatal: local state stays authoritative for this session.
   }
 }
 

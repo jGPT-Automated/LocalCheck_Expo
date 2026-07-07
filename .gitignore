@@ -52,3 +52,6 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Apple signing keys — never commit
+*.p8
