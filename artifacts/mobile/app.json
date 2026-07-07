@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "LocalCheck",
-    "slug": "mobile",
+    "slug": "localcheck",
+    "owner": "agenticjess-os",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -18,7 +19,9 @@
       "bundleIdentifier": "com.realjess.localcheck",
       "usesAppleSignIn": true
     },
-    "android": {},
+    "android": {
+      "package": "com.realjess.localcheck"
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
@@ -37,6 +40,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "9c906173-0258-45a9-a3fe-786cda373c66"
+      }
     }
   }
 }
