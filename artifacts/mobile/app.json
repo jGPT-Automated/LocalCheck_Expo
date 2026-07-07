@@ -17,7 +17,12 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.realjess.localcheck",
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "LocalCheck uses your location to find courts near you and show who's playing nearby.",
+        "NSCameraUsageDescription": "LocalCheck uses your camera to photograph and verify a court you're adding.",
+        "NSPhotoLibraryUsageDescription": "LocalCheck lets you attach a photo to verify a court you're adding."
+      }
     },
     "android": {
       "package": "com.realjess.localcheck"
@@ -35,7 +40,20 @@
       "expo-font",
       "expo-web-browser",
       "expo-secure-store",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "LocalCheck uses your location to find courts near you and show who's playing nearby."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "LocalCheck lets you attach a photo to verify a court you're adding.",
+          "cameraPermission": "LocalCheck uses your camera to photograph and verify a court you're adding."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -137,6 +137,42 @@ export async function fetchNearbyCourts(
 }
 
 /**
+ * Insert a new user-added court into Supabase and return the created Court.
+ * Returns null on error (e.g. RLS rejection).
+ */
+export async function createCourt(
+  input: {
+    name: string;
+    address?: string;
+    latitude: number;
+    longitude: number;
+    sport: CourtSport;
+    imageUrl?: string | null;
+  },
+  userId: string
+): Promise<Court | null> {
+  try {
+    const { data, error } = await supabase
+      .from("courts")
+      .insert({
+        name: input.name,
+        address: input.address ?? "",
+        latitude: input.latitude,
+        longitude: input.longitude,
+        sport_type: input.sport.toLowerCase(),
+        added_by: userId,
+        image_url: input.imageUrl ?? null,
+      })
+      .select(BASE_COLS)
+      .single();
+    if (error || !data) return null;
+    return mapRow(data as SupabaseCourtRow);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Typeahead search — queries Supabase for courts whose name contains `query`.
  * Returns up to `limit` results. Returns [] on any error or empty query.
  */
