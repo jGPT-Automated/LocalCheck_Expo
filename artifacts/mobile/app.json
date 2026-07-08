@@ -19,6 +19,7 @@
       "bundleIdentifier": "com.realjess.localcheck",
       "usesAppleSignIn": true,
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "LocalCheck uses your location to find courts near you and show who's playing nearby.",
         "NSCameraUsageDescription": "LocalCheck uses your camera to photograph and verify a court you're adding.",
         "NSPhotoLibraryUsageDescription": "LocalCheck lets you attach a photo to verify a court you're adding."
