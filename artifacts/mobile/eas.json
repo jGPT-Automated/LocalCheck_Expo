@@ -9,22 +9,29 @@
       "distribution": "internal",
       "ios": {
         "simulator": false
-      }
+      },
+      "channel": "development"
     },
     "preview": {
       "distribution": "internal",
       "ios": {
         "simulator": false
-      }
+      },
+      "channel": "preview"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "channel": "production"
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "appleTeamId": "6HHLJVQC6W"
+        "appleTeamId": "6HHLJVQC6W",
+        "ascAppId": "6786909608",
+        "ascApiKeyPath": "./.secrets/asc_api_key.p8",
+        "ascApiKeyId": "Y8Z8J4Q7FT",
+        "ascApiKeyIssuerId": "8b08a203-9143-441b-abad-93f361dbecab"
       }
     }
   }
