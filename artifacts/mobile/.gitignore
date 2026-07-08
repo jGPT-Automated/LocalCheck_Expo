@@ -39,3 +39,7 @@ yarn-error.*
 .vercel
 
 .env
+
+# local signing secrets (ASC API key, etc.)
+.secrets/
+*.p8
