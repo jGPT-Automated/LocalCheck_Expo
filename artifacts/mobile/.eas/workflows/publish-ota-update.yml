@@ -1,0 +1,22 @@
+name: Publish OTA update
+
+# Fast path: on every push to main, publish an over-the-air (EAS Update) to the
+# production channel. JS / asset / styling changes reach installed TestFlight
+# builds in seconds — no rebuild, no App Store review.
+#
+# Applies only to builds created AFTER EAS Update was configured
+# (updates.url in app.json + channels in eas.json). Native changes (new
+# native modules, permissions, app.json/eas.json build config, SDK bumps)
+# still require a full build+submit — see release-ios.yml.
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    type: update
+    params:
+      branch: production
+      message: ${{ github.sha }}

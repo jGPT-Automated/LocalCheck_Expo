@@ -23,10 +23,21 @@
         "NSLocationWhenInUseUsageDescription": "LocalCheck uses your location to find courts near you and show who's playing nearby.",
         "NSCameraUsageDescription": "LocalCheck uses your camera to photograph and verify a court you're adding.",
         "NSPhotoLibraryUsageDescription": "LocalCheck lets you attach a photo to verify a court you're adding."
+      },
+      "runtimeVersion": {
+        "policy": "appVersion"
       }
     },
     "android": {
-      "package": "com.realjess.localcheck"
+      "package": "com.realjess.localcheck",
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -64,6 +75,9 @@
       "eas": {
         "projectId": "9c906173-0258-45a9-a3fe-786cda373c66"
       }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/9c906173-0258-45a9-a3fe-786cda373c66"
     }
   }
 }
