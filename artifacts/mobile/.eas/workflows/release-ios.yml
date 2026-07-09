@@ -1,0 +1,35 @@
+name: Release iOS (build + TestFlight)
+
+# Native-change path: build a production iOS binary and submit it to
+# App Store Connect / TestFlight. Use this when a change can't ship over the
+# air (new native module, permission, SDK bump, or any app.json/eas.json build
+# config change).
+#
+# Triggered by pushing a version tag (e.g. `git tag v1.0.1 && git push --tags`)
+# or run manually from the EAS dashboard (workflow_dispatch).
+#
+# Signing is handled by the distribution cert + provisioning profile stored on
+# EAS. Submission uses the App Store Connect API key stored on EAS (no local
+# .p8, no Apple ID login). appVersionSource is "remote", so the build number
+# auto-increments server-side.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+jobs:
+  build_ios:
+    type: build
+    params:
+      platform: ios
+      profile: production
+
+  submit_ios:
+    type: submit
+    needs: [build_ios]
+    params:
+      platform: ios
+      profile: production
+      build_id: ${{ needs.build_ios.outputs.build_id }}
