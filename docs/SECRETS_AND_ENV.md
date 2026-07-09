@@ -38,6 +38,20 @@ shipped to the client, so only ever put **publishable/anon** values here.
   (Expo dashboard → project → Environment variables, or `eas env:create`). The
   production build reads these; without them the app can't reach Supabase.
 
+**Which are actually required (verified against the code):**
+- `EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — **required.**
+  Read in `lib/supabase.ts`; without them every query/auth call fails.
+- `EXPO_PUBLIC_MAPBOX_TOKEN` — **optional.** Read in `MapScreen.tsx` /
+  `MapScreen.web.tsx`; missing ⇒ "MAPBOX KEY NEEDED" placeholder, rest of app works.
+
+**Legacy vars — do NOT set for the production iOS app:** `EXPO_PUBLIC_DOMAIN`,
+`EXPO_PUBLIC_REPL_ID`, `REPLIT_*`, `BASE_PATH`, `PORT`. They only drive the old
+Replit web-export tooling (`scripts/build.js`, `server/serve.js`, `mockup-sandbox`).
+The one in-app consumer is `AddCourtModal`'s photo-verify fetch
+(`POST ${EXPO_PUBLIC_DOMAIN}/api/courts/verify`) — and **that endpoint does not
+exist in this repo**, so adding a court is currently blocked in production (it's
+gated on a successful verify). Tracked as a follow-up, not an env you can just set.
+
 ---
 
 ## 3. Deployment credentials (secret — never committed)
