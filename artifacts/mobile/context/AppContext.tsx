@@ -55,7 +55,7 @@ interface AppContextValue {
   recordWin: (runId: string, eloDelta: number) => void;
   recordLoss: (runId: string, eloDelta: number) => void;
   addCourt: (court: Court) => Promise<void>;
-  setLocalCourt: (courtId: string, courtObj?: Court) => Promise<void>;
+  setLocalCourt: (courtId: string | null, courtObj?: Court) => Promise<void>;
   setVisibility: (v: Visibility) => Promise<void>;
   setIsLocalPlus: (v: boolean) => Promise<void>;
   setPreferredSport: (sport: CourtSport | null) => Promise<void>;
@@ -161,7 +161,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   }, [profile]);
 
-  // ─── Load nearby courts from Supabase using device GPS (LA fallback) ───────
+  // ─── Load nearby courts from Supabase using device GPS (LA fallback for sort/
+  // discovery only). Nearby courts are discovery data, not a user preference —
+  // this must never write profiles.local_court_id. ────────────────────────────
   const loadCourts = useCallback(async () => {
     if (!userId) {
       setCourts([]);
@@ -180,29 +182,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     const nearby = await fetchNearbyCourts(lat, lng, preferredSport ?? null, 30);
     setCourts(nearby);
-    // Auto-select the nearest court as the user's local court on first run.
-    if (!profile?.local_court_id && nearby.length > 0) {
-      const nearest = nearby[0];
-      setLocalCourtId(nearest.id);
-      setLocalCourtObj(nearest);
-      await updateProfileFields(userId, { local_court_id: nearest.id });
-    }
-  }, [userId, preferredSport, profile?.local_court_id]);
+  }, [userId, preferredSport]);
 
   useEffect(() => {
     loadCourts();
   }, [loadCourts]);
 
-  // ─── Hydrate the local court object from its id ────────────────────────────
+  // ─── Hydrate the local court object from its id. localCourtId is already kept
+  // in sync with the authoritative profile.local_court_id (see the sync effect
+  // above and setLocalCourt below) — don't re-derive from a possibly-stale
+  // `profile` reference here, or clearing the local court can get resurrected. ─
   const hydrateLocalCourt = useCallback(async () => {
-    const id = profile?.local_court_id ?? localCourtId;
-    if (!id) {
+    if (!localCourtId) {
       setLocalCourtObj(null);
       return;
     }
-    const court = await fetchCourtById(id);
+    const court = await fetchCourtById(localCourtId);
     setLocalCourtObj(court);
-  }, [profile?.local_court_id, localCourtId]);
+  }, [localCourtId]);
 
   useEffect(() => {
     hydrateLocalCourt();
@@ -348,9 +345,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [userId]);
 
-  const setLocalCourt = useCallback(async (courtId: string, courtObj?: Court) => {
+  const setLocalCourt = useCallback(async (courtId: string | null, courtObj?: Court) => {
     setLocalCourtId(courtId);
-    if (courtObj) {
+    if (courtId === null) {
+      setLocalCourtObj(null);
+    } else if (courtObj) {
       setLocalCourtObj(courtObj);
     } else {
       const court = await fetchCourtById(courtId);

@@ -199,14 +199,14 @@ export default function CourtProfileScreen() {
         <View style={styles.localSection}>
           <Pressable
             style={[styles.localBtn, isMyLocal && styles.localBtnActive]}
-            onPress={() => setLocalCourt(court.id)}
+            onPress={() => setLocalCourt(isMyLocal ? null : court.id, court)}
           >
             <Text style={[styles.localBtnText, isMyLocal && styles.localBtnTextActive]}>
-              {isMyLocal ? "★ MY LOCAL COURT" : "☆ SET AS MY LOCAL COURT"}
+              {isMyLocal ? "✕ REMOVE MY LOCAL COURT" : "☆ SET AS MY LOCAL COURT"}
             </Text>
             {!isMyLocal && (
               <Text style={styles.localBtnSub}>
-                {localCount} local{localCount !== 1 ? "s" : ""} · 
+                {localCount} local{localCount !== 1 ? "s" : ""} ·
                 {court.status === "community" ? " Community Court" : " Confirmed Court"}
               </Text>
             )}
