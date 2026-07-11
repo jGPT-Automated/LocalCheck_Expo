@@ -209,8 +209,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [hydrateLocalCourt]);
 
   // ─── Refresh court state: locals + active check-ins ─────────────────────────
-  const refreshCourtState = useCallback(async () => {
-    const id = localCourt?.id;
+  // Keyed on localCourtId (the id state), NOT the hydrated localCourt object —
+  // the object lags behind after switching courts, which made post-switch
+  // check-ins refresh the OLD court's roster. courtIdOverride lets callers
+  // refresh a specific court immediately without waiting for state to settle.
+  const refreshCourtState = useCallback(async (courtIdOverride?: string) => {
+    const id = courtIdOverride ?? localCourtId;
     if (!id) {
       setLocalPlayers([]);
       setActivePlayers([]);
@@ -222,7 +226,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     ]);
     setLocalPlayers(locals);
     setActivePlayers(active);
-  }, [localCourt?.id]);
+  }, [localCourtId]);
 
   useEffect(() => {
     refreshCourtState();
@@ -301,27 +305,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const checkIn = useCallback(
     async (courtId: string) => {
       if (!userId) return;
-      // Optimistic UI
-      const court = await fetchCourtById(courtId);
-      if (court) setActivePlayers((prev) => {
-        const exists = prev.some((p) => p.id === userId);
-        if (exists) return prev;
-        return [currentUser, ...prev];
-      });
-      await checkInToCourt(userId, courtId, undefined, visibility);
-      setCheckedInCourtId(courtId);
-      setLastVisitedCourtId(courtId);
-      // Refresh shared state
-      refreshCourtState();
+      // Optimistic UI — only when checking into the court whose roster is shown
+      if (courtId === localCourtId) {
+        setActivePlayers((prev) => {
+          const exists = prev.some((p) => p.id === userId);
+          if (exists) return prev;
+          return [currentUser, ...prev];
+        });
+      }
+      const ok = await checkInToCourt(courtId, undefined, visibility);
+      if (ok) {
+        setCheckedInCourtId(courtId);
+        setLastVisitedCourtId(courtId);
+      }
+      // Refresh against the court we just acted on — reconciles the optimistic
+      // add on success and rolls it back on failure
+      refreshCourtState(courtId === localCourtId ? courtId : undefined);
       refreshFeed();
     },
-    [userId, visibility, currentUser, refreshCourtState, refreshFeed]
+    [userId, visibility, currentUser, localCourtId, refreshCourtState, refreshFeed]
   );
 
   const checkOut = useCallback(async () => {
     if (!userId) return;
-    await checkOutOfCourt(userId);
-    setCheckedInCourtId(null);
+    const ok = await checkOutOfCourt(userId);
+    if (ok) setCheckedInCourtId(null);
     refreshCourtState();
     refreshFeed();
   }, [userId, refreshCourtState, refreshFeed]);
