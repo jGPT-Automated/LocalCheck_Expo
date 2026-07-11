@@ -5,10 +5,7 @@ import {
   Inter_700Bold,
   useFonts as useInterFonts,
 } from "@expo-google-fonts/inter";
-import {
-  Oswald_400Regular,
-  Oswald_700Bold,
-} from "@expo-google-fonts/oswald";
+import { Oswald_400Regular, Oswald_700Bold } from "@expo-google-fonts/oswald";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -33,23 +30,39 @@ const queryClient = new QueryClient();
  * to the auth screen and only render the tabs once a session exists.
  */
 function AuthGate({ children }: { children: React.ReactNode }) {
-  const { session, isLoading } = useAuth();
+  const { session, profile, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
     if (isLoading) return;
     const onAuthScreen = segments[0] === "auth";
+    const onOnboardingScreen = segments[0] === "onboarding";
+    const needsOnboarding = !!session && !profile?.preferred_sport;
+
     if (!session && !onAuthScreen) {
       router.replace("/auth");
-    } else if (session && onAuthScreen) {
+    } else if (needsOnboarding && !onOnboardingScreen) {
+      router.replace("/onboarding");
+    } else if (
+      session &&
+      !needsOnboarding &&
+      (onAuthScreen || onOnboardingScreen)
+    ) {
       router.replace("/(tabs)");
     }
-  }, [session, isLoading, segments, router]);
+  }, [session, profile?.preferred_sport, isLoading, segments, router]);
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: Colors.background, alignItems: "center", justifyContent: "center" }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: Colors.background,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <ActivityIndicator color={Colors.accent} />
       </View>
     );
@@ -63,12 +76,28 @@ function RootLayoutNav() {
     <AuthGate>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="court/[id]" options={{ headerShown: false, presentation: "card" }} />
-        <Stack.Screen name="run/[id]" options={{ headerShown: false, presentation: "card" }} />
-        <Stack.Screen name="player/[id]" options={{ headerShown: false, presentation: "card" }} />
-        <Stack.Screen name="friends" options={{ headerShown: false, presentation: "card" }} />
-        <Stack.Screen name="settings" options={{ headerShown: false, presentation: "card" }} />
+        <Stack.Screen
+          name="court/[id]"
+          options={{ headerShown: false, presentation: "card" }}
+        />
+        <Stack.Screen
+          name="run/[id]"
+          options={{ headerShown: false, presentation: "card" }}
+        />
+        <Stack.Screen
+          name="player/[id]"
+          options={{ headerShown: false, presentation: "card" }}
+        />
+        <Stack.Screen
+          name="friends"
+          options={{ headerShown: false, presentation: "card" }}
+        />
+        <Stack.Screen
+          name="settings"
+          options={{ headerShown: false, presentation: "card" }}
+        />
         <Stack.Screen name="auth" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
       </Stack>
     </AuthGate>
   );

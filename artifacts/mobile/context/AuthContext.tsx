@@ -48,10 +48,15 @@ interface AuthContextValue {
   user: User | null;
   profile: UserProfile | null;
   isLoading: boolean;
-  signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<SignUpResult>;
+  signUpWithEmail: (
+    email: string,
+    password: string,
+    displayName?: string,
+  ) => Promise<SignUpResult>;
   signInWithEmail: (email: string, password: string) => Promise<AuthResult>;
   signInWithApple: () => Promise<AuthResult>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<UserProfile | null>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -62,14 +67,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .maybeSingle();
-    return (data as UserProfile) ?? null;
-  }, []);
+  const loadProfile = useCallback(
+    async (userId: string): Promise<UserProfile | null> => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+      return (data as UserProfile) ?? null;
+    },
+    [],
+  );
 
   // The `handle_new_user` DB trigger creates the profile row on signup. It fires
   // a beat after the client gets its session, so we poll briefly; if it still
@@ -95,18 +103,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const meta = authUser.user_metadata ?? {};
       const emailLocal = (authUser.email ?? "").split("@")[0];
       const displayName =
-        (meta.display_name as string) || (meta.full_name as string) || emailLocal || "Player";
-      const base = (displayName || "player").toLowerCase().replace(/[^a-z0-9_]+/g, "").slice(0, 23) || "player";
+        (meta.display_name as string) ||
+        (meta.full_name as string) ||
+        emailLocal ||
+        "Player";
+      const base =
+        (displayName || "player")
+          .toLowerCase()
+          .replace(/[^a-z0-9_]+/g, "")
+          .slice(0, 23) || "player";
       const username = `${base}_${authUser.id.replace(/-/g, "").slice(0, 8)}`;
 
-      const { error: insertError } = await supabase
-        .from("profiles")
-        .insert({
-          id: authUser.id,
-          email: authUser.email,
-          display_name: displayName,
-          username,
-        });
+      const { error: insertError } = await supabase.from("profiles").insert({
+        id: authUser.id,
+        email: authUser.email,
+        display_name: displayName,
+        username,
+      });
 
       if (!insertError || insertError.code === "23505") {
         const created = await loadProfile(authUser.id);
@@ -119,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(null);
       return { error: "Could not set up your profile. Please try again." };
     },
-    [loadProfile]
+    [loadProfile],
   );
 
   useEffect(() => {
@@ -134,21 +147,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, s) => {
-        setSession(s);
-        setUser(s?.user ?? null);
-        if (s?.user) {
-          await waitForProfile(s.user);
-        } else {
-          setProfile(null);
-        }
-        setIsLoading(false);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, s) => {
+      setSession(s);
+      setUser(s?.user ?? null);
+      if (s?.user) {
+        await waitForProfile(s.user);
+      } else {
+        setProfile(null);
       }
-    );
+      setIsLoading(false);
+    });
 
     return () => subscription.unsubscribe();
   }, [waitForProfile]);
+
+  const refreshProfile = useCallback(async () => {
+    if (!user) return null;
+    const next = await loadProfile(user.id);
+    setProfile(next);
+    return next;
+  }, [loadProfile, user]);
 
   const signUpWithEmail = useCallback(
     async (email: string, password: string, displayName?: string) => {
@@ -168,12 +188,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const profileResult = await waitForProfile(data.session.user);
       return { ...profileResult, needsEmailConfirmation: false };
     },
-    [waitForProfile]
+    [waitForProfile],
   );
 
   const signInWithEmail = useCallback(
     async (email: string, password: string) => {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       if (error) {
         return { error: error.message };
       }
@@ -182,7 +205,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return { error: null };
     },
-    [waitForProfile]
+    [waitForProfile],
   );
 
   const signInWithApple = useCallback(async () => {
@@ -193,7 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const nonce = Crypto.randomUUID();
       const hashedNonce = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
-        nonce
+        nonce,
       );
 
       const credential = await AppleAuthentication.signInAsync({
@@ -242,6 +265,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signInWithEmail,
         signInWithApple,
         signOut,
+        refreshProfile,
       }}
     >
       {children}

@@ -92,7 +92,10 @@ export async function fetchLocalCount(courtId: string): Promise<number> {
 }
 
 /** Update the signed-in user's local court in Supabase. */
-export async function updateLocalCourtId(userId: string, courtId: string | null): Promise<void> {
+export async function updateLocalCourtId(
+  userId: string,
+  courtId: string | null,
+): Promise<void> {
   await updateProfileFields(userId, { local_court_id: courtId });
 }
 
@@ -102,8 +105,10 @@ export async function updateProfileFields(
   fields: Partial<{
     local_court_id: string | null;
     preferred_sport: string | null;
+    display_name: string;
+    username: string;
     is_pro: boolean;
-  }>
+  }>,
 ): Promise<void> {
   try {
     await supabase
@@ -136,7 +141,7 @@ export async function searchPlayers(query: string): Promise<Player[]> {
 export async function fetchLeaderboard(
   scope: "LOCAL" | "GLOBAL" | "REGIONAL",
   courtId: string | null,
-  sport?: CourtSport | null
+  sport?: CourtSport | null,
 ): Promise<Player[]> {
   try {
     let q = supabase.from("profiles").select("*");
@@ -150,7 +155,9 @@ export async function fetchLeaderboard(
     // naturally reflects that sport. For GLOBAL, we return all players.
     void sport;
 
-    const { data, error } = await q.order("elo_rating", { ascending: false }).limit(100);
+    const { data, error } = await q
+      .order("elo_rating", { ascending: false })
+      .limit(100);
     if (error || !data) return [];
     return (data as SupabaseProfile[]).map(mapProfileToPlayer);
   } catch {
