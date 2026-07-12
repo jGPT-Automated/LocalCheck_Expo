@@ -1,6 +1,6 @@
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Platform,
@@ -13,9 +13,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors, Radius } from "@/constants/colors";
-import { Court, getSportColor } from "@/constants/data";
+import { Court, getSportColor, Player } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { fetchActiveCheckIns } from "@/services/checkInService";
 import { BrutalistButton } from "./BrutalistButton";
 import { LivePulse } from "./LivePulse";
 import { PlayerAvatar } from "./PlayerAvatar";
@@ -29,6 +30,21 @@ interface CourtBottomSheetProps {
 export function CourtBottomSheet({ court, onClose }: CourtBottomSheetProps) {
   const { checkIn, checkedInCourtId, checkOut, setLocalCourt, localCourtId } = useApp();
   const { bottom } = useSafeAreaInsets();
+  // Real live roster for this court — never render placeholder players
+  const [roster, setRoster] = useState<Player[]>([]);
+  useEffect(() => {
+    let live = true;
+    if (court?.id) {
+      fetchActiveCheckIns(court.id).then((players) => {
+        if (live) setRoster(players);
+      });
+    } else {
+      setRoster([]);
+    }
+    return () => {
+      live = false;
+    };
+  }, [court?.id, checkedInCourtId]);
   const slideAnim = useRef(new Animated.Value(500)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
 
@@ -171,24 +187,28 @@ export function CourtBottomSheet({ court, onClose }: CourtBottomSheetProps) {
           </View>
         </View>
 
-        {/* ── Active Roster ── */}
-        {court.activeCount > 0 && (
+        {/* ── Active Roster (real check-ins only — no placeholder players) ── */}
+        {roster.length > 0 && (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.roster}
             contentContainerStyle={styles.rosterContent}
           >
-            {Array.from({ length: Math.min(court.activeCount, 8) }).map((_, i) => (
-              <PlayerAvatar
-                key={i}
-                initials={["MJ", "DK", "ZM", "TB", "KP", "JR", "ST", "NV"][i % 8]}
-                size={34}
-              />
+            {roster.slice(0, 8).map((p) => (
+              <Pressable
+                key={p.id}
+                onPress={() => {
+                  onClose();
+                  router.push(`/player/${p.id}`);
+                }}
+              >
+                <PlayerAvatar initials={p.avatar} size={34} />
+              </Pressable>
             ))}
-            {court.activeCount > 8 && (
+            {roster.length > 8 && (
               <View style={styles.moreCount}>
-                <Text style={styles.moreCountText}>+{court.activeCount - 8}</Text>
+                <Text style={styles.moreCountText}>+{roster.length - 8}</Text>
               </View>
             )}
           </ScrollView>

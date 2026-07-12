@@ -64,7 +64,8 @@ interface AppContextValue {
   removeFriend: (playerId: string) => Promise<void>;
   isFriend: (playerId: string) => boolean;
   getFriendsList: () => Player[];
-  refreshCourtState: () => Promise<void>;
+  refreshCourtState: (courtIdOverride?: string) => Promise<void>;
+  refreshCheckedIn: () => Promise<void>;
   refreshFeed: () => Promise<void>;
   refreshRuns: () => Promise<void>;
   refreshMatches: () => Promise<void>;
@@ -524,6 +525,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isFriend,
         getFriendsList,
         refreshCourtState,
+        refreshCheckedIn,
         refreshFeed,
         refreshRuns,
         refreshMatches,

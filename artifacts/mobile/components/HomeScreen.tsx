@@ -1,6 +1,6 @@
 import * as Haptics from "expo-haptics";
-import { router } from "expo-router";
-import React, { useRef, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import React, { useCallback, useRef, useState } from "react";
 import {
   Animated,
   Platform,
@@ -34,13 +34,24 @@ function getSportShort(sport?: string | null): string {
 const COLLAPSE_THRESHOLD = 100;
 
 export function HomeScreen() {
-  const { localCourt, localCourtId, checkedInCourtId, checkIn, checkOut, feed, runs, isFriend, activePlayers, localPlayers, isLoading } = useApp();
+  const { localCourt, localCourtId, checkedInCourtId, checkIn, checkOut, feed, runs, isFriend, activePlayers, localPlayers, isLoading, refreshCourtState, refreshCheckedIn, refreshFeed } = useApp();
   const { user } = useAuth();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Re-sync who's-here + check-in state every time Home gains focus, so state
+  // changed on other screens (Explore check-ins, court switches) shows
+  // immediately instead of waiting for the 30s poll.
+  useFocusEffect(
+    useCallback(() => {
+      refreshCourtState();
+      refreshCheckedIn();
+      refreshFeed();
+    }, [refreshCourtState, refreshCheckedIn, refreshFeed])
+  );
 
   const isCheckedIn = checkedInCourtId === localCourt?.id;
 
