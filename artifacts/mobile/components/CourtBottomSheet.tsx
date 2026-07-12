@@ -68,7 +68,6 @@ export function CourtBottomSheet({ court, onClose }: CourtBottomSheetProps) {
   const isCheckedIn = checkedInCourtId === court.id;
   const isMyLocal = localCourtId === court.id;
   const sportColor = getSportColor(court.sport);
-  const occupancyPct = Math.round((court.activeCount / court.maxCapacity) * 100);
 
   const handleCheckIn = async () => {
     if (isCheckedIn) {
@@ -116,15 +115,11 @@ export function CourtBottomSheet({ court, onClose }: CourtBottomSheetProps) {
           </Pressable>
         </View>
 
-        {/* ── Stats ── */}
+        {/* ── Stats (real data only: live presence + lifetime check-ins) ── */}
         <View style={styles.statsRow}>
           <StatBlock value={court.activeCount} label="On Court" />
           <View style={styles.statDiv} />
-          <StatBlock value={`${occupancyPct}%`} label="Full" />
-          <View style={styles.statDiv} />
-          <StatBlock value={court.rating} label="Rating" />
-          <View style={styles.statDiv} />
-          <StatBlock value={court.maxCapacity} label="Max" />
+          <StatBlock value={court.ratingCount ?? 0} label="Visits" />
         </View>
 
         {/* ── Tags ── */}
@@ -156,19 +151,23 @@ export function CourtBottomSheet({ court, onClose }: CourtBottomSheetProps) {
             </View>
           )}
 
-          <View style={styles.tag}>
-            <Text style={styles.tagText}>{court.surface}</Text>
-          </View>
+          {court.surface != null && (
+            <View style={styles.tag}>
+              <Text style={styles.tagText}>{court.surface}</Text>
+            </View>
+          )}
           {court.lights && (
             <View style={styles.tag}>
               <Text style={styles.tagText}>LIGHTS</Text>
             </View>
           )}
-          <View style={styles.tag}>
-            <Text style={styles.tagText}>
-              {court.localCount} LOCAL{court.localCount !== 1 ? "S" : ""}
-            </Text>
-          </View>
+          {court.localCount != null && (
+            <View style={styles.tag}>
+              <Text style={styles.tagText}>
+                {court.localCount} LOCAL{court.localCount !== 1 ? "S" : ""}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* ── Active Roster ── */}

@@ -22,7 +22,6 @@ import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 
-const WEATHER_STUB = "72° ☀";
 
 function getSportShort(sport?: string | null): string {
   if (!sport) return "";
@@ -80,17 +79,6 @@ export function HomeScreen() {
     }
   };
 
-  const courtDetails: { label: string; value: string }[] = [
-    { label: "COURTS", value: String(localCourt.courtCount ?? 1) },
-    { label: "HOOPS", value: localCourt.hoopCount != null ? String(localCourt.hoopCount) : "—" },
-    { label: "NET", value: localCourt.netType ?? "—" },
-    { label: "RIM", value: localCourt.rimType ?? "—" },
-    { label: "SURFACE", value: localCourt.surface },
-    { label: "LIGHTS", value: localCourt.lights ? "YES" : "NO" },
-    { label: "WATER", value: localCourt.waterFountain ? "YES" : "NO" },
-    { label: "ADDED", value: localCourt.addedDate ?? "—" },
-  ];
-
   const collapsedOpacity = scrollY.interpolate({
     inputRange: [COLLAPSE_THRESHOLD - 20, COLLAPSE_THRESHOLD + 20],
     outputRange: [0, 1],
@@ -122,7 +110,6 @@ export function HomeScreen() {
           <View style={styles.collapsedCenter} />
         )}
         <View style={styles.collapsedRight}>
-          <Text style={styles.collapsedWeather}>{WEATHER_STUB}</Text>
           {sportShort ? (
             <View style={[styles.collapsedSportTag, { borderColor: sportColor }]}>
               <Text style={[styles.collapsedSportText, { color: sportColor }]}>{sportShort}</Text>
@@ -139,7 +126,6 @@ export function HomeScreen() {
           <Text style={styles.headerEyebrow}>LOCALCHECK</Text>
           <Text style={styles.headerBrand}>HOME</Text>
         </View>
-        <Text style={styles.weatherText}>{WEATHER_STUB}</Text>
       </Animated.View>
 
       <Animated.ScrollView
@@ -196,9 +182,11 @@ export function HomeScreen() {
                 <Text style={styles.confirmedTagText}>CONFIRMED</Text>
               </View>
             )}
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>{localCourt.surface}</Text>
-            </View>
+            {localCourt.surface != null && (
+              <View style={styles.tag}>
+                <Text style={styles.tagText}>{localCourt.surface}</Text>
+              </View>
+            )}
             {localCourt.lights && (
               <View style={styles.tag}>
                 <Text style={styles.tagText}>LIGHTS</Text>

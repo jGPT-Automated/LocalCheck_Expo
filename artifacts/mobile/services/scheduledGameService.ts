@@ -149,30 +149,39 @@ export async function createScheduledGame(payload: {
         start_time: payload.startTime,
         max_players: payload.maxPlayers,
         note: payload.note ?? null,
-        status: "open",
+        // Live enum: scheduled | cancelled | completed
+        status: "scheduled",
         is_open_invite: true,
       })
-      .select("*")
+      .select("*, courts(name, sport_type)")
       .single();
-    if (error || !data) return null;
+    if (error || !data) {
+      if (error) console.warn("createScheduledGame failed", error.message);
+      return null;
+    }
     return mapScheduledGameToRun(data as unknown as SupabaseScheduledGame);
   } catch {
     return null;
   }
 }
 
+/**
+ * RSVP the user to a run. The `team` parameter only drives optimistic UI in
+ * callers; the table models RSVP (going/waitlist/declined), not team sides.
+ */
 export async function joinScheduledGame(
   gameId: string,
   userId: string,
   team: "A" | "B"
 ): Promise<void> {
   try {
-    await supabase.from("scheduled_game_participants").upsert({
+    const { error } = await supabase.from("scheduled_game_participants").upsert({
       scheduled_game_id: gameId,
       user_id: userId,
-      rsvp_status: team === "A" ? "team_a" : "team_b",
+      rsvp_status: "going",
       joined_at: new Date().toISOString(),
     });
+    if (error) console.warn("joinScheduledGame failed", error.message);
   } catch {
     // Best-effort
   }

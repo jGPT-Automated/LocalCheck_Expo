@@ -12,7 +12,7 @@ import { useApp } from "@/context/AppContext";
 
 export default function RunScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { runs, joinRun, recordResult } = useApp();
+  const { runs, joinRun } = useApp();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
   const [autoBalance, setAutoBalance] = useState(false);
@@ -84,8 +84,7 @@ export default function RunScreen() {
         <View style={styles.resultSection}>
           <Text style={styles.resultLabel}>RECORD RESULT</Text>
           <View style={styles.resultButtons}>
-            <BrutalistButton label="A WINS" onPress={() => recordResult(run.id, "A")} variant="outline" style={styles.resultBtn} testID="team-a-win" />
-            <BrutalistButton label="B WINS" onPress={() => recordResult(run.id, "B")} variant="outline" style={styles.resultBtn} testID="team-b-win" />
+            <BrutalistButton label="LOG A GAME" onPress={() => router.push("/(tabs)/compete")} variant="outline" style={styles.resultBtn} testID="log-game-btn" />
           </View>
         </View>
       </ScrollView>

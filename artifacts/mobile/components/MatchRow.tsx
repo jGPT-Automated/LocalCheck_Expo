@@ -11,7 +11,8 @@ interface MatchRowProps {
 
 export function MatchRow({ match }: MatchRowProps) {
   const isWin = match.result === "WIN";
-  const deltaStr = match.eloDelta > 0 ? `+${match.eloDelta}` : `${match.eloDelta}`;
+  const deltaStr =
+    match.eloDelta == null ? "—" : match.eloDelta > 0 ? `+${match.eloDelta}` : `${match.eloDelta}`;
   const gameLabel = match.gameType ?? match.sport ?? "—";
 
   return (

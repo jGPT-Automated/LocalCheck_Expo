@@ -47,15 +47,17 @@ export interface Court {
   latitude: number;
   longitude: number;
   activeCount: number;
-  maxCapacity: number;
-  rating: number;
-  ratingCount: number;
-  surface: string;
-  lights: boolean;
-  covered: boolean;
+  // Attribute fields below are optional: the live courts table does not store
+  // them. Only render them when a real value exists — never invent defaults.
+  maxCapacity?: number;
+  rating?: number;
+  ratingCount?: number;
+  surface?: string;
+  lights?: boolean;
+  covered?: boolean;
   imageUri?: string;
   status: CourtStatus;
-  localCount: number;
+  localCount?: number;
   addedBy?: string;
   verificationPhoto?: string;
   // Physical court details
@@ -120,7 +122,9 @@ export interface MatchResult {
   sport: CourtSport;
   gameType?: GameType;
   result: "WIN" | "LOSS";
-  eloDelta: number;
+  // Per-game Elo change. The live DB does not store this per game (log_game
+  // applies it to profiles only), so it is usually absent — render "—" then.
+  eloDelta?: number;
   teamScore: string;
   opposingScore: string;
 }

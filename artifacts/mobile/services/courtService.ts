@@ -43,15 +43,11 @@ function mapRow(row: SupabaseCourtRow): Court {
     latitude: Number(row.latitude),
     longitude: Number(row.longitude),
     activeCount: row.active_check_in_count ?? 0,
-    maxCapacity: 10,
-    rating: 4.0,
+    // The live courts table has no capacity/rating/surface/lights columns —
+    // leave those Court fields unset instead of inventing values.
     ratingCount: row.total_check_ins ?? 0,
-    surface: "ASPHALT",
-    lights: false,
-    covered: false,
     imageUri: row.image_url ?? undefined,
     status: "community",
-    localCount: 0,
     addedBy: row.added_by ?? undefined,
     addedDate: row.created_at ? row.created_at.slice(0, 10) : undefined,
   };

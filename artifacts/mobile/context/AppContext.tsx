@@ -50,14 +50,9 @@ interface AppContextValue {
   visitCourt: (courtId: string) => Promise<void>;
   joinRun: (runId: string, team: "A" | "B") => void;
   hypeItem: (feedId: string) => void;
-  addMatchResult: (result: MatchResult) => void;
-  recordResult: (runId: string, winner: "A" | "B") => void;
-  recordWin: (runId: string, eloDelta: number) => void;
-  recordLoss: (runId: string, eloDelta: number) => void;
   addCourt: (court: Court) => Promise<void>;
   setLocalCourt: (courtId: string, courtObj?: Court) => Promise<void>;
   setVisibility: (v: Visibility) => Promise<void>;
-  setIsLocalPlus: (v: boolean) => Promise<void>;
   setPreferredSport: (sport: CourtSport | null) => Promise<void>;
   setPreferredCourtId: (courtId: string | null) => Promise<void>;
   addFriend: (playerId: string) => Promise<void>;
@@ -366,10 +361,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setVisibilityState(v);
   }, []);
 
-  const setIsLocalPlus = useCallback(async (v: boolean) => {
-    setIsLocalPlusState(v);
-    if (userId) await updateProfileFields(userId, { is_pro: v });
-  }, [userId]);
+  // NOTE: profiles.is_pro is derived by a DB trigger from the subscriptions
+  // table and must never be written from the client. LocalPlus status is
+  // read-only here (see the profile effect above); real purchases should
+  // write subscriptions rows through a secure server/RPC flow, then refresh
+  // the profile.
 
   const setPreferredSport = useCallback(async (sport: CourtSport | null) => {
     setPreferredSportState(sport);
@@ -428,57 +424,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
-  const addMatchResult = useCallback((result: MatchResult) => {
-    setMatches((prev) => [result, ...prev]);
-  }, []);
-
-  const recordResult = useCallback(
-    (runId: string, winner: "A" | "B") => {
-      const run = runs.find((r) => r.id === runId);
-      if (!run) return;
-      const isOnTeamA = run.teamA.some((p) => p?.id === currentUser.id);
-      const isWin = (winner === "A" && isOnTeamA) || (winner === "B" && !isOnTeamA);
-      const delta = 15;
-      if (isWin) recordWin(runId, delta);
-      else recordLoss(runId, delta);
-    },
-    [runs, currentUser]
-  );
-
-  const recordWin = useCallback(
-    (runId: string, eloDelta: number) => {
-      const run = runs.find((r) => r.id === runId);
-      addMatchResult({
-        id: `m${Date.now()}`,
-        date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase(),
-        courtName: run?.courtName.toUpperCase() ?? "UNKNOWN",
-        sport: run?.sport ?? "BASKETBALL",
-        result: "WIN",
-        eloDelta,
-        teamScore: "21",
-        opposingScore: "14",
-      });
-    },
-    [runs, addMatchResult]
-  );
-
-  const recordLoss = useCallback(
-    (runId: string, eloDelta: number) => {
-      const run = runs.find((r) => r.id === runId);
-      addMatchResult({
-        id: `m${Date.now()}`,
-        date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase(),
-        courtName: run?.courtName.toUpperCase() ?? "UNKNOWN",
-        sport: run?.sport ?? "BASKETBALL",
-        result: "LOSS",
-        eloDelta: -eloDelta,
-        teamScore: "11",
-        opposingScore: "21",
-      });
-    },
-    [runs, addMatchResult]
-  );
-
   return (
     <AppContext.Provider
       value={{
@@ -501,14 +446,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         visitCourt,
         joinRun,
         hypeItem,
-        addMatchResult,
-        recordResult,
-        recordWin,
-        recordLoss,
         addCourt,
         setLocalCourt,
         setVisibility,
-        setIsLocalPlus,
         setPreferredSport,
         setPreferredCourtId,
         addFriend: addFriendAction,

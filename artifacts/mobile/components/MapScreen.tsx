@@ -123,9 +123,9 @@ function clusterCourts(courts: Court[], zoom: number, localCourtId?: string | nu
 
     const avgLat = clusterGroup.reduce((s, c) => s + c.latitude, 0) / clusterGroup.length;
     const avgLng = clusterGroup.reduce((s, c) => s + c.longitude, 0) / clusterGroup.length;
-    // Top court = highest rating / most active
+    // Top court = most active, then most visited
     const topCourt = [...clusterGroup].sort(
-      (a, b) => b.activeCount - a.activeCount || b.rating - a.rating
+      (a, b) => b.activeCount - a.activeCount || (b.ratingCount ?? 0) - (a.ratingCount ?? 0)
     )[0];
 
     result.push({

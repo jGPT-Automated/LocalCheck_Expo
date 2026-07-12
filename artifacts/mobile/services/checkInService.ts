@@ -5,7 +5,12 @@ import { mapProfileToPlayer, SupabaseProfile } from "./profileService";
 
 // ─── Public API ─────────────────────────────────────────────────────────────
 
-/** Insert a new check-in row for the current user. */
+/**
+ * Check the current user in to a court via the switch_active_checkin RPC,
+ * which atomically checks out any open check-in first (one active check-in
+ * per user). The RPC identifies the caller from auth.uid(); `userId` is kept
+ * for caller-signature stability.
+ */
 export async function checkInToCourt(
   userId: string,
   courtId: string,
@@ -13,13 +18,12 @@ export async function checkInToCourt(
   visibility: string = "public"
 ): Promise<void> {
   try {
-    await supabase.from("check_ins").insert({
-      user_id: userId,
-      court_id: courtId,
-      note: note ?? null,
-      checked_in_at: new Date().toISOString(),
-      visibility: visibility,
+    const { error } = await supabase.rpc("switch_active_checkin", {
+      p_court_id: courtId,
+      p_visibility: visibility,
+      p_note: note ?? null,
     });
+    if (error) console.warn("checkInToCourt failed", error.message);
   } catch {
     // Best-effort; UI state handled optimistically
   }
