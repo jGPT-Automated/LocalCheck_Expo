@@ -48,7 +48,7 @@ interface AppContextValue {
   checkIn: (courtId: string) => Promise<void>;
   checkOut: () => Promise<void>;
   visitCourt: (courtId: string) => Promise<void>;
-  joinRun: (runId: string, team: "A" | "B") => void;
+  joinRun: (runId: string) => Promise<boolean>;
   hypeItem: (feedId: string) => void;
   addCourt: (court: Court) => Promise<void>;
   setLocalCourt: (courtId: string | null, courtObj?: Court) => Promise<void>;
@@ -237,14 +237,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [refreshCheckedIn]);
 
   // ─── Refresh runs, feed, matches, friends ───────────────────────────────────
+  // Runs are fetched for ALL courts (7-day window) — screens filter by court
+  // where needed. Fetching only the local court made runs created or joined at
+  // other courts vanish from Schedule after a refresh.
   const refreshRuns = useCallback(async () => {
-    const courtId = localCourt?.id;
     const from = new Date();
     const to = new Date();
     to.setDate(to.getDate() + 7);
-    const games = await fetchScheduledGames(courtId ? { courtId, from, to } : { from, to });
+    const games = await fetchScheduledGames({ from, to });
     setRuns(games);
-  }, [localCourt?.id]);
+  }, []);
 
   const refreshFeed = useCallback(async () => {
     const items = await fetchFeed(localCourt?.id ?? undefined);
@@ -405,23 +407,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const getFriendsList = useCallback(() => friends, [friends]);
 
   const joinRun = useCallback(
-    (runId: string, team: "A" | "B") => {
-      if (!userId) return;
-      joinScheduledGame(runId, userId, team);
-      // Optimistic local update
-      setRuns((prev) =>
-        prev.map((run) => {
-          if (run.id !== runId) return run;
-          const key = team === "A" ? "teamA" : "teamB";
-          const arr = [...run[key]];
-          const emptyIdx = arr.findIndex((p) => p === null);
-          if (emptyIdx === -1) return run;
-          arr[emptyIdx] = currentUser;
-          return { ...run, [key]: arr };
-        })
-      );
+    async (runId: string): Promise<boolean> => {
+      if (!userId) return false;
+      const ok = await joinScheduledGame(runId, userId);
+      if (ok) {
+        // Reflect the confirmed RSVP immediately, then reconcile from the DB.
+        setRuns((prev) =>
+          prev.map((run) => {
+            if (run.id !== runId) return run;
+            if (run.participants.some((p) => p.id === userId)) return run;
+            return { ...run, participants: [...run.participants, currentUser] };
+          })
+        );
+        refreshRuns();
+      }
+      return ok;
     },
-    [userId, currentUser]
+    [userId, currentUser, refreshRuns]
   );
 
   const hypeItem = useCallback((feedId: string) => {

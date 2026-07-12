@@ -70,18 +70,21 @@ function HostRunModal({
     ? [defaultCourt, ...courts]
     : courts;
 
-  const startTime = (() => {
+  const slotDate = (di: number, t: string) => {
     const now = new Date();
     const d = new Date(now);
-    d.setDate(now.getDate() - now.getDay() + dayIndex);
-    const [h, m] = time.split(":").map(Number);
+    d.setDate(now.getDate() - now.getDay() + di);
+    const [h, m] = t.split(":").map(Number);
     d.setHours(h, m, 0, 0);
-    // Past slot this week → schedule it for next week.
-    if (d.getTime() < now.getTime()) d.setDate(d.getDate() + 7);
     return d;
-  })();
+  };
+  // Past days/times are disabled in the picker — never silently reschedule a
+  // past slot to a different date than the one the user tapped.
+  const startTime = slotDate(dayIndex, time);
+  const isDayDisabled = (i: number) => i < todayIndex;
+  const isTimeDisabled = (t: string) => slotDate(dayIndex, t).getTime() <= Date.now();
 
-  const canSubmit = courtId !== "" && !submitting;
+  const canSubmit = courtId !== "" && startTime.getTime() > Date.now() && !submitting;
 
   const handleCreate = async () => {
     if (!canSubmit) return;
@@ -146,8 +149,9 @@ function HostRunModal({
               {weekDays.map((d, i) => (
                 <Pressable
                   key={i}
-                  style={[styles.chip, dayIndex === i && styles.chipActive]}
+                  style={[styles.chip, dayIndex === i && styles.chipActive, isDayDisabled(i) && styles.chipDisabled]}
                   onPress={() => setDayIndex(i)}
+                  disabled={isDayDisabled(i)}
                 >
                   <Text style={[styles.chipText, dayIndex === i && styles.chipTextActive]}>
                     {d.isToday ? "TODAY" : `${d.label} ${d.date}`}
@@ -161,8 +165,9 @@ function HostRunModal({
               {RUN_TIMES.map((t) => (
                 <Pressable
                   key={t}
-                  style={[styles.chip, time === t && styles.chipActive]}
+                  style={[styles.chip, time === t && styles.chipActive, isTimeDisabled(t) && styles.chipDisabled]}
                   onPress={() => setTime(t)}
+                  disabled={isTimeDisabled(t)}
                 >
                   <Text style={[styles.chipText, time === t && styles.chipTextActive]}>{t}</Text>
                 </Pressable>
@@ -221,12 +226,14 @@ export default function ScheduleScreen() {
   const todayIndex = weekDays.findIndex((d) => d.isToday);
   const [selectedDay, setSelectedDay] = useState(todayIndex);
 
-  // Map real scheduled games to days (TODAY = selectedDay if today, TOMORROW = next day)
-  const runsForDay = runs.filter((r) => {
-    if (selectedDay === todayIndex) return r.date === "TODAY";
-    if (selectedDay === todayIndex + 1) return r.date === "TOMORROW";
-    return false;
-  });
+  // Match runs to the selected day by actual start time, so every selectable
+  // day works — not just TODAY/TOMORROW label matching.
+  const selectedDate = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - d.getDay() + selectedDay);
+    return d.toDateString();
+  })();
+  const runsForDay = runs.filter((r) => new Date(r.startTimeIso).toDateString() === selectedDate);
 
   const selectedDayInfo = weekDays[selectedDay];
 
@@ -297,8 +304,7 @@ export default function ScheduleScreen() {
         ) : (
           runsForDay.map((run) => {
             const sportColor = getSportColor(run.sport);
-            const filled =
-              run.teamA.filter(Boolean).length + run.teamB.filter(Boolean).length;
+            const filled = run.participants.length;
             const isFull = filled >= run.maxPlayers;
 
             return (
@@ -363,8 +369,7 @@ export default function ScheduleScreen() {
           <Text style={styles.allSectionTitle}>ALL UPCOMING</Text>
           {runs.map((run) => {
             const sportColor = getSportColor(run.sport);
-            const filled =
-              run.teamA.filter(Boolean).length + run.teamB.filter(Boolean).length;
+            const filled = run.participants.length;
             return (
               <Pressable
                 key={run.id}
@@ -767,6 +772,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   chipTextActive: { color: Colors.accent },
+  chipDisabled: { opacity: 0.35 },
   createError: {
     fontFamily: Typography.bodyBold,
     fontSize: 10,

@@ -301,7 +301,7 @@ export function HomeScreen() {
                 </View>
                 <View style={styles.runPlayers}>
                   <Text style={styles.runPlayerCount}>
-                    {run.teamA.filter(Boolean).length + run.teamB.filter(Boolean).length}
+                    {run.participants.length}
                     <Text style={styles.runPlayerMax}>/{run.maxPlayers}</Text>
                   </Text>
                   <Text style={styles.runPlayersLabel}>IN</Text>

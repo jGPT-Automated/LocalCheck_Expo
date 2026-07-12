@@ -36,17 +36,26 @@ function formatDate(iso: string): string {
 }
 
 function mapGameToMatchResult(row: SupabaseGame, currentUserId?: string): MatchResult {
-  const isOnTeamA = row.game_participants?.some((p) => p.user_id === currentUserId && p.team_side === "a");
-  const won = row.winner_side === (isOnTeamA ? "a" : "b");
+  // Perspective: when we know the viewer, report THEIR side's score first —
+  // a side-b player's own score is score_b, not score_a. Without a viewer
+  // (court/recent lists), fall back to side a as the reference.
+  const viewerSide: "a" | "b" =
+    currentUserId != null &&
+    row.game_participants?.some((p) => p.user_id === currentUserId && p.team_side === "b")
+      ? "b"
+      : "a";
+  const won = row.winner_side === viewerSide;
   const sport = normalizeSport(row.courts?.sport_type);
+  const myScore = viewerSide === "a" ? row.score_a : row.score_b;
+  const theirScore = viewerSide === "a" ? row.score_b : row.score_a;
   return {
     id: row.id,
     date: formatDate(row.played_at),
     courtName: row.courts?.name?.toUpperCase() ?? "UNKNOWN",
     sport,
     result: won ? "WIN" : "LOSS",
-    teamScore: String(row.score_a ?? 0),
-    opposingScore: String(row.score_b ?? 0),
+    teamScore: String(myScore ?? 0),
+    opposingScore: String(theirScore ?? 0),
   };
 }
 
@@ -75,24 +84,39 @@ export async function logGame(payload: {
   opponentId: string;
   sport: CourtSport;
   note?: string;
-}): Promise<void> {
+}): Promise<boolean> {
+  // The RPC does not validate score/winner consistency, so bad input here
+  // would corrupt games, win/loss counts, and Elo. Reject it client-side:
+  // scores must be non-negative integers and ties are not loggable.
+  const { myScore, theirScore } = payload;
+  if (
+    !Number.isInteger(myScore) ||
+    !Number.isInteger(theirScore) ||
+    myScore < 0 ||
+    theirScore < 0 ||
+    myScore === theirScore
+  ) {
+    console.warn("logGame rejected invalid scores", myScore, theirScore);
+    return false;
+  }
   // The log_game RPC atomically inserts the game + participants, computes the
   // real Elo update for both players, and posts the feed entry. It derives the
   // caller from auth.uid(), so payload.createdBy is not sent.
-  const winner: "a" | "b" = payload.myScore > payload.theirScore ? "a" : "b";
+  const winner: "a" | "b" = myScore > theirScore ? "a" : "b";
   const { error } = await supabase.rpc("log_game", {
     p_court_id: payload.courtId,
     p_opponent_id: payload.opponentId,
     p_my_side: "a",
-    p_score_a: payload.myScore,
-    p_score_b: payload.theirScore,
+    p_score_a: myScore,
+    p_score_b: theirScore,
     p_winner_side: winner,
     p_notes: payload.note?.trim() ? payload.note.trim() : null,
   });
   if (error) {
     console.warn("logGame failed", error.message);
-    return;
+    return false;
   }
+  return true;
 }
 
 export async function fetchGamesByCourt(courtId: string): Promise<MatchResult[]> {

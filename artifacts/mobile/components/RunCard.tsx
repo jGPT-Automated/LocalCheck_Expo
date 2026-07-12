@@ -12,12 +12,10 @@ interface RunCardProps {
 }
 
 export function RunCard({ run }: RunCardProps) {
-  const filledA = run.teamA.filter((p) => p !== null).length;
-  const filledB = run.teamB.filter((p) => p !== null).length;
-  const total = filledA + filledB;
-  const max = run.teamA.length + run.teamB.length;
+  const total = run.participants.length;
+  const max = run.maxPlayers;
   const isFull = total >= max;
-  const spotsLeft = max - total;
+  const spotsLeft = Math.max(0, max - total);
   const sportColor = getSportColor(run.sport);
 
   return (
@@ -36,17 +34,14 @@ export function RunCard({ run }: RunCardProps) {
         <Text style={styles.level}>{run.skillLevel}</Text>
         <View style={styles.meta}>
           <View style={styles.avatarRow}>
-            {[...run.teamA, ...run.teamB]
-              .filter((p) => p !== null)
-              .slice(0, 4)
-              .map((p, i) => (
-                <PlayerAvatar
-                  key={i}
-                  initials={p!.avatar}
-                  size={20}
-                  style={{ marginLeft: i > 0 ? -5 : 0, zIndex: 4 - i }}
-                />
-              ))}
+            {run.participants.slice(0, 4).map((p, i) => (
+              <PlayerAvatar
+                key={p.id}
+                initials={p.avatar}
+                size={20}
+                style={{ marginLeft: i > 0 ? -5 : 0, zIndex: 4 - i }}
+              />
+            ))}
           </View>
           <Text style={styles.spots}>{isFull ? "FULL" : `${spotsLeft} SPOTS`}</Text>
         </View>

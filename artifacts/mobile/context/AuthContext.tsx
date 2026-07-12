@@ -52,6 +52,7 @@ interface AuthContextValue {
   signInWithEmail: (email: string, password: string) => Promise<AuthResult>;
   signInWithApple: () => Promise<AuthResult>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -231,6 +232,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
   }, []);
 
+  // Re-read the profile row (e.g. after log_game updates elo/wins server-side).
+  const refreshProfile = useCallback(async () => {
+    if (!user?.id) return;
+    const fresh = await loadProfile(user.id);
+    if (fresh) setProfile(fresh);
+  }, [user?.id, loadProfile]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -242,6 +250,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signInWithEmail,
         signInWithApple,
         signOut,
+        refreshProfile,
       }}
     >
       {children}

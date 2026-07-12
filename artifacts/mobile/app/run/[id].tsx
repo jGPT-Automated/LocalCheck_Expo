@@ -1,21 +1,22 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors } from "@/constants/colors";
-import { Player, getSportColor } from "@/constants/data";
+import { getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 
 export default function RunScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { runs, joinRun } = useApp();
+  const { runs, joinRun, currentUser } = useApp();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
-  const [autoBalance, setAutoBalance] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState(false);
 
   const run = runs.find((r) => r.id === id);
   if (!run) {
@@ -28,9 +29,20 @@ export default function RunScreen() {
   }
 
   const sportColor = getSportColor(run.sport);
-  const total = run.teamA.filter(Boolean).length + run.teamB.filter(Boolean).length;
-  const max = run.teamA.length + run.teamB.length;
-  const spotsLeft = max - total;
+  const total = run.participants.length;
+  const max = run.maxPlayers;
+  const spotsLeft = Math.max(0, max - total);
+  const isJoined = run.participants.some((p) => p.id === currentUser.id);
+  const isFull = spotsLeft === 0;
+
+  const handleJoin = async () => {
+    if (isJoined || isFull || joining) return;
+    setJoining(true);
+    setJoinError(false);
+    const ok = await joinRun(run.id);
+    setJoining(false);
+    if (!ok) setJoinError(true);
+  };
 
   return (
     <View style={styles.container}>
@@ -59,13 +71,8 @@ export default function RunScreen() {
 
         <View style={styles.controlRow}>
           <View style={styles.controlItem}>
-            <Text style={styles.controlLabel}>ELO BALANCE</Text>
-            <Switch
-              value={autoBalance}
-              onValueChange={setAutoBalance}
-              trackColor={{ false: Colors.border, true: Colors.accent }}
-              thumbColor={autoBalance ? Colors.black : Colors.muted}
-            />
+            <Text style={styles.controlLabel}>GOING</Text>
+            <Text style={styles.controlValue}>{total}/{max}</Text>
           </View>
           <View style={[styles.controlItem, styles.controlBorder]}>
             <Text style={styles.controlLabel}>SPOTS LEFT</Text>
@@ -73,53 +80,57 @@ export default function RunScreen() {
           </View>
         </View>
 
-        <View style={styles.teamsArea}>
-          <TeamColumn label="TEAM A" players={run.teamA} sport={run.sport} />
-          <View style={styles.vsColumn}>
-            <Text style={styles.vsText}>VS</Text>
+        {/* Single RSVP roster — the DB models who's going, not team sides.
+            Teams get sorted out on the court. */}
+        <View style={styles.rosterArea}>
+          <View style={[styles.teamHeader, { borderBottomColor: sportColor }]}>
+            <Text style={styles.teamLabel}>WHO'S GOING</Text>
           </View>
-          <TeamColumn label="TEAM B" players={run.teamB} sport={run.sport} />
+          {run.participants.map((player) => (
+            <View key={player.id} style={styles.playerSlot}>
+              <PlayerAvatar initials={player.avatar} size={34} />
+              <View>
+                <Text style={styles.slotName}>
+                  {player.name.split(" ")[0]}
+                  {player.id === run.hostId ? "  · HOST" : ""}
+                </Text>
+                <Text style={styles.slotElo}>{player.elo} ELO</Text>
+              </View>
+            </View>
+          ))}
+          {Array.from({ length: spotsLeft }).map((_, i) => (
+            <View key={`open-${i}`} style={styles.playerSlot}>
+              <View style={styles.emptySlot}>
+                <Text style={styles.emptySlotText}>OPEN</Text>
+              </View>
+            </View>
+          ))}
         </View>
 
         <View style={styles.resultSection}>
-          <Text style={styles.resultLabel}>RECORD RESULT</Text>
+          <Text style={styles.resultLabel}>PLAYED A GAME HERE?</Text>
           <View style={styles.resultButtons}>
-            <BrutalistButton label="LOG A GAME" onPress={() => router.push("/(tabs)/compete")} variant="outline" style={styles.resultBtn} testID="log-game-btn" />
+            <BrutalistButton
+              label="LOG A GAME"
+              onPress={() => router.push(`/(tabs)/compete?tab=log&courtId=${run.courtId}`)}
+              variant="outline"
+              style={styles.resultBtn}
+              testID="log-game-btn"
+            />
           </View>
         </View>
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: (Platform.OS === "web" ? 34 : bottom) + 12 }]}>
-        <BrutalistButton label="JOIN RUN" onPress={() => joinRun(run.id, "A")} variant="accent" style={{ flex: 1 }} testID="join-run-btn" />
+        {joinError && <Text style={styles.joinError}>COULD NOT JOIN — TRY AGAIN</Text>}
+        <BrutalistButton
+          label={isJoined ? "YOU'RE GOING ✓" : isFull ? "RUN FULL" : joining ? "JOINING…" : "JOIN RUN"}
+          onPress={handleJoin}
+          variant={isJoined ? "outline" : "accent"}
+          style={{ flex: 1, opacity: isFull && !isJoined ? 0.5 : 1 }}
+          testID="join-run-btn"
+        />
       </View>
-    </View>
-  );
-}
-
-function TeamColumn({ label, players, sport }: { label: string; players: (Player | null)[]; sport: string }) {
-  const sportColor = getSportColor(sport as any);
-  return (
-    <View style={styles.teamCol}>
-      <View style={[styles.teamHeader, { borderBottomColor: sportColor }]}>
-        <Text style={styles.teamLabel}>{label}</Text>
-      </View>
-      {players.map((player, i) => (
-        <View key={i} style={styles.playerSlot}>
-          {player ? (
-            <>
-              <PlayerAvatar initials={player.avatar} size={34} />
-              <View>
-                <Text style={styles.slotName}>{player.name.split(" ")[0]}</Text>
-                <Text style={styles.slotElo}>{player.elo} ELO</Text>
-              </View>
-            </>
-          ) : (
-            <View style={styles.emptySlot}>
-              <Text style={styles.emptySlotText}>OPEN</Text>
-            </View>
-          )}
-        </View>
-      ))}
     </View>
   );
 }
@@ -150,10 +161,7 @@ const styles = StyleSheet.create({
   controlBorder: { borderLeftWidth: 1, borderColor: Colors.border },
   controlLabel: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.muted, letterSpacing: 2, textTransform: "uppercase" as const },
   controlValue: { fontFamily: Typography.heading, fontSize: 18, color: Colors.text },
-  teamsArea: { flexDirection: "row" },
-  vsColumn: { width: 40, alignItems: "center", justifyContent: "center", borderLeftWidth: 1, borderRightWidth: 1, borderColor: Colors.border, paddingVertical: 20 },
-  vsText: { fontFamily: Typography.heading, fontSize: 14, color: Colors.muted, letterSpacing: 2 },
-  teamCol: { flex: 1 },
+  rosterArea: {},
   teamHeader: { borderBottomWidth: 3, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: Colors.surface },
   teamLabel: { fontFamily: Typography.heading, fontSize: 13, color: Colors.text, letterSpacing: 3 },
   playerSlot: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderColor: Colors.border },
@@ -166,4 +174,5 @@ const styles = StyleSheet.create({
   resultButtons: { flexDirection: "row", gap: 10 },
   resultBtn: { flex: 1 },
   footer: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingTop: 12, backgroundColor: Colors.surface, borderTopWidth: 1, borderColor: Colors.border },
+  joinError: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.loss, letterSpacing: 1.5, textAlign: "center", marginBottom: 8 },
 });

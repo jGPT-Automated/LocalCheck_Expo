@@ -56,7 +56,9 @@ export interface Court {
   lights?: boolean;
   covered?: boolean;
   imageUri?: string;
-  status: CourtStatus;
+  // Not stored in the live courts table — only set for user-added courts that
+  // went through the in-app verification flow. Render nothing when absent.
+  status?: CourtStatus;
   localCount?: number;
   addedBy?: string;
   verificationPhoto?: string;
@@ -70,6 +72,9 @@ export interface Court {
 }
 
 // BACKEND NOTE: GET /api/v1/runs/:id
+// The DB models RSVP only (going/waitlist/declined) — there is no persisted
+// team assignment, so runs expose a single participant list. Do not present
+// client-side team splits as authoritative.
 export interface GameRun {
   id: string;
   courtId: string;
@@ -78,11 +83,10 @@ export interface GameRun {
   title: string;
   time: string;
   date: string;
+  startTimeIso: string;
   maxPlayers: number;
-  teamA: (Player | null)[];
-  teamB: (Player | null)[];
+  participants: Player[];
   hostId: string;
-  autoBalance: boolean;
   skillLevel: "ALL LEVELS" | "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
 }
 

@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,6 +18,7 @@ import { Colors, Radius } from "@/constants/colors";
 import { CourtSport, getSportColor, getTierColor, Player } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
 import { fetchLeaderboard } from "@/services/profileService";
 import { logGame } from "@/services/gameService";
 import { searchPlayers } from "@/services/profileService";
@@ -43,7 +44,11 @@ export default function CompeteScreen() {
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
 
-  const [tab, setTab] = useState<Tab>("LEADERBOARD");
+  // Deep-link support: /(tabs)/compete?tab=log&courtId=... opens Log Game
+  // pre-scoped to a court (used by the run screen's LOG A GAME button).
+  const params = useLocalSearchParams<{ tab?: string; courtId?: string }>();
+
+  const [tab, setTab] = useState<Tab>(params.tab === "log" ? "LOG GAME" : "LEADERBOARD");
   const [scope, setScope] = useState<Scope>("LOCAL");
   const [sportFilter, setSportFilter] = useState<CourtSport | "ALL">(
     preferredSport ?? "ALL"
@@ -51,6 +56,12 @@ export default function CompeteScreen() {
   const [leaderboardPlayers, setLeaderboardPlayers] = useState<Player[]>([]);
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  // Bumped after a confirmed logged game so standings reflect the Elo change.
+  const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(0);
+
+  useEffect(() => {
+    if (params.tab === "log") setTab("LOG GAME");
+  }, [params.tab]);
 
   // Fetch real leaderboard from Supabase whenever scope/sport/local court changes
   useEffect(() => {
@@ -68,7 +79,7 @@ export default function CompeteScreen() {
       })
       .finally(() => { if (mounted) setLeaderboardLoading(false); });
     return () => { mounted = false; };
-  }, [scope, sportFilter, localCourtId]);
+  }, [scope, sportFilter, localCourtId, leaderboardRefreshKey]);
 
   const myRank = allPlayers.findIndex((p) => p.id === currentUser.id) + 1;
   const amIVisible = visibility === "public" && isLocalPlus;
@@ -136,8 +147,9 @@ export default function CompeteScreen() {
           courts={localCourt ? [localCourt] : []}
           bottom={bottom}
           preferredSport={preferredSport}
-          preferredCourtId={preferredCourtId}
+          preferredCourtId={(typeof params.courtId === "string" ? params.courtId : null) ?? preferredCourtId}
           localCourtId={localCourtId}
+          onLogged={() => setLeaderboardRefreshKey((k) => k + 1)}
         />
       )}
     </View>
@@ -323,6 +335,7 @@ function LogGameView({
   preferredSport,
   preferredCourtId,
   localCourtId,
+  onLogged,
 }: {
   currentUser: ReturnType<typeof useApp>["currentUser"];
   courts: ReturnType<typeof useApp>["courts"] | { id: string; name: string }[];
@@ -330,8 +343,10 @@ function LogGameView({
   preferredSport: CourtSport | null;
   preferredCourtId: string | null;
   localCourtId: string | null;
+  onLogged: () => void;
 }) {
-  const { isFriend, getFriendsList } = useApp();
+  const { isFriend, getFriendsList, refreshMatches, refreshFeed } = useApp();
+  const { refreshProfile } = useAuth();
 
   // Default court: preferredCourtId > localCourtId > empty
   const defaultCourtId = preferredCourtId ?? localCourtId ?? "";
@@ -347,24 +362,29 @@ function LogGameView({
     note: "",
   });
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [showOpponentPicker, setShowOpponentPicker] = useState(false);
   const [opponentQuery, setOpponentQuery] = useState("");
   const [opponentSuggestions, setOpponentSuggestions] = useState<Player[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const isWin =
-    form.myScore !== "" &&
-    form.theirScore !== "" &&
-    Number(form.myScore) > Number(form.theirScore);
-  const isLoss =
-    form.myScore !== "" &&
-    form.theirScore !== "" &&
-    Number(form.myScore) < Number(form.theirScore);
+  const myScoreNum = Number(form.myScore);
+  const theirScoreNum = Number(form.theirScore);
+  const scoresEntered = form.myScore !== "" && form.theirScore !== "";
+  const scoresValid =
+    scoresEntered &&
+    Number.isInteger(myScoreNum) &&
+    Number.isInteger(theirScoreNum) &&
+    myScoreNum >= 0 &&
+    theirScoreNum >= 0;
+  const isTie = scoresValid && myScoreNum === theirScoreNum;
+  const isWin = scoresValid && myScoreNum > theirScoreNum;
+  const isLoss = scoresValid && myScoreNum < theirScoreNum;
 
   const canSubmit =
     form.sport !== "" &&
-    form.myScore !== "" &&
-    form.theirScore !== "" &&
+    scoresValid &&
+    !isTie &&
     form.opponentId !== "" &&
     form.courtId !== "" &&
     !submitting;
@@ -372,32 +392,45 @@ function LogGameView({
   const handleSubmit = async () => {
     if (!canSubmit || !form.opponentId || !form.courtId) return;
     setSubmitting(true);
+    setSubmitError(null);
+    let ok = false;
     try {
-      await logGame({
+      ok = await logGame({
         courtId: form.courtId,
         createdBy: currentUser.id,
-        myScore: Number(form.myScore),
-        theirScore: Number(form.theirScore),
+        myScore: myScoreNum,
+        theirScore: theirScoreNum,
         opponentId: form.opponentId,
         sport: form.sport as CourtSport,
         note: form.note,
       });
     } catch (e) {
       console.warn("logGame failed", e);
-    } finally {
-      setSubmitting(false);
-      setSubmitted(true);
-      setTimeout(() => setSubmitted(false), 3000);
-      setForm({
-        sport: defaultSport,
-        myScore: "",
-        theirScore: "",
-        opponentName: "",
-        opponentId: "",
-        courtId: defaultCourtId,
-        note: "",
-      });
+      ok = false;
     }
+    setSubmitting(false);
+    if (!ok) {
+      // Keep the form intact so the user can retry.
+      setSubmitError("COULD NOT LOG GAME — NOTHING WAS SAVED. TRY AGAIN.");
+      return;
+    }
+    // Confirmed write: the RPC has already updated both players' Elo and
+    // win/loss counts. Pull the fresh state everywhere it's displayed.
+    refreshProfile();
+    refreshMatches();
+    refreshFeed();
+    onLogged();
+    setSubmitted(true);
+    setTimeout(() => setSubmitted(false), 3000);
+    setForm({
+      sport: defaultSport,
+      myScore: "",
+      theirScore: "",
+      opponentName: "",
+      opponentId: "",
+      courtId: defaultCourtId,
+      note: "",
+    });
   };
 
   // Opponent typeahead: search real players via Supabase
@@ -439,7 +472,7 @@ function LogGameView({
       <View style={styles.successState}>
         <Text style={styles.successIcon}>✓</Text>
         <Text style={styles.successTitle}>GAME LOGGED</Text>
-        <Text style={styles.successSub}>ELO will update after verification.</Text>
+        <Text style={styles.successSub}>ELO and records updated for both players.</Text>
       </View>
     );
   }
@@ -614,6 +647,11 @@ function LogGameView({
             {isWin ? "WIN — POSITIVE ELO CHANGE" : "LOSS — NEGATIVE ELO CHANGE"}
           </Text>
         )}
+        {isTie && (
+          <Text style={[styles.resultHint, { color: Colors.loss }]}>
+            TIES CAN'T BE LOGGED — ENTER A WINNING SCORE
+          </Text>
+        )}
       </View>
 
       {/* Note */}
@@ -631,6 +669,7 @@ function LogGameView({
       </View>
 
       {/* Submit */}
+      {submitError && <Text style={styles.submitError}>{submitError}</Text>}
       <Pressable
         style={[styles.submitBtn, (!canSubmit || submitting) && styles.submitBtnDisabled]}
         onPress={handleSubmit}
@@ -1038,6 +1077,14 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   submitBtnTextDisabled: { color: Colors.muted },
+  submitError: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 10,
+    color: Colors.loss,
+    letterSpacing: 1.5,
+    textAlign: "center" as const,
+    marginBottom: 10,
+  },
 
   successState: {
     flex: 1,

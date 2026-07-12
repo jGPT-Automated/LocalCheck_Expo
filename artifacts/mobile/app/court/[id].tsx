@@ -207,8 +207,8 @@ export default function CourtProfileScreen() {
             </Text>
             {!isMyLocal && (
               <Text style={styles.localBtnSub}>
-                {localCount} local{localCount !== 1 ? "s" : ""} ·
-                {court.status === "community" ? " Community Court" : " Confirmed Court"}
+                {localCount} local{localCount !== 1 ? "s" : ""}
+                {court.status === "community" ? " · Community Court" : court.status === "confirmed" ? " · Confirmed Court" : ""}
               </Text>
             )}
           </Pressable>
