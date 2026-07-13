@@ -77,20 +77,21 @@ export default function CourtProfileScreen() {
 
   const sportColor = getSportColor(court.sport);
   const activeCount = activePlayers.length;
-  const occupancyPct = Math.round((activeCount / court.maxCapacity) * 100);
 
+  // Only attributes with real values — the live DB stores none of these, so
+  // they typically come from user-added courts. Never invent defaults.
   const courtDetails: { label: string; value: string }[] = [
-    { label: "Courts", value: String(court.courtCount ?? 1) },
-    { label: "Hoops", value: court.hoopCount != null ? String(court.hoopCount) : "—" },
-    { label: "Net Type", value: court.netType ?? "—" },
-    { label: "Rim", value: court.rimType ?? "—" },
-    { label: "Surface", value: court.surface },
-    { label: "Lights", value: court.lights ? "YES" : "NO" },
-    { label: "Covered", value: court.covered ? "YES" : "NO" },
-    { label: "Water", value: court.waterFountain ? "YES" : "NO" },
-    { label: "Max Players", value: String(court.maxCapacity) },
-    { label: "Added", value: court.addedDate ?? "—" },
-  ];
+    court.courtCount != null ? { label: "Courts", value: String(court.courtCount) } : null,
+    court.hoopCount != null ? { label: "Hoops", value: String(court.hoopCount) } : null,
+    court.netType != null ? { label: "Net Type", value: court.netType } : null,
+    court.rimType != null ? { label: "Rim", value: court.rimType } : null,
+    court.surface != null ? { label: "Surface", value: court.surface } : null,
+    court.lights != null ? { label: "Lights", value: court.lights ? "YES" : "NO" } : null,
+    court.covered != null ? { label: "Covered", value: court.covered ? "YES" : "NO" } : null,
+    court.waterFountain != null ? { label: "Water", value: court.waterFountain ? "YES" : "NO" } : null,
+    court.maxCapacity != null ? { label: "Max Players", value: String(court.maxCapacity) } : null,
+    court.addedDate != null ? { label: "Added", value: court.addedDate } : null,
+  ].filter((d): d is { label: string; value: string } => d !== null);
 
   return (
     <View style={styles.container}>
@@ -130,15 +131,13 @@ export default function CourtProfileScreen() {
           <Text style={styles.heroFullAddress}>{court.address}</Text>
         </View>
 
-        {/* ── Stats Bar ── */}
+        {/* ── Stats Bar (real data: live presence, lifetime check-ins, locals) ── */}
         <View style={styles.statsBar}>
           <StatBlock value={activeCount} label="On Court" />
           <View style={styles.statDiv} />
-          <StatBlock value={`${occupancyPct}%`} label="Full" />
+          <StatBlock value={court.ratingCount ?? 0} label="Visits" />
           <View style={styles.statDiv} />
-          <StatBlock value={`${court.rating} ★`} label={`${court.ratingCount} ratings`} />
-          <View style={styles.statDiv} />
-          <StatBlock value={court.maxCapacity} label="Max" />
+          <StatBlock value={localCount} label={`Local${localCount !== 1 ? "s" : ""}`} />
         </View>
 
         {/* ── Live Roster ── */}
@@ -169,7 +168,7 @@ export default function CourtProfileScreen() {
           {courtRuns.length === 0 ? (
             <Pressable
               style={({ pressed }) => [styles.hostCTA, pressed && styles.pressed]}
-              onPress={() => {/* TODO: navigate to create run */}}
+              onPress={() => router.push("/(tabs)/schedule")}
             >
               <View>
                 <Text style={styles.hostCTATitle}>BE THE FIRST{"\n"}TO HOST</Text>
@@ -182,32 +181,34 @@ export default function CourtProfileScreen() {
           )}
         </View>
 
-        {/* ── Court Details ── */}
-        <View style={styles.sectionFlat}>
-          <Text style={styles.sectionTitle}>DETAILS</Text>
-          <View style={styles.detailsGrid}>
-            {courtDetails.map(({ label, value }) => (
-              <View key={label} style={styles.detailRow}>
-                <Text style={styles.detailKey}>{label}</Text>
-                <Text style={styles.detailVal}>{value}</Text>
-              </View>
-            ))}
+        {/* ── Court Details (only shown when real attributes exist) ── */}
+        {courtDetails.length > 0 && (
+          <View style={styles.sectionFlat}>
+            <Text style={styles.sectionTitle}>DETAILS</Text>
+            <View style={styles.detailsGrid}>
+              {courtDetails.map(({ label, value }) => (
+                <View key={label} style={styles.detailRow}>
+                  <Text style={styles.detailKey}>{label}</Text>
+                  <Text style={styles.detailVal}>{value}</Text>
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
+        )}
 
         {/* ── Set as Local ── */}
         <View style={styles.localSection}>
           <Pressable
             style={[styles.localBtn, isMyLocal && styles.localBtnActive]}
-            onPress={() => setLocalCourt(court.id)}
+            onPress={() => setLocalCourt(isMyLocal ? null : court.id, court)}
           >
             <Text style={[styles.localBtnText, isMyLocal && styles.localBtnTextActive]}>
-              {isMyLocal ? "★ MY LOCAL COURT" : "☆ SET AS MY LOCAL COURT"}
+              {isMyLocal ? "✕ REMOVE MY LOCAL COURT" : "☆ SET AS MY LOCAL COURT"}
             </Text>
             {!isMyLocal && (
               <Text style={styles.localBtnSub}>
-                {localCount} local{localCount !== 1 ? "s" : ""} · 
-                {court.status === "community" ? " Community Court" : " Confirmed Court"}
+                {localCount} local{localCount !== 1 ? "s" : ""}
+                {court.status === "community" ? " · Community Court" : court.status === "confirmed" ? " · Confirmed Court" : ""}
               </Text>
             )}
           </Pressable>

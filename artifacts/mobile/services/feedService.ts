@@ -24,12 +24,12 @@ interface SupabaseGame {
   played_at: string;
   score_a: number;
   score_b: number;
-  winner_side: "A" | "B" | null;
+  winner_side: "a" | "b" | null;
   notes: string | null;
   courts: { id: string; name: string; sport_type: string } | null;
   game_participants: Array<{
     user_id: string;
-    team_side: "A" | "B";
+    team_side: "a" | "b";
     profiles: SupabaseProfile | null;
   }>;
 }
@@ -154,13 +154,15 @@ export async function fetchFeed(courtId?: string): Promise<FeedItem[]> {
       if (!winner?.profiles) continue;
       const player = mapProfileToPlayer(winner.profiles);
       const sport = normalizeSport(row.courts?.sport_type);
+      const winnerScore = row.winner_side === "b" ? row.score_b : row.score_a;
+      const loserScore = row.winner_side === "b" ? row.score_a : row.score_b;
       items.push(
         toFeedItem(
           row.id,
           "run_result",
           winner.profiles,
           row.courts,
-          `${player.name.toUpperCase()} WON A GAME — +15 ELO`,
+          `${player.name.toUpperCase()} WON ${winnerScore}–${loserScore} AT ${row.courts?.name?.toUpperCase() ?? "A COURT"}`,
           row.played_at,
           sport
         )

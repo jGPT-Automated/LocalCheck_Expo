@@ -19,10 +19,12 @@ interface SupabaseCourtRow {
   // courts_with_stats extras
   active_check_in_count?: number | null;
   total_check_ins?: number | null;
+  local_player_count?: number | null;
+  is_confirmed?: boolean | null;
 }
 
 const BASE_COLS = "id,name,address,latitude,longitude,sport_type,image_url,is_archived,location,state,added_by,created_at";
-const STATS_COLS = BASE_COLS + ",active_check_in_count,total_check_ins";
+const STATS_COLS = BASE_COLS + ",active_check_in_count,total_check_ins,local_player_count,is_confirmed";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -43,15 +45,13 @@ function mapRow(row: SupabaseCourtRow): Court {
     latitude: Number(row.latitude),
     longitude: Number(row.longitude),
     activeCount: row.active_check_in_count ?? 0,
-    maxCapacity: 10,
-    rating: 4.0,
+    // The live courts table has no capacity/rating/surface/lights columns —
+    // leave those Court fields unset instead of inventing values. Stats-view
+    // rows DO carry real locals + confirmation state; map them when present.
     ratingCount: row.total_check_ins ?? 0,
-    surface: "ASPHALT",
-    lights: false,
-    covered: false,
+    localCount: row.local_player_count ?? undefined,
+    status: row.is_confirmed == null ? undefined : row.is_confirmed ? "confirmed" : "community",
     imageUri: row.image_url ?? undefined,
-    status: "community",
-    localCount: 0,
     addedBy: row.added_by ?? undefined,
     addedDate: row.created_at ? row.created_at.slice(0, 10) : undefined,
   };
@@ -71,16 +71,27 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
 
 // ─── Public API ─────────────────────────────────────────────────────────────
 
-/** Fetch a single court by UUID. Returns null on any error. */
+/**
+ * Fetch a single court by UUID. Reads the stats view first so real
+ * check-in counts hydrate detail screens; falls back to the base table.
+ * Returns null on any error.
+ */
 export async function fetchCourtById(id: string): Promise<Court | null> {
   try {
     const { data, error } = await supabase
+      .from("courts_with_stats")
+      .select(STATS_COLS)
+      .eq("id", id)
+      .maybeSingle();
+    if (!error && data) return mapRow(data as unknown as SupabaseCourtRow);
+
+    const { data: base, error: baseError } = await supabase
       .from("courts")
       .select(BASE_COLS)
       .eq("id", id)
-      .single();
-    if (error || !data) return null;
-    return mapRow(data as SupabaseCourtRow);
+      .maybeSingle();
+    if (baseError || !base) return null;
+    return mapRow(base as SupabaseCourtRow);
   } catch {
     return null;
   }

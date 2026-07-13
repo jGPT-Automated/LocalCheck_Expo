@@ -40,7 +40,7 @@ export function CourtListItem({ court, onPress, isCheckedIn }: CourtListItemProp
               <Text style={styles.checkedInText}>HERE</Text>
             </View>
           )}
-          <Text style={styles.surface}>{court.surface}</Text>
+          {court.surface != null && <Text style={styles.surface}>{court.surface}</Text>}
         </View>
 
         {/* Center: active count */}

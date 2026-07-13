@@ -96,13 +96,16 @@ export async function updateLocalCourtId(userId: string, courtId: string | null)
   await updateProfileFields(userId, { local_court_id: courtId });
 }
 
-/** Persist arbitrary profile preference fields to Supabase. */
+/**
+ * Persist profile preference fields to Supabase.
+ * Deliberately excludes `is_pro`: it is derived by a DB trigger from the
+ * subscriptions table and must never be written from the client.
+ */
 export async function updateProfileFields(
   userId: string,
   fields: Partial<{
     local_court_id: string | null;
     preferred_sport: string | null;
-    is_pro: boolean;
   }>
 ): Promise<void> {
   try {

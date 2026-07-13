@@ -78,9 +78,13 @@ function MatchDetailModal({
           </View>
           <View style={styles.modalRow}>
             <Text style={styles.modalLabel}>ELO Change</Text>
-            <Text style={[styles.modalValue, { color: isWin ? Colors.win : Colors.loss }]}>
-              {match.eloDelta > 0 ? `+${match.eloDelta}` : match.eloDelta}
-            </Text>
+            {match.eloDelta == null ? (
+              <Text style={styles.modalValueMuted}>Not recorded</Text>
+            ) : (
+              <Text style={[styles.modalValue, { color: isWin ? Colors.win : Colors.loss }]}>
+                {match.eloDelta > 0 ? `+${match.eloDelta}` : match.eloDelta}
+              </Text>
+            )}
           </View>
 
           <View style={styles.modalDivider} />

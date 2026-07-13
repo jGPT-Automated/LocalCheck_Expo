@@ -1,25 +1,28 @@
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
+  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 
 import { Colors, Radius } from "@/constants/colors";
-import { getSportColor } from "@/constants/data";
+import { Court, getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
-
-// BACKEND NOTE: upcoming runs → GET /api/v1/runs?filter=upcoming&userId=me
-// Create run → POST /api/v1/runs
+import { createScheduledGame } from "@/services/scheduledGameService";
 
 const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+
+const RUN_TIMES = ["06:00", "08:00", "10:00", "12:00", "14:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
+const RUN_SIZES = [4, 6, 8, 10];
 
 function getWeekDays(): { label: string; dayOfWeek: string; isToday: boolean; date: number }[] {
   const today = new Date();
@@ -36,21 +39,201 @@ function getWeekDays(): { label: string; dayOfWeek: string; isToday: boolean; da
   });
 }
 
+function HostRunModal({
+  visible,
+  onClose,
+  courts,
+  defaultCourt,
+  organizerId,
+  onCreated,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  courts: Court[];
+  defaultCourt: Court | null;
+  organizerId: string;
+  onCreated: () => Promise<void>;
+}) {
+  const weekDays = getWeekDays();
+  const todayIndex = weekDays.findIndex((d) => d.isToday);
+
+  const [title, setTitle] = useState("");
+  const [note, setNote] = useState("");
+  const [courtId, setCourtId] = useState<string>(defaultCourt?.id ?? courts[0]?.id ?? "");
+  const [dayIndex, setDayIndex] = useState(todayIndex);
+  const [time, setTime] = useState("18:00");
+  const [maxPlayers, setMaxPlayers] = useState(10);
+  const [submitting, setSubmitting] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const courtOptions = defaultCourt && !courts.some((c) => c.id === defaultCourt.id)
+    ? [defaultCourt, ...courts]
+    : courts;
+
+  const slotDate = (di: number, t: string) => {
+    const now = new Date();
+    const d = new Date(now);
+    d.setDate(now.getDate() - now.getDay() + di);
+    const [h, m] = t.split(":").map(Number);
+    d.setHours(h, m, 0, 0);
+    return d;
+  };
+  // Past days/times are disabled in the picker — never silently reschedule a
+  // past slot to a different date than the one the user tapped.
+  const startTime = slotDate(dayIndex, time);
+  const isDayDisabled = (i: number) => i < todayIndex;
+  const isTimeDisabled = (t: string) => slotDate(dayIndex, t).getTime() <= Date.now();
+
+  const canSubmit = courtId !== "" && startTime.getTime() > Date.now() && !submitting;
+
+  const handleCreate = async () => {
+    if (!canSubmit) return;
+    setSubmitting(true);
+    setFailed(false);
+    const created = await createScheduledGame({
+      courtId,
+      organizerId,
+      title: title.trim() || "PICKUP RUN",
+      startTime: startTime.toISOString(),
+      maxPlayers,
+      note: note.trim() || undefined,
+    });
+    setSubmitting(false);
+    if (!created) {
+      setFailed(true);
+      return;
+    }
+    await onCreated();
+    setTitle("");
+    setNote("");
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalCard}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>HOST A RUN</Text>
+            <Pressable onPress={onClose} hitSlop={12}>
+              <Feather name="x" size={20} color={Colors.muted} />
+            </Pressable>
+          </View>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Text style={styles.fieldLabel}>TITLE</Text>
+            <TextInput
+              style={styles.fieldInput}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="PICKUP RUN"
+              placeholderTextColor={Colors.mutedDark}
+            />
+
+            <Text style={styles.fieldLabel}>COURT</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+              {courtOptions.map((c) => (
+                <Pressable
+                  key={c.id}
+                  style={[styles.chip, courtId === c.id && styles.chipActive]}
+                  onPress={() => setCourtId(c.id)}
+                >
+                  <Text style={[styles.chipText, courtId === c.id && styles.chipTextActive]}>
+                    {c.name.toUpperCase()}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+
+            <Text style={styles.fieldLabel}>DAY</Text>
+            <View style={styles.chipRowWrap}>
+              {weekDays.map((d, i) => (
+                <Pressable
+                  key={i}
+                  style={[styles.chip, dayIndex === i && styles.chipActive, isDayDisabled(i) && styles.chipDisabled]}
+                  onPress={() => setDayIndex(i)}
+                  disabled={isDayDisabled(i)}
+                >
+                  <Text style={[styles.chipText, dayIndex === i && styles.chipTextActive]}>
+                    {d.isToday ? "TODAY" : `${d.label} ${d.date}`}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={styles.fieldLabel}>START TIME</Text>
+            <View style={styles.chipRowWrap}>
+              {RUN_TIMES.map((t) => (
+                <Pressable
+                  key={t}
+                  style={[styles.chip, time === t && styles.chipActive, isTimeDisabled(t) && styles.chipDisabled]}
+                  onPress={() => setTime(t)}
+                  disabled={isTimeDisabled(t)}
+                >
+                  <Text style={[styles.chipText, time === t && styles.chipTextActive]}>{t}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={styles.fieldLabel}>MAX PLAYERS</Text>
+            <View style={styles.chipRowWrap}>
+              {RUN_SIZES.map((n) => (
+                <Pressable
+                  key={n}
+                  style={[styles.chip, maxPlayers === n && styles.chipActive]}
+                  onPress={() => setMaxPlayers(n)}
+                >
+                  <Text style={[styles.chipText, maxPlayers === n && styles.chipTextActive]}>{n}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={styles.fieldLabel}>NOTE (OPTIONAL)</Text>
+            <TextInput
+              style={styles.fieldInput}
+              value={note}
+              onChangeText={setNote}
+              placeholder="Bring a dark shirt"
+              placeholderTextColor={Colors.mutedDark}
+            />
+
+            {failed && (
+              <Text style={styles.createError}>COULD NOT CREATE RUN — TRY AGAIN</Text>
+            )}
+
+            <Pressable
+              style={[styles.createBtn, !canSubmit && styles.createBtnDisabled]}
+              onPress={handleCreate}
+              disabled={!canSubmit}
+            >
+              <Text style={styles.createBtnText}>
+                {submitting ? "CREATING…" : "CREATE RUN"}
+              </Text>
+            </Pressable>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function ScheduleScreen() {
-  const { localCourt, runs } = useApp();
+  const { localCourt, runs, courts, currentUser, refreshRuns } = useApp();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
+  const [showHost, setShowHost] = useState(false);
 
   const weekDays = getWeekDays();
   const todayIndex = weekDays.findIndex((d) => d.isToday);
   const [selectedDay, setSelectedDay] = useState(todayIndex);
 
-  // Map real scheduled games to days (TODAY = selectedDay if today, TOMORROW = next day)
-  const runsForDay = runs.filter((r) => {
-    if (selectedDay === todayIndex) return r.date === "TODAY";
-    if (selectedDay === todayIndex + 1) return r.date === "TOMORROW";
-    return false;
-  });
+  // Match runs to the selected day by actual start time, so every selectable
+  // day works — not just TODAY/TOMORROW label matching.
+  const selectedDate = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - d.getDay() + selectedDay);
+    return d.toDateString();
+  })();
+  const runsForDay = runs.filter((r) => new Date(r.startTimeIso).toDateString() === selectedDate);
 
   const selectedDayInfo = weekDays[selectedDay];
 
@@ -63,7 +246,7 @@ export default function ScheduleScreen() {
           <Text style={styles.headerTitle}>SCHEDULE</Text>
           <Text style={styles.headerSub}>YOUR UPCOMING RUNS</Text>
         </View>
-        <Pressable style={styles.addBtn} onPress={() => {}}>
+        <Pressable style={styles.addBtn} onPress={() => setShowHost(true)} testID="host-run-add-btn">
           <Feather name="plus" size={18} color={Colors.black} />
         </Pressable>
       </View>
@@ -112,7 +295,8 @@ export default function ScheduleScreen() {
             <Text style={styles.emptySub}>Host a run or join one from the Explore tab.</Text>
             <Pressable
               style={styles.hostBtn}
-              onPress={() => {}}
+              onPress={() => setShowHost(true)}
+              testID="host-run-empty-btn"
             >
               <Text style={styles.hostBtnText}>+ HOST A RUN</Text>
             </Pressable>
@@ -120,8 +304,7 @@ export default function ScheduleScreen() {
         ) : (
           runsForDay.map((run) => {
             const sportColor = getSportColor(run.sport);
-            const filled =
-              run.teamA.filter(Boolean).length + run.teamB.filter(Boolean).length;
+            const filled = run.participants.length;
             const isFull = filled >= run.maxPlayers;
 
             return (
@@ -186,8 +369,7 @@ export default function ScheduleScreen() {
           <Text style={styles.allSectionTitle}>ALL UPCOMING</Text>
           {runs.map((run) => {
             const sportColor = getSportColor(run.sport);
-            const filled =
-              run.teamA.filter(Boolean).length + run.teamB.filter(Boolean).length;
+            const filled = run.participants.length;
             return (
               <Pressable
                 key={run.id}
@@ -210,6 +392,15 @@ export default function ScheduleScreen() {
           })}
         </View>
       </ScrollView>
+
+      <HostRunModal
+        visible={showHost}
+        onClose={() => setShowHost(false)}
+        courts={courts}
+        defaultCourt={localCourt}
+        organizerId={currentUser.id}
+        onCreated={refreshRuns}
+      />
     </View>
   );
 }
@@ -503,5 +694,105 @@ const styles = StyleSheet.create({
     color: Colors.muted,
     letterSpacing: 1.5,
     textTransform: "uppercase" as const,
+  },
+
+  // ── Host Run Modal ──
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.75)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 380,
+    maxHeight: "85%",
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontFamily: Typography.heading,
+    fontSize: 16,
+    color: Colors.text,
+    letterSpacing: 3,
+  },
+  fieldLabel: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.muted,
+    letterSpacing: 2,
+    textTransform: "uppercase" as const,
+    marginTop: 14,
+    marginBottom: 6,
+  },
+  fieldInput: {
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surfaceHigh,
+    color: Colors.text,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 13,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: Radius.xs,
+  },
+  chipRow: {
+    gap: 8,
+  },
+  chipRowWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  chip: {
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.surfaceHigh,
+  },
+  chipActive: {
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accentDim,
+  },
+  chipText: {
+    fontFamily: Typography.heading,
+    fontSize: 11,
+    color: Colors.muted,
+    letterSpacing: 1,
+  },
+  chipTextActive: { color: Colors.accent },
+  chipDisabled: { opacity: 0.35 },
+  createError: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 10,
+    color: Colors.loss,
+    letterSpacing: 1.5,
+    marginTop: 14,
+    textAlign: "center",
+  },
+  createBtn: {
+    backgroundColor: Colors.accent,
+    alignItems: "center",
+    paddingVertical: 13,
+    borderRadius: Radius.xs,
+    marginTop: 16,
+  },
+  createBtnDisabled: { opacity: 0.5 },
+  createBtnText: {
+    fontFamily: Typography.heading,
+    fontSize: 12,
+    color: Colors.black,
+    letterSpacing: 2,
   },
 });

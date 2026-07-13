@@ -80,8 +80,8 @@ These come from verifying the code against the live database. See
    `docs/supabase/baseline_snapshot.sql`.
 4. **Enum casing is lowercase.** `winner_side`/`team_side` are `a`/`b` (not
    `A`/`B`); `scheduled_games.status` is `scheduled` (not `open`); RSVP is
-   `going`/`waitlist`/`declined` (not `team_a`/`team_b`). The current client
-   sends the wrong values in a few places — see the P0 tasks.
+   `going`/`waitlist`/`declined` (not `team_a`/`team_b`). The client now sends
+   the correct values everywhere (fixed via `plans/001`–`003`) — keep it that way.
 5. **Silent-catch gotcha.** The service layer is full of
    `catch { /* best-effort */ }` blocks that swallow Supabase errors. "No error
    thrown" is **not** proof a write worked. After a data change, verify the row

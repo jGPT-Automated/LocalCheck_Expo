@@ -49,29 +49,13 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
 }
 
-function splitIntoTeams(participants: Player[], maxPlayers: number): { teamA: (Player | null)[]; teamB: (Player | null)[] } {
-  const half = Math.ceil(maxPlayers / 2);
-  const teamA = participants.slice(0, half);
-  const teamB = participants.slice(half, maxPlayers);
-  return {
-    teamA: padSlots(teamA, half),
-    teamB: padSlots(teamB, maxPlayers - half),
-  };
-}
-
-function padSlots(players: Player[], count: number): (Player | null)[] {
-  const slots: (Player | null)[] = [...players];
-  while (slots.length < count) slots.push(null);
-  return slots;
-}
-
 export function mapScheduledGameToRun(row: SupabaseScheduledGame): GameRun {
+  // Only "going" RSVPs count as participants — the DB has no team assignment.
   const participants: Player[] = [];
   for (const p of row.scheduled_game_participants ?? []) {
-    if (p.profiles) participants.push(mapProfileToPlayer(p.profiles));
+    if (p.profiles && p.rsvp_status === "going") participants.push(mapProfileToPlayer(p.profiles));
   }
   const maxPlayers = row.max_players ?? 10;
-  const { teamA, teamB } = splitIntoTeams(participants, maxPlayers);
   return {
     id: row.id,
     courtId: row.court_id,
@@ -80,11 +64,10 @@ export function mapScheduledGameToRun(row: SupabaseScheduledGame): GameRun {
     title: row.title.toUpperCase(),
     time: formatTime(row.start_time),
     date: formatDate(row.start_time),
+    startTimeIso: row.start_time,
     maxPlayers,
-    teamA,
-    teamB,
+    participants,
     hostId: row.organizer_id,
-    autoBalance: false,
     skillLevel: "ALL LEVELS",
   };
 }
@@ -149,31 +132,64 @@ export async function createScheduledGame(payload: {
         start_time: payload.startTime,
         max_players: payload.maxPlayers,
         note: payload.note ?? null,
-        status: "open",
+        // Live enum: scheduled | cancelled | completed
+        status: "scheduled",
         is_open_invite: true,
       })
-      .select("*")
+      .select("*, courts(name, sport_type)")
       .single();
-    if (error || !data) return null;
-    return mapScheduledGameToRun(data as unknown as SupabaseScheduledGame);
+    if (error || !data) {
+      if (error) console.warn("createScheduledGame failed", error.message);
+      return null;
+    }
+    const row = data as unknown as SupabaseScheduledGame;
+    // The host is playing in their own run — insert their RSVP so the run
+    // doesn't start at 0 players.
+    const joined = await joinScheduledGame(row.id, payload.organizerId);
+    if (!joined) console.warn("createScheduledGame: host RSVP insert failed");
+    return mapScheduledGameToRun(row);
   } catch {
     return null;
   }
 }
 
-export async function joinScheduledGame(
-  gameId: string,
-  userId: string,
-  team: "A" | "B"
-): Promise<void> {
+/**
+ * RSVP the user to a run ("going"). Capacity-checked against max_players;
+ * returns true only when the RSVP row was actually written.
+ */
+export async function joinScheduledGame(gameId: string, userId: string): Promise<boolean> {
   try {
-    await supabase.from("scheduled_game_participants").upsert({
+    const { data: game, error: gameError } = await supabase
+      .from("scheduled_games")
+      .select("max_players, scheduled_game_participants(user_id, rsvp_status)")
+      .eq("id", gameId)
+      .maybeSingle();
+    if (gameError || !game) {
+      if (gameError) console.warn("joinScheduledGame failed", gameError.message);
+      return false;
+    }
+    const row = game as unknown as {
+      max_players: number | null;
+      scheduled_game_participants?: Array<{ user_id: string; rsvp_status: string }>;
+    };
+    const going = (row.scheduled_game_participants ?? []).filter((p) => p.rsvp_status === "going");
+    const alreadyGoing = going.some((p) => p.user_id === userId);
+    if (!alreadyGoing && row.max_players != null && going.length >= row.max_players) {
+      console.warn("joinScheduledGame: run is full");
+      return false;
+    }
+    const { error } = await supabase.from("scheduled_game_participants").upsert({
       scheduled_game_id: gameId,
       user_id: userId,
-      rsvp_status: team === "A" ? "team_a" : "team_b",
+      rsvp_status: "going",
       joined_at: new Date().toISOString(),
     });
+    if (error) {
+      console.warn("joinScheduledGame failed", error.message);
+      return false;
+    }
+    return true;
   } catch {
-    // Best-effort
+    return false;
   }
 }

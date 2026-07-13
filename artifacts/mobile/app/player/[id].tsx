@@ -21,22 +21,16 @@ import {
 } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
-import { fetchGamesByPlayer } from "@/services/gameService";
+import { fetchGamesByPlayer, fetchHeadToHeadGames } from "@/services/gameService";
 import { fetchProfile } from "@/services/profileService";
 
-function getHeadToHeadStats(user: Player, opponent: Player, allMatches: MatchResult[]) {
-  // In a real app, matches would include opponent IDs. We simulate by
-  // checking if the match is against this opponent (using date heuristics for demo)
-  const opponentMatches = allMatches.filter((m) => {
-    // Mock: every 3rd match is against this opponent for demo
-    return Math.random() > 0.5;
-  });
-  // For real implementation, we would filter by opponentId in MatchResult
-  const wins = opponentMatches.filter((m) => m.result === "WIN").length;
-  const losses = opponentMatches.filter((m) => m.result === "LOSS").length;
+/** Deterministic head-to-head stats from persisted games both users played in. */
+function getHeadToHeadStats(sharedMatches: MatchResult[]) {
+  const wins = sharedMatches.filter((m) => m.result === "WIN").length;
+  const losses = sharedMatches.filter((m) => m.result === "LOSS").length;
   const total = wins + losses;
   const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
-  return { wins, losses, total, winRate, matches: opponentMatches };
+  return { wins, losses, total, winRate, matches: sharedMatches };
 }
 
 function UpgradeModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
@@ -81,30 +75,35 @@ function UpgradeModal({ visible, onClose }: { visible: boolean; onClose: () => v
 export default function PlayerProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { currentUser, isLocalPlus, isFriend, addFriend, removeFriend, matches } = useApp();
+  const { currentUser, isLocalPlus, isFriend, addFriend, removeFriend } = useApp();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
 
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [player, setPlayer] = useState<Player | null>(null);
   const [playerMatches, setPlayerMatches] = useState<MatchResult[]>([]);
+  const [sharedMatches, setSharedMatches] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       setLoading(true);
-      const [p, m] = await Promise.all([
+      const [p, m, shared] = await Promise.all([
         fetchProfile(id),
         fetchGamesByPlayer(id),
+        currentUser.id && currentUser.id !== id
+          ? fetchHeadToHeadGames(currentUser.id, id)
+          : Promise.resolve([] as MatchResult[]),
       ]);
       if (!mounted) return;
       setPlayer(p);
       setPlayerMatches(m);
+      setSharedMatches(shared);
       setLoading(false);
     })();
     return () => { mounted = false; };
-  }, [id]);
+  }, [id, currentUser.id]);
 
   if (loading) {
     return (
@@ -127,8 +126,8 @@ export default function PlayerProfileScreen() {
   const total = player.wins + player.losses;
   const winRate = total > 0 ? Math.round((player.wins / total) * 100) : 0;
 
-  // Head-to-head stats
-  const h2h = getHeadToHeadStats(currentUser, player, matches);
+  // Head-to-head stats from persisted shared games
+  const h2h = getHeadToHeadStats(sharedMatches);
 
   const handleToggleFriend = () => {
     if (isFriendStatus) {
@@ -243,6 +242,12 @@ export default function PlayerProfileScreen() {
                   <Text style={styles.h2hLbl}>MATCHED</Text>
                 </View>
               </View>
+
+              {h2h.matches.length === 0 && (
+                <Text style={styles.h2hEmpty}>
+                  No logged games between you and {player.name.toUpperCase()} yet.
+                </Text>
+              )}
 
               {h2h.matches.length > 0 && (
                 <>
@@ -486,6 +491,14 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     textTransform: "uppercase" as const,
     marginTop: 3,
+  },
+
+  h2hEmpty: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    color: Colors.muted,
+    marginTop: 12,
+    lineHeight: 16,
   },
 
   // H2H Paywall

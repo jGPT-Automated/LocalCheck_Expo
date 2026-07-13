@@ -48,23 +48,19 @@ interface AppContextValue {
   checkIn: (courtId: string) => Promise<void>;
   checkOut: () => Promise<void>;
   visitCourt: (courtId: string) => Promise<void>;
-  joinRun: (runId: string, team: "A" | "B") => void;
+  joinRun: (runId: string) => Promise<boolean>;
   hypeItem: (feedId: string) => void;
-  addMatchResult: (result: MatchResult) => void;
-  recordResult: (runId: string, winner: "A" | "B") => void;
-  recordWin: (runId: string, eloDelta: number) => void;
-  recordLoss: (runId: string, eloDelta: number) => void;
   addCourt: (court: Court) => Promise<void>;
-  setLocalCourt: (courtId: string, courtObj?: Court) => Promise<void>;
+  setLocalCourt: (courtId: string | null, courtObj?: Court) => Promise<void>;
   setVisibility: (v: Visibility) => Promise<void>;
-  setIsLocalPlus: (v: boolean) => Promise<void>;
   setPreferredSport: (sport: CourtSport | null) => Promise<void>;
   setPreferredCourtId: (courtId: string | null) => Promise<void>;
   addFriend: (playerId: string) => Promise<void>;
   removeFriend: (playerId: string) => Promise<void>;
   isFriend: (playerId: string) => boolean;
   getFriendsList: () => Player[];
-  refreshCourtState: () => Promise<void>;
+  refreshCourtState: (courtIdOverride?: string) => Promise<void>;
+  refreshCheckedIn: () => Promise<void>;
   refreshFeed: () => Promise<void>;
   refreshRuns: () => Promise<void>;
   refreshMatches: () => Promise<void>;
@@ -161,7 +157,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   }, [profile]);
 
-  // ─── Load nearby courts from Supabase using device GPS (LA fallback) ───────
+  // ─── Load nearby courts from Supabase using device GPS (LA fallback for sort/
+  // discovery only). Nearby courts are discovery data, not a user preference —
+  // this must never write profiles.local_court_id. ────────────────────────────
   const loadCourts = useCallback(async () => {
     if (!userId) {
       setCourts([]);
@@ -180,37 +178,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     const nearby = await fetchNearbyCourts(lat, lng, preferredSport ?? null, 30);
     setCourts(nearby);
-    // Auto-select the nearest court as the user's local court on first run.
-    if (!profile?.local_court_id && nearby.length > 0) {
-      const nearest = nearby[0];
-      setLocalCourtId(nearest.id);
-      setLocalCourtObj(nearest);
-      await updateProfileFields(userId, { local_court_id: nearest.id });
-    }
-  }, [userId, preferredSport, profile?.local_court_id]);
+  }, [userId, preferredSport]);
 
   useEffect(() => {
     loadCourts();
   }, [loadCourts]);
 
-  // ─── Hydrate the local court object from its id ────────────────────────────
+  // ─── Hydrate the local court object from its id. localCourtId is already kept
+  // in sync with the authoritative profile.local_court_id (see the sync effect
+  // above and setLocalCourt below) — don't re-derive from a possibly-stale
+  // `profile` reference here, or clearing the local court can get resurrected. ─
   const hydrateLocalCourt = useCallback(async () => {
-    const id = profile?.local_court_id ?? localCourtId;
-    if (!id) {
+    if (!localCourtId) {
       setLocalCourtObj(null);
       return;
     }
-    const court = await fetchCourtById(id);
+    const court = await fetchCourtById(localCourtId);
     setLocalCourtObj(court);
-  }, [profile?.local_court_id, localCourtId]);
+  }, [localCourtId]);
 
   useEffect(() => {
     hydrateLocalCourt();
   }, [hydrateLocalCourt]);
 
   // ─── Refresh court state: locals + active check-ins ─────────────────────────
-  const refreshCourtState = useCallback(async () => {
-    const id = localCourt?.id;
+  // Keyed on localCourtId (the id state), NOT the hydrated localCourt object —
+  // the object lags behind after switching courts, which made post-switch
+  // check-ins refresh the OLD court's roster. courtIdOverride lets callers
+  // refresh a specific court immediately without waiting for state to settle.
+  const refreshCourtState = useCallback(async (courtIdOverride?: string) => {
+    const id = courtIdOverride ?? localCourtId;
     if (!id) {
       setLocalPlayers([]);
       setActivePlayers([]);
@@ -222,7 +219,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     ]);
     setLocalPlayers(locals);
     setActivePlayers(active);
-  }, [localCourt?.id]);
+  }, [localCourtId]);
 
   useEffect(() => {
     refreshCourtState();
@@ -240,14 +237,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [refreshCheckedIn]);
 
   // ─── Refresh runs, feed, matches, friends ───────────────────────────────────
+  // Runs are fetched for ALL courts (7-day window) — screens filter by court
+  // where needed. Fetching only the local court made runs created or joined at
+  // other courts vanish from Schedule after a refresh.
   const refreshRuns = useCallback(async () => {
-    const courtId = localCourt?.id;
     const from = new Date();
     const to = new Date();
     to.setDate(to.getDate() + 7);
-    const games = await fetchScheduledGames(courtId ? { courtId, from, to } : { from, to });
+    const games = await fetchScheduledGames({ from, to });
     setRuns(games);
-  }, [localCourt?.id]);
+  }, []);
 
   const refreshFeed = useCallback(async () => {
     const items = await fetchFeed(localCourt?.id ?? undefined);
@@ -301,27 +300,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const checkIn = useCallback(
     async (courtId: string) => {
       if (!userId) return;
-      // Optimistic UI
-      const court = await fetchCourtById(courtId);
-      if (court) setActivePlayers((prev) => {
-        const exists = prev.some((p) => p.id === userId);
-        if (exists) return prev;
-        return [currentUser, ...prev];
-      });
-      await checkInToCourt(userId, courtId, undefined, visibility);
-      setCheckedInCourtId(courtId);
-      setLastVisitedCourtId(courtId);
-      // Refresh shared state
-      refreshCourtState();
+      // Optimistic UI — only when checking into the court whose roster is shown
+      if (courtId === localCourtId) {
+        setActivePlayers((prev) => {
+          const exists = prev.some((p) => p.id === userId);
+          if (exists) return prev;
+          return [currentUser, ...prev];
+        });
+      }
+      const ok = await checkInToCourt(courtId, undefined, visibility);
+      if (ok) {
+        setCheckedInCourtId(courtId);
+        setLastVisitedCourtId(courtId);
+      }
+      // Refresh against the court we just acted on — reconciles the optimistic
+      // add on success and rolls it back on failure
+      refreshCourtState(courtId === localCourtId ? courtId : undefined);
       refreshFeed();
     },
-    [userId, visibility, currentUser, refreshCourtState, refreshFeed]
+    [userId, visibility, currentUser, localCourtId, refreshCourtState, refreshFeed]
   );
 
   const checkOut = useCallback(async () => {
     if (!userId) return;
-    await checkOutOfCourt(userId);
-    setCheckedInCourtId(null);
+    const ok = await checkOutOfCourt(userId);
+    if (ok) setCheckedInCourtId(null);
     refreshCourtState();
     refreshFeed();
   }, [userId, refreshCourtState, refreshFeed]);
@@ -348,9 +351,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [userId]);
 
-  const setLocalCourt = useCallback(async (courtId: string, courtObj?: Court) => {
+  const setLocalCourt = useCallback(async (courtId: string | null, courtObj?: Court) => {
     setLocalCourtId(courtId);
-    if (courtObj) {
+    if (courtId === null) {
+      setLocalCourtObj(null);
+    } else if (courtObj) {
       setLocalCourtObj(courtObj);
     } else {
       const court = await fetchCourtById(courtId);
@@ -366,10 +371,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setVisibilityState(v);
   }, []);
 
-  const setIsLocalPlus = useCallback(async (v: boolean) => {
-    setIsLocalPlusState(v);
-    if (userId) await updateProfileFields(userId, { is_pro: v });
-  }, [userId]);
+  // NOTE: profiles.is_pro is derived by a DB trigger from the subscriptions
+  // table and must never be written from the client. LocalPlus status is
+  // read-only here (see the profile effect above); real purchases should
+  // write subscriptions rows through a secure server/RPC flow, then refresh
+  // the profile.
 
   const setPreferredSport = useCallback(async (sport: CourtSport | null) => {
     setPreferredSportState(sport);
@@ -401,23 +407,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const getFriendsList = useCallback(() => friends, [friends]);
 
   const joinRun = useCallback(
-    (runId: string, team: "A" | "B") => {
-      if (!userId) return;
-      joinScheduledGame(runId, userId, team);
-      // Optimistic local update
-      setRuns((prev) =>
-        prev.map((run) => {
-          if (run.id !== runId) return run;
-          const key = team === "A" ? "teamA" : "teamB";
-          const arr = [...run[key]];
-          const emptyIdx = arr.findIndex((p) => p === null);
-          if (emptyIdx === -1) return run;
-          arr[emptyIdx] = currentUser;
-          return { ...run, [key]: arr };
-        })
-      );
+    async (runId: string): Promise<boolean> => {
+      if (!userId) return false;
+      const ok = await joinScheduledGame(runId, userId);
+      if (ok) {
+        // Reflect the confirmed RSVP immediately, then reconcile from the DB.
+        setRuns((prev) =>
+          prev.map((run) => {
+            if (run.id !== runId) return run;
+            if (run.participants.some((p) => p.id === userId)) return run;
+            return { ...run, participants: [...run.participants, currentUser] };
+          })
+        );
+        refreshRuns();
+      }
+      return ok;
     },
-    [userId, currentUser]
+    [userId, currentUser, refreshRuns]
   );
 
   const hypeItem = useCallback((feedId: string) => {
@@ -427,57 +433,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       )
     );
   }, []);
-
-  const addMatchResult = useCallback((result: MatchResult) => {
-    setMatches((prev) => [result, ...prev]);
-  }, []);
-
-  const recordResult = useCallback(
-    (runId: string, winner: "A" | "B") => {
-      const run = runs.find((r) => r.id === runId);
-      if (!run) return;
-      const isOnTeamA = run.teamA.some((p) => p?.id === currentUser.id);
-      const isWin = (winner === "A" && isOnTeamA) || (winner === "B" && !isOnTeamA);
-      const delta = 15;
-      if (isWin) recordWin(runId, delta);
-      else recordLoss(runId, delta);
-    },
-    [runs, currentUser]
-  );
-
-  const recordWin = useCallback(
-    (runId: string, eloDelta: number) => {
-      const run = runs.find((r) => r.id === runId);
-      addMatchResult({
-        id: `m${Date.now()}`,
-        date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase(),
-        courtName: run?.courtName.toUpperCase() ?? "UNKNOWN",
-        sport: run?.sport ?? "BASKETBALL",
-        result: "WIN",
-        eloDelta,
-        teamScore: "21",
-        opposingScore: "14",
-      });
-    },
-    [runs, addMatchResult]
-  );
-
-  const recordLoss = useCallback(
-    (runId: string, eloDelta: number) => {
-      const run = runs.find((r) => r.id === runId);
-      addMatchResult({
-        id: `m${Date.now()}`,
-        date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase(),
-        courtName: run?.courtName.toUpperCase() ?? "UNKNOWN",
-        sport: run?.sport ?? "BASKETBALL",
-        result: "LOSS",
-        eloDelta: -eloDelta,
-        teamScore: "11",
-        opposingScore: "21",
-      });
-    },
-    [runs, addMatchResult]
-  );
 
   return (
     <AppContext.Provider
@@ -501,14 +456,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         visitCourt,
         joinRun,
         hypeItem,
-        addMatchResult,
-        recordResult,
-        recordWin,
-        recordLoss,
         addCourt,
         setLocalCourt,
         setVisibility,
-        setIsLocalPlus,
         setPreferredSport,
         setPreferredCourtId,
         addFriend: addFriendAction,
@@ -516,6 +466,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isFriend,
         getFriendsList,
         refreshCourtState,
+        refreshCheckedIn,
         refreshFeed,
         refreshRuns,
         refreshMatches,

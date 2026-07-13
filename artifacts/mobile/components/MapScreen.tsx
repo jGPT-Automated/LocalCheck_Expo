@@ -64,6 +64,7 @@ function isCluster(item: MapItem): item is ClusterItem {
 // ─── Map API court mapper ─────────────────────────────────────────────────────
 
 function mapApiCourt(row: Record<string, unknown>): Court {
+  // Map only fields the API actually returned — no invented defaults.
   return {
     id: String(row.id),
     name: String(row.name),
@@ -74,14 +75,12 @@ function mapApiCourt(row: Record<string, unknown>): Court {
     latitude: Number(row.latitude),
     longitude: Number(row.longitude),
     activeCount: Number(row.activeCount ?? row.active_count ?? 0),
-    maxCapacity: Number(row.maxCapacity ?? row.max_capacity ?? 10),
-    rating: Number(row.rating ?? 0),
     ratingCount: Number(row.ratingCount ?? row.rating_count ?? 0),
-    surface: String(row.surface ?? "ASPHALT"),
-    lights: Boolean(row.lights ?? false),
-    covered: Boolean(row.covered ?? false),
-    status: (row.status as CourtStatus) ?? "confirmed",
-    localCount: Number(row.localCount ?? row.local_count ?? 0),
+    surface: row.surface != null ? String(row.surface) : undefined,
+    lights: row.lights != null ? Boolean(row.lights) : undefined,
+    covered: row.covered != null ? Boolean(row.covered) : undefined,
+    status: row.status != null ? (row.status as CourtStatus) : undefined,
+    localCount: row.localCount != null || row.local_count != null ? Number(row.localCount ?? row.local_count) : undefined,
   };
 }
 
@@ -123,9 +122,9 @@ function clusterCourts(courts: Court[], zoom: number, localCourtId?: string | nu
 
     const avgLat = clusterGroup.reduce((s, c) => s + c.latitude, 0) / clusterGroup.length;
     const avgLng = clusterGroup.reduce((s, c) => s + c.longitude, 0) / clusterGroup.length;
-    // Top court = highest rating / most active
+    // Top court = most active, then most visited
     const topCourt = [...clusterGroup].sort(
-      (a, b) => b.activeCount - a.activeCount || b.rating - a.rating
+      (a, b) => b.activeCount - a.activeCount || (b.ratingCount ?? 0) - (a.ratingCount ?? 0)
     )[0];
 
     result.push({
