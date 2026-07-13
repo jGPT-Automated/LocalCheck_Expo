@@ -3,6 +3,16 @@ import { supabase } from "@/lib/supabase";
 
 import { mapProfileToPlayer, SupabaseProfile } from "./profileService";
 
+// Players are auto-checked-out after 45 minutes. A pg_cron job closes stale
+// rows server-side every 5 minutes; reads ALSO filter to the last 45 minutes
+// so presence is exact between cron runs. Keep in sync with the
+// auto_checkout_stale_checkins migration.
+export const AUTO_CHECKOUT_MINUTES = 45;
+
+function freshCutoffIso(): string {
+  return new Date(Date.now() - AUTO_CHECKOUT_MINUTES * 60_000).toISOString();
+}
+
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 /**
@@ -49,6 +59,7 @@ export async function fetchActiveCheckIns(courtId: string): Promise<Player[]> {
       .select("user_id, profiles(*)")
       .eq("court_id", courtId)
       .is("checked_out_at", null)
+      .gte("checked_in_at", freshCutoffIso())
       .order("checked_in_at", { ascending: false });
 
     if (error || !data) return [];
@@ -71,7 +82,8 @@ export async function fetchActiveCheckInCount(courtId: string): Promise<number> 
       .from("check_ins")
       .select("*", { count: "exact", head: true })
       .eq("court_id", courtId)
-      .is("checked_out_at", null);
+      .is("checked_out_at", null)
+      .gte("checked_in_at", freshCutoffIso());
     if (error || count == null) return 0;
     return count;
   } catch {
@@ -87,6 +99,7 @@ export async function fetchCheckedInCourtId(userId: string): Promise<string | nu
       .select("court_id")
       .eq("user_id", userId)
       .is("checked_out_at", null)
+      .gte("checked_in_at", freshCutoffIso())
       .order("checked_in_at", { ascending: false })
       .limit(1)
       .maybeSingle();
