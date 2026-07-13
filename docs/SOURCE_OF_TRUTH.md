@@ -1,5 +1,5 @@
 # LocalCheck — Source of Truth & Task List
-**Status: LIVING DOCUMENT.** Update this file (don't create a new one) every time a task ships or a new gap is found. Last verified: 2026-07-09, against live source + live database — not against the pasted DeepWiki/audit docs alone.
+**Status: LIVING DOCUMENT.** Update this file (don't create a new one) every time a task ships or a new gap is found. Last verified: 2026-07-13, against live source + live database — not against the pasted DeepWiki/audit docs alone.
 
 **Canonical repo:** `jGPT-Automated/LocalCheck_Expo` @ `main`
 **Canonical backend:** Supabase project `jzclwnzcektqhgkkdeje`
@@ -17,6 +17,49 @@ The bigger surprise: **the fixes for two of the biggest gaps already exist as wo
 
 ---
 
+## 1.5 Status update — 2026-07-13 (PR consolidation + core-loop work)
+
+Repo was consolidated back to a single `main`: PR #11 merged (which carried #8, #9, and #10's
+plans in its history — GitHub marked all three merged), docs-only #6 merged, #7 closed
+(based on the stray `jbyh` branch; conflicts with merged work — onboarding recorded below
+as an open item). Stale branch pointers remain on GitHub but can be deleted from the
+branches page (the session's credentials can't delete refs).
+
+**Shipped and on `main`:**
+- All four P0s (§4): `log_game` RPC wired with tie/score validation and real
+  success/failure UI, fixed player-history query with viewer-perspective scores,
+  correct scheduled-game enums, `switch_active_checkin` with success booleans.
+- P1-1 Host a Run (create-run modal, host auto-RSVPs, capacity-checked joins,
+  all-7-days schedule mapping) and P1-4 real head-to-head.
+- No auto-assigned local court (#8); robust check-in loop (#9).
+- Fabricated data removed app-wide: fake run results/Elo deltas, invented court
+  rating/surface/capacity, weather stub, random H2H (plans 001–007 in `plans/`).
+- **Full-screen court takeover**: tapping a court on Explore/Map now slides a
+  full-screen sheet showing the home-style court view (hero, WHO'S HERE roster,
+  next run, check-in, set/unset local). Home is untouched — always the local court,
+  FIND A COURT state when none is set.
+- **45-minute auto checkout**: pg_cron job `auto-checkout-stale-checkins` (every
+  5 min, migration `auto_checkout_stale_checkins`, in-repo copy under
+  `docs/supabase/migrations/`) closes stale check-ins server-side; client reads
+  filter to the same 45-min window (`AUTO_CHECKOUT_MINUTES` in `checkInService.ts`).
+  A push reminder before auto-checkout is a future iteration (needs P2-1).
+
+**Top remaining items (see §4 for the rest):**
+1. **Manual live walkthrough** of the new flows on device (two-account check-in
+   switching, log game between two users, run create/join persistence) — code-level
+   and schema-level verification done; end-to-end app run still pending.
+2. **Onboarding flow** — closed PR #7 had a full implementation (username, sport,
+   location steps); rebuild it on top of current `main` (its `profileService`
+   widening must NOT reintroduce client `is_pro` writes).
+3. **Plan 008** (`plans/008-real-feed-hype-counts.md`) — real feed like counts via
+   `feed_posts` + `feed_post_likes`.
+4. P1-2 profile editing, P1-3 settings toggles, P1-5 delete account, P1-6 friend
+   requests, P2 items (push notifications unlock the checkout reminder), and the
+   court-add verify endpoint gap recorded in #6 (`AddCourtModal.verifyPhoto()` posts
+   to a nonexistent `/api/courts/verify` — court adding is blocked in prod builds).
+
+---
+
 ## 2. Confirmed current state, screen by screen
 
 Full screen-by-screen interaction detail (routes, empty states, per-screen data sources) is in `LocalCheck_Screens_Interactions_Map.md` from the prior session — that detail is still accurate for the UI layer and isn't repeated here. This table is the status delta:
@@ -27,14 +70,14 @@ Full screen-by-screen interaction detail (routes, empty states, per-screen data 
 | Home / check-in / who's here | ✅ Real | direct read |
 | Explore / find courts / search / GPS | ✅ Real | direct read |
 | Compete → Leaderboard | ✅ Real | direct read |
-| Compete → Log Game | 🔴 **Broken today** | live enum check — see §3 |
-| Me / ELO / match history | ⚠️ Real read, but ELO never updates (see Log Game) | direct read |
+| Compete → Log Game | ✅ Real (2026-07-13: `log_game` RPC, validation, real success/failure UI) | shipped — see §1.5 |
+| Me / ELO / match history | ✅ Real (ELO updates via `log_game`; per-game delta shown as — until stored server-side) | shipped — see §1.5 |
 | Schedule (view runs) | ✅ Real | direct read |
-| Schedule → Host a Run | 🔴 Not implemented (dead buttons) | direct read, `onPress={() => {}}` |
-| Schedule → Join a Run | 🔴 **Broken today** | live enum check — see §3 |
+| Schedule → Host a Run | ✅ Real (create-run modal; host auto-RSVPs) | shipped — see §1.5 |
+| Schedule → Join a Run | ✅ Real (`going` RSVP, capacity-checked) | shipped — see §1.5 |
 | Court Detail | ✅ Real | direct read |
 | Player Profile — stats | ✅ Real | direct read |
-| Player Profile — Head-to-Head | 🔴 Fake (`Math.random()`) | direct read, code comment admits it |
+| Player Profile — Head-to-Head | ✅ Real (shared-games query) | shipped — see §1.5 |
 | Friends | ✅ Real | direct read + live `friendships`=10 rows |
 | Friend requests (pending/blocked) | 🔴 Not implemented — schema supports it, code always inserts `'accepted'` | live schema + direct read |
 | Settings — visibility, preferred sport | ✅ Real, persisted | direct read |
@@ -83,9 +126,9 @@ Full verbatim definitions are in the companion SQL file. **Nobody needs to desig
 
 Reordered from the earlier audit given the RPC discovery. P0 = broken/silently-failing today. P1 = missing core feature. P2 = important UX gap. P3 = polish/process.
 
-### P0 — broken right now
+### P0 — broken right now — ✅ ALL DONE 2026-07-13 (see §1.5)
 
-**P0-1 — Rewrite `logGame()` to call the existing `log_game` RPC instead of raw inserts**
+**P0-1 — ✅ DONE — Rewrite `logGame()` to call the existing `log_game` RPC instead of raw inserts**
 ```
 File: artifacts/mobile/services/gameService.ts
 
@@ -119,7 +162,7 @@ SUCCESS CRITERIA:
 - No console warnings on submit
 ```
 
-**P0-2 — Fix `fetchGamesByPlayer`'s broken join filter**
+**P0-2 — ✅ DONE — Fix `fetchGamesByPlayer`'s broken join filter**
 ```
 File: artifacts/mobile/services/gameService.ts
 
@@ -143,7 +186,7 @@ SUCCESS CRITERIA: Me tab and Player Profile show real match history for
 a user who has logged games via the fixed P0-1 flow.
 ```
 
-**P0-3 — Fix `joinScheduledGame` and `createScheduledGame` enum values**
+**P0-3 — ✅ DONE — Fix `joinScheduledGame` and `createScheduledGame` enum values**
 ```
 File: artifacts/mobile/services/scheduledGameService.ts
 
@@ -161,7 +204,7 @@ Supabase without silent failure; the participant/new run appears after
 a refresh.
 ```
 
-**P0-4 — Harden check-in to use `switch_active_checkin`**
+**P0-4 — ✅ DONE — Harden check-in to use `switch_active_checkin`**
 ```
 File: artifacts/mobile/services/checkInService.ts, context/AppContext.tsx
 
@@ -185,10 +228,10 @@ check_ins that no user has two rows with checked_out_at IS NULL.
 
 ### P1 — missing core features
 
-- **P1-1 — Build "Host a Run" create-run UI.** `createScheduledGame()` exists (fix its status value per P0-3) and is never called from any screen. Wire the header "+" and empty-state "HOST A RUN" buttons in `schedule.tsx`, and the "BE THE FIRST TO HOST" card in `court/[id].tsx`, to a new create-run form (title, court, date/time, max players, note) → `createScheduledGame()` → `refreshRuns()`.
+- **P1-1 — ✅ DONE 2026-07-13 — Build "Host a Run" create-run UI.** `createScheduledGame()` exists (fix its status value per P0-3) and is never called from any screen. Wire the header "+" and empty-state "HOST A RUN" buttons in `schedule.tsx`, and the "BE THE FIRST TO HOST" card in `court/[id].tsx`, to a new create-run form (title, court, date/time, max players, note) → `createScheduledGame()` → `refreshRuns()`.
 - **P1-2 — Profile editing screen.** No way to set `display_name`/`username` after signup — new users show as "Player" everywhere. New screen + `updateDisplayName()` service function, matching the existing username CHECK constraint (`^[A-Za-z0-9_]{3,32}$`).
 - **P1-3 — Wire the 4 dead Settings toggles.** Push notifications, location sharing, haptics, dark mode are local `useState` only. `push_notifications_enabled`/`check_in_reminders_enabled`/`game_alerts_enabled` exist on `profiles` and are never read/written by Settings. Location sharing and dark mode have no column — decide if they need one or stay local-only (dark mode probably should stay a device setting).
-- **P1-4 — Add real head-to-head query.** Replace `Math.random()` in `player/[id].tsx` with a real query: get `game_ids` where both the current user and the opponent are in `game_participants`, intersect, fetch those games. Small, contained fix.
+- **P1-4 — ✅ DONE 2026-07-13 — Add real head-to-head query.** Replace `Math.random()` in `player/[id].tsx` with a real query: get `game_ids` where both the current user and the opponent are in `game_participants`, intersect, fetch those games. Small, contained fix.
 - **P1-5 — Real delete-account flow.** Needs a new `SECURITY DEFINER` RPC (`delete_own_account()` calling `DELETE FROM auth.users WHERE id = auth.uid()`) since the client can't call `auth.admin.deleteUser()` directly. Required for App Store review.
 - **P1-6 — Friend request pending flow.** Schema already supports `pending`/`accepted`/`blocked`; `addFriend()` currently inserts `'accepted'` directly, skipping the request step entirely. Needs a "requests" view and accept/decline actions.
 
@@ -202,7 +245,7 @@ check_ins that no user has two rows with checked_out_at IS NULL.
 
 ### P3 — process / polish
 
-- **P3-1 — Commit the missing migration history.** Nothing about the schema, triggers, or RPCs is version-controlled. Start with `LocalCheck_Supabase_Baseline_Snapshot.sql` (produced this session) as the initial baseline, then use `Supabase:apply_migration` (not raw SQL editor) for every change going forward so history accumulates.
+- **P3-1 — STARTED — first migration (`auto_checkout_stale_checkins`) applied via Supabase MCP with an in-repo copy in `docs/supabase/migrations/`; baseline snapshot still to be committed as migration 0. Commit the missing migration history.** Nothing about the schema, triggers, or RPCs is version-controlled. Start with `LocalCheck_Supabase_Baseline_Snapshot.sql` (produced this session) as the initial baseline, then use `Supabase:apply_migration` (not raw SQL editor) for every change going forward so history accumulates.
 - **P3-2 — Isolate the legacy Drizzle schema** (`lib/db/src/schema/courts.ts`) if it's still present — it diverged completely from the live Supabase schema per the earlier audit and risks misleading anyone who opens it.
 - **P3-3 — Security advisory pass** before App Store submission: review the 3 `SECURITY DEFINER` views, enable leaked-password protection, review `anon`-readable tables.
 
