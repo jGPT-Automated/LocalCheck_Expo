@@ -43,6 +43,16 @@ branches page (the session's credentials can't delete refs).
   `docs/supabase/migrations/`) closes stale check-ins server-side; client reads
   filter to the same 45-min window (`AUTO_CHECKOUT_MINUTES` in `checkInService.ts`).
   A push reminder before auto-checkout is a future iteration (needs P2-1).
+- **Planned presence ("pulling up")**: new `planned_visits` table (migration
+  `planned_visits`, RLS: authenticated read, self-only insert/delete; in-repo
+  copy under `docs/supabase/migrations/`). The Schedule page's primary content
+  is now WHO'S PULLING UP: post the times you plan to be at a court this week
+  ("+ I'LL BE THERE" — court/day/time chips + optional note), see everyone's
+  planned times grouped by court per day, remove your own. The full-screen
+  court sheet shows a PULLING UP TODAY section. Hosted runs remain as the
+  secondary RUNS section on the same page. Service:
+  `services/plannedVisitService.ts`; context: `plannedVisits` +
+  `addPlannedVisit`/`removePlannedVisit` (7-day window, 30s poll).
 
 **Top remaining items (see §4 for the rest):**
 1. **Manual live walkthrough** of the new flows on device (two-account check-in

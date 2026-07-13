@@ -14,9 +14,15 @@ import {
   FeedItem,
   GameRun,
   MatchResult,
+  PlannedVisit,
   Player,
   getEloTier,
 } from "@/constants/data";
+import {
+  createPlannedVisit,
+  deletePlannedVisit,
+  fetchPlannedVisits,
+} from "@/services/plannedVisitService";
 import { checkInToCourt, checkOutOfCourt, fetchActiveCheckIns, fetchCheckedInCourtId } from "@/services/checkInService";
 import { addFriend, fetchFriends, removeFriend } from "@/services/friendshipService";
 import { fetchFeed } from "@/services/feedService";
@@ -38,6 +44,7 @@ interface AppContextValue {
   localCourtId: string | null;
   localCourt: Court | null;
   runs: GameRun[];
+  plannedVisits: PlannedVisit[];
   feed: FeedItem[];
   matches: MatchResult[];
   isLocalPlus: boolean;
@@ -49,6 +56,9 @@ interface AppContextValue {
   checkOut: () => Promise<void>;
   visitCourt: (courtId: string) => Promise<void>;
   joinRun: (runId: string) => Promise<boolean>;
+  addPlannedVisit: (courtId: string, plannedAtIso: string, note?: string) => Promise<boolean>;
+  removePlannedVisit: (visitId: string) => Promise<boolean>;
+  refreshPlannedVisits: () => Promise<void>;
   hypeItem: (feedId: string) => void;
   addCourt: (court: Court) => Promise<void>;
   setLocalCourt: (courtId: string | null, courtObj?: Court) => Promise<void>;
@@ -128,6 +138,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [lastVisitedCourtId, setLastVisitedCourtId] = useState<string | null>(null);
   const [localCourtId, setLocalCourtId] = useState<string | null>(null);
   const [runs, setRuns] = useState<GameRun[]>([]);
+  const [plannedVisits, setPlannedVisits] = useState<PlannedVisit[]>([]);
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [matches, setMatches] = useState<MatchResult[]>([]);
   const [isLocalPlus, setIsLocalPlusState] = useState<boolean>(false);
@@ -248,6 +259,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRuns(games);
   }, []);
 
+  // Planned presence ("pulling up") — all courts, next 7 days.
+  const refreshPlannedVisits = useCallback(async () => {
+    const from = new Date();
+    from.setHours(0, 0, 0, 0);
+    const to = new Date();
+    to.setDate(to.getDate() + 7);
+    const visits = await fetchPlannedVisits({ from, to });
+    setPlannedVisits(visits);
+  }, []);
+
   const refreshFeed = useCallback(async () => {
     const items = await fetchFeed(localCourt?.id ?? undefined);
     setFeed(items);
@@ -276,6 +297,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       await Promise.all([
         refreshRuns(),
+        refreshPlannedVisits(),
         refreshFeed(),
         refreshMatches(),
         refreshFriends(),
@@ -283,7 +305,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (mounted) setIsLoading(false);
     })();
     return () => { mounted = false; };
-  }, [refreshRuns, refreshFeed, refreshMatches, refreshFriends]);
+  }, [refreshRuns, refreshPlannedVisits, refreshFeed, refreshMatches, refreshFriends]);
 
   // Poll shared state every 30s so two devices see each other quickly
   useEffect(() => {
@@ -291,10 +313,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       refreshCourtState();
       refreshFeed();
       refreshRuns();
+      refreshPlannedVisits();
       refreshFriends();
     }, 30000);
     return () => clearInterval(interval);
-  }, [refreshCourtState, refreshFeed, refreshRuns, refreshFriends]);
+  }, [refreshCourtState, refreshFeed, refreshRuns, refreshPlannedVisits, refreshFriends]);
 
   // ─── Actions ───────────────────────────────────────────────────────────────
   const checkIn = useCallback(
@@ -426,6 +449,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [userId, currentUser, refreshRuns]
   );
 
+  const addPlannedVisit = useCallback(
+    async (courtId: string, plannedAtIso: string, note?: string): Promise<boolean> => {
+      if (!userId) return false;
+      const ok = await createPlannedVisit(userId, courtId, plannedAtIso, note);
+      if (ok) await refreshPlannedVisits();
+      return ok;
+    },
+    [userId, refreshPlannedVisits]
+  );
+
+  const removePlannedVisit = useCallback(
+    async (visitId: string): Promise<boolean> => {
+      if (!userId) return false;
+      const ok = await deletePlannedVisit(visitId);
+      if (ok) setPlannedVisits((prev) => prev.filter((v) => v.id !== visitId));
+      return ok;
+    },
+    [userId]
+  );
+
   const hypeItem = useCallback((feedId: string) => {
     setFeed((prev) =>
       prev.map((item) =>
@@ -444,6 +487,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localCourtId,
         localCourt,
         runs,
+        plannedVisits,
         feed,
         matches,
         isLocalPlus,
@@ -455,6 +499,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         checkOut,
         visitCourt,
         joinRun,
+        addPlannedVisit,
+        removePlannedVisit,
+        refreshPlannedVisits,
         hypeItem,
         addCourt,
         setLocalCourt,
