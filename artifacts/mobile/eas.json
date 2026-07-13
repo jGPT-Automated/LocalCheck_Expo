@@ -8,20 +8,25 @@
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "image": "macos-sequoia-15.6-xcode-26.0"
       },
       "channel": "development"
     },
     "preview": {
       "distribution": "internal",
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "image": "macos-sequoia-15.6-xcode-26.0"
       },
       "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
-      "channel": "production"
+      "channel": "production",
+      "ios": {
+        "image": "macos-sequoia-15.6-xcode-26.0"
+      }
     }
   },
   "submit": {
