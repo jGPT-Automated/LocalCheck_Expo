@@ -37,7 +37,7 @@ const SCREEN_HEIGHT = Dimensions.get("window").height;
  * (home always stays the user's local court).
  */
 export function CourtBottomSheet({ court, onClose }: CourtBottomSheetProps) {
-  const { checkIn, checkedInCourtId, checkOut, setLocalCourt, localCourtId, runs, isFriend } = useApp();
+  const { checkIn, checkedInCourtId, checkOut, setLocalCourt, localCourtId, runs, plannedVisits, isFriend } = useApp();
   const { top, bottom } = useSafeAreaInsets();
   // Real live roster for this court — never render placeholder players
   const [roster, setRoster] = useState<Player[]>([]);
@@ -95,6 +95,10 @@ export function CourtBottomSheet({ court, onClose }: CourtBottomSheetProps) {
   const sportColor = getSportColor(court.sport);
   const activeCount = roster.length;
   const courtRuns = runs.filter((r) => r.courtId === court.id);
+  const todayStr = new Date().toDateString();
+  const courtVisitsToday = plannedVisits.filter(
+    (v) => v.courtId === court.id && new Date(v.plannedAtIso).toDateString() === todayStr
+  );
   const topPad = Platform.OS === "web" ? 24 : top;
 
   const handleCheckIn = async () => {
@@ -239,6 +243,33 @@ export function CourtBottomSheet({ court, onClose }: CourtBottomSheetProps) {
               </ScrollView>
             )}
           </View>
+
+          {/* ── Pulling Up Today (planned presence) ── */}
+          {courtVisitsToday.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>PULLING UP TODAY</Text>
+                <Text style={styles.sectionAccent}>{courtVisitsToday.length} COMING</Text>
+              </View>
+              {courtVisitsToday.map((visit) => (
+                <Pressable
+                  key={visit.id}
+                  style={styles.visitRow}
+                  onPress={() => {
+                    onClose();
+                    router.push(`/player/${visit.userId}`);
+                  }}
+                >
+                  <Text style={styles.visitTime}>{visit.time}</Text>
+                  <PlayerAvatar initials={visit.player.avatar} size={26} />
+                  <Text style={styles.visitName}>{visit.player.name.split(" ")[0].toUpperCase()}</Text>
+                  {visit.note != null && (
+                    <Text style={styles.visitNote} numberOfLines={1}>{visit.note}</Text>
+                  )}
+                </Pressable>
+              ))}
+            </View>
+          )}
 
           {/* ── Next Run at this court ── */}
           {courtRuns.length > 0 && (
@@ -541,6 +572,35 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: Colors.muted,
     marginTop: 1,
+  },
+
+  // ── Pulling Up ──
+  visitRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.border,
+  },
+  visitTime: {
+    fontFamily: Typography.heading,
+    fontSize: 14,
+    color: Colors.text,
+    width: 48,
+    fontVariant: ["tabular-nums"] as any,
+  },
+  visitName: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    color: Colors.text,
+    letterSpacing: 0.5,
+  },
+  visitNote: {
+    flex: 1,
+    fontFamily: Typography.body,
+    fontSize: 10,
+    color: Colors.muted,
   },
 
   // ── Runs ──

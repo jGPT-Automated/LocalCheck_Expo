@@ -107,6 +107,22 @@ export interface FeedItem {
   huped?: boolean;
 }
 
+// BACKEND NOTE: public.planned_visits — planned presence ("pulling up").
+// A user posts times they plan to be at a court; everyone can see who's
+// coming before they head over. Not a run: no title/capacity/RSVP.
+export interface PlannedVisit {
+  id: string;
+  userId: string;
+  player: Player;
+  courtId: string;
+  courtName: string;
+  sport: CourtSport;
+  plannedAtIso: string;
+  time: string; // formatted HH:MM
+  date: string; // formatted TODAY / TOMORROW / JUL 15
+  note?: string;
+}
+
 export type GameType = "1v1" | "2v2" | "3v3" | "4v4" | "5v5" | "TwentyOne";
 
 export const GAME_TYPE_LABELS: Record<GameType, string> = {
