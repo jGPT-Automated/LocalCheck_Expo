@@ -22,8 +22,9 @@ build config, you need a build. Otherwise OTA is enough.**
 
 OTA only works on builds created *after* EAS Update was configured (`updates.url`
 in `app.json`, `channel` per profile in `eas.json`). Build 3 (the first
-TestFlight build) predates that, so the **next** production build is the first
-OTA-eligible one.
+TestFlight build) predates `expo-updates`, so it is **pre-OTA** and cannot
+receive EAS Updates. The **next** production build created after `updates.url`
+and the production channel are configured is the first OTA-eligible one.
 
 ---
 
@@ -37,9 +38,11 @@ OTA-eligible one.
 | `preview` | `preview` | internal-distribution test builds |
 | `production` | `production` | App Store / TestFlight builds |
 
-An EAS Update *branch* maps to a *channel* of the same name by default, so
-`eas update --branch production` reaches production-channel (TestFlight) builds.
-`appVersionSource: remote` means EAS owns the build number and auto-increments.
+Production OTA publishing targets `channel: production` directly. The
+production build profile also uses `channel: production`, so OTA updates are
+routed to production-channel TestFlight/App Store builds that include
+`expo-updates`. `appVersionSource: remote` means EAS owns the build number and
+auto-increments.
 
 ---
 
@@ -49,7 +52,7 @@ An EAS Update *branch* maps to a *channel* of the same name by default, so
 cd artifacts/mobile
 
 # OTA update to TestFlight builds (fast path)
-eas update --branch production --message "what changed"
+eas update --channel production --environment production --message "what changed"
 
 # Full production build (App Store / TestFlight)
 eas build -p ios --profile production
@@ -67,13 +70,31 @@ eas submit -p ios --profile production --id <BUILD_ID> --non-interactive
 
 ---
 
-## 4. CI: GitHub → TestFlight (EAS Workflows)
+
+## 4. Toolchain pins and repeatability gates
+
+- EAS Workflows pin pnpm to `10.13.1`, and the root `package.json` declares
+  `packageManager: pnpm@10.13.1`, so cloud installs use the same pnpm major that
+  generated the lockfile. Do not disable frozen lockfiles to work around install
+  failures; fix the package manager/toolchain mismatch instead.
+- iOS builds explicitly pin the EAS macOS/Xcode image to
+  `macos-sequoia-15.6-xcode-26.0` in `artifacts/mobile/eas.json`. Preserve that
+  pin unless a future release intentionally moves the project to another tested
+  Xcode image.
+- A workflow is only considered repeatable after all gates are verified in the
+  cloud: dependency install, native build, TestFlight submission, and OTA routing
+  to the expected channel. Local success alone is not enough.
+- Build success and TestFlight submission success are separate gates. A green
+  `build_ios` job only proves the `.ipa` was produced; the downstream
+  `submit_ios` job must also succeed before the build is available in TestFlight.
+
+## 5. CI: GitHub → TestFlight (EAS Workflows)
 
 Workflow files live in `artifacts/mobile/.eas/workflows/`:
 
 | File | Trigger | Does |
 |---|---|---|
-| `publish-ota-update.yml` | push to `main` | `eas update --branch production` (OTA to installed builds) |
+| `publish-ota-update.yml` | push to `main` | `eas update --channel production --environment production` (OTA to OTA-eligible installed builds) |
 | `release-ios.yml` | push a `v*` tag, or manual dispatch | `eas build` (iOS production) → `eas submit` to TestFlight |
 
 **Prerequisites (one-time, done in the Expo dashboard):**
@@ -90,7 +111,7 @@ a release instead.
 
 ---
 
-## 5. TestFlight testers
+## 6. TestFlight testers
 
 - An **internal** group ("Internal Testers", auto-access to all builds) exists.
   Internal testers must be App Store Connect **users**; they get every valid
@@ -105,7 +126,7 @@ a release instead.
 
 ---
 
-## 6. Is this "submitted to the App Store"? — No.
+## 7. Is this "submitted to the App Store"? — No.
 
 Uploading a build to App Store Connect (what `eas submit` does) feeds
 **TestFlight** only. It does **not** submit the app for App Store review or
@@ -115,7 +136,7 @@ submit an App Store version. The app is beta-only right now.
 
 ---
 
-## 7. How `main` was assembled + production-readiness
+## 8. How `main` was assembled + production-readiness
 
 `main` was consolidated from two divergent branches:
 
@@ -135,7 +156,7 @@ compliance. No destructive DB migrations — only existing `profiles` columns re
 
 ---
 
-## 8. Known issues / follow-ups
+## 9. Known issues / follow-ups
 
 - **Typecheck:** shipping app is clean. ~210 pre-existing errors live under
   `artifacts/mobile/mockup-sandbox/` (not shipped) + 1 in `elo.tsx` — inherited,

@@ -1,5 +1,9 @@
 name: Publish OTA update
 
+defaults:
+  tools:
+    pnpm: '10.13.1'
+
 # Fast path: on every push to main, publish an over-the-air (EAS Update) to the
 # production channel. JS / asset / styling changes reach installed TestFlight
 # builds in seconds — no rebuild, no App Store review.
@@ -17,6 +21,7 @@ on:
 jobs:
   publish:
     type: update
+    environment: production
     params:
-      branch: production
+      channel: production
       message: ${{ github.sha }}

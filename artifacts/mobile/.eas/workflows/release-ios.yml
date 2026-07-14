@@ -1,5 +1,9 @@
 name: Release iOS (build + TestFlight)
 
+defaults:
+  tools:
+    pnpm: '10.13.1'
+
 # Native-change path: build a production iOS binary and submit it to
 # App Store Connect / TestFlight. Use this when a change can't ship over the
 # air (new native module, permission, SDK bump, or any app.json/eas.json build
