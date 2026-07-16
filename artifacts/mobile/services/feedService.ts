@@ -106,6 +106,18 @@ export async function fetchFeed(courtId?: string): Promise<FeedItem[]> {
     const { data: checkIns, error: checkInError } = await checkInQ;
     if (checkInError) console.warn("feed check_ins error:", checkInError.message);
 
+    // Checkouts (check_ins rows that have been closed out)
+    let checkOutQ = supabase
+      .from("check_ins")
+      .select("id, user_id, court_id, checked_in_at, checked_out_at, visibility, profiles(*), courts(id, name, sport_type)")
+      .not("checked_out_at", "is", null)
+      .order("checked_out_at", { ascending: false })
+      .limit(limit);
+    if (courtId) checkOutQ = checkOutQ.eq("court_id", courtId);
+
+    const { data: checkOuts, error: checkOutError } = await checkOutQ;
+    if (checkOutError) console.warn("feed checkouts error:", checkOutError.message);
+
     // Games (results)
     let gamesQ = supabase
       .from("games")
@@ -129,69 +141,90 @@ export async function fetchFeed(courtId?: string): Promise<FeedItem[]> {
     const { data: runs, error: runsError } = await runsQ;
     if (runsError) console.warn("feed runs error:", runsError.message);
 
-    const items: FeedItem[] = [];
+    // Keep the raw ISO timestamp alongside each item so the merged list can be
+    // sorted properly (FeedItem.timestamp is a display string like "3 MINS AGO").
+    const items: Array<{ item: FeedItem; at: string }> = [];
 
     for (const row of (checkIns as unknown as SupabaseCheckIn[]) ?? []) {
       if (!row.profiles) continue;
       const player = mapProfileToPlayer(row.profiles);
-      items.push(
-        toFeedItem(
-          row.id,
+      items.push({
+        at: row.checked_in_at,
+        item: toFeedItem(
+          `checkin-${row.id}`,
           "checkin",
           row.profiles,
           row.courts,
           `${player.name.toUpperCase()} CHECKED INTO ${row.courts?.name?.toUpperCase() ?? "A COURT"}`,
           row.checked_in_at,
           normalizeSport(row.courts?.sport_type)
-        )
-      );
+        ),
+      });
+    }
+
+    for (const row of (checkOuts as unknown as SupabaseCheckIn[]) ?? []) {
+      if (!row.profiles || !row.checked_out_at) continue;
+      const player = mapProfileToPlayer(row.profiles);
+      items.push({
+        at: row.checked_out_at,
+        item: toFeedItem(
+          `checkout-${row.id}`,
+          "checkout",
+          row.profiles,
+          row.courts,
+          `${player.name.toUpperCase()} CHECKED OUT OF ${row.courts?.name?.toUpperCase() ?? "A COURT"}`,
+          row.checked_out_at,
+          normalizeSport(row.courts?.sport_type)
+        ),
+      });
     }
 
     for (const row of (games as unknown as SupabaseGame[]) ?? []) {
-      const winner = row.game_participants?.find((p) => {
-        return p.team_side === row.winner_side;
-      });
+      if (!row.winner_side) continue;
+      const winner = row.game_participants?.find((p) => p.team_side === row.winner_side);
+      const loser = row.game_participants?.find((p) => p.team_side !== row.winner_side);
       if (!winner?.profiles) continue;
-      const player = mapProfileToPlayer(winner.profiles);
-      const sport = normalizeSport(row.courts?.sport_type);
+      const winnerPlayer = mapProfileToPlayer(winner.profiles);
+      const winnerName = winnerPlayer.name.toUpperCase();
+      const loserName = loser?.profiles
+        ? mapProfileToPlayer(loser.profiles).name.toUpperCase()
+        : "OPPONENT";
       const winnerScore = row.winner_side === "b" ? row.score_b : row.score_a;
       const loserScore = row.winner_side === "b" ? row.score_a : row.score_b;
-      items.push(
-        toFeedItem(
-          row.id,
-          "run_result",
-          winner.profiles,
-          row.courts,
-          `${player.name.toUpperCase()} WON ${winnerScore}–${loserScore} AT ${row.courts?.name?.toUpperCase() ?? "A COURT"}`,
-          row.played_at,
-          sport
-        )
+      const gameItem = toFeedItem(
+        `game-${row.id}`,
+        "game_result",
+        winner.profiles,
+        row.courts,
+        `${winnerName} DEF. ${loserName} ${winnerScore}–${loserScore}`,
+        row.played_at,
+        normalizeSport(row.courts?.sport_type)
       );
+      gameItem.winnerName = winnerName;
+      items.push({ at: row.played_at, item: gameItem });
     }
 
     for (const row of (runs as unknown as SupabaseScheduledGame[]) ?? []) {
       if (!row.organizer) continue;
       const player = mapProfileToPlayer(row.organizer);
-      items.push(
-        toFeedItem(
-          row.id,
+      items.push({
+        at: row.start_time,
+        item: toFeedItem(
+          `run-${row.id}`,
           "run_started",
           row.organizer,
           row.courts,
           `${player.name.toUpperCase()} STARTED A RUN AT ${row.courts?.name?.toUpperCase() ?? "A COURT"}`,
           row.start_time,
           normalizeSport(row.courts?.sport_type)
-        )
-      );
+        ),
+      });
     }
 
     return items
-      .sort((a, b) => {
-        // We only have formatted timestamps, so just keep original order from queries
-        // (each query is sorted by time desc). For a mixed list, this is approximate.
-        return 0;
-      })
-      .slice(0, limit);
+      .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+      .slice(0, limit)
+      .map((entry) => entry.item);
   } catch (err) {
     console.warn("fetchFeed exception:", err);
     return [];

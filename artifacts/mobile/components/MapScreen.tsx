@@ -20,6 +20,7 @@ import { Colors, Radius } from "@/constants/colors";
 import { Court, CourtSport, CourtStatus, getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { useCourtCounts } from "@/context/CourtPresenceContext";
 import { LivePulse } from "./LivePulse";
 
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN ?? "";
@@ -242,12 +243,28 @@ export function MapScreen() {
   }, [mapOverlayOpacity]);
 
   // Merge local + API courts (local takes precedence by id)
-  const allCourts = React.useMemo(() => {
+  const mergedCourts = React.useMemo(() => {
     const merged = new Map<string, Court>();
     apiCourts.forEach((c) => merged.set(c.id, c));
     localCourts.forEach((c) => merged.set(c.id, c)); // local overrides API
     return Array.from(merged.values());
   }, [apiCourts, localCourts]);
+
+  // Overlay live counts from the shared presence store onto the fetched
+  // snapshots, so pins/cards update in real time when anyone checks in/out or
+  // switches local court — the snapshot alone goes stale the moment it lands.
+  const courtIds = React.useMemo(() => mergedCourts.map((c) => c.id), [mergedCourts]);
+  const liveCounts = useCourtCounts(courtIds);
+  const allCourts = React.useMemo(
+    () =>
+      mergedCourts.map((c) => {
+        const live = liveCounts[c.id];
+        return live
+          ? { ...c, activeCount: live.activeCount, localCount: live.localCount }
+          : c;
+      }),
+    [mergedCourts, liveCounts]
+  );
 
   const mapItems = React.useMemo(
     () => clusterCourts(allCourts, zoom, localCourtId),
@@ -255,6 +272,14 @@ export function MapScreen() {
   );
 
   const activeCourts = allCourts.filter((c) => c.activeCount > 0);
+
+  // The bottom sheet holds a snapshot from when the pin was tapped — overlay
+  // live counts onto it too so the selected-court card stays current.
+  const selectedLive = selectedCourt ? liveCounts[selectedCourt.id] : undefined;
+  const selectedCourtLive =
+    selectedCourt && selectedLive
+      ? { ...selectedCourt, activeCount: selectedLive.activeCount, localCount: selectedLive.localCount }
+      : selectedCourt;
 
   // Fetch courts from API based on current region + zoom
   const fetchCourts = useCallback(
@@ -484,7 +509,7 @@ export function MapScreen() {
 
       {/* Court bottom sheet */}
       {view === "MAP" && (
-        <CourtBottomSheet court={selectedCourt} onClose={() => setSelectedCourt(null)} />
+        <CourtBottomSheet court={selectedCourtLive} onClose={() => setSelectedCourt(null)} />
       )}
 
       <AddCourtModal visible={showAddModal} onClose={() => setShowAddModal(false)} />

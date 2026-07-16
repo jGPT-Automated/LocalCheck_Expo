@@ -1,9 +1,11 @@
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
+  Modal,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -14,7 +16,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors, Radius } from "@/constants/colors";
-import { Court, getSportColor, Player } from "@/constants/data";
+import { Court, getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { usePresence } from "@/context/CourtPresenceContext";
@@ -30,295 +32,452 @@ interface CourtBottomSheetProps {
 }
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
+const PEEK_HEIGHT = Math.min(360, Math.round(SCREEN_HEIGHT * 0.42));
+const SNAP_FULL = 0;
+const SNAP_PEEK = SCREEN_HEIGHT - PEEK_HEIGHT;
+const SNAP_CLOSED = SCREEN_HEIGHT;
+
+type SheetMode = "peek" | "full";
+
+function clamp(v: number, lo: number, hi: number) {
+  return Math.min(hi, Math.max(lo, v));
+}
 
 /**
- * Full-screen court takeover, slid up from the bottom. Shows the same view the
- * home screen gives a local court — hero, live roster, next run, check-in —
- * for ANY court tapped from Explore/Map, without ever changing the home page
- * (home always stays the user's local court).
+ * Gesture-driven court drawer (see DESIGN.md §5/§6).
+ *
+ * Tap a court → PEEK (~40% screen): name, distance, on-court + locals counts,
+ * CHECK IN, swipe-up affordance. Swipe up — or check in — and it expands to
+ * the FULL view (roster, pulling-up-today, runs, details), the same experience
+ * home gives a local court. Drag is interruptible with velocity handoff; the
+ * sheet renders in a Modal so its actions can never sit behind the tab bar.
  */
 export function CourtBottomSheet({ court, onClose }: CourtBottomSheetProps) {
   const { checkIn, checkedInCourtId, checkOut, setLocalCourt, localCourtId, runs, plannedVisits, isFriend } = useApp();
   const { top, bottom } = useSafeAreaInsets();
-  // Live roster + locals from the shared presence store: realtime events
-  // (any user checking in/out, locals changing) update this automatically.
-  const { roster, localCount: liveLocalCount } = usePresence(court?.id);
-  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
 
+  // Keep our own copy so the exit animation can play after the parent clears
+  // `court`. Content updates in place when the same sheet shows a new court.
+  const [renderedCourt, setRenderedCourt] = useState<Court | null>(court);
+  const [mode, setMode] = useState<SheetMode>("peek");
+  const modeRef = useRef<SheetMode>("peek");
+  modeRef.current = mode;
+
+  const { roster, localCount: liveLocalCount } = usePresence(renderedCourt?.id);
+
+  const translateY = useRef(new Animated.Value(SNAP_CLOSED)).current;
+  const dragStartY = useRef(SNAP_CLOSED);
+  const closingRef = useRef(false);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  const snapTo = useCallback(
+    (target: number, velocity = 0) => {
+      if (target === SNAP_FULL) setMode("full");
+      else if (target === SNAP_PEEK) setMode("peek");
+      Animated.spring(translateY, {
+        toValue: target,
+        velocity,
+        tension: 68,
+        friction: 11,
+        useNativeDriver: true,
+      }).start();
+    },
+    [translateY]
+  );
+
+  const animateClosed = useCallback(
+    (velocity = 0, notifyParent = true) => {
+      if (closingRef.current) return;
+      closingRef.current = true;
+      Animated.timing(translateY, {
+        toValue: SNAP_CLOSED,
+        duration: 200,
+        useNativeDriver: true,
+      }).start(() => {
+        closingRef.current = false;
+        setRenderedCourt(null);
+        setMode("peek");
+        if (notifyParent) onCloseRef.current();
+      });
+    },
+    [translateY]
+  );
+
+  // Open / switch / external close.
+  const prevIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (court) {
-      Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          tension: 65,
-          friction: 12,
-          useNativeDriver: true,
-        }),
-        Animated.timing(backdropOpacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: SCREEN_HEIGHT,
-          duration: 220,
-          useNativeDriver: true,
-        }),
-        Animated.timing(backdropOpacity, {
-          toValue: 0,
-          duration: 180,
-          useNativeDriver: true,
-        }),
-      ]).start();
+    const id = court?.id ?? null;
+    if (id && id !== prevIdRef.current) {
+      setRenderedCourt(court);
+      if (prevIdRef.current === null) {
+        // Fresh open → land on PEEK.
+        setMode("peek");
+        translateY.setValue(SNAP_CLOSED);
+        snapTo(SNAP_PEEK);
+      }
+      // Same sheet, different court → keep current mode/position.
+    } else if (id && court) {
+      // Same court, refreshed object (live count overlays) → update content only.
+      setRenderedCourt(court);
+    } else if (!id && prevIdRef.current !== null && renderedCourt) {
+      animateClosed(0, false);
     }
+    prevIdRef.current = id;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [court]);
 
-  if (!court) return null;
+  // Release chooses the snap the gesture is "throwing" toward: project the
+  // position ~150ms ahead using release velocity, then take the nearest snap.
+  const settle = useCallback(
+    (pos: number, vy: number) => {
+      const projected = pos + vy * 150;
+      const targets = [SNAP_FULL, SNAP_PEEK, SNAP_CLOSED];
+      const target = targets.reduce((best, t) =>
+        Math.abs(t - projected) < Math.abs(best - projected) ? t : best
+      );
+      if (target === SNAP_CLOSED) animateClosed(vy);
+      else snapTo(target, vy);
+    },
+    [animateClosed, snapTo]
+  );
 
-  const isCheckedIn = checkedInCourtId === court.id;
-  const isMyLocal = localCourtId === court.id;
-  const sportColor = getSportColor(court.sport);
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_evt, g) =>
+        Math.abs(g.dy) > 8 && Math.abs(g.dy) > Math.abs(g.dx) * 1.2,
+      onPanResponderGrant: () => {
+        // Interruptible: grab the sheet wherever it currently is.
+        translateY.stopAnimation((v) => {
+          dragStartY.current = v;
+        });
+      },
+      onPanResponderMove: (_evt, g) => {
+        translateY.setValue(clamp(dragStartY.current + g.dy, SNAP_FULL, SNAP_CLOSED));
+      },
+      onPanResponderRelease: (_evt, g) => {
+        const pos = clamp(dragStartY.current + g.dy, SNAP_FULL, SNAP_CLOSED);
+        settle(pos, g.vy * 1000); // px/s
+      },
+    })
+  ).current;
+
+  const backdropOpacity = translateY.interpolate({
+    inputRange: [SNAP_FULL, SNAP_PEEK, SNAP_CLOSED],
+    outputRange: [1, 0.65, 0],
+  });
+
+  if (!renderedCourt) {
+    return null;
+  }
+  const c = renderedCourt;
+
+  const isCheckedIn = checkedInCourtId === c.id;
+  const isMyLocal = localCourtId === c.id;
+  const sportColor = getSportColor(c.sport);
   const activeCount = roster.length;
-  const courtRuns = runs.filter((r) => r.courtId === court.id);
+  const courtRuns = runs.filter((r) => r.courtId === c.id);
   const todayStr = new Date().toDateString();
   const courtVisitsToday = plannedVisits.filter(
-    (v) => v.courtId === court.id && new Date(v.plannedAtIso).toDateString() === todayStr
+    (v) => v.courtId === c.id && new Date(v.plannedAtIso).toDateString() === todayStr
   );
   const topPad = Platform.OS === "web" ? 24 : top;
+  const distanceLabel =
+    c.distanceKm != null ? `${(c.distanceKm * 0.621371).toFixed(1)} MI` : null;
 
   const handleCheckIn = async () => {
     if (isCheckedIn) {
       await checkOut();
-    } else {
-      await checkIn(court.id);
-      if (Platform.OS !== "web") {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
+      return;
     }
+    await checkIn(c.id);
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    // Checking in commits you to this court — open the full experience.
+    if (modeRef.current === "peek") snapTo(SNAP_FULL);
+  };
+
+  const goTo = (path: string) => {
+    animateClosed();
+    router.push(path as never);
   };
 
   return (
-    <>
+    <Modal
+      visible
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={() => animateClosed()}
+    >
       <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <Pressable style={StyleSheet.absoluteFill} onPress={() => animateClosed()} />
       </Animated.View>
 
       <Animated.View
-        style={[styles.container, { transform: [{ translateY: slideAnim }] }]}
+        style={[styles.container, { transform: [{ translateY }] }]}
+        {...(mode === "peek" ? panResponder.panHandlers : {})}
       >
-        {/* ── Top bar ── */}
-        <View style={[styles.topBar, { paddingTop: topPad + 10 }]}>
+        {/* ── Grab bar (always draggable) ── */}
+        <View
+          style={[styles.topBar, mode === "full" && { paddingTop: topPad + 10 }]}
+          {...panResponder.panHandlers}
+        >
           <View style={styles.handle} />
-          <Pressable onPress={onClose} style={styles.closeBtn} hitSlop={16} testID="court-sheet-close">
-            <Text style={styles.closeBtnText}>✕</Text>
-          </Pressable>
+          {mode === "full" && (
+            <Pressable onPress={() => animateClosed()} style={styles.closeBtn} hitSlop={16} testID="court-sheet-close">
+              <Text style={styles.closeBtnText}>✕</Text>
+            </Pressable>
+          )}
         </View>
 
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 120 }}
-        >
-          {/* ── Court Hero (mirrors the home screen's local-court hero) ── */}
-          <View style={styles.heroCard}>
-            <View style={styles.heroTopRow}>
-              <View style={styles.sportTag}>
-                <View style={[styles.sportDot, { backgroundColor: sportColor }]} />
-                <Text style={[styles.sportText, { color: sportColor }]}>{court.sport}</Text>
+        {mode === "peek" ? (
+          /* ── PEEK: high-level card ── */
+          <View style={[styles.peekBody, { paddingBottom: (Platform.OS === "web" ? 24 : bottom) + 10 }]}>
+            <View style={styles.peekHeader}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <View style={styles.sportTag}>
+                  <View style={[styles.sportDot, { backgroundColor: sportColor }]} />
+                  <Text style={[styles.sportText, { color: sportColor }]}>{c.sport}</Text>
+                  {distanceLabel && <Text style={styles.peekDistance}> · {distanceLabel}</Text>}
+                </View>
+                <Text style={styles.peekName} numberOfLines={2}>{c.name.toUpperCase()}</Text>
               </View>
               {activeCount > 0 && (
                 <View style={styles.liveChip}>
                   <LivePulse size={4} color={Colors.black} style={{ marginRight: 4 }} />
-                  <Text style={styles.liveChipText}>{activeCount} ON COURT</Text>
+                  <Text style={styles.liveChipText}>LIVE</Text>
                 </View>
               )}
             </View>
 
-            <View style={[styles.courtAccentBar, { backgroundColor: sportColor }]} />
-            <Text style={styles.courtName}>{court.name.toUpperCase()}</Text>
-            <Text style={styles.courtAddress}>
-              {court.neighborhood}{court.city ? ` · ${court.city}` : ""}
-            </Text>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.tagsScroll}
-              contentContainerStyle={styles.tagsContent}
-            >
-              {isMyLocal && (
-                <View style={styles.myLocalTag}>
-                  <Text style={styles.myLocalTagText}>★ MY LOCAL</Text>
-                </View>
-              )}
-              {court.status === "community" && (
-                <View style={styles.communityTag}>
-                  <View style={styles.communityDot} />
-                  <Text style={styles.communityTagText}>COMMUNITY</Text>
-                </View>
-              )}
-              {court.status === "confirmed" && (
-                <View style={styles.confirmedTag}>
-                  <View style={styles.confirmedRing} />
-                  <Text style={styles.confirmedTagText}>CONFIRMED</Text>
-                </View>
-              )}
-              {court.surface != null && (
-                <View style={styles.tag}>
-                  <Text style={styles.tagText}>{court.surface}</Text>
-                </View>
-              )}
-              {court.lights && (
-                <View style={styles.tag}>
-                  <Text style={styles.tagText}>LIGHTS</Text>
-                </View>
-              )}
-              <View style={styles.tag}>
-                <Text style={styles.tagText}>
-                  {liveLocalCount} LOCAL{liveLocalCount !== 1 ? "S" : ""}
+            <View style={styles.peekStatsRow}>
+              <View style={styles.peekStat}>
+                <Text style={[styles.peekStatValue, activeCount > 0 && { color: Colors.accent }]}>
+                  {activeCount}
                 </Text>
+                <Text style={styles.peekStatLabel}>ON COURT</Text>
               </View>
-            </ScrollView>
-          </View>
-
-          {/* ── Stats ── */}
-          <View style={styles.statsRow}>
-            <StatBlock value={activeCount} label="On Court" />
-            <View style={styles.statDiv} />
-            <StatBlock value={court.ratingCount ?? 0} label="Visits" />
-            <View style={styles.statDiv} />
-            <StatBlock value={liveLocalCount} label="Locals" />
-          </View>
-
-          {/* ── Who's Here ── */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>WHO'S HERE</Text>
-              {activeCount > 0 && <Text style={styles.sectionAccent}>{activeCount} ACTIVE</Text>}
+              <View style={styles.statDiv} />
+              <View style={styles.peekStat}>
+                <Text style={styles.peekStatValue}>{liveLocalCount}</Text>
+                <Text style={styles.peekStatLabel}>LOCALS</Text>
+              </View>
+              <View style={styles.statDiv} />
+              <View style={styles.peekStat}>
+                <Text style={styles.peekStatValue}>{c.ratingCount ?? 0}</Text>
+                <Text style={styles.peekStatLabel}>VISITS</Text>
+              </View>
             </View>
-            {activeCount === 0 ? (
-              <Text style={styles.emptyText}>NO PLAYERS CHECKED IN YET</Text>
-            ) : (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.rosterRow}
-              >
-                {roster.map((p) => {
-                  const isFriendStatus = isFriend(p.id);
-                  return (
-                    <AnimatedEntry key={p.id}>
-                      <Pressable
-                        style={styles.rosterItem}
-                        onPress={() => {
-                          onClose();
-                          router.push(`/player/${p.id}`);
-                        }}
-                      >
-                        <View>
-                          <PlayerAvatar initials={p.avatar} size={40} />
-                          {isFriendStatus && <View style={styles.friendDot} />}
-                        </View>
-                        <Text style={styles.rosterName}>{p.name.split(" ")[0].toUpperCase()}</Text>
-                        <Text style={styles.rosterElo}>{p.elo}</Text>
-                      </Pressable>
-                    </AnimatedEntry>
-                  );
-                })}
-              </ScrollView>
-            )}
-          </View>
 
-          {/* ── Pulling Up Today (planned presence) ── */}
-          {courtVisitsToday.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>PULLING UP TODAY</Text>
-                <Text style={styles.sectionAccent}>{courtVisitsToday.length} COMING</Text>
-              </View>
-              {courtVisitsToday.map((visit) => (
-                <Pressable
-                  key={visit.id}
-                  style={styles.visitRow}
-                  onPress={() => {
-                    onClose();
-                    router.push(`/player/${visit.userId}`);
-                  }}
-                >
-                  <Text style={styles.visitTime}>{visit.time}</Text>
-                  <PlayerAvatar initials={visit.player.avatar} size={26} />
-                  <Text style={styles.visitName}>{visit.player.name.split(" ")[0].toUpperCase()}</Text>
-                  {visit.note != null && (
-                    <Text style={styles.visitNote} numberOfLines={1}>{visit.note}</Text>
+            <BrutalistButton
+              label={isCheckedIn ? "CHECKED IN ✓" : "CHECK IN"}
+              onPress={handleCheckIn}
+              variant={isCheckedIn ? "outline" : "accent"}
+              testID="check-in-btn"
+            />
+            <Pressable onPress={() => snapTo(SNAP_FULL)} hitSlop={10} style={styles.peekMore}>
+              <Text style={styles.peekMoreText}>SWIPE UP FOR DETAILS</Text>
+              <Text style={styles.peekMoreArrow}>↑</Text>
+            </Pressable>
+          </View>
+        ) : (
+          /* ── FULL: the whole court experience ── */
+          <>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 140 }}
+            >
+              {/* ── Court Hero (mirrors the home screen's local-court hero) ── */}
+              <View style={styles.heroCard}>
+                <View style={styles.heroTopRow}>
+                  <View style={styles.sportTag}>
+                    <View style={[styles.sportDot, { backgroundColor: sportColor }]} />
+                    <Text style={[styles.sportText, { color: sportColor }]}>{c.sport}</Text>
+                    {distanceLabel && <Text style={styles.peekDistance}> · {distanceLabel}</Text>}
+                  </View>
+                  {activeCount > 0 && (
+                    <View style={styles.liveChip}>
+                      <LivePulse size={4} color={Colors.black} style={{ marginRight: 4 }} />
+                      <Text style={styles.liveChipText}>{activeCount} ON COURT</Text>
+                    </View>
                   )}
-                </Pressable>
-              ))}
-            </View>
-          )}
+                </View>
 
-          {/* ── Next Run at this court ── */}
-          {courtRuns.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>NEXT RUN</Text>
-              </View>
-              {courtRuns.slice(0, 2).map((run) => (
-                <Pressable
-                  key={run.id}
-                  style={({ pressed }) => [styles.runRow, pressed && styles.pressed]}
-                  onPress={() => {
-                    onClose();
-                    router.push(`/run/${run.id}`);
-                  }}
+                <View style={[styles.courtAccentBar, { backgroundColor: sportColor }]} />
+                <Text style={styles.courtName}>{c.name.toUpperCase()}</Text>
+                <Text style={styles.courtAddress}>
+                  {c.neighborhood}{c.city ? ` · ${c.city}` : ""}
+                </Text>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.tagsScroll}
+                  contentContainerStyle={styles.tagsContent}
                 >
-                  <View style={styles.runRowLeft}>
-                    <Text style={styles.runTitle}>{run.title}</Text>
-                    <Text style={styles.runMeta}>
-                      {run.date} · {run.time}
+                  {isMyLocal && (
+                    <View style={styles.myLocalTag}>
+                      <Text style={styles.myLocalTagText}>★ MY LOCAL</Text>
+                    </View>
+                  )}
+                  {c.status === "community" && (
+                    <View style={styles.communityTag}>
+                      <View style={styles.communityDot} />
+                      <Text style={styles.communityTagText}>COMMUNITY</Text>
+                    </View>
+                  )}
+                  {c.status === "confirmed" && (
+                    <View style={styles.confirmedTag}>
+                      <View style={styles.confirmedRing} />
+                      <Text style={styles.confirmedTagText}>CONFIRMED</Text>
+                    </View>
+                  )}
+                  {c.surface != null && (
+                    <View style={styles.tag}>
+                      <Text style={styles.tagText}>{c.surface}</Text>
+                    </View>
+                  )}
+                  {c.lights && (
+                    <View style={styles.tag}>
+                      <Text style={styles.tagText}>LIGHTS</Text>
+                    </View>
+                  )}
+                  <View style={styles.tag}>
+                    <Text style={styles.tagText}>
+                      {liveLocalCount} LOCAL{liveLocalCount !== 1 ? "S" : ""}
                     </Text>
                   </View>
-                  <Text style={styles.runCount}>
-                    {run.participants.length}/{run.maxPlayers}
-                  </Text>
-                </Pressable>
-              ))}
+                </ScrollView>
+              </View>
+
+              {/* ── Stats ── */}
+              <View style={styles.statsRow}>
+                <StatBlock value={activeCount} label="On Court" />
+                <View style={styles.statDiv} />
+                <StatBlock value={c.ratingCount ?? 0} label="Visits" />
+                <View style={styles.statDiv} />
+                <StatBlock value={liveLocalCount} label="Locals" />
+              </View>
+
+              {/* ── Who's Here ── */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>WHO'S HERE</Text>
+                  {activeCount > 0 && <Text style={styles.sectionAccent}>{activeCount} ACTIVE</Text>}
+                </View>
+                {activeCount === 0 ? (
+                  <Text style={styles.emptyText}>NO PLAYERS CHECKED IN YET</Text>
+                ) : (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.rosterRow}
+                  >
+                    {roster.map((p) => {
+                      const isFriendStatus = isFriend(p.id);
+                      return (
+                        <AnimatedEntry key={p.id}>
+                          <Pressable
+                            style={styles.rosterItem}
+                            onPress={() => goTo(`/player/${p.id}`)}
+                          >
+                            <View>
+                              <PlayerAvatar initials={p.avatar} size={40} />
+                              {isFriendStatus && <View style={styles.friendDot} />}
+                            </View>
+                            <Text style={styles.rosterName}>{p.name.split(" ")[0].toUpperCase()}</Text>
+                            <Text style={styles.rosterElo}>{p.elo}</Text>
+                          </Pressable>
+                        </AnimatedEntry>
+                      );
+                    })}
+                  </ScrollView>
+                )}
+              </View>
+
+              {/* ── Pulling Up Today (planned presence) ── */}
+              {courtVisitsToday.length > 0 && (
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>PULLING UP TODAY</Text>
+                    <Text style={styles.sectionAccent}>{courtVisitsToday.length} COMING</Text>
+                  </View>
+                  {courtVisitsToday.map((visit) => (
+                    <Pressable
+                      key={visit.id}
+                      style={styles.visitRow}
+                      onPress={() => goTo(`/player/${visit.userId}`)}
+                    >
+                      <Text style={styles.visitTime}>{visit.time}</Text>
+                      <PlayerAvatar initials={visit.player.avatar} size={26} />
+                      <Text style={styles.visitName}>{visit.player.name.split(" ")[0].toUpperCase()}</Text>
+                      {visit.note != null && (
+                        <Text style={styles.visitNote} numberOfLines={1}>{visit.note}</Text>
+                      )}
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+
+              {/* ── Next Run at this court ── */}
+              {courtRuns.length > 0 && (
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>NEXT RUN</Text>
+                  </View>
+                  {courtRuns.slice(0, 2).map((run) => (
+                    <Pressable
+                      key={run.id}
+                      style={({ pressed }) => [styles.runRow, pressed && styles.pressed]}
+                      onPress={() => goTo(`/run/${run.id}`)}
+                    >
+                      <View style={styles.runRowLeft}>
+                        <Text style={styles.runTitle}>{run.title}</Text>
+                        <Text style={styles.runMeta}>
+                          {run.date} · {run.time}
+                        </Text>
+                      </View>
+                      <Text style={styles.runCount}>
+                        {run.participants.length}/{run.maxPlayers}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+
+              {/* ── Full profile link ── */}
+              <Pressable
+                style={({ pressed }) => [styles.profileLink, pressed && styles.pressed]}
+                onPress={() => goTo(`/court/${c.id}`)}
+              >
+                <Text style={styles.profileLinkText}>FULL COURT PROFILE</Text>
+                <Text style={styles.profileLinkArrow}>→</Text>
+              </Pressable>
+            </ScrollView>
+
+            {/* ── Pinned Actions ── */}
+            <View style={[styles.actions, { paddingBottom: (Platform.OS === "web" ? 24 : bottom) + 12 }]}>
+              <BrutalistButton
+                label={isCheckedIn ? "CHECKED IN ✓" : "CHECK IN"}
+                onPress={handleCheckIn}
+                variant={isCheckedIn ? "outline" : "accent"}
+                style={styles.checkInBtn}
+                testID="check-in-btn"
+              />
+              <BrutalistButton
+                label={isMyLocal ? "MY LOCAL ★" : "SET LOCAL"}
+                onPress={() => setLocalCourt(isMyLocal ? null : c.id, isMyLocal ? undefined : c)}
+                variant={isMyLocal ? "accent" : "dark"}
+                style={styles.localBtn}
+              />
             </View>
-          )}
-
-          {/* ── Full profile link ── */}
-          <Pressable
-            style={({ pressed }) => [styles.profileLink, pressed && styles.pressed]}
-            onPress={() => {
-              onClose();
-              router.push(`/court/${court.id}`);
-            }}
-          >
-            <Text style={styles.profileLinkText}>FULL COURT PROFILE</Text>
-            <Text style={styles.profileLinkArrow}>→</Text>
-          </Pressable>
-        </ScrollView>
-
-        {/* ── Pinned Actions ── */}
-        <View style={[styles.actions, { paddingBottom: (Platform.OS === "web" ? 24 : bottom) + 12 }]}>
-          <BrutalistButton
-            label={isCheckedIn ? "CHECKED IN ✓" : "CHECK IN"}
-            onPress={handleCheckIn}
-            variant={isCheckedIn ? "outline" : "accent"}
-            style={styles.checkInBtn}
-            testID="check-in-btn"
-          />
-          <BrutalistButton
-            label={isMyLocal ? "MY LOCAL ★" : "SET LOCAL"}
-            onPress={() => setLocalCourt(isMyLocal ? null : court.id, isMyLocal ? undefined : court)}
-            variant={isMyLocal ? "accent" : "dark"}
-            style={styles.localBtn}
-          />
-        </View>
+          </>
+        )}
       </Animated.View>
-    </>
+    </Modal>
   );
 }
 
@@ -326,25 +485,26 @@ const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.45)",
-    zIndex: 99,
   },
-  // Full-screen takeover — the sheet covers the whole screen when open.
+  // Full-screen-height sheet; translateY positions it at peek/full/closed.
   container: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: Colors.background,
-    zIndex: 100,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
   },
   topBar: {
     backgroundColor: Colors.surface,
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,
+    paddingTop: 10,
     paddingBottom: 8,
     alignItems: "center",
   },
   handle: {
     width: 36,
-    height: 3,
-    backgroundColor: Colors.border,
+    height: 4,
+    backgroundColor: Colors.muted,
     borderRadius: 2,
   },
   closeBtn: {
@@ -357,6 +517,73 @@ const styles = StyleSheet.create({
     fontFamily: Typography.bodyBold,
     fontSize: 16,
     color: Colors.muted,
+  },
+
+  // ── Peek ──
+  peekBody: {
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    gap: 14,
+  },
+  peekHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+  peekName: {
+    fontFamily: Typography.heading,
+    fontSize: 24,
+    color: Colors.white,
+    lineHeight: 28,
+    letterSpacing: 0.5,
+    marginTop: 6,
+  },
+  peekDistance: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 10,
+    color: Colors.muted,
+    letterSpacing: 1,
+  },
+  peekStatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.surface,
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+    borderRadius: Radius.xs,
+    paddingVertical: 12,
+  },
+  peekStat: { flex: 1, alignItems: "center" },
+  peekStatValue: {
+    fontFamily: Typography.heading,
+    fontSize: 26,
+    color: Colors.text,
+    lineHeight: 28,
+  },
+  peekStatLabel: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 9,
+    color: Colors.muted,
+    letterSpacing: 1.5,
+    marginTop: 2,
+  },
+  peekMore: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 4,
+  },
+  peekMoreText: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 10,
+    color: Colors.muted,
+    letterSpacing: 2,
+  },
+  peekMoreArrow: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 12,
+    color: Colors.accent,
   },
 
   // ── Hero (matches HomeScreen's hero card idiom) ──

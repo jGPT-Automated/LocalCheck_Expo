@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { BrutalistButton } from "@/components/BrutalistButton";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors } from "@/constants/colors";
 import {
@@ -314,6 +315,15 @@ export default function PlayerProfileScreen() {
               {isFriendStatus ? "REMOVE FRIEND" : "ADD FRIEND"}
             </Text>
           </Pressable>
+          <BrutalistButton
+            label="LOG GAME"
+            variant="accent"
+            onPress={() =>
+              router.push(`/(tabs)/compete?tab=log&opponentId=${player.id}`)
+            }
+            style={styles.logGameBtn}
+            testID="log-game-btn"
+          />
         </View>
       </ScrollView>
 
@@ -563,10 +573,13 @@ const styles = StyleSheet.create({
 
   // Action Buttons
   actionRow: {
+    flexDirection: "row",
+    gap: 12,
     paddingHorizontal: 20,
     paddingVertical: 20,
   },
   actionBtn: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -575,6 +588,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     backgroundColor: Colors.surface,
+  },
+  logGameBtn: {
+    flex: 1,
   },
   actionBtnDanger: {
     borderColor: Colors.loss,

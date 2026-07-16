@@ -46,7 +46,9 @@ export default function CompeteScreen() {
 
   // Deep-link support: /(tabs)/compete?tab=log&courtId=... opens Log Game
   // pre-scoped to a court (used by the run screen's LOG A GAME button).
-  const params = useLocalSearchParams<{ tab?: string; courtId?: string }>();
+  // ?opponentId=... additionally preselects the opponent (used by the
+  // player profile's LOG GAME button).
+  const params = useLocalSearchParams<{ tab?: string; courtId?: string; opponentId?: string }>();
 
   const [tab, setTab] = useState<Tab>(params.tab === "log" ? "LOG GAME" : "LEADERBOARD");
   const [scope, setScope] = useState<Scope>("LOCAL");
@@ -80,6 +82,13 @@ export default function CompeteScreen() {
       .finally(() => { if (mounted) setLeaderboardLoading(false); });
     return () => { mounted = false; };
   }, [scope, sportFilter, localCourtId, leaderboardRefreshKey]);
+
+  // Opponent preselect (deep link): resolve only if the player exists in the
+  // loaded player list; otherwise the picker stays empty as usual.
+  const preselectedOpponent =
+    typeof params.opponentId === "string"
+      ? allPlayers.find((p) => p.id === params.opponentId) ?? null
+      : null;
 
   const myRank = allPlayers.findIndex((p) => p.id === currentUser.id) + 1;
   const amIVisible = visibility === "public" && isLocalPlus;
@@ -148,6 +157,7 @@ export default function CompeteScreen() {
           bottom={bottom}
           preferredSport={preferredSport}
           preferredCourtId={(typeof params.courtId === "string" ? params.courtId : null) ?? preferredCourtId}
+          preselectedOpponent={preselectedOpponent}
           localCourtId={localCourtId}
           onLogged={() => setLeaderboardRefreshKey((k) => k + 1)}
         />
@@ -334,6 +344,7 @@ function LogGameView({
   bottom,
   preferredSport,
   preferredCourtId,
+  preselectedOpponent,
   localCourtId,
   onLogged,
 }: {
@@ -342,6 +353,7 @@ function LogGameView({
   bottom: number;
   preferredSport: CourtSport | null;
   preferredCourtId: string | null;
+  preselectedOpponent: Player | null;
   localCourtId: string | null;
   onLogged: () => void;
 }) {
@@ -367,6 +379,20 @@ function LogGameView({
   const [opponentQuery, setOpponentQuery] = useState("");
   const [opponentSuggestions, setOpponentSuggestions] = useState<Player[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  // Apply the deep-linked opponent once it resolves from the loaded player
+  // list. Never clobbers a manually chosen (or cleared) opponent.
+  const appliedOpponentIdRef = React.useRef<string | null>(null);
+  useEffect(() => {
+    if (!preselectedOpponent) return;
+    if (appliedOpponentIdRef.current === preselectedOpponent.id) return;
+    appliedOpponentIdRef.current = preselectedOpponent.id;
+    setForm((f) =>
+      f.opponentId
+        ? f
+        : { ...f, opponentName: preselectedOpponent.name, opponentId: preselectedOpponent.id }
+    );
+  }, [preselectedOpponent]);
 
   const myScoreNum = Number(form.myScore);
   const theirScoreNum = Number(form.theirScore);
@@ -481,9 +507,12 @@ function LogGameView({
     <ScrollView
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{
-        paddingBottom: Platform.OS === "web" ? 84 : bottom + 100,
         padding: 20,
         gap: 20,
+        // Must come AFTER `padding` (shorthand would reset it to 20) so the
+        // submit button clears the bottom tab bar: 84px fixed bar on web
+        // (50 + 34), safe-area inset + bar height on native. +20 breathing room.
+        paddingBottom: 20 + (Platform.OS === "web" ? 84 : bottom + 80),
       }}
       keyboardShouldPersistTaps="handled"
     >

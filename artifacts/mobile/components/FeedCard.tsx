@@ -9,10 +9,12 @@ import { useApp } from "@/context/AppContext";
 import { PlayerAvatar } from "./PlayerAvatar";
 
 const FEED_TYPE_LABELS: Record<FeedItem["type"], string> = {
-  checkin: "Check-in",
-  run_result: "Result",
-  new_court: "New Court",
-  run_started: "Run",
+  checkin: "CHECKED IN",
+  checkout: "CHECKED OUT",
+  game_result: "GAME",
+  run_result: "RESULT",
+  new_court: "NEW COURT",
+  run_started: "RUN",
 };
 
 interface FeedCardProps {
@@ -38,6 +40,24 @@ export function FeedCard({ item }: FeedCardProps) {
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+
+  // For game results, tint the winner's name with Colors.win.
+  const renderMessage = (style: object) => {
+    if (item.type === "game_result" && item.winnerName) {
+      const idx = messageText.toUpperCase().indexOf(item.winnerName.toUpperCase());
+      if (idx >= 0) {
+        const end = idx + item.winnerName.length;
+        return (
+          <Text style={style}>
+            {messageText.slice(0, idx)}
+            <Text style={{ color: Colors.win }}>{messageText.slice(idx, end)}</Text>
+            {messageText.slice(end)}
+          </Text>
+        );
+      }
+    }
+    return <Text style={style}>{messageText}</Text>;
+  };
 
   return (
     <View style={styles.container}>
@@ -80,7 +100,7 @@ export function FeedCard({ item }: FeedCardProps) {
                   </View>
                 )}
               </View>
-              <Text style={styles.messageText}>{messageText}</Text>
+              {renderMessage(styles.messageText)}
               {item.courtName && (
                 <Text style={styles.courtRef}>@ {item.courtName.replace(/\s+/g, " ")
                   .split(" ")

@@ -140,7 +140,8 @@ export async function fetchNearbyCourts(
 
     return ((data as unknown) as SupabaseCourtRow[])
       .map(mapRow)
-      .sort((a, b) => haversineKm(lat, lng, a.latitude, a.longitude) - haversineKm(lat, lng, b.latitude, b.longitude))
+      .map((c) => ({ ...c, distanceKm: haversineKm(lat, lng, c.latitude, c.longitude) }))
+      .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
       .slice(0, limit);
   } catch {
     return [];

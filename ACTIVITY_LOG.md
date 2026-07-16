@@ -314,3 +314,33 @@ Platform-specific code uses `Platform.OS === "web"` checks rather than trying to
 3. MVP push: live court presence everywhere (Realtime + keyed queries),
    Explore court sheet rebuilt to spec, game loop verified end-to-end,
    notification scaffold, Me-page activity. Map redesign in parallel thread.
+
+---
+
+## Session 5 — MVP burn-down sprint 1: drawer, live counts everywhere, feed, log-game UX
+
+**Date:** July 16, 2026
+
+- **docs/TASKS.md created** — the active MVP burn-down (T1–T16, prioritized from
+  Jesse's direction). Statuses live there; this log carries the narrative.
+- **T2 drawer**: CourtBottomSheet rebuilt as a gesture drawer — PanResponder,
+  snap points peek(~40%)/full/closed, interruptible springs with velocity
+  handoff, check-in-from-peek expands to full, Modal render so actions can't
+  hide behind the tab bar. Peek shows name/sport/distance (new
+  `Court.distanceKm` from fetchNearbyCourts GPS math), live ON COURT/LOCALS/
+  VISITS, CHECK IN, swipe-up affordance.
+- **T3**: Log Game submit hidden behind tab bar — root cause was the `padding`
+  shorthand ordered after `paddingBottom` (resets it); now tab-bar-aware.
+- **T4**: MapScreen + MapScreen.web markers/cards/list wired to live
+  `useCourtCounts` overlays (same pattern as Explore).
+- **T6**: LOG GAME button on player profiles; deep link
+  `/(tabs)/compete?tab=log&opponentId=<id>` preselects the opponent.
+- **T8**: feed now shows CHECKED OUT and GAME results ("X DEF. Y 21–15",
+  winner tinted Colors.win) alongside check-ins; fixed the no-op feed sort;
+  prefixed feed IDs to avoid duplicate React keys.
+- Executed with 3 scoped subagents (T3+T6, T4, T8) in parallel while the
+  drawer rebuild (T2) was done directly. Combined tree typechecks clean.
+- **Coordination note:** a parallel session created
+  `feature/mapbox-explore-redesign` and switched this checkout onto it; this
+  sprint's commit lands on that branch AND is cherry-picked to main (temp
+  worktree) so OTA ships without disturbing the map work.

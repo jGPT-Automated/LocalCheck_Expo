@@ -56,6 +56,9 @@ export interface Court {
   lights?: boolean;
   covered?: boolean;
   imageUri?: string;
+  // Set by fetchNearbyCourts from device GPS at fetch time; absent on search
+  // results and direct fetches. Render nothing when absent.
+  distanceKm?: number;
   // Not stored in the live courts table — only set for user-added courts that
   // went through the in-app verification flow. Render nothing when absent.
   status?: CourtStatus;
@@ -93,7 +96,7 @@ export interface GameRun {
 // BACKEND NOTE: GET /api/v1/feed  |  GET /api/v1/courts/:id/feed
 export interface FeedItem {
   id: string;
-  type: "checkin" | "run_result" | "new_court" | "run_started";
+  type: "checkin" | "checkout" | "game_result" | "run_result" | "new_court" | "run_started";
   playerId: string;
   playerName: string;
   courtName?: string;
@@ -101,6 +104,8 @@ export interface FeedItem {
   runId?: string;
   sport?: CourtSport;
   message: string;
+  /** Winner display name for game_result items — used to tint the name with Colors.win. */
+  winnerName?: string;
   timestamp: string;
   hypeCount: number;
   imageUri?: string;

@@ -17,6 +17,7 @@ import { Colors } from "@/constants/colors";
 import { Court, getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { useCourtCounts } from "@/context/CourtPresenceContext";
 
 declare global {
   interface Window {
@@ -258,13 +259,38 @@ function MapboxMap({
 }
 
 export function MapScreen() {
-  const { courts, checkedInCourtId } = useApp();
+  const { courts: rawCourts, checkedInCourtId } = useApp();
   const { top } = useSafeAreaInsets();
   const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
   const [view, setView] = useState<"MAP" | "LIST">("MAP");
   const [showAddModal, setShowAddModal] = useState(false);
   const topPad = 67;
+
+  // Overlay live counts from the shared presence store onto the fetched
+  // snapshots, so markers/cards update in real time when anyone checks in/out
+  // or switches local court — the snapshot alone goes stale the moment it lands.
+  const courtIds = React.useMemo(() => rawCourts.map((c) => c.id), [rawCourts]);
+  const liveCounts = useCourtCounts(courtIds);
+  const courts = React.useMemo(
+    () =>
+      rawCourts.map((c) => {
+        const live = liveCounts[c.id];
+        return live
+          ? { ...c, activeCount: live.activeCount, localCount: live.localCount }
+          : c;
+      }),
+    [rawCourts, liveCounts]
+  );
+
   const activeCourts = courts.filter((c) => c.activeCount > 0);
+
+  // The bottom sheet holds a snapshot from when the marker was clicked —
+  // overlay live counts onto it too so the selected-court card stays current.
+  const selectedLive = selectedCourt ? liveCounts[selectedCourt.id] : undefined;
+  const selectedCourtLive =
+    selectedCourt && selectedLive
+      ? { ...selectedCourt, activeCount: selectedLive.activeCount, localCount: selectedLive.localCount }
+      : selectedCourt;
 
   return (
     <View style={styles.container}>
@@ -344,7 +370,7 @@ export function MapScreen() {
       )}
 
       {view === "MAP" && (
-        <CourtBottomSheet court={selectedCourt} onClose={() => setSelectedCourt(null)} />
+        <CourtBottomSheet court={selectedCourtLive} onClose={() => setSelectedCourt(null)} />
       )}
 
       <AddCourtModal
