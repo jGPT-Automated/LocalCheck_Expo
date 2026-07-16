@@ -18,10 +18,10 @@ import { StatBlock } from "@/components/StatBlock";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, Player, getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
+import { AnimatedEntry } from "@/components/AnimatedEntry";
 import { useApp } from "@/context/AppContext";
-import { fetchActiveCheckIns } from "@/services/checkInService";
+import { usePresence } from "@/context/CourtPresenceContext";
 import { fetchCourtById } from "@/services/courtService";
-import { fetchLocalCount } from "@/services/profileService";
 
 // BACKEND NOTE: court detail → GET /api/v1/courts/:id
 // Roster (live) → GET /api/v1/courts/:id/roster
@@ -41,8 +41,9 @@ export default function CourtProfileScreen() {
     courts.find((c) => c.id === id) ?? (ctxLocalCourt?.id === id ? ctxLocalCourt : null)
   );
   const [fetchError, setFetchError] = React.useState(false);
-  const [activePlayers, setActivePlayers] = React.useState<Player[]>([]);
-  const [localCount, setLocalCount] = React.useState(0);
+  // Live roster + locals from the shared presence store — updates in real
+  // time when any user checks in/out or switches their local court.
+  const { roster: activePlayers, localCount } = usePresence(id ? String(id) : null);
 
   React.useEffect(() => {
     if (court) return; // already resolved
@@ -51,16 +52,6 @@ export default function CourtProfileScreen() {
       else setFetchError(true);
     });
   }, [id]);
-
-  React.useEffect(() => {
-    if (!id) return;
-    Promise.all([fetchActiveCheckIns(String(id)), fetchLocalCount(String(id))]).then(
-      ([players, count]) => {
-        setActivePlayers(players);
-        setLocalCount(count);
-      }
-    );
-  }, [id, checkedInCourtId, localCourtId]);
 
   const courtRuns = runs.filter((r) => r.courtId === id);
   const isCheckedIn = checkedInCourtId === id;
@@ -149,13 +140,15 @@ export default function CourtProfileScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.rosterRow}>
                 {activePlayers.map((player) => (
-                  <View key={player.id} style={styles.rosterItem}>
-                    <PlayerAvatar initials={player.avatar} size={44} />
-                    <Text style={styles.rosterName}>
-                      {player.name.split(" ")[0].toUpperCase()}
-                    </Text>
-                    <Text style={styles.rosterElo}>{player.elo}</Text>
-                  </View>
+                  <AnimatedEntry key={player.id}>
+                    <View style={styles.rosterItem}>
+                      <PlayerAvatar initials={player.avatar} size={44} />
+                      <Text style={styles.rosterName}>
+                        {player.name.split(" ")[0].toUpperCase()}
+                      </Text>
+                      <Text style={styles.rosterElo}>{player.elo}</Text>
+                    </View>
+                  </AnimatedEntry>
                 ))}
               </View>
             </ScrollView>

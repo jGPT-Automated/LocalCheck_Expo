@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 
+import { AnimatedEntry } from "@/components/AnimatedEntry";
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { LivePulse } from "@/components/LivePulse";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -21,6 +22,7 @@ import { getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
+import { usePresence } from "@/context/CourtPresenceContext";
 
 
 function getSportShort(sport?: string | null): string {
@@ -33,7 +35,10 @@ function getSportShort(sport?: string | null): string {
 const COLLAPSE_THRESHOLD = 100;
 
 export function HomeScreen() {
-  const { localCourt, localCourtId, checkedInCourtId, checkIn, checkOut, feed, runs, isFriend, activePlayers, localPlayers, isLoading, refreshCourtState, refreshCheckedIn, refreshFeed } = useApp();
+  const { localCourt, localCourtId, checkedInCourtId, checkIn, checkOut, feed, runs, isFriend, isLoading, refreshCourtState, refreshCheckedIn, refreshFeed } = useApp();
+  // Live who's-here + locals for the local court from the shared presence
+  // store — realtime events from other users update this without any refresh.
+  const { roster: activePlayers, localCount } = usePresence(localCourtId);
   const { user } = useAuth();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
@@ -61,8 +66,9 @@ export function HomeScreen() {
   const sportColor = getSportColor(localCourt.sport);
   const sportShort = getSportShort(localCourt.sport);
 
-  const rawPlayers = activePlayers;
-  const sortedPlayers = rawPlayers
+  // Copy before sorting — sorting the shared store array in place during
+  // render mutates state other screens read.
+  const sortedPlayers = [...activePlayers]
     .sort((a, b) => {
       const aFriend = isFriend(a.id) ? 1 : 0;
       const bFriend = isFriend(b.id) ? 1 : 0;
@@ -74,7 +80,6 @@ export function HomeScreen() {
   const overflowCount = Math.max(0, activeCount - sortedPlayers.length);
   const courtRuns = runs.filter((r) => r.courtId === localCourt.id);
   const courtFeed = feed.filter((f) => f.courtId === localCourt.id).slice(0, 5);
-  const localCount = localPlayers.length;
 
   const handleCheckIn = async () => {
     if (Platform.OS !== "web") {
@@ -248,25 +253,26 @@ export function HomeScreen() {
               {sortedPlayers.map((p) => {
                 const isFriendStatus = isFriend(p.id);
                 return (
-                  <Pressable
-                    key={p.id}
-                    style={styles.rosterItem}
-                    onPress={() => router.push(`/player/${p.id}`)}
-                  >
-                    <View>
-                      <PlayerAvatar initials={p.avatar} size={40} />
+                  <AnimatedEntry key={p.id}>
+                    <Pressable
+                      style={styles.rosterItem}
+                      onPress={() => router.push(`/player/${p.id}`)}
+                    >
+                      <View>
+                        <PlayerAvatar initials={p.avatar} size={40} />
+                        {isFriendStatus && (
+                          <View style={styles.friendDot} />
+                        )}
+                      </View>
+                      <Text style={[styles.rosterName, isFriendStatus && styles.rosterNameFriend]}>
+                        {p.avatar}
+                      </Text>
+                      <Text style={styles.rosterElo}>{p.elo}</Text>
                       {isFriendStatus && (
-                        <View style={styles.friendDot} />
+                        <Text style={styles.friendLabel}>FRIEND</Text>
                       )}
-                    </View>
-                    <Text style={[styles.rosterName, isFriendStatus && styles.rosterNameFriend]}>
-                      {p.avatar}
-                    </Text>
-                    <Text style={styles.rosterElo}>{p.elo}</Text>
-                    {isFriendStatus && (
-                      <Text style={styles.friendLabel}>FRIEND</Text>
-                    )}
-                  </Pressable>
+                    </Pressable>
+                  </AnimatedEntry>
                 );
               })}
               {overflowCount > 0 && (

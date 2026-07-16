@@ -22,6 +22,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Colors } from "@/constants/colors";
 import { AppProvider } from "@/context/AppContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { CourtPresenceProvider } from "@/context/CourtPresenceContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -99,9 +100,11 @@ export default function RootLayout() {
           <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
               <AuthProvider>
-                <AppProvider>
-                  <RootLayoutNav />
-                </AppProvider>
+                <CourtPresenceProvider>
+                  <AppProvider>
+                    <RootLayoutNav />
+                  </AppProvider>
+                </CourtPresenceProvider>
               </AuthProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>

@@ -17,7 +17,8 @@ import { Colors, Radius } from "@/constants/colors";
 import { Court, getSportColor, Player } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
-import { fetchActiveCheckIns } from "@/services/checkInService";
+import { usePresence } from "@/context/CourtPresenceContext";
+import { AnimatedEntry } from "./AnimatedEntry";
 import { BrutalistButton } from "./BrutalistButton";
 import { LivePulse } from "./LivePulse";
 import { PlayerAvatar } from "./PlayerAvatar";
@@ -39,21 +40,9 @@ const SCREEN_HEIGHT = Dimensions.get("window").height;
 export function CourtBottomSheet({ court, onClose }: CourtBottomSheetProps) {
   const { checkIn, checkedInCourtId, checkOut, setLocalCourt, localCourtId, runs, plannedVisits, isFriend } = useApp();
   const { top, bottom } = useSafeAreaInsets();
-  // Real live roster for this court — never render placeholder players
-  const [roster, setRoster] = useState<Player[]>([]);
-  useEffect(() => {
-    let live = true;
-    if (court?.id) {
-      fetchActiveCheckIns(court.id).then((players) => {
-        if (live) setRoster(players);
-      });
-    } else {
-      setRoster([]);
-    }
-    return () => {
-      live = false;
-    };
-  }, [court?.id, checkedInCourtId]);
+  // Live roster + locals from the shared presence store: realtime events
+  // (any user checking in/out, locals changing) update this automatically.
+  const { roster, localCount: liveLocalCount } = usePresence(court?.id);
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
 
@@ -187,13 +176,11 @@ export function CourtBottomSheet({ court, onClose }: CourtBottomSheetProps) {
                   <Text style={styles.tagText}>LIGHTS</Text>
                 </View>
               )}
-              {court.localCount != null && (
-                <View style={styles.tag}>
-                  <Text style={styles.tagText}>
-                    {court.localCount} LOCAL{court.localCount !== 1 ? "S" : ""}
-                  </Text>
-                </View>
-              )}
+              <View style={styles.tag}>
+                <Text style={styles.tagText}>
+                  {liveLocalCount} LOCAL{liveLocalCount !== 1 ? "S" : ""}
+                </Text>
+              </View>
             </ScrollView>
           </View>
 
@@ -203,7 +190,7 @@ export function CourtBottomSheet({ court, onClose }: CourtBottomSheetProps) {
             <View style={styles.statDiv} />
             <StatBlock value={court.ratingCount ?? 0} label="Visits" />
             <View style={styles.statDiv} />
-            <StatBlock value={court.localCount ?? 0} label="Locals" />
+            <StatBlock value={liveLocalCount} label="Locals" />
           </View>
 
           {/* ── Who's Here ── */}
@@ -223,21 +210,22 @@ export function CourtBottomSheet({ court, onClose }: CourtBottomSheetProps) {
                 {roster.map((p) => {
                   const isFriendStatus = isFriend(p.id);
                   return (
-                    <Pressable
-                      key={p.id}
-                      style={styles.rosterItem}
-                      onPress={() => {
-                        onClose();
-                        router.push(`/player/${p.id}`);
-                      }}
-                    >
-                      <View>
-                        <PlayerAvatar initials={p.avatar} size={40} />
-                        {isFriendStatus && <View style={styles.friendDot} />}
-                      </View>
-                      <Text style={styles.rosterName}>{p.name.split(" ")[0].toUpperCase()}</Text>
-                      <Text style={styles.rosterElo}>{p.elo}</Text>
-                    </Pressable>
+                    <AnimatedEntry key={p.id}>
+                      <Pressable
+                        style={styles.rosterItem}
+                        onPress={() => {
+                          onClose();
+                          router.push(`/player/${p.id}`);
+                        }}
+                      >
+                        <View>
+                          <PlayerAvatar initials={p.avatar} size={40} />
+                          {isFriendStatus && <View style={styles.friendDot} />}
+                        </View>
+                        <Text style={styles.rosterName}>{p.name.split(" ")[0].toUpperCase()}</Text>
+                        <Text style={styles.rosterElo}>{p.elo}</Text>
+                      </Pressable>
+                    </AnimatedEntry>
                   );
                 })}
               </ScrollView>

@@ -22,6 +22,7 @@ import { Colors, Radius } from "@/constants/colors";
 import { Court, CourtSport } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { useCourtCounts } from "@/context/CourtPresenceContext";
 import { fetchNearbyCourts, searchCourts } from "@/services/courtService";
 
 type SportFilter = CourtSport | "ALL";
@@ -119,9 +120,21 @@ export function CourtsScreen() {
 
   // ── Derived ──────────────────────────────────────────────────────────────────
   const isSearchMode = searchQuery.trim().length >= 2;
-  const displayList = isSearchMode ? searchResults : nearbyCourts;
-  const featuredCourt = !isSearchMode && nearbyCourts.length > 0 ? nearbyCourts[0] : null;
-  const listCourts = !isSearchMode ? nearbyCourts.slice(1) : displayList;
+  const displayListRaw = isSearchMode ? searchResults : nearbyCourts;
+
+  // Overlay live counts from the shared presence store onto the fetched
+  // snapshots, so cards update in real time when anyone checks in/out or
+  // switches local court — the snapshot alone goes stale the moment it lands.
+  const liveCounts = useCourtCounts(displayListRaw.map((c) => c.id));
+  const displayList = displayListRaw.map((c) => {
+    const live = liveCounts[c.id];
+    return live
+      ? { ...c, activeCount: live.activeCount, localCount: live.localCount }
+      : c;
+  });
+
+  const featuredCourt = !isSearchMode && displayList.length > 0 ? displayList[0] : null;
+  const listCourts = !isSearchMode ? displayList.slice(1) : displayList;
   const isCheckedIn = checkedInCourtId === featuredCourt?.id;
 
   const handleCheckIn = async () => {
