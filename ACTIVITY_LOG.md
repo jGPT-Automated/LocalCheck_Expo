@@ -262,3 +262,55 @@ Platform-specific code uses `Platform.OS === "web"` checks rather than trying to
 5. **Push notifications** — Alert when a friend checks into a nearby court
 6. **Advanced ELO** — Proper Elo algorithm (K-factor based on game count + opponent delta)
 7. **Host a Run** — Form for scheduling a game run at a specific court + time
+
+---
+
+## Session 4 — Deploy pipeline repair: TestFlight unblocked
+
+**Date:** July 15, 2026
+**Status:** Build path ✅ verified live · OTA path fix in flight
+
+### What Changed
+
+**Root cause of both broken EAS workflows (verified from worker logs, not guessed):**
+- Every OTA publish since Jul 13 and both v1.0.1/v1.0.2 releases died at
+  `pnpm install --frozen-lockfile`: EAS workers default to pnpm <10, which
+  can't read this repo's `lockfileVersion: 9.0` lockfile
+  (`ERR_PNPM_NO_LOCKFILE`) or its `pnpm-workspace.yaml` overrides — a pnpm-10
+  feature (`ERR_PNPM_LOCKFILE_CONFIG_MISMATCH`). Long "1h21m failures" were
+  ~1h20m of free-tier queue ("searching for a worker") + seconds of real run.
+
+**Fixes:**
+- Merged PR #16 (Codex): pins `defaults.tools.pnpm: '10.13.1'` in both
+  workflows, adds `packageManager` to root package.json, switches OTA job
+  from `branch:` to `channel: production` + `environment: production`.
+  Validated every key against the live EAS workflow JSON schema pre-merge.
+- **v1.0.3 released**: tag created via GitHub API (local git pushes as an
+  unauthorized user — gotcha recorded in playbook). Both jobs green —
+  build 1.0.0 (6) built in ~5.5 min AND submitted to TestFlight (the step
+  that killed v1.0.1/v1.0.2). Confirmed installed on Jesse's phone.
+  **First OTA-eligible build.**
+- OTA workflow's remaining failure diagnosed from its next live run: update
+  workers default to Node 18; Metro 0.83 needs ≥20.19.4
+  (`configs.toReversed is not a function`). Fix: pin
+  `node: '20.19.4'` in `defaults.tools` (this commit).
+
+**Docs:**
+- New `docs/PLAYBOOK_DEPLOY.md` — full deploy procedure with verification
+  gates, gotchas, forbidden actions (Devin-playbook format).
+- New `DESIGN.md` — design-system snapshot (tokens from code, components,
+  motion standards, do/don'ts).
+- `README.md` — corrected to current architecture (Supabase, no AsyncStorage
+  /sample data, real flows, doc index, DeepWiki badge) while keeping full depth.
+
+### Environment notes
+- Fresh local setup: `pnpm install --frozen-lockfile` clean on pnpm 10.33;
+  lightningcss darwin binary copy still required (documented in README).
+- App typecheck: 0 errors outside mockup-sandbox/elo.tsx pre-existing noise.
+
+### Next
+1. Verify OTA workflow green after the Node pin lands (this push triggers it).
+2. Branch cleanup (9 merged/stale remotes).
+3. MVP push: live court presence everywhere (Realtime + keyed queries),
+   Explore court sheet rebuilt to spec, game loop verified end-to-end,
+   notification scaffold, Me-page activity. Map redesign in parallel thread.

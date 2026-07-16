@@ -1,8 +1,22 @@
 # LocalCheck — Street Sports App
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/jGPT-Automated/LocalCheck_Expo)
+
 > Find active courts. Check in. Play. Rank up.
 
-LocalCheck brings the raw energy of street sports to your pocket. Discover who's playing at nearby courts, check in to broadcast your presence, join scheduled game runs, and track your ELO ranking in real-time.
+LocalCheck brings the raw energy of street sports to your pocket. Discover who's playing at nearby courts, check in to broadcast your presence, join scheduled game runs, post the times you're pulling up, and track your ELO ranking. Basketball + pickleball, iOS-first, live on **TestFlight** (`LocalCheck: Pickup Sports`).
+
+**Doc index (start here each session):**
+
+| Doc | What it is |
+|---|---|
+| [`AGENTS.md`](AGENTS.md) | Agent onboarding: golden rules, repo layout, canonical repo/backend |
+| [`dev_agent.md`](dev_agent.md) | Working map, skill pathways, activity log, work queue |
+| [`docs/SOURCE_OF_TRUTH.md`](docs/SOURCE_OF_TRUTH.md) | Verified project status + prioritized task list |
+| [`docs/PLAYBOOK_DEPLOY.md`](docs/PLAYBOOK_DEPLOY.md) | **How to ship an update to the phone** (OTA vs full build, verification gates) |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | EAS build/submit/OTA reference detail |
+| [`docs/SECRETS_AND_ENV.md`](docs/SECRETS_AND_ENV.md) | Every secret/env var, where it lives, how to rotate |
+| [`DESIGN.md`](DESIGN.md) | Design system snapshot (tokens, components, motion, voice) |
 
 ---
 
@@ -37,56 +51,57 @@ LocalCheck brings the raw energy of street sports to your pocket. Discover who's
 --radius:           2–8px
 ```
 
+Full component/motion/voice detail: [`DESIGN.md`](DESIGN.md).
+
 ---
 
 ## Screens
 
 | Screen | Route | Description |
 |--------|-------|-------------|
-| **Home / Map** | `/(tabs)/` | Full-screen map with brutalist court markers and live player counts |
-| **Schedule** | `/(tabs)/schedule` | Court schedules and availability |
+| **Auth** | `/auth` | Sign in / create account (email + Apple Sign-In). Auth-first: no session ⇒ this screen |
+| **Home** | `/(tabs)/` | Your **local court** hub — hero, WHO'S HERE roster, next run, check in/out. FIND A COURT state when no local court set |
+| **Schedule** | `/(tabs)/schedule` | "Pulling up" board — post planned court times, see who's coming, per court per day. Hosted runs below |
 | **Compete** | `/(tabs)/compete` | Leaderboard + Log Game form (dual-tab) |
-| **Explore** | `/(tabs)/explore` | Live courts list + city ELO leaderboard |
+| **Explore** | `/(tabs)/explore` | Court discovery: nearby list, search, sport filters, MAP toggle. Tapping a court opens the full-screen court sheet |
 | **Me / ELO** | `/(tabs)/elo` | Brutalist stat dashboard — rank, win/loss, recent matches |
-| **Court Profile** | `/court/[id]` | Editorial spread: conditions, roster, upcoming runs, check-in |
-| **Game Run** | `/run/[id]` | Matchmaking lobby — team A vs B, ELO balancing, RSVP |
+| **Court Profile** | `/court/[id]` | Editorial spread: roster, upcoming runs, check-in, set/clear local court |
+| **Game Run** | `/run/[id]` | Run lobby — RSVP (`going`), capacity-checked joins |
 | **Player Profile** | `/player/[id]` | Player detail with head-to-head stats, add friend, match history |
-| **Settings** | `/settings` | Visibility, LocalPlus, sport preferences, notifications |
-| **The Feed** | `/(tabs)/feed` | Reverse-chronological community activity (hidden from tab bar) |
+| **Friends** | `/friends` | Friend list (Supabase `friendships`) |
+| **Settings** | `/settings` | Visibility, LocalPlus, preferences, sport preferences, account |
+| **Onboarding** | `/onboarding` | Username / sport / location steps — **rebuild pending** (closed PR #7; see SOURCE_OF_TRUTH) |
 
 ---
 
 ## Key User Flows
 
 ### Check In to a Court
-1. Open **Map** tab → tap a court marker (shows player count)
-2. Bottom sheet slides up with court details, live roster
-3. Tap **CHECK IN** → status updates, avatar added to roster, feed event generated
-4. Haptic feedback confirms action
+1. From **Home** (local court) or **Explore** → court card / full-screen court sheet
+2. Tap **CHECK IN** → calls the `switch_active_checkin` RPC, which atomically checks you out of any other court first
+3. Roster updates; a public check-in generates a `feed_posts` row via DB trigger
+4. Check-ins auto-expire server-side after 45 minutes (pg_cron job `auto-checkout-stale-checkins`)
 
 ### Join a Game Run
-1. Open **Court Profile** → scroll to **Upcoming Runs**
-2. Tap a run card → **Game Run** lobby loads
-3. Tap an open slot on Team A or B → slot fills with your avatar + ELO
-4. When ready, record WIN / LOSS to update ELO
-
-### Track ELO
-- **Me** tab shows your current rank number (animated odometer-style on load)
-- Win/Loss counter, win rate percentage
-- Recent match history with ELO deltas (+15, -10, etc.)
-- Tier system: BRONZE → SILVER → GOLD → PLATINUM (based on ELO range)
-
-### View Player Profile
-1. Open **Compete** tab → **Leaderboard**
-2. Tap any player row → **Player Profile** opens
-3. See head-to-head stats, match history, and option to add as friend
-4. Friend badges appear on leaderboard rows for players you're connected to
+1. **Schedule** tab or **Court Profile** → run card
+2. Tap **JOIN** → RSVP `going` written to `scheduled_game_participants` (capacity-checked)
+3. Host a run via the header "+" or HOST A RUN — host auto-RSVPs
 
 ### Log a Game Result
 1. Open **Compete** tab → **Log Game**
-2. Form defaults to your preferred court and sport
-3. Order: **Court** → **Sport** → **Opponent** → **Score** → **Notes**
-4. Submit to record match and update ELO
+2. Form order: **Court** → **Sport** → **Opponent** → **Score** → **Notes**
+3. Submit calls the `log_game` RPC — atomic game + participants insert, server-side Elo (K=32), wins/losses update, `game_result` feed entry
+4. Ties rejected client-side; real success/failure UI (no silent failures)
+
+### Track ELO
+- **Me** tab shows your current rank, win/loss counter, win rate
+- Recent match history with viewer-perspective scores
+- Tier system: BRONZE → SILVER → GOLD → PLATINUM (based on ELO range)
+
+### Pull Up (planned presence)
+1. **Schedule** tab → **+ I'LL BE THERE** — pick court / day / time chips + optional note
+2. Everyone's planned times show grouped by court per day (7-day window)
+3. The full-screen court sheet shows a PULLING UP TODAY section
 
 ---
 
@@ -94,32 +109,42 @@ LocalCheck brings the raw energy of street sports to your pocket. Discover who's
 
 | Layer | Technology |
 |-------|-----------|
-| **Mobile Framework** | Expo (React Native) with Expo Router |
+| **Mobile Framework** | Expo SDK 54 (React Native) with Expo Router |
 | **Navigation** | Expo Router file-based routing + Classic Tabs (iOS uses SF Symbols, Android/web uses Feather icons) |
-| **State Management** | React Context + AsyncStorage (persistent local state) |
+| **Backend** | **Supabase** (`jzclwnzcektqhgkkdeje`): Postgres + Auth + RLS. The only backend |
+| **Data layer** | `services/*` (one file per domain) → Supabase; RPCs `log_game` + `switch_active_checkin` for atomic writes |
+| **State Management** | React Context (`AuthContext` session, `AppContext` app state, 30s polling) |
+| **Session persistence** | `expo-secure-store` (native) / localStorage (web) — the **only** client-persisted state |
 | **Fonts** | Oswald (headings/stats) + Inter (body) via `@expo-google-fonts` |
 | **Icons** | `@expo/vector-icons` (Feather) + SF Symbols (iOS) |
-| **Maps** | `react-native-maps` v1.18.0 (Expo Go compatible) |
+| **Maps** | `react-native-maps` (redesign in progress — see work queue) |
 | **Haptics** | `expo-haptics` |
-| **Persistence** | `@react-native-async-storage/async-storage` |
-| **API Layer** | Express 5 (shared monorepo API server, ready for backend expansion) |
-| **Database** | PostgreSQL + Drizzle ORM (provisioned, schema-ready for persistence) |
+| **CI/CD** | EAS Workflows: push to `main` → OTA update; `v*` tag → build + TestFlight submit |
+
+> **Removed by design (2026-07):** AsyncStorage app-data caching, mock/sample
+> data, the Express API dependency, and client-side Elo math. Don't reintroduce
+> them. `lib/db` (Drizzle), `artifacts/api-server`, and
+> `artifacts/mobile/mockup-sandbox/` are Replit-era leftovers kept for
+> reference only — **never ship from `mockup-sandbox/`**.
 
 ---
 
-## Database Strategy (Modular by Design)
+## Backend (Supabase)
 
-The app is built **frontend-first with AsyncStorage** for the initial build. The database layer is completely modular:
-
-- `lib/db/` contains the Drizzle ORM setup with PostgreSQL connection
-- `lib/api-spec/openapi.yaml` is the OpenAPI contract for future API endpoints
-- When ready to add server-side persistence, simply:
-  1. Define tables in `lib/db/src/schema/`
-  2. Add API endpoints to `artifacts/api-server/src/routes/`
-  3. Update `lib/api-spec/openapi.yaml` and run codegen
-  4. Replace AsyncStorage calls with React Query hooks from `@workspace/api-client-react`
-
-This approach means **zero migration pain** — the backend is a plug-in, not a dependency.
+- **Tables:** `profiles`, `courts` (~5.7k seeded — intentional), `check_ins`,
+  `games` + `game_participants`, `scheduled_games` + participants,
+  `friendships`, `feed_posts` (+likes), `planned_visits`, `push_tokens`,
+  `subscriptions`.
+- **RPCs that MUST be used instead of raw writes:**
+  - `switch_active_checkin(p_court_id, p_visibility, p_note)` — atomic check-in switch
+  - `log_game(p_court_id, p_opponent_id, p_my_side, p_score_a, p_score_b, p_winner_side, p_notes)` — game + Elo K=32
+- **Enums are lowercase**: `winner_side`/`team_side` = `a`/`b`; run status =
+  `scheduled`/`cancelled`/`completed`; RSVP = `going`/`waitlist`/`declined`.
+- `profiles.is_pro` is **trigger-derived** from `subscriptions` — never write it from the client.
+- All user-id FKs reference `public.profiles(id)` (2026-07-10 migration) so PostgREST embeds work.
+- **RLS is authenticated-only** on every table: no session ⇒ empty results ⇒ UI looks broken.
+- Schema baseline: [`docs/supabase/baseline_snapshot.sql`](docs/supabase/baseline_snapshot.sql);
+  new changes go through Supabase migrations (in-repo copies under `docs/supabase/migrations/`).
 
 ---
 
@@ -127,104 +152,107 @@ This approach means **zero migration pain** — the backend is a plug-in, not a 
 
 ```
 artifacts/
-  mobile/               # Expo mobile app
+  mobile/                 # THE APP — run all expo/eas commands here
     app/
       (tabs)/
-        index.tsx       # Map screen
-        feed.tsx        # Community feed (hidden from tab bar)
-        schedule.tsx    # Court schedules
-        compete.tsx     # Leaderboard + Log Game form
-        explore.tsx     # Live courts list
-        elo.tsx         # ELO dashboard (Me tab)
-        _layout.tsx     # Tab navigation (ClassicTabLayout only)
-      court/[id].tsx    # Court profile
-      run/[id].tsx      # Game run lobby
-      player/[id].tsx   # Player profile with head-to-head stats
-      settings.tsx      # Settings: visibility, preferences, LocalPlus
-      _layout.tsx       # Root layout + providers
-    components/         # Reusable UI components
-    constants/
-      colors.ts         # Design tokens (dark theme)
-      typography.ts     # Font families + sizes
-      data.ts           # Types + sample data (players, courts, runs, matches, feed)
+        index.tsx         # Home — local court hub
+        schedule.tsx      # Pulling-up board + runs
+        compete.tsx       # Leaderboard + Log Game
+        explore.tsx       # Court discovery (list/search/map)
+        elo.tsx           # Me — ELO dashboard
+        _layout.tsx       # Tab navigation (ClassicTabLayout only)
+      auth.tsx            # Sign in / create account
+      onboarding.tsx      # (rebuild pending — see SOURCE_OF_TRUTH)
+      court/[id].tsx      # Court profile
+      run/[id].tsx        # Run lobby
+      player/[id].tsx     # Player profile + head-to-head
+      friends.tsx         # Friends list
+      settings.tsx        # Settings
+      _layout.tsx         # Root layout + providers (auth gate)
+    components/           # HomeScreen, CourtsScreen, MapScreen, CourtBottomSheet, …
+    services/             # Supabase data layer: courtService, checkInService,
+                          # gameService, profileService, feedService,
+                          # scheduledGameService, friendService, plannedVisitService
     context/
-      AppContext.tsx    # Global app state (friends, preferences, persistence)
-    assets/images/      # Icons + placeholders (AI-generated)
-  api-server/           # Express API (ready for backend routes)
+      AuthContext.tsx     # Supabase session + profile provisioning
+      AppContext.tsx      # Global app state (courts, presence, feed, runs, friends)
+    lib/supabase.ts       # Supabase client + SecureStore session adapter
+    constants/            # colors.ts (tokens), typography.ts, data.ts (types)
+    .eas/workflows/       # CI/CD: publish-ota-update.yml, release-ios.yml
+    mockup-sandbox/       # scratch area — NOT the app, never ship from here
+  api-server/             # legacy Express server (not used by the app)
 
-lib/
-  db/                   # Drizzle ORM + PostgreSQL
-  api-spec/             # OpenAPI spec (source of truth)
-  api-client-react/     # Generated React Query hooks
-  api-zod/              # Generated Zod validators
+docs/                     # all project docs (see index at top)
+lib/                      # legacy Replit workspace packages (db, api-spec, …)
+.agents/skills/           # per-repo skills (UI/UX, RN architecture, Supabase, deployment)
 ```
 
 ---
 
-## State Architecture (AppContext)
+## State Architecture
 
-`AppContext` is the single source of truth. All mutable state persists to `AsyncStorage` with `localcheck:*` namespaced keys.
+`AuthContext` owns the Supabase session (SecureStore-persisted) and profile
+provisioning. `AppContext` is the app-state source of truth — **all data comes
+from Supabase via `services/*`; nothing app-level is cached on device.**
 
-### Core State
+### Core State (AppContext)
 
-| Key | Type | AsyncStorage Key | Description |
-|-----|------|------------------|-------------|
-| `currentUser` | `Player` | `localcheck:currentUser` | Logged-in player (defaults to Marcus J. sample) |
-| `courts` | `Court[]` | `localcheck:courts` | All courts with live counts |
-| `checkedInCourtId` | `string \| null` | `localcheck:checkedInCourtId` | Current check-in location |
-| `localCourtId` | `string \| null` | `localcheck:localCourtId` | User's "Local" court (drives LOCAL scope filter) |
-| `runs` | `GameRun[]` | — | Scheduled game runs (in-memory for demo) |
-| `feed` | `FeedItem[]` | `localcheck:feed` | Community activity stream |
-| `matches` | `MatchResult[]` | `localcheck:matches` | User's match history |
+| Key | Backed by | Description |
+|-----|-----------|-------------|
+| `courts` | `courts` / `courts_with_stats` | Court list with live counts |
+| `localCourtId` | `profiles.local_court_id` | Your local court — authoritative from the profile row |
+| `checkedInCourtId` | `check_ins` (active row) | Where you're currently checked in |
+| `activePlayers` / `localPlayers` | `check_ins` + `profiles` | WHO'S HERE roster + locals for the local court |
+| `feed` | `check_ins`/`games`/`scheduled_games` | Activity feed (reconstructed; `feed_posts` read-path pending — plan 008) |
+| `runs` | `scheduled_games` (+participants) | Upcoming runs, RSVP-scoped |
+| `friends` | `friendships` | Accepted friends |
+| `plannedVisits` | `planned_visits` | Pulling-up board (7-day window) |
 
-### Preferences & Social
+Refresh model today: 30-second polling + refresh-on-tab-focus + refresh after
+own actions. **Known architectural gap:** five surfaces refresh court/presence
+data independently, so another user's check-in doesn't propagate live —
+the fix (single keyed server-state layer + Supabase Realtime) is the top
+work-queue item. See `dev_agent.md` §Work queue.
 
-| Key | Type | AsyncStorage Key | Description |
-|-----|------|------------------|-------------|
-| `isLocalPlus` | `boolean` | `localcheck:isLocalPlus` | Premium subscription flag |
-| `visibility` | `"public" \| "friends" \| "private"` | `localcheck:visibility` | Profile visibility setting |
-| `friendIds` | `string[]` | `localcheck:friendIds` | List of friend player IDs |
-| `preferredSport` | `CourtSport \| null` | `localcheck:preferredSport` | Default sport filter (BB / PB) |
-| `preferredCourtId` | `string \| null` | `localcheck:preferredCourtId` | Default court for log game |
+### Key Actions
 
-### Actions
-
-- `checkIn(courtId)`, `checkOut()` — manage active presence
-- `visitCourt(courtId)` — track last visited
-- `setLocalCourt(courtId)` — claim a court as your "Local" (updates `localCount` + status)
-- `setVisibility(v)`, `setIsLocalPlus(v)` — profile settings
-- `setPreferredSport(sport)`, `setPreferredCourtId(courtId)` — preference settings
-- `addFriend(playerId)`, `removeFriend(playerId)`, `isFriend(id)`, `getFriendsList()` — social graph
-- `joinRun(runId, team)`, `recordResult(runId, winner)` — game run management
-- `addMatchResult(result)` — manual match logging
-- `hypeItem(feedId)` — community engagement
+- `checkIn(courtId, visibility, note?)` / `checkOut()` — via `switch_active_checkin` RPC
+- `setLocalCourt(courtId)` / explicit clear ("REMOVE MY LOCAL COURT") — never auto-assigned
+- `logGame(payload)` — via `log_game` RPC (validation + real error surfacing)
+- `joinRun(runId)` / `createRun(form)` — RSVP `going`, capacity-checked
+- `addPlannedVisit(...)` / `removePlannedVisit(id)` — pulling-up board
+- `addFriend(playerId)` / `removeFriend(playerId)` — `friendships` writes (pending-request flow not yet built)
 
 ---
 
 ## Data Model
 
-### Player
+Authoritative schema lives in Supabase — see
+[`docs/supabase/baseline_snapshot.sql`](docs/supabase/baseline_snapshot.sql).
+The UI types below (in `constants/data.ts`) map onto it.
+
+### Player (UI type)
 
 ```typescript
 interface Player {
-  id: string;
+  id: string;            // = profiles.id (= auth.users.id)
   name: string;
-  elo: number;
+  elo: number;           // profiles.elo_rating — server-computed via log_game
   tier: "PLATINUM" | "GOLD" | "SILVER" | "BRONZE" | "UNRANKED";
   avatar: string;        // Initials displayed in square avatar
   wins: number;
   losses: number;
   checkIns: number;
-  sport?: CourtSport;    // Primary sport
-  courtId?: string;      // Primary court
-  memberSince: string;   // ISO date
+  sport?: CourtSport;
+  courtId?: string;      // local court
+  memberSince: string;
   visibility?: "public" | "friends" | "private";
-  isLocalPlus?: boolean;
-  friendIds?: string[];  // Bidirectional friend network
+  isLocalPlus?: boolean; // = profiles.is_pro (trigger-derived — read-only on client)
+  friendIds?: string[];
 }
 ```
 
-### Court
+### Court (UI type)
 
 ```typescript
 interface Court {
@@ -235,18 +263,18 @@ interface Court {
   city: string;
   latitude: number;
   longitude: number;
-  activeCount: number;   // Live players checked in
+  activeCount: number;   // live players checked in
   maxCapacity: number;
   status: "pending" | "confirmed" | "community";
-  localCount: number;      // Users who claimed this as their Local
+  localCount: number;    // users who claimed this as their Local
   addedBy?: string;
   verificationPhoto?: string;
 }
 ```
 
-- `status: "pending"` — dashed outline marker (AI verification needed)
-- `status: "confirmed"` — outline-only marker
-- `status: "community"` — filled orange marker (5+ locals)
+- Public court states are being redesigned toward **New / Active / Quiet** with
+  a "Live now" overlay (see the map workstream) — current statuses above still
+  drive markers today.
 
 ### ELO Tier System
 
@@ -258,6 +286,8 @@ interface Court {
 | < 1500 | BRONZE |
 
 Players need 5 games before receiving a rank (shows "UNRANKED" state).
+Elo is computed **server-side** by `log_game` (K=32, expected-score formula) —
+never compute or write Elo client-side.
 
 ---
 
@@ -270,59 +300,41 @@ The Compete screen has two tabs: **Leaderboard** and **Log Game**.
 - **Scope tabs**: GLOBAL | REGIONAL | LOCAL
   - Default: **LOCAL** (filters to players at your `localCourtId`)
   - If no local court set, LOCAL falls back to showing all players
-- **Sport tabs**: ALL | BB | PB
-  - Default: user's `preferredSport` (or ALL if unset)
-  - "BB" = Basketball, "PB" = Pickleball
-- **Player rows**: Rank #, avatar, name, tier, sport, W-L record, ELO
-  - **Clickable**: tapping any row navigates to `/player/[id]`
-  - **Friend badge**: green "FRIEND" label appears for players in your `friendIds`
-- **Your rank**: shown at bottom with visibility status ("#4 — HIDDEN" if not LocalPlus)
-- Only `public` + `isLocalPlus` players appear on leaderboard
+  - REGIONAL currently has no geographic filter (P2-5 — implement or remove)
+- **Sport tabs**: ALL | BB | PB — defaults to your `preferredSport` (or ALL)
+- **Player rows**: Rank #, avatar, name, tier, sport, W-L record, ELO —
+  clickable → `/player/[id]`; green FRIEND badge for connections
+- **Your rank** shows at bottom with visibility status — your row is publicly
+  visible only when `visibility === "public"` and LocalPlus is active
 
 ### Log Game Form
 
-Form order (top to bottom):
-1. **Court** — dropdown of all courts; defaults to `preferredCourtId` (falls back to `localCourtId`)
-2. **Sport** — BB / PB toggle; defaults to `preferredSport`
-3. **Opponent** — dropdown of all players
-4. **Score** — Your score / Opponent score
-5. **Notes** — optional text input
-
-Submit records the match and updates ELO.
+Form order (top to bottom): **Court** → **Sport** → **Opponent** → **Score** → **Notes**.
+Defaults to `preferredCourtId` (falls back to `localCourtId`) and `preferredSport`.
+Submit calls the `log_game` RPC; ties are rejected; success/failure is surfaced for real.
 
 ---
 
 ## Player Profile Screen (`/player/[id]`)
 
-Tapping a player from the leaderboard opens their profile:
-
 - **Header**: Large avatar, name, tier badge, ELO, sport
 - **Stats**: Wins, losses, win rate, check-ins
-- **Head-to-Head**: Match history vs. current user (wins/losses, last played)
-- **Add Friend**: button to add/remove from your friend network
-- **Recent Matches**: last 5 match results with ELO deltas
+- **Head-to-Head**: real shared-games query vs. current user (wins/losses, last played)
+- **Add Friend**: add/remove from your friend network (`friendships`)
+- **Recent Matches**: latest results with viewer-perspective scores
 
 ---
 
 ## Settings Screen (`/settings`)
 
-### Profile Section
-- Visibility toggle (PUBLIC / FRIENDS / PRIVATE)
-- LocalPlus upgrade modal ($4.99/mo — full history, public visibility, advanced stats)
-- Rank display toggle (show/hide on leaderboard)
+Current section order (top → bottom): **Profile Visibility** → **Subscription
+(LocalPlus)** → **Preferences** (push/haptics/dark-mode toggles — currently
+local-state only, P1-3) → **Sport Preferences** (preferred sport + court) →
+**Account** (log out) → danger zone (delete account — stub, P1-5).
 
-### Sport Preferences Section
-- **Preferred Sport**: BB / PB toggle pills (tap to set, tap again to clear)
-- **Preferred Court**: pills for each saved court (tap to select, tap again to clear)
-
-### Preferences Section
-- Push notifications toggle
-- Haptic feedback toggle
-- Dark mode toggle
-
-### Account Section
-- Log out
-- Delete account
+> **Planned reorg:** the settings that define your experience — **preferred
+> sport and local court — move to the top**; LocalPlus UI hidden for MVP;
+> dead toggles wired or removed. See work queue.
 
 ---
 
@@ -340,49 +352,68 @@ The app uses **ClassicTabLayout** on all platforms (iOS, Android, Web). NativeTa
 ## Running the App
 
 ```bash
-# Install dependencies
+# From repo root — workspace needs pnpm ≥ 10
 pnpm install
 
-# Start the Expo dev server
-pnpm --filter @workspace/mobile run dev
+# Env (first time): copy artifacts/mobile/.env.example → .env, fill Supabase
+# values (see docs/SECRETS_AND_ENV.md)
 
-# Typecheck the mobile app
+# macOS gotcha after a fresh install: copy lightningcss.darwin-arm64.node from
+# node_modules/.pnpm/lightningcss-darwin-arm64@*/... into
+# node_modules/.pnpm/lightningcss@*/node_modules/lightningcss/
+
+# Start the Expo dev server (from artifacts/mobile)
+cd artifacts/mobile && npx expo start        # press w for web preview
+
+# Typecheck the mobile app (clean; ignore mockup-sandbox/* + elo.tsx pre-existing)
 pnpm --filter @workspace/mobile run typecheck
-
-# Typecheck all workspace packages
-pnpm run typecheck
 ```
 
-Scan the QR code in the Replit URL bar with **Expo Go** to preview on your physical device.
+Native modules in use (Apple Sign-In, SecureStore, Location) **do not run in
+plain Expo Go** — use a development build, TestFlight, or web for quick checks.
+
+### Shipping a change
+
+Read [`docs/PLAYBOOK_DEPLOY.md`](docs/PLAYBOOK_DEPLOY.md). Short version:
+JS-only → merge to `main` → OTA update reaches installed TestFlight builds on
+next launch. Native/config change → `v*` tag → EAS build + TestFlight submit.
+**Every deploy trigger needs Jesse's explicit go-ahead.**
 
 ---
 
 ## Activity Log
 
-See `ACTIVITY_LOG.md` for a full record of development decisions and design choices.
+See `ACTIVITY_LOG.md` and the activity log in `dev_agent.md` for the full
+record of development decisions and design choices. Keep both current — they
+are the onboarding surface for every future agent.
 
 ---
 
 ## Agent Onboarding Notes
 
-When working on this codebase, keep the following in mind:
+When working on this codebase, keep the following in mind (deeper rules in
+[`AGENTS.md`](AGENTS.md) §4 — read that first):
 
-1. **Design system is dark** — backgrounds are `#0D0D10`, not white. Accent is `#FF5500` (orange), not volt green. Check `constants/colors.ts` before adding new UI.
+1. **Design system is dark** — backgrounds are `#0D0D10`, not white. Accent is `#FF5500` (orange). Check `constants/colors.ts` and `DESIGN.md` before adding new UI.
 
-2. **Tab bar is ClassicTabLayout only** — Do not re-enable `NativeTabs`. The `TabLayout` export in `app/(tabs)/_layout.tsx` always returns `<ClassicTabLayout />`. This is intentional for consistent styling.
+2. **Tab bar is ClassicTabLayout only** — Do not re-enable `NativeTabs`. The `TabLayout` export in `app/(tabs)/_layout.tsx` always returns `<ClassicTabLayout />`. Intentional.
 
-3. **Sport labels are "BB" and "PB"** — In the UI, always display "BB" for BASKETBALL and "PB" for PICKLEBALL. The full names are internal data only.
+3. **Sport labels are "BB" and "PB"** — In the UI, always display "BB" for BASKETBALL and "PB" for PICKLEBALL. Full names are internal data only.
 
-4. **Compete defaults are LOCAL scope + preferredSport** — The leaderboard defaults to LOCAL scope (filtered by `localCourtId`) and the user's `preferredSport`. Do not change these defaults without explicit user request.
+4. **Compete defaults are LOCAL scope + preferredSport** — Don't change these defaults without explicit user request.
 
-5. **Friend system is bidirectional** — `friendIds` lives on the `Player` object and is synced to AsyncStorage. `addFriend` updates both `friendIds` state and `currentUser.friendIds`. Use `isFriend()` and `getFriendsList()` for UI checks.
+5. **Social data lives in Supabase** — friendships, check-ins, games, runs are all real tables behind authenticated-only RLS. There is no local social state to sync.
 
-6. **Preferences are nullable** — `preferredSport` and `preferredCourtId` can be `null`. The UI should handle "no preference set" gracefully (fall back to ALL / no default).
+6. **Preferences are nullable** — `preferredSport` and `preferredCourtId` can be `null`. The UI must handle "no preference set" gracefully.
 
-7. **Log Game form order is fixed** — Court → Sport → Opponent → Score → Notes. This order was chosen for user flow. Don't reorder without checking.
+7. **Log Game form order is fixed** — Court → Sport → Opponent → Score → Notes. Don't reorder without checking.
 
-8. **Only public + LocalPlus players appear on leaderboard** — The `leaderboardPlayers` filter checks `p.visibility === "public" && p.isLocalPlus`. The `allPlayersFiltered` list (used for opponent selection) has no visibility filter.
+8. **No mock/sample data, anywhere** — removed app-wide in 2026-07 (plans 001–007). If a screen looks empty, fix the query/session, don't fabricate content. The only client-persisted state is the Supabase session token.
 
-9. **Sample data is the source of truth for demo** — `SAMPLE_PLAYERS`, `SAMPLE_COURTS`, `SAMPLE_RUNS`, `SAMPLE_FEED`, `SAMPLE_MATCHES` in `constants/data.ts` define all demo content. Player IDs `p1`–`p8` are the demo roster.
+9. **Silent-catch gotcha** — the service layer swallows Supabase errors (`catch { /* best-effort */ }`). "No error thrown" is not proof a write worked: verify against the live DB (Supabase MCP) before claiming a fix.
 
-10. **TypeScript project references** — Run `pnpm run typecheck` from root to build the full dependency graph. Running `tsc` inside a single package may fail if its dependencies haven't been built.
+10. **Prefer RPCs over raw inserts** — `log_game` and `switch_active_checkin` exist server-side and do the atomic multi-table writes + Elo. Never write `profiles.is_pro` from the client (trigger-derived from `subscriptions`).
+
+11. **TypeScript project references** — Run `pnpm run typecheck` from root to build the full dependency graph. Running `tsc` inside a single package may fail if its dependencies haven't been built.
+
+12. **Deploys** — follow [`docs/PLAYBOOK_DEPLOY.md`](docs/PLAYBOOK_DEPLOY.md); deploy triggers (merge to main, `v*` tags) need Jesse's explicit go-ahead.

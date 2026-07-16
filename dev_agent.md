@@ -106,6 +106,23 @@ This is the brand; generated palettes do not override it.
   - Workspace docs live in `/Users/JesseH/Documents/LocalCheck_Testflight/`
     (ROADMAP.md, FIXLIST.md, findings/).
 
+- **2026-07-15 (Claude Code session)** —
+  - **Deploy pipeline repaired.** Root-caused both broken EAS workflows from live
+    worker logs: EAS default pnpm <10 can't read our lockfile/workspace overrides.
+    Merged PR #16 (pnpm pin + OTA channel routing, schema-validated), released
+    **v1.0.3 → build 1.0.0 (6) on TestFlight** (tag created via `gh api` — local
+    git pushes unauthorized). OTA's second failure diagnosed (workers default
+    Node 18, Metro needs ≥20.19.4) → `node: '20.19.4'` pin.
+  - **Docs:** new `docs/PLAYBOOK_DEPLOY.md` (deploy procedure + verification
+    gates), new `DESIGN.md` (design-system snapshot), README corrected to
+    current architecture (kept comprehensive per Jesse's explicit preference).
+  - Queue-time gotcha recorded: free-tier EAS runs can sit 30–90 min
+    "searching for a worker" — not a config failure.
+  - Next agreed focus (Jesse): **MVP three-pillar push** — live presence
+    everywhere, map redesign (separate Sonnet thread), real game loop; plus
+    Explore court-sheet rebuild to spec, notifications scaffold, Me-page
+    activity/pending, Settings reorg (sport+local court to top).
+
 ## Work queue (agreed order)
 
 1. ~~Presence backend (FK migration)~~ ✅ · ~~PR 1 local court~~ ✅ (#8) · ~~PR 2 check-in loop~~ ✅ (#9)

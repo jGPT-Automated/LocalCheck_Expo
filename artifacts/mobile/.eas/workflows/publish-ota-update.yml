@@ -2,7 +2,11 @@ name: Publish OTA update
 
 defaults:
   tools:
+    # Both pins are load-bearing (docs/PLAYBOOK_DEPLOY.md): default workers ship
+    # pnpm <10 (can't read this repo's lockfile) and Node 18 (Metro 0.83 needs
+    # >=20.19.4 — "configs.toReversed is not a function" means Node is too old).
     pnpm: '10.13.1'
+    node: '20.19.4'
 
 # Fast path: on every push to main, publish an over-the-air (EAS Update) to the
 # production channel. JS / asset / styling changes reach installed TestFlight
