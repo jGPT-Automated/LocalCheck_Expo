@@ -195,9 +195,12 @@ export async function searchCourts(
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
   try {
+    // Search the stats view, not the base table: base-table rows carry no
+    // count columns, so results would render "EMPTY"/0 locals even for courts
+    // with live players (verified against prod 2026-07-16).
     let q = supabase
-      .from("courts")
-      .select(BASE_COLS)
+      .from("courts_with_stats")
+      .select(STATS_COLS)
       .eq("is_archived", false)
       .ilike("name", `%${trimmed}%`)
       .limit(limit);
@@ -207,8 +210,21 @@ export async function searchCourts(
     }
 
     const { data, error } = await q;
-    if (error || !data) return [];
-    return (data as SupabaseCourtRow[]).map(mapRow);
+    if (!error && data) return ((data as unknown) as SupabaseCourtRow[]).map(mapRow);
+
+    // Fallback to the base table only if the view read failed.
+    let q2 = supabase
+      .from("courts")
+      .select(BASE_COLS)
+      .eq("is_archived", false)
+      .ilike("name", `%${trimmed}%`)
+      .limit(limit);
+    if (sport && sport !== "ALL") {
+      q2 = q2.eq("sport_type", sport.toLowerCase());
+    }
+    const { data: base, error: baseError } = await q2;
+    if (baseError || !base) return [];
+    return (base as SupabaseCourtRow[]).map(mapRow);
   } catch {
     return [];
   }
