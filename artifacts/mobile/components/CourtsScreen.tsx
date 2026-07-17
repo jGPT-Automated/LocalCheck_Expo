@@ -15,7 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 
-import { CourtBottomSheet } from "@/components/CourtBottomSheet";
+import { router } from "expo-router";
 import { CourtListItem } from "@/components/CourtListItem";
 import { MapScreen } from "@/components/MapScreen";
 import { Colors, Radius } from "@/constants/colors";
@@ -35,7 +35,10 @@ export function CourtsScreen() {
   // ── View state ──────────────────────────────────────────────────────────────
   const [mode, setMode] = useState<"COURTS" | "MAP">("COURTS");
   const [sportFilter, setSportFilter] = useState<SportFilter>(preferredSport ?? "ALL");
-  const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
+  const openCourtSheet = (c: Court) => {
+    router.push({ // "as never": .expo/types regenerate on next `expo start`; route exists (app/court-sheet.tsx)
+      pathname: "/court-sheet" as never, params: { id: c.id, ...(c.distanceKm != null ? { distanceKm: String(c.distanceKm) } : {}) } });
+  };
   const mapAnim = useRef(new Animated.Value(0)).current;
   const [mapMounted, setMapMounted] = useState(false);
 
@@ -213,7 +216,7 @@ export function CourtsScreen() {
             <Text style={styles.sectionLabel}>NEAREST COURT</Text>
             <Pressable
               style={[styles.featuredCard, { borderLeftColor: Colors.accent }]}
-              onPress={() => { setSelectedCourt(featuredCourt); visitCourt(featuredCourt.id); }}
+              onPress={() => { openCourtSheet(featuredCourt); visitCourt(featuredCourt.id); }}
             >
               <View style={styles.featuredTop}>
                 <View style={{ flex: 1 }}>
@@ -271,7 +274,7 @@ export function CourtsScreen() {
               <CourtListItem
                 key={court.id}
                 court={court}
-                onPress={(c) => { setSelectedCourt(c); visitCourt(c.id); }}
+                onPress={(c) => { openCourtSheet(c); visitCourt(c.id); }}
                 isCheckedIn={checkedInCourtId === court.id}
               />
             ))}
@@ -291,7 +294,6 @@ export function CourtsScreen() {
       </ScrollView>
 
       {/* Court detail sheet */}
-      <CourtBottomSheet court={selectedCourt} onClose={() => setSelectedCourt(null)} />
 
       {/* Map overlay */}
       <Animated.View

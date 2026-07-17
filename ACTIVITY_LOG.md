@@ -344,3 +344,45 @@ Platform-specific code uses `Platform.OS === "web"` checks rather than trying to
   `feature/mapbox-explore-redesign` and switched this checkout onto it; this
   sprint's commit lands on that branch AND is cherry-picked to main (temp
   worktree) so OTA ships without disturbing the map work.
+
+---
+
+## Session 6 — Sprint 2: native sheets everywhere, schedule fixes, map cleanup
+
+**Date:** July 17, 2026
+
+**Lesson enforced this sprint (Jesse feedback): use the repo skills and native
+platform patterns — don't hand-roll.** The PanResponder drawer from sprint 1
+didn't track drags on device (tap-only). Per
+`.agents/skills/building-native-ui` (form-sheet reference) and the pattern
+already working in AddCourtModal (`presentationStyle="pageSheet"`), the
+convention is now: ALL sheets are native.
+
+- **Court drawer v2** — new `app/court-sheet.tsx` route presented as
+  `formSheet`, detents `[0.45, 1.0]`, native grabber: OS-level drag/snap/
+  dismiss physics. Peek layer (45%): name, distance, live stats, CHECK IN.
+  Full: WHO'S HERE avatars + **LOCALS list** (usernames + last check-in per
+  player — new `fetchLocalsWithLastCheckIn`, PostgREST per-parent embed,
+  verified against prod) + pulling-up + runs. Old CourtBottomSheet deleted;
+  Explore + both MapScreens push the route.
+- **Create-run / plan-visit modals rebuilt** (native pageSheet): court field
+  defaults to local court, ✕ to clear → debounced typeahead; symmetric
+  7-day grid; equal-width time/max-player cells.
+- **"NO RUNS SCHEDULED" bug fixed**: day strip was calendar-week (Sun–Sat,
+  includes past days) while data fetches [today,+7d]. Strip is now rolling
+  next-7-days; runs fetch from start-of-today (AppContext).
+- **Map cleanup**: dark-tile flash fixed (shouldReplaceMapContent + dark
+  loading canvas on native; dark container bg on web); "+" FAB to true
+  bottom-right above all overlays; search bar full-width with controls moved
+  below it; zoom badge unstacked from the FAB.
+- **Feed color coding**: chips + 3px left border per type (check-in accent,
+  checkout muted, game win-green, runs neutral).
+- Working tree consolidated back onto `main` (Sonnet map session stopped by
+  Jesse; its `feature/mapbox-explore-redesign` branch is abandoned — only
+  contains sprint-1 content already on main).
+- Executed with 2 scoped subagents (modals; map+feed) in parallel with the
+  sheet/schedule work. Typecheck clean.
+
+**Still open for MVP** (docs/TASKS.md): T7 game-loop e2e verify, T9 privacy
+pass, T10 weekly availability calendar, T12 settings reorg, fixed-page
+layouts (no whole-page scroll), court profile page LOCALS list parity.

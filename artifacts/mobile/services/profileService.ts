@@ -77,6 +77,39 @@ export async function fetchLocals(courtId: string): Promise<Player[]> {
   }
 }
 
+export interface LocalWithLastCheckIn {
+  player: Player;
+  /** ISO timestamp of this player's most recent check-in at THIS court; null if never. */
+  lastCheckInAt: string | null;
+}
+
+/**
+ * Locals for a court with each player's most recent check-in at that court —
+ * powers the court view's LOCALS list ("last seen" gives a feel for how
+ * active the court is). One query: PostgREST embed, per-parent order+limit.
+ */
+export async function fetchLocalsWithLastCheckIn(courtId: string): Promise<LocalWithLastCheckIn[]> {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*, check_ins!user_id(checked_in_at)")
+      .eq("local_court_id", courtId)
+      .eq("check_ins.court_id", courtId)
+      .order("checked_in_at", { referencedTable: "check_ins", ascending: false })
+      .limit(1, { referencedTable: "check_ins" });
+    if (error || !data) return [];
+    return (data as (SupabaseProfile & { check_ins?: { checked_in_at: string }[] })[])
+      .map((row) => ({
+        player: mapProfileToPlayer(row),
+        lastCheckInAt: row.check_ins?.[0]?.checked_in_at ?? null,
+      }))
+      // Most recently active first; never-checked-in at the end.
+      .sort((a, b) => (b.lastCheckInAt ?? "").localeCompare(a.lastCheckInAt ?? ""));
+  } catch {
+    return [];
+  }
+}
+
 /** Count locals at a court. */
 export async function fetchLocalCount(courtId: string): Promise<number> {
   try {

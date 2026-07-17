@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -14,7 +15,6 @@ import MapView, { Marker, PROVIDER_DEFAULT, Region, UrlTile } from "react-native
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AddCourtModal } from "@/components/AddCourtModal";
-import { CourtBottomSheet } from "@/components/CourtBottomSheet";
 import { CourtListItem } from "@/components/CourtListItem";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, CourtSport, CourtStatus, getSportColor } from "@/constants/data";
@@ -25,6 +25,11 @@ import { LivePulse } from "./LivePulse";
 
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN ?? "";
 const HAS_TOKEN = MAPBOX_TOKEN && MAPBOX_TOKEN !== "YOUR_MAPBOX_TOKEN_HERE";
+
+// Dark tile source resolved at module load so the style is fixed before the
+// first render — never derived from state/effects (that's what caused the
+// default-tiles flash).
+const DARK_TILE_URL = `https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`;
 
 const API_BASE = process.env.EXPO_PUBLIC_DOMAIN
   ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/api`
@@ -212,9 +217,16 @@ const INITIAL_REGION: Region = {
 
 export function MapScreen() {
   const { courts: localCourts, checkedInCourtId, localCourtId } = useApp();
-  const { top } = useSafeAreaInsets();
+  const { top, bottom } = useSafeAreaInsets();
 
   const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
+  // Selecting a court opens the native court-sheet route (formSheet detents).
+  useEffect(() => {
+    if (!selectedCourt) return;
+    router.push({ // "as never": .expo/types regenerate on next `expo start`; route exists (app/court-sheet.tsx)
+      pathname: "/court-sheet" as never, params: { id: selectedCourt.id, ...(selectedCourt.distanceKm != null ? { distanceKm: String(selectedCourt.distanceKm) } : {}) } });
+    setSelectedCourt(null);
+  }, [selectedCourt]);
   const [view, setView] = useState<"MAP" | "LIST">("MAP");
   const [showAddModal, setShowAddModal] = useState(false);
 
@@ -382,6 +394,9 @@ export function MapScreen() {
             onRegionChangeComplete={onRegionChangeComplete}
             onMapReady={handleMapReady}
             mapType={HAS_TOKEN ? "none" : "mutedStandard"}
+            loadingEnabled
+            loadingBackgroundColor={Colors.surfaceDark}
+            loadingIndicatorColor={Colors.accent}
             showsPointsOfInterest={false}
             showsTraffic={false}
             showsBuildings={false}
@@ -390,10 +405,10 @@ export function MapScreen() {
           >
             {HAS_TOKEN && (
               <UrlTile
-                urlTemplate={`https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`}
+                urlTemplate={DARK_TILE_URL}
                 maximumZ={19}
                 flipY={false}
-                zIndex={-1}
+                shouldReplaceMapContent
               />
             )}
 
@@ -441,23 +456,24 @@ export function MapScreen() {
             </View>
           </Animated.View>
 
-          {/* Loading indicator for court data fetches */}
+          {/* Loading indicator for court data fetches — below the top bar */}
           {loading && (
-            <View style={[styles.loadingBadge, { top: top + 70 }]}>
+            <View style={[styles.loadingBadge, { top: top + 112 }]}>
               <ActivityIndicator size="small" color={Colors.accent} />
             </View>
           )}
 
-          {/* FAB — positioned above the safe bottom area, clear of native controls */}
+          {/* FAB — bottom-right corner, above every other map overlay */}
           <Pressable
-            style={[styles.addCourtFab, { bottom: 160 }]}
+            style={[styles.addCourtFab, { bottom: bottom + 20 }]}
             onPress={() => setShowAddModal(true)}
+            accessibilityLabel="Add a court"
           >
             <Ionicons name="add" size={22} color={Colors.black} />
           </Pressable>
 
-          {/* Zoom level indicator (dev helper, subtle) */}
-          <View style={styles.zoomBadge}>
+          {/* Zoom level indicator (dev helper) — stacked above the FAB, no overlap */}
+          <View style={[styles.zoomBadge, { bottom: bottom + 80 }]}>
             <Text style={styles.zoomText}>Z{zoom} · {mapItems.length} shown</Text>
           </View>
 
@@ -479,7 +495,7 @@ export function MapScreen() {
         </View>
       ) : (
         <ScrollView
-          style={[styles.list, { marginTop: top + 68 }]}
+          style={[styles.list, { marginTop: top + 112 }]}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         >
@@ -501,15 +517,10 @@ export function MapScreen() {
 
       {/* Live courts bar */}
       {view === "MAP" && activeCourts.length > 0 && !selectedCourt && (
-        <View style={[styles.liveBar, { top: top + 70 }]}>
+        <View style={[styles.liveBar, { top: top + 112 }]}>
           <LivePulse size={5} color={Colors.accent} />
           <Text style={styles.liveBarText}>{activeCourts.length} courts live</Text>
         </View>
-      )}
-
-      {/* Court bottom sheet */}
-      {view === "MAP" && (
-        <CourtBottomSheet court={selectedCourtLive} onClose={() => setSelectedCourt(null)} />
       )}
 
       <AddCourtModal visible={showAddModal} onClose={() => setShowAddModal(false)} />
@@ -528,12 +539,10 @@ const styles = StyleSheet.create({
     zIndex: 20,
     paddingHorizontal: 16,
     paddingBottom: 12,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 10,
+    gap: 8,
   },
   searchBar: {
-    flex: 1,
+    alignSelf: "stretch",
     backgroundColor: "rgba(13,13,16,0.93)",
     borderWidth: 1,
     borderColor: Colors.border,
@@ -547,6 +556,7 @@ const styles = StyleSheet.create({
     color: Colors.mutedDark,
   },
   viewToggle: {
+    alignSelf: "flex-end",
     flexDirection: "row",
     borderWidth: 1,
     borderColor: Colors.border,
@@ -691,25 +701,25 @@ const styles = StyleSheet.create({
   // FAB
   addCourtFab: {
     position: "absolute",
-    right: 16,
+    right: 20,
     width: 48,
     height: 48,
     borderRadius: 24,
     backgroundColor: Colors.accent,
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 10,
+    zIndex: 30,
     shadowColor: Colors.accent,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 8,
-    elevation: 8,
+    elevation: 12,
   },
 
   // Loading
   loadingBadge: {
     position: "absolute",
-    right: 74,
+    right: 16,
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -724,8 +734,7 @@ const styles = StyleSheet.create({
   // Zoom badge
   zoomBadge: {
     position: "absolute",
-    bottom: 170,
-    right: 16,
+    right: 20,
     backgroundColor: "rgba(13,13,16,0.7)",
     borderRadius: Radius.sm,
     paddingHorizontal: 8,

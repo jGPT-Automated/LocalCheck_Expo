@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -11,7 +12,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AddCourtModal } from "@/components/AddCourtModal";
-import { CourtBottomSheet } from "@/components/CourtBottomSheet";
 import { CourtListItem } from "@/components/CourtListItem";
 import { Colors } from "@/constants/colors";
 import { Court, getSportColor } from "@/constants/data";
@@ -138,11 +138,13 @@ function MapboxMap({
         attributionControl: false,
       });
 
-      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right");
+      // Controls live in a right-side column BELOW the search bar — never
+      // bottom-right, where they overlapped the add-court FAB.
+      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
       map.addControl(new mapboxgl.GeolocateControl({
         positionOptions: { enableHighAccuracy: true },
         trackUserLocation: true,
-      }), "bottom-right");
+      }), "top-right");
 
       const controlStyle = document.createElement("style");
       controlStyle.textContent = `
@@ -161,8 +163,8 @@ function MapboxMap({
         .mapboxgl-ctrl button:hover .mapboxgl-ctrl-icon {
           filter: invert(1) !important;
         }
-        .mapboxgl-ctrl-bottom-right {
-          bottom: 110px !important;
+        .mapboxgl-ctrl-top-right {
+          top: 178px !important;
           right: 12px !important;
         }
       `;
@@ -244,7 +246,7 @@ function MapboxMap({
     <View style={{ flex: 1 }}>
       <div
         ref={containerRef as any}
-        style={{ position: "absolute", inset: 0, zIndex: 0 }}
+        style={{ position: "absolute", inset: 0, zIndex: 0, background: Colors.surfaceDark }}
       />
       <Animated.View
         style={[styles.mapLoadingOverlay, { opacity: overlayOpacity, pointerEvents: "none" }]}
@@ -262,6 +264,13 @@ export function MapScreen() {
   const { courts: rawCourts, checkedInCourtId } = useApp();
   const { top } = useSafeAreaInsets();
   const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
+  // Selecting a court opens the native court-sheet route (formSheet detents).
+  useEffect(() => {
+    if (!selectedCourt) return;
+    router.push({ // "as never": .expo/types regenerate on next `expo start`; route exists (app/court-sheet.tsx)
+      pathname: "/court-sheet" as never, params: { id: selectedCourt.id, ...(selectedCourt.distanceKm != null ? { distanceKm: String(selectedCourt.distanceKm) } : {}) } });
+    setSelectedCourt(null);
+  }, [selectedCourt]);
   const [view, setView] = useState<"MAP" | "LIST">("MAP");
   const [showAddModal, setShowAddModal] = useState(false);
   const topPad = 67;
@@ -324,7 +333,7 @@ export function MapScreen() {
           />
 
           {activeCourts.length > 0 && !selectedCourt && (
-            <View style={[styles.liveBar, { top: topPad + 70 }]}>
+            <View style={[styles.liveBar, { top: topPad + 112 }]}>
               <Text style={styles.liveBarText}>
                 {activeCourts.length} COURTS LIVE
               </Text>
@@ -335,6 +344,7 @@ export function MapScreen() {
           <Pressable
             style={styles.addCourtFab}
             onPress={() => setShowAddModal(true)}
+            accessibilityLabel="Add a court"
           >
             <Ionicons name="add" size={22} color={Colors.black} />
           </Pressable>
@@ -352,7 +362,7 @@ export function MapScreen() {
         </View>
       ) : (
         <ScrollView
-          style={[styles.list, { marginTop: topPad + 68 }]}
+          style={[styles.list, { marginTop: topPad + 112 }]}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         >
@@ -369,10 +379,6 @@ export function MapScreen() {
         </ScrollView>
       )}
 
-      {view === "MAP" && (
-        <CourtBottomSheet court={selectedCourtLive} onClose={() => setSelectedCourt(null)} />
-      )}
-
       <AddCourtModal
         visible={showAddModal}
         onClose={() => setShowAddModal(false)}
@@ -386,10 +392,10 @@ const styles = StyleSheet.create({
   topBar: {
     position: "absolute", top: 0, left: 0, right: 0, zIndex: 20,
     paddingHorizontal: 16, paddingBottom: 12,
-    flexDirection: "row", alignItems: "flex-end", gap: 10,
+    gap: 8,
   },
   searchBar: {
-    flex: 1,
+    alignSelf: "stretch",
     backgroundColor: Colors.surfaceDark,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -398,6 +404,7 @@ const styles = StyleSheet.create({
   },
   searchPlaceholder: { fontFamily: Typography.heading, fontSize: 13, color: Colors.mutedDark, letterSpacing: 1.5 },
   viewToggle: {
+    alignSelf: "flex-end",
     flexDirection: "row",
     borderWidth: 1,
     borderColor: Colors.border,
@@ -432,15 +439,15 @@ const styles = StyleSheet.create({
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.accent },
   addCourtFab: {
     position: "absolute",
-    right: 16,
-    bottom: 210,
+    right: 20,
+    bottom: 104,
     width: 48,
     height: 48,
     borderRadius: 24,
     backgroundColor: Colors.accent,
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 20,
+    zIndex: 30,
     shadowColor: Colors.accent,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,

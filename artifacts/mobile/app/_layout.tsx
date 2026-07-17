@@ -65,6 +65,20 @@ function RootLayoutNav() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="court/[id]" options={{ headerShown: false, presentation: "card" }} />
+        <Stack.Screen
+          name="court-sheet"
+          options={{
+            // Native sheet (see .agents/skills/building-native-ui form-sheet):
+            // real UIKit detents — swipe between peek (45%) and full, swipe
+            // down to dismiss, native grabber. No hand-rolled gestures.
+            presentation: "formSheet",
+            headerShown: false,
+            sheetAllowedDetents: [0.45, 1.0],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 8,
+            contentStyle: { backgroundColor: "transparent" },
+          }}
+        />
         <Stack.Screen name="run/[id]" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="player/[id]" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="friends" options={{ headerShown: false, presentation: "card" }} />

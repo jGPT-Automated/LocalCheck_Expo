@@ -252,7 +252,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // where needed. Fetching only the local court made runs created or joined at
   // other courts vanish from Schedule after a refresh.
   const refreshRuns = useCallback(async () => {
+    // From start-of-today, not "now": a run created for earlier today should
+    // still show on today's schedule instead of silently disappearing.
     const from = new Date();
+    from.setHours(0, 0, 0, 0);
     const to = new Date();
     to.setDate(to.getDate() + 7);
     const games = await fetchScheduledGames({ from, to });

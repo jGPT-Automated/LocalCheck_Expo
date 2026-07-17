@@ -17,6 +17,19 @@ const FEED_TYPE_LABELS: Record<FeedItem["type"], string> = {
   run_started: "RUN",
 };
 
+// Event-type color coding — tokens from constants/colors.ts only.
+// fg = chip text, bg = chip fill, edge = card's 3px left border tint.
+const FEED_TYPE_COLORS: Record<FeedItem["type"], { fg: string; bg: string; edge: string }> = {
+  checkin: { fg: Colors.accent, bg: Colors.accentDim, edge: Colors.accent },
+  checkout: { fg: Colors.muted, bg: Colors.surfaceHigh, edge: Colors.border },
+  game_result: { fg: Colors.win, bg: Colors.winDim, edge: Colors.win },
+  run_result: { fg: Colors.textSecondary, bg: Colors.surfaceHigh, edge: Colors.textSecondary },
+  run_started: { fg: Colors.textSecondary, bg: Colors.surfaceHigh, edge: Colors.textSecondary },
+  new_court: { fg: Colors.textSecondary, bg: Colors.surfaceHigh, edge: Colors.textSecondary },
+};
+
+const FEED_TYPE_FALLBACK = { fg: Colors.muted, bg: Colors.surfaceHigh, edge: Colors.border };
+
 interface FeedCardProps {
   item: FeedItem;
 }
@@ -32,8 +45,7 @@ export function FeedCard({ item }: FeedCardProps) {
   const initials = item.playerName.replace(/[^A-Z]/g, "").slice(0, 2);
   const sportColor = item.sport ? getSportColor(item.sport) : Colors.accent;
   const typeLabel = FEED_TYPE_LABELS[item.type] || item.type;
-  const isResult = item.type === "run_result";
-  const isWin = isResult && item.message.includes("WON");
+  const typeColor = FEED_TYPE_COLORS[item.type] || FEED_TYPE_FALLBACK;
 
   const messageText = item.message
     .toLowerCase()
@@ -60,15 +72,15 @@ export function FeedCard({ item }: FeedCardProps) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { borderLeftColor: typeColor.edge }]}>
       <View style={[styles.sportLine, { backgroundColor: sportColor }]} />
 
       {item.imageUri ? (
         <ImageBackground source={{ uri: item.imageUri }} style={styles.imageArea} resizeMode="cover">
           <View style={styles.imageOverlay}>
             <View style={styles.typeRow}>
-              <View style={styles.typeChip}>
-                <Text style={styles.typeChipText}>{typeLabel}</Text>
+              <View style={[styles.typeChip, { backgroundColor: typeColor.bg }]}>
+                <Text style={[styles.typeChipText, { color: typeColor.fg }]}>{typeLabel}</Text>
               </View>
             </View>
             <View style={styles.bottomMeta}>
@@ -83,14 +95,8 @@ export function FeedCard({ item }: FeedCardProps) {
             <PlayerAvatar initials={initials} size={40} />
             <View style={styles.topRowText}>
               <View style={styles.typeRow}>
-                <View style={[
-                  styles.typeChip,
-                  { backgroundColor: isWin ? Colors.winDim : isResult ? Colors.lossDim : Colors.surfaceHigh },
-                ]}>
-                  <Text style={[
-                    styles.typeChipText,
-                    { color: isWin ? Colors.win : isResult ? Colors.loss : Colors.muted },
-                  ]}>
+                <View style={[styles.typeChip, { backgroundColor: typeColor.bg }]}>
+                  <Text style={[styles.typeChipText, { color: typeColor.fg }]}>
                     {typeLabel}
                   </Text>
                 </View>
@@ -132,6 +138,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     borderWidth: 0.5,
     borderColor: Colors.border,
+    borderLeftWidth: 3,
     overflow: "hidden",
   },
   sportLine: { height: 2 },

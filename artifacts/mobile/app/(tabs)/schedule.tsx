@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Modal,
   Platform,
@@ -19,80 +19,286 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { createScheduledGame } from "@/services/scheduledGameService";
+import { searchCourts } from "@/services/courtService";
 
 const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
 const RUN_TIMES = ["06:00", "08:00", "10:00", "12:00", "14:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
 const RUN_SIZES = [4, 6, 8, 10];
 
+// Rolling next-7-days window (today first) — matches the product model of
+// "who's going this week" and the [today, +7d] data fetch window. A calendar
+// Sun–Sat strip showed past days whose runs the fetch window excludes, which
+// made freshly created runs invisible ("NO RUNS SCHEDULED" bug, 2026-07-17).
 function getWeekDays(): { label: string; dayOfWeek: string; isToday: boolean; date: number }[] {
   const today = new Date();
-  const dow = today.getDay();
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today);
-    d.setDate(today.getDate() - dow + i);
+    d.setDate(today.getDate() + i);
     return {
-      label: DAYS[i],
-      dayOfWeek: DAYS[i],
-      isToday: i === dow,
+      label: DAYS[d.getDay()],
+      dayOfWeek: DAYS[d.getDay()],
+      isToday: i === 0,
       date: d.getDate(),
     };
   });
 }
 
+// ── Shared modal pieces (native page-sheet, court field, day/time grids) ──
+
+const MAX_SEARCH_RESULTS = 6;
+const TIME_COLS = 4;
+
+/** Next 7 days starting today — symmetric picker, no dead/disabled cells. */
+function getNextDays(): { initial: string; date: number; offset: number }[] {
+  const today = new Date();
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    return { initial: DAYS[d.getDay()][0], date: d.getDate(), offset: i };
+  });
+}
+
+/** Date for `offset` days from today at time `t` ("HH:MM"). */
+function offsetDate(offset: number, t: string) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  const [h, m] = t.split(":").map(Number);
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+/**
+ * Single court field: prefilled with the selected court (✕ to clear); when
+ * empty it becomes a debounced search typeahead over all courts.
+ */
+function CourtField({
+  selected,
+  onSelect,
+  onClear,
+}: {
+  selected: Court | null;
+  onSelect: (c: Court) => void;
+  onClear: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<Court[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const found = await searchCourts(trimmed);
+      if (cancelled) return;
+      setResults(found.slice(0, MAX_SEARCH_RESULTS));
+      setSearching(false);
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  if (selected) {
+    return (
+      <View style={styles.courtField}>
+        <View style={styles.courtFieldInfo}>
+          <Text style={styles.courtFieldName} numberOfLines={1}>
+            {selected.name.toUpperCase()}
+          </Text>
+          {(selected.neighborhood || selected.city) ? (
+            <Text style={styles.courtFieldSub} numberOfLines={1}>
+              {[selected.neighborhood, selected.city].filter(Boolean).join(" · ")}
+            </Text>
+          ) : null}
+        </View>
+        <Pressable
+          onPress={onClear}
+          hitSlop={12}
+          style={styles.courtFieldClear}
+          testID="court-field-clear"
+        >
+          <Feather name="x" size={16} color={Colors.muted} />
+        </Pressable>
+      </View>
+    );
+  }
+
+  const trimmed = query.trim();
+  return (
+    <View>
+      <View style={styles.courtSearchBox}>
+        <Feather name="search" size={14} color={Colors.muted} />
+        <TextInput
+          style={styles.courtSearchInput}
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search courts"
+          placeholderTextColor={Colors.mutedDark}
+          autoCorrect={false}
+          autoCapitalize="none"
+          testID="court-search-input"
+        />
+      </View>
+      {trimmed.length >= 2 && (
+        <View style={styles.courtResults}>
+          {results.map((c) => (
+            <Pressable
+              key={c.id}
+              style={({ pressed }) => [styles.courtResultRow, pressed && styles.pressed]}
+              onPress={() => {
+                onSelect(c);
+                setQuery("");
+                setResults([]);
+              }}
+            >
+              <View style={styles.courtFieldInfo}>
+                <Text style={styles.courtFieldName} numberOfLines={1}>
+                  {c.name.toUpperCase()}
+                </Text>
+                <Text style={styles.courtFieldSub} numberOfLines={1}>
+                  {[
+                    c.city,
+                    c.distanceKm != null ? `${c.distanceKm.toFixed(1)} KM` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || c.neighborhood}
+                </Text>
+              </View>
+            </Pressable>
+          ))}
+          {!searching && results.length === 0 && (
+            <Text style={styles.courtResultsEmpty}>NO COURTS FOUND</Text>
+          )}
+          {searching && results.length === 0 && (
+            <Text style={styles.courtResultsEmpty}>SEARCHING…</Text>
+          )}
+        </View>
+      )}
+    </View>
+  );
+}
+
+/** Symmetric 7-cell day row: weekday initial + day number, accent fill when selected. */
+function DayGrid({ selected, onSelect }: { selected: number; onSelect: (offset: number) => void }) {
+  return (
+    <View style={styles.dayGrid}>
+      {getNextDays().map((d) => {
+        const active = selected === d.offset;
+        return (
+          <Pressable
+            key={d.offset}
+            style={[styles.dayGridCell, active && styles.dayGridCellActive]}
+            onPress={() => onSelect(d.offset)}
+          >
+            <Text style={[styles.dayGridInitial, active && styles.dayGridInitialActive]}>
+              {d.initial}
+            </Text>
+            <Text style={[styles.dayGridDate, active && styles.dayGridDateActive]}>
+              {d.date}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Time chips in equal-width rows of 4 — past slots (today only) disabled. */
+function TimeGrid({
+  selected,
+  dayOffset,
+  onSelect,
+}: {
+  selected: string;
+  dayOffset: number;
+  onSelect: (t: string) => void;
+}) {
+  const rows: string[][] = [];
+  for (let i = 0; i < RUN_TIMES.length; i += TIME_COLS) {
+    rows.push(RUN_TIMES.slice(i, i + TIME_COLS));
+  }
+  return (
+    <View>
+      {rows.map((row, ri) => (
+        <View key={ri} style={styles.gridRow}>
+          {row.map((t) => {
+            const disabled = offsetDate(dayOffset, t).getTime() <= Date.now();
+            const active = selected === t;
+            return (
+              <Pressable
+                key={t}
+                style={[styles.gridCell, active && styles.gridCellActive, disabled && styles.gridCellDisabled]}
+                onPress={() => onSelect(t)}
+                disabled={disabled}
+              >
+                <Text style={[styles.gridCellText, active && styles.gridCellTextActive]}>{t}</Text>
+              </Pressable>
+            );
+          })}
+          {Array.from({ length: TIME_COLS - row.length }).map((_, i) => (
+            <View key={`spacer-${i}`} style={styles.gridCellSpacer} />
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function HostRunModal({
   visible,
   onClose,
-  courts,
   defaultCourt,
   organizerId,
   onCreated,
 }: {
   visible: boolean;
   onClose: () => void;
-  courts: Court[];
   defaultCourt: Court | null;
   organizerId: string;
   onCreated: () => Promise<void>;
 }) {
-  const weekDays = getWeekDays();
-  const todayIndex = weekDays.findIndex((d) => d.isToday);
+  const { top } = useSafeAreaInsets();
 
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
-  const [courtId, setCourtId] = useState<string>(defaultCourt?.id ?? courts[0]?.id ?? "");
-  const [dayIndex, setDayIndex] = useState(todayIndex);
+  const [court, setCourt] = useState<Court | null>(defaultCourt);
+  const [dayOffset, setDayOffset] = useState(0);
   const [time, setTime] = useState("18:00");
   const [maxPlayers, setMaxPlayers] = useState(10);
   const [submitting, setSubmitting] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  const courtOptions = defaultCourt && !courts.some((c) => c.id === defaultCourt.id)
-    ? [defaultCourt, ...courts]
-    : courts;
+  // Re-default the court each time the sheet opens (ref so the 30s context
+  // poll can't reset a court the user picked mid-edit).
+  const defaultCourtRef = useRef(defaultCourt);
+  defaultCourtRef.current = defaultCourt;
+  useEffect(() => {
+    if (visible) {
+      setCourt(defaultCourtRef.current);
+      setDayOffset(0);
+      setFailed(false);
+    }
+  }, [visible]);
 
-  const slotDate = (di: number, t: string) => {
-    const now = new Date();
-    const d = new Date(now);
-    d.setDate(now.getDate() - now.getDay() + di);
-    const [h, m] = t.split(":").map(Number);
-    d.setHours(h, m, 0, 0);
-    return d;
-  };
-  // Past days/times are disabled in the picker — never silently reschedule a
-  // past slot to a different date than the one the user tapped.
-  const startTime = slotDate(dayIndex, time);
-  const isDayDisabled = (i: number) => i < todayIndex;
-  const isTimeDisabled = (t: string) => slotDate(dayIndex, t).getTime() <= Date.now();
-
-  const canSubmit = courtId !== "" && startTime.getTime() > Date.now() && !submitting;
+  // Past times are disabled in the picker — never silently reschedule a past
+  // slot to a different date than the one the user tapped.
+  const startTime = offsetDate(dayOffset, time);
+  const canSubmit = !!court && startTime.getTime() > Date.now() && !submitting;
 
   const handleCreate = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit || !court) return;
     setSubmitting(true);
     setFailed(false);
     const created = await createScheduledGame({
-      courtId,
+      courtId: court.id,
       organizerId,
       title: title.trim() || "PICKUP RUN",
       startTime: startTime.toISOString(),
@@ -111,107 +317,75 @@ function HostRunModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalCard}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>HOST A RUN</Text>
-            <Pressable onPress={onClose} hitSlop={12}>
-              <Feather name="x" size={20} color={Colors.muted} />
-            </Pressable>
-          </View>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.fieldLabel}>TITLE</Text>
-            <TextInput
-              style={styles.fieldInput}
-              value={title}
-              onChangeText={setTitle}
-              placeholder="PICKUP RUN"
-              placeholderTextColor={Colors.mutedDark}
-            />
-
-            <Text style={styles.fieldLabel}>COURT</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-              {courtOptions.map((c) => (
-                <Pressable
-                  key={c.id}
-                  style={[styles.chip, courtId === c.id && styles.chipActive]}
-                  onPress={() => setCourtId(c.id)}
-                >
-                  <Text style={[styles.chipText, courtId === c.id && styles.chipTextActive]}>
-                    {c.name.toUpperCase()}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-
-            <Text style={styles.fieldLabel}>DAY</Text>
-            <View style={styles.chipRowWrap}>
-              {weekDays.map((d, i) => (
-                <Pressable
-                  key={i}
-                  style={[styles.chip, dayIndex === i && styles.chipActive, isDayDisabled(i) && styles.chipDisabled]}
-                  onPress={() => setDayIndex(i)}
-                  disabled={isDayDisabled(i)}
-                >
-                  <Text style={[styles.chipText, dayIndex === i && styles.chipTextActive]}>
-                    {d.isToday ? "TODAY" : `${d.label} ${d.date}`}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={styles.fieldLabel}>START TIME</Text>
-            <View style={styles.chipRowWrap}>
-              {RUN_TIMES.map((t) => (
-                <Pressable
-                  key={t}
-                  style={[styles.chip, time === t && styles.chipActive, isTimeDisabled(t) && styles.chipDisabled]}
-                  onPress={() => setTime(t)}
-                  disabled={isTimeDisabled(t)}
-                >
-                  <Text style={[styles.chipText, time === t && styles.chipTextActive]}>{t}</Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={styles.fieldLabel}>MAX PLAYERS</Text>
-            <View style={styles.chipRowWrap}>
-              {RUN_SIZES.map((n) => (
-                <Pressable
-                  key={n}
-                  style={[styles.chip, maxPlayers === n && styles.chipActive]}
-                  onPress={() => setMaxPlayers(n)}
-                >
-                  <Text style={[styles.chipText, maxPlayers === n && styles.chipTextActive]}>{n}</Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={styles.fieldLabel}>NOTE (OPTIONAL)</Text>
-            <TextInput
-              style={styles.fieldInput}
-              value={note}
-              onChangeText={setNote}
-              placeholder="Bring a dark shirt"
-              placeholderTextColor={Colors.mutedDark}
-            />
-
-            {failed && (
-              <Text style={styles.createError}>COULD NOT CREATE RUN — TRY AGAIN</Text>
-            )}
-
-            <Pressable
-              style={[styles.createBtn, !canSubmit && styles.createBtnDisabled]}
-              onPress={handleCreate}
-              disabled={!canSubmit}
-            >
-              <Text style={styles.createBtnText}>
-                {submitting ? "CREATING…" : "CREATE RUN"}
-              </Text>
-            </Pressable>
-          </ScrollView>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={[styles.sheet, { paddingTop: Platform.OS === "ios" ? top : top + 12 }]}>
+        <View style={styles.sheetHeader}>
+          <Text style={styles.sheetTitle}>HOST A RUN</Text>
+          <Pressable onPress={onClose} style={styles.sheetClose} hitSlop={12}>
+            <Feather name="x" size={22} color={Colors.muted} />
+          </Pressable>
         </View>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.sheetContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.fieldLabel}>TITLE</Text>
+          <TextInput
+            style={styles.fieldInput}
+            value={title}
+            onChangeText={setTitle}
+            placeholder="PICKUP RUN"
+            placeholderTextColor={Colors.mutedDark}
+          />
+
+          <Text style={styles.fieldLabel}>COURT</Text>
+          <CourtField selected={court} onSelect={setCourt} onClear={() => setCourt(null)} />
+
+          <Text style={styles.fieldLabel}>DAY</Text>
+          <DayGrid selected={dayOffset} onSelect={setDayOffset} />
+
+          <Text style={styles.fieldLabel}>START TIME</Text>
+          <TimeGrid selected={time} dayOffset={dayOffset} onSelect={setTime} />
+
+          <Text style={styles.fieldLabel}>MAX PLAYERS</Text>
+          <View style={styles.gridRow}>
+            {RUN_SIZES.map((n) => (
+              <Pressable
+                key={n}
+                style={[styles.gridCell, maxPlayers === n && styles.gridCellActive]}
+                onPress={() => setMaxPlayers(n)}
+              >
+                <Text style={[styles.gridCellText, maxPlayers === n && styles.gridCellTextActive]}>
+                  {n}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={styles.fieldLabel}>NOTE (OPTIONAL)</Text>
+          <TextInput
+            style={styles.fieldInput}
+            value={note}
+            onChangeText={setNote}
+            placeholder="Bring a dark shirt"
+            placeholderTextColor={Colors.mutedDark}
+          />
+
+          {failed && (
+            <Text style={styles.createError}>COULD NOT CREATE RUN — TRY AGAIN</Text>
+          )}
+
+          <Pressable
+            style={[styles.createBtn, !canSubmit && styles.createBtnDisabled]}
+            onPress={handleCreate}
+            disabled={!canSubmit}
+          >
+            <Text style={styles.createBtnText}>
+              {submitting ? "CREATING…" : "CREATE RUN"}
+            </Text>
+          </Pressable>
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -220,51 +394,47 @@ function HostRunModal({
 function PlanVisitModal({
   visible,
   onClose,
-  courts,
   defaultCourt,
   defaultDayIndex,
   onSubmit,
 }: {
   visible: boolean;
   onClose: () => void;
-  courts: Court[];
   defaultCourt: Court | null;
   defaultDayIndex: number;
   onSubmit: (courtId: string, plannedAtIso: string, note?: string) => Promise<boolean>;
 }) {
-  const weekDays = getWeekDays();
-  const todayIndex = weekDays.findIndex((d) => d.isToday);
+  const { top } = useSafeAreaInsets();
 
   const [note, setNote] = useState("");
-  const [courtId, setCourtId] = useState<string>(defaultCourt?.id ?? courts[0]?.id ?? "");
-  const [dayIndex, setDayIndex] = useState(Math.max(defaultDayIndex, todayIndex));
+  const [court, setCourt] = useState<Court | null>(defaultCourt);
+  const [dayOffset, setDayOffset] = useState(0);
   const [time, setTime] = useState("18:00");
   const [submitting, setSubmitting] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  const courtOptions = defaultCourt && !courts.some((c) => c.id === defaultCourt.id)
-    ? [defaultCourt, ...courts]
-    : courts;
+  // Re-default court + day each time the sheet opens. defaultDayIndex is the
+  // page's week-strip index (Sun=0); convert to an offset from today.
+  const defaultsRef = useRef({ defaultCourt, defaultDayIndex });
+  defaultsRef.current = { defaultCourt, defaultDayIndex };
+  useEffect(() => {
+    if (visible) {
+      const { defaultCourt: dc, defaultDayIndex: di } = defaultsRef.current;
+      setCourt(dc);
+      // Page strip is rolling now: its index IS the offset from today.
+      setDayOffset(Math.min(6, Math.max(0, di)));
+      setFailed(false);
+    }
+  }, [visible]);
 
-  const slotDate = (di: number, t: string) => {
-    const now = new Date();
-    const d = new Date(now);
-    d.setDate(now.getDate() - now.getDay() + di);
-    const [h, m] = t.split(":").map(Number);
-    d.setHours(h, m, 0, 0);
-    return d;
-  };
-  const plannedAt = slotDate(dayIndex, time);
-  const isDayDisabled = (i: number) => i < todayIndex;
-  const isTimeDisabled = (t: string) => slotDate(dayIndex, t).getTime() <= Date.now();
-
-  const canSubmit = courtId !== "" && plannedAt.getTime() > Date.now() && !submitting;
+  const plannedAt = offsetDate(dayOffset, time);
+  const canSubmit = !!court && plannedAt.getTime() > Date.now() && !submitting;
 
   const handleSubmit = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit || !court) return;
     setSubmitting(true);
     setFailed(false);
-    const ok = await onSubmit(courtId, plannedAt.toISOString(), note.trim() || undefined);
+    const ok = await onSubmit(court.id, plannedAt.toISOString(), note.trim() || undefined);
     setSubmitting(false);
     if (!ok) {
       setFailed(true);
@@ -275,85 +445,51 @@ function PlanVisitModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalCard}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>I'LL BE THERE</Text>
-            <Pressable onPress={onClose} hitSlop={12}>
-              <Feather name="x" size={20} color={Colors.muted} />
-            </Pressable>
-          </View>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.fieldLabel}>COURT</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-              {courtOptions.map((c) => (
-                <Pressable
-                  key={c.id}
-                  style={[styles.chip, courtId === c.id && styles.chipActive]}
-                  onPress={() => setCourtId(c.id)}
-                >
-                  <Text style={[styles.chipText, courtId === c.id && styles.chipTextActive]}>
-                    {c.name.toUpperCase()}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-
-            <Text style={styles.fieldLabel}>DAY</Text>
-            <View style={styles.chipRowWrap}>
-              {weekDays.map((d, i) => (
-                <Pressable
-                  key={i}
-                  style={[styles.chip, dayIndex === i && styles.chipActive, isDayDisabled(i) && styles.chipDisabled]}
-                  onPress={() => setDayIndex(i)}
-                  disabled={isDayDisabled(i)}
-                >
-                  <Text style={[styles.chipText, dayIndex === i && styles.chipTextActive]}>
-                    {d.isToday ? "TODAY" : `${d.label} ${d.date}`}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={styles.fieldLabel}>AROUND WHAT TIME</Text>
-            <View style={styles.chipRowWrap}>
-              {RUN_TIMES.map((t) => (
-                <Pressable
-                  key={t}
-                  style={[styles.chip, time === t && styles.chipActive, isTimeDisabled(t) && styles.chipDisabled]}
-                  onPress={() => setTime(t)}
-                  disabled={isTimeDisabled(t)}
-                >
-                  <Text style={[styles.chipText, time === t && styles.chipTextActive]}>{t}</Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={styles.fieldLabel}>NOTE (OPTIONAL)</Text>
-            <TextInput
-              style={styles.fieldInput}
-              value={note}
-              onChangeText={setNote}
-              placeholder="Looking for 2v2"
-              placeholderTextColor={Colors.mutedDark}
-            />
-
-            {failed && (
-              <Text style={styles.createError}>COULD NOT POST — TRY AGAIN</Text>
-            )}
-
-            <Pressable
-              style={[styles.createBtn, !canSubmit && styles.createBtnDisabled]}
-              onPress={handleSubmit}
-              disabled={!canSubmit}
-            >
-              <Text style={styles.createBtnText}>
-                {submitting ? "POSTING…" : "POST MY TIME"}
-              </Text>
-            </Pressable>
-          </ScrollView>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={[styles.sheet, { paddingTop: Platform.OS === "ios" ? top : top + 12 }]}>
+        <View style={styles.sheetHeader}>
+          <Text style={styles.sheetTitle}>I'LL BE THERE</Text>
+          <Pressable onPress={onClose} style={styles.sheetClose} hitSlop={12}>
+            <Feather name="x" size={22} color={Colors.muted} />
+          </Pressable>
         </View>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.sheetContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.fieldLabel}>COURT</Text>
+          <CourtField selected={court} onSelect={setCourt} onClear={() => setCourt(null)} />
+
+          <Text style={styles.fieldLabel}>DAY</Text>
+          <DayGrid selected={dayOffset} onSelect={setDayOffset} />
+
+          <Text style={styles.fieldLabel}>AROUND WHAT TIME</Text>
+          <TimeGrid selected={time} dayOffset={dayOffset} onSelect={setTime} />
+
+          <Text style={styles.fieldLabel}>NOTE (OPTIONAL)</Text>
+          <TextInput
+            style={styles.fieldInput}
+            value={note}
+            onChangeText={setNote}
+            placeholder="Looking for 2v2"
+            placeholderTextColor={Colors.mutedDark}
+          />
+
+          {failed && (
+            <Text style={styles.createError}>COULD NOT POST — TRY AGAIN</Text>
+          )}
+
+          <Pressable
+            style={[styles.createBtn, !canSubmit && styles.createBtnDisabled]}
+            onPress={handleSubmit}
+            disabled={!canSubmit}
+          >
+            <Text style={styles.createBtnText}>
+              {submitting ? "POSTING…" : "POST MY TIME"}
+            </Text>
+          </Pressable>
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -364,7 +500,6 @@ export default function ScheduleScreen() {
     localCourt,
     runs,
     plannedVisits,
-    courts,
     currentUser,
     refreshRuns,
     addPlannedVisit,
@@ -379,11 +514,11 @@ export default function ScheduleScreen() {
   const todayIndex = weekDays.findIndex((d) => d.isToday);
   const [selectedDay, setSelectedDay] = useState(todayIndex);
 
-  // Match runs to the selected day by actual start time, so every selectable
-  // day works — not just TODAY/TOMORROW label matching.
+  // Match runs to the selected day by actual start time. selectedDay is now a
+  // rolling offset from today (0 = today).
   const selectedDate = (() => {
     const d = new Date();
-    d.setDate(d.getDate() - d.getDay() + selectedDay);
+    d.setDate(d.getDate() + selectedDay);
     return d.toDateString();
   })();
   const runsForDay = runs.filter((r) => new Date(r.startTimeIso).toDateString() === selectedDate);
@@ -632,7 +767,6 @@ export default function ScheduleScreen() {
       <HostRunModal
         visible={showHost}
         onClose={() => setShowHost(false)}
-        courts={courts}
         defaultCourt={localCourt}
         organizerId={currentUser.id}
         onCreated={refreshRuns}
@@ -641,7 +775,6 @@ export default function ScheduleScreen() {
       <PlanVisitModal
         visible={showPlan}
         onClose={() => setShowPlan(false)}
-        courts={courts}
         defaultCourt={localCourt}
         defaultDayIndex={selectedDay}
         onSubmit={addPlannedVisit}
@@ -1045,83 +1178,190 @@ const styles = StyleSheet.create({
     letterSpacing: 3,
   },
 
-  // ── Host Run Modal ──
-  modalOverlay: {
+  // ── Create-run / plan-visit page sheets ──
+  sheet: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.75)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
+    backgroundColor: Colors.background,
   },
-  modalCard: {
-    width: "100%",
-    maxWidth: 380,
-    maxHeight: "85%",
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 20,
-  },
-  modalHeader: {
+  sheetHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: Colors.border,
   },
-  modalTitle: {
+  sheetTitle: {
     fontFamily: Typography.heading,
     fontSize: 16,
     color: Colors.text,
     letterSpacing: 3,
   },
+  sheetClose: { padding: 4 },
+  sheetContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
   fieldLabel: {
     fontFamily: Typography.bodyBold,
-    fontSize: 9,
+    fontSize: 11,
     color: Colors.muted,
     letterSpacing: 2,
     textTransform: "uppercase" as const,
-    marginTop: 14,
-    marginBottom: 6,
+    marginTop: 20,
+    marginBottom: 8,
   },
   fieldInput: {
-    borderWidth: 0.5,
+    borderWidth: 1,
     borderColor: Colors.border,
-    backgroundColor: Colors.surfaceHigh,
+    backgroundColor: Colors.surface,
     color: Colors.text,
     fontFamily: Typography.bodyMedium,
     fontSize: 13,
     paddingHorizontal: 12,
+    minHeight: 44,
     paddingVertical: 10,
     borderRadius: Radius.xs,
   },
-  chipRow: {
-    gap: 8,
-  },
-  chipRowWrap: {
+
+  // Court field (selected court w/ clear, or search typeahead)
+  courtField: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  chip: {
-    borderWidth: 0.5,
+    alignItems: "center",
+    borderWidth: 1,
     borderColor: Colors.border,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    backgroundColor: Colors.surface,
     borderRadius: Radius.xs,
-    backgroundColor: Colors.surfaceHigh,
+    paddingLeft: 12,
+    minHeight: 48,
   },
-  chipActive: {
+  courtFieldInfo: { flex: 1, gap: 1 },
+  courtFieldName: {
+    fontFamily: Typography.heading,
+    fontSize: 13,
+    color: Colors.text,
+    letterSpacing: 0.5,
+  },
+  courtFieldSub: {
+    fontFamily: Typography.body,
+    fontSize: 11,
+    color: Colors.muted,
+  },
+  courtFieldClear: {
+    width: 44,
+    alignSelf: "stretch",
+    alignItems: "center",
+    justifyContent: "center",
+    borderLeftWidth: 1,
+    borderLeftColor: Colors.border,
+  },
+  courtSearchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.xs,
+    paddingHorizontal: 12,
+    minHeight: 48,
+  },
+  courtSearchInput: {
+    flex: 1,
+    color: Colors.text,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 13,
+    paddingVertical: 12,
+  },
+  courtResults: {
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.xs,
+  },
+  courtResultRow: {
+    minHeight: 48,
+    justifyContent: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.border,
+  },
+  courtResultsEmpty: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 10,
+    color: Colors.mutedDark,
+    letterSpacing: 2,
+    textAlign: "center",
+    paddingVertical: 14,
+  },
+
+  // Day grid (7 equal cells)
+  dayGrid: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  dayGridCell: {
+    flex: 1,
+    minHeight: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.xs,
+  },
+  dayGridCellActive: {
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
+  },
+  dayGridInitial: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.muted,
+    letterSpacing: 1,
+  },
+  dayGridInitialActive: { color: Colors.black },
+  dayGridDate: {
+    fontFamily: Typography.heading,
+    fontSize: 15,
+    color: Colors.text,
+    lineHeight: 17,
+  },
+  dayGridDateActive: { color: Colors.black },
+
+  // Time / size grids (equal-width rows of 4)
+  gridRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 8,
+  },
+  gridCell: {
+    flex: 1,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.xs,
+  },
+  gridCellActive: {
     borderColor: Colors.accent,
     backgroundColor: Colors.accentDim,
   },
-  chipText: {
+  gridCellDisabled: { opacity: 0.35 },
+  gridCellSpacer: { flex: 1 },
+  gridCellText: {
     fontFamily: Typography.heading,
     fontSize: 11,
     color: Colors.muted,
     letterSpacing: 1,
   },
-  chipTextActive: { color: Colors.accent },
-  chipDisabled: { opacity: 0.35 },
+  gridCellTextActive: { color: Colors.accent },
   createError: {
     fontFamily: Typography.bodyBold,
     fontSize: 10,
