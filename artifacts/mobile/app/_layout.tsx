@@ -51,8 +51,11 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }, [session, isLoading, segments, router]);
 
-  if (isLoading) {
-    // In-app boot screen (OTA-updatable, unlike the native splash image)
+  // Boot screen shown while loading AND while redirecting a signed-out user —
+  // tab routes must never render without a session: the data providers aren't
+  // mounted then, so useApp() would throw on the one pre-redirect frame.
+  const onAuthScreen = segments[0] === "auth";
+  if (isLoading || (!session && !onAuthScreen)) {
     return (
       <View style={{ flex: 1, backgroundColor: Colors.background, alignItems: "center", justifyContent: "center", gap: 24 }}>
         <LogoMark size={88} />
