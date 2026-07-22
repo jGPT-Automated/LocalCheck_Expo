@@ -1,6 +1,9 @@
+// Kanit (SNKRS-adjacent geometric sans) for headings/stats/labels,
+// Inter for body copy. Change fonts HERE only — components must reference
+// these tokens, never literal font names.
 export const Typography = {
-  heading: "Oswald_700Bold",
-  headingRegular: "Oswald_400Regular",
+  heading: "Kanit_700Bold",
+  headingRegular: "Kanit_500Medium",
   body: "Inter_400Regular",
   bodyMedium: "Inter_500Medium",
   bodySemiBold: "Inter_600SemiBold",

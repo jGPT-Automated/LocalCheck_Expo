@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -13,11 +12,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AddCourtModal } from "@/components/AddCourtModal";
 import { CourtListItem } from "@/components/CourtListItem";
+import { useCourtSheet } from "@/components/sheet/CourtSheetHost";
 import { Colors } from "@/constants/colors";
 import { Court, getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts } from "@/context/CourtPresenceContext";
+import { fetchCourtsInBounds } from "@/services/courtService";
 
 declare global {
   interface Window {
@@ -100,11 +101,13 @@ function MapboxMap({
   onCourtSelect,
   selectedId,
   onAddCourt,
+  onBoundsChange,
 }: {
   courts: Court[];
   onCourtSelect: (c: Court) => void;
   selectedId: string | null;
   onAddCourt: () => void;
+  onBoundsChange?: (sw: { lat: number; lng: number }, ne: { lat: number; lng: number }) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -170,9 +173,19 @@ function MapboxMap({
       `;
       document.head.appendChild(controlStyle);
 
+      const emitBounds = () => {
+        const b = map.getBounds();
+        onBoundsChange?.(
+          { lat: b.getSouth(), lng: b.getWest() },
+          { lat: b.getNorth(), lng: b.getEast() }
+        );
+      };
+
       map.on("load", () => {
         mapRef.current = map;
         setMapReady(true);
+        emitBounds();
+        map.on("moveend", emitBounds);
         Animated.timing(overlayOpacity, {
           toValue: 0,
           duration: 350,
@@ -261,19 +274,50 @@ function MapboxMap({
 }
 
 export function MapScreen() {
-  const { courts: rawCourts, checkedInCourtId } = useApp();
+  const { courts: contextCourts, checkedInCourtId } = useApp();
   const { top } = useSafeAreaInsets();
   const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
-  // Selecting a court opens the native court-sheet route (formSheet detents).
+  // Selecting a court opens the app-wide court drawer (see CourtSheetHost).
+  const { openCourtSheet } = useCourtSheet();
   useEffect(() => {
     if (!selectedCourt) return;
-    router.push({ // "as never": .expo/types regenerate on next `expo start`; route exists (app/court-sheet.tsx)
-      pathname: "/court-sheet" as never, params: { id: selectedCourt.id, ...(selectedCourt.distanceKm != null ? { distanceKm: String(selectedCourt.distanceKm) } : {}) } });
+    openCourtSheet({ courtId: selectedCourt.id, distanceKm: selectedCourt.distanceKm ?? undefined });
     setSelectedCourt(null);
   }, [selectedCourt]);
   const [view, setView] = useState<"MAP" | "LIST">("MAP");
   const [showAddModal, setShowAddModal] = useState(false);
   const topPad = 67;
+
+  // Courts stream from Supabase per viewport (same source as native) —
+  // context courts only overlay extra fields for ids already in view.
+  const [viewportCourts, setViewportCourts] = useState<Court[]>([]);
+  const boundsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleBoundsChange = React.useCallback(
+    (sw: { lat: number; lng: number }, ne: { lat: number; lng: number }) => {
+      if (boundsTimer.current) clearTimeout(boundsTimer.current);
+      boundsTimer.current = setTimeout(async () => {
+        const latPad = (ne.lat - sw.lat) * 0.15;
+        const lngPad = (ne.lng - sw.lng) * 0.15;
+        const found = await fetchCourtsInBounds(
+          sw.lat - latPad,
+          sw.lng - lngPad,
+          ne.lat + latPad,
+          ne.lng + lngPad
+        );
+        setViewportCourts(found);
+      }, 400);
+    },
+    []
+  );
+
+  const rawCourts = React.useMemo(() => {
+    const merged = new Map<string, Court>();
+    viewportCourts.forEach((c) => merged.set(c.id, c));
+    contextCourts.forEach((c) => {
+      if (merged.has(c.id)) merged.set(c.id, { ...merged.get(c.id)!, ...c });
+    });
+    return Array.from(merged.values());
+  }, [viewportCourts, contextCourts]);
 
   // Overlay live counts from the shared presence store onto the fetched
   // snapshots, so markers/cards update in real time when anyone checks in/out
@@ -330,6 +374,7 @@ export function MapScreen() {
             onCourtSelect={setSelectedCourt}
             selectedId={selectedCourt?.id ?? null}
             onAddCourt={() => setShowAddModal(true)}
+            onBoundsChange={handleBoundsChange}
           />
 
           {activeCourts.length > 0 && !selectedCourt && (

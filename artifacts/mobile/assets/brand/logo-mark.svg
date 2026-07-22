@@ -1,0 +1,13 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- LocalCheck mark: viewfinder brackets (#E8E8EC, fixed) + orange check
+       (#FF5500 — the only color the mark ever uses). -->
+  <g stroke="#E8E8EC" stroke-width="56" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+    <path d="M 356 228 H 228 V 356"/>
+    <path d="M 668 228 H 796 V 356"/>
+    <path d="M 228 668 V 796 H 356"/>
+    <path d="M 796 668 V 796 H 668"/>
+  </g>
+  <path d="M 332 542 L 462 662 L 700 378"
+        stroke="#FF5500" stroke-width="78" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

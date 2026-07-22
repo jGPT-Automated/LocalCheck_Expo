@@ -226,7 +226,7 @@ export function CourtPresenceProvider({ children }: { children: React.ReactNode 
   // ─── Fallback: poll watched courts + refresh on app foreground ────────────
   useEffect(() => {
     if (!userId) return;
-    const interval = setInterval(refreshAllWatched, 60_000);
+    const interval = setInterval(refreshAllWatched, 120_000);
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active") refreshAllWatched();
     });

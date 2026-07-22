@@ -79,7 +79,10 @@ This is the brand; generated palettes do not override it.
 
 | Work | Skill / resource |
 |---|---|
-| Any UI/UX change | `.agents/skills/ui-ux-pro-max` — RUN the engine: `python3 scripts/search.py "<query>" --design-system` and `--stack react-native`; pre-delivery checklist inside |
+| Any UI/UX change | **Read `DESIGN.md` first** (spec-format: front-matter tokens are normative; validate edits with `npx -p @google/design.md designmd lint DESIGN.md`). Then `.agents/skills/ui-ux-pro-max` — RUN the engine: `python3 scripts/search.py "<query>" --design-system` and `--stack react-native`; pre-delivery checklist inside |
+| Logo / brand asset swap | `DESIGN.md` §"Brand assets & logo swap" — one table says which file to replace and whether it's OTA or build-gated. In-app logo ONLY via `components/brand/LogoMark.tsx` |
+| Bottom sheets / drawers | Reuse `components/sheet/CourtSheetHost.tsx` stack (@gorhom/bottom-sheet). Do NOT use expo-router formSheet detents — shipped broken on both platforms (2026-07-17), removed 2026-07-18 |
+| Curated design refs | github.com/stars/jGPT-Automated/lists/design (impeccable, awesome-design-md, open-design, design.md spec, emilkowalski/skills, SwiftUI-Animations, swift-ios-skills, motion-primitives, cult-ui) |
 | Native-feel Expo UI | `.agents/skills/building-native-ui` (+ its references/: animations, tabs, sheets, icons, search) — conventions: safe areas via `contentInsetAdjustmentBehavior`, boxShadow not legacy shadows, formSheet presentation |
 | Animation/interaction polish | emilkowalski/skills → apple-design: springs over durations (damping 1.0 resp 0.3–0.4s; 0.8 for momentum), interruptibility, velocity handoff, haptics on commit |
 | iOS design judgment | `.agents/skills/mobile-ios-design` (HIG) |
@@ -122,6 +125,34 @@ This is the brand; generated palettes do not override it.
     everywhere, map redesign (separate Sonnet thread), real game loop; plus
     Explore court-sheet rebuild to spec, notifications scaffold, Me-page
     activity/pending, Settings reorg (sport+local court to top).
+
+- **2026-07-18 (Claude Code session — design & drawer sprint)** —
+  - **Court drawer rebuilt (3rd time, now standard components):** the sprint-2
+    native formSheet route rendered blank on device and a dead-end full page on
+    web. Replaced with `@gorhom/bottom-sheet` 5.2.14 (JS-only over reanimated
+    4.1 + RNGH 2.28 already in the binary → OTA-safe): `CourtSheetProvider`
+    hosts one `BottomSheetModal` at root; open anywhere via
+    `useCourtSheet().openCourtSheet({courtId})`. Snap 46%/92%, backdrop-tap +
+    swipe-down dismiss, tap-the-hint expands (mouse affordance). Verified live
+    on web preview incl. realtime counts. `app/court-sheet.tsx` deleted.
+  - **Brand pass:** adopted Jesse's court-frame mark (navy/cream/orange, from
+    LocalCheck.pdf drafts). New `assets/brand/logo-mark.png` (+ .svg source),
+    new `assets/images/icon.png` + `splash-icon.png` (replaces the green
+    basketball-Saturn "spaceship"; needs a tagged build to reach devices),
+    splash bg → #0D0D10, `components/brand/LogoMark.tsx` = single in-app
+    logo entry point. Auth screen: back button removed, logo + tagline added.
+    In-app boot screen (AuthGate) shows the mark (OTA).
+  - **Consistency:** new `ScreenHeader`/`SectionHeader` components; Explore,
+    Compete, Schedule headers now render through them (Home still custom).
+  - **DESIGN.md rewritten to the google-labs-code/design.md spec** (YAML
+    tokens + canonical sections; lints 0 errors).
+  - **Found + diagnosed live bug:** `planned_visits.user_id` FK still points
+    at auth.users → every `fetchPlannedVisits` fails (schedule's pulling-up
+    silently empty). Migration written to
+    `docs/supabase/migrations/20260718_repoint_planned_visits_user_fk_to_profiles.sql`
+    — NOT applied (session permission layer blocked live DDL; needs go-ahead).
+  - Note: `@gorhom/bottom-sheet` added to `artifacts/mobile` deps; most deps
+    oddly live in devDependencies (Replit artifact) — works, left as-is.
 
 ## Work queue (agreed order)
 

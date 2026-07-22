@@ -5,8 +5,10 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
+import { AppState, Platform } from "react-native";
 
 import {
   Court,
@@ -310,17 +312,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => { mounted = false; };
   }, [refreshRuns, refreshPlannedVisits, refreshFeed, refreshMatches, refreshFriends]);
 
-  // Poll shared state every 30s so two devices see each other quickly
+  // Poll shared state so two devices converge. Guarded (2026-07-19 incident:
+  // two unauthenticated web previews polling 6+ reads every 30s with
+  // supabase-js's 4x auto-retry took the project's data plane down):
+  //  - no session → no poll (provider is also only mounted when signed in)
+  //  - app backgrounded / tab hidden → no poll
+  //  - previous batch still in flight → skip this tick (no overlap pile-ups)
+  //  - realtime presence is the fast path; polling is a 60s safety net
+  const pollInFlight = useRef(false);
   useEffect(() => {
-    const interval = setInterval(() => {
-      refreshCourtState();
-      refreshFeed();
-      refreshRuns();
-      refreshPlannedVisits();
-      refreshFriends();
-    }, 30000);
+    const tick = async () => {
+      if (!userId) return;
+      if (AppState.currentState !== "active") return;
+      if (Platform.OS === "web" && typeof document !== "undefined" && document.visibilityState !== "visible") return;
+      if (pollInFlight.current) return;
+      pollInFlight.current = true;
+      try {
+        await Promise.all([
+          refreshCourtState(),
+          refreshFeed(),
+          refreshRuns(),
+          refreshPlannedVisits(),
+          refreshFriends(),
+        ]);
+      } finally {
+        pollInFlight.current = false;
+      }
+    };
+    const interval = setInterval(tick, 60_000);
     return () => clearInterval(interval);
-  }, [refreshCourtState, refreshFeed, refreshRuns, refreshPlannedVisits, refreshFriends]);
+  }, [userId, refreshCourtState, refreshFeed, refreshRuns, refreshPlannedVisits, refreshFriends]);
 
   // ─── Actions ───────────────────────────────────────────────────────────────
   const checkIn = useCallback(

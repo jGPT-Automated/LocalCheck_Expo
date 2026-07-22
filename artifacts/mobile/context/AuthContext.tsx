@@ -135,16 +135,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Listen for auth state changes
+    // Callback stays SYNCHRONOUS — Supabase documents that awaiting other
+    // supabase calls inside onAuthStateChange can deadlock every subsequent
+    // API request. Profile provisioning is deferred to the next tick.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, s) => {
+      (_event, s) => {
         setSession(s);
         setUser(s?.user ?? null);
         if (s?.user) {
-          await waitForProfile(s.user);
+          const u = s.user;
+          setTimeout(() => {
+            waitForProfile(u).finally(() => setIsLoading(false));
+          }, 0);
         } else {
           setProfile(null);
+          setIsLoading(false);
         }
-        setIsLoading(false);
       }
     );
 
