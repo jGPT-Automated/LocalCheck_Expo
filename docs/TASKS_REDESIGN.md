@@ -8,14 +8,31 @@ Rules that hold for every task: tokens only (constants/colors.ts), reuse
 ScreenHeader/SectionHeader/BrutalistButton/CourtSheet stack, DESIGN.md is
 normative, typecheck must pass, note OTA vs build impact in the PR.
 
-## Phase 0 — platform stability (verify before any UI work)
-- [ ] **T0.1 Confirm Supabase recovery + storm fix.** After the storm-fix PR
-  merges: dashboard restart if auth still 522s, then verify sign-in on
-  TestFlight, and watch request volume for 24h (should be ~zero when idle,
-  ~1/min per active signed-in client).
-- [ ] **T0.2 Scope realtime.** Replace the global check_ins/profiles
-  postgres_changes subscription with per-watched-court filters (or Broadcast),
-  so cost scales with watched courts, not table writes. (CourtPresenceContext)
+## Phase 0 — v2 backend: one coordinated launch release (decided 2026-07-21)
+Polling architecture is GONE from the client (fetch once → scoped
+`court:{id}` realtime channels → one resync on foreground → unsubscribe
+off-screen; zero timers). The v2 direction is a single shared backend:
+**LocalCheckProd `qkrnmyexzvaxiqfxwwfb` (us-east-2)** — the website's project,
+54-court canonical catalog — replaces legacy `jzclwnzcektqhgkkdeje` (us-west-2)
+for BOTH web and mobile. Sequence:
+- [ ] **T0.1 v2 schema as version-controlled migrations** on LocalCheckProd:
+  profiles, courts (existing), check_ins, runs, run_participants, matches,
+  match_participants, friendships, planned_visits, activity_events,
+  subscriptions. Constraints up front: one active check-in per user (partial
+  unique index), court/time + user/time indexes, cursor-paginated
+  activity_events, transactional RPCs (check_in/out, join/leave run), RLS on
+  every table, Broadcast triggers scoped court/run/user, no client writes to
+  protected fields.
+- [ ] **T0.2 Seed fixtures**: recreate test auth accounts (controlled creds),
+  import profiles + friendships, map the 6 legacy courts onto the canonical
+  catalog, import useful check-ins/games/runs/planned_visits with remapped
+  court ids, keep varied account/court states for realtime testing. Keep the
+  legacy project read-only as reference until launch confirms, then pause it.
+- [ ] **T0.3 Point mobile at LocalCheckProd** (.env + EAS env: URL +
+  publishable key), verify auth, check-in/out, scoped realtime, runs, feed.
+- [ ] **T0.4 Migrate client reads to v2 tables/RPCs** (services layer:
+  activity_events replaces the 4-query feed reconstruction; runs/matches
+  naming). One PR per service.
 
 ## Phase 1 — brand & token adoption (all OTA)
 - [ ] **T1.1 Adopt the final palette from the brand sheet** (one accent;

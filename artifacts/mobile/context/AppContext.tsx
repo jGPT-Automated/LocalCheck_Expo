@@ -312,36 +312,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => { mounted = false; };
   }, [refreshRuns, refreshPlannedVisits, refreshFeed, refreshMatches, refreshFriends]);
 
-  // Poll shared state so two devices converge. Guarded (2026-07-19 incident:
-  // two unauthenticated web previews polling 6+ reads every 30s with
-  // supabase-js's 4x auto-retry took the project's data plane down):
-  //  - no session → no poll (provider is also only mounted when signed in)
-  //  - app backgrounded / tab hidden → no poll
-  //  - previous batch still in flight → skip this tick (no overlap pile-ups)
-  //  - realtime presence is the fast path; polling is a 60s safety net
-  const pollInFlight = useRef(false);
-  useEffect(() => {
-    const tick = async () => {
-      if (!userId) return;
-      if (AppState.currentState !== "active") return;
-      if (Platform.OS === "web" && typeof document !== "undefined" && document.visibilityState !== "visible") return;
-      if (pollInFlight.current) return;
-      pollInFlight.current = true;
-      try {
-        await Promise.all([
-          refreshCourtState(),
-          refreshFeed(),
-          refreshRuns(),
-          refreshPlannedVisits(),
-          refreshFriends(),
-        ]);
-      } finally {
-        pollInFlight.current = false;
-      }
-    };
-    const interval = setInterval(tick, 60_000);
-    return () => clearInterval(interval);
+  // NO recurring poll. Live convergence comes from the scoped realtime
+  // channels (CourtPresenceContext); shared state here resyncs exactly once
+  // when the app returns to the foreground / the tab becomes visible.
+  // (The 2026-07-19 outage was self-inflicted global polling — fetch once,
+  // subscribe narrowly, resync on foreground, nothing on a timer.)
+  const resyncInFlight = useRef(false);
+  const resync = useCallback(async () => {
+    if (!userId || resyncInFlight.current) return;
+    resyncInFlight.current = true;
+    try {
+      await Promise.all([
+        refreshCourtState(),
+        refreshFeed(),
+        refreshRuns(),
+        refreshPlannedVisits(),
+        refreshFriends(),
+      ]);
+    } finally {
+      resyncInFlight.current = false;
+    }
   }, [userId, refreshCourtState, refreshFeed, refreshRuns, refreshPlannedVisits, refreshFriends]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") resync();
+    });
+    let onVisible: (() => void) | undefined;
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      onVisible = () => {
+        if (document.visibilityState === "visible") resync();
+      };
+      document.addEventListener("visibilitychange", onVisible);
+    }
+    return () => {
+      sub.remove();
+      if (onVisible) document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [resync]);
 
   // ─── Actions ───────────────────────────────────────────────────────────────
   const checkIn = useCallback(
