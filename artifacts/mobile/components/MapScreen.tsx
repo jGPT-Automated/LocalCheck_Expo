@@ -40,7 +40,12 @@ import { fetchCourtsInBounds } from "@/services/courtService";
  */
 
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN ?? "";
-Mapbox.setAccessToken(MAPBOX_TOKEN);
+// Initializing the native SDK with an empty token crashes/black-screens the
+// map view — only configure it when the env var is actually set, and render
+// the list fallback below otherwise.
+if (MAPBOX_TOKEN) {
+  Mapbox.setAccessToken(MAPBOX_TOKEN);
+}
 
 const STYLE_URL =
   process.env.EXPO_PUBLIC_MAPBOX_STYLE_URL || "mapbox://styles/mapbox/dark-v11";
@@ -88,12 +93,16 @@ export function MapScreen() {
     (localCourt ? [localCourt.longitude, localCourt.latitude] : FALLBACK_CENTER);
   const initialZoom = userCoord || localCourt ? 12 : 3.4;
 
-  // ── Viewport-driven Supabase fetch (400ms debounce) ──
+  // ── Viewport-driven Supabase fetch (400ms debounce, sequenced) ──
+  // Responses can arrive out of order while panning; only the newest request
+  // may write state or a slow stale response overwrites fresher courts.
+  const fetchSeq = useRef(0);
   const refetchViewport = useCallback(() => {
     if (fetchTimer.current) clearTimeout(fetchTimer.current);
     fetchTimer.current = setTimeout(async () => {
       const bounds = await mapRef.current?.getVisibleBounds().catch(() => null);
       if (!bounds) return;
+      const seq = ++fetchSeq.current;
       const [[neLng, neLat], [swLng, swLat]] = bounds;
       const latPad = (neLat - swLat) * 0.15;
       const lngPad = (neLng - swLng) * 0.15;
@@ -103,6 +112,7 @@ export function MapScreen() {
         neLat + latPad,
         neLng + lngPad
       );
+      if (seq !== fetchSeq.current) return;
       setViewportCourts(courts);
     }, 400);
   }, []);
@@ -214,6 +224,30 @@ export function MapScreen() {
       (a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity)
     );
   }, [allCourts, userCoord]);
+
+  // Missing-token guard: a build without EXPO_PUBLIC_MAPBOX_TOKEN degrades to
+  // the nearby-court list instead of mounting an SDK that was never configured.
+  if (!MAPBOX_TOKEN) {
+    return (
+      <View style={styles.container}>
+        <View style={[styles.listOverlay, { paddingTop: top + 108 }]}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: bottom + 96 }}
+          >
+            <Text style={styles.emptyText}>MAP UNAVAILABLE — SHOWING NEARBY COURTS</Text>
+            {contextCourts.map((c) => (
+              <CourtListItem
+                key={c.id}
+                court={c}
+                onPress={() => openCourtSheet({ courtId: c.id, distanceKm: c.distanceKm })}
+              />
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

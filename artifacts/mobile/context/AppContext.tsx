@@ -25,14 +25,15 @@ import {
   deletePlannedVisit,
   fetchPlannedVisits,
 } from "@/services/plannedVisitService";
-import { checkInToCourt, checkOutOfCourt, fetchActiveCheckIns, fetchCheckedInCourtId } from "@/services/checkInService";
+import { checkInToCourt, checkOutOfCourt, fetchCheckedInCourtId } from "@/services/checkInService";
 import { addFriend, fetchFriends, removeFriend } from "@/services/friendshipService";
 import { fetchFeed } from "@/services/feedService";
 import { fetchGamesByPlayer } from "@/services/gameService";
 import { fetchScheduledGames, joinScheduledGame } from "@/services/scheduledGameService";
 import { createCourt, fetchCourtById, fetchNearbyCourts } from "@/services/courtService";
-import { fetchLocals, updateLocalCourtId, updateProfileFields } from "@/services/profileService";
+import { updateLocalCourtId, updateProfileFields } from "@/services/profileService";
 import { useAuth } from "@/context/AuthContext";
+import { usePresenceRefresh } from "@/context/CourtPresenceContext";
 import { supabase } from "@/lib/supabase";
 
 const LA_FALLBACK = { lat: 34.0522, lng: -118.2437 };
@@ -64,7 +65,7 @@ interface AppContextValue {
   refreshPlannedVisits: () => Promise<void>;
   hypeItem: (feedId: string) => void;
   addCourt: (court: Court) => Promise<void>;
-  setLocalCourt: (courtId: string | null, courtObj?: Court) => Promise<void>;
+  setLocalCourt: (courtId: string | null, courtObj?: Court) => Promise<boolean>;
   setVisibility: (v: Visibility) => Promise<void>;
   setPreferredSport: (sport: CourtSport | null) => Promise<void>;
   setPreferredCourtId: (courtId: string | null) => Promise<void>;
@@ -78,8 +79,6 @@ interface AppContextValue {
   refreshRuns: () => Promise<void>;
   refreshMatches: () => Promise<void>;
   refreshFriends: () => Promise<void>;
-  localPlayers: Player[];
-  activePlayers: Player[];
   isLoading: boolean;
 }
 
@@ -150,9 +149,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [friends, setFriends] = useState<Player[]>([]);
   const [preferredSport, setPreferredSportState] = useState<CourtSport | null>(null);
   const [preferredCourtId, setPreferredCourtIdState] = useState<string | null>(null);
-  const [localPlayers, setLocalPlayers] = useState<Player[]>([]);
-  const [activePlayers, setActivePlayers] = useState<Player[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // The presence store (CourtPresenceContext, mounted above this provider) is
+  // the ONLY roster/count source. Actions here push a refresh into it so the
+  // acting device converges instantly on every surface; other devices get the
+  // same refresh from the realtime event.
+  const refreshPresence = usePresenceRefresh();
 
   const currentUser = useMemo(() => profileToPlayer(profile), [profile]);
 
@@ -228,29 +231,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     hydrateLocalCourt();
   }, [hydrateLocalCourt]);
 
-  // ─── Refresh court state: locals + active check-ins ─────────────────────────
-  // Keyed on localCourtId (the id state), NOT the hydrated localCourt object —
-  // the object lags behind after switching courts, which made post-switch
-  // check-ins refresh the OLD court's roster. courtIdOverride lets callers
-  // refresh a specific court immediately without waiting for state to settle.
+  // ─── Refresh court state: delegates to the shared presence store ────────────
+  // Kept as the callable surface older screens use (focus effects, pull to
+  // refresh). Keyed on localCourtId (the id state), NOT the hydrated object —
+  // the object lags behind after switching courts. courtIdOverride lets
+  // callers refresh a specific court without waiting for state to settle.
   const refreshCourtState = useCallback(async (courtIdOverride?: string) => {
     const id = courtIdOverride ?? localCourtId;
-    if (!id) {
-      setLocalPlayers([]);
-      setActivePlayers([]);
-      return;
-    }
-    const [locals, active] = await Promise.all([
-      fetchLocals(id),
-      fetchActiveCheckIns(id),
-    ]);
-    setLocalPlayers(locals);
-    setActivePlayers(active);
-  }, [localCourtId]);
-
-  useEffect(() => {
-    refreshCourtState();
-  }, [refreshCourtState]);
+    if (!id) return;
+    await refreshPresence(id);
+  }, [localCourtId, refreshPresence]);
 
   // ─── Refresh signed-in user's checked-in court ──────────────────────────────
   const refreshCheckedIn = useCallback(async () => {
@@ -270,20 +260,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const refreshRuns = useCallback(async () => {
     // From start-of-today, not "now": a run created for earlier today should
     // still show on today's schedule instead of silently disappearing.
+    // 14-day window: Schedule's heatmap pages between this week and next.
     const from = new Date();
     from.setHours(0, 0, 0, 0);
     const to = new Date();
-    to.setDate(to.getDate() + 7);
+    to.setDate(to.getDate() + 14);
     const games = await fetchScheduledGames({ from, to });
     setRuns(games);
   }, []);
 
-  // Planned presence ("pulling up") — all courts, next 7 days.
+  // Planned presence ("pulling up") — all courts, same 14-day window.
   const refreshPlannedVisits = useCallback(async () => {
     const from = new Date();
     from.setHours(0, 0, 0, 0);
     const to = new Date();
-    to.setDate(to.getDate() + 7);
+    to.setDate(to.getDate() + 14);
     const visits = await fetchPlannedVisits({ from, to });
     setPlannedVisits(visits);
   }, []);
@@ -336,8 +327,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!userId || resyncInFlight.current) return;
     resyncInFlight.current = true;
     try {
+      // Presence (rosters/counts) foreground-refreshes itself in
+      // CourtPresenceContext — only the non-presence stores resync here.
       await Promise.all([
-        refreshCourtState(),
         refreshFeed(),
         refreshRuns(),
         refreshPlannedVisits(),
@@ -346,7 +338,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } finally {
       resyncInFlight.current = false;
     }
-  }, [userId, refreshCourtState, refreshFeed, refreshRuns, refreshPlannedVisits, refreshFriends]);
+  }, [userId, refreshFeed, refreshRuns, refreshPlannedVisits, refreshFriends]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
@@ -393,38 +385,67 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, [userId, localCourt?.id, refreshFeed]);
 
+  // ─── Live runs ──────────────────────────────────────────────────────────────
+  // The runs store is a global 7-day window (all courts), so its realtime
+  // scope matches: ONE channel on runs + run_participants + planned_visits,
+  // debounced into the corresponding refetch. RSVPs and run edits are rare
+  // human actions — a handful of events an hour, each costing one query per
+  // client — unlike the per-court check-in stream this stays a single
+  // subscription. This is what makes a join on one device show up on every
+  // other device's run page / Schedule / NEXT RUN without foregrounding.
+  useEffect(() => {
+    if (!userId) return;
+    let runsDebounce: ReturnType<typeof setTimeout> | null = null;
+    let visitsDebounce: ReturnType<typeof setTimeout> | null = null;
+    const onRunsEvent = () => {
+      if (runsDebounce) clearTimeout(runsDebounce);
+      runsDebounce = setTimeout(() => refreshRuns(), 400);
+    };
+    const onVisitsEvent = () => {
+      if (visitsDebounce) clearTimeout(visitsDebounce);
+      visitsDebounce = setTimeout(() => refreshPlannedVisits(), 400);
+    };
+    const channel = supabase
+      .channel("runs-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "runs" }, onRunsEvent)
+      .on("postgres_changes", { event: "*", schema: "public", table: "run_participants" }, onRunsEvent)
+      .on("postgres_changes", { event: "*", schema: "public", table: "planned_visits" }, onVisitsEvent)
+      .subscribe();
+    return () => {
+      if (runsDebounce) clearTimeout(runsDebounce);
+      if (visitsDebounce) clearTimeout(visitsDebounce);
+      supabase.removeChannel(channel);
+    };
+  }, [userId, refreshRuns, refreshPlannedVisits]);
+
   // ─── Actions ───────────────────────────────────────────────────────────────
   const checkIn = useCallback(
     async (courtId: string) => {
       if (!userId) return;
-      // Optimistic UI — only when checking into the court whose roster is shown
-      if (courtId === localCourtId) {
-        setActivePlayers((prev) => {
-          const exists = prev.some((p) => p.id === userId);
-          if (exists) return prev;
-          return [currentUser, ...prev];
-        });
-      }
+      const prevCourtId = checkedInCourtId;
       const ok = await checkInToCourt(courtId, undefined, visibility);
       if (ok) {
         setCheckedInCourtId(courtId);
         setLastVisitedCourtId(courtId);
       }
-      // Refresh against the court we just acted on — reconciles the optimistic
-      // add on success and rolls it back on failure
-      refreshCourtState(courtId === localCourtId ? courtId : undefined);
+      // Converge the acting device now (don't wait for its own realtime echo):
+      // the court acted on, plus the court implicitly checked out of — the
+      // check_in RPC atomically closes any prior open check-in elsewhere.
+      refreshPresence(courtId);
+      if (prevCourtId && prevCourtId !== courtId) refreshPresence(prevCourtId);
       refreshFeed();
     },
-    [userId, visibility, currentUser, localCourtId, refreshCourtState, refreshFeed]
+    [userId, visibility, checkedInCourtId, refreshPresence, refreshFeed]
   );
 
   const checkOut = useCallback(async () => {
     if (!userId) return;
+    const prevCourtId = checkedInCourtId;
     const ok = await checkOutOfCourt(userId);
     if (ok) setCheckedInCourtId(null);
-    refreshCourtState();
+    if (prevCourtId) refreshPresence(prevCourtId);
     refreshFeed();
-  }, [userId, refreshCourtState, refreshFeed]);
+  }, [userId, checkedInCourtId, refreshPresence, refreshFeed]);
 
   const visitCourt = useCallback(async (courtId: string) => {
     setLastVisitedCourtId(courtId);
@@ -448,7 +469,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [userId]);
 
-  const setLocalCourt = useCallback(async (courtId: string | null, courtObj?: Court) => {
+  const setLocalCourt = useCallback(async (courtId: string | null, courtObj?: Court): Promise<boolean> => {
+    // Optimistic UI, but with rollback: if the profile write fails, keeping
+    // the new court on screen would silently revert on next launch (the old
+    // error-swallowing path hid exactly that).
+    const prevId = localCourtId;
+    const prevObj = localCourt;
     setLocalCourtId(courtId);
     if (courtId === null) {
       setLocalCourtObj(null);
@@ -458,10 +484,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const court = await fetchCourtById(courtId);
       setLocalCourtObj(court);
     }
-    if (userId) {
-      await updateLocalCourtId(userId, courtId);
+    if (!userId) return true;
+    const persisted = await updateLocalCourtId(userId, courtId);
+    if (!persisted) {
+      setLocalCourtId(prevId);
+      setLocalCourtObj(prevObj);
     }
-  }, [userId]);
+    return persisted;
+  }, [userId, localCourtId, localCourt]);
 
   const setVisibility = useCallback(async (v: Visibility) => {
     // Session-scoped check-in visibility (persisted per check-in row, not device).
@@ -592,8 +622,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         refreshRuns,
         refreshMatches,
         refreshFriends,
-        localPlayers,
-        activePlayers,
         isLoading,
       }}
     >

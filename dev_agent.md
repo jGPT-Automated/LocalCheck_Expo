@@ -40,7 +40,7 @@ Design language: **dark editorial brutalism** — `#FF5500` accent on `#0D0D10`,
 Oswald (headings) + Inter (body), all-caps labels, 1px borders, sharp corners.
 This is the brand; generated palettes do not override it.
 
-## Backend (Supabase `jzclwnzcektqhgkkdeje`)
+## Backend (Supabase LocalCheckProd `qkrnmyexzvaxiqfxwwfb` — legacy `jzclwnzcektqhgkkdeje` retired 2026-07)
 
 - Tables: profiles, courts (5.7k), check_ins, games + game_participants,
   scheduled_games + participants, friendships, feed_posts (+likes), push_tokens.

@@ -292,10 +292,14 @@ export function MapScreen() {
   // context courts only overlay extra fields for ids already in view.
   const [viewportCourts, setViewportCourts] = useState<Court[]>([]);
   const boundsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Sequence viewport requests: a slow response from a previous pan must not
+  // overwrite courts from a newer one.
+  const boundsSeq = useRef(0);
   const handleBoundsChange = React.useCallback(
     (sw: { lat: number; lng: number }, ne: { lat: number; lng: number }) => {
       if (boundsTimer.current) clearTimeout(boundsTimer.current);
       boundsTimer.current = setTimeout(async () => {
+        const seq = ++boundsSeq.current;
         const latPad = (ne.lat - sw.lat) * 0.15;
         const lngPad = (ne.lng - sw.lng) * 0.15;
         const found = await fetchCourtsInBounds(
@@ -304,6 +308,7 @@ export function MapScreen() {
           ne.lat + latPad,
           ne.lng + lngPad
         );
+        if (seq !== boundsSeq.current) return;
         setViewportCourts(found);
       }, 400);
     },

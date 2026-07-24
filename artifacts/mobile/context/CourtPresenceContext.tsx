@@ -11,7 +11,7 @@ import { AppState } from "react-native";
 
 import { Player } from "@/constants/data";
 import { fetchActiveCheckIns } from "@/services/checkInService";
-import { fetchLocalCount, fetchLocals } from "@/services/profileService";
+import { fetchLocals } from "@/services/profileService";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 
@@ -19,11 +19,11 @@ import { useAuth } from "@/context/AuthContext";
  * Single source of truth for live court presence.
  *
  * Every surface that shows a roster or an active/local count reads it from
- * here via usePresence(courtId) / useCourtCounts(ids). One Supabase Realtime
- * channel listens to check_ins and profiles changes and refreshes exactly the
- * courts currently on screen, so when another player checks in, every
- * watching screen updates within a second — no tab-switching, no stale
- * snapshots. A 60s poll + foreground refresh covers missed events.
+ * here via usePresence(courtId) / useCourtCounts(ids). Scoped Realtime
+ * channels refresh exactly the courts currently on screen, so when another
+ * player checks in, every watching screen updates within a second — no
+ * tab-switching, no stale snapshots. No recurring timers: a single foreground
+ * resync covers events missed while backgrounded.
  */
 
 export interface CourtPresence {
@@ -145,15 +145,21 @@ export function CourtPresenceProvider({ children }: { children: React.ReactNode 
     [refreshCourt, refreshCounts]
   );
 
-  // ─── Scoped realtime: one filtered channel per VISIBLE court ───────────────
-  // Fetch once → subscribe narrowly → refresh on event → resync on foreground
-  // → unsubscribe when off-screen. No global table subscriptions (every client
-  // paying for every check-in anywhere doesn't scale — Supabase recommends
-  // scoped channels), and no recurring timers (the 2026-07-19 outage was
-  // self-inflicted polling).
+  // ─── Realtime, two tiers ───────────────────────────────────────────────────
+  // Tier 1 — rosters: one filtered `court:{id}` channel per court whose FULL
+  // roster is on screen (home hero, court page, court sheet). That's 1–3
+  // channels, ever.
+  // Tier 2 — counts: map/explore can have 250 courts in view; opening a
+  // filtered channel per marker meant 250 subscriptions per user (25k at 100
+  // users — the pattern Supabase says to avoid with postgres_changes). Instead
+  // ONE shared check_ins channel routes each event by its court_id to the
+  // debounced per-court refresh, and only courts actually watched get a query.
+  // Check-ins are low-frequency human actions, so the shared stream is cheap;
+  // if event volume ever grows, this one channel is the seam to swap for a
+  // court_metrics Broadcast.
   const channelsRef = useRef(new Map<string, ReturnType<typeof supabase.channel>>());
 
-  const ensureChannel = useCallback(
+  const ensureRosterChannel = useCallback(
     (courtId: string) => {
       if (channelsRef.current.has(courtId)) return;
       const channel = supabase
@@ -175,7 +181,7 @@ export function CourtPresenceProvider({ children }: { children: React.ReactNode 
   );
 
   const releaseChannelIfUnwatched = useCallback((courtId: string) => {
-    if (watchedRef.current.has(courtId) || countWatchedRef.current.has(courtId)) return;
+    if (watchedRef.current.has(courtId)) return;
     const channel = channelsRef.current.get(courtId);
     if (channel) {
       channelsRef.current.delete(courtId);
@@ -183,12 +189,40 @@ export function CourtPresenceProvider({ children }: { children: React.ReactNode 
     }
   }, []);
 
+  // Shared counts stream (tier 2). Lives for the whole signed-in session; an
+  // event for a court nobody is watching is dropped without a query.
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel("check-ins:counts")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "check_ins" },
+        (payload) => {
+          const changed = new Set<string>();
+          const newId = (payload.new as { court_id?: string } | null)?.court_id;
+          const oldId = (payload.old as { court_id?: string } | null)?.court_id;
+          if (newId) changed.add(String(newId));
+          if (oldId) changed.add(String(oldId));
+          for (const id of changed) {
+            // Roster-watched courts already refresh via their scoped channel.
+            if (watchedRef.current.has(id)) continue;
+            if (countWatchedRef.current.has(id)) scheduleRefresh(id);
+          }
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, scheduleRefresh]);
+
   // ─── Watch registration (hooks call these) ─────────────────────────────────
   const watch = useCallback(
     (courtId: string) => {
       const map = watchedRef.current;
       map.set(courtId, (map.get(courtId) ?? 0) + 1);
-      ensureChannel(courtId);
+      ensureRosterChannel(courtId);
       const entry = presenceRef.current[courtId];
       if (!entry || Date.now() - entry.lastSync > STALE_MS) {
         refreshCourt(courtId);
@@ -200,7 +234,7 @@ export function CourtPresenceProvider({ children }: { children: React.ReactNode 
         releaseChannelIfUnwatched(courtId);
       };
     },
-    [refreshCourt, ensureChannel, releaseChannelIfUnwatched]
+    [refreshCourt, ensureRosterChannel, releaseChannelIfUnwatched]
   );
 
   const watchCounts = useCallback(
@@ -208,7 +242,6 @@ export function CourtPresenceProvider({ children }: { children: React.ReactNode 
       const map = countWatchedRef.current;
       for (const id of courtIds) {
         map.set(id, (map.get(id) ?? 0) + 1);
-        ensureChannel(id);
       }
       refreshCounts(courtIds);
       return () => {
@@ -216,11 +249,10 @@ export function CourtPresenceProvider({ children }: { children: React.ReactNode 
           const n = (map.get(id) ?? 1) - 1;
           if (n <= 0) map.delete(id);
           else map.set(id, n);
-          releaseChannelIfUnwatched(id);
         }
       };
     },
-    [refreshCounts, ensureChannel, releaseChannelIfUnwatched]
+    [refreshCounts]
   );
 
   // Remove every channel when the provider unmounts (sign-out).
