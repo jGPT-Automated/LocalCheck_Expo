@@ -152,6 +152,35 @@ export async function createScheduledGame(payload: {
 }
 
 /**
+ * Organizer edits their run before it happens. RLS (runs_update_organizer)
+ * restricts this to the caller's own runs; zero returned rows = not allowed.
+ */
+export async function updateScheduledGame(
+  runId: string,
+  fields: { title?: string; startTime?: string; maxPlayers?: number; note?: string | null }
+): Promise<boolean> {
+  try {
+    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (fields.title !== undefined) patch.title = fields.title;
+    if (fields.startTime !== undefined) patch.start_time = fields.startTime;
+    if (fields.maxPlayers !== undefined) patch.max_players = fields.maxPlayers;
+    if (fields.note !== undefined) patch.note = fields.note;
+    const { data, error } = await supabase
+      .from("runs")
+      .update(patch)
+      .eq("id", runId)
+      .select("id");
+    if (error) {
+      console.warn("updateScheduledGame failed", error.message);
+      return false;
+    }
+    return (data?.length ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * RSVP the caller to a run ("going") via the join_run RPC, which capacity-checks
  * against max_players server-side. The userId param is kept for call-site
  * compatibility; the RPC uses auth.uid().

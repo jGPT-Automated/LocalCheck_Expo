@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Modal,
   Platform,
@@ -20,6 +20,7 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { createScheduledGame } from "@/services/scheduledGameService";
+import { fetchCourtPlannedTimes } from "@/services/plannedVisitService";
 import { searchCourts } from "@/services/courtService";
 
 const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
@@ -54,10 +55,13 @@ const TIME_COLS = 4;
  * Next 14 days starting today — matches the heatmap's two-week window so a
  * next-week slot selection round-trips into these pickers without clamping.
  */
-const PICKER_DAYS = 14;
-function getNextDays(): { initial: string; date: number; offset: number }[] {
+// Runs can be scheduled further out than the rolling week (they live on the
+// upcoming list, not the heatmap); planned "My Times" stay a rolling 7 days.
+const RUN_PICKER_DAYS = 21;
+const VISIT_PICKER_DAYS = 7;
+function getNextDays(count: number): { initial: string; date: number; offset: number }[] {
   const today = new Date();
-  return Array.from({ length: PICKER_DAYS }, (_, i) => {
+  return Array.from({ length: count }, (_, i) => {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
     return { initial: DAYS[d.getDay()][0], date: d.getDate(), offset: i };
@@ -191,10 +195,19 @@ function CourtField({
   );
 }
 
-/** 14-day picker in two symmetric 7-cell rows: weekday initial + day number. */
-function DayGrid({ selected, onSelect }: { selected: number; onSelect: (offset: number) => void }) {
-  const days = getNextDays();
-  const rows = [days.slice(0, 7), days.slice(7)];
+/** Day picker in symmetric 7-cell rows: weekday initial + day number. */
+function DayGrid({
+  selected,
+  onSelect,
+  days: dayCount = RUN_PICKER_DAYS,
+}: {
+  selected: number;
+  onSelect: (offset: number) => void;
+  days?: number;
+}) {
+  const days = getNextDays(dayCount);
+  const rows: typeof days[] = [];
+  for (let i = 0; i < days.length; i += 7) rows.push(days.slice(i, i + 7));
   return (
     <View>
       {rows.map((row, ri) => (
@@ -402,6 +415,13 @@ function HostRunModal({
   );
 }
 
+type Visibility = "public" | "friends" | "private";
+const VISIBILITY_OPTIONS: { value: Visibility; label: string; hint: string }[] = [
+  { value: "public", label: "PUBLIC", hint: "Anyone can see you're pulling up" },
+  { value: "friends", label: "FRIENDS", hint: "Only friends see your name" },
+  { value: "private", label: "PRIVATE", hint: "Just for you — still counts on the heatmap" },
+];
+
 function PlanVisitModal({
   visible,
   onClose,
@@ -413,7 +433,7 @@ function PlanVisitModal({
   onClose: () => void;
   defaultCourt: Court | null;
   defaultDayIndex: number;
-  onSubmit: (courtId: string, plannedAtIso: string, note?: string) => Promise<boolean>;
+  onSubmit: (courtId: string, plannedAtIso: string, note?: string, visibility?: Visibility) => Promise<boolean>;
 }) {
   const { top } = useSafeAreaInsets();
 
@@ -421,19 +441,19 @@ function PlanVisitModal({
   const [court, setCourt] = useState<Court | null>(defaultCourt);
   const [dayOffset, setDayOffset] = useState(0);
   const [time, setTime] = useState("18:00");
+  const [visibility, setVisibility] = useState<Visibility>("public");
   const [submitting, setSubmitting] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  // Re-default court + day each time the sheet opens. defaultDayIndex is the
-  // page's week-strip index (Sun=0); convert to an offset from today.
+  // Re-default court + day each time the sheet opens. defaultDayIndex is a
+  // rolling offset from today (0 = today); clamp to the rolling-week picker.
   const defaultsRef = useRef({ defaultCourt, defaultDayIndex });
   defaultsRef.current = { defaultCourt, defaultDayIndex };
   useEffect(() => {
     if (visible) {
       const { defaultCourt: dc, defaultDayIndex: di } = defaultsRef.current;
       setCourt(dc);
-      // Page strip is rolling now: its index IS the offset from today.
-      setDayOffset(Math.min(PICKER_DAYS - 1, Math.max(0, di)));
+      setDayOffset(Math.min(VISIT_PICKER_DAYS - 1, Math.max(0, di)));
       setFailed(false);
     }
   }, [visible]);
@@ -445,7 +465,7 @@ function PlanVisitModal({
     if (!canSubmit || !court) return;
     setSubmitting(true);
     setFailed(false);
-    const ok = await onSubmit(court.id, plannedAt.toISOString(), note.trim() || undefined);
+    const ok = await onSubmit(court.id, plannedAt.toISOString(), note.trim() || undefined, visibility);
     setSubmitting(false);
     if (!ok) {
       setFailed(true);
@@ -454,6 +474,8 @@ function PlanVisitModal({
     setNote("");
     onClose();
   };
+
+  const activeHint = VISIBILITY_OPTIONS.find((o) => o.value === visibility)?.hint;
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -473,10 +495,27 @@ function PlanVisitModal({
           <CourtField selected={court} onSelect={setCourt} onClear={() => setCourt(null)} />
 
           <Text style={styles.fieldLabel}>DAY</Text>
-          <DayGrid selected={dayOffset} onSelect={setDayOffset} />
+          <DayGrid selected={dayOffset} onSelect={setDayOffset} days={VISIT_PICKER_DAYS} />
 
           <Text style={styles.fieldLabel}>AROUND WHAT TIME</Text>
           <TimeGrid selected={time} dayOffset={dayOffset} onSelect={setTime} />
+
+          <Text style={styles.fieldLabel}>WHO CAN SEE THIS</Text>
+          <View style={styles.gridRow}>
+            {VISIBILITY_OPTIONS.map((opt) => (
+              <Pressable
+                key={opt.value}
+                style={[styles.gridCell, visibility === opt.value && styles.gridCellActive]}
+                onPress={() => setVisibility(opt.value)}
+                testID={`visibility-${opt.value}`}
+              >
+                <Text style={[styles.gridCellText, visibility === opt.value && styles.gridCellTextActive]}>
+                  {opt.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {activeHint ? <Text style={styles.visibilityHint}>{activeHint}</Text> : null}
 
           <Text style={styles.fieldLabel}>NOTE (OPTIONAL)</Text>
           <TextInput
@@ -533,6 +572,8 @@ interface SlotAttendee {
 interface SlotEntry {
   attendees: SlotAttendee[];
   count: number;
+  /** Distinct visible planned-visit users in this slot (for hidden-count math). */
+  plannedVisible: number;
 }
 
 function CourtPickerModal({
@@ -601,20 +642,24 @@ export default function ScheduleScreen() {
   const [showPlan, setShowPlan] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [pickedCourt, setPickedCourt] = useState<Court | null>(null);
-  const [weekOffset, setWeekOffset] = useState<0 | 1>(0);
   const [selectedSlot, setSelectedSlot] = useState<{ day: number; slot: number } | null>(null);
+  // Anonymous planned-time counts per slot (from court_planned_times RPC):
+  // includes friends-only/private plans so heatmap intensity is honest without
+  // exposing who they are.
+  const [plannedBuckets, setPlannedBuckets] = useState<Record<string, number>>({});
 
   // Default to the local court once it hydrates; an explicit pick wins.
   const court = pickedCourt ?? localCourt;
 
-  // ── Week window (rolling: page 0 starts today, page 1 is days 7–13 —
-  // matches the 14-day data window in AppContext) ──
+  // ── Rolling week: today + next 6 days. Deliberately NOT paginated — planned
+  // "My Times" is a near-term "who's pulling up this week" signal; scheduling
+  // further out lives on runs (the upcoming list below), not the heatmap. ──
+  const dayStamp = new Date().toDateString();
   const weekStart = useMemo(() => {
-    const d = new Date();
+    const d = new Date(dayStamp);
     d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + weekOffset * 7);
     return d;
-  }, [weekOffset]);
+  }, [dayStamp]);
 
   const weekDays = useMemo(
     () =>
@@ -634,69 +679,113 @@ export default function ScheduleScreen() {
       : `${fmt(weekStart)} – ${fmt(last)}`;
   }, [weekStart, weekDays]);
 
-  // ── Bucket planned visits + run RSVPs for this court into day × slot ──
+  const bucketKey = useCallback(
+    (iso: string): string | null => {
+      const t = new Date(iso);
+      const dayIdx = Math.floor((t.getTime() - weekStart.getTime()) / 86_400_000);
+      if (dayIdx < 0 || dayIdx > 6) return null;
+      const h = t.getHours();
+      if (h < SLOT_HOURS[0] || h >= SLOT_HOURS[SLOT_HOURS.length - 1] + 2) return null;
+      return `${dayIdx}:${Math.floor((h - SLOT_HOURS[0]) / 2)}`;
+    },
+    [weekStart]
+  );
+
+  // Pull the anonymous planned-time counts for the visible court + week. Re-runs
+  // when the user's own planned visits change so a post reflects immediately.
+  useEffect(() => {
+    if (!court) {
+      setPlannedBuckets({});
+      return;
+    }
+    let cancelled = false;
+    const end = new Date(weekStart);
+    end.setDate(weekStart.getDate() + 7);
+    fetchCourtPlannedTimes(court.id, weekStart, end).then((times) => {
+      if (cancelled) return;
+      const b: Record<string, number> = {};
+      for (const t of times) {
+        const key = bucketKey(t.toISOString());
+        if (key) b[key] = (b[key] ?? 0) + 1;
+      }
+      setPlannedBuckets(b);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [court, weekStart, bucketKey, plannedVisits]);
+
+  // ── Bucket VISIBLE planned visits + run RSVPs for this court into day × slot ──
   const slotMap = useMemo(() => {
     const map = new Map<string, SlotEntry>();
     if (!court) return map;
-    const add = (iso: string, a: SlotAttendee) => {
-      const t = new Date(iso);
-      const dayIdx = Math.floor((t.getTime() - weekStart.getTime()) / 86_400_000);
-      if (dayIdx < 0 || dayIdx > 6) return;
-      const h = t.getHours();
-      if (h < SLOT_HOURS[0] || h >= SLOT_HOURS[SLOT_HOURS.length - 1] + 2) return;
-      const slotIdx = Math.floor((h - SLOT_HOURS[0]) / 2);
-      const key = `${dayIdx}:${slotIdx}`;
-      const entry = map.get(key) ?? { attendees: [], count: 0 };
-      if (!entry.attendees.some((x) => x.id === a.id)) {
+    const add = (iso: string, a: SlotAttendee, isPlanned: boolean) => {
+      const key = bucketKey(iso);
+      if (!key) return;
+      const entry = map.get(key) ?? { attendees: [], count: 0, plannedVisible: 0 };
+      const existing = entry.attendees.find((x) => x.id === a.id);
+      if (!existing) {
         entry.attendees.push(a);
         entry.count = entry.attendees.length;
+        if (isPlanned) entry.plannedVisible += 1;
         map.set(key, entry);
-      } else if (a.visitId) {
-        // Keep the removable visit reference even if the run RSVP landed first.
-        const existing = entry.attendees.find((x) => x.id === a.id);
-        if (existing && !existing.visitId) existing.visitId = a.visitId;
+      } else if (a.visitId && !existing.visitId) {
+        existing.visitId = a.visitId;
       }
     };
     for (const v of plannedVisits) {
       if (v.courtId !== court.id) continue;
-      add(v.plannedAtIso, {
-        id: v.userId,
-        name: v.player.name,
-        initials: v.player.avatar,
-        isMine: v.userId === currentUser.id,
-        visitId: v.id,
-      });
+      add(
+        v.plannedAtIso,
+        {
+          id: v.userId,
+          name: v.player.name,
+          initials: v.player.avatar,
+          isMine: v.userId === currentUser.id,
+          visitId: v.id,
+        },
+        true
+      );
     }
     for (const r of runs) {
       if (r.courtId !== court.id) continue;
       for (const p of r.participants) {
-        add(r.startTimeIso, {
-          id: p.id,
-          name: p.name,
-          initials: p.avatar,
-          isMine: p.id === currentUser.id,
-        });
+        add(
+          r.startTimeIso,
+          { id: p.id, name: p.name, initials: p.avatar, isMine: p.id === currentUser.id },
+          false
+        );
       }
     }
     return map;
-  }, [court, plannedVisits, runs, weekStart, currentUser.id]);
+  }, [court, plannedVisits, runs, currentUser.id, bucketKey]);
 
+  // Hidden = anonymous planned count for the slot minus the planned visits I can
+  // actually see (friends-only/private plans of others).
+  const slotHidden = useCallback(
+    (key: string) => {
+      const rpc = plannedBuckets[key] ?? 0;
+      const visiblePlanned = slotMap.get(key)?.plannedVisible ?? 0;
+      return Math.max(0, rpc - visiblePlanned);
+    },
+    [plannedBuckets, slotMap]
+  );
+  const slotTotal = useCallback(
+    (key: string) => (slotMap.get(key)?.attendees.length ?? 0) + slotHidden(key),
+    [slotMap, slotHidden]
+  );
+
+  // All upcoming runs for this court (runs can be scheduled beyond the rolling
+  // week — they surface here, not on the heatmap).
   const courtRuns = useMemo(() => {
     if (!court) return [];
-    const end = new Date(weekStart);
-    end.setDate(weekStart.getDate() + 7);
     return runs
-      .filter((r) => {
-        if (r.courtId !== court.id) return false;
-        const t = new Date(r.startTimeIso).getTime();
-        return t >= weekStart.getTime() && t < end.getTime();
-      })
+      .filter((r) => r.courtId === court.id && new Date(r.startTimeIso).getTime() >= weekStart.getTime())
       .sort((a, b) => a.startTimeIso.localeCompare(b.startTimeIso));
   }, [court, runs, weekStart]);
 
-  const selectedEntry = selectedSlot
-    ? slotMap.get(`${selectedSlot.day}:${selectedSlot.slot}`)
-    : undefined;
+  const selectedKey = selectedSlot ? `${selectedSlot.day}:${selectedSlot.slot}` : null;
+  const selectedEntry = selectedKey ? slotMap.get(selectedKey) : undefined;
   const selectedDate = selectedSlot ? weekDays[selectedSlot.day] : null;
 
   const heatStyle = (count: number) => {
@@ -736,31 +825,10 @@ export default function ScheduleScreen() {
           <Feather name="chevron-right" size={15} color={Colors.muted} />
         </Pressable>
 
-        {/* ── Week nav ── */}
+        {/* ── Rolling-week label (no paging — see weekStart comment) ── */}
         <View style={styles.weekNav}>
           <Text style={styles.weekLabel}>{weekLabel}</Text>
-          <View style={styles.weekArrows}>
-            <Pressable
-              style={[styles.weekArrow, weekOffset === 0 && styles.weekArrowDisabled]}
-              disabled={weekOffset === 0}
-              onPress={() => {
-                setWeekOffset(0);
-                setSelectedSlot(null);
-              }}
-            >
-              <Feather name="chevron-left" size={16} color={weekOffset === 0 ? Colors.mutedDark : Colors.text} />
-            </Pressable>
-            <Pressable
-              style={[styles.weekArrow, weekOffset === 1 && styles.weekArrowDisabled]}
-              disabled={weekOffset === 1}
-              onPress={() => {
-                setWeekOffset(1);
-                setSelectedSlot(null);
-              }}
-            >
-              <Feather name="chevron-right" size={16} color={weekOffset === 1 ? Colors.mutedDark : Colors.text} />
-            </Pressable>
-          </View>
+          <Text style={styles.weekTag}>NEXT 7 DAYS</Text>
         </View>
 
         {/* ── Heatmap ── */}
@@ -788,8 +856,7 @@ export default function ScheduleScreen() {
                 <Text style={styles.heatTimeText}>{slotLabel(h)}</Text>
               </View>
               {weekDays.map((_, dayIdx) => {
-                const entry = slotMap.get(`${dayIdx}:${slotIdx}`);
-                const count = entry?.count ?? 0;
+                const count = slotTotal(`${dayIdx}:${slotIdx}`);
                 const isSelected =
                   selectedSlot?.day === dayIdx && selectedSlot?.slot === slotIdx;
                 return (
@@ -824,18 +891,20 @@ export default function ScheduleScreen() {
         </View>
 
         {/* ── Selected slot detail ── */}
-        {selectedSlot && selectedDate && (
+        {selectedSlot && selectedDate && selectedKey && (() => {
+          const total = slotTotal(selectedKey);
+          const hidden = slotHidden(selectedKey);
+          const visible = selectedEntry?.attendees ?? [];
+          return (
           <View style={styles.slotCard}>
             <Text style={styles.slotCardTitle}>
               {DAYS[selectedDate.getDay()]} {selectedDate.getDate()} · {slotLabel(SLOT_HOURS[selectedSlot.slot])}
               {"  "}
-              <Text style={styles.slotCardGoing}>
-                — {selectedEntry?.count ?? 0} GOING
-              </Text>
+              <Text style={styles.slotCardGoing}>— {total} GOING</Text>
             </Text>
-            {selectedEntry && selectedEntry.count > 0 ? (
+            {total > 0 ? (
               <View style={styles.slotAvatars}>
-                {selectedEntry.attendees.slice(0, 8).map((a) => (
+                {visible.slice(0, 8).map((a) => (
                   <Pressable
                     key={a.id}
                     style={styles.slotAvatarItem}
@@ -847,11 +916,19 @@ export default function ScheduleScreen() {
                     </Text>
                   </Pressable>
                 ))}
-                {selectedEntry.count > 8 && (
+                {visible.length > 8 && (
                   <View style={styles.slotAvatarItem}>
                     <View style={styles.slotMore}>
-                      <Text style={styles.slotMoreText}>+{selectedEntry.count - 8}</Text>
+                      <Text style={styles.slotMoreText}>+{visible.length - 8}</Text>
                     </View>
+                  </View>
+                )}
+                {hidden > 0 && (
+                  <View style={styles.slotAvatarItem}>
+                    <View style={[styles.slotMore, styles.slotHiddenSquare]}>
+                      <Text style={styles.slotMoreText}>+{hidden}</Text>
+                    </View>
+                    <Text style={styles.slotAvatarName}>hidden</Text>
                   </View>
                 )}
               </View>
@@ -876,7 +953,8 @@ export default function ScheduleScreen() {
               );
             })()}
           </View>
-        )}
+          );
+        })()}
 
         {/* ── Scheduled runs ── */}
         <View style={styles.runsSection}>
@@ -942,7 +1020,7 @@ export default function ScheduleScreen() {
         visible={showPlan}
         onClose={() => setShowPlan(false)}
         defaultCourt={court}
-        defaultDayIndex={selectedSlot ? weekOffset * 7 + selectedSlot.day : 0}
+        defaultDayIndex={selectedSlot ? selectedSlot.day : 0}
         onSubmit={addPlannedVisit}
       />
 
@@ -990,6 +1068,22 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: Colors.text,
     letterSpacing: 0.5,
+  },
+  weekTag: {
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 9,
+    color: Colors.muted,
+    letterSpacing: 1.5,
+  },
+  visibilityHint: {
+    fontFamily: Typography.body,
+    fontSize: 11,
+    color: Colors.muted,
+    marginTop: -2,
+    marginBottom: 2,
+  },
+  slotHiddenSquare: {
+    borderStyle: "dashed",
   },
   weekArrows: { flexDirection: "row", gap: 8 },
   weekArrow: {

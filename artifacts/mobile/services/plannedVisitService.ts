@@ -85,12 +85,36 @@ export async function fetchPlannedVisits(filters: {
   }
 }
 
+/**
+ * Anonymous planned-visit timestamps for a court/window via the
+ * court_planned_times RPC (security definer): includes friends-only/private
+ * plans so heatmap intensity is accurate, without exposing who they are.
+ */
+export async function fetchCourtPlannedTimes(
+  courtId: string,
+  from: Date,
+  to: Date
+): Promise<Date[]> {
+  try {
+    const { data, error } = await supabase.rpc("court_planned_times", {
+      p_court_id: courtId,
+      p_from: from.toISOString(),
+      p_to: to.toISOString(),
+    });
+    if (error || !data) return [];
+    return (data as string[]).map((t) => new Date(t));
+  } catch {
+    return [];
+  }
+}
+
 /** Post a planned visit. Returns true only when the row was written. */
 export async function createPlannedVisit(
   userId: string,
   courtId: string,
   plannedAtIso: string,
-  note?: string
+  note?: string,
+  visibility: string = "public"
 ): Promise<boolean> {
   try {
     const { error } = await supabase.from("planned_visits").upsert(
@@ -99,6 +123,7 @@ export async function createPlannedVisit(
         court_id: courtId,
         planned_at: plannedAtIso,
         note: note?.trim() ? note.trim() : null,
+        visibility,
       },
       { onConflict: "user_id,court_id,planned_at" }
     );

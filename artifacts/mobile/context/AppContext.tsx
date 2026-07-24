@@ -60,7 +60,7 @@ interface AppContextValue {
   checkOut: () => Promise<void>;
   visitCourt: (courtId: string) => Promise<void>;
   joinRun: (runId: string) => Promise<boolean>;
-  addPlannedVisit: (courtId: string, plannedAtIso: string, note?: string) => Promise<boolean>;
+  addPlannedVisit: (courtId: string, plannedAtIso: string, note?: string, visibility?: Visibility) => Promise<boolean>;
   removePlannedVisit: (visitId: string) => Promise<boolean>;
   refreshPlannedVisits: () => Promise<void>;
   hypeItem: (feedId: string) => void;
@@ -554,9 +554,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   const addPlannedVisit = useCallback(
-    async (courtId: string, plannedAtIso: string, note?: string): Promise<boolean> => {
+    async (courtId: string, plannedAtIso: string, note?: string, visibility: Visibility = "public"): Promise<boolean> => {
       if (!userId) return false;
-      const ok = await createPlannedVisit(userId, courtId, plannedAtIso, note);
+      const ok = await createPlannedVisit(userId, courtId, plannedAtIso, note, visibility);
       if (ok) await refreshPlannedVisits();
       return ok;
     },
