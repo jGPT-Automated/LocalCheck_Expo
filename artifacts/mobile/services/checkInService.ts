@@ -93,6 +93,27 @@ export async function fetchActiveCheckInCount(courtId: string): Promise<number> 
   }
 }
 
+/**
+ * Distinct players who checked in at a court in the trailing 7 days — the
+ * "ACTIVE THIS WK" stat on the home hero. One indexed read; distinct is
+ * folded client-side (PostgREST has no count-distinct).
+ */
+export async function fetchWeeklyActiveCount(courtId: string): Promise<number> {
+  try {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60_000).toISOString();
+    const { data, error } = await supabase
+      .from("check_ins")
+      .select("user_id")
+      .eq("court_id", courtId)
+      .gte("checked_in_at", weekAgo)
+      .limit(1000);
+    if (error || !data) return 0;
+    return new Set((data as { user_id: string }[]).map((r) => r.user_id)).size;
+  } catch {
+    return 0;
+  }
+}
+
 /** Get the court the user is currently checked in to, if any. */
 export async function fetchCheckedInCourtId(userId: string): Promise<string | null> {
   try {

@@ -111,7 +111,7 @@ Full component/motion/voice detail: [`DESIGN.md`](DESIGN.md).
 |-------|-----------|
 | **Mobile Framework** | Expo SDK 54 (React Native) with Expo Router |
 | **Navigation** | Expo Router file-based routing + Classic Tabs (iOS uses SF Symbols, Android/web uses Feather icons) |
-| **Backend** | **Supabase** (`jzclwnzcektqhgkkdeje`): Postgres + Auth + RLS. The only backend |
+| **Backend** | **Supabase** — LocalCheckProd (`qkrnmyexzvaxiqfxwwfb`, us-east-2), shared with the web app: Postgres + Auth + RLS. The only backend |
 | **Data layer** | `services/*` (one file per domain) → Supabase; RPCs `log_game` + `switch_active_checkin` for atomic writes |
 | **State Management** | React Context (`AuthContext` session, `AppContext` app state, 30s polling) |
 | **Session persistence** | `expo-secure-store` (native) / localStorage (web) — the **only** client-persisted state |

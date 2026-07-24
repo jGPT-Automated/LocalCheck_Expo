@@ -40,7 +40,7 @@ Design language: **dark editorial brutalism** — `#FF5500` accent on `#0D0D10`,
 Oswald (headings) + Inter (body), all-caps labels, 1px borders, sharp corners.
 This is the brand; generated palettes do not override it.
 
-## Backend (Supabase `jzclwnzcektqhgkkdeje`)
+## Backend (Supabase LocalCheckProd `qkrnmyexzvaxiqfxwwfb` — legacy `jzclwnzcektqhgkkdeje` retired 2026-07)
 
 - Tables: profiles, courts (5.7k), check_ins, games + game_participants,
   scheduled_games + participants, friendships, feed_posts (+likes), push_tokens.
@@ -153,6 +153,19 @@ This is the brand; generated palettes do not override it.
     — NOT applied (session permission layer blocked live DDL; needs go-ahead).
   - Note: `@gorhom/bottom-sheet` added to `artifacts/mobile` deps; most deps
     oddly live in devDependencies (Replit artifact) — works, left as-is.
+
+- **2026-07-24 (Claude Code session — realtime consistency + redesign, PR #19)** —
+  Stacked on PR #17. Fixed every Codex review item: runs-live realtime channel
+  (runs/run_participants/planned_visits — cross-device run joins now live),
+  planned_visits added to realtime publication (migration in repo), single
+  presence store (AppContext duplicates removed; actions push into
+  CourtPresenceContext), map counts via one shared check_ins stream instead of
+  250 per-court channels, verified local-court writes with rollback,
+  humanizeAuthError wired, Mapbox token guard, viewport fetch sequencing.
+  Home + Schedule rebuilt to the July mocks (hero stat card, +N hidden chip,
+  per-court weekly heatmap with who's-coming slot card). Smoke-tested signed-in
+  on web against LocalCheckProd with screenshots. Docs repointed to
+  LocalCheckProd. EAS env still needs dashboard verification before v1.0.4.
 
 ## Work queue (agreed order)
 

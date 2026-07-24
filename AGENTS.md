@@ -18,7 +18,7 @@ iOS-first, distributed via TestFlight today.
 
 - **Canonical repo:** `jGPT-Automated/LocalCheck_Expo` @ `main` (this repo). The
   old `agenticjess-star/*` repos are **deprecated — do not touch them.**
-- **Canonical backend:** Supabase project `jzclwnzcektqhgkkdeje` (Postgres +
+- **Canonical backend:** Supabase project LocalCheckProd `qkrnmyexzvaxiqfxwwfb` (Postgres +
   Auth + RLS). There is no other backend.
 - **App code lives in a monorepo subfolder:** `artifacts/mobile/`. All Expo/EAS
   commands run from there.

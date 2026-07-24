@@ -61,7 +61,7 @@ export default function AuthScreen() {
     setBusy(true); setErrorMsg(null);
     const { error } = await signInWithEmail(email.trim(), password);
     setBusy(false);
-    if (error) { setErrorMsg(error); }
+    if (error) { setErrorMsg(humanizeAuthError(error)); }
     else { goHome(); }
   }
 
@@ -70,7 +70,7 @@ export default function AuthScreen() {
     setBusy(true); setErrorMsg(null);
     const { error, needsEmailConfirmation } = await signUpWithEmail(email.trim(), password);
     setBusy(false);
-    if (error) { setErrorMsg(error); }
+    if (error) { setErrorMsg(humanizeAuthError(error)); }
     else if (needsEmailConfirmation) {
       Alert.alert("Account created", "Check your email to confirm, then sign in.", [{ text: "OK" }]);
     } else {
@@ -82,7 +82,7 @@ export default function AuthScreen() {
     setBusy(true); setErrorMsg(null);
     const { error } = await signInWithApple();
     setBusy(false);
-    if (error) { setErrorMsg(error); }
+    if (error) { setErrorMsg(humanizeAuthError(error)); }
     else { goHome(); }
   }
 
