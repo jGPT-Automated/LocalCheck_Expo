@@ -50,10 +50,14 @@ function getWeekDays(): { label: string; dayOfWeek: string; isToday: boolean; da
 const MAX_SEARCH_RESULTS = 6;
 const TIME_COLS = 4;
 
-/** Next 7 days starting today — symmetric picker, no dead/disabled cells. */
+/**
+ * Next 14 days starting today — matches the heatmap's two-week window so a
+ * next-week slot selection round-trips into these pickers without clamping.
+ */
+const PICKER_DAYS = 14;
 function getNextDays(): { initial: string; date: number; offset: number }[] {
   const today = new Date();
-  return Array.from({ length: 7 }, (_, i) => {
+  return Array.from({ length: PICKER_DAYS }, (_, i) => {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
     return { initial: DAYS[d.getDay()][0], date: d.getDate(), offset: i };
@@ -187,27 +191,33 @@ function CourtField({
   );
 }
 
-/** Symmetric 7-cell day row: weekday initial + day number, accent fill when selected. */
+/** 14-day picker in two symmetric 7-cell rows: weekday initial + day number. */
 function DayGrid({ selected, onSelect }: { selected: number; onSelect: (offset: number) => void }) {
+  const days = getNextDays();
+  const rows = [days.slice(0, 7), days.slice(7)];
   return (
-    <View style={styles.dayGrid}>
-      {getNextDays().map((d) => {
-        const active = selected === d.offset;
-        return (
-          <Pressable
-            key={d.offset}
-            style={[styles.dayGridCell, active && styles.dayGridCellActive]}
-            onPress={() => onSelect(d.offset)}
-          >
-            <Text style={[styles.dayGridInitial, active && styles.dayGridInitialActive]}>
-              {d.initial}
-            </Text>
-            <Text style={[styles.dayGridDate, active && styles.dayGridDateActive]}>
-              {d.date}
-            </Text>
-          </Pressable>
-        );
-      })}
+    <View>
+      {rows.map((row, ri) => (
+        <View key={ri} style={[styles.dayGrid, ri > 0 && { marginTop: 6 }]}>
+          {row.map((d) => {
+            const active = selected === d.offset;
+            return (
+              <Pressable
+                key={d.offset}
+                style={[styles.dayGridCell, active && styles.dayGridCellActive]}
+                onPress={() => onSelect(d.offset)}
+              >
+                <Text style={[styles.dayGridInitial, active && styles.dayGridInitialActive]}>
+                  {d.initial}
+                </Text>
+                <Text style={[styles.dayGridDate, active && styles.dayGridDateActive]}>
+                  {d.date}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ))}
     </View>
   );
 }
@@ -423,7 +433,7 @@ function PlanVisitModal({
       const { defaultCourt: dc, defaultDayIndex: di } = defaultsRef.current;
       setCourt(dc);
       // Page strip is rolling now: its index IS the offset from today.
-      setDayOffset(Math.min(6, Math.max(0, di)));
+      setDayOffset(Math.min(PICKER_DAYS - 1, Math.max(0, di)));
       setFailed(false);
     }
   }, [visible]);
@@ -503,7 +513,8 @@ function PlanVisitModal({
  * slot shows WHO right underneath — smart avatars, not just a number.
  */
 
-const SLOT_HOURS = [8, 10, 12, 14, 16, 18, 20];
+// Starts at 6 AM: every time the run/visit pickers offer must land in a cell.
+const SLOT_HOURS = [6, 8, 10, 12, 14, 16, 18, 20];
 
 function slotLabel(h: number): string {
   const twelve = h % 12 === 0 ? 12 : h % 12;

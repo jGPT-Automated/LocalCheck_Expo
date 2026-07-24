@@ -87,11 +87,14 @@ export async function fetchScheduledGames(filters?: {
   status?: string;
 }): Promise<GameRun[]> {
   try {
+    // Global 14-day window feeds Schedule/Home; cap high enough that a busy
+    // deployment can't push a selected court's later-week run past the limit.
+    // If runs ever exceed this, scope the fetch per court instead.
     let q = supabase
       .from("runs")
       .select(RUN_SELECT)
       .order("start_time", { ascending: true })
-      .limit(100);
+      .limit(300);
 
     if (filters?.courtId) q = q.eq("court_id", filters.courtId);
     if (filters?.from) q = q.gte("start_time", filters.from.toISOString());
