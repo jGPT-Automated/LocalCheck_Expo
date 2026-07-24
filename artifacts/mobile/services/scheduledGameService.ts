@@ -4,8 +4,11 @@ import { supabase } from "@/lib/supabase";
 import { mapProfileToPlayer, SupabaseProfile } from "./profileService";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
+// Backend: LocalCheckProd `runs` + `run_participants` (status going/waitlist/
+// declined), written via the create_run / join_run / leave_run RPCs. (Was
+// `scheduled_games`/`scheduled_game_participants` on the old project.)
 
-interface SupabaseScheduledGame {
+interface SupabaseRun {
   id: string;
   court_id: string;
   organizer_id: string;
@@ -19,13 +22,16 @@ interface SupabaseScheduledGame {
   updated_at: string;
   courts?: { name: string; sport_type: string } | null;
   organizer?: SupabaseProfile | null;
-  scheduled_game_participants?: Array<{
+  run_participants?: Array<{
     user_id: string;
-    rsvp_status: string;
+    status: string;
     joined_at: string;
     profiles: SupabaseProfile | null;
   }>;
 }
+
+const RUN_SELECT =
+  "*, courts(name, sport_type), organizer:profiles!runs_organizer_id_fkey(*), run_participants(user_id, status, joined_at, profiles(*))";
 
 function normalizeSport(raw: string | null | undefined): CourtSport {
   const upper = (raw ?? "").toUpperCase();
@@ -49,11 +55,11 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
 }
 
-export function mapScheduledGameToRun(row: SupabaseScheduledGame): GameRun {
-  // Only "going" RSVPs count as participants — the DB has no team assignment.
+export function mapScheduledGameToRun(row: SupabaseRun): GameRun {
+  // Only "going" RSVPs count as participants.
   const participants: Player[] = [];
-  for (const p of row.scheduled_game_participants ?? []) {
-    if (p.profiles && p.rsvp_status === "going") participants.push(mapProfileToPlayer(p.profiles));
+  for (const p of row.run_participants ?? []) {
+    if (p.profiles && p.status === "going") participants.push(mapProfileToPlayer(p.profiles));
   }
   const maxPlayers = row.max_players ?? 10;
   return {
@@ -82,32 +88,22 @@ export async function fetchScheduledGames(filters?: {
 }): Promise<GameRun[]> {
   try {
     let q = supabase
-      .from("scheduled_games")
-      .select(
-        "*, courts(name, sport_type), organizer:profiles!scheduled_games_organizer_id_fkey(*), scheduled_game_participants(user_id, rsvp_status, joined_at, profiles(*))"
-      )
+      .from("runs")
+      .select(RUN_SELECT)
       .order("start_time", { ascending: true })
       .limit(100);
 
-    if (filters?.courtId) {
-      q = q.eq("court_id", filters.courtId);
-    }
-    if (filters?.from) {
-      q = q.gte("start_time", filters.from.toISOString());
-    }
-    if (filters?.to) {
-      q = q.lte("start_time", filters.to.toISOString());
-    }
-    if (filters?.status) {
-      q = q.eq("status", filters.status);
-    }
+    if (filters?.courtId) q = q.eq("court_id", filters.courtId);
+    if (filters?.from) q = q.gte("start_time", filters.from.toISOString());
+    if (filters?.to) q = q.lte("start_time", filters.to.toISOString());
+    if (filters?.status) q = q.eq("status", filters.status);
 
     const { data, error } = await q;
     if (error || !data) {
       console.warn("fetchScheduledGames error:", error?.message);
       return [];
     }
-    return (data as unknown as SupabaseScheduledGame[]).map(mapScheduledGameToRun);
+    return (data as unknown as SupabaseRun[]).map(mapScheduledGameToRun);
   } catch (err) {
     console.warn("fetchScheduledGames exception:", err);
     return [];
@@ -123,67 +119,43 @@ export async function createScheduledGame(payload: {
   note?: string;
 }): Promise<GameRun | null> {
   try {
-    const { data, error } = await supabase
-      .from("scheduled_games")
-      .insert({
-        court_id: payload.courtId,
-        organizer_id: payload.organizerId,
-        title: payload.title,
-        start_time: payload.startTime,
-        max_players: payload.maxPlayers,
-        note: payload.note ?? null,
-        // Live enum: scheduled | cancelled | completed
-        status: "scheduled",
-        is_open_invite: true,
-      })
-      .select("*, courts(name, sport_type)")
-      .single();
-    if (error || !data) {
+    // create_run inserts the run AND the organizer's "going" RSVP atomically,
+    // deriving the organizer from auth.uid().
+    const { data: created, error } = await supabase.rpc("create_run", {
+      p_court_id: payload.courtId,
+      p_title: payload.title,
+      p_start_time: payload.startTime,
+      p_max_players: payload.maxPlayers,
+      p_note: payload.note ?? null,
+      p_is_open_invite: true,
+    });
+    if (error || !created) {
       if (error) console.warn("createScheduledGame failed", error.message);
       return null;
     }
-    const row = data as unknown as SupabaseScheduledGame;
-    // The host is playing in their own run — insert their RSVP so the run
-    // doesn't start at 0 players.
-    const joined = await joinScheduledGame(row.id, payload.organizerId);
-    if (!joined) console.warn("createScheduledGame: host RSVP insert failed");
-    return mapScheduledGameToRun(row);
+    const runId = (created as { id: string }).id;
+    // Re-read with embeds so the returned GameRun has court name + participants.
+    const { data: full } = await supabase
+      .from("runs")
+      .select(RUN_SELECT)
+      .eq("id", runId)
+      .maybeSingle();
+    if (full) return mapScheduledGameToRun(full as unknown as SupabaseRun);
+    // Fallback: minimal mapping from the RPC row if the re-read failed.
+    return mapScheduledGameToRun(created as unknown as SupabaseRun);
   } catch {
     return null;
   }
 }
 
 /**
- * RSVP the user to a run ("going"). Capacity-checked against max_players;
- * returns true only when the RSVP row was actually written.
+ * RSVP the caller to a run ("going") via the join_run RPC, which capacity-checks
+ * against max_players server-side. The userId param is kept for call-site
+ * compatibility; the RPC uses auth.uid().
  */
-export async function joinScheduledGame(gameId: string, userId: string): Promise<boolean> {
+export async function joinScheduledGame(gameId: string, _userId: string): Promise<boolean> {
   try {
-    const { data: game, error: gameError } = await supabase
-      .from("scheduled_games")
-      .select("max_players, scheduled_game_participants(user_id, rsvp_status)")
-      .eq("id", gameId)
-      .maybeSingle();
-    if (gameError || !game) {
-      if (gameError) console.warn("joinScheduledGame failed", gameError.message);
-      return false;
-    }
-    const row = game as unknown as {
-      max_players: number | null;
-      scheduled_game_participants?: Array<{ user_id: string; rsvp_status: string }>;
-    };
-    const going = (row.scheduled_game_participants ?? []).filter((p) => p.rsvp_status === "going");
-    const alreadyGoing = going.some((p) => p.user_id === userId);
-    if (!alreadyGoing && row.max_players != null && going.length >= row.max_players) {
-      console.warn("joinScheduledGame: run is full");
-      return false;
-    }
-    const { error } = await supabase.from("scheduled_game_participants").upsert({
-      scheduled_game_id: gameId,
-      user_id: userId,
-      rsvp_status: "going",
-      joined_at: new Date().toISOString(),
-    });
+    const { error } = await supabase.rpc("join_run", { p_run_id: gameId });
     if (error) {
       console.warn("joinScheduledGame failed", error.message);
       return false;
