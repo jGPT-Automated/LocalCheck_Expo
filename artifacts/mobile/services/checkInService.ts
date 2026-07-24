@@ -16,16 +16,17 @@ function freshCutoffIso(): string {
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 /**
- * Check the current user in via the switch_active_checkin RPC, which atomically
- * closes any prior open check-in in the same transaction — a user can never be
- * checked in at two courts at once. Uses auth.uid() server-side.
+ * Check the current user in via the check_in RPC, which atomically closes any
+ * prior open check-in in the same transaction — a user can never be checked in
+ * at two courts at once — and is idempotent on double-taps. Uses auth.uid()
+ * server-side and emits the check_in activity_event.
  */
 export async function checkInToCourt(
   courtId: string,
   note?: string,
   visibility: string = "public"
 ): Promise<boolean> {
-  const { error } = await supabase.rpc("switch_active_checkin", {
+  const { error } = await supabase.rpc("check_in", {
     p_court_id: courtId,
     p_visibility: visibility,
     p_note: note ?? null,
@@ -37,13 +38,14 @@ export async function checkInToCourt(
   return true;
 }
 
-/** Mark any open check-in for this user as checked out. */
-export async function checkOutOfCourt(userId: string): Promise<boolean> {
-  const { error } = await supabase
-    .from("check_ins")
-    .update({ checked_out_at: new Date().toISOString() })
-    .eq("user_id", userId)
-    .is("checked_out_at", null);
+/**
+ * Check the current user out via the check_out RPC (closes their open check-in
+ * server-side by auth.uid() and emits the check_out activity_event). The
+ * userId param is kept for call-site compatibility but the RPC derives the
+ * user from the session.
+ */
+export async function checkOutOfCourt(_userId: string): Promise<boolean> {
+  const { error } = await supabase.rpc("check_out");
   if (error) {
     console.warn("checkOutOfCourt failed:", error.message);
     return false;
