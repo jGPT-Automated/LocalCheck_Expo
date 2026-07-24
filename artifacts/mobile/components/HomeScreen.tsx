@@ -1,8 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
-  Animated,
   Platform,
   Pressable,
   ScrollView,
@@ -16,70 +15,104 @@ import { Feather } from "@expo/vector-icons";
 import { AnimatedEntry } from "@/components/AnimatedEntry";
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { LivePulse } from "@/components/LivePulse";
+import { LogoMark } from "@/components/brand/LogoMark";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors, Radius } from "@/constants/colors";
-import { getSportColor } from "@/constants/data";
+import { FeedItem } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
-import { usePresence } from "@/context/CourtPresenceContext";
+import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
+import { fetchWeeklyActiveCount } from "@/services/checkInService";
 
+/**
+ * Home — the local court, live (design mock 5: logo top-left, one accent
+ * throughout, elevated smart avatars, flat uncolored activity markers).
+ * Roster + counts come exclusively from the shared presence store, so
+ * everything on this screen moves together when someone checks in.
+ */
 
-function getSportShort(sport?: string | null): string {
-  if (!sport) return "";
-  if (sport === "BASKETBALL") return "BB";
-  if (sport === "PICKLEBALL") return "PB";
-  return sport.slice(0, 2);
+const KM_TO_MI = 0.621371;
+
+function feedDotAccent(item: FeedItem): boolean {
+  // Accent marks *results*; presence events stay flat — one accent rule.
+  return item.type === "game_result" || item.type === "run_result";
 }
 
-const COLLAPSE_THRESHOLD = 100;
-
 export function HomeScreen() {
-  const { localCourt, localCourtId, checkedInCourtId, checkIn, checkOut, feed, runs, isFriend, isLoading, refreshCourtState, refreshCheckedIn, refreshFeed } = useApp();
+  const {
+    localCourt,
+    localCourtId,
+    checkedInCourtId,
+    checkIn,
+    checkOut,
+    feed,
+    runs,
+    isFriend,
+    refreshCheckedIn,
+    refreshFeed,
+  } = useApp();
   // Live who's-here + locals for the local court from the shared presence
   // store — realtime events from other users update this without any refresh.
-  const { roster: activePlayers, localCount } = usePresence(localCourtId);
+  const { roster, localCount } = usePresence(localCourtId);
+  const statIds = useMemo(() => (localCourtId ? [localCourtId] : []), [localCourtId]);
+  const liveCounts = useCourtCounts(statIds);
   const { user } = useAuth();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
 
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [weeklyActive, setWeeklyActive] = useState<number | null>(null);
 
-  // Re-sync who's-here + check-in state every time Home gains focus, so state
-  // changed on other screens (Explore check-ins, court switches) shows
-  // immediately instead of waiting for the 30s poll.
+  // Re-sync check-in state + feed + weekly stat every time Home gains focus,
+  // so actions taken on other screens show immediately.
   useFocusEffect(
     useCallback(() => {
-      refreshCourtState();
       refreshCheckedIn();
       refreshFeed();
-    }, [refreshCourtState, refreshCheckedIn, refreshFeed])
+      if (localCourtId) {
+        fetchWeeklyActiveCount(localCourtId).then(setWeeklyActive);
+      }
+    }, [refreshCheckedIn, refreshFeed, localCourtId])
   );
 
-  const isCheckedIn = checkedInCourtId === localCourt?.id;
+  const isCheckedIn = !!localCourt && checkedInCourtId === localCourt.id;
 
   if (!localCourt) {
     return <NoCourtState topPad={topPad} isSignedIn={!!user} />;
   }
 
-  const sportColor = getSportColor(localCourt.sport);
-  const sportShort = getSportShort(localCourt.sport);
+  // The stats view counts check-ins the RLS-filtered roster can't see
+  // (friends-only / private) — surface those as "hidden" instead of letting
+  // the number and the avatars disagree.
+  const statsActive = liveCounts[localCourt.id]?.activeCount ?? 0;
+  const activeTotal = Math.max(roster.length, statsActive);
+  const hiddenCount = Math.max(0, activeTotal - roster.length);
+  const approx = hiddenCount > 0 ? "~" : "";
 
-  // Copy before sorting — sorting the shared store array in place during
-  // render mutates state other screens read.
-  const sortedPlayers = [...activePlayers]
+  // Friends first, then by elo — copy before sorting (shared store array).
+  const sortedPlayers = [...roster]
     .sort((a, b) => {
       const aFriend = isFriend(a.id) ? 1 : 0;
       const bFriend = isFriend(b.id) ? 1 : 0;
       if (aFriend !== bFriend) return bFriend - aFriend;
       return b.elo - a.elo;
     })
-    .slice(0, 8);
-  const activeCount = activePlayers.length;
-  const overflowCount = Math.max(0, activeCount - sortedPlayers.length);
-  const courtRuns = runs.filter((r) => r.courtId === localCourt.id);
-  const courtFeed = feed.filter((f) => f.courtId === localCourt.id).slice(0, 5);
+    .slice(0, 6);
+
+  const courtRuns = runs
+    .filter((r) => r.courtId === localCourt.id)
+    .sort((a, b) => a.startTimeIso.localeCompare(b.startTimeIso));
+  const nextRun = courtRuns.find((r) => new Date(r.startTimeIso).getTime() > Date.now() - 60 * 60_000);
+  const courtFeed = feed.filter((f) => f.courtId === localCourt.id).slice(0, 6);
+
+  const distanceMi =
+    localCourt.distanceKm != null ? `${(localCourt.distanceKm * KM_TO_MI).toFixed(1)} mi` : null;
+  const courtMeta = [
+    distanceMi,
+    localCourt.address || [localCourt.neighborhood, localCourt.city].filter(Boolean).join(", "),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   const handleCheckIn = async () => {
     if (Platform.OS !== "web") {
@@ -95,163 +128,106 @@ export function HomeScreen() {
     }
   };
 
-  const collapsedOpacity = scrollY.interpolate({
-    inputRange: [COLLAPSE_THRESHOLD - 20, COLLAPSE_THRESHOLD + 20],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-
-  const expandedOpacity = scrollY.interpolate({
-    inputRange: [0, COLLAPSE_THRESHOLD - 20],
-    outputRange: [1, 0],
-    extrapolate: "clamp",
-  });
-
   return (
     <View style={styles.container}>
-      {/* ── Sticky Collapsed Header (appears on scroll) ── */}
-      <Animated.View
-        style={[styles.collapsedHeader, { paddingTop: topPad, opacity: collapsedOpacity }]}
-        pointerEvents={isCollapsed ? "auto" : "none"}
-      >
-        <Text style={styles.collapsedCourtName} numberOfLines={1}>
-          {localCourt.name.toUpperCase()}
-        </Text>
-        {activeCount > 0 ? (
-          <View style={styles.collapsedCenter}>
-            <LivePulse size={4} color={Colors.accent} style={{ marginRight: 4 }} />
-            <Text style={styles.collapsedActiveCount}>{activeCount}</Text>
+      {/* ── Brand header: logo lockup left, live pulse right ── */}
+      <View style={[styles.header, { paddingTop: topPad + 12 }]}>
+        <View style={styles.brandLockup}>
+          <LogoMark size={26} />
+          <Text style={styles.brandWordmark}>LOCALCHECK</Text>
+        </View>
+        {activeTotal > 0 && (
+          <View style={styles.headerLive}>
+            <Text style={styles.headerLiveText}>
+              {approx}
+              {activeTotal} ACTIVE
+            </Text>
           </View>
-        ) : (
-          <View style={styles.collapsedCenter} />
         )}
-        <View style={styles.collapsedRight}>
-          {sportShort ? (
-            <View style={[styles.collapsedSportTag, { borderColor: sportColor }]}>
-              <Text style={[styles.collapsedSportText, { color: sportColor }]}>{sportShort}</Text>
-            </View>
-          ) : null}
-        </View>
-      </Animated.View>
+      </View>
 
-      {/* ── Expanded Top Header ── */}
-      <Animated.View
-        style={[styles.header, { paddingTop: topPad + 12, opacity: expandedOpacity }]}
-      >
-        <View>
-          <Text style={styles.headerEyebrow}>LOCALCHECK</Text>
-          <Text style={styles.headerBrand}>HOME</Text>
-        </View>
-      </Animated.View>
-
-      <Animated.ScrollView
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 84 : bottom + 96 }}
-        scrollEventThrottle={16}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          {
-            useNativeDriver: true,
-            listener: (e: any) => {
-              const y = e.nativeEvent.contentOffset.y;
-              setIsCollapsed(y > COLLAPSE_THRESHOLD);
-            },
-          }
-        )}
       >
-        {/* ── Court Hero ── */}
+        {/* ── Hero court card ── */}
         <View style={styles.heroCard}>
           <View style={styles.heroTopRow}>
-            <View style={styles.sportTag}>
-              <View style={[styles.sportDot, { backgroundColor: sportColor }]} />
-              <Text style={[styles.sportText, { color: sportColor }]}>{localCourt.sport}</Text>
+            <View style={styles.sportChip}>
+              <Feather name="globe" size={10} color={Colors.textSecondary} />
+              <Text style={styles.sportChipText}>{localCourt.sport}</Text>
             </View>
-            {activeCount > 0 && (
-              <View style={styles.liveChip}>
-                <LivePulse size={4} color={Colors.black} style={{ marginRight: 4 }} />
-                <Text style={styles.liveChipText}>{activeCount} ON COURT</Text>
+            {activeTotal > 0 && (
+              <View style={styles.liveNow}>
+                <LivePulse size={5} color={Colors.accent} style={{ marginRight: 5 }} />
+                <Text style={styles.liveNowText}>LIVE NOW</Text>
               </View>
             )}
           </View>
 
-          <View style={[styles.courtAccentBar, { backgroundColor: sportColor }]} />
           <Text style={styles.courtName}>{localCourt.name.toUpperCase()}</Text>
-          <Text style={styles.courtAddress}>
-            {localCourt.neighborhood} · {localCourt.city}
-          </Text>
+          {courtMeta ? <Text style={styles.courtMeta}>{courtMeta}</Text> : null}
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.tagsScroll}
-            contentContainerStyle={styles.tagsContent}
-          >
-            {localCourt.status === "community" && (
-              <View style={styles.communityTag}>
-                <View style={styles.communityDot} />
-                <Text style={styles.communityTagText}>COMMUNITY COURT</Text>
-              </View>
-            )}
-            {localCourt.status === "confirmed" && (
-              <View style={styles.confirmedTag}>
-                <View style={styles.confirmedRing} />
-                <Text style={styles.confirmedTagText}>CONFIRMED</Text>
-              </View>
-            )}
-            {localCourt.surface != null && (
-              <View style={styles.tag}>
-                <Text style={styles.tagText}>{localCourt.surface}</Text>
-              </View>
-            )}
-            {localCourt.lights && (
-              <View style={styles.tag}>
-                <Text style={styles.tagText}>LIGHTS</Text>
-              </View>
-            )}
-            {localCourt.covered && (
-              <View style={styles.tag}>
-                <Text style={styles.tagText}>COVERED</Text>
-              </View>
-            )}
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>
-                {localCount} LOCAL{localCount !== 1 ? "S" : ""}
+          <View style={styles.statRow}>
+            <View style={styles.statCell}>
+              <Text style={[styles.statValue, styles.statValueAccent]}>
+                {approx}
+                {activeTotal}
               </Text>
+              <Text style={styles.statLabel}>ACTIVE NOW</Text>
             </View>
-          </ScrollView>
+            <View style={[styles.statCell, styles.statCellBorder]}>
+              <Text style={styles.statValue}>{localCount}</Text>
+              <Text style={styles.statLabel}>LOCALS</Text>
+            </View>
+            <View style={[styles.statCell, styles.statCellBorder]}>
+              <Text style={styles.statValue}>{courtRuns.length}</Text>
+              <Text style={styles.statLabel}>RUNS THIS WK</Text>
+            </View>
+            <View style={[styles.statCell, styles.statCellBorder]}>
+              <Text style={styles.statValue}>{weeklyActive ?? "–"}</Text>
+              <Text style={styles.statLabel}>ACTIVE THIS WK</Text>
+            </View>
+          </View>
+
+          <View style={styles.checkInRow}>
+            <BrutalistButton
+              label={isCheckedIn ? "CHECKED IN ✓" : "CHECK IN"}
+              onPress={handleCheckIn}
+              variant={isCheckedIn ? "outline" : "accent"}
+              style={styles.checkInBtn}
+              testID="home-check-in-btn"
+            />
+            <Pressable
+              style={styles.viewBtn}
+              onPress={() => router.push(`/court/${localCourt.id}`)}
+              accessibilityLabel="Open court page"
+            >
+              <Feather name="chevron-right" size={18} color={Colors.textSecondary} />
+            </Pressable>
+          </View>
         </View>
 
-        {/* ── Check In ── */}
-        <View style={styles.checkInRow}>
-          <BrutalistButton
-            label={isCheckedIn ? "CHECKED IN ✓" : "CHECK IN"}
-            onPress={handleCheckIn}
-            variant={isCheckedIn ? "outline" : "accent"}
-            style={styles.checkInBtn}
-            testID="home-check-in-btn"
-          />
-          <Pressable
-            style={styles.viewBtn}
-            onPress={() => router.push(`/court/${localCourt.id}`)}
-          >
-            <Text style={styles.viewBtnText}>VIEW</Text>
-          </Pressable>
-        </View>
-
-        {/* ── Who's Here ── */}
-        {activeCount > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>WHO'S HERE</Text>
-              <Text style={styles.sectionAccent}>{activeCount} ACTIVE</Text>
-            </View>
+        {/* ── Who's here ── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>WHO'S HERE</Text>
+            {activeTotal > 0 && (
+              <Text style={styles.sectionAccent}>
+                {approx}
+                {activeTotal} ACTIVE
+              </Text>
+            )}
+          </View>
+          <View style={styles.whosHereRow}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.rosterRow}
+              style={{ flex: 1 }}
             >
               {sortedPlayers.map((p) => {
-                const isFriendStatus = isFriend(p.id);
+                const friend = isFriend(p.id);
                 return (
                   <AnimatedEntry key={p.id}>
                     <Pressable
@@ -259,95 +235,96 @@ export function HomeScreen() {
                       onPress={() => router.push(`/player/${p.id}`)}
                     >
                       <View>
-                        <PlayerAvatar initials={p.avatar} size={40} />
-                        {isFriendStatus && (
-                          <View style={styles.friendDot} />
+                        <PlayerAvatar initials={p.avatar} size={44} />
+                        {friend && (
+                          <View style={styles.friendBadge}>
+                            <Feather name="star" size={7} color={Colors.black} />
+                          </View>
                         )}
                       </View>
-                      <Text style={[styles.rosterName, isFriendStatus && styles.rosterNameFriend]}>
-                        {p.avatar}
+                      <Text style={styles.rosterName} numberOfLines={1}>
+                        {p.name.split(" ")[0]}
                       </Text>
-                      <Text style={styles.rosterElo}>{p.elo}</Text>
-                      {isFriendStatus && (
-                        <Text style={styles.friendLabel}>FRIEND</Text>
-                      )}
                     </Pressable>
                   </AnimatedEntry>
                 );
               })}
-              {overflowCount > 0 && (
+              {hiddenCount > 0 && (
                 <View style={styles.rosterItem}>
-                  <View style={styles.rosterMore}>
-                    <Text style={styles.rosterMoreText}>+{overflowCount}</Text>
+                  <View style={styles.hiddenSquare}>
+                    <Text style={styles.hiddenPlus}>+{hiddenCount}</Text>
                   </View>
+                  <Text style={styles.hiddenLabel}>hidden</Text>
                 </View>
               )}
+              {activeTotal === 0 && (
+                <Text style={styles.emptyText}>Nobody here yet — be the first.</Text>
+              )}
             </ScrollView>
+            <Pressable
+              style={styles.localsCard}
+              onPress={() => router.push(`/court/${localCourt.id}`)}
+            >
+              <Text style={styles.localsCardCount}>{localCount}</Text>
+              <Text style={styles.localsCardLabel}>view all</Text>
+            </Pressable>
           </View>
-        )}
+        </View>
 
-
-        {/* ── Upcoming Run ── */}
-        {courtRuns.length > 0 && (
+        {/* ── Next run ── */}
+        {nextRun && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>NEXT RUN</Text>
             </View>
-            {courtRuns.slice(0, 1).map((run) => (
-              <Pressable
-                key={run.id}
-                style={({ pressed }) => [styles.runCard, pressed && styles.pressed]}
-                onPress={() => router.push(`/run/${run.id}`)}
-              >
-                <View style={styles.runCardLeft}>
-                  <Text style={styles.runTitle}>{run.title}</Text>
-                  <Text style={styles.runMeta}>
-                    {run.date} · {run.time} · {run.skillLevel}
-                  </Text>
-                </View>
-                <View style={styles.runPlayers}>
-                  <Text style={styles.runPlayerCount}>
-                    {run.participants.length}
-                    <Text style={styles.runPlayerMax}>/{run.maxPlayers}</Text>
-                  </Text>
-                  <Text style={styles.runPlayersLabel}>IN</Text>
-                </View>
-              </Pressable>
-            ))}
+            <Pressable
+              style={({ pressed }) => [styles.runStrip, pressed && styles.pressed]}
+              onPress={() => router.push(`/run/${nextRun.id}`)}
+            >
+              <View style={styles.runAccentBar} />
+              <View style={styles.runStripBody}>
+                <Text style={styles.runTitle}>{nextRun.title}</Text>
+                <Text style={styles.runMeta}>
+                  {nextRun.date === "TODAY" ? "Today" : nextRun.date} · {nextRun.time} ·{" "}
+                  {nextRun.courtName}
+                </Text>
+              </View>
+              <Text style={styles.runCount}>
+                <Text style={styles.runCountFilled}>{nextRun.participants.length}</Text>
+                <Text style={styles.runCountMax}>/{nextRun.maxPlayers}</Text>
+              </Text>
+            </Pressable>
           </View>
         )}
 
-        {/* ── Recent Activity ── */}
+        {/* ── Activity feed: flat timeline, accent only on results ── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>RECENT ACTIVITY</Text>
+            <Text style={styles.sectionTitle}>ACTIVITY FEED</Text>
           </View>
           {courtFeed.length === 0 ? (
             <Text style={styles.emptyText}>No activity yet. Be the first.</Text>
           ) : (
-            courtFeed.map((item) => {
-              const isWin =
-                item.message.includes("WON") || item.message.includes("WIN");
-              const isLoss =
-                item.message.includes("LOST") || item.message.includes("LOSS");
-              const barColor = isWin
-                ? Colors.win
-                : isLoss
-                ? Colors.loss
-                : Colors.accent;
-              return (
-                <View key={item.id} style={styles.feedItem}>
-                  <View style={[styles.feedBar, { backgroundColor: barColor }]} />
-                  <View style={styles.feedContent}>
-                    <Text style={styles.feedMessage}>{item.message}</Text>
-                    <Text style={styles.feedTime}>{item.timestamp}</Text>
-                  </View>
+            courtFeed.map((item, i) => (
+              <View key={item.id} style={styles.feedItem}>
+                <View style={styles.feedDotCol}>
+                  <View
+                    style={[
+                      styles.feedDot,
+                      feedDotAccent(item) ? styles.feedDotAccent : styles.feedDotFlat,
+                    ]}
+                  />
+                  {i < courtFeed.length - 1 && <View style={styles.feedLine} />}
                 </View>
-              );
-            })
+                <View style={styles.feedContent}>
+                  <Text style={styles.feedMessage}>{item.message}</Text>
+                  <Text style={styles.feedTime}>{item.timestamp}</Text>
+                </View>
+              </View>
+            ))
           )}
         </View>
-      </Animated.ScrollView>
+      </ScrollView>
     </View>
   );
 }
@@ -358,9 +335,9 @@ function NoCourtState({ topPad, isSignedIn }: { topPad: number; isSignedIn: bool
     return (
       <View style={styles.container}>
         <View style={[styles.header, { paddingTop: topPad + 12 }]}>
-          <View>
-            <Text style={styles.headerEyebrow}>LOCALCHECK</Text>
-            <Text style={styles.headerBrand}>HOME</Text>
+          <View style={styles.brandLockup}>
+            <LogoMark size={26} />
+            <Text style={styles.brandWordmark}>LOCALCHECK</Text>
           </View>
         </View>
         <View style={styles.noCourtContainer}>
@@ -414,431 +391,308 @@ function NoCourtState({ topPad, isSignedIn }: { topPad: number; isSignedIn: bool
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
 
-  // ── Collapsed sticky header ──
-  collapsedHeader: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 20,
-    backgroundColor: "rgba(13,13,16,0.94)",
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  collapsedCourtName: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.white,
-    letterSpacing: 0.5,
-    flex: 1,
-  },
-  collapsedCenter: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  collapsedActiveCount: {
-    fontFamily: Typography.heading,
-    fontSize: 16,
-    color: Colors.accent,
-    letterSpacing: 0.5,
-  },
-  collapsedRight: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 8,
-  },
-  collapsedWeather: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    color: Colors.muted,
-  },
-  collapsedSportTag: {
-    borderWidth: 1,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  collapsedSportText: {
-    fontFamily: Typography.heading,
-    fontSize: 10,
-    letterSpacing: 1,
-  },
-
-  // ── Expanded header ──
+  // ── Brand header ──
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-end",
+    alignItems: "center",
     paddingHorizontal: 20,
-    paddingBottom: 14,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
+    paddingBottom: 12,
   },
-  headerEyebrow: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.accent,
-    letterSpacing: 2.5,
-    textTransform: "uppercase" as const,
-    marginBottom: 3,
+  brandLockup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
-  headerBrand: {
+  brandWordmark: {
     fontFamily: Typography.heading,
-    fontSize: 32,
+    fontSize: 17,
     color: Colors.text,
-    letterSpacing: 0.5,
-    lineHeight: 34,
+    letterSpacing: 2,
   },
-  weatherText: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 12,
-    color: Colors.muted,
-    paddingBottom: 4,
+  headerLive: {},
+  headerLiveText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 10,
+    color: Colors.accent,
+    letterSpacing: 1.5,
   },
 
   // ── Hero ──
   heroCard: {
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 14,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
+    marginHorizontal: 20,
+    marginTop: 4,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.lg,
     backgroundColor: Colors.surface,
   },
   heroTopRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    marginBottom: 10,
+    justifyContent: "space-between",
+    marginBottom: 14,
   },
-  sportTag: {
+  sportChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
   },
-  sportDot: { width: 6, height: 6, borderRadius: 3 },
-  sportText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 10,
-    letterSpacing: 2,
-    textTransform: "uppercase" as const,
-  },
-  liveChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.accent,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: Radius.xs,
-  },
-  liveChipText: {
-    fontFamily: Typography.bodyBold,
+  sportChipText: {
+    fontFamily: Typography.bodySemiBold,
     fontSize: 9,
-    color: Colors.black,
+    color: Colors.textSecondary,
     letterSpacing: 1.5,
     textTransform: "uppercase" as const,
   },
-  courtAccentBar: {
-    height: 2,
-    width: 32,
-    marginBottom: 8,
-    borderRadius: 1,
+  liveNow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  liveNowText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.accent,
+    letterSpacing: 1.5,
   },
   courtName: {
     fontFamily: Typography.heading,
-    fontSize: 30,
+    fontSize: 32,
     color: Colors.text,
     letterSpacing: 0.5,
-    lineHeight: 32,
+    lineHeight: 34,
     marginBottom: 4,
   },
-  courtAddress: {
+  courtMeta: {
     fontFamily: Typography.body,
-    fontSize: 13,
+    fontSize: 12,
     color: Colors.muted,
+    marginBottom: 16,
+  },
+  statRow: {
+    flexDirection: "row",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
     marginBottom: 14,
   },
-  tagsScroll: { marginBottom: 2 },
-  tagsContent: { gap: 6 },
-  tag: {
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: Radius.xs,
+  statCell: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 2,
   },
-  tagText: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 9,
+  statCellBorder: {
+    borderLeftWidth: 1,
+    borderLeftColor: Colors.border,
+  },
+  statValue: {
+    fontFamily: Typography.heading,
+    fontSize: 17,
+    color: Colors.text,
+    lineHeight: 20,
+  },
+  statValueAccent: { color: Colors.accent },
+  statLabel: {
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 7,
     color: Colors.muted,
     letterSpacing: 1,
-    textTransform: "uppercase" as const,
+    marginTop: 3,
+    textAlign: "center",
   },
-  communityTag: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    borderWidth: 0.5,
-    borderColor: Colors.textSecondary,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: Radius.xs,
-  },
-  communityDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: Colors.textSecondary,
-  },
-  communityTagText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.textSecondary,
-    letterSpacing: 1.2,
-    textTransform: "uppercase" as const,
-  },
-  confirmedTag: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.3)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: Radius.xs,
-  },
-  confirmedRing: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.5)",
-  },
-  confirmedTagText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.muted,
-    letterSpacing: 1.2,
-    textTransform: "uppercase" as const,
-  },
-
-  // ── Check In ──
   checkInRow: {
     flexDirection: "row",
     gap: 10,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
   },
-  checkInBtn: { flex: 3 },
+  checkInBtn: { flex: 1 },
   viewBtn: {
-    flex: 1,
-    borderWidth: 0.5,
+    width: 48,
+    borderWidth: 1,
     borderColor: Colors.border,
+    borderRadius: Radius.sm,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.surface,
-  },
-  viewBtnText: {
-    fontFamily: Typography.heading,
-    fontSize: 13,
-    color: Colors.muted,
-    letterSpacing: 1.5,
+    backgroundColor: Colors.surfaceHigh,
   },
 
   // ── Section ──
   section: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
+    paddingTop: 22,
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
-    color: Colors.text,
-    letterSpacing: 3,
-    textTransform: "uppercase" as const,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 11,
+    color: Colors.textSecondary,
+    letterSpacing: 2,
   },
   sectionAccent: {
     fontFamily: Typography.bodyBold,
-    fontSize: 10,
+    fontSize: 9,
     color: Colors.accent,
     letterSpacing: 1.5,
-    textTransform: "uppercase" as const,
   },
 
-  // ── Roster ──
-  rosterRow: { gap: 12, paddingVertical: 2 },
-  rosterItem: { alignItems: "center" },
+  // ── Who's here ──
+  whosHereRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  rosterRow: { gap: 14, paddingVertical: 2, alignItems: "flex-start" },
+  rosterItem: { alignItems: "center", width: 48 },
   rosterName: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.text,
-    marginTop: 5,
-    letterSpacing: 0.5,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 10,
+    color: Colors.textSecondary,
+    marginTop: 6,
   },
-  rosterNameFriend: {
-    color: Colors.win,
-  },
-  rosterElo: {
-    fontFamily: Typography.heading,
-    fontSize: 11,
-    color: Colors.muted,
-    marginTop: 1,
-  },
-  friendDot: {
-    position: "absolute" as any,
-    bottom: -1,
-    right: -1,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Colors.win,
+  friendBadge: {
+    position: "absolute",
+    bottom: -3,
+    right: -3,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: Colors.accent,
     borderWidth: 1.5,
     borderColor: Colors.background,
-  },
-  friendLabel: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 7,
-    color: Colors.win,
-    letterSpacing: 1,
-    marginTop: 2,
-  },
-  rosterMore: {
-    width: 40,
-    height: 40,
-    borderWidth: 0.5,
-    borderColor: Colors.border,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: Radius.xs,
-    marginTop: 0,
   },
-  rosterMoreText: {
-    fontFamily: Typography.heading,
-    fontSize: 11,
-    color: Colors.muted,
-  },
-
-  // ── Court Details ──
-  detailsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    borderWidth: 0.5,
+  hiddenSquare: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
     borderColor: Colors.border,
-  },
-  detailCell: {
-    width: "50%",
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  detailCellRight: {
-    borderLeftWidth: 0.5,
-    borderLeftColor: Colors.border,
-  },
-  detailCellLast: {
-    borderBottomWidth: 0,
-  },
-  detailValue: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.text,
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  detailLabel: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 9,
-    color: Colors.muted,
-    letterSpacing: 1.5,
-    textTransform: "uppercase" as const,
-  },
-
-  // ── Run Card ──
-  runCard: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    borderStyle: "dashed",
     alignItems: "center",
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    padding: 14,
+    justifyContent: "center",
     backgroundColor: Colors.surface,
   },
-  pressed: { backgroundColor: Colors.surfaceHigh },
-  runCardLeft: { flex: 1 },
-  runTitle: {
+  hiddenPlus: {
     fontFamily: Typography.heading,
-    fontSize: 16,
-    color: Colors.text,
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  runMeta: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
+    fontSize: 13,
     color: Colors.muted,
-    letterSpacing: 0.5,
   },
-  runPlayers: { alignItems: "center", paddingLeft: 14 },
-  runPlayerCount: {
+  hiddenLabel: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 10,
+    color: Colors.muted,
+    marginTop: 6,
+  },
+  localsCard: {
+    width: 72,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surface,
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  localsCardCount: {
     fontFamily: Typography.heading,
-    fontSize: 22,
+    fontSize: 20,
     color: Colors.text,
     lineHeight: 24,
   },
-  runPlayerMax: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.muted,
-  },
-  runPlayersLabel: {
+  localsCardLabel: {
     fontFamily: Typography.bodyMedium,
-    fontSize: 8,
+    fontSize: 9,
     color: Colors.muted,
-    letterSpacing: 1.5,
-    textTransform: "uppercase" as const,
+    letterSpacing: 0.5,
     marginTop: 2,
   },
 
-  // ── Activity Feed ──
+  // ── Next run ──
+  runStrip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    overflow: "hidden",
+  },
+  pressed: { backgroundColor: Colors.surfaceHigh },
+  runAccentBar: {
+    width: 3,
+    alignSelf: "stretch",
+    backgroundColor: Colors.accent,
+  },
+  runStripBody: { flex: 1, paddingHorizontal: 14, paddingVertical: 12 },
+  runTitle: {
+    fontFamily: Typography.heading,
+    fontSize: 15,
+    color: Colors.text,
+    letterSpacing: 0.5,
+    marginBottom: 3,
+  },
+  runMeta: {
+    fontFamily: Typography.body,
+    fontSize: 11,
+    color: Colors.muted,
+  },
+  runCount: { paddingRight: 14 },
+  runCountFilled: {
+    fontFamily: Typography.heading,
+    fontSize: 20,
+    color: Colors.accent,
+  },
+  runCountMax: {
+    fontFamily: Typography.heading,
+    fontSize: 13,
+    color: Colors.muted,
+  },
+
+  // ── Activity feed ──
   feedItem: {
     flexDirection: "row",
-    paddingVertical: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
+    paddingBottom: 16,
   },
-  feedBar: {
-    width: 2.5,
-    marginRight: 12,
-    borderRadius: 1,
+  feedDotCol: {
+    width: 20,
+    alignItems: "center",
   },
-  feedContent: { flex: 1 },
+  feedDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    marginTop: 3,
+  },
+  feedDotAccent: { backgroundColor: Colors.accent },
+  feedDotFlat: {
+    backgroundColor: "transparent",
+    borderWidth: 1.5,
+    borderColor: Colors.mutedDark,
+  },
+  feedLine: {
+    flex: 1,
+    width: 1,
+    backgroundColor: Colors.borderSubtle,
+    marginTop: 4,
+  },
+  feedContent: { flex: 1, paddingLeft: 8 },
   feedMessage: {
     fontFamily: Typography.bodyMedium,
     fontSize: 12,
     color: Colors.text,
     letterSpacing: 0.2,
-    lineHeight: 18,
+    lineHeight: 17,
     marginBottom: 3,
   },
   feedTime: {
@@ -851,8 +705,7 @@ const styles = StyleSheet.create({
     fontFamily: Typography.bodyMedium,
     fontSize: 12,
     color: Colors.muted,
-    letterSpacing: 1,
-    textTransform: "uppercase" as const,
+    letterSpacing: 0.5,
   },
 
   // ── No Court / Find Court ──

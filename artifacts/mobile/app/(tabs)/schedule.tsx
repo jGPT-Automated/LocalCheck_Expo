@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Modal,
   Platform,
@@ -496,6 +496,84 @@ function PlanVisitModal({
   );
 }
 
+/**
+ * Schedule — weekly heatmap for one court (design mock 6). Rows are 2-hour
+ * local-time slots, columns the 7 days of the shown week; cell intensity is
+ * how many people are planned there (planned visits + run RSVPs). Tapping a
+ * slot shows WHO right underneath — smart avatars, not just a number.
+ */
+
+const SLOT_HOURS = [8, 10, 12, 14, 16, 18, 20];
+
+function slotLabel(h: number): string {
+  const twelve = h % 12 === 0 ? 12 : h % 12;
+  return `${twelve} ${h < 12 ? "AM" : "PM"}`;
+}
+
+interface SlotAttendee {
+  id: string;
+  name: string;
+  initials: string;
+  isMine: boolean;
+  /** Set when this attendance is my own planned visit (removable). */
+  visitId?: string;
+}
+
+interface SlotEntry {
+  attendees: SlotAttendee[];
+  count: number;
+}
+
+function CourtPickerModal({
+  visible,
+  onClose,
+  localCourt,
+  onSelect,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  localCourt: Court | null;
+  onSelect: (c: Court) => void;
+}) {
+  const { top } = useSafeAreaInsets();
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={[styles.sheet, { paddingTop: Platform.OS === "ios" ? top : top + 12 }]}>
+        <View style={styles.sheetHeader}>
+          <Text style={styles.sheetTitle}>PICK A COURT</Text>
+          <Pressable onPress={onClose} style={styles.sheetClose} hitSlop={12}>
+            <Feather name="x" size={22} color={Colors.muted} />
+          </Pressable>
+        </View>
+        <ScrollView contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">
+          {localCourt && (
+            <Pressable
+              style={styles.pickerLocalRow}
+              onPress={() => {
+                onSelect(localCourt);
+                onClose();
+              }}
+            >
+              <Feather name="map-pin" size={14} color={Colors.accent} />
+              <Text style={styles.pickerLocalText}>{localCourt.name.toUpperCase()}</Text>
+              <Text style={styles.pickerLocalTag}>MY COURT</Text>
+            </Pressable>
+          )}
+          <Text style={styles.fieldLabel}>SEARCH</Text>
+          <CourtField
+            selected={null}
+            onSelect={(c) => {
+              onSelect(c);
+              onClose();
+            }}
+            onClear={() => {}}
+          />
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
 export default function ScheduleScreen() {
   const {
     localCourt,
@@ -506,267 +584,345 @@ export default function ScheduleScreen() {
     addPlannedVisit,
     removePlannedVisit,
   } = useApp();
-  const { top, bottom } = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : top;
+  const { bottom } = useSafeAreaInsets();
+
   const [showHost, setShowHost] = useState(false);
   const [showPlan, setShowPlan] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickedCourt, setPickedCourt] = useState<Court | null>(null);
+  const [weekOffset, setWeekOffset] = useState<0 | 1>(0);
+  const [selectedSlot, setSelectedSlot] = useState<{ day: number; slot: number } | null>(null);
 
-  const weekDays = getWeekDays();
-  const todayIndex = weekDays.findIndex((d) => d.isToday);
-  const [selectedDay, setSelectedDay] = useState(todayIndex);
+  // Default to the local court once it hydrates; an explicit pick wins.
+  const court = pickedCourt ?? localCourt;
 
-  // Match runs to the selected day by actual start time. selectedDay is now a
-  // rolling offset from today (0 = today).
-  const selectedDate = (() => {
+  // ── Week window (rolling: page 0 starts today, page 1 is days 7–13 —
+  // matches the 14-day data window in AppContext) ──
+  const weekStart = useMemo(() => {
     const d = new Date();
-    d.setDate(d.getDate() + selectedDay);
-    return d.toDateString();
-  })();
-  const runsForDay = runs.filter((r) => new Date(r.startTimeIso).toDateString() === selectedDate);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + weekOffset * 7);
+    return d;
+  }, [weekOffset]);
 
-  // Planned visits ("pulling up") for the selected day, grouped by court in
-  // time order — this is the page's primary content.
-  const visitsForDay = plannedVisits.filter(
-    (v) => new Date(v.plannedAtIso).toDateString() === selectedDate
+  const weekDays = useMemo(
+    () =>
+      Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(weekStart);
+        d.setDate(weekStart.getDate() + i);
+        return d;
+      }),
+    [weekStart]
   );
-  const visitsByCourt: { courtId: string; courtName: string; sport: PlannedVisit["sport"]; visits: PlannedVisit[] }[] = [];
-  for (const v of visitsForDay) {
-    const group = visitsByCourt.find((g) => g.courtId === v.courtId);
-    if (group) group.visits.push(v);
-    else visitsByCourt.push({ courtId: v.courtId, courtName: v.courtName, sport: v.sport, visits: [v] });
-  }
 
-  const selectedDayInfo = weekDays[selectedDay];
+  const weekLabel = useMemo(() => {
+    const fmt = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const last = weekDays[6];
+    return weekStart.getMonth() === last.getMonth()
+      ? `${fmt(weekStart)}–${last.getDate()}`
+      : `${fmt(weekStart)} – ${fmt(last)}`;
+  }, [weekStart, weekDays]);
+
+  // ── Bucket planned visits + run RSVPs for this court into day × slot ──
+  const slotMap = useMemo(() => {
+    const map = new Map<string, SlotEntry>();
+    if (!court) return map;
+    const add = (iso: string, a: SlotAttendee) => {
+      const t = new Date(iso);
+      const dayIdx = Math.floor((t.getTime() - weekStart.getTime()) / 86_400_000);
+      if (dayIdx < 0 || dayIdx > 6) return;
+      const h = t.getHours();
+      if (h < SLOT_HOURS[0] || h >= SLOT_HOURS[SLOT_HOURS.length - 1] + 2) return;
+      const slotIdx = Math.floor((h - SLOT_HOURS[0]) / 2);
+      const key = `${dayIdx}:${slotIdx}`;
+      const entry = map.get(key) ?? { attendees: [], count: 0 };
+      if (!entry.attendees.some((x) => x.id === a.id)) {
+        entry.attendees.push(a);
+        entry.count = entry.attendees.length;
+        map.set(key, entry);
+      } else if (a.visitId) {
+        // Keep the removable visit reference even if the run RSVP landed first.
+        const existing = entry.attendees.find((x) => x.id === a.id);
+        if (existing && !existing.visitId) existing.visitId = a.visitId;
+      }
+    };
+    for (const v of plannedVisits) {
+      if (v.courtId !== court.id) continue;
+      add(v.plannedAtIso, {
+        id: v.userId,
+        name: v.player.name,
+        initials: v.player.avatar,
+        isMine: v.userId === currentUser.id,
+        visitId: v.id,
+      });
+    }
+    for (const r of runs) {
+      if (r.courtId !== court.id) continue;
+      for (const p of r.participants) {
+        add(r.startTimeIso, {
+          id: p.id,
+          name: p.name,
+          initials: p.avatar,
+          isMine: p.id === currentUser.id,
+        });
+      }
+    }
+    return map;
+  }, [court, plannedVisits, runs, weekStart, currentUser.id]);
+
+  const courtRuns = useMemo(() => {
+    if (!court) return [];
+    const end = new Date(weekStart);
+    end.setDate(weekStart.getDate() + 7);
+    return runs
+      .filter((r) => {
+        if (r.courtId !== court.id) return false;
+        const t = new Date(r.startTimeIso).getTime();
+        return t >= weekStart.getTime() && t < end.getTime();
+      })
+      .sort((a, b) => a.startTimeIso.localeCompare(b.startTimeIso));
+  }, [court, runs, weekStart]);
+
+  const selectedEntry = selectedSlot
+    ? slotMap.get(`${selectedSlot.day}:${selectedSlot.slot}`)
+    : undefined;
+  const selectedDate = selectedSlot ? weekDays[selectedSlot.day] : null;
+
+  const heatStyle = (count: number) => {
+    if (count >= 5) return styles.heatHigh;
+    if (count >= 2) return styles.heatMid;
+    if (count >= 1) return styles.heatLow;
+    return null;
+  };
+
+  const todayKey = new Date().toDateString();
 
   return (
     <View style={styles.container}>
       <ScreenHeader
         title="SCHEDULE"
-        subtitle="WHO'S PULLING UP THIS WEEK"
         right={
-          <Pressable style={styles.addBtn} onPress={() => setShowHost(true)} testID="host-run-add-btn">
-            <Feather name="plus" size={18} color={Colors.black} />
+          <Pressable
+            onPress={() => router.push(`/player/${currentUser.id}`)}
+            accessibilityLabel="My profile"
+            style={{ marginBottom: 2 }}
+          >
+            <PlayerAvatar initials={currentUser.avatar} size={34} />
           </Pressable>
         }
       />
 
-      {/* ── Week Strip ── */}
-      <View style={styles.weekStrip}>
-        {weekDays.map((day, i) => (
-          <Pressable
-            key={i}
-            style={[styles.dayCell, selectedDay === i && styles.dayCellActive]}
-            onPress={() => setSelectedDay(i)}
-          >
-            <Text style={[styles.dayLabel, selectedDay === i && styles.dayLabelActive]}>
-              {day.label}
-            </Text>
-            <Text style={[styles.dayDate, selectedDay === i && styles.dayDateActive]}>
-              {day.date}
-            </Text>
-            {day.isToday && <View style={styles.todayDot} />}
-          </Pressable>
-        ))}
-      </View>
-
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: Platform.OS === "web" ? 84 : bottom + 100 },
-        ]}
+        contentContainerStyle={{ paddingBottom: (Platform.OS === "web" ? 84 : bottom + 96) + 68 }}
       >
-        {/* Day header */}
-        <View style={styles.dayHeaderRow}>
-          <Text style={styles.dayHeaderText}>
-            {selectedDayInfo.isToday ? "TODAY" : selectedDayInfo.dayOfWeek}
+        {/* ── Court selector ── */}
+        <Pressable style={styles.courtSelector} onPress={() => setShowPicker(true)} testID="schedule-court-selector">
+          <Feather name="map-pin" size={13} color={Colors.accent} />
+          <Text style={styles.courtSelectorText} numberOfLines={1}>
+            {court ? court.name : "Pick a court"}
           </Text>
-          <Text style={styles.dayHeaderDate}>
-            {selectedDayInfo.date}
-          </Text>
-        </View>
+          <Feather name="chevron-right" size={15} color={Colors.muted} />
+        </Pressable>
 
-        {/* ── Pulling Up (planned presence — the page's primary content) ── */}
-        <View style={styles.pullingSection}>
-          <View style={styles.pullingHeader}>
-            <Text style={styles.pullingTitle}>PULLING UP</Text>
+        {/* ── Week nav ── */}
+        <View style={styles.weekNav}>
+          <Text style={styles.weekLabel}>{weekLabel}</Text>
+          <View style={styles.weekArrows}>
             <Pressable
-              style={styles.planBtn}
-              onPress={() => setShowPlan(true)}
-              disabled={selectedDay < todayIndex}
-              testID="plan-visit-btn"
+              style={[styles.weekArrow, weekOffset === 0 && styles.weekArrowDisabled]}
+              disabled={weekOffset === 0}
+              onPress={() => {
+                setWeekOffset(0);
+                setSelectedSlot(null);
+              }}
             >
-              <Text style={[styles.planBtnText, selectedDay < todayIndex && styles.planBtnTextDisabled]}>
-                + I'LL BE THERE
-              </Text>
+              <Feather name="chevron-left" size={16} color={weekOffset === 0 ? Colors.mutedDark : Colors.text} />
+            </Pressable>
+            <Pressable
+              style={[styles.weekArrow, weekOffset === 1 && styles.weekArrowDisabled]}
+              disabled={weekOffset === 1}
+              onPress={() => {
+                setWeekOffset(1);
+                setSelectedSlot(null);
+              }}
+            >
+              <Feather name="chevron-right" size={16} color={weekOffset === 1 ? Colors.mutedDark : Colors.text} />
             </Pressable>
           </View>
+        </View>
 
-          {visitsForDay.length === 0 ? (
-            <Text style={styles.pullingEmpty}>
-              Nobody's posted a time yet. Say when you're coming so people know to show up.
-            </Text>
-          ) : (
-            visitsByCourt.map((group) => (
-              <View key={group.courtId} style={styles.courtGroup}>
-                <Pressable
-                  style={styles.courtGroupHeader}
-                  onPress={() => router.push(`/court/${group.courtId}`)}
-                >
-                  <View style={[styles.courtGroupDot, { backgroundColor: getSportColor(group.sport) }]} />
-                  <Text style={styles.courtGroupName}>{group.courtName.toUpperCase()}</Text>
-                  <Text style={styles.courtGroupCount}>
-                    {group.visits.length} COMING
+        {/* ── Heatmap ── */}
+        <View style={styles.heatmap}>
+          {/* Day header row */}
+          <View style={styles.heatRow}>
+            <View style={styles.heatTimeCol} />
+            {weekDays.map((d, i) => {
+              const isToday = d.toDateString() === todayKey;
+              return (
+                <View key={i} style={styles.heatDayHeader}>
+                  <Text style={[styles.heatDayName, isToday && styles.heatDayNameToday]}>
+                    {DAYS[d.getDay()]}
                   </Text>
-                </Pressable>
-                {group.visits.map((visit) => {
-                  const isMine = visit.userId === currentUser.id;
-                  return (
-                    <View key={visit.id} style={styles.visitRow}>
-                      <Text style={styles.visitTime}>{visit.time}</Text>
-                      <Pressable
-                        style={styles.visitPlayer}
-                        onPress={() => router.push(`/player/${visit.userId}`)}
-                      >
-                        <PlayerAvatar initials={visit.player.avatar} size={26} />
-                        <Text style={styles.visitName}>
-                          {visit.player.name.split(" ")[0].toUpperCase()}
-                          {isMine ? "  · YOU" : ""}
-                        </Text>
-                      </Pressable>
-                      {visit.note != null && (
-                        <Text style={styles.visitNote} numberOfLines={1}>{visit.note}</Text>
-                      )}
-                      {isMine && (
-                        <Pressable
-                          hitSlop={10}
-                          onPress={() => removePlannedVisit(visit.id)}
-                          testID={`remove-visit-${visit.id}`}
-                        >
-                          <Feather name="x" size={14} color={Colors.loss} />
-                        </Pressable>
-                      )}
-                    </View>
-                  );
-                })}
-              </View>
-            ))
-          )}
-        </View>
-
-        {/* ── Runs for selected day ── */}
-        <View style={styles.dayHeaderRow}>
-          <Text style={styles.runsSectionTitle}>RUNS</Text>
-        </View>
-        {runsForDay.length === 0 ? (
-          <View style={styles.emptyDay}>
-            <Feather name="calendar" size={24} color={Colors.mutedDark} style={styles.emptyIcon} />
-            <Text style={styles.emptyTitle}>NO RUNS SCHEDULED</Text>
-            <Text style={styles.emptySub}>Host a run or join one from the Explore tab.</Text>
-            <Pressable
-              style={styles.hostBtn}
-              onPress={() => setShowHost(true)}
-              testID="host-run-empty-btn"
-            >
-              <Text style={styles.hostBtnText}>+ HOST A RUN</Text>
-            </Pressable>
+                  <Text style={[styles.heatDayDate, isToday && styles.heatDayDateToday]}>
+                    {d.getDate()}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
-        ) : (
-          runsForDay.map((run) => {
-            const sportColor = getSportColor(run.sport);
-            const filled = run.participants.length;
-            const isFull = filled >= run.maxPlayers;
+          {SLOT_HOURS.map((h, slotIdx) => (
+            <View key={h} style={styles.heatRow}>
+              <View style={styles.heatTimeCol}>
+                <Text style={styles.heatTimeText}>{slotLabel(h)}</Text>
+              </View>
+              {weekDays.map((_, dayIdx) => {
+                const entry = slotMap.get(`${dayIdx}:${slotIdx}`);
+                const count = entry?.count ?? 0;
+                const isSelected =
+                  selectedSlot?.day === dayIdx && selectedSlot?.slot === slotIdx;
+                return (
+                  <Pressable
+                    key={dayIdx}
+                    style={[styles.heatCell, heatStyle(count), isSelected && styles.heatCellSelected]}
+                    onPress={() =>
+                      setSelectedSlot(isSelected ? null : { day: dayIdx, slot: slotIdx })
+                    }
+                    testID={`heat-${dayIdx}-${slotIdx}`}
+                  >
+                    {(isSelected || count >= 5) && count > 0 ? (
+                      <Text style={styles.heatCellCount}>{count}</Text>
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+          ))}
+          {/* Legend */}
+          <View style={styles.legendRow}>
+            <View style={styles.legendScale}>
+              <Text style={styles.legendText}>Quiet</Text>
+              <View style={[styles.legendSwatch, { backgroundColor: Colors.surface }]} />
+              <View style={[styles.legendSwatch, { backgroundColor: Colors.accentDim }]} />
+              <View style={[styles.legendSwatch, { backgroundColor: Colors.accentGlow }]} />
+              <View style={[styles.legendSwatch, { backgroundColor: Colors.accent }]} />
+              <Text style={styles.legendText}>Busy</Text>
+            </View>
+            <Text style={styles.legendText}>Local time · 2-hr slots</Text>
+          </View>
+        </View>
 
-            return (
+        {/* ── Selected slot detail ── */}
+        {selectedSlot && selectedDate && (
+          <View style={styles.slotCard}>
+            <Text style={styles.slotCardTitle}>
+              {DAYS[selectedDate.getDay()]} {selectedDate.getDate()} · {slotLabel(SLOT_HOURS[selectedSlot.slot])}
+              {"  "}
+              <Text style={styles.slotCardGoing}>
+                — {selectedEntry?.count ?? 0} GOING
+              </Text>
+            </Text>
+            {selectedEntry && selectedEntry.count > 0 ? (
+              <View style={styles.slotAvatars}>
+                {selectedEntry.attendees.slice(0, 8).map((a) => (
+                  <Pressable
+                    key={a.id}
+                    style={styles.slotAvatarItem}
+                    onPress={() => router.push(`/player/${a.id}`)}
+                  >
+                    <PlayerAvatar initials={a.initials} size={36} accent={a.isMine} />
+                    <Text style={styles.slotAvatarName} numberOfLines={1}>
+                      {a.isMine ? "You" : a.name.split(" ")[0]}
+                    </Text>
+                  </Pressable>
+                ))}
+                {selectedEntry.count > 8 && (
+                  <View style={styles.slotAvatarItem}>
+                    <View style={styles.slotMore}>
+                      <Text style={styles.slotMoreText}>+{selectedEntry.count - 8}</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            ) : (
+              <Text style={styles.slotEmpty}>
+                Nobody yet — post your time so people know to pull up.
+              </Text>
+            )}
+            {(() => {
+              const mine = selectedEntry?.attendees.find((a) => a.isMine && a.visitId);
+              if (!mine?.visitId) return null;
+              const visitId = mine.visitId;
+              return (
+                <Pressable
+                  style={styles.slotRemoveBtn}
+                  onPress={() => removePlannedVisit(visitId)}
+                  testID={`remove-visit-${visitId}`}
+                >
+                  <Feather name="x" size={11} color={Colors.loss} />
+                  <Text style={styles.slotRemoveText}>REMOVE MY TIME</Text>
+                </Pressable>
+              );
+            })()}
+          </View>
+        )}
+
+        {/* ── Scheduled runs ── */}
+        <View style={styles.runsSection}>
+          <Text style={styles.runsTitle}>Scheduled Runs</Text>
+          {courtRuns.length === 0 ? (
+            <View style={styles.runsEmpty}>
+              <Text style={styles.runsEmptyText}>
+                No runs at this court this week. Put one on the board.
+              </Text>
+            </View>
+          ) : (
+            courtRuns.map((run) => (
               <Pressable
                 key={run.id}
                 style={({ pressed }) => [styles.runCard, pressed && styles.pressed]}
                 onPress={() => router.push(`/run/${run.id}`)}
               >
-                <View
-                  style={[styles.runSportBar, { backgroundColor: sportColor }]}
-                />
-                <View style={styles.runBody}>
-                  <View style={styles.runTop}>
-                    <Text style={styles.runTime}>{run.time}</Text>
-                    <View
-                      style={[
-                        styles.runCapBadge,
-                        isFull && styles.runCapBadgeFull,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.runCapText,
-                          isFull && styles.runCapTextFull,
-                        ]}
-                      >
-                        {filled}/{run.maxPlayers}
-                      </Text>
-                    </View>
-                  </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.runEyebrow}>
+                    {run.date === "TODAY" ? "TONIGHT" : run.date} · {run.time}
+                  </Text>
                   <Text style={styles.runTitle}>{run.title}</Text>
-                  <Text style={styles.runMeta}>
-                    {run.courtName} · {run.skillLevel}
-                  </Text>
+                  <View style={styles.runAvatarRow}>
+                    {run.participants.slice(0, 4).map((p) => (
+                      <PlayerAvatar key={p.id} initials={p.avatar} size={22} />
+                    ))}
+                    {run.participants.length > 4 && (
+                      <Text style={styles.runAvatarMore}>+{run.participants.length - 4}</Text>
+                    )}
+                    {run.participants.length === 0 && (
+                      <Text style={styles.runAvatarMore}>0/{run.maxPlayers}</Text>
+                    )}
+                  </View>
                 </View>
+                <Text style={styles.runViewLink}>View run ›</Text>
               </Pressable>
-            );
-          })
-        )}
-
-        {/* ── My Local Court section ── */}
-        {localCourt && (
-          <View style={styles.localSection}>
-            <Text style={styles.localSectionTitle}>RUNS AT MY LOCAL</Text>
-            <Pressable
-              style={({ pressed }) => [styles.courtLink, pressed && styles.pressed]}
-              onPress={() => router.push(`/court/${localCourt.id}`)}
-            >
-              <View>
-                <Text style={styles.courtLinkName}>{localCourt.name.toUpperCase()}</Text>
-                <Text style={styles.courtLinkSub}>
-                  {localCourt.neighborhood} · {localCourt.activeCount} active
-                </Text>
-              </View>
-              <Feather name="arrow-right" size={18} color={Colors.muted} />
-            </Pressable>
-          </View>
-        )}
-
-        {/* ── All upcoming runs ── */}
-        <View style={styles.allSection}>
-          <Text style={styles.allSectionTitle}>ALL UPCOMING</Text>
-          {runs.map((run) => {
-            const sportColor = getSportColor(run.sport);
-            const filled = run.participants.length;
-            return (
-              <Pressable
-                key={run.id}
-                style={({ pressed }) => [styles.runRowFlat, pressed && styles.pressed]}
-                onPress={() => router.push(`/run/${run.id}`)}
-              >
-                <View style={[styles.runSportDot, { backgroundColor: sportColor }]} />
-                <View style={styles.runRowInfo}>
-                  <Text style={styles.runRowTitle}>{run.title}</Text>
-                  <Text style={styles.runRowMeta}>
-                    {run.date} · {run.time} · {run.courtName}
-                  </Text>
-                </View>
-                <View style={styles.runRowRight}>
-                  <Text style={styles.runRowCount}>{filled}</Text>
-                  <Text style={styles.runRowCountLabel}>IN</Text>
-                </View>
-              </Pressable>
-            );
-          })}
+            ))
+          )}
         </View>
       </ScrollView>
+
+      {/* ── Bottom actions ── */}
+      <View style={[styles.bottomBar, { paddingBottom: (Platform.OS === "web" ? 84 : bottom + 84) }]}>
+        <Pressable style={styles.bottomBtn} onPress={() => setShowHost(true)} testID="host-run-add-btn">
+          <Feather name="plus" size={14} color={Colors.text} />
+          <Text style={styles.bottomBtnText}>CREATE RUN</Text>
+        </Pressable>
+        <Pressable style={styles.bottomBtn} onPress={() => setShowPlan(true)} testID="plan-visit-btn">
+          <Feather name="clock" size={14} color={Colors.text} />
+          <Text style={styles.bottomBtnText}>MY TIMES</Text>
+        </Pressable>
+      </View>
 
       <HostRunModal
         visible={showHost}
         onClose={() => setShowHost(false)}
-        defaultCourt={localCourt}
+        defaultCourt={court}
         organizerId={currentUser.id}
         onCreated={refreshRuns}
       />
@@ -774,9 +930,16 @@ export default function ScheduleScreen() {
       <PlanVisitModal
         visible={showPlan}
         onClose={() => setShowPlan(false)}
-        defaultCourt={localCourt}
-        defaultDayIndex={selectedDay}
+        defaultCourt={court}
+        defaultDayIndex={selectedSlot ? weekOffset * 7 + selectedSlot.day : 0}
         onSubmit={addPlannedVisit}
+      />
+
+      <CourtPickerModal
+        visible={showPicker}
+        onClose={() => setShowPicker(false)}
+        localCourt={localCourt}
+        onSelect={setPickedCourt}
       />
     </View>
   );
@@ -784,400 +947,297 @@ export default function ScheduleScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  headerEyebrow: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.accent,
-    letterSpacing: 2.5,
-    textTransform: "uppercase" as const,
-    marginBottom: 2,
-  },
-  headerTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 32,
-    color: Colors.text,
-    letterSpacing: 0.5,
-    lineHeight: 34,
-  },
-  headerSub: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 9,
-    color: Colors.muted,
-    letterSpacing: 2,
-    textTransform: "uppercase" as const,
-    marginTop: 2,
-  },
-  addBtn: {
-    width: 34,
-    height: 34,
-    backgroundColor: Colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: Radius.xs,
-    marginBottom: 4,
-  },
-
-  // ── Week Strip ──
-  weekStrip: {
-    flexDirection: "row",
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  dayCell: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 10,
-    gap: 2,
-    borderBottomWidth: 3,
-    borderBottomColor: "transparent",
-  },
-  dayCellActive: { borderBottomColor: Colors.accent },
-  dayLabel: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 8,
-    color: Colors.muted,
-    letterSpacing: 0.5,
-    textTransform: "uppercase" as const,
-  },
-  dayLabelActive: { color: Colors.accent },
-  dayDate: {
-    fontFamily: Typography.heading,
-    fontSize: 16,
-    color: Colors.muted,
-    lineHeight: 18,
-  },
-  dayDateActive: { color: Colors.text },
-  todayDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.accent,
-    marginTop: 2,
-  },
-
-  scrollContent: { paddingTop: 0 },
-
-  // ── Day Header ──
-  dayHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "baseline",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  dayHeaderText: {
-    fontFamily: Typography.heading,
-    fontSize: 20,
-    color: Colors.text,
-    letterSpacing: 2,
-  },
-  dayHeaderDate: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.muted,
-  },
-
-  // ── Run Card ──
-  runCard: {
-    flexDirection: "row",
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-    overflow: "hidden",
-    backgroundColor: Colors.surface,
-  },
   pressed: { backgroundColor: Colors.surfaceHigh },
-  runSportBar: { width: 3 },
-  runBody: {
-    flex: 1,
-    padding: 16,
-    gap: 4,
+
+  // ── Court selector + week nav ──
+  courtSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.border,
   },
-  runTop: {
+  courtSelectorText: {
+    flex: 1,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 13,
+    color: Colors.text,
+    letterSpacing: 0.3,
+  },
+  weekNav: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 10,
   },
-  runTime: {
+  weekLabel: {
     fontFamily: Typography.heading,
     fontSize: 18,
     color: Colors.text,
     letterSpacing: 0.5,
   },
-  runCapBadge: {
-    borderWidth: 0.5,
+  weekArrows: { flexDirection: "row", gap: 8 },
+  weekArrow: {
+    width: 32,
+    height: 32,
+    borderWidth: 1,
     borderColor: Colors.border,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radius.xs,
+    borderRadius: Radius.sm,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.surface,
   },
-  runCapBadgeFull: {
-    backgroundColor: Colors.accentDim,
-    borderColor: Colors.accent,
+  weekArrowDisabled: { opacity: 0.4 },
+
+  // ── Heatmap ──
+  heatmap: { paddingHorizontal: 20 },
+  heatRow: { flexDirection: "row", gap: 4, marginBottom: 4, alignItems: "center" },
+  heatTimeCol: { width: 40 },
+  heatTimeText: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 9,
+    color: Colors.muted,
+    letterSpacing: 0.5,
   },
-  runCapText: {
-    fontFamily: Typography.heading,
-    fontSize: 11,
+  heatDayHeader: { flex: 1, alignItems: "center", paddingBottom: 4 },
+  heatDayName: {
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 8,
     color: Colors.muted,
     letterSpacing: 1,
   },
-  runCapTextFull: { color: Colors.accent },
+  heatDayNameToday: { color: Colors.accent },
+  heatDayDate: {
+    fontFamily: Typography.heading,
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginTop: 1,
+  },
+  heatDayDateToday: { color: Colors.text },
+  heatCell: {
+    flex: 1,
+    height: 28,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heatLow: { backgroundColor: Colors.accentDim, borderColor: Colors.borderSubtle },
+  heatMid: { backgroundColor: Colors.accentGlow, borderColor: Colors.borderSubtle },
+  heatHigh: { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  heatCellSelected: { borderColor: Colors.white, borderWidth: 1.5 },
+  heatCellCount: {
+    fontFamily: Typography.heading,
+    fontSize: 12,
+    color: Colors.text,
+  },
+  legendRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  legendScale: { flexDirection: "row", alignItems: "center", gap: 5 },
+  legendSwatch: {
+    width: 10,
+    height: 10,
+    borderRadius: 2,
+    borderWidth: 0.5,
+    borderColor: Colors.borderSubtle,
+  },
+  legendText: {
+    fontFamily: Typography.body,
+    fontSize: 9,
+    color: Colors.muted,
+  },
+
+  // ── Slot detail card ──
+  slotCard: {
+    marginHorizontal: 20,
+    marginTop: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surface,
+  },
+  slotCardTitle: {
+    fontFamily: Typography.heading,
+    fontSize: 14,
+    color: Colors.text,
+    letterSpacing: 1,
+    marginBottom: 12,
+  },
+  slotCardGoing: { color: Colors.accent },
+  slotAvatars: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  slotAvatarItem: { alignItems: "center", width: 44 },
+  slotAvatarName: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 9,
+    color: Colors.textSecondary,
+    marginTop: 4,
+  },
+  slotMore: {
+    width: 36,
+    height: 36,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  slotMoreText: {
+    fontFamily: Typography.heading,
+    fontSize: 11,
+    color: Colors.muted,
+  },
+  slotEmpty: {
+    fontFamily: Typography.body,
+    fontSize: 12,
+    color: Colors.muted,
+    lineHeight: 17,
+  },
+  slotRemoveBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    alignSelf: "flex-start",
+    marginTop: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderWidth: 0.5,
+    borderColor: Colors.loss,
+    borderRadius: Radius.xs,
+  },
+  slotRemoveText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.loss,
+    letterSpacing: 1.5,
+  },
+
+  // ── Scheduled runs ──
+  runsSection: { paddingHorizontal: 20, paddingTop: 24 },
+  runsTitle: {
+    fontFamily: Typography.heading,
+    fontSize: 17,
+    color: Colors.text,
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  runsEmpty: { paddingVertical: 8 },
+  runsEmptyText: {
+    fontFamily: Typography.body,
+    fontSize: 12,
+    color: Colors.muted,
+    lineHeight: 18,
+  },
+  runCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surface,
+    padding: 14,
+    marginBottom: 10,
+  },
+  runEyebrow: {
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 9,
+    color: Colors.muted,
+    letterSpacing: 1.5,
+    marginBottom: 3,
+  },
   runTitle: {
     fontFamily: Typography.heading,
     fontSize: 16,
     color: Colors.text,
     letterSpacing: 0.3,
-  },
-  runMeta: {
-    fontFamily: Typography.body,
-    fontSize: 11,
-    color: Colors.muted,
-  },
-
-  // ── Empty State ──
-  emptyDay: {
-    alignItems: "center",
-    paddingVertical: 48,
-    paddingHorizontal: 40,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  emptyIcon: { marginBottom: 14 },
-  emptyTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 16,
-    color: Colors.text,
-    letterSpacing: 2.5,
     marginBottom: 8,
   },
-  emptySub: {
-    fontFamily: Typography.body,
-    fontSize: 12,
-    color: Colors.muted,
-    textAlign: "center",
-    lineHeight: 18,
-    marginBottom: 20,
-  },
-  hostBtn: {
-    borderWidth: 0.5,
-    borderColor: Colors.accent,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: Radius.xs,
-  },
-  hostBtnText: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
-    color: Colors.accent,
-    letterSpacing: 2,
-  },
-
-  // ── Local Court CTA ──
-  localSection: {
-    paddingHorizontal: 20,
-    paddingTop: 22,
-    paddingBottom: 16,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  localSectionTitle: {
-    fontFamily: Typography.heading,
+  runAvatarRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  runAvatarMore: {
+    fontFamily: Typography.bodyMedium,
     fontSize: 10,
     color: Colors.muted,
-    letterSpacing: 3,
-    marginBottom: 10,
+    marginLeft: 4,
   },
-  courtLink: {
+  runViewLink: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    color: Colors.accent,
+    letterSpacing: 0.5,
+    paddingLeft: 12,
+  },
+
+  // ── Bottom actions ──
+  bottomBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
     flexDirection: "row",
-    justifyContent: "space-between",
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    backgroundColor: Colors.background,
+    borderTopWidth: 0.5,
+    borderTopColor: Colors.border,
+  },
+  bottomBtn: {
+    flex: 1,
+    flexDirection: "row",
     alignItems: "center",
-    borderWidth: 0.5,
+    justifyContent: "center",
+    gap: 7,
+    minHeight: 46,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surfaceHigh,
+  },
+  bottomBtnText: {
+    fontFamily: Typography.heading,
+    fontSize: 12,
+    color: Colors.text,
+    letterSpacing: 1.5,
+  },
+
+  // ── Court picker ──
+  pickerLocalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
     borderColor: Colors.border,
     backgroundColor: Colors.surface,
-    padding: 14,
     borderRadius: Radius.xs,
-  },
-  courtLinkName: {
-    fontFamily: Typography.heading,
-    fontSize: 15,
-    color: Colors.text,
-    letterSpacing: 0.3,
-    marginBottom: 2,
-  },
-  courtLinkSub: {
-    fontFamily: Typography.body,
-    fontSize: 11,
-    color: Colors.muted,
-  },
-
-  // ── All Upcoming ──
-  allSection: {
-    paddingTop: 22,
-  },
-  allSectionTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 10,
-    color: Colors.muted,
-    letterSpacing: 3,
-    paddingHorizontal: 20,
-    marginBottom: 2,
-  },
-  runRowFlat: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    gap: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  runSportDot: { width: 8, height: 8, borderRadius: 4 },
-  runRowInfo: { flex: 1 },
-  runRowTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.text,
-    letterSpacing: 0.3,
-    marginBottom: 2,
-  },
-  runRowMeta: {
-    fontFamily: Typography.body,
-    fontSize: 11,
-    color: Colors.muted,
-  },
-  runRowRight: { alignItems: "center" },
-  runRowCount: {
-    fontFamily: Typography.heading,
-    fontSize: 18,
-    color: Colors.text,
-    lineHeight: 20,
-  },
-  runRowCountLabel: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 7,
-    color: Colors.muted,
-    letterSpacing: 1.5,
-    textTransform: "uppercase" as const,
-  },
-
-  // ── Pulling Up ──
-  pullingSection: {
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 16,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  pullingHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  pullingTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
-    color: Colors.text,
-    letterSpacing: 3,
-  },
-  planBtn: {
-    borderWidth: 0.5,
-    borderColor: Colors.accent,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: Radius.xs,
+    minHeight: 48,
+    marginTop: 20,
   },
-  planBtnText: {
-    fontFamily: Typography.heading,
-    fontSize: 10,
-    color: Colors.accent,
-    letterSpacing: 1.5,
-  },
-  planBtnTextDisabled: { color: Colors.mutedDark },
-  pullingEmpty: {
-    fontFamily: Typography.body,
-    fontSize: 12,
-    color: Colors.muted,
-    lineHeight: 18,
-  },
-  courtGroup: { marginBottom: 14 },
-  courtGroupHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  courtGroupDot: { width: 8, height: 8, borderRadius: 4 },
-  courtGroupName: {
+  pickerLocalText: {
     flex: 1,
     fontFamily: Typography.heading,
     fontSize: 13,
     color: Colors.text,
     letterSpacing: 0.5,
   },
-  courtGroupCount: {
+  pickerLocalTag: {
     fontFamily: Typography.bodyBold,
-    fontSize: 9,
+    fontSize: 8,
     color: Colors.accent,
     letterSpacing: 1.5,
   },
-  visitRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 8,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  visitTime: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.text,
-    width: 48,
-    fontVariant: ["tabular-nums"] as any,
-  },
-  visitPlayer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    flexShrink: 0,
-  },
-  visitName: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    color: Colors.text,
-    letterSpacing: 0.5,
-  },
-  visitNote: {
-    flex: 1,
-    fontFamily: Typography.body,
-    fontSize: 10,
-    color: Colors.muted,
-    marginLeft: 2,
-  },
-  runsSectionTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
-    color: Colors.muted,
-    letterSpacing: 3,
-  },
 
-  // ── Create-run / plan-visit page sheets ──
+  // ── Create-run / plan-visit page sheets (used by the modals above) ──
   sheet: {
     flex: 1,
     backgroundColor: Colors.background,
