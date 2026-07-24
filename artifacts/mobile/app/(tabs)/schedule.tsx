@@ -16,6 +16,7 @@ import { Feather } from "@expo/vector-icons";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, PlannedVisit, getSportColor } from "@/constants/data";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { createScheduledGame } from "@/services/scheduledGameService";
@@ -539,17 +540,15 @@ export default function ScheduleScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ── Header ── */}
-      <View style={[styles.header, { paddingTop: topPad + 12 }]}>
-        <View>
-          <Text style={styles.headerEyebrow}>LOCALCHECK</Text>
-          <Text style={styles.headerTitle}>SCHEDULE</Text>
-          <Text style={styles.headerSub}>WHO'S PULLING UP THIS WEEK</Text>
-        </View>
-        <Pressable style={styles.addBtn} onPress={() => setShowHost(true)} testID="host-run-add-btn">
-          <Feather name="plus" size={18} color={Colors.black} />
-        </Pressable>
-      </View>
+      <ScreenHeader
+        title="SCHEDULE"
+        subtitle="WHO'S PULLING UP THIS WEEK"
+        right={
+          <Pressable style={styles.addBtn} onPress={() => setShowHost(true)} testID="host-run-add-btn">
+            <Feather name="plus" size={18} color={Colors.black} />
+          </Pressable>
+        }
+      />
 
       {/* ── Week Strip ── */}
       <View style={styles.weekStrip}>

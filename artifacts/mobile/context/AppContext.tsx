@@ -5,8 +5,10 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
+import { AppState, Platform } from "react-native";
 
 import {
   Court,
@@ -31,6 +33,7 @@ import { fetchScheduledGames, joinScheduledGame } from "@/services/scheduledGame
 import { createCourt, fetchCourtById, fetchNearbyCourts } from "@/services/courtService";
 import { fetchLocals, updateLocalCourtId, updateProfileFields } from "@/services/profileService";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 const LA_FALLBACK = { lat: 34.0522, lng: -118.2437 };
 
@@ -154,18 +157,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const currentUser = useMemo(() => profileToPlayer(profile), [profile]);
 
   // ─── Derive UI preferences from the authoritative Supabase profile ─────────
+  // local_court_id is the user's saved home court AND is mutable in-session via
+  // setLocalCourt. It must be initialized from the profile ONCE per user, not
+  // re-applied on every `profile` object change: waitForProfile runs on every
+  // onAuthStateChange (TOKEN_REFRESHED, and a transient null during
+  // provisioning), and re-applying would clobber a court the user just picked
+  // with a stale/racy snapshot — that was the "My Court resets" bug. is_pro and
+  // preferred_sport are read-mostly and safe to keep tracking the server.
+  const localCourtInitializedForRef = useRef<string | null>(null);
   useEffect(() => {
     if (!profile) {
-      setLocalCourtId(null);
       setIsLocalPlusState(false);
       setPreferredSportState(null);
+      // Do NOT clear localCourtId here — a transient null profile during
+      // provisioning must not deselect the home court. Real sign-out unmounts
+      // this whole provider (gated on session), which resets all state.
       return;
     }
-    setLocalCourtId(profile.local_court_id ?? null);
     setIsLocalPlusState(!!profile.is_pro);
     setPreferredSportState(
       profile.preferred_sport ? (profile.preferred_sport.toUpperCase() as CourtSport) : null
     );
+    if (localCourtInitializedForRef.current !== profile.id) {
+      localCourtInitializedForRef.current = profile.id;
+      setLocalCourtId(profile.local_court_id ?? null);
+    }
   }, [profile]);
 
   // ─── Load nearby courts from Supabase using device GPS (LA fallback for sort/
@@ -310,17 +326,72 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => { mounted = false; };
   }, [refreshRuns, refreshPlannedVisits, refreshFeed, refreshMatches, refreshFriends]);
 
-  // Poll shared state every 30s so two devices see each other quickly
+  // NO recurring poll. Live convergence comes from the scoped realtime
+  // channels (CourtPresenceContext); shared state here resyncs exactly once
+  // when the app returns to the foreground / the tab becomes visible.
+  // (The 2026-07-19 outage was self-inflicted global polling — fetch once,
+  // subscribe narrowly, resync on foreground, nothing on a timer.)
+  const resyncInFlight = useRef(false);
+  const resync = useCallback(async () => {
+    if (!userId || resyncInFlight.current) return;
+    resyncInFlight.current = true;
+    try {
+      await Promise.all([
+        refreshCourtState(),
+        refreshFeed(),
+        refreshRuns(),
+        refreshPlannedVisits(),
+        refreshFriends(),
+      ]);
+    } finally {
+      resyncInFlight.current = false;
+    }
+  }, [userId, refreshCourtState, refreshFeed, refreshRuns, refreshPlannedVisits, refreshFriends]);
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      refreshCourtState();
-      refreshFeed();
-      refreshRuns();
-      refreshPlannedVisits();
-      refreshFriends();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [refreshCourtState, refreshFeed, refreshRuns, refreshPlannedVisits, refreshFriends]);
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") resync();
+    });
+    let onVisible: (() => void) | undefined;
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      onVisible = () => {
+        if (document.visibilityState === "visible") resync();
+      };
+      document.addEventListener("visibilitychange", onVisible);
+    }
+    return () => {
+      sub.remove();
+      if (onVisible) document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [resync]);
+
+  // ─── Live feed for the court shown on Home ──────────────────────────────────
+  // One scoped activity_events channel (filtered to the local court), debounced.
+  // Keeps RECENT ACTIVITY in step with the realtime roster instead of only
+  // refreshing on foreground — same architecture as presence: scoped, no
+  // polling, torn down when the court changes or the provider unmounts.
+  // (Delivery requires the authenticated Realtime socket — see AuthContext
+  // supabase.realtime.setAuth.)
+  useEffect(() => {
+    const courtId = localCourt?.id;
+    if (!userId || !courtId) return;
+    let debounce: ReturnType<typeof setTimeout> | null = null;
+    const channel = supabase
+      .channel(`feed:${courtId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "activity_events", filter: `court_id=eq.${courtId}` },
+        () => {
+          if (debounce) clearTimeout(debounce);
+          debounce = setTimeout(() => refreshFeed(), 400);
+        }
+      )
+      .subscribe();
+    return () => {
+      if (debounce) clearTimeout(debounce);
+      supabase.removeChannel(channel);
+    };
+  }, [userId, localCourt?.id, refreshFeed]);
 
   // ─── Actions ───────────────────────────────────────────────────────────────
   const checkIn = useCallback(

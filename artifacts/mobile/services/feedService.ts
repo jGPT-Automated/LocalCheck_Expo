@@ -3,46 +3,35 @@ import { supabase } from "@/lib/supabase";
 
 import { mapProfileToPlayer, SupabaseProfile } from "./profileService";
 
-// ─── Types ──────────────────────────────────────────────────────────────────
+// ─── Backend ──────────────────────────────────────────────────────────────
+// Reads LocalCheckProd's `activity_events` table in ONE query. This replaces
+// the old 4-query reconstruction (check_ins ×2 + games + scheduled_games) that
+// ran on every poll and was a primary contributor to the 2026-07-19 load
+// incident. Each event already carries its type + actor + court; match_result
+// embeds the match for the score line.
 
-interface SupabaseCheckIn {
-  id: string;
-  user_id: string;
-  court_id: string;
-  note: string | null;
-  checked_in_at: string;
-  checked_out_at: string | null;
+interface SupabaseActivityEvent {
+  id: number;
+  event_type: string;
+  occurred_at: string;
+  court_id: string | null;
   visibility: string | null;
-  profiles: SupabaseProfile | null;
+  payload: Record<string, unknown> | null;
+  actor: SupabaseProfile | null;
   courts: { id: string; name: string; sport_type: string } | null;
+  matches: {
+    score_a: number;
+    score_b: number;
+    winner_side: "a" | "b" | null;
+    match_participants: Array<{ user_id: string; side: "a" | "b"; profiles: SupabaseProfile | null }>;
+  } | null;
 }
 
-interface SupabaseGame {
-  id: string;
-  court_id: string;
-  created_by: string;
-  played_at: string;
-  score_a: number;
-  score_b: number;
-  winner_side: "a" | "b" | null;
-  notes: string | null;
-  courts: { id: string; name: string; sport_type: string } | null;
-  game_participants: Array<{
-    user_id: string;
-    team_side: "a" | "b";
-    profiles: SupabaseProfile | null;
-  }>;
-}
-
-interface SupabaseScheduledGame {
-  id: string;
-  court_id: string;
-  organizer_id: string;
-  title: string;
-  start_time: string;
-  courts: { id: string; name: string; sport_type: string } | null;
-  organizer: SupabaseProfile | null;
-}
+const EVENT_SELECT =
+  "id, event_type, occurred_at, court_id, visibility, payload," +
+  " actor:profiles!activity_events_actor_id_fkey(*)," +
+  " courts(id, name, sport_type)," +
+  " matches(score_a, score_b, winner_side, match_participants(user_id, side, profiles(*)))";
 
 function normalizeSport(raw: string | null | undefined): CourtSport | undefined {
   const upper = (raw ?? "").toUpperCase();
@@ -52,9 +41,7 @@ function normalizeSport(raw: string | null | undefined): CourtSport | undefined 
 
 function formatTimestamp(iso: string): string {
   const d = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
+  const diffMin = Math.floor((Date.now() - d.getTime()) / 60000);
   if (diffMin < 1) return "JUST NOW";
   if (diffMin < 60) return `${diffMin} MIN${diffMin === 1 ? "" : "S"} AGO`;
   const diffHrs = Math.floor(diffMin / 60);
@@ -64,176 +51,88 @@ function formatTimestamp(iso: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
 }
 
-function toFeedItem(
-  id: string,
-  type: FeedItem["type"],
-  player: SupabaseProfile | null,
-  court: { id: string; name: string; sport_type: string } | null,
-  message: string,
-  timestamp: string,
-  sport?: CourtSport
-): FeedItem {
-  const playerName = player?.display_name?.toUpperCase() ?? "SOMEONE";
-  return {
-    id,
-    type,
-    playerId: player?.id ?? "",
-    playerName,
-    courtName: court?.name?.toUpperCase(),
-    courtId: court?.id,
-    sport: sport ?? normalizeSport(court?.sport_type),
-    message,
-    timestamp: formatTimestamp(timestamp),
+/** Map one activity_event → FeedItem. Returns null for event types the feed UI doesn't render. */
+function mapEvent(row: SupabaseActivityEvent): FeedItem | null {
+  const actorName = row.actor?.display_name?.toUpperCase() ?? "SOMEONE";
+  const courtName = row.courts?.name?.toUpperCase() ?? "A COURT";
+  const sport = normalizeSport(row.courts?.sport_type);
+  const base = {
+    id: `ae-${row.id}`,
+    playerId: row.actor?.id ?? "",
+    playerName: actorName,
+    courtName: row.courts?.name?.toUpperCase(),
+    courtId: row.courts?.id,
+    sport,
+    timestamp: formatTimestamp(row.occurred_at),
     hypeCount: 0,
   };
+
+  switch (row.event_type) {
+    case "check_in":
+      return { ...base, type: "checkin", message: `${actorName} CHECKED INTO ${courtName}` };
+    case "check_out":
+      return { ...base, type: "checkout", message: `${actorName} CHECKED OUT OF ${courtName}` };
+    case "run_created":
+      return { ...base, type: "run_started", message: `${actorName} STARTED A RUN AT ${courtName}` };
+    case "match_result": {
+      const m = row.matches;
+      if (!m || !m.winner_side) return null;
+      const winner = m.match_participants?.find((p) => p.side === m.winner_side);
+      const loser = m.match_participants?.find((p) => p.side !== m.winner_side);
+      const winnerName = winner?.profiles
+        ? mapProfileToPlayer(winner.profiles).name.toUpperCase()
+        : actorName;
+      const loserName = loser?.profiles
+        ? mapProfileToPlayer(loser.profiles).name.toUpperCase()
+        : "OPPONENT";
+      const winnerScore = m.winner_side === "b" ? m.score_b : m.score_a;
+      const loserScore = m.winner_side === "b" ? m.score_a : m.score_b;
+      return {
+        ...base,
+        type: "game_result",
+        message: `${winnerName} DEF. ${loserName} ${winnerScore}–${loserScore}`,
+        winnerName,
+      };
+    }
+    default:
+      // run_joined / run_left / planned_visit_created — not surfaced in the feed UI yet.
+      return null;
+  }
 }
 
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 export async function fetchFeed(courtId?: string): Promise<FeedItem[]> {
   try {
-    const limit = 50;
-    const now = new Date().toISOString();
+    let q = supabase
+      .from("activity_events")
+      .select(EVENT_SELECT)
+      .order("occurred_at", { ascending: false })
+      .limit(50);
+    if (courtId) q = q.eq("court_id", courtId);
 
-    // Check-ins
-    let checkInQ = supabase
-      .from("check_ins")
-      .select("id, user_id, court_id, checked_in_at, visibility, profiles(*), courts(id, name, sport_type)")
-      .order("checked_in_at", { ascending: false })
-      .limit(limit);
-    if (courtId) checkInQ = checkInQ.eq("court_id", courtId);
-
-    const { data: checkIns, error: checkInError } = await checkInQ;
-    if (checkInError) console.warn("feed check_ins error:", checkInError.message);
-
-    // Checkouts (check_ins rows that have been closed out)
-    let checkOutQ = supabase
-      .from("check_ins")
-      .select("id, user_id, court_id, checked_in_at, checked_out_at, visibility, profiles(*), courts(id, name, sport_type)")
-      .not("checked_out_at", "is", null)
-      .order("checked_out_at", { ascending: false })
-      .limit(limit);
-    if (courtId) checkOutQ = checkOutQ.eq("court_id", courtId);
-
-    const { data: checkOuts, error: checkOutError } = await checkOutQ;
-    if (checkOutError) console.warn("feed checkouts error:", checkOutError.message);
-
-    // Games (results)
-    let gamesQ = supabase
-      .from("games")
-      .select("id, court_id, played_at, score_a, score_b, winner_side, courts(id, name, sport_type), game_participants(user_id, team_side, profiles(*))")
-      .order("played_at", { ascending: false })
-      .limit(limit);
-    if (courtId) gamesQ = gamesQ.eq("court_id", courtId);
-
-    const { data: games, error: gamesError } = await gamesQ;
-    if (gamesError) console.warn("feed games error:", gamesError.message);
-
-    // Scheduled games (runs started)
-    let runsQ = supabase
-      .from("scheduled_games")
-      .select("id, court_id, organizer_id, title, start_time, courts(id, name, sport_type), organizer:profiles!scheduled_games_organizer_id_fkey(*)")
-      .gte("start_time", now)
-      .order("start_time", { ascending: true })
-      .limit(limit);
-    if (courtId) runsQ = runsQ.eq("court_id", courtId);
-
-    const { data: runs, error: runsError } = await runsQ;
-    if (runsError) console.warn("feed runs error:", runsError.message);
-
-    // Keep the raw ISO timestamp alongside each item so the merged list can be
-    // sorted properly (FeedItem.timestamp is a display string like "3 MINS AGO").
-    const items: Array<{ item: FeedItem; at: string }> = [];
-
-    for (const row of (checkIns as unknown as SupabaseCheckIn[]) ?? []) {
-      if (!row.profiles) continue;
-      const player = mapProfileToPlayer(row.profiles);
-      items.push({
-        at: row.checked_in_at,
-        item: toFeedItem(
-          `checkin-${row.id}`,
-          "checkin",
-          row.profiles,
-          row.courts,
-          `${player.name.toUpperCase()} CHECKED INTO ${row.courts?.name?.toUpperCase() ?? "A COURT"}`,
-          row.checked_in_at,
-          normalizeSport(row.courts?.sport_type)
-        ),
-      });
+    const { data, error } = await q;
+    if (error || !data) {
+      if (error) console.warn("fetchFeed error:", error.message);
+      return [];
     }
-
-    for (const row of (checkOuts as unknown as SupabaseCheckIn[]) ?? []) {
-      if (!row.profiles || !row.checked_out_at) continue;
-      const player = mapProfileToPlayer(row.profiles);
-      items.push({
-        at: row.checked_out_at,
-        item: toFeedItem(
-          `checkout-${row.id}`,
-          "checkout",
-          row.profiles,
-          row.courts,
-          `${player.name.toUpperCase()} CHECKED OUT OF ${row.courts?.name?.toUpperCase() ?? "A COURT"}`,
-          row.checked_out_at,
-          normalizeSport(row.courts?.sport_type)
-        ),
-      });
-    }
-
-    for (const row of (games as unknown as SupabaseGame[]) ?? []) {
-      if (!row.winner_side) continue;
-      const winner = row.game_participants?.find((p) => p.team_side === row.winner_side);
-      const loser = row.game_participants?.find((p) => p.team_side !== row.winner_side);
-      if (!winner?.profiles) continue;
-      const winnerPlayer = mapProfileToPlayer(winner.profiles);
-      const winnerName = winnerPlayer.name.toUpperCase();
-      const loserName = loser?.profiles
-        ? mapProfileToPlayer(loser.profiles).name.toUpperCase()
-        : "OPPONENT";
-      const winnerScore = row.winner_side === "b" ? row.score_b : row.score_a;
-      const loserScore = row.winner_side === "b" ? row.score_a : row.score_b;
-      const gameItem = toFeedItem(
-        `game-${row.id}`,
-        "game_result",
-        winner.profiles,
-        row.courts,
-        `${winnerName} DEF. ${loserName} ${winnerScore}–${loserScore}`,
-        row.played_at,
-        normalizeSport(row.courts?.sport_type)
-      );
-      gameItem.winnerName = winnerName;
-      items.push({ at: row.played_at, item: gameItem });
-    }
-
-    for (const row of (runs as unknown as SupabaseScheduledGame[]) ?? []) {
-      if (!row.organizer) continue;
-      const player = mapProfileToPlayer(row.organizer);
-      items.push({
-        at: row.start_time,
-        item: toFeedItem(
-          `run-${row.id}`,
-          "run_started",
-          row.organizer,
-          row.courts,
-          `${player.name.toUpperCase()} STARTED A RUN AT ${row.courts?.name?.toUpperCase() ?? "A COURT"}`,
-          row.start_time,
-          normalizeSport(row.courts?.sport_type)
-        ),
-      });
-    }
-
-    return items
-      .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
-      .slice(0, limit)
-      .map((entry) => entry.item);
+    return (data as unknown as SupabaseActivityEvent[])
+      .map(mapEvent)
+      .filter((i): i is FeedItem => i !== null);
   } catch (err) {
     console.warn("fetchFeed exception:", err);
     return [];
   }
 }
 
+/** Like an activity event (best-effort; UI updates optimistically). */
 export async function hypePost(postId: string, userId: string): Promise<void> {
+  const eventId = Number(postId.replace(/^ae-/, ""));
+  if (!Number.isFinite(eventId)) return;
   try {
-    await supabase.from("feed_post_likes").insert({ post_id: postId, user_id: userId });
+    await supabase
+      .from("activity_event_likes")
+      .insert({ activity_event_id: eventId, user_id: userId });
   } catch {
     // Best-effort; UI already optimistically updates
   }
