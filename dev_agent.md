@@ -154,6 +154,19 @@ This is the brand; generated palettes do not override it.
   - Note: `@gorhom/bottom-sheet` added to `artifacts/mobile` deps; most deps
     oddly live in devDependencies (Replit artifact) — works, left as-is.
 
+- **2026-07-24 (Claude Code session — realtime consistency + redesign, PR #19)** —
+  Stacked on PR #17. Fixed every Codex review item: runs-live realtime channel
+  (runs/run_participants/planned_visits — cross-device run joins now live),
+  planned_visits added to realtime publication (migration in repo), single
+  presence store (AppContext duplicates removed; actions push into
+  CourtPresenceContext), map counts via one shared check_ins stream instead of
+  250 per-court channels, verified local-court writes with rollback,
+  humanizeAuthError wired, Mapbox token guard, viewport fetch sequencing.
+  Home + Schedule rebuilt to the July mocks (hero stat card, +N hidden chip,
+  per-court weekly heatmap with who's-coming slot card). Smoke-tested signed-in
+  on web against LocalCheckProd with screenshots. Docs repointed to
+  LocalCheckProd. EAS env still needs dashboard verification before v1.0.4.
+
 ## Work queue (agreed order)
 
 1. ~~Presence backend (FK migration)~~ ✅ · ~~PR 1 local court~~ ✅ (#8) · ~~PR 2 check-in loop~~ ✅ (#9)

@@ -457,3 +457,45 @@ is the ordered queue for the web-parity redesign + schedule feature.
 
 **Open:** Supabase auth may need a dashboard "Restart project"; EAS build
 v1.0.4 needs MAPBOX_DOWNLOADS_TOKEN secret before tagging.
+
+## Session 9 — Realtime consistency pass + Home/Schedule redesign (PR #19)
+
+**Date:** July 24, 2026
+
+**Goal:** make live updates consistent everywhere (acting device = instant,
+watching screens = ~1s, everyone else = foreground resync), close Codex's
+review of PR #17, implement the new Home + Schedule design mocks.
+
+**Realtime/consistency (branch stacked on PR #17 → PR #19):**
+- runs-live channel (runs + run_participants + planned_visits → debounced
+  refetch): a join on one device now shows on other devices' run page /
+  Schedule / NEXT RUN without foregrounding. planned_visits added to the
+  supabase_realtime publication (applied live + migration file).
+- One presence store: AppContext's duplicate activePlayers/localPlayers
+  removed; check-in/out pushes a refresh into CourtPresenceContext so all
+  surfaces on the acting device converge instantly.
+- Map/Explore counts: no more one filtered channel per court (250 markers =
+  250 subs). Scoped channels only for roster-watched courts; one shared
+  check_ins stream routes events by court_id.
+- updateProfileFields returns verified success; setLocalCourt rolls back
+  optimistic state on failure (was silently reverting on relaunch).
+- humanizeAuthError wired into all three auth handlers; Mapbox init guarded
+  when token missing (list fallback); viewport fetches sequenced (both maps).
+
+**Design:** Home rebuilt to mock 5 (brand lockup header, hero stat card with
+ACTIVE NOW / LOCALS / RUNS THIS WK / ACTIVE THIS WK, smart-avatar WHO'S HERE
+with +N hidden chip for RLS-hidden check-ins, NEXT RUN strip, timeline feed);
+Schedule rebuilt to mock 6 (per-court weekly heatmap, 2h slots 6AM–10PM,
+week paging over a 14-day window, tap-a-slot who's-coming card, Scheduled
+Runs cards, CREATE RUN / MY TIMES pinned).
+
+**Verified:** tsc clean; signed-in browser smoke test against LocalCheckProd
+(real auth flow, seeded check-ins/run/visits via SQL, screenshots of every
+state incl. the +1 hidden private check-in and heatmap slot detail; QA data
+cleaned up after). Codex re-review P2s all fixed same session (14-day
+pickers, 6AM slot, run cap 300, publication baseline migration).
+
+**Open:** EAS env vars unverifiable from this session — before the v1.0.4
+build confirm EXPO_PUBLIC_SUPABASE_URL/KEY point at qkrnmyexzvaxiqfxwwfb and
+Mapbox tokens are set. Two-device physical test is the final gate. Test
+account smoke.claude.0724@gmail.com can be deleted.
