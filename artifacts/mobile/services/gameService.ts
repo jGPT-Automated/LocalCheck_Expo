@@ -4,11 +4,15 @@ import { supabase } from "@/lib/supabase";
 import { SupabaseProfile } from "./profileService";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
+// Backend: LocalCheckProd `matches` + `match_participants` (side a/b), written
+// via the log_match RPC. (Was `games`/`game_participants`/log_game on the old
+// project — renamed here as part of the 2026-07-22 shared-backend swap.)
 
-interface SupabaseGame {
+interface SupabaseMatch {
   id: string;
   court_id: string;
   created_by: string;
+  opponent_id: string;
   played_at: string;
   score_a: number;
   score_b: number;
@@ -17,9 +21,9 @@ interface SupabaseGame {
   created_at: string;
   updated_at: string;
   courts?: { name: string; sport_type: string } | null;
-  game_participants?: Array<{
+  match_participants?: Array<{
     user_id: string;
-    team_side: "a" | "b";
+    side: "a" | "b";
     profiles: SupabaseProfile | null;
   }>;
 }
@@ -35,13 +39,13 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
 }
 
-function mapGameToMatchResult(row: SupabaseGame, currentUserId?: string): MatchResult {
+function mapMatchToResult(row: SupabaseMatch, currentUserId?: string): MatchResult {
   // Perspective: when we know the viewer, report THEIR side's score first —
   // a side-b player's own score is score_b, not score_a. Without a viewer
   // (court/recent lists), fall back to side a as the reference.
   const viewerSide: "a" | "b" =
     currentUserId != null &&
-    row.game_participants?.some((p) => p.user_id === currentUserId && p.team_side === "b")
+    row.match_participants?.some((p) => p.user_id === currentUserId && p.side === "b")
       ? "b"
       : "a";
   const won = row.winner_side === viewerSide;
@@ -59,19 +63,19 @@ function mapGameToMatchResult(row: SupabaseGame, currentUserId?: string): MatchR
   };
 }
 
-const GAME_SELECT = "*, courts(name, sport_type), game_participants(user_id, team_side, profiles(*))";
+const MATCH_SELECT = "*, courts(name, sport_type), match_participants(user_id, side, profiles(*))";
 
-/** Fetch the game ids a user participated in, newest-capable ordering left to callers. */
-async function fetchParticipantGameIds(userId: string): Promise<string[]> {
+/** Fetch the match ids a user participated in. */
+async function fetchParticipantMatchIds(userId: string): Promise<string[]> {
   const { data, error } = await supabase
-    .from("game_participants")
-    .select("game_id")
+    .from("match_participants")
+    .select("match_id")
     .eq("user_id", userId);
   if (error || !data) {
-    if (error) console.warn("fetchParticipantGameIds failed", error.message);
+    if (error) console.warn("fetchParticipantMatchIds failed", error.message);
     return [];
   }
-  return (data as Array<{ game_id: string }>).map((r) => r.game_id);
+  return (data as Array<{ match_id: string }>).map((r) => r.match_id);
 }
 
 // ─── Public API ─────────────────────────────────────────────────────────────
@@ -85,9 +89,8 @@ export async function logGame(payload: {
   sport: CourtSport;
   note?: string;
 }): Promise<boolean> {
-  // The RPC does not validate score/winner consistency, so bad input here
-  // would corrupt games, win/loss counts, and Elo. Reject it client-side:
-  // scores must be non-negative integers and ties are not loggable.
+  // log_match validates scores/ties server-side, but reject obviously bad
+  // input client-side too for a fast, clear failure.
   const { myScore, theirScore } = payload;
   if (
     !Number.isInteger(myScore) ||
@@ -99,18 +102,16 @@ export async function logGame(payload: {
     console.warn("logGame rejected invalid scores", myScore, theirScore);
     return false;
   }
-  // The log_game RPC atomically inserts the game + participants, computes the
-  // real Elo update for both players, and posts the feed entry. It derives the
-  // caller from auth.uid(), so payload.createdBy is not sent.
-  const winner: "a" | "b" = myScore > theirScore ? "a" : "b";
-  const { error } = await supabase.rpc("log_game", {
+  // log_match atomically inserts the match + both participants, computes the
+  // Elo update, and posts the match_result activity_event. Caller derived from
+  // auth.uid(); winner is computed server-side from the scores.
+  const { error } = await supabase.rpc("log_match", {
     p_court_id: payload.courtId,
     p_opponent_id: payload.opponentId,
-    p_my_side: "a",
-    p_score_a: myScore,
-    p_score_b: theirScore,
-    p_winner_side: winner,
+    p_my_score: myScore,
+    p_opponent_score: theirScore,
     p_notes: payload.note?.trim() ? payload.note.trim() : null,
+    p_visibility: "public",
   });
   if (error) {
     console.warn("logGame failed", error.message);
@@ -122,13 +123,13 @@ export async function logGame(payload: {
 export async function fetchGamesByCourt(courtId: string): Promise<MatchResult[]> {
   try {
     const { data, error } = await supabase
-      .from("games")
-      .select(GAME_SELECT)
+      .from("matches")
+      .select(MATCH_SELECT)
       .eq("court_id", courtId)
       .order("played_at", { ascending: false })
       .limit(50);
     if (error || !data) return [];
-    return (data as unknown as SupabaseGame[]).map((g) => mapGameToMatchResult(g));
+    return (data as unknown as SupabaseMatch[]).map((g) => mapMatchToResult(g));
   } catch {
     return [];
   }
@@ -136,40 +137,40 @@ export async function fetchGamesByCourt(courtId: string): Promise<MatchResult[]>
 
 export async function fetchGamesByPlayer(userId: string): Promise<MatchResult[]> {
   try {
-    const gameIds = await fetchParticipantGameIds(userId);
-    if (gameIds.length === 0) return [];
+    const matchIds = await fetchParticipantMatchIds(userId);
+    if (matchIds.length === 0) return [];
     const { data, error } = await supabase
-      .from("games")
-      .select(GAME_SELECT)
-      .in("id", gameIds)
+      .from("matches")
+      .select(MATCH_SELECT)
+      .in("id", matchIds)
       .order("played_at", { ascending: false })
       .limit(50);
     if (error || !data) {
       if (error) console.warn("fetchGamesByPlayer failed", error.message);
       return [];
     }
-    return (data as unknown as SupabaseGame[]).map((g) => mapGameToMatchResult(g, userId));
+    return (data as unknown as SupabaseMatch[]).map((g) => mapMatchToResult(g, userId));
   } catch {
     return [];
   }
 }
 
-/** Games where both users participated, mapped from currentUserId's perspective. */
+/** Matches where both users participated, mapped from currentUserId's perspective. */
 export async function fetchHeadToHeadGames(
   currentUserId: string,
   opponentId: string
 ): Promise<MatchResult[]> {
   try {
-    const [myGameIds, theirGameIds] = await Promise.all([
-      fetchParticipantGameIds(currentUserId),
-      fetchParticipantGameIds(opponentId),
+    const [myIds, theirIds] = await Promise.all([
+      fetchParticipantMatchIds(currentUserId),
+      fetchParticipantMatchIds(opponentId),
     ]);
-    const theirs = new Set(theirGameIds);
-    const shared = myGameIds.filter((id) => theirs.has(id));
+    const theirs = new Set(theirIds);
+    const shared = myIds.filter((id) => theirs.has(id));
     if (shared.length === 0) return [];
     const { data, error } = await supabase
-      .from("games")
-      .select(GAME_SELECT)
+      .from("matches")
+      .select(MATCH_SELECT)
       .in("id", shared)
       .order("played_at", { ascending: false })
       .limit(50);
@@ -177,7 +178,7 @@ export async function fetchHeadToHeadGames(
       if (error) console.warn("fetchHeadToHeadGames failed", error.message);
       return [];
     }
-    return (data as unknown as SupabaseGame[]).map((g) => mapGameToMatchResult(g, currentUserId));
+    return (data as unknown as SupabaseMatch[]).map((g) => mapMatchToResult(g, currentUserId));
   } catch {
     return [];
   }
@@ -186,12 +187,12 @@ export async function fetchHeadToHeadGames(
 export async function fetchRecentGames(limit = 20): Promise<MatchResult[]> {
   try {
     const { data, error } = await supabase
-      .from("games")
-      .select(GAME_SELECT)
+      .from("matches")
+      .select(MATCH_SELECT)
       .order("played_at", { ascending: false })
       .limit(limit);
     if (error || !data) return [];
-    return (data as unknown as SupabaseGame[]).map((g) => mapGameToMatchResult(g));
+    return (data as unknown as SupabaseMatch[]).map((g) => mapMatchToResult(g));
   } catch {
     return [];
   }

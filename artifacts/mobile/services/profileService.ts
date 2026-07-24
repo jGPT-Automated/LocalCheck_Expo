@@ -124,13 +124,20 @@ export async function fetchLocalCount(courtId: string): Promise<number> {
   }
 }
 
-/** Update the signed-in user's local court in Supabase. */
-export async function updateLocalCourtId(userId: string, courtId: string | null): Promise<void> {
-  await updateProfileFields(userId, { local_court_id: courtId });
+/**
+ * Update the signed-in user's local court in Supabase. Returns true only when
+ * the row came back with the requested value — callers must roll back their
+ * optimistic state on false, or the selection silently reverts on relaunch.
+ */
+export async function updateLocalCourtId(userId: string, courtId: string | null): Promise<boolean> {
+  return updateProfileFields(userId, { local_court_id: courtId });
 }
 
 /**
- * Persist profile preference fields to Supabase.
+ * Persist profile preference fields to Supabase. Returns whether the write
+ * verifiably persisted: Supabase reports failures in the resolved `error`
+ * object (not by throwing), and an RLS-filtered update "succeeds" with zero
+ * rows — so we select the row back and check it exists.
  * Deliberately excludes `is_pro`: it is derived by a DB trigger from the
  * subscriptions table and must never be written from the client.
  */
@@ -140,14 +147,21 @@ export async function updateProfileFields(
     local_court_id: string | null;
     preferred_sport: string | null;
   }>
-): Promise<void> {
+): Promise<boolean> {
   try {
-    await supabase
+    const { data, error } = await supabase
       .from("profiles")
       .update({ ...fields, updated_at: new Date().toISOString() })
-      .eq("id", userId);
-  } catch {
-    // Non-fatal: local state stays authoritative for this session.
+      .eq("id", userId)
+      .select("id");
+    if (error) {
+      console.warn("updateProfileFields failed:", error.message);
+      return false;
+    }
+    return (data?.length ?? 0) > 0;
+  } catch (err) {
+    console.warn("updateProfileFields exception:", err);
+    return false;
   }
 }
 

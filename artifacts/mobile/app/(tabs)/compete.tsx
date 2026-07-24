@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { Colors, Radius } from "@/constants/colors";
 import { CourtSport, getSportColor, getTierColor, Player } from "@/constants/data";
 import { Typography } from "@/constants/typography";
@@ -96,30 +97,28 @@ export default function CompeteScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ── Header ── */}
-      <View style={[styles.header, { paddingTop: topPad + 12 }]}>
-        <View>
-          <Text style={styles.headerEyebrow}>LOCALCHECK</Text>
-          <Text style={styles.headerTitle}>COMPETE</Text>
-          <Text style={styles.headerSub}>
-            {scope === "LOCAL" && localCourt
-              ? localCourt.name.toUpperCase()
-              : scope === "LOCAL"
-              ? "LOCAL RANKINGS"
-              : scope === "REGIONAL"
-              ? "REGIONAL RANKINGS"
-              : "GLOBAL RANKINGS"}
-          </Text>
-        </View>
-        {myRank > 0 && (
-          <View style={styles.myRankBadge}>
-            <Text style={[styles.myRankNum, !showMyRank && styles.myRankNumDim]}>#{myRank}</Text>
-            <Text style={styles.myRankLabel}>
-              {showMyRank ? "YOUR RANK" : "HIDDEN — LOCALPLUS"}
-            </Text>
-          </View>
-        )}
-      </View>
+      <ScreenHeader
+        title="COMPETE"
+        subtitle={
+          scope === "LOCAL" && localCourt
+            ? localCourt.name.toUpperCase()
+            : scope === "LOCAL"
+            ? "LOCAL RANKINGS"
+            : scope === "REGIONAL"
+            ? "REGIONAL RANKINGS"
+            : "GLOBAL RANKINGS"
+        }
+        right={
+          myRank > 0 ? (
+            <View style={styles.myRankBadge}>
+              <Text style={[styles.myRankNum, !showMyRank && styles.myRankNumDim]}>#{myRank}</Text>
+              <Text style={styles.myRankLabel}>
+                {showMyRank ? "YOUR RANK" : "HIDDEN — LOCALPLUS"}
+              </Text>
+            </View>
+          ) : undefined
+        }
+      />
 
       {/* ── Tab Row ── */}
       <View style={styles.tabRow}>

@@ -386,3 +386,116 @@ convention is now: ALL sheets are native.
 **Still open for MVP** (docs/TASKS.md): T7 game-loop e2e verify, T9 privacy
 pass, T10 weekly availability calendar, T12 settings reorg, fixed-page
 layouts (no whole-page scroll), court profile page LOCALS list parity.
+
+---
+
+## Session 7 — Drawer rebuilt on standard components, brand pass, DESIGN.md spec
+
+**Date:** July 18, 2026
+
+- **Court drawer v3** — sprint-2's native formSheet detents shipped broken
+  (blank sheet on device, dead-end full page on web). Rebuilt on
+  `@gorhom/bottom-sheet` 5.2.14 (standard component; JS-only over
+  reanimated/gesture-handler already in the binary → ships OTA):
+  `components/sheet/CourtSheetHost.tsx` hosts one BottomSheetModal at root,
+  `useCourtSheet().openCourtSheet({courtId})` opens it from Explore + both
+  MapScreens. Peek 46% / full 92%, backdrop + swipe dismiss, tappable
+  swipe-hint expands. Verified end-to-end on web preview with live presence.
+  `app/court-sheet.tsx` and its Stack.Screen registration deleted.
+- **Brand** — Jesse's chosen court-frame mark implemented (SVG source +
+  rasterized): `assets/brand/logo-mark.(svg|png)`, new app icon + splash
+  (replaces green basketball-Saturn); icon/splash need a tagged build.
+  `components/brand/LogoMark.tsx` is the only in-app logo entry point —
+  swap procedure documented in DESIGN.md §Brand assets. Auth screen: back
+  button removed (it's the front door), logo + "KNOW WHO'S RUNNING." tagline.
+  AuthGate boot screen branded (OTA-visible).
+- **Consistency** — `components/ScreenHeader.tsx` (ScreenHeader +
+  SectionHeader); Explore/Compete/Schedule headers de-duplicated onto it.
+- **DESIGN.md** — rewritten to the google-labs-code/design.md format
+  (front-matter tokens, canonical sections, lint passes 0 errors via
+  `npx -p @google/design.md designmd lint DESIGN.md`).
+- **Live bug found:** `planned_visits.user_id` FK → auth.users breaks all
+  PostgREST profile embeds (fetchPlannedVisits fails on every poll, swallowed).
+  Fix staged at `docs/supabase/migrations/20260718_repoint_planned_visits_user_fk_to_profiles.sql`,
+  awaiting go-ahead to apply (permission layer blocked live DDL this session).
+- Web preview runs from `.claude/launch.json` (root of ~/Projects) via the
+  desktop-app browser pane; expo start --web --port 8082.
+
+**Still open:** apply the planned_visits migration; Home header onto
+ScreenHeader + PDF-note fixes (Compete alignment, Explore section spacing,
+schedule card tier outlines); QA the new sheet on TestFlight after next OTA.
+
+---
+
+## Session 8 — Supabase polling-storm fix, brand v2, maps rewrite (PR)
+
+**Date:** July 19, 2026
+
+**Incident:** project data plane overloaded → auth 522s. Root cause: web
+previews running the app signed-OUT still polled 6+ reads every 30s
+(AppProvider mounted outside the auth gate, no in-flight/foreground guards)
+× supabase-js ≥2.102 auto-retrying failed GETs 4×. ~22k planned_visits
+requests/day matched the dashboard exactly.
+
+**Fix (this PR):**
+- Data providers (App/CourtPresence/CourtSheet) now mount ONLY with a session
+  (`DataProviders` in app/_layout.tsx) — signed out ⇒ zero Supabase traffic.
+- Poll loop: 30s→60s, skips when backgrounded/hidden tab, skips if previous
+  batch in flight; presence fallback poll 60s→120s.
+- onAuthStateChange callback made synchronous (Supabase-documented deadlock).
+- Auth screen never renders raw error objects (humanizeAuthError).
+
+**Also in this PR (previously unsaved work):** court drawer on
+@gorhom/bottom-sheet; neutral-grey palette + Kanit; checkmark-bracket logo +
+icon/splash + modular LogoMark/auth-graphic; ScreenHeader/SectionHeader
+adopted on Explore/Compete/Schedule; auth screen rework; maps rewrite to
+@rnmapbox/maps + viewport Supabase fetch (fetchCourtsInBounds — also fixes
+"nearby" showing wrong-state courts); react-native-maps removed;
+runtimeVersion → fingerprint policy (OTA can't reach binaries lacking the
+native module); planned_visits FK migration applied; docs/TASKS_REDESIGN.md
+is the ordered queue for the web-parity redesign + schedule feature.
+
+**Open:** Supabase auth may need a dashboard "Restart project"; EAS build
+v1.0.4 needs MAPBOX_DOWNLOADS_TOKEN secret before tagging.
+
+## Session 9 — Realtime consistency pass + Home/Schedule redesign (PR #19)
+
+**Date:** July 24, 2026
+
+**Goal:** make live updates consistent everywhere (acting device = instant,
+watching screens = ~1s, everyone else = foreground resync), close Codex's
+review of PR #17, implement the new Home + Schedule design mocks.
+
+**Realtime/consistency (branch stacked on PR #17 → PR #19):**
+- runs-live channel (runs + run_participants + planned_visits → debounced
+  refetch): a join on one device now shows on other devices' run page /
+  Schedule / NEXT RUN without foregrounding. planned_visits added to the
+  supabase_realtime publication (applied live + migration file).
+- One presence store: AppContext's duplicate activePlayers/localPlayers
+  removed; check-in/out pushes a refresh into CourtPresenceContext so all
+  surfaces on the acting device converge instantly.
+- Map/Explore counts: no more one filtered channel per court (250 markers =
+  250 subs). Scoped channels only for roster-watched courts; one shared
+  check_ins stream routes events by court_id.
+- updateProfileFields returns verified success; setLocalCourt rolls back
+  optimistic state on failure (was silently reverting on relaunch).
+- humanizeAuthError wired into all three auth handlers; Mapbox init guarded
+  when token missing (list fallback); viewport fetches sequenced (both maps).
+
+**Design:** Home rebuilt to mock 5 (brand lockup header, hero stat card with
+ACTIVE NOW / LOCALS / RUNS THIS WK / ACTIVE THIS WK, smart-avatar WHO'S HERE
+with +N hidden chip for RLS-hidden check-ins, NEXT RUN strip, timeline feed);
+Schedule rebuilt to mock 6 (per-court weekly heatmap, 2h slots 6AM–10PM,
+week paging over a 14-day window, tap-a-slot who's-coming card, Scheduled
+Runs cards, CREATE RUN / MY TIMES pinned).
+
+**Verified:** tsc clean; signed-in browser smoke test against LocalCheckProd
+(real auth flow, seeded check-ins/run/visits via SQL, screenshots of every
+state incl. the +1 hidden private check-in and heatmap slot detail; QA data
+cleaned up after). Codex re-review P2s all fixed same session (14-day
+pickers, 6AM slot, run cap 300, publication baseline migration).
+
+**Open:** EAS env vars unverifiable from this session — before the v1.0.4
+build confirm EXPO_PUBLIC_SUPABASE_URL/KEY point at qkrnmyexzvaxiqfxwwfb and
+Mapbox tokens are set. Two-device physical test is the final gate. Test
+account smoke.claude.0724@gmail.com can be deleted.

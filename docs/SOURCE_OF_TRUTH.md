@@ -2,7 +2,7 @@
 **Status: LIVING DOCUMENT.** Update this file (don't create a new one) every time a task ships or a new gap is found. Last verified: 2026-07-13, against live source + live database — not against the pasted DeepWiki/audit docs alone.
 
 **Canonical repo:** `jGPT-Automated/LocalCheck_Expo` @ `main`
-**Canonical backend:** Supabase project `jzclwnzcektqhgkkdeje`
+**Canonical backend:** Supabase project LocalCheckProd `qkrnmyexzvaxiqfxwwfb` (us-east-2; shared with the web app — legacy `jzclwnzcektqhgkkdeje` snapshot below is historical)
 **Other repos** (`agenticjess-star/LocalCheck_Expo`, `agenticjess-star/LocalCheck-IOS`, `agenticjess-star/localcheck` web app) are **not** in scope for this doc. If work needs to happen there, that's a separate decision — don't let it bleed into this task list.
 
 **Verification method:** every claim below was checked one of three ways — (1) direct file read from GitHub, (2) direct query against the live Supabase project via MCP, or (3) DeepWiki cross-check. Claims from the earlier pasted audits that I could not verify directly are marked accordingly.

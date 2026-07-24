@@ -98,9 +98,53 @@ export async function fetchCourtById(id: string): Promise<Court | null> {
 }
 
 /**
+ * Fetch every non-archived court inside a lat/lng bounding box — the map's
+ * data source. Plain range filters on (latitude, longitude); no PostGIS
+ * needed. Reads the stats view first (live counts), falls back to the base
+ * table.
+ */
+export async function fetchCourtsInBounds(
+  swLat: number,
+  swLng: number,
+  neLat: number,
+  neLng: number,
+  sport?: CourtSport | "ALL" | null,
+  limit = 250
+): Promise<Court[]> {
+  const applyFilters = <T extends ReturnType<typeof supabase.from>>(q: any) => {
+    q = q
+      .gte("latitude", swLat)
+      .lte("latitude", neLat)
+      .gte("longitude", swLng)
+      .lte("longitude", neLng)
+      .eq("is_archived", false)
+      .limit(limit);
+    if (sport && sport !== "ALL") q = q.eq("sport_type", sport.toLowerCase());
+    return q;
+  };
+  try {
+    const { data, error } = await applyFilters(
+      supabase.from("courts_with_stats").select(STATS_COLS)
+    );
+    if (!error && data) return (data as unknown as SupabaseCourtRow[]).map(mapRow);
+
+    const { data: base, error: baseError } = await applyFilters(
+      supabase.from("courts").select(BASE_COLS)
+    );
+    if (baseError || !base) return [];
+    return (base as SupabaseCourtRow[]).map(mapRow);
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Fetch up to `limit` courts nearest to the given coordinates.
- * Loads a batch of 300 non-archived courts, sorts by haversine distance,
- * returns the closest `limit`.
+ *
+ * Uses an expanding bounding-box prefilter (±0.5° ≈ 55 km, then ±2.5°) so
+ * "nearby" is actually geographic — the old version pulled an arbitrary 300
+ * rows of the 5,700-court table and distance-sorted those, which showed
+ * Phoenix courts to a Texas user.
  */
 export async function fetchNearbyCourts(
   lat: number,
@@ -109,40 +153,23 @@ export async function fetchNearbyCourts(
   limit = 20
 ): Promise<Court[]> {
   try {
-    let q = supabase
-      .from("courts_with_stats")
-      .select(STATS_COLS)
-      .eq("is_archived", false)
-      .limit(300);
-
-    if (sport && sport !== "ALL") {
-      q = q.eq("sport_type", sport.toLowerCase());
-    }
-
-    const { data, error } = await q;
-    if (error || !data) {
-      // fallback to base table
-      let q2 = supabase
-        .from("courts")
-        .select(BASE_COLS)
-        .eq("is_archived", false)
-        .limit(300);
-      if (sport && sport !== "ALL") {
-        q2 = q2.eq("sport_type", sport.toLowerCase());
+    for (const radiusDeg of [0.5, 2.5]) {
+      const courts = await fetchCourtsInBounds(
+        lat - radiusDeg,
+        lng - radiusDeg / Math.max(0.2, Math.cos((lat * Math.PI) / 180)),
+        lat + radiusDeg,
+        lng + radiusDeg / Math.max(0.2, Math.cos((lat * Math.PI) / 180)),
+        sport,
+        400
+      );
+      if (courts.length >= Math.min(limit, 5) || radiusDeg === 2.5) {
+        return courts
+          .map((c) => ({ ...c, distanceKm: haversineKm(lat, lng, c.latitude, c.longitude) }))
+          .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
+          .slice(0, limit);
       }
-      const { data: data2, error: error2 } = await q2;
-      if (error2 || !data2) return [];
-      return (data2 as SupabaseCourtRow[])
-        .map(mapRow)
-        .sort((a, b) => haversineKm(lat, lng, a.latitude, a.longitude) - haversineKm(lat, lng, b.latitude, b.longitude))
-        .slice(0, limit);
     }
-
-    return ((data as unknown) as SupabaseCourtRow[])
-      .map(mapRow)
-      .map((c) => ({ ...c, distanceKm: haversineKm(lat, lng, c.latitude, c.longitude) }))
-      .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
-      .slice(0, limit);
+    return [];
   } catch {
     return [];
   }

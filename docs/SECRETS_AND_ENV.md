@@ -28,7 +28,7 @@ shipped to the client, so only ever put **publishable/anon** values here.
 
 | Var | Sensitivity | Value / source |
 |---|---|---|
-| `EXPO_PUBLIC_SUPABASE_URL` | public | `https://jzclwnzcektqhgkkdeje.supabase.co` |
+| `EXPO_PUBLIC_SUPABASE_URL` | public | `https://qkrnmyexzvaxiqfxwwfb.supabase.co` |
 | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | public (anon) | Supabase → Project Settings → API → publishable/anon key |
 | `EXPO_PUBLIC_MAPBOX_TOKEN` | public token | Mapbox public (`pk.…`) token, if maps are used |
 

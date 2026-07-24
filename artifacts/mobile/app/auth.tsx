@@ -15,9 +15,31 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { LogoMark } from "@/components/brand/LogoMark";
 import { Colors } from "@/constants/colors";
 import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
+
+// Swap the sign-in artwork by replacing assets/brand/auth-graphic.png —
+// same modular contract as the logo (see DESIGN.md §Brand assets).
+const AUTH_GRAPHIC = require("@/assets/brand/auth-graphic.png");
+
+/**
+ * Auth errors surface to real users — never show raw fetch/JSON dumps
+ * (a Supabase 522 once printed a full response object on this screen).
+ */
+function humanizeAuthError(raw: string): string {
+  if (!raw) return "SOMETHING WENT WRONG. TRY AGAIN.";
+  if (raw.length > 140 || raw.trim().startsWith("{") || raw.includes('"status"')) {
+    return "CAN'T REACH LOCALCHECK. CHECK YOUR CONNECTION AND TRY AGAIN.";
+  }
+  if (/invalid login credentials/i.test(raw)) return "WRONG EMAIL OR PASSWORD.";
+  if (/already registered|already exists/i.test(raw)) {
+    return "THAT EMAIL ALREADY HAS AN ACCOUNT — SIGN IN INSTEAD.";
+  }
+  if (/at least 6 characters/i.test(raw)) return "PASSWORD NEEDS AT LEAST 6 CHARACTERS.";
+  return raw.toUpperCase();
+}
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -30,8 +52,6 @@ export default function AuthScreen() {
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const canGoBack = router.canGoBack();
-
   function goHome() {
     router.replace("/(tabs)");
   }
@@ -41,7 +61,7 @@ export default function AuthScreen() {
     setBusy(true); setErrorMsg(null);
     const { error } = await signInWithEmail(email.trim(), password);
     setBusy(false);
-    if (error) { setErrorMsg(error); }
+    if (error) { setErrorMsg(humanizeAuthError(error)); }
     else { goHome(); }
   }
 
@@ -50,7 +70,7 @@ export default function AuthScreen() {
     setBusy(true); setErrorMsg(null);
     const { error, needsEmailConfirmation } = await signUpWithEmail(email.trim(), password);
     setBusy(false);
-    if (error) { setErrorMsg(error); }
+    if (error) { setErrorMsg(humanizeAuthError(error)); }
     else if (needsEmailConfirmation) {
       Alert.alert("Account created", "Check your email to confirm, then sign in.", [{ text: "OK" }]);
     } else {
@@ -62,7 +82,7 @@ export default function AuthScreen() {
     setBusy(true); setErrorMsg(null);
     const { error } = await signInWithApple();
     setBusy(false);
-    if (error) { setErrorMsg(error); }
+    if (error) { setErrorMsg(humanizeAuthError(error)); }
     else { goHome(); }
   }
 
@@ -86,17 +106,12 @@ export default function AuthScreen() {
         contentContainerStyle={[styles.container, { paddingTop: topPad + 20, paddingBottom: bottom + 40 }]}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Back button — only shown if there's something to go back to */}
-        {canGoBack && (
-          <View style={styles.headerRow}>
-            <Pressable onPress={() => router.back()} hitSlop={12}>
-              <Text style={styles.backText}>← BACK</Text>
-            </Pressable>
-          </View>
-        )}
-
+        {/* Auth is the app's front door — no back button, nothing to go back to. */}
+        <LogoMark size={72} style={styles.logo} />
         <Text style={styles.title}>LOCALCHECK</Text>
-        <Text style={styles.subtitle}>ACCOUNT</Text>
+        <Text style={styles.subtitle}>
+          {user ? "ACCOUNT" : "KNOW WHO'S RUNNING. SHOW UP. RANK UP."}
+        </Text>
 
         {/* Signed-in state */}
         {user && (
@@ -189,13 +204,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     paddingHorizontal: 24,
   },
-  headerRow: { marginBottom: 32 },
-  backText: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    color: Colors.muted,
-    letterSpacing: 2,
-  },
+  logo: { marginTop: 24, marginBottom: 20 },
   title: {
     fontFamily: Typography.heading,
     fontSize: 32,

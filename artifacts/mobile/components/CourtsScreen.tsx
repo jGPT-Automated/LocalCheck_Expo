@@ -15,8 +15,9 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 
-import { router } from "expo-router";
 import { CourtListItem } from "@/components/CourtListItem";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import { useCourtSheet } from "@/components/sheet/CourtSheetHost";
 import { MapScreen } from "@/components/MapScreen";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, CourtSport } from "@/constants/data";
@@ -35,9 +36,9 @@ export function CourtsScreen() {
   // ── View state ──────────────────────────────────────────────────────────────
   const [mode, setMode] = useState<"COURTS" | "MAP">("COURTS");
   const [sportFilter, setSportFilter] = useState<SportFilter>(preferredSport ?? "ALL");
+  const { openCourtSheet: presentCourtSheet } = useCourtSheet();
   const openCourtSheet = (c: Court) => {
-    router.push({ // "as never": .expo/types regenerate on next `expo start`; route exists (app/court-sheet.tsx)
-      pathname: "/court-sheet" as never, params: { id: c.id, ...(c.distanceKm != null ? { distanceKm: String(c.distanceKm) } : {}) } });
+    presentCourtSheet({ courtId: c.id, distanceKm: c.distanceKm ?? undefined });
   };
   const mapAnim = useRef(new Animated.Value(0)).current;
   const [mapMounted, setMapMounted] = useState(false);
@@ -153,17 +154,15 @@ export function CourtsScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <View style={[styles.header, { paddingTop: topPad + 12 }]}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerEyebrow}>LOCALCHECK</Text>
-          <Text style={styles.headerTitle}>EXPLORE</Text>
-        </View>
-        <Pressable onPress={() => setMode("MAP")} style={styles.mapToggleBtn}>
-          <Feather name="map" size={14} color={Colors.muted} />
-          <Text style={styles.mapToggleText}>MAP</Text>
-        </Pressable>
-      </View>
+      <ScreenHeader
+        title="EXPLORE"
+        right={
+          <Pressable onPress={() => setMode("MAP")} style={styles.mapToggleBtn}>
+            <Feather name="map" size={14} color={Colors.muted} />
+            <Text style={styles.mapToggleText}>MAP</Text>
+          </Pressable>
+        }
+      />
 
       {/* ── Search bar ─────────────────────────────────────────────────────── */}
       <View style={styles.searchRow}>

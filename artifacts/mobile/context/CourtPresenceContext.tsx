@@ -11,7 +11,7 @@ import { AppState } from "react-native";
 
 import { Player } from "@/constants/data";
 import { fetchActiveCheckIns } from "@/services/checkInService";
-import { fetchLocalCount, fetchLocals } from "@/services/profileService";
+import { fetchLocals } from "@/services/profileService";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 
@@ -19,11 +19,11 @@ import { useAuth } from "@/context/AuthContext";
  * Single source of truth for live court presence.
  *
  * Every surface that shows a roster or an active/local count reads it from
- * here via usePresence(courtId) / useCourtCounts(ids). One Supabase Realtime
- * channel listens to check_ins and profiles changes and refreshes exactly the
- * courts currently on screen, so when another player checks in, every
- * watching screen updates within a second — no tab-switching, no stale
- * snapshots. A 60s poll + foreground refresh covers missed events.
+ * here via usePresence(courtId) / useCourtCounts(ids). Scoped Realtime
+ * channels refresh exactly the courts currently on screen, so when another
+ * player checks in, every watching screen updates within a second — no
+ * tab-switching, no stale snapshots. No recurring timers: a single foreground
+ * resync covers events missed while backgrounded.
  */
 
 export interface CourtPresence {
@@ -145,11 +145,84 @@ export function CourtPresenceProvider({ children }: { children: React.ReactNode 
     [refreshCourt, refreshCounts]
   );
 
+  // ─── Realtime, two tiers ───────────────────────────────────────────────────
+  // Tier 1 — rosters: one filtered `court:{id}` channel per court whose FULL
+  // roster is on screen (home hero, court page, court sheet). That's 1–3
+  // channels, ever.
+  // Tier 2 — counts: map/explore can have 250 courts in view; opening a
+  // filtered channel per marker meant 250 subscriptions per user (25k at 100
+  // users — the pattern Supabase says to avoid with postgres_changes). Instead
+  // ONE shared check_ins channel routes each event by its court_id to the
+  // debounced per-court refresh, and only courts actually watched get a query.
+  // Check-ins are low-frequency human actions, so the shared stream is cheap;
+  // if event volume ever grows, this one channel is the seam to swap for a
+  // court_metrics Broadcast.
+  const channelsRef = useRef(new Map<string, ReturnType<typeof supabase.channel>>());
+
+  const ensureRosterChannel = useCallback(
+    (courtId: string) => {
+      if (channelsRef.current.has(courtId)) return;
+      const channel = supabase
+        .channel(`court:${courtId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "check_ins",
+            filter: `court_id=eq.${courtId}`,
+          },
+          () => scheduleRefresh(courtId)
+        )
+        .subscribe();
+      channelsRef.current.set(courtId, channel);
+    },
+    [scheduleRefresh]
+  );
+
+  const releaseChannelIfUnwatched = useCallback((courtId: string) => {
+    if (watchedRef.current.has(courtId)) return;
+    const channel = channelsRef.current.get(courtId);
+    if (channel) {
+      channelsRef.current.delete(courtId);
+      supabase.removeChannel(channel);
+    }
+  }, []);
+
+  // Shared counts stream (tier 2). Lives for the whole signed-in session; an
+  // event for a court nobody is watching is dropped without a query.
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel("check-ins:counts")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "check_ins" },
+        (payload) => {
+          const changed = new Set<string>();
+          const newId = (payload.new as { court_id?: string } | null)?.court_id;
+          const oldId = (payload.old as { court_id?: string } | null)?.court_id;
+          if (newId) changed.add(String(newId));
+          if (oldId) changed.add(String(oldId));
+          for (const id of changed) {
+            // Roster-watched courts already refresh via their scoped channel.
+            if (watchedRef.current.has(id)) continue;
+            if (countWatchedRef.current.has(id)) scheduleRefresh(id);
+          }
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, scheduleRefresh]);
+
   // ─── Watch registration (hooks call these) ─────────────────────────────────
   const watch = useCallback(
     (courtId: string) => {
       const map = watchedRef.current;
       map.set(courtId, (map.get(courtId) ?? 0) + 1);
+      ensureRosterChannel(courtId);
       const entry = presenceRef.current[courtId];
       if (!entry || Date.now() - entry.lastSync > STALE_MS) {
         refreshCourt(courtId);
@@ -158,15 +231,18 @@ export function CourtPresenceProvider({ children }: { children: React.ReactNode 
         const n = (map.get(courtId) ?? 1) - 1;
         if (n <= 0) map.delete(courtId);
         else map.set(courtId, n);
+        releaseChannelIfUnwatched(courtId);
       };
     },
-    [refreshCourt]
+    [refreshCourt, ensureRosterChannel, releaseChannelIfUnwatched]
   );
 
   const watchCounts = useCallback(
     (courtIds: string[]) => {
       const map = countWatchedRef.current;
-      for (const id of courtIds) map.set(id, (map.get(id) ?? 0) + 1);
+      for (const id of courtIds) {
+        map.set(id, (map.get(id) ?? 0) + 1);
+      }
       refreshCounts(courtIds);
       return () => {
         for (const id of courtIds) {
@@ -179,61 +255,22 @@ export function CourtPresenceProvider({ children }: { children: React.ReactNode 
     [refreshCounts]
   );
 
-  // ─── Realtime: one channel for the whole app ───────────────────────────────
+  // Remove every channel when the provider unmounts (sign-out).
   useEffect(() => {
-    if (!userId) return;
-
-    const channel = supabase
-      .channel("court-presence")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "check_ins" },
-        (payload) => {
-          const row = (payload.new ?? payload.old) as { court_id?: string } | null;
-          const courtId = row?.court_id ? String(row.court_id) : null;
-          if (courtId && (watchedRef.current.has(courtId) || countWatchedRef.current.has(courtId))) {
-            scheduleRefresh(courtId);
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "profiles" },
-        (payload) => {
-          // A local-court switch changes locals counts. The old court id isn't
-          // in the payload (replica identity default), so refresh both the
-          // court named in the new row and, cheaply, all watched courts'
-          // counts — the watched set is small (what's on screen).
-          const row = payload.new as { local_court_id?: string | null } | null;
-          const newCourt = row?.local_court_id ? String(row.local_court_id) : null;
-          if (newCourt) scheduleRefresh(newCourt);
-          const watchedIds = new Set([
-            ...watchedRef.current.keys(),
-            ...countWatchedRef.current.keys(),
-          ]);
-          watchedIds.forEach((id) => {
-            if (id !== newCourt) scheduleRefresh(id);
-          });
-        }
-      )
-      .subscribe();
-
+    const channels = channelsRef.current;
     return () => {
-      supabase.removeChannel(channel);
+      channels.forEach((c) => supabase.removeChannel(c));
+      channels.clear();
     };
-  }, [userId, scheduleRefresh]);
+  }, []);
 
-  // ─── Fallback: poll watched courts + refresh on app foreground ────────────
+  // ─── Foreground resync: ONE scoped refresh, no recurring timer ─────────────
   useEffect(() => {
     if (!userId) return;
-    const interval = setInterval(refreshAllWatched, 60_000);
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active") refreshAllWatched();
     });
-    return () => {
-      clearInterval(interval);
-      sub.remove();
-    };
+    return () => sub.remove();
   }, [userId, refreshAllWatched]);
 
   const value = useMemo(

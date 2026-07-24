@@ -6,9 +6,10 @@ import {
   useFonts as useInterFonts,
 } from "@expo-google-fonts/inter";
 import {
-  Oswald_400Regular,
-  Oswald_700Bold,
-} from "@expo-google-fonts/oswald";
+  Kanit_500Medium,
+  Kanit_600SemiBold,
+  Kanit_700Bold,
+} from "@expo-google-fonts/kanit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -18,7 +19,9 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { LogoMark } from "@/components/brand/LogoMark";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { CourtSheetProvider } from "@/components/sheet/CourtSheetHost";
 import { Colors } from "@/constants/colors";
 import { AppProvider } from "@/context/AppContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -48,9 +51,14 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }, [session, isLoading, segments, router]);
 
-  if (isLoading) {
+  // Boot screen shown while loading AND while redirecting a signed-out user —
+  // tab routes must never render without a session: the data providers aren't
+  // mounted then, so useApp() would throw on the one pre-redirect frame.
+  const onAuthScreen = segments[0] === "auth";
+  if (isLoading || (!session && !onAuthScreen)) {
     return (
-      <View style={{ flex: 1, backgroundColor: Colors.background, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ flex: 1, backgroundColor: Colors.background, alignItems: "center", justifyContent: "center", gap: 24 }}>
+        <LogoMark size={88} />
         <ActivityIndicator color={Colors.accent} />
       </View>
     );
@@ -59,26 +67,30 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * The entire data layer (presence realtime, app polling, court drawer) only
+ * exists while a session exists. Signed out ⇒ zero Supabase traffic — the
+ * 2026-07-19 outage was unauthenticated web previews polling forever because
+ * AppProvider lived outside the auth gate.
+ */
+function DataProviders({ children }: { children: React.ReactNode }) {
+  const { session } = useAuth();
+  if (!session) return <>{children}</>;
+  return (
+    <CourtPresenceProvider>
+      <AppProvider>
+        <CourtSheetProvider>{children}</CourtSheetProvider>
+      </AppProvider>
+    </CourtPresenceProvider>
+  );
+}
+
 function RootLayoutNav() {
   return (
     <AuthGate>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="court/[id]" options={{ headerShown: false, presentation: "card" }} />
-        <Stack.Screen
-          name="court-sheet"
-          options={{
-            // Native sheet (see .agents/skills/building-native-ui form-sheet):
-            // real UIKit detents — swipe between peek (45%) and full, swipe
-            // down to dismiss, native grabber. No hand-rolled gestures.
-            presentation: "formSheet",
-            headerShown: false,
-            sheetAllowedDetents: [0.45, 1.0],
-            sheetGrabberVisible: true,
-            sheetCornerRadius: 8,
-            contentStyle: { backgroundColor: "transparent" },
-          }}
-        />
         <Stack.Screen name="run/[id]" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="player/[id]" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="friends" options={{ headerShown: false, presentation: "card" }} />
@@ -95,8 +107,9 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
-    Oswald_400Regular,
-    Oswald_700Bold,
+    Kanit_500Medium,
+    Kanit_600SemiBold,
+    Kanit_700Bold,
   });
 
   useEffect(() => {
@@ -114,11 +127,9 @@ export default function RootLayout() {
           <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
               <AuthProvider>
-                <CourtPresenceProvider>
-                  <AppProvider>
-                    <RootLayoutNav />
-                  </AppProvider>
-                </CourtPresenceProvider>
+                <DataProviders>
+                  <RootLayoutNav />
+                </DataProviders>
               </AuthProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
