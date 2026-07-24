@@ -126,6 +126,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Restore session on mount
     supabase.auth.getSession().then(async ({ data: { session: s } }) => {
+      // Authenticate the Realtime socket so RLS-protected postgres_changes
+      // (check_ins etc. are authenticated-role-only) actually deliver. Without
+      // this the socket runs as anon and every scoped presence event is
+      // silently dropped by RLS. setAuth is synchronous (no API call).
+      supabase.realtime.setAuth(s?.access_token ?? null);
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
@@ -140,6 +145,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // API request. Profile provisioning is deferred to the next tick.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, s) => {
+        // Keep the Realtime socket's JWT fresh on SIGNED_IN + TOKEN_REFRESHED
+        // (and clear it on SIGNED_OUT). Synchronous — safe inside the callback.
+        supabase.realtime.setAuth(s?.access_token ?? null);
         setSession(s);
         setUser(s?.user ?? null);
         if (s?.user) {
