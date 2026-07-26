@@ -77,6 +77,11 @@ eas submit -p ios --profile production --id <BUILD_ID> --non-interactive
   `packageManager: pnpm@10.13.1`, so cloud installs use the same pnpm major that
   generated the lockfile. Do not disable frozen lockfiles to work around install
   failures; fix the package manager/toolchain mismatch instead.
+- The production runtime version follows the app version (`appVersion`) rather
+  than Expo's automatic fingerprint. This avoids nondeterministic iOS
+  autolinking fingerprints across EAS runners. Bump `expo.version` whenever a
+  native dependency or native configuration changes so incompatible OTA updates
+  cannot target an older binary.
 - iOS builds explicitly pin the EAS macOS/Xcode image to
   `macos-sequoia-15.6-xcode-26.0` in `artifacts/mobile/eas.json`. Preserve that
   pin unless a future release intentionally moves the project to another tested
