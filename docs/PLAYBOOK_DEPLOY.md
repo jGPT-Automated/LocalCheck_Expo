@@ -1,3 +1,9 @@
+# Historical deployment detail
+
+The current concise, build-9-verified procedure is
+[`RELEASE_RUNBOOK.md`](RELEASE_RUNBOOK.md). Keep this older playbook for deeper
+failure history only; when the two disagree, the current runbook wins.
+
 # Playbook: Deploy an app update to Jesse's phone (TestFlight)
 
 > For any agent (Claude, Codex, Devin) shipping LocalCheck changes. Follow it

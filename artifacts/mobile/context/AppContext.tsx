@@ -34,9 +34,22 @@ import { createCourt, fetchCourtById, fetchNearbyCourts } from "@/services/court
 import { updateLocalCourtId, updateProfileFields } from "@/services/profileService";
 import { useAuth } from "@/context/AuthContext";
 import { usePresenceRefresh } from "@/context/CourtPresenceContext";
-import { supabase } from "@/lib/supabase";
+import { useRealtimeHub } from "@/context/RealtimeHubContext";
+import {
+  batchHasResource,
+  marketTopic,
+  type RealtimeInvalidationBatch,
+  type RealtimeTopic,
+} from "@/lib/realtimeHub";
 
 const LA_FALLBACK = { lat: 34.0522, lng: -118.2437 };
+const USER_CHECKIN_RESOURCES = ["check_ins"] as const;
+const USER_PROFILE_RESOURCES = ["profiles"] as const;
+const USER_FRIEND_RESOURCES = ["friendships", "profiles"] as const;
+const USER_MATCH_RESOURCES = ["matches", "match_participants"] as const;
+const RUN_RESOURCES = ["runs", "run_participants"] as const;
+const VISIT_RESOURCES = ["planned_visits"] as const;
+const FEED_RESOURCES = ["activity_events", "activity_event_likes"] as const;
 
 export type Visibility = "public" | "friends" | "private";
 
@@ -62,6 +75,12 @@ interface AppContextValue {
   joinRun: (runId: string) => Promise<boolean>;
   addPlannedVisit: (courtId: string, plannedAtIso: string, note?: string, visibility?: Visibility) => Promise<boolean>;
   removePlannedVisit: (visitId: string) => Promise<boolean>;
+  savePlannedVisitBatch: (
+    courtId: string,
+    additions: string[],
+    removals: string[],
+    visibility?: Visibility
+  ) => Promise<boolean>;
   refreshPlannedVisits: () => Promise<void>;
   hypeItem: (feedId: string) => void;
   addCourt: (court: Court) => Promise<void>;
@@ -131,8 +150,9 @@ function profileToPlayer(profile: ReturnType<typeof useAuth>["profile"]): Player
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const userId = user?.id ?? null;
+  const realtimeHub = useRealtimeHub();
 
   const [courts, setCourts] = useState<Court[]>([]);
   const [localCourt, setLocalCourtObj] = useState<Court | null>(null);
@@ -150,6 +170,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [preferredSport, setPreferredSportState] = useState<CourtSport | null>(null);
   const [preferredCourtId, setPreferredCourtIdState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const realtimeTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
   // The presence store (CourtPresenceContext, mounted above this provider) is
   // the ONLY roster/count source. Actions here push a refresh into it so the
@@ -300,7 +321,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setFriendIds(list.map((f) => f.id));
   }, [userId]);
 
-  // Initial data load + polling when user or local court changes
+  // Initial data load when the user or local court changes.
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -357,66 +378,104 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, [resync]);
 
-  // ─── Live feed for the court shown on Home ──────────────────────────────────
-  // One scoped activity_events channel (filtered to the local court), debounced.
-  // Keeps RECENT ACTIVITY in step with the realtime roster instead of only
-  // refreshing on foreground — same architecture as presence: scoped, no
-  // polling, torn down when the court changes or the provider unmounts.
-  // (Delivery requires the authenticated Realtime socket — see AuthContext
-  // supabase.realtime.setAuth.)
-  useEffect(() => {
-    const courtId = localCourt?.id;
-    if (!userId || !courtId) return;
-    let debounce: ReturnType<typeof setTimeout> | null = null;
-    const channel = supabase
-      .channel(`feed:${courtId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "activity_events", filter: `court_id=eq.${courtId}` },
-        () => {
-          if (debounce) clearTimeout(debounce);
-          debounce = setTimeout(() => refreshFeed(), 400);
-        }
-      )
-      .subscribe();
-    return () => {
-      if (debounce) clearTimeout(debounce);
-      supabase.removeChannel(channel);
-    };
-  }, [userId, localCourt?.id, refreshFeed]);
+  const scheduleRealtimeRefresh = useCallback((key: string, task: () => Promise<void>) => {
+    const timers = realtimeTimersRef.current;
+    const existing = timers.get(key);
+    if (existing) clearTimeout(existing);
+    timers.set(
+      key,
+      setTimeout(() => {
+        timers.delete(key);
+        void task();
+      }, 150)
+    );
+  }, []);
 
-  // ─── Live runs ──────────────────────────────────────────────────────────────
-  // The runs store is a global 7-day window (all courts), so its realtime
-  // scope matches: ONE channel on runs + run_participants + planned_visits,
-  // debounced into the corresponding refetch. RSVPs and run edits are rare
-  // human actions — a handful of events an hour, each costing one query per
-  // client — unlike the per-court check-in stream this stays a single
-  // subscription. This is what makes a join on one device show up on every
-  // other device's run page / Schedule / NEXT RUN without foregrounding.
+  useEffect(() => {
+    const timers = realtimeTimersRef.current;
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer));
+      timers.clear();
+    };
+  }, []);
+
+  // The signed-in user's private topic covers only data that can change their
+  // own experience. The acting client still refreshes immediately after its
+  // write; this path is for writes from friends, opponents, triggers, or a
+  // second device. Hub-level coalescing plus this store-level debounce means a
+  // burst across user/court/market topics produces one authoritative query.
   useEffect(() => {
     if (!userId) return;
-    let runsDebounce: ReturnType<typeof setTimeout> | null = null;
-    let visitsDebounce: ReturnType<typeof setTimeout> | null = null;
-    const onRunsEvent = () => {
-      if (runsDebounce) clearTimeout(runsDebounce);
-      runsDebounce = setTimeout(() => refreshRuns(), 400);
-    };
-    const onVisitsEvent = () => {
-      if (visitsDebounce) clearTimeout(visitsDebounce);
-      visitsDebounce = setTimeout(() => refreshPlannedVisits(), 400);
-    };
-    const channel = supabase
-      .channel("runs-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "runs" }, onRunsEvent)
-      .on("postgres_changes", { event: "*", schema: "public", table: "run_participants" }, onRunsEvent)
-      .on("postgres_changes", { event: "*", schema: "public", table: "planned_visits" }, onVisitsEvent)
-      .subscribe();
-    return () => {
-      if (runsDebounce) clearTimeout(runsDebounce);
-      if (visitsDebounce) clearTimeout(visitsDebounce);
-      supabase.removeChannel(channel);
-    };
-  }, [userId, refreshRuns, refreshPlannedVisits]);
+    const topic = `user:${userId}` as RealtimeTopic;
+    return realtimeHub.subscribe(topic, (batch: RealtimeInvalidationBatch) => {
+      if (batchHasResource(batch, USER_CHECKIN_RESOURCES)) {
+        scheduleRealtimeRefresh("checked-in", refreshCheckedIn);
+      }
+      if (batchHasResource(batch, USER_PROFILE_RESOURCES)) {
+        scheduleRealtimeRefresh("profile", refreshProfile);
+      }
+      if (batchHasResource(batch, USER_FRIEND_RESOURCES)) {
+        scheduleRealtimeRefresh("friends", refreshFriends);
+      }
+      if (batchHasResource(batch, USER_MATCH_RESOURCES)) {
+        scheduleRealtimeRefresh("matches", refreshMatches);
+      }
+      if (batchHasResource(batch, RUN_RESOURCES)) {
+        scheduleRealtimeRefresh("runs", refreshRuns);
+      }
+      if (batchHasResource(batch, VISIT_RESOURCES)) {
+        scheduleRealtimeRefresh("planned-visits", refreshPlannedVisits);
+      }
+      if (batchHasResource(batch, FEED_RESOURCES)) {
+        scheduleRealtimeRefresh("feed", refreshFeed);
+      }
+    });
+  }, [
+    userId,
+    realtimeHub,
+    refreshCheckedIn,
+    refreshProfile,
+    refreshFriends,
+    refreshMatches,
+    refreshRuns,
+    refreshPlannedVisits,
+    refreshFeed,
+    scheduleRealtimeRefresh,
+  ]);
+
+  // The exact local-court topic owns that court's feed. Court presence uses the
+  // same topic through CourtPresenceContext; RealtimeHub deduplicates them into
+  // one physical private channel with multiple local listeners.
+  useEffect(() => {
+    const courtId = localCourt?.id;
+    if (!courtId) return;
+    return realtimeHub.subscribe(`court:${courtId}` as RealtimeTopic, (batch) => {
+      if (batchHasResource(batch, FEED_RESOURCES)) {
+        scheduleRealtimeRefresh("feed", refreshFeed);
+      }
+    });
+  }, [localCourt?.id, realtimeHub, refreshFeed, scheduleRealtimeRefresh]);
+
+  // Schedule/Explore data is market-scoped. One Houston topic replaces the old
+  // global runs/check-ins streams and covers only the area this user is viewing.
+  const currentMarketTopic = marketTopic(localCourt?.market ?? courts[0]?.market);
+  useEffect(() => {
+    if (!currentMarketTopic) return;
+    return realtimeHub.subscribe(currentMarketTopic, (batch) => {
+      if (batchHasResource(batch, RUN_RESOURCES)) {
+        scheduleRealtimeRefresh("runs", refreshRuns);
+      }
+      if (batchHasResource(batch, VISIT_RESOURCES)) {
+        scheduleRealtimeRefresh("planned-visits", refreshPlannedVisits);
+      }
+    });
+  }, [
+    currentMarketTopic,
+    realtimeHub,
+    refreshRuns,
+    refreshPlannedVisits,
+    scheduleRealtimeRefresh,
+  ]);
 
   // ─── Actions ───────────────────────────────────────────────────────────────
   const checkIn = useCallback(
@@ -573,6 +632,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [userId]
   );
 
+  // Schedule edit mode commits once. Cell taps remain local UI state, then a
+  // bounded batch of idempotent upserts/deletes is followed by one refresh.
+  const savePlannedVisitBatch = useCallback(
+    async (
+      courtId: string,
+      additions: string[],
+      removals: string[],
+      visibility: Visibility = "public"
+    ): Promise<boolean> => {
+      if (!userId) return false;
+      const results = await Promise.all([
+        ...additions.map((plannedAtIso) =>
+          createPlannedVisit(userId, courtId, plannedAtIso, undefined, visibility)
+        ),
+        ...removals.map((visitId) => deletePlannedVisit(visitId)),
+      ]);
+      const ok = results.every(Boolean);
+      // A partial network failure may still have committed some idempotent
+      // writes. Reconcile once while keeping the editor open for a safe retry.
+      await refreshPlannedVisits();
+      return ok;
+    },
+    [userId, refreshPlannedVisits]
+  );
+
   const hypeItem = useCallback((feedId: string) => {
     setFeed((prev) =>
       prev.map((item) =>
@@ -605,6 +689,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         joinRun,
         addPlannedVisit,
         removePlannedVisit,
+        savePlannedVisitBatch,
         refreshPlannedVisits,
         hypeItem,
         addCourt,

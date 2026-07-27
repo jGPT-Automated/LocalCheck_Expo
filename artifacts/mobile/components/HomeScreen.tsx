@@ -55,8 +55,7 @@ export function HomeScreen() {
   // Live who's-here + locals for the local court from the shared presence
   // store — realtime events from other users update this without any refresh.
   const { roster, localCount } = usePresence(localCourtId);
-  const statIds = useMemo(() => (localCourtId ? [localCourtId] : []), [localCourtId]);
-  const liveCounts = useCourtCounts(statIds);
+  const liveCounts = useCourtCounts(localCourt ? [localCourt] : []);
   const { user } = useAuth();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;

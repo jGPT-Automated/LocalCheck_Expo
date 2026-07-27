@@ -14,6 +14,7 @@ interface SupabaseCourtRow {
   is_archived?: boolean | null;
   location?: string | null;
   state?: string | null;
+  market?: string | null;
   added_by?: string | null;
   created_at?: string | null;
   // courts_with_stats extras
@@ -23,7 +24,7 @@ interface SupabaseCourtRow {
   is_confirmed?: boolean | null;
 }
 
-const BASE_COLS = "id,name,address,latitude,longitude,sport_type,image_url,is_archived,location,state,added_by,created_at";
+const BASE_COLS = "id,name,address,latitude,longitude,sport_type,image_url,is_archived,location,state,market,added_by,created_at";
 const STATS_COLS = BASE_COLS + ",active_check_in_count,total_check_ins,local_player_count,is_confirmed";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -42,6 +43,7 @@ function mapRow(row: SupabaseCourtRow): Court {
     neighborhood: row.location ?? "",
     city: row.state ?? "",
     address: row.address ?? "",
+    market: row.market ?? undefined,
     latitude: Number(row.latitude),
     longitude: Number(row.longitude),
     activeCount: row.active_check_in_count ?? 0,
@@ -109,7 +111,8 @@ export async function fetchCourtsInBounds(
   neLat: number,
   neLng: number,
   sport?: CourtSport | "ALL" | null,
-  limit = 250
+  limit = 250,
+  market?: string | null
 ): Promise<Court[]> {
   const applyFilters = <T extends ReturnType<typeof supabase.from>>(q: any) => {
     q = q
@@ -120,6 +123,7 @@ export async function fetchCourtsInBounds(
       .eq("is_archived", false)
       .limit(limit);
     if (sport && sport !== "ALL") q = q.eq("sport_type", sport.toLowerCase());
+    if (market) q = q.eq("market", market);
     return q;
   };
   try {
@@ -170,6 +174,51 @@ export async function fetchNearbyCourts(
       }
     }
     return [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Efficient Explore-list query for a user's canonical market. The database
+ * narrows the candidate set before the client sorts by distance, so opening
+ * Explore never downloads an unbounded court catalog.
+ */
+export async function fetchCourtsByMarket(
+  market: string,
+  origin: { lat: number; lng: number } | null,
+  sport?: CourtSport | "ALL" | null,
+  limit = 10
+): Promise<Court[]> {
+  const safeLimit = Math.max(1, Math.min(limit, 25));
+  try {
+    let query = supabase
+      .from("courts_with_stats")
+      .select(STATS_COLS)
+      .eq("market", market)
+      .eq("is_archived", false)
+      .limit(Math.min(50, safeLimit * 2));
+
+    if (sport && sport !== "ALL") {
+      query = query.eq("sport_type", sport.toLowerCase());
+    }
+
+    const { data, error } = await query;
+    if (error || !data) return [];
+    const courts = (data as unknown as SupabaseCourtRow[]).map(mapRow);
+    if (!origin) return courts.slice(0, safeLimit);
+    return courts
+      .map((court) => ({
+        ...court,
+        distanceKm: haversineKm(
+          origin.lat,
+          origin.lng,
+          court.latitude,
+          court.longitude
+        ),
+      }))
+      .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
+      .slice(0, safeLimit);
   } catch {
     return [];
   }

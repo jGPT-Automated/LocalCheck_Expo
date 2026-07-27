@@ -22,7 +22,7 @@ import { AddCourtModal } from "@/components/AddCourtModal";
 import { CourtListItem } from "@/components/CourtListItem";
 import { useCourtSheet } from "@/components/sheet/CourtSheetHost";
 import { Colors, Radius } from "@/constants/colors";
-import { Court } from "@/constants/data";
+import { Court, CourtSport, getCourtIdentityColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts } from "@/context/CourtPresenceContext";
@@ -53,9 +53,9 @@ const STYLE_URL =
 // Continental-US overview used only until we know where the user is.
 const FALLBACK_CENTER: [number, number] = [-96.0, 37.5];
 
-export function MapScreen() {
+export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | "ALL" }) {
   const { courts: contextCourts, localCourtId, localCourt } = useApp();
-  const { top, bottom } = useSafeAreaInsets();
+  const { bottom } = useSafeAreaInsets();
   const { openCourtSheet } = useCourtSheet();
 
   const mapRef = useRef<MapView>(null);
@@ -63,12 +63,12 @@ export function MapScreen() {
   const sourceRef = useRef<ShapeSource>(null);
 
   const [viewportCourts, setViewportCourts] = useState<Court[]>([]);
-  const [view, setView] = useState<"MAP" | "LIST">("MAP");
   const [showAddModal, setShowAddModal] = useState(false);
   const [userCoord, setUserCoord] = useState<[number, number] | null>(null);
+  const [mapReady, setMapReady] = useState(false);
   const fetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Locate the user once; camera starts there (local court as fallback) ──
+  // ── Locate the user once; the saved local court remains the Explore anchor ──
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -89,8 +89,9 @@ export function MapScreen() {
   }, []);
 
   const initialCenter: [number, number] =
+    (localCourt ? [localCourt.longitude, localCourt.latitude] : null) ??
     userCoord ??
-    (localCourt ? [localCourt.longitude, localCourt.latitude] : FALLBACK_CENTER);
+    FALLBACK_CENTER;
   const initialZoom = userCoord || localCourt ? 12 : 3.4;
 
   // ── Viewport-driven Supabase fetch (400ms debounce, sequenced) ──
@@ -110,24 +111,35 @@ export function MapScreen() {
         swLat - latPad,
         swLng - lngPad,
         neLat + latPad,
-        neLng + lngPad
+        neLng + lngPad,
+        sportFilter,
+        250,
+        localCourt?.market
       );
       if (seq !== fetchSeq.current) return;
       setViewportCourts(courts);
     }, 400);
-  }, []);
+  }, [sportFilter, localCourt?.market]);
 
   // ── Merge context courts (authoritative for local court) + live counts ──
   const mergedCourts = useMemo(() => {
     const merged = new Map<string, Court>();
     viewportCourts.forEach((c) => merged.set(c.id, c));
     contextCourts.forEach((c) => {
-      if (merged.has(c.id)) merged.set(c.id, { ...merged.get(c.id)!, ...c });
+      const belongsToCurrentMarket =
+        !localCourt ||
+        c.id === localCourt.id ||
+        (!!localCourt.market && c.market === localCourt.market);
+      if (merged.has(c.id) || belongsToCurrentMarket) {
+        merged.set(c.id, merged.has(c.id) ? { ...merged.get(c.id)!, ...c } : c);
+      }
     });
-    return Array.from(merged.values());
-  }, [viewportCourts, contextCourts]);
+    return Array.from(merged.values()).filter(
+      (court) => sportFilter === "ALL" || court.sport === sportFilter
+    );
+  }, [viewportCourts, contextCourts, localCourt, sportFilter]);
 
-  const liveCounts = useCourtCounts(useMemo(() => mergedCourts.map((c) => c.id), [mergedCourts]));
+  const liveCounts = useCourtCounts(mergedCourts);
   const allCourts = useMemo(
     () =>
       mergedCourts.map((c) => {
@@ -154,6 +166,7 @@ export function MapScreen() {
           active: c.activeCount ?? 0,
           confirmed: c.status === "confirmed",
           isLocal: c.id === localCourtId,
+          sportColor: getCourtIdentityColor(c.sport),
         },
       })),
     }),
@@ -207,33 +220,31 @@ export function MapScreen() {
     }
   }, [userCoord]);
 
-  // Camera re-centers once the first real user fix arrives
+  // The map can finish mounting before profile/location hydration. Reapply the
+  // scoped camera only after the SDK is ready; otherwise setCamera is dropped
+  // and the user gets stuck on the continent fallback with no visible pins.
   useEffect(() => {
-    if (userCoord) {
-      cameraRef.current?.setCamera({
-        centerCoordinate: userCoord,
-        zoomLevel: 12,
-        animationDuration: 800,
-      });
-    }
-  }, [userCoord != null]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const nearList = useMemo(() => {
-    if (!userCoord) return allCourts;
-    return [...allCourts].sort(
-      (a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity)
-    );
-  }, [allCourts, userCoord]);
+    if (!mapReady) return;
+    const center =
+      (localCourt ? [localCourt.longitude, localCourt.latitude] as [number, number] : null) ??
+      userCoord;
+    if (!center) return;
+    cameraRef.current?.setCamera({
+      centerCoordinate: center,
+      zoomLevel: 12.5,
+      animationDuration: 650,
+    });
+  }, [mapReady, userCoord, localCourt?.id, localCourt?.latitude, localCourt?.longitude]);
 
   // Missing-token guard: a build without EXPO_PUBLIC_MAPBOX_TOKEN degrades to
   // the nearby-court list instead of mounting an SDK that was never configured.
   if (!MAPBOX_TOKEN) {
     return (
       <View style={styles.container}>
-        <View style={[styles.listOverlay, { paddingTop: top + 108 }]}>
+        <View style={styles.listOverlay}>
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: bottom + 96 }}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: bottom + 96 }}
           >
             <Text style={styles.emptyText}>MAP UNAVAILABLE — SHOWING NEARBY COURTS</Text>
             {contextCourts.map((c) => (
@@ -260,7 +271,10 @@ export function MapScreen() {
         scaleBarEnabled={false}
         compassEnabled={false}
         onMapIdle={refetchViewport}
-        onDidFinishLoadingMap={refetchViewport}
+        onDidFinishLoadingMap={() => {
+          setMapReady(true);
+          refetchViewport();
+        }}
       >
         <Camera
           ref={cameraRef}
@@ -300,21 +314,16 @@ export function MapScreen() {
             }}
           />
 
-          {/* Quiet courts: small dot — solid for confirmed, dimmer for community */}
+          {/* Quiet courts: visible sport-identity pin; orange remains live-only. */}
           <CircleLayer
             id="court-quiet"
             filter={["all", ["!", ["has", "point_count"]], ["==", ["get", "active"], 0]]}
             style={{
-              circleColor: [
-                "case",
-                ["get", "confirmed"],
-                Colors.textSecondary,
-                Colors.muted,
-              ],
-              circleRadius: 5,
-              circleStrokeWidth: 1.5,
-              circleStrokeColor: Colors.background,
-              circleOpacity: ["case", ["get", "confirmed"], 0.95, 0.6],
+              circleColor: ["get", "sportColor"],
+              circleRadius: 8,
+              circleStrokeWidth: 2,
+              circleStrokeColor: Colors.white,
+              circleOpacity: ["case", ["get", "confirmed"], 0.95, 0.72],
             }}
           />
 
@@ -364,53 +373,17 @@ export function MapScreen() {
         </ShapeSource>
       </MapView>
 
-      {/* ── Top bar: live badge + MAP/LIST toggle (no fake search input) ── */}
-      <View style={[styles.topBar, { top: top + 60 }]}>
+      <View style={[styles.topBar, { top: 12 }]}>
         <View style={styles.liveBadge}>
           <View style={styles.liveDot} />
           <Text style={styles.liveBadgeText}>
             {liveCourtCount > 0 ? `${liveCourtCount} LIVE NOW` : "NO LIVE COURTS IN VIEW"}
           </Text>
         </View>
-        <View style={styles.viewToggle}>
-          {(["MAP", "LIST"] as const).map((v) => (
-            <Pressable
-              key={v}
-              onPress={() => setView(v)}
-              style={[styles.viewToggleBtn, view === v && styles.viewToggleBtnActive]}
-            >
-              <Text
-                style={[styles.viewToggleText, view === v && styles.viewToggleTextActive]}
-              >
-                {v}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <Text style={styles.mapScope}>
+          {sportFilter === "ALL" ? "ALL COURTS" : sportFilter}
+        </Text>
       </View>
-
-      {/* ── LIST overlay ── */}
-      {view === "LIST" && (
-        <View style={[styles.listOverlay, { paddingTop: top + 108 }]}>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: bottom + 96 }}
-          >
-            {nearList.map((c) => (
-              <CourtListItem
-                key={c.id}
-                court={c}
-                onPress={() =>
-                  openCourtSheet({ courtId: c.id, distanceKm: c.distanceKm })
-                }
-              />
-            ))}
-            {nearList.length === 0 && (
-              <Text style={styles.emptyText}>NO COURTS IN THIS AREA YET</Text>
-            )}
-          </ScrollView>
-        </View>
-      )}
 
       {/* ── Legend ── */}
       <View style={[styles.legend, { bottom: bottom + 96 }]}>
@@ -419,12 +392,12 @@ export function MapScreen() {
           <Text style={styles.legendText}>ACTIVE NOW</Text>
         </View>
         <View style={styles.legendRow}>
-          <View style={[styles.legendDot, { backgroundColor: Colors.textSecondary }]} />
-          <Text style={styles.legendText}>CONFIRMED</Text>
+          <View style={[styles.legendDot, { backgroundColor: getCourtIdentityColor("BASKETBALL") }]} />
+          <Text style={styles.legendText}>BASKETBALL</Text>
         </View>
         <View style={styles.legendRow}>
-          <View style={[styles.legendDot, { backgroundColor: Colors.muted, opacity: 0.6 }]} />
-          <Text style={styles.legendText}>COMMUNITY</Text>
+          <View style={[styles.legendDot, { backgroundColor: getCourtIdentityColor("PICKLEBALL") }]} />
+          <Text style={styles.legendText}>PICKLEBALL</Text>
         </View>
       </View>
 
@@ -484,23 +457,18 @@ const styles = StyleSheet.create({
     color: Colors.text,
     letterSpacing: 1.2,
   },
-  viewToggle: {
-    flexDirection: "row",
+  mapScope: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 8,
+    color: Colors.textSecondary,
+    letterSpacing: 1.5,
     backgroundColor: "rgba(16,16,16,0.85)",
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radius.sm,
-    overflow: "hidden",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
-  viewToggleBtn: { paddingHorizontal: 12, paddingVertical: 7 },
-  viewToggleBtnActive: { backgroundColor: Colors.accent },
-  viewToggleText: {
-    fontFamily: Typography.heading,
-    fontSize: 11,
-    color: Colors.textSecondary,
-    letterSpacing: 1.5,
-  },
-  viewToggleTextActive: { color: Colors.black },
 
   listOverlay: {
     ...StyleSheet.absoluteFillObject,

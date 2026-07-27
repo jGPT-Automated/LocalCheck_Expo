@@ -10,13 +10,15 @@ LocalCheck brings the raw energy of street sports to your pocket. Discover who's
 
 | Doc | What it is |
 |---|---|
-| [`AGENTS.md`](AGENTS.md) | Agent onboarding: golden rules, repo layout, canonical repo/backend |
-| [`dev_agent.md`](dev_agent.md) | Working map, skill pathways, activity log, work queue |
-| [`docs/SOURCE_OF_TRUTH.md`](docs/SOURCE_OF_TRUTH.md) | Verified project status + prioritized task list |
-| [`docs/PLAYBOOK_DEPLOY.md`](docs/PLAYBOOK_DEPLOY.md) | **How to ship an update to the phone** (OTA vs full build, verification gates) |
+| [`AGENTS.md`](AGENTS.md) | Single agent/human entry point and operating rules |
+| [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md) | Exact build-9 checkpoint, current truth, and next sequence |
+| [`docs/product/ACTIVITY_LEDGER.md`](docs/product/ACTIVITY_LEDGER.md) | Chronological activity, decisions, failures, and resolutions |
+| [`docs/product/LAUNCH_CONTROL.md`](docs/product/LAUNCH_CONTROL.md) | Launch burn-down and acceptance gates |
+| [`docs/RELEASE_RUNBOOK.md`](docs/RELEASE_RUNBOOK.md) | **Repeatable Expo → EAS → TestFlight flow** |
+| [`docs/WORKSPACE_MAP.md`](docs/WORKSPACE_MAP.md) | Active workspace, archive, and web/mobile monorepo direction |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | EAS build/submit/OTA reference detail |
 | [`docs/SECRETS_AND_ENV.md`](docs/SECRETS_AND_ENV.md) | Every secret/env var, where it lives, how to rotate |
-| [`DESIGN.md`](DESIGN.md) | Design system snapshot (tokens, components, motion, voice) |
+| [`docs/product/DESIGN.md`](docs/product/DESIGN.md) | Current collaborative design-system contract |
 
 ---
 
@@ -117,7 +119,7 @@ Full component/motion/voice detail: [`DESIGN.md`](DESIGN.md).
 | **Session persistence** | `expo-secure-store` (native) / localStorage (web) — the **only** client-persisted state |
 | **Fonts** | Oswald (headings/stats) + Inter (body) via `@expo-google-fonts` |
 | **Icons** | `@expo/vector-icons` (Feather) + SF Symbols (iOS) |
-| **Maps** | `react-native-maps` (redesign in progress — see work queue) |
+| **Maps** | `@rnmapbox/maps` native Mapbox implementation; physical quality acceptance pending |
 | **Haptics** | `expo-haptics` |
 | **CI/CD** | EAS Workflows: push to `main` → OTA update; `v*` tag → build + TestFlight submit |
 
@@ -181,6 +183,7 @@ artifacts/
     .eas/workflows/       # CI/CD: publish-ota-update.yml, release-ios.yml
     mockup-sandbox/       # scratch area — NOT the app, never ship from here
   api-server/             # legacy Express server (not used by the app)
+  web/                    # clean LocalCheck_WEB main snapshot; workspace validation pending
 
 docs/                     # all project docs (see index at top)
 lib/                      # legacy Replit workspace packages (db, api-spec, …)
@@ -208,11 +211,11 @@ from Supabase via `services/*`; nothing app-level is cached on device.**
 | `friends` | `friendships` | Accepted friends |
 | `plannedVisits` | `planned_visits` | Pulling-up board (7-day window) |
 
-Refresh model today: 30-second polling + refresh-on-tab-focus + refresh after
-own actions. **Known architectural gap:** five surfaces refresh court/presence
-data independently, so another user's check-in doesn't propagate live —
-the fix (single keyed server-state layer + Supabase Realtime) is the top
-work-queue item. See `dev_agent.md` §Work queue.
+Refresh model today: scoped Supabase `postgres_changes` subscriptions with
+cleanup plus explicit refreshes after own actions/foreground catch-up. The old
+global polling storm is removed and build 9 feels materially more live. The
+approved remaining migration is private-topic Supabase Broadcast, followed by
+two-client and two-phone acceptance proof. See `docs/CURRENT_STATE.md`.
 
 ### Key Actions
 

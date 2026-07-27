@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0A0A0D; }
+    @keyframes lc-pulse { 0% { transform: scale(1); opacity: 1; } 70% { transform: scale(2.4); opacity: 0; } 100% { transform: scale(1); opacity: 0; } }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+    .lc-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+    .lc-scroll::-webkit-scrollbar { display: none; }
+  </style>
+</helmet>
+
+<!-- ═══════════════════════════════════ HEADER ═══════════════════════════════════ -->
+<div style="padding: 48px 52px 36px; border-bottom: 1px solid #28282F">
+  <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 8px">
+    <div style="font-family: Oswald, sans-serif; font-weight: 500; font-size: 26px; color: #FFF; letter-spacing: 2px">LOCALCHECK</div>
+    <div style="padding: 4px 10px; background: #FF5500; border-radius: 2px; font-family: Inter, sans-serif; font-weight: 700; font-size: 9px; color: #000; letter-spacing: 1.5px">BRAND ASSET SHEET</div>
+  </div>
+  <div style="font-family: Inter, sans-serif; font-size: 13px; color: #72728A; max-width: 640px; line-height: 1.6">
+    One accent, one identity. Sport is metadata (a badge on a profile), not a coloring system.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ 1. LOGO & IDENTITY ═══════════════════════════════════ -->
+<div style="padding: 40px 52px; border-bottom: 1px solid #28282F">
+  <div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 13px; color: #F2F2F6; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4px">1 — Logo &amp; Identity</div>
+  <div style="font-family: Inter, sans-serif; font-size: 11px; color: #3A3A50; margin-bottom: 20px; max-width: 620px; line-height: 1.6">Simplified back to one accent. Two sport colors on the mark read like a holiday badge — the brand needs to stay singular so it doesn't compete with anything. Tight viewfinder brackets, off-white. Orange checkmark — the one color in the whole system that means "brand."</div>
+
+  <div style="display: flex; gap: 0; margin-bottom: 24px">
+    <!-- Primary lockup -->
+    <div style="flex: 1.4; background: #0D0D10; border: 0.5px solid #28282F; display: flex; align-items: center; justify-content: center; padding: 40px; gap: 18px">
+      <div style="position: relative; width: 74px; height: 74px; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+        <div style="position: absolute; top: 0; left: 0; width: 16px; height: 16px; border-top: 2.8px solid #E8E8EC; border-left: 2.8px solid #E8E8EC"></div>
+        <div style="position: absolute; top: 0; right: 0; width: 16px; height: 16px; border-top: 2.8px solid #E8E8EC; border-right: 2.8px solid #E8E8EC"></div>
+        <div style="position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; border-bottom: 2.8px solid #E8E8EC; border-right: 2.8px solid #E8E8EC"></div>
+        <div style="position: absolute; bottom: 0; left: 0; width: 16px; height: 16px; border-bottom: 2.8px solid #E8E8EC; border-left: 2.8px solid #E8E8EC"></div>
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M4 13l5 5L20 6" stroke="#FF5500" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div style="font-family: Oswald, sans-serif; font-weight: 400; font-size: 40px; color: #FFF; letter-spacing: 1px">LOCALCHECK</div>
+    </div>
+    <!-- App icon on app background -->
+    <div style="flex: 1; background: #0D0D10; border: 0.5px solid #28282F; border-left: none; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px">
+      <div style="width: 96px; height: 96px; background: #0D0D10; border: 0.5px solid #1E1E24; border-radius: 20px; display: flex; align-items: center; justify-content: center">
+        <div style="position: relative; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center">
+          <div style="position: absolute; top: 0; left: 0; width: 11px; height: 11px; border-top: 2px solid #E8E8EC; border-left: 2px solid #E8E8EC"></div>
+          <div style="position: absolute; top: 0; right: 0; width: 11px; height: 11px; border-top: 2px solid #E8E8EC; border-right: 2px solid #E8E8EC"></div>
+          <div style="position: absolute; bottom: 0; right: 0; width: 11px; height: 11px; border-bottom: 2px solid #E8E8EC; border-right: 2px solid #E8E8EC"></div>
+          <div style="position: absolute; bottom: 0; left: 0; width: 11px; height: 11px; border-bottom: 2px solid #E8E8EC; border-left: 2px solid #E8E8EC"></div>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M4 13l5 5L20 6" stroke="#FF5500" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <span style="font-family: Inter, sans-serif; font-size: 8px; color: #3A3A50; letter-spacing: 1px; text-transform: uppercase">App Icon — App Background (#0D0D10)</span>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 20px; align-items: center; background: #151519; border: 0.5px solid #28282F; padding: 20px 24px">
+    <div style="position: relative; width: 90px; height: 90px; flex-shrink: 0">
+      <div style="position: absolute; inset: 0; border: 1px dashed #3A3A50; opacity: 0.5"></div>
+      <div style="position: absolute; inset: 16px; display: flex; align-items: center; justify-content: center">
+        <div style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center">
+          <div style="position: absolute; top: 0; left: 0; width: 12px; height: 12px; border-top: 2px solid #E8E8EC; border-left: 2px solid #E8E8EC"></div>
+          <div style="position: absolute; top: 0; right: 0; width: 12px; height: 12px; border-top: 2px solid #E8E8EC; border-right: 2px solid #E8E8EC"></div>
+          <div style="position: absolute; bottom: 0; right: 0; width: 12px; height: 12px; border-bottom: 2px solid #E8E8EC; border-right: 2px solid #E8E8EC"></div>
+          <div style="position: absolute; bottom: 0; left: 0; width: 12px; height: 12px; border-bottom: 2px solid #E8E8EC; border-left: 2px solid #E8E8EC"></div>
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M4 13l5 5L20 6" stroke="#FF5500" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </div>
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9A9AAA; line-height: 1.9">
+      <div><span style="color:#E8E8EC">brackets</span> = off-white #E8E8EC — fixed, never sport-colored</div>
+      <div><span style="color:#FF5500">checkmark</span> = #FF5500 — the only color the mark ever uses</div>
+      <div><span style="color:#9A9AAA">clear-space</span> = 0.25 × mark width · <span style="color:#9A9AAA">min-size</span> = 24px standalone</div>
+      <div><span style="color:#9A9AAA">wordmark-tracking</span> = 1.5px @ Oswald 500</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ 2. COLOR PALETTE ═══════════════════════════════════ -->
+<div style="padding: 40px 52px; border-bottom: 1px solid #28282F">
+  <div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 13px; color: #F2F2F6; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4px">2 — Color Palette</div>
+  <div style="font-family: Inter, sans-serif; font-size: 11px; color: #3A3A50; margin-bottom: 20px; max-width: 560px; line-height: 1.6">One accent for the whole app. Pickleball no longer gets its own color — sport shows up as a badge on a player's profile, not as a UI-wide theme. Win/loss stay monochrome so they never fight the accent.</div>
+
+  <div style="display: flex; gap: 24px">
+    <div style="flex: 1.3">
+      <div style="display: flex; gap: 0; margin-bottom: 1px">
+        <div style="flex: 1; height: 64px; background: #0D0D10; border: 0.5px solid #28282F; display: flex; flex-direction: column; align-items: center; justify-content: center"><span style="font-family: Inter, sans-serif; font-size: 10px; color: #72728A; font-weight: 600">#0D0D10</span><span style="font-family: Inter, sans-serif; font-size: 8px; color: #3A3A50; letter-spacing: 0.5px; margin-top: 2px">BG</span></div>
+        <div style="flex: 1; height: 64px; background: #151519; border: 0.5px solid #28282F; border-left: none; display: flex; flex-direction: column; align-items: center; justify-content: center"><span style="font-family: Inter, sans-serif; font-size: 10px; color: #9A9AAA; font-weight: 600">#151519</span><span style="font-family: Inter, sans-serif; font-size: 8px; color: #3A3A50; letter-spacing: 0.5px; margin-top: 2px">SURFACE</span></div>
+        <div style="flex: 1; height: 64px; background: #1E1E26; border: 0.5px solid #28282F; border-left: none; display: flex; flex-direction: column; align-items: center; justify-content: center"><span style="font-family: Inter, sans-serif; font-size: 10px; color: #9A9AAA; font-weight: 600">#1E1E26</span><span style="font-family: Inter, sans-serif; font-size: 8px; color: #3A3A50; letter-spacing: 0.5px; margin-top: 2px">SURFACE HIGH</span></div>
+        <div style="flex: 1; height: 64px; background: #28282F; border: 0.5px solid #28282F; border-left: none; display: flex; flex-direction: column; align-items: center; justify-content: center"><span style="font-family: Inter, sans-serif; font-size: 10px; color: #F2F2F6; font-weight: 600">#28282F</span><span style="font-family: Inter, sans-serif; font-size: 8px; color: #9A9AAA; letter-spacing: 0.5px; margin-top: 2px">BORDER</span></div>
+        <div style="flex: 1; height: 64px; background: #F2F2F6; border: 0.5px solid #28282F; border-left: none; display: flex; flex-direction: column; align-items: center; justify-content: center"><span style="font-family: Inter, sans-serif; font-size: 10px; color: #0D0D10; font-weight: 600">#F2F2F6</span><span style="font-family: Inter, sans-serif; font-size: 8px; color: #72728A; letter-spacing: 0.5px; margin-top: 2px">TEXT</span></div>
+      </div>
+      <div style="font-family: Inter, sans-serif; font-size: 10px; color: #3A3A50; line-height: 1.6; margin-bottom: 18px">Secondary / muted: <span style="color:#9A9AAA">#9A9AAA</span> · <span style="color:#72728A">#72728A</span> · <span style="color:#3A3A50">#3A3A50</span></div>
+
+      <div style="font-family: Inter, sans-serif; font-weight: 500; font-size: 9px; color: #3A3A50; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px">Accent — Everything: CTAs, Live Status, Checked-In Ring</div>
+      <div style="display: flex; gap: 0; margin-bottom: 18px">
+        <div style="flex: 1; height: 48px; background: #FF5500; border: 0.5px solid #28282F; display: flex; flex-direction: column; align-items: center; justify-content: center"><span style="font-family: Inter, sans-serif; font-size: 10px; color: #000; font-weight: 700">#FF5500</span><span style="font-family: Inter, sans-serif; font-size: 8px; color: rgba(0,0,0,0.6); letter-spacing: 0.5px">THE ONE ACCENT</span></div>
+      </div>
+
+      <div style="font-family: Inter, sans-serif; font-weight: 500; font-size: 9px; color: #3A3A50; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px">Match Outcomes — Monochrome</div>
+      <div style="display: flex; gap: 0">
+        <div style="flex: 1; height: 44px; background: #F2F2F6; border: 0.5px solid #28282F; display: flex; flex-direction: column; align-items: center; justify-content: center"><span style="font-family: Inter, sans-serif; font-size: 9px; color: #000; font-weight: 700">#F2F2F6</span><span style="font-family: Inter, sans-serif; font-size: 7px; color: rgba(0,0,0,0.6); letter-spacing: 0.5px">WIN — BRIGHT</span></div>
+        <div style="flex: 1; height: 44px; background: #52525E; border: 0.5px solid #28282F; border-left: none; display: flex; flex-direction: column; align-items: center; justify-content: center"><span style="font-family: Inter, sans-serif; font-size: 9px; color: #F2F2F6; font-weight: 700">#52525E</span><span style="font-family: Inter, sans-serif; font-size: 7px; color: #C8C8D0; letter-spacing: 0.5px">LOSS — FADED</span></div>
+      </div>
+    </div>
+    <div style="flex: 1; background: #0D0D10; border: 0.5px solid #28282F; padding: 16px 18px; border-radius: 4px">
+      <div style="font-family: Inter, sans-serif; font-weight: 600; font-size: 9px; color: #3A3A50; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px">colors.ts</div>
+      <pre style="margin: 0; font-size: 10.5px; line-height: 1.7; color: #9A9AAA; white-space: pre-wrap"><span style="color:#72728A">export const</span> <span style="color:#F2F2F6">Colors</span> = {
+  bg: <span style="color:#FF5500">'#0D0D10'</span>,
+  surface: <span style="color:#FF5500">'#151519'</span>,
+  surfaceHigh: <span style="color:#FF5500">'#1E1E26'</span>,
+  border: <span style="color:#FF5500">'#28282F'</span>,
+  text: <span style="color:#FF5500">'#F2F2F6'</span>,
+  textSecondary: <span style="color:#FF5500">'#9A9AAA'</span>,
+  textMuted: <span style="color:#FF5500">'#72728A'</span>,
+  <span style="color:#72728A">// one accent for the whole app — no per-sport colors anymore</span>
+  accent: <span style="color:#FF5500">'#FF5500'</span>,
+  win: <span style="color:#FF5500">'#F2F2F6'</span>,
+  loss: <span style="color:#FF5500">'#52525E'</span>,
+};
+
+<span style="color:#72728A">// sport is metadata, shown as a badge on the profile — not a color</span>
+<span style="color:#72728A">type</span> Sport = <span style="color:#FF5500">'BASKETBALL'</span> | <span style="color:#FF5500">'PICKLEBALL'</span>;</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ 3. TYPOGRAPHY ═══════════════════════════════════ -->
+<div style="padding: 40px 52px; border-bottom: 1px solid #28282F">
+  <div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 13px; color: #F2F2F6; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4px">3 — Typography</div>
+  <div style="font-family: Inter, sans-serif; font-size: 11px; color: #3A3A50; margin-bottom: 20px">Oswald for display/headings (wordmark at 500, UI headings at 700). Inter for body and labels.</div>
+  <div style="display: flex; gap: 24px">
+    <div style="flex: 1.3; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: baseline; gap: 14px; border-bottom: 0.5px solid #28282F; padding-bottom: 10px">
+        <span style="font-family: Inter, sans-serif; font-size: 8px; color: #3A3A50; min-width: 90px; letter-spacing: 1px">DISPLAY / 36</span>
+        <span style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 36px; color: #F2F2F6; letter-spacing: -1px">1847</span>
+      </div>
+      <div style="display: flex; align-items: baseline; gap: 14px; border-bottom: 0.5px solid #28282F; padding-bottom: 10px">
+        <span style="font-family: Inter, sans-serif; font-size: 8px; color: #3A3A50; min-width: 90px; letter-spacing: 1px">H1 / 22 CAPS</span>
+        <span style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 22px; color: #F2F2F6; letter-spacing: 2px; text-transform: uppercase">Schedule</span>
+      </div>
+      <div style="display: flex; align-items: baseline; gap: 14px; border-bottom: 0.5px solid #28282F; padding-bottom: 10px">
+        <span style="font-family: Inter, sans-serif; font-size: 8px; color: #3A3A50; min-width: 90px; letter-spacing: 1px">BODY / 14</span>
+        <span style="font-family: Inter, sans-serif; font-weight: 500; font-size: 14px; color: #F2F2F6">Checked in at Rucker Park</span>
+      </div>
+      <div style="display: flex; align-items: baseline; gap: 14px">
+        <span style="font-family: Inter, sans-serif; font-size: 8px; color: #3A3A50; min-width: 90px; letter-spacing: 1px">LABEL / 9 CAPS</span>
+        <span style="font-family: Inter, sans-serif; font-weight: 500; font-size: 9px; color: #72728A; letter-spacing: 1.5px; text-transform: uppercase">On Court · Wins · Elo</span>
+      </div>
+    </div>
+    <div style="flex: 1; background: #0D0D10; border: 0.5px solid #28282F; padding: 16px 18px; border-radius: 4px">
+      <div style="font-family: Inter, sans-serif; font-weight: 600; font-size: 9px; color: #3A3A50; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px">typography.ts</div>
+      <pre style="margin: 0; font-size: 10.5px; line-height: 1.7; color: #9A9AAA; white-space: pre-wrap"><span style="color:#72728A">export const</span> <span style="color:#F2F2F6">Type</span> = {
+  display: { fontFamily: <span style="color:#FF5500">'Oswald_700Bold'</span>, fontSize: <span style="color:#FF5500">36</span>, letterSpacing: <span style="color:#FF5500">-1</span> },
+  h1: { fontFamily: <span style="color:#FF5500">'Oswald_700Bold'</span>, fontSize: <span style="color:#FF5500">22</span>, letterSpacing: <span style="color:#FF5500">2</span>, textTransform: <span style="color:#FF5500">'uppercase'</span> },
+  wordmark: { fontFamily: <span style="color:#FF5500">'Oswald_500Medium'</span>, fontSize: <span style="color:#FF5500">26</span>, letterSpacing: <span style="color:#FF5500">1.5</span> },
+  body: { fontFamily: <span style="color:#FF5500">'Inter_500Medium'</span>, fontSize: <span style="color:#FF5500">14</span> },
+  label: { fontFamily: <span style="color:#FF5500">'Inter_500Medium'</span>, fontSize: <span style="color:#FF5500">9</span>, letterSpacing: <span style="color:#FF5500">1.5</span>, textTransform: <span style="color:#FF5500">'uppercase'</span> },
+};</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ 4. COMPONENT STATES ═══════════════════════════════════ -->
+<div style="padding: 40px 52px; border-bottom: 1px solid #28282F">
+  <div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 13px; color: #F2F2F6; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4px">4 — Component States</div>
+  <div style="font-family: Inter, sans-serif; font-size: 11px; color: #3A3A50; margin-bottom: 20px">Button (single accent), and the Smart Avatar — now an elevated, skeuomorphic surface.</div>
+
+  <div style="display: flex; gap: 24px; margin-bottom: 24px">
+    <div style="flex: 1.3">
+      <div style="font-family: Inter, sans-serif; font-weight: 500; font-size: 9px; color: #3A3A50; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px">Check-In Button — Live Transition</div>
+      <div style="font-family: Inter, sans-serif; font-size: 10px; color: #3A3A50; margin-bottom: 12px; line-height: 1.5">Solid and actionable when you're out. Once tapped, it confirms clearly and stops calling for action.</div>
+      <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap">
+        <button onClick="{{ toggleCheckIn }}" style="{{ ciButtonStyle }}" style-active="transform: scale(0.96)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 13l5 5L20 6" style="{{ ciCheckStyle }}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>{{ ciLabel }}</span>
+        </button>
+        <span style="font-family: Inter, sans-serif; font-size: 9px; color: #3A3A50; letter-spacing: 0.5px">tap to toggle · animates 350ms</span>
+      </div>
+    </div>
+    <div style="flex: 1; background: #0D0D10; border: 0.5px solid #28282F; padding: 16px 18px; border-radius: 4px">
+      <div style="font-family: Inter, sans-serif; font-weight: 600; font-size: 9px; color: #3A3A50; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px">Button.styles.ts</div>
+      <pre style="margin: 0; font-size: 10.5px; line-height: 1.7; color: #9A9AAA; white-space: pre-wrap"><span style="color:#72728A">const</span> styles = <span style="color:#F2F2F6">StyleSheet</span>.create({
+  button: { flexDirection: <span style="color:#FF5500">'row'</span>, gap: <span style="color:#FF5500">8</span>, paddingVertical: <span style="color:#FF5500">14</span>, paddingHorizontal: <span style="color:#FF5500">24</span>, borderRadius: <span style="color:#FF5500">3</span>,
+    transitionDuration: <span style="color:#FF5500">'350ms'</span> },
+  <span style="color:#72728A">// out — solid accent, fully actionable</span>
+  default: { backgroundColor: Colors.accent, borderColor: <span style="color:#FF5500">'transparent'</span> },
+  <span style="color:#72728A">// checked in — outline confirms state, no longer a CTA</span>
+  checkedIn: { backgroundColor: <span style="color:#FF5500">'rgba(255,85,0,0.12)'</span>, borderWidth: <span style="color:#FF5500">1.5</span>, borderColor: Colors.accent,
+    shadowColor: Colors.accent, shadowOpacity: <span style="color:#FF5500">0.35</span>, shadowRadius: <span style="color:#FF5500">16</span> },
+});</pre>
+    </div>
+  </div>
+
+  <!-- Smart Avatar system — elevated skeuomorphic surface -->
+  <div style="display: flex; gap: 24px">
+    <div style="flex: 1.3">
+      <div style="font-family: Inter, sans-serif; font-weight: 500; font-size: 9px; color: #3A3A50; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px">Smart Avatar — Elevated Box, Glowing Initials, Star Badge</div>
+      <div style="font-family: Inter, sans-serif; font-size: 10px; color: #3A3A50; margin-bottom: 12px; line-height: 1.5">No brackets on profile boxes — the bracket motif is reserved for the logo. Being on-court now is signaled by the initials glowing, never by an outline. Friend = star badge. Private players show no initials at all.</div>
+      <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 14px">
+        <!-- inactive, elevated -->
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+          <div style="width: 46px; height: 46px; border-radius: 6px; background: linear-gradient(180deg, #26262E 0%, #16161B 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -3px 4px rgba(0,0,0,0.5), 0 2px 5px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center"><span style="font-family: Oswald, sans-serif; font-weight: 500; font-size: 13px; color: #9A9AAA">KP</span></div>
+          <span style="font-family: Inter, sans-serif; font-weight: 400; font-size: 11px; color: #72728A">Priya</span>
+        </div>
+        <!-- checked in, glowing initials -->
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+          <div style="width: 46px; height: 46px; border-radius: 6px; background: linear-gradient(180deg, #26262E 0%, #16161B 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -3px 4px rgba(0,0,0,0.5), 0 2px 5px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center"><span style="font-family: Oswald, sans-serif; font-weight: 500; font-size: 13px; color: #FF5500; text-shadow: 0 0 8px rgba(255,85,0,0.85), 0 0 16px rgba(255,85,0,0.45)">ZM</span></div>
+          <span style="font-family: Inter, sans-serif; font-weight: 400; font-size: 11px; color: #F2F2F6">Zoe</span>
+        </div>
+        <!-- friend, checked in, star badge -->
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+          <div style="position: relative; width: 46px; height: 46px">
+            <div style="width: 46px; height: 46px; border-radius: 6px; background: linear-gradient(180deg, #26262E 0%, #16161B 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -3px 4px rgba(0,0,0,0.5), 0 2px 5px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center"><span style="font-family: Oswald, sans-serif; font-weight: 500; font-size: 13px; color: #FF5500; text-shadow: 0 0 8px rgba(255,85,0,0.85), 0 0 16px rgba(255,85,0,0.45)">DK</span></div>
+            <div style="position: absolute; bottom: -4px; right: -4px; width: 16px; height: 16px; border-radius: 50%; background: linear-gradient(180deg, #3A3A42 0%, #222227 100%); border: 0.5px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center"><svg width="9" height="9" viewBox="0 0 24 24" fill="#F2F2F6"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 6.9L12 17.3 5.7 20.8l1.7-6.9L2 9.2l7.1-.6z"/></svg></div>
+          </div>
+          <span style="font-family: Inter, sans-serif; font-weight: 400; font-size: 11px; color: #F2F2F6">Marcus</span>
+        </div>
+        <!-- friend, not checked in, elevated + badge -->
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+          <div style="position: relative; width: 46px; height: 46px">
+            <div style="width: 46px; height: 46px; border-radius: 6px; background: linear-gradient(180deg, #26262E 0%, #16161B 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -3px 4px rgba(0,0,0,0.5), 0 2px 5px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center"><span style="font-family: Oswald, sans-serif; font-weight: 500; font-size: 13px; color: #9A9AAA">TB</span></div>
+            <div style="position: absolute; bottom: -4px; right: -4px; width: 16px; height: 16px; border-radius: 50%; background: linear-gradient(180deg, #3A3A42 0%, #222227 100%); border: 0.5px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center"><svg width="9" height="9" viewBox="0 0 24 24" fill="#9A9AAA"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 6.9L12 17.3 5.7 20.8l1.7-6.9L2 9.2l7.1-.6z"/></svg></div>
+          </div>
+          <span style="font-family: Inter, sans-serif; font-weight: 400; font-size: 11px; color: #72728A">Devon</span>
+        </div>
+        <span style="width: 0.5px; align-self: stretch; background: #28282F"></span>
+        <!-- hidden aggregate count -->
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+          <div style="width: 46px; height: 46px; border-radius: 6px; background: linear-gradient(180deg, #1C1C22 0%, #101013 100%); box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), inset 0 -1px 0 rgba(255,255,255,0.03); display: flex; align-items: center; justify-content: center"><span style="font-family: Oswald, sans-serif; font-weight: 500; font-size: 13px; color: #52525E">+5</span></div>
+          <span style="font-family: Inter, sans-serif; font-weight: 400; font-size: 11px; color: #3A3A50">hidden</span>
+        </div>
+        <!-- private individual player -->
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+          <div style="width: 46px; height: 46px; border-radius: 6px; background: linear-gradient(180deg, #1C1C22 0%, #101013 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -3px 4px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.9 5.1A9.4 9.4 0 0112 5c5 0 8.5 3.5 10 7-.6 1.3-1.5 2.7-2.7 3.9M6.7 6.7C4.7 8 3.2 9.9 2 12c1.9 4 5.7 7 10 7 1.1 0 2.1-.2 3.1-.5" stroke="#3A3A50" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <span style="font-family: Inter, sans-serif; font-weight: 400; font-size: 11px; color: #3A3A50">Hidden Hooper</span>
+        </div>
+      </div>
+    </div>
+    <div style="flex: 1; background: #0D0D10; border: 0.5px solid #28282F; padding: 16px 18px; border-radius: 4px">
+      <div style="font-family: Inter, sans-serif; font-weight: 600; font-size: 9px; color: #3A3A50; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px">Avatar.styles.ts</div>
+      <pre style="margin: 0; font-size: 10.5px; line-height: 1.7; color: #9A9AAA; white-space: pre-wrap"><span style="color:#72728A">const</span> styles = <span style="color:#F2F2F6">StyleSheet</span>.create({
+  box: {
+    width: <span style="color:#FF5500">46</span>, height: <span style="color:#FF5500">46</span>, borderRadius: <span style="color:#FF5500">6</span>,
+    <span style="color:#72728A">// no brackets on profile boxes — the bracket motif stays on the logo</span>
+    backgroundColor: Colors.surfaceHigh,
+    shadowColor: <span style="color:#FF5500">'#000'</span>, shadowOpacity: <span style="color:#FF5500">0.4</span>, shadowRadius: <span style="color:#FF5500">5</span>, elevation: <span style="color:#FF5500">3</span>,
+  },
+  initials: { fontFamily: <span style="color:#FF5500">'Oswald_500Medium'</span>, fontSize: <span style="color:#FF5500">13</span>,
+    color: player.isCheckedIn ? Colors.accent : Colors.textSecondary,
+    <span style="color:#72728A">// on-court now = the initials glow, not the box</span>
+    textShadow: player.isCheckedIn ? <span style="color:#FF5500">'0 0 8px rgba(255,85,0,.85)'</span> : <span style="color:#FF5500">'none'</span> },
+  starBadge: { position: <span style="color:#FF5500">'absolute'</span>, bottom: <span style="color:#FF5500">-4</span>, right: <span style="color:#FF5500">-4</span>, width: <span style="color:#FF5500">16</span>, height: <span style="color:#FF5500">16</span>, borderRadius: <span style="color:#FF5500">8</span> },
+  <span style="color:#72728A">// private player — no initials rendered, name reads 'Hidden Hooper' / 'Private Player'</span>
+  name: { fontWeight: <span style="color:#FF5500">'400'</span>, fontSize: <span style="color:#FF5500">11</span>, marginTop: <span style="color:#FF5500">6</span>, textAlign: <span style="color:#FF5500">'center'</span>,
+    color: player.isCheckedIn ? Colors.text : Colors.textMuted },
+});</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ 5. HOME SCREEN MOCK ═══════════════════════════════════ -->
+<div style="padding: 40px 52px; border-bottom: 1px solid #28282F">
+  <div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 13px; color: #F2F2F6; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4px">5 — Home Screen</div>
+  <div style="font-family: Inter, sans-serif; font-size: 11px; color: #3A3A50; margin-bottom: 24px">Logo top-left, one accent throughout, elevated Smart Avatars, flat (uncolored) activity feed.</div>
+
+  <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="390,844">
+    <div style="position: relative; height: 100%; display: flex; flex-direction: column; overflow: hidden; background: #0D0D10">
+      <div class="lc-scroll" style="flex: 1; overflow-y: auto; padding-top: 62px">
+      <div style="display: flex; align-items: center; gap: 8px; padding: 4px 16px 14px">
+        <div style="position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+          <div style="position: absolute; top: 0; left: 0; width: 6px; height: 6px; border-top: 1.4px solid #E8E8EC; border-left: 1.4px solid #E8E8EC"></div>
+          <div style="position: absolute; top: 0; right: 0; width: 6px; height: 6px; border-top: 1.4px solid #E8E8EC; border-right: 1.4px solid #E8E8EC"></div>
+          <div style="position: absolute; bottom: 0; right: 0; width: 6px; height: 6px; border-bottom: 1.4px solid #E8E8EC; border-right: 1.4px solid #E8E8EC"></div>
+          <div style="position: absolute; bottom: 0; left: 0; width: 6px; height: 6px; border-bottom: 1.4px solid #E8E8EC; border-left: 1.4px solid #E8E8EC"></div>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 13l5 5L20 6" stroke="#FF5500" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span style="font-family: Oswald, sans-serif; font-weight: 500; font-size: 15px; color: #F2F2F6; letter-spacing: 1px; flex: 1">LOCALCHECK</span>
+        <span style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 13px; color: #FF5500">~5<span style="font-family: Inter, sans-serif; font-weight: 500; font-size: 8px; color: #FF5500; letter-spacing: 0.5px; text-transform: uppercase; margin-left: 3px">active</span></span>
+      </div>
+
+      <div style="margin: 0 0 20px; overflow: hidden; background: linear-gradient(180deg, #171310 0%, #0D0D10 55%); box-shadow: 0 10px 22px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.4)">
+        <div style="padding: 12px 16px; display: flex; align-items: center; gap: 8px; border-bottom: 0.5px solid #28282F">
+          <div style="position: relative; width: 12px; height: 12px"><div style="position: absolute; inset: 2px; background: #FF5500; border-radius: 50%; animation: lc-pulse 1.3s ease-out infinite"></div><div style="position: absolute; inset: 2px; background: #FF5500; border-radius: 50%"></div></div>
+          <span style="font-family: Inter, sans-serif; font-weight: 700; font-size: 9px; color: #FF5500; letter-spacing: 1.5px">LIVE NOW</span>
+        </div>
+        <div style="padding: 16px">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 3px">
+            <span style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 24px; color: #F2F2F6; letter-spacing: 0.3px">KASH COURTS</span>
+            <span style="padding: 4px 9px; background: #FF5500; border-radius: 3px; font-family: Oswald, sans-serif; font-weight: 700; font-size: 11px; color: #000; letter-spacing: 0.5px; flex-shrink: 0">BB</span>
+          </div>
+          <div style="font-family: Inter, sans-serif; font-size: 10px; color: #72728A; margin-bottom: 14px">0.6 mi · 214 W 4th St</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #28282F; border-radius: 4px; overflow: hidden; margin-bottom: 14px">
+            <div style="background: #0D0D10; padding: 10px 8px; text-align: center">
+              <div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 18px; color: #FF5500">~5</div>
+              <div style="font-family: Inter, sans-serif; font-weight: 500; font-size: 7px; color: #72728A; letter-spacing: 1px; text-transform: uppercase; margin-top: 1px">Active Now</div>
+            </div>
+            <div style="background: #0D0D10; padding: 10px 8px; text-align: center">
+              <div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 18px; color: #F2F2F6">~25</div>
+              <div style="font-family: Inter, sans-serif; font-weight: 500; font-size: 7px; color: #72728A; letter-spacing: 1px; text-transform: uppercase; margin-top: 1px">Locals</div>
+            </div>
+            <div style="background: #0D0D10; padding: 10px 8px; text-align: center">
+              <div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 18px; color: #F2F2F6">3</div>
+              <div style="font-family: Inter, sans-serif; font-weight: 500; font-size: 7px; color: #72728A; letter-spacing: 1px; text-transform: uppercase; margin-top: 1px">Runs This Wk</div>
+            </div>
+            <div style="background: #0D0D10; padding: 10px 8px; text-align: center">
+              <div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 18px; color: #F2F2F6">18</div>
+              <div style="font-family: Inter, sans-serif; font-weight: 500; font-size: 7px; color: #72728A; letter-spacing: 1px; text-transform: uppercase; margin-top: 1px">Active This Wk</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: center; gap: 12px">
+            <button style="width: 65%; padding: 12px 0; background: #FF5500; border: none; border-radius: 4px; font-family: Oswald, sans-serif; font-weight: 700; font-size: 12px; color: #000; letter-spacing: 1.3px; box-shadow: 0 6px 16px rgba(255,85,0,0.35), 0 2px 4px rgba(0,0,0,0.3)">CHECK IN</button>
+            <button style="width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(180deg, #26262E 0%, #16161B 100%); border: 0.5px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 5px rgba(0,0,0,0.4)">
+              <svg width="8" height="13" viewBox="0 0 8 14"><path d="M1 1l6 6-6 6" stroke="#9A9AAA" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding: 0 16px 8px; display: flex; align-items: center; justify-content: space-between">
+        <span style="font-family: Inter, sans-serif; font-weight: 600; font-size: 9px; color: #72728A; letter-spacing: 1.5px; text-transform: uppercase">Who's Here</span>
+        <span style="font-family: Inter, sans-serif; font-weight: 600; font-size: 9px; color: #FF5500; letter-spacing: 1px">~5 ACTIVE</span>
+      </div>
+      <div style="margin: 0 16px 16px; padding-bottom: 16px; border-bottom: 0.5px solid #1E1E24; display: flex; align-items: center; gap: 14px">
+        <div style="display: flex; gap: 16px; flex: 1">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+            <div style="width: 40px; height: 40px; border-radius: 6px; background: linear-gradient(180deg, #26262E 0%, #16161B 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 5px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center"><span style="font-family: Oswald, sans-serif; font-weight: 500; font-size: 12px; color: #FF5500; text-shadow: 0 0 8px rgba(255,85,0,0.85), 0 0 14px rgba(255,85,0,0.4)">J</span></div>
+            <span style="font-family: Inter, sans-serif; font-weight: 400; font-size: 10px; color: #F2F2F6">Jess</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+            <div style="position: relative; width: 40px; height: 40px">
+              <div style="width: 40px; height: 40px; border-radius: 6px; background: linear-gradient(180deg, #26262E 0%, #16161B 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 5px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center"><span style="font-family: Oswald, sans-serif; font-weight: 500; font-size: 12px; color: #FF5500; text-shadow: 0 0 8px rgba(255,85,0,0.85), 0 0 14px rgba(255,85,0,0.4)">M</span></div>
+              <div style="position: absolute; bottom: -3px; right: -3px; width: 14px; height: 14px; border-radius: 50%; background: linear-gradient(180deg, #3A3A42 0%, #222227 100%); border: 0.5px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center"><svg width="8" height="8" viewBox="0 0 24 24" fill="#F2F2F6"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 6.9L12 17.3 5.7 20.8l1.7-6.9L2 9.2l7.1-.6z"/></svg></div>
+            </div>
+            <span style="font-family: Inter, sans-serif; font-weight: 400; font-size: 10px; color: #F2F2F6">Marcus</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+            <div style="width: 40px; height: 40px; border-radius: 6px; background: linear-gradient(180deg, #1C1C22 0%, #101013 100%); box-shadow: inset 0 2px 4px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center"><span style="font-family: Oswald, sans-serif; font-weight: 500; font-size: 11px; color: #52525E">+3</span></div>
+            <span style="font-family: Inter, sans-serif; font-weight: 400; font-size: 10px; color: #3A3A50">hidden</span>
+          </div>
+        </div>
+        <div style="width: 0.5px; align-self: stretch; background: #28282F; flex-shrink: 0"></div>
+        <button style="display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: none; padding: 0; cursor: pointer; flex-shrink: 0">
+          <div style="width: 40px; height: 40px; border-radius: 6px; background: linear-gradient(180deg, #26262E 0%, #16161B 100%); border: 0.5px solid rgba(255,255,255,0.08); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 5px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center"><span style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 12px; color: #F2F2F6">25</span></div>
+          <span style="font-family: Inter, sans-serif; font-weight: 400; font-size: 10px; color: #9A9AAA">view all</span>
+        </button>
+      </div>
+
+      <div style="padding: 0 16px 8px"><span style="font-family: Inter, sans-serif; font-weight: 600; font-size: 9px; color: #72728A; letter-spacing: 1.5px; text-transform: uppercase">Next Run</span></div>
+      <div style="margin: 0 16px 16px; padding: 14px 0 16px; border-bottom: 0.5px solid #1E1E24; display: flex; align-items: center; gap: 12px">
+        <div style="width: 3px; height: 40px; background: #FF5500; border-radius: 1px; flex-shrink: 0"></div>
+        <div style="flex: 1">
+          <div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 15px; color: #F2F2F6; letter-spacing: 0.3px">PICKUP RUN</div>
+          <div style="font-family: Inter, sans-serif; font-size: 10px; color: #72728A; margin-top: 2px">Today · 5:00 PM · Riverside Courts</div>
+        </div>
+        <div style="text-align: center"><div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 20px; color: #FF5500; line-height: 1">4<span style="font-size: 12px; color: #3A3A50">/6</span></div></div>
+      </div>
+
+      <!-- activity feed — checked in / game logged / run created, subtle understated timeline -->
+      <div style="padding: 0 16px 12px"><span style="font-family: Inter, sans-serif; font-weight: 600; font-size: 9px; color: #72728A; letter-spacing: 1.5px; text-transform: uppercase">Activity Feed</span></div>
+      <div style="margin: 0 16px 24px; min-height: 338px; position: relative; padding-left: 4px">
+        <div style="position: absolute; left: 10px; top: 2px; bottom: 2px; width: 1px; background: #1E1E24"></div>
+        <div style="display: flex; flex-direction: column; gap: 26px; position: relative">
+          <div style="display: flex; gap: 14px; align-items: flex-start">
+            <div style="width: 13px; height: 13px; margin-top: 2px; border-radius: 50%; border: 1.5px solid #3A3A50; background: #0D0D10; flex-shrink: 0; z-index: 1"></div>
+            <div>
+              <div style="font-family: Inter, sans-serif; font-size: 12px; color: #F2F2F6; line-height: 1.4">Jess checked in at Kash Courts</div>
+              <div style="font-family: Inter, sans-serif; font-size: 9px; color: #3A3A50; letter-spacing: 0.5px; margin-top: 2px; text-transform: uppercase">Just now</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 14px; align-items: flex-start">
+            <div style="width: 13px; height: 13px; margin-top: 2px; border-radius: 50%; background: #FF5500; box-shadow: 0 0 5px rgba(255,85,0,0.5); flex-shrink: 0; z-index: 1"></div>
+            <div>
+              <div style="font-family: Inter, sans-serif; font-size: 12px; color: #F2F2F6; line-height: 1.4"><span style="color: #5EBD73">Jess</span> beat Mike 11–10</div>
+              <div style="font-family: Inter, sans-serif; font-size: 9px; color: #3A3A50; letter-spacing: 0.5px; margin-top: 2px; text-transform: uppercase">1h ago</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 14px; align-items: flex-start">
+            <div style="width: 13px; height: 13px; margin-top: 2px; border-radius: 50%; border: 1.5px solid #3A3A50; background: #0D0D10; flex-shrink: 0; z-index: 1"></div>
+            <div style="flex: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px">
+              <div>
+                <div style="font-family: Inter, sans-serif; font-size: 12px; color: #F2F2F6; line-height: 1.4">Jess scheduled a 3v3 game on Tuesday @ 6</div>
+                <div style="font-family: Inter, sans-serif; font-size: 9px; color: #3A3A50; letter-spacing: 0.5px; margin-top: 2px; text-transform: uppercase">2h ago</div>
+              </div>
+              <span style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 12px; color: #9A9AAA; flex-shrink: 0; margin-top: 1px">4<span style="font-size: 9px; color: #3A3A50">/6</span></span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 14px; align-items: flex-start">
+            <div style="width: 13px; height: 13px; margin-top: 2px; border-radius: 50%; background: #FF5500; box-shadow: 0 0 5px rgba(255,85,0,0.5); flex-shrink: 0; z-index: 1"></div>
+            <div>
+              <div style="font-family: Inter, sans-serif; font-size: 12px; color: #F2F2F6; line-height: 1.4"><span style="color: #5EBD73">Marcus</span> beat Theo 21–15</div>
+              <div style="font-family: Inter, sans-serif; font-size: 9px; color: #3A3A50; letter-spacing: 0.5px; margin-top: 2px; text-transform: uppercase">3h ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <div style="flex-shrink: 0; display: flex; border-top: 0.5px solid #28282F; padding: 8px 0 6px; background: #0D0D10">
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 11.5L12 4l8 7.5M6 10.5v8a1 1 0 001 1h3v-5h4v5h3a1 1 0 001-1v-8" stroke="#FF5500" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span style="font-family: Inter, sans-serif; font-weight: 600; font-size: 8px; color: #FF5500; letter-spacing: 0.5px">HOME</span>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="12" rx="1.5" stroke="#72728A" stroke-width="1.8"/><line x1="12" y1="6" x2="12" y2="18" stroke="#72728A" stroke-width="1.8"/><circle cx="12" cy="12" r="2.8" stroke="#72728A" stroke-width="1.8"/></svg>
+          <span style="font-family: Inter, sans-serif; font-weight: 500; font-size: 8px; color: #72728A; letter-spacing: 0.5px">COURTS</span>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="15" rx="1.5" stroke="#72728A" stroke-width="1.8"/><line x1="4" y1="9.5" x2="20" y2="9.5" stroke="#72728A" stroke-width="1.8"/><line x1="8" y1="3" x2="8" y2="6.5" stroke="#72728A" stroke-width="1.8" stroke-linecap="round"/><line x1="16" y1="3" x2="16" y2="6.5" stroke="#72728A" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span style="font-family: Inter, sans-serif; font-weight: 500; font-size: 8px; color: #72728A; letter-spacing: 0.5px">SCHEDULE</span>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5" stroke="#72728A" stroke-width="1.8"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" stroke="#72728A" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span style="font-family: Inter, sans-serif; font-weight: 500; font-size: 8px; color: #72728A; letter-spacing: 0.5px">PROFILE</span>
+        </div>
+      </div>
+    </div>
+  </x-import>
+</div>
+
+<!-- ═══════════════════════════════════ 6. SCHEDULE SCREEN MOCK ═══════════════════════════════════ -->
+<div style="padding: 40px 52px">
+  <div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 13px; color: #F2F2F6; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4px">6 — Schedule Screen</div>
+  <div style="font-family: Inter, sans-serif; font-size: 11px; color: #3A3A50; margin-bottom: 24px; max-width: 620px; line-height: 1.6">Weekly heatmap for a specific court. Tapping a time slot (WED 6PM, outlined below) opens who's going for that slot right underneath — Smart Avatars, not just a number.</div>
+
+  <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="390,844">
+    <div style="position: relative; height: 100%; display: flex; flex-direction: column; overflow: hidden; background: #0D0D10">
+      <div class="lc-scroll" style="flex: 1; overflow-y: auto; padding-top: 62px">
+
+      <!-- header -->
+      <div style="display: flex; align-items: center; gap: 10px; padding: 4px 16px 14px">
+        <div style="position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+          <div style="position: absolute; top: 0; left: 0; width: 6px; height: 6px; border-top: 1.4px solid #E8E8EC; border-left: 1.4px solid #E8E8EC"></div>
+          <div style="position: absolute; top: 0; right: 0; width: 6px; height: 6px; border-top: 1.4px solid #E8E8EC; border-right: 1.4px solid #E8E8EC"></div>
+          <div style="position: absolute; bottom: 0; right: 0; width: 6px; height: 6px; border-bottom: 1.4px solid #E8E8EC; border-right: 1.4px solid #E8E8EC"></div>
+          <div style="position: absolute; bottom: 0; left: 0; width: 6px; height: 6px; border-bottom: 1.4px solid #E8E8EC; border-left: 1.4px solid #E8E8EC"></div>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 13l5 5L20 6" stroke="#FF5500" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 20px; color: #F2F2F6; letter-spacing: 0.5px; flex: 1">SCHEDULE</span>
+        <div style="width: 30px; height: 30px; border-radius: 6px; background: linear-gradient(180deg, #26262E 0%, #16161B 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center"><span style="font-family: Oswald, sans-serif; font-weight: 500; font-size: 10px; color: #9A9AAA">JR</span></div>
+      </div>
+
+      <!-- court selector -->
+      <div style="padding: 0 16px 10px; display: flex; align-items: center; gap: 6px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="#FF5500"><path d="M12 2C7.6 2 4 5.6 4 10c0 5.4 8 12 8 12s8-6.6 8-12c0-4.4-3.6-8-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z"/></svg>
+        <span style="font-family: Inter, sans-serif; font-size: 12.5px; color: #C8C8D0">Riverside Park · Court 2</span>
+        <svg width="6" height="10" viewBox="0 0 8 14" style="margin-left: 2px"><path d="M1 1l6 6-6 6" stroke="#3A3A50" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div style="margin: 0 16px 12px; border-top: 0.5px solid #1E1E24"></div>
+
+      <!-- week nav -->
+      <div style="padding: 0 16px 10px; display: flex; align-items: center; justify-content: space-between">
+        <span style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 18px; color: #F2F2F6">Jul 19–25</span>
+        <div style="display: flex; gap: 6px">
+          <div style="width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(180deg, #26262E 0%, #16161B 100%); border: 0.5px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center"><svg width="6" height="9" viewBox="0 0 8 14"><path d="M7 1L1 7l6 6" stroke="#9A9AAA" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div style="width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(180deg, #26262E 0%, #16161B 100%); border: 0.5px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center"><svg width="6" height="9" viewBox="0 0 8 14"><path d="M1 1l6 6-6 6" stroke="#9A9AAA" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+      </div>
+
+      <!-- day header -->
+      <div style="padding: 0 14px; display: flex">
+        <div style="width: 34px; flex-shrink: 0"></div>
+        <div style="flex: 1; display: flex">
+          <div style="flex: 1; text-align: center"><div style="font-family: Inter, sans-serif; font-size: 8px; color: #72728A; letter-spacing: 0.5px">SUN</div><div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 13px; color: #9A9AAA">19</div></div>
+          <div style="flex: 1; text-align: center"><div style="font-family: Inter, sans-serif; font-size: 8px; color: #72728A; letter-spacing: 0.5px">MON</div><div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 13px; color: #9A9AAA">20</div></div>
+          <div style="flex: 1; text-align: center"><div style="font-family: Inter, sans-serif; font-size: 8px; color: #72728A; letter-spacing: 0.5px">TUE</div><div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 13px; color: #9A9AAA">21</div></div>
+          <div style="flex: 1; text-align: center"><div style="font-family: Inter, sans-serif; font-size: 8px; color: #FF5500; letter-spacing: 0.5px">WED</div><div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 13px; color: #FF5500">22</div></div>
+          <div style="flex: 1; text-align: center"><div style="font-family: Inter, sans-serif; font-size: 8px; color: #72728A; letter-spacing: 0.5px">THU</div><div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 13px; color: #9A9AAA">23</div></div>
+          <div style="flex: 1; text-align: center"><div style="font-family: Inter, sans-serif; font-size: 8px; color: #72728A; letter-spacing: 0.5px">FRI</div><div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 13px; color: #9A9AAA">24</div></div>
+          <div style="flex: 1; text-align: center"><div style="font-family: Inter, sans-serif; font-size: 8px; color: #72728A; letter-spacing: 0.5px">SAT</div><div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 13px; color: #9A9AAA">25</div></div>
+        </div>
+      </div>
+
+      <!-- heatmap: taller cells, unified orange intensity scale -->
+      <div style="padding: 10px 14px 0">
+        <div style="display: flex; align-items: center; margin-bottom: 6px">
+          <div style="width: 34px; flex-shrink: 0; font-family: Inter, sans-serif; font-size: 8px; color: #52525E">4 PM</div>
+          <div style="flex: 1; display: flex; gap: 4px">
+            <div style="flex: 1; height: 30px; background: #15151A; border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: #15151A; border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: rgba(255,85,0,0.22); border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: #15151A; border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: #15151A; border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: rgba(255,85,0,0.5); border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: #15151A; border-radius: 4px"></div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; margin-bottom: 6px">
+          <div style="width: 34px; flex-shrink: 0; font-family: Inter, sans-serif; font-size: 8px; color: #52525E">6 PM</div>
+          <div style="flex: 1; display: flex; gap: 4px">
+            <div style="flex: 1; height: 30px; background: #15151A; border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: #FF5500; border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: #FF5500; border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: #1E1E26; border: 1.5px solid #FF5500; border-radius: 4px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 12px rgba(255,85,0,0.6)"><span style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 11px; color: #FFF">12</span></div>
+            <div style="flex: 1; height: 30px; background: #FF5500; border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: #FF5500; border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: rgba(255,85,0,0.5); border-radius: 4px"></div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; margin-bottom: 6px">
+          <div style="width: 34px; flex-shrink: 0; font-family: Inter, sans-serif; font-size: 8px; color: #52525E">8 PM</div>
+          <div style="flex: 1; display: flex; gap: 4px">
+            <div style="flex: 1; height: 30px; background: #15151A; border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: rgba(255,85,0,0.5); border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: rgba(255,85,0,0.5); border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: rgba(255,85,0,0.22); border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: rgba(255,85,0,0.5); border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: #FF5500; border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: rgba(255,85,0,0.5); border-radius: 4px"></div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; margin-bottom: 10px">
+          <div style="width: 34px; flex-shrink: 0; font-family: Inter, sans-serif; font-size: 8px; color: #52525E">10 PM</div>
+          <div style="flex: 1; display: flex; gap: 4px">
+            <div style="flex: 1; height: 30px; background: #15151A; border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: rgba(255,85,0,0.22); border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: #15151A; border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: rgba(255,85,0,0.22); border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: #15151A; border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: rgba(255,85,0,0.22); border-radius: 4px"></div>
+            <div style="flex: 1; height: 30px; background: rgba(255,85,0,0.22); border-radius: 4px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- legend -->
+      <div style="padding: 0 16px 14px; display: flex; align-items: center; gap: 8px">
+        <span style="font-family: Inter, sans-serif; font-size: 9px; color: #72728A">Quiet</span>
+        <div style="width: 10px; height: 10px; border-radius: 2px; background: #15151A"></div>
+        <div style="width: 10px; height: 10px; border-radius: 2px; background: rgba(255,85,0,0.22)"></div>
+        <div style="width: 10px; height: 10px; border-radius: 2px; background: rgba(255,85,0,0.5)"></div>
+        <div style="width: 10px; height: 10px; border-radius: 2px; background: #FF5500"></div>
+        <span style="font-family: Inter, sans-serif; font-size: 9px; color: #72728A">Busy</span>
+        <span style="font-family: Inter, sans-serif; font-size: 8px; color: #3A3A50; margin-left: auto">Local time · hourly</span>
+      </div>
+      <div style="margin: 0 16px 14px; border-top: 0.5px solid #1E1E24"></div>
+
+      <!-- who's going for the tapped slot -->
+      <div style="margin: 0 16px 16px; background: linear-gradient(180deg, #171310 0%, #0D0D10 60%); border: 0.5px solid #3A2A18; border-radius: 6px; padding: 12px 14px">
+        <div style="font-family: Inter, sans-serif; font-weight: 700; font-size: 9px; color: #FF5500; letter-spacing: 1.2px; margin-bottom: 10px">WED 22 · 6:00 PM — 12 GOING</div>
+        <div style="display: flex; gap: 12px; overflow: hidden">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; flex-shrink: 0">
+            <div style="width: 36px; height: 36px; border-radius: 6px; background: linear-gradient(180deg, #26262E 0%, #16161B 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center"><span style="font-family: Oswald, sans-serif; font-weight: 500; font-size: 11px; color: #FF5500; text-shadow: 0 0 7px rgba(255,85,0,0.8)">JR</span></div>
+            <span style="font-family: Inter, sans-serif; font-weight: 400; font-size: 9px; color: #F2F2F6">Jess</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; flex-shrink: 0">
+            <div style="position: relative; width: 36px; height: 36px">
+              <div style="width: 36px; height: 36px; border-radius: 6px; background: linear-gradient(180deg, #26262E 0%, #16161B 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center"><span style="font-family: Oswald, sans-serif; font-weight: 500; font-size: 11px; color: #FF5500; text-shadow: 0 0 7px rgba(255,85,0,0.8)">AK</span></div>
+              <div style="position: absolute; bottom: -3px; right: -3px; width: 13px; height: 13px; border-radius: 50%; background: linear-gradient(180deg, #3A3A42 0%, #222227 100%); border: 0.5px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center"><svg width="7" height="7" viewBox="0 0 24 24" fill="#F2F2F6"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 6.9L12 17.3 5.7 20.8l1.7-6.9L2 9.2l7.1-.6z"/></svg></div>
+            </div>
+            <span style="font-family: Inter, sans-serif; font-weight: 400; font-size: 9px; color: #F2F2F6">Alex</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; flex-shrink: 0">
+            <div style="width: 36px; height: 36px; border-radius: 6px; background: linear-gradient(180deg, #26262E 0%, #16161B 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center"><span style="font-family: Oswald, sans-serif; font-weight: 500; font-size: 11px; color: #9A9AAA">TS</span></div>
+            <span style="font-family: Inter, sans-serif; font-weight: 400; font-size: 9px; color: #72728A">Theo</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; flex-shrink: 0">
+            <div style="width: 36px; height: 36px; border-radius: 6px; background: linear-gradient(180deg, #1C1C22 0%, #101013 100%); box-shadow: inset 0 2px 4px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center"><span style="font-family: Oswald, sans-serif; font-weight: 500; font-size: 10px; color: #52525E">+8</span></div>
+            <span style="font-family: Inter, sans-serif; font-weight: 400; font-size: 9px; color: #3A3A50">more</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- scheduled runs -->
+      <div style="padding: 0 16px 10px"><span style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 16px; color: #F2F2F6; letter-spacing: 0.5px">Scheduled Runs</span></div>
+      <div style="margin: 0 16px 16px; background: linear-gradient(180deg, #1A1A20 0%, #131317 100%); border: 0.5px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 16px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 10px rgba(0,0,0,0.35)">
+        <div style="font-family: Inter, sans-serif; font-size: 9px; color: #72728A; letter-spacing: 0.5px; text-transform: uppercase">Tonight · 7:00 PM</div>
+        <div style="font-family: Oswald, sans-serif; font-weight: 700; font-size: 17px; color: #F2F2F6; margin: 4px 0 12px">Open Run</div>
+        <div style="display: flex; align-items: center; gap: 10px">
+          <div style="position: relative; width: 26px; height: 26px">
+            <div style="position: absolute; inset: 0; border-radius: 5px; background: linear-gradient(180deg, #26262E 0%, #16161B 100%); display: flex; align-items: center; justify-content: center"><span style="font-family: Oswald, sans-serif; font-weight: 500; font-size: 9px; color: #9A9AAA">JR</span></div>
+          </div>
+          <div style="position: relative; width: 26px; height: 26px">
+            <div style="position: absolute; inset: 0; border-radius: 5px; background: linear-gradient(180deg, #26262E 0%, #16161B 100%); display: flex; align-items: center; justify-content: center"><span style="font-family: Oswald, sans-serif; font-weight: 500; font-size: 9px; color: #9A9AAA">AK</span></div>
+          </div>
+          <div style="width: 26px; height: 26px; border-radius: 5px; background: linear-gradient(180deg, #26262E 0%, #16161B 100%); display: flex; align-items: center; justify-content: center"><span style="font-family: Oswald, sans-serif; font-weight: 500; font-size: 9px; color: #FF5500; text-shadow: 0 0 6px rgba(255,85,0,0.8)">DL</span></div>
+          <div style="position: relative; width: 26px; height: 26px">
+            <div style="position: absolute; inset: 0; border-radius: 5px; background: linear-gradient(180deg, #1C1C22 0%, #101013 100%); display: flex; align-items: center; justify-content: center"><span style="font-family: Oswald, sans-serif; font-weight: 500; font-size: 8px; color: #52525E">+8</span></div>
+          </div>
+          <span style="font-family: Inter, sans-serif; font-weight: 500; font-size: 10.5px; color: #FF5500; margin-left: auto">View run ›</span>
+        </div>
+      </div>
+      </div>
+
+      <!-- quick actions — pinned above the tab bar, icon-led -->
+      <div style="flex-shrink: 0; display: flex; gap: 10px; padding: 10px 16px; background: #0D0D10; border-top: 0.5px solid #1E1E24">
+        <button style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 11px 0; background: linear-gradient(180deg, #26262E 0%, #16161B 100%); border: 0.5px solid rgba(255,255,255,0.08); border-radius: 8px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#FF5500" stroke-width="2.2" stroke-linecap="round"/></svg>
+          <span style="font-family: Inter, sans-serif; font-weight: 600; font-size: 10.5px; color: #F2F2F6; letter-spacing: 0.3px">CREATE RUN</span>
+        </button>
+        <button style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 11px 0; background: linear-gradient(180deg, #26262E 0%, #16161B 100%); border: 0.5px solid rgba(255,255,255,0.08); border-radius: 8px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 6.5h16M4 12h16M4 17.5h10" stroke="#FF5500" stroke-width="1.8" stroke-linecap="round"/><circle cx="18" cy="17.5" r="2.6" stroke="#FF5500" stroke-width="1.8"/></svg>
+          <span style="font-family: Inter, sans-serif; font-weight: 600; font-size: 10.5px; color: #F2F2F6; letter-spacing: 0.3px">MY TIMES</span>
+        </button>
+      </div>
+
+      <div style="flex-shrink: 0; display: flex; border-top: 0.5px solid #28282F; padding: 8px 0 6px; background: #0D0D10">
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 11.5L12 4l8 7.5M6 10.5v8a1 1 0 001 1h3v-5h4v5h3a1 1 0 001-1v-8" stroke="#72728A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span style="font-family: Inter, sans-serif; font-weight: 500; font-size: 8px; color: #72728A; letter-spacing: 0.5px">HOME</span>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="12" rx="1.5" stroke="#72728A" stroke-width="1.8"/><line x1="12" y1="6" x2="12" y2="18" stroke="#72728A" stroke-width="1.8"/><circle cx="12" cy="12" r="2.8" stroke="#72728A" stroke-width="1.8"/></svg>
+          <span style="font-family: Inter, sans-serif; font-weight: 500; font-size: 8px; color: #72728A; letter-spacing: 0.5px">COURTS</span>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="15" rx="1.5" stroke="#FF5500" stroke-width="1.8"/><line x1="4" y1="9.5" x2="20" y2="9.5" stroke="#FF5500" stroke-width="1.8"/><line x1="8" y1="3" x2="8" y2="6.5" stroke="#FF5500" stroke-width="1.8" stroke-linecap="round"/><line x1="16" y1="3" x2="16" y2="6.5" stroke="#FF5500" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span style="font-family: Inter, sans-serif; font-weight: 600; font-size: 8px; color: #FF5500; letter-spacing: 0.5px">SCHEDULE</span>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5" stroke="#72728A" stroke-width="1.8"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" stroke="#72728A" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span style="font-family: Inter, sans-serif; font-weight: 500; font-size: 8px; color: #72728A; letter-spacing: 0.5px">PROFILE</span>
+        </div>
+      </div>
+    </div>
+  </x-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { checkedIn: false };
+  renderVals() {
+    const on = this.state.checkedIn;
+    return {
+      ciLabel: on ? 'CHECKED IN' : 'CHECK IN',
+      toggleCheckIn: () => this.setState(s => ({ checkedIn: !s.checkedIn })),
+      ciButtonStyle: {
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+        padding: '14px 24px',
+        background: on ? 'rgba(255,85,0,0.12)' : '#FF5500',
+        border: on ? '1.5px solid #FF5500' : '1.5px solid transparent',
+        borderRadius: '3px',
+        color: on ? '#FF5500' : '#000',
+        fontFamily: 'Oswald, sans-serif', fontWeight: 700, fontSize: '13px', letterSpacing: '1.5px', textTransform: 'uppercase',
+        boxShadow: on ? '0 0 16px rgba(255,85,0,0.35)' : 'none',
+        transition: 'background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease, color 0.35s ease',
+        cursor: 'pointer',
+      },
+      ciCheckStyle: { stroke: on ? '#FF5500' : '#000', transition: 'stroke 0.35s ease' },
+    };
+  }
+}
+</script>
+</body>
+</html>

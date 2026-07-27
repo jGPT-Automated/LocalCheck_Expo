@@ -7,13 +7,19 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { AppState } from "react-native";
+import { AppState, Platform } from "react-native";
 
-import { Player } from "@/constants/data";
+import { Court, Player } from "@/constants/data";
+import { useAuth } from "@/context/AuthContext";
+import { useRealtimeHub } from "@/context/RealtimeHubContext";
+import {
+  batchHasResource,
+  marketTopic,
+  type RealtimeTopic,
+} from "@/lib/realtimeHub";
 import { fetchActiveCheckIns } from "@/services/checkInService";
 import { fetchLocals } from "@/services/profileService";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/context/AuthContext";
 
 /**
  * Single source of truth for live court presence.
@@ -39,31 +45,35 @@ export interface CourtCounts {
   localCount: number;
 }
 
+export type CourtCountTarget = Pick<Court, "id" | "market">;
+
 interface CourtPresenceValue {
   presence: Record<string, CourtPresence>;
   counts: Record<string, CourtCounts>;
   watch: (courtId: string) => () => void;
-  watchCounts: (courtIds: string[]) => () => void;
+  watchCounts: (courts: CourtCountTarget[]) => () => void;
   refreshCourt: (courtId: string) => Promise<void>;
   refreshAllWatched: () => Promise<void>;
 }
 
 const CourtPresenceContext = createContext<CourtPresenceValue | null>(null);
 
-const STALE_MS = 15_000;      // refetch on watch if older than this
-const EVENT_DEBOUNCE_MS = 300;
+const STALE_MS = 15_000; // refetch on watch if older than this
+const PRESENCE_RESOURCES = ["check_ins", "profiles"] as const;
 
 export function CourtPresenceProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
+  const realtimeHub = useRealtimeHub();
 
   const [presence, setPresence] = useState<Record<string, CourtPresence>>({});
   const [counts, setCounts] = useState<Record<string, CourtCounts>>({});
 
   // Ref-counted sets of what's on screen right now.
   const watchedRef = useRef<Map<string, number>>(new Map());
-  const countWatchedRef = useRef<Map<string, number>>(new Map());
-  const debounceRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const countWatchedRef = useRef<
+    Map<string, { refs: number; topic: RealtimeTopic }>
+  >(new Map());
   const presenceRef = useRef(presence);
   presenceRef.current = presence;
 
@@ -91,12 +101,13 @@ export function CourtPresenceProvider({ children }: { children: React.ReactNode 
   }, []);
 
   const refreshCounts = useCallback(async (courtIds: string[]) => {
-    if (courtIds.length === 0) return;
+    const uniqueIds = Array.from(new Set(courtIds.filter(Boolean)));
+    if (uniqueIds.length === 0) return;
     try {
       const { data, error } = await supabase
         .from("courts_with_stats")
         .select("id,active_check_in_count,local_player_count")
-        .in("id", courtIds);
+        .in("id", uniqueIds);
       if (error || !data) return;
       setCounts((prev) => {
         const next = { ...prev };
@@ -124,98 +135,55 @@ export function CourtPresenceProvider({ children }: { children: React.ReactNode 
     ]);
   }, [refreshCourt, refreshCounts]);
 
-  // Debounced per-court refresh so a burst of events costs one query.
-  const scheduleRefresh = useCallback(
-    (courtId: string) => {
-      const timers = debounceRef.current;
-      const existing = timers.get(courtId);
-      if (existing) clearTimeout(existing);
-      timers.set(
-        courtId,
-        setTimeout(() => {
-          timers.delete(courtId);
-          if (watchedRef.current.has(courtId)) {
-            refreshCourt(courtId);
-          } else if (countWatchedRef.current.has(courtId)) {
-            refreshCounts([courtId]);
-          }
-        }, EVENT_DEBOUNCE_MS)
-      );
-    },
-    [refreshCourt, refreshCounts]
-  );
-
-  // ─── Realtime, two tiers ───────────────────────────────────────────────────
-  // Tier 1 — rosters: one filtered `court:{id}` channel per court whose FULL
-  // roster is on screen (home hero, court page, court sheet). That's 1–3
-  // channels, ever.
-  // Tier 2 — counts: map/explore can have 250 courts in view; opening a
-  // filtered channel per marker meant 250 subscriptions per user (25k at 100
-  // users — the pattern Supabase says to avoid with postgres_changes). Instead
-  // ONE shared check_ins channel routes each event by its court_id to the
-  // debounced per-court refresh, and only courts actually watched get a query.
-  // Check-ins are low-frequency human actions, so the shared stream is cheap;
-  // if event volume ever grows, this one channel is the seam to swap for a
-  // court_metrics Broadcast.
-  const channelsRef = useRef(new Map<string, ReturnType<typeof supabase.channel>>());
+  // Roster views use exact court topics. Explore/map counts use one market
+  // topic (Houston, Austin, etc.) instead of one channel per marker. The hub
+  // deduplicates consumers and closes every channel in the background.
+  const courtStopsRef = useRef(new Map<string, () => void>());
+  const countTopicStopsRef = useRef(new Map<RealtimeTopic, () => void>());
 
   const ensureRosterChannel = useCallback(
     (courtId: string) => {
-      if (channelsRef.current.has(courtId)) return;
-      const channel = supabase
-        .channel(`court:${courtId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "check_ins",
-            filter: `court_id=eq.${courtId}`,
-          },
-          () => scheduleRefresh(courtId)
-        )
-        .subscribe();
-      channelsRef.current.set(courtId, channel);
+      if (courtStopsRef.current.has(courtId)) return;
+      const topic = `court:${courtId}` as RealtimeTopic;
+      const stop = realtimeHub.subscribe(topic, (batch) => {
+        if (batchHasResource(batch, PRESENCE_RESOURCES)) void refreshCourt(courtId);
+      });
+      courtStopsRef.current.set(courtId, stop);
     },
-    [scheduleRefresh]
+    [realtimeHub, refreshCourt]
   );
 
   const releaseChannelIfUnwatched = useCallback((courtId: string) => {
     if (watchedRef.current.has(courtId)) return;
-    const channel = channelsRef.current.get(courtId);
-    if (channel) {
-      channelsRef.current.delete(courtId);
-      supabase.removeChannel(channel);
-    }
+    const stop = courtStopsRef.current.get(courtId);
+    if (!stop) return;
+    courtStopsRef.current.delete(courtId);
+    stop();
   }, []);
 
-  // Shared counts stream (tier 2). Lives for the whole signed-in session; an
-  // event for a court nobody is watching is dropped without a query.
-  useEffect(() => {
-    if (!userId) return;
-    const channel = supabase
-      .channel("check-ins:counts")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "check_ins" },
-        (payload) => {
-          const changed = new Set<string>();
-          const newId = (payload.new as { court_id?: string } | null)?.court_id;
-          const oldId = (payload.old as { court_id?: string } | null)?.court_id;
-          if (newId) changed.add(String(newId));
-          if (oldId) changed.add(String(oldId));
-          for (const id of changed) {
-            // Roster-watched courts already refresh via their scoped channel.
-            if (watchedRef.current.has(id)) continue;
-            if (countWatchedRef.current.has(id)) scheduleRefresh(id);
-          }
-        }
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId, scheduleRefresh]);
+  const syncCountTopicSubscriptions = useCallback(() => {
+    const desiredTopics = new Set(
+      Array.from(countWatchedRef.current.values()).map((entry) => entry.topic)
+    );
+
+    for (const [topic, stop] of countTopicStopsRef.current) {
+      if (desiredTopics.has(topic)) continue;
+      countTopicStopsRef.current.delete(topic);
+      stop();
+    }
+
+    for (const topic of desiredTopics) {
+      if (countTopicStopsRef.current.has(topic)) continue;
+      const stop = realtimeHub.subscribe(topic, (batch) => {
+        if (!batchHasResource(batch, PRESENCE_RESOURCES)) return;
+        const ids = Array.from(countWatchedRef.current.entries())
+          .filter(([id, entry]) => entry.topic === topic && !watchedRef.current.has(id))
+          .map(([id]) => id);
+        if (ids.length > 0) void refreshCounts(ids);
+      });
+      countTopicStopsRef.current.set(topic, stop);
+    }
+  }, [realtimeHub, refreshCounts]);
 
   // ─── Watch registration (hooks call these) ─────────────────────────────────
   const watch = useCallback(
@@ -238,29 +206,37 @@ export function CourtPresenceProvider({ children }: { children: React.ReactNode 
   );
 
   const watchCounts = useCallback(
-    (courtIds: string[]) => {
+    (courts: CourtCountTarget[]) => {
       const map = countWatchedRef.current;
-      for (const id of courtIds) {
-        map.set(id, (map.get(id) ?? 0) + 1);
+      for (const court of courts) {
+        const existing = map.get(court.id);
+        const topic = marketTopic(court.market) ?? (`court:${court.id}` as RealtimeTopic);
+        map.set(court.id, { refs: (existing?.refs ?? 0) + 1, topic: existing?.topic ?? topic });
       }
-      refreshCounts(courtIds);
+      syncCountTopicSubscriptions();
+      void refreshCounts(courts.map((court) => court.id));
       return () => {
-        for (const id of courtIds) {
-          const n = (map.get(id) ?? 1) - 1;
-          if (n <= 0) map.delete(id);
-          else map.set(id, n);
+        for (const court of courts) {
+          const existing = map.get(court.id);
+          const refs = (existing?.refs ?? 1) - 1;
+          if (refs <= 0) map.delete(court.id);
+          else if (existing) map.set(court.id, { ...existing, refs });
         }
+        syncCountTopicSubscriptions();
       };
     },
-    [refreshCounts]
+    [refreshCounts, syncCountTopicSubscriptions]
   );
 
-  // Remove every channel when the provider unmounts (sign-out).
+  // Release every requested topic when the provider unmounts (sign-out).
   useEffect(() => {
-    const channels = channelsRef.current;
+    const courtStops = courtStopsRef.current;
+    const countStops = countTopicStopsRef.current;
     return () => {
-      channels.forEach((c) => supabase.removeChannel(c));
-      channels.clear();
+      courtStops.forEach((stop) => stop());
+      countStops.forEach((stop) => stop());
+      courtStops.clear();
+      countStops.clear();
     };
   }, []);
 
@@ -270,7 +246,17 @@ export function CourtPresenceProvider({ children }: { children: React.ReactNode 
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active") refreshAllWatched();
     });
-    return () => sub.remove();
+    let onVisible: (() => void) | undefined;
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      onVisible = () => {
+        if (document.visibilityState === "visible") void refreshAllWatched();
+      };
+      document.addEventListener("visibilitychange", onVisible);
+    }
+    return () => {
+      sub.remove();
+      if (onVisible) document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [userId, refreshAllWatched]);
 
   const value = useMemo(
@@ -315,16 +301,16 @@ export function usePresence(courtId: string | null | undefined): CourtPresence {
  * markers). One bulk query against courts_with_stats; realtime events on any
  * of these courts refresh their counts.
  */
-export function useCourtCounts(courtIds: string[]): Record<string, CourtCounts> {
+export function useCourtCounts(courts: CourtCountTarget[]): Record<string, CourtCounts> {
   const ctx = useContext(CourtPresenceContext);
   if (!ctx) throw new Error("useCourtCounts must be used within CourtPresenceProvider");
   const { counts, watchCounts } = ctx;
 
-  const key = courtIds.join(",");
+  const key = JSON.stringify(courts.map(({ id, market }) => ({ id, market })));
   useEffect(() => {
-    const ids = key ? key.split(",") : [];
-    if (ids.length === 0) return;
-    return watchCounts(ids);
+    const targets = JSON.parse(key) as CourtCountTarget[];
+    if (targets.length === 0) return;
+    return watchCounts(targets);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, watchCounts]);
 

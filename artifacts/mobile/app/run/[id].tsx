@@ -10,6 +10,8 @@ import { Colors, Radius } from "@/constants/colors";
 import { getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { useRealtimeHub } from "@/context/RealtimeHubContext";
+import { batchHasResource, type RealtimeTopic } from "@/lib/realtimeHub";
 import { updateScheduledGame } from "@/services/scheduledGameService";
 
 const RUN_SIZES = [4, 6, 8, 10];
@@ -17,11 +19,19 @@ const RUN_SIZES = [4, 6, 8, 10];
 export default function RunScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { runs, joinRun, currentUser, refreshRuns } = useApp();
+  const realtimeHub = useRealtimeHub();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    return realtimeHub.subscribe(`run:${id}` as RealtimeTopic, (batch) => {
+      if (batchHasResource(batch, ["runs", "run_participants"])) void refreshRuns();
+    });
+  }, [id, realtimeHub, refreshRuns]);
 
   const run = runs.find((r) => r.id === id);
   if (!run) {

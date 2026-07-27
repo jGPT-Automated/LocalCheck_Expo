@@ -633,16 +633,20 @@ export default function ScheduleScreen() {
     plannedVisits,
     currentUser,
     refreshRuns,
-    addPlannedVisit,
     removePlannedVisit,
+    savePlannedVisitBatch,
   } = useApp();
   const { bottom } = useSafeAreaInsets();
 
   const [showHost, setShowHost] = useState(false);
-  const [showPlan, setShowPlan] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [pickedCourt, setPickedCourt] = useState<Court | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<{ day: number; slot: number } | null>(null);
+  const [scheduleMode, setScheduleMode] = useState<"VIEW" | "EDIT">("VIEW");
+  const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
+  const [editVisibility, setEditVisibility] = useState<Visibility>("public");
+  const [savingTimes, setSavingTimes] = useState(false);
+  const [saveTimesFailed, setSaveTimesFailed] = useState(false);
   // Anonymous planned-time counts per slot (from court_planned_times RPC):
   // includes friends-only/private plans so heatmap intensity is honest without
   // exposing who they are.
@@ -775,6 +779,18 @@ export default function ScheduleScreen() {
     [slotMap, slotHidden]
   );
 
+  const myVisitsByKey = useMemo(() => {
+    const map = new Map<string, PlannedVisit[]>();
+    if (!court) return map;
+    for (const visit of plannedVisits) {
+      if (visit.courtId !== court.id || visit.userId !== currentUser.id) continue;
+      const key = bucketKey(visit.plannedAtIso);
+      if (!key) continue;
+      map.set(key, [...(map.get(key) ?? []), visit]);
+    }
+    return map;
+  }, [court, plannedVisits, currentUser.id, bucketKey]);
+
   // All upcoming runs for this court (runs can be scheduled beyond the rolling
   // week — they surface here, not on the heatmap).
   const courtRuns = useMemo(() => {
@@ -795,21 +811,62 @@ export default function ScheduleScreen() {
     return null;
   };
 
+  const beginEditingTimes = () => {
+    setPendingKeys(new Set(myVisitsByKey.keys()));
+    setSelectedSlot(null);
+    setSaveTimesFailed(false);
+    setScheduleMode("EDIT");
+  };
+
+  const cancelEditingTimes = () => {
+    setPendingKeys(new Set());
+    setSaveTimesFailed(false);
+    setScheduleMode("VIEW");
+  };
+
+  const togglePendingKey = (key: string) => {
+    setPendingKeys((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+    setSaveTimesFailed(false);
+  };
+
+  const saveMyTimes = async () => {
+    if (!court || savingTimes) return;
+    const additions = Array.from(pendingKeys)
+      .filter((key) => !myVisitsByKey.has(key))
+      .map((key) => {
+        const [day, slot] = key.split(":").map(Number);
+        const date = new Date(weekDays[day]);
+        date.setHours(SLOT_HOURS[slot], 0, 0, 0);
+        return date.toISOString();
+      })
+      .filter((iso) => new Date(iso).getTime() > Date.now());
+    const removals = Array.from(myVisitsByKey.entries())
+      .filter(([key]) => !pendingKeys.has(key))
+      .flatMap(([, visits]) => visits.map((visit) => visit.id));
+
+    setSavingTimes(true);
+    setSaveTimesFailed(false);
+    const ok = await savePlannedVisitBatch(court.id, additions, removals, editVisibility);
+    setSavingTimes(false);
+    if (!ok) {
+      setSaveTimesFailed(true);
+      return;
+    }
+    setScheduleMode("VIEW");
+    setPendingKeys(new Set());
+  };
+
   const todayKey = new Date().toDateString();
 
   return (
     <View style={styles.container}>
       <ScreenHeader
         title="SCHEDULE"
-        right={
-          <Pressable
-            onPress={() => router.push(`/player/${currentUser.id}`)}
-            accessibilityLabel="My profile"
-            style={{ marginBottom: 2 }}
-          >
-            <PlayerAvatar initials={currentUser.avatar} size={34} />
-          </Pressable>
-        }
       />
 
       <ScrollView
@@ -830,6 +887,49 @@ export default function ScheduleScreen() {
           <Text style={styles.weekLabel}>{weekLabel}</Text>
           <Text style={styles.weekTag}>NEXT 7 DAYS</Text>
         </View>
+
+        <View style={styles.scheduleModeRow}>
+          <View style={styles.scheduleModeToggle} accessibilityRole="tablist">
+            {(["VIEW", "EDIT"] as const).map((mode) => (
+              <Pressable
+                key={mode}
+                style={[styles.scheduleModeButton, scheduleMode === mode && styles.scheduleModeButtonActive]}
+                onPress={() => mode === "EDIT" ? beginEditingTimes() : cancelEditingTimes()}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: scheduleMode === mode }}
+                accessibilityLabel={`${mode === "EDIT" ? "Edit" : "View"} my times`}
+              >
+                <Text style={[styles.scheduleModeText, scheduleMode === mode && styles.scheduleModeTextActive]}>
+                  {mode}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.scheduleModeStatus}>
+            {scheduleMode === "EDIT" ? `${pendingKeys.size} SELECTED` : "TAP A TIME TO SEE WHO'S GOING"}
+          </Text>
+        </View>
+
+        {scheduleMode === "EDIT" ? (
+          <View style={styles.editOptions}>
+            <Text style={styles.editOptionsLabel}>NEW TIMES VISIBLE TO</Text>
+            <View style={styles.editVisibilityRow}>
+              {VISIBILITY_OPTIONS.map((option) => (
+                <Pressable
+                  key={option.value}
+                  onPress={() => setEditVisibility(option.value)}
+                  style={[styles.editVisibilityButton, editVisibility === option.value && styles.editVisibilityButtonActive]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: editVisibility === option.value }}
+                >
+                  <Text style={[styles.editVisibilityText, editVisibility === option.value && styles.editVisibilityTextActive]}>
+                    {option.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ) : null}
 
         {/* ── Heatmap ── */}
         <View style={styles.heatmap}>
@@ -856,20 +956,42 @@ export default function ScheduleScreen() {
                 <Text style={styles.heatTimeText}>{slotLabel(h)}</Text>
               </View>
               {weekDays.map((_, dayIdx) => {
-                const count = slotTotal(`${dayIdx}:${slotIdx}`);
+                const key = `${dayIdx}:${slotIdx}`;
+                const count = slotTotal(key);
                 const isSelected =
                   selectedSlot?.day === dayIdx && selectedSlot?.slot === slotIdx;
+                const isMinePending = pendingKeys.has(key);
+                const wasMine = myVisitsByKey.has(key);
+                const previewCount = scheduleMode === "EDIT"
+                  ? Math.max(0, count + (isMinePending && !wasMine ? 1 : 0) - (!isMinePending && wasMine ? 1 : 0))
+                  : count;
+                const slotDate = new Date(weekDays[dayIdx]);
+                slotDate.setHours(SLOT_HOURS[slotIdx], 0, 0, 0);
+                const isPast = slotDate.getTime() <= Date.now();
                 return (
                   <Pressable
                     key={dayIdx}
-                    style={[styles.heatCell, heatStyle(count), isSelected && styles.heatCellSelected]}
-                    onPress={() =>
-                      setSelectedSlot(isSelected ? null : { day: dayIdx, slot: slotIdx })
+                    style={[
+                      styles.heatCell,
+                      heatStyle(previewCount),
+                      isSelected && styles.heatCellSelected,
+                      scheduleMode === "EDIT" && isMinePending && styles.heatCellMine,
+                      scheduleMode === "EDIT" && isPast && !isMinePending && styles.heatCellDisabled,
+                    ]}
+                    onPress={() => scheduleMode === "EDIT"
+                      ? togglePendingKey(key)
+                      : setSelectedSlot(isSelected ? null : { day: dayIdx, slot: slotIdx })
                     }
+                    disabled={scheduleMode === "EDIT" && isPast && !isMinePending}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${DAYS[weekDays[dayIdx].getDay()]} ${weekDays[dayIdx].getDate()}, ${slotLabel(SLOT_HOURS[slotIdx])}, ${previewCount} going${isMinePending ? ", selected as my time" : ""}`}
+                    accessibilityState={{ selected: scheduleMode === "EDIT" ? isMinePending : isSelected, disabled: scheduleMode === "EDIT" && isPast && !isMinePending }}
                     testID={`heat-${dayIdx}-${slotIdx}`}
                   >
-                    {(isSelected || count >= 5) && count > 0 ? (
-                      <Text style={styles.heatCellCount}>{count}</Text>
+                    {scheduleMode === "EDIT" && isMinePending ? (
+                      <Feather name="check" size={13} color={Colors.text} />
+                    ) : (isSelected || previewCount >= 5) && previewCount > 0 ? (
+                      <Text style={styles.heatCellCount}>{previewCount}</Text>
                     ) : null}
                   </Pressable>
                 );
@@ -891,7 +1013,7 @@ export default function ScheduleScreen() {
         </View>
 
         {/* ── Selected slot detail ── */}
-        {selectedSlot && selectedDate && selectedKey && (() => {
+        {scheduleMode === "VIEW" && selectedSlot && selectedDate && selectedKey && (() => {
           const total = slotTotal(selectedKey);
           const hidden = slotHidden(selectedKey);
           const visible = selectedEntry?.attendees ?? [];
@@ -998,15 +1120,36 @@ export default function ScheduleScreen() {
 
       {/* ── Bottom actions ── */}
       <View style={[styles.bottomBar, { paddingBottom: (Platform.OS === "web" ? 84 : bottom + 84) }]}>
-        <Pressable style={styles.bottomBtn} onPress={() => setShowHost(true)} testID="host-run-add-btn">
-          <Feather name="plus" size={14} color={Colors.text} />
-          <Text style={styles.bottomBtnText}>CREATE RUN</Text>
-        </Pressable>
-        <Pressable style={styles.bottomBtn} onPress={() => setShowPlan(true)} testID="plan-visit-btn">
-          <Feather name="clock" size={14} color={Colors.text} />
-          <Text style={styles.bottomBtnText}>MY TIMES</Text>
-        </Pressable>
+        {scheduleMode === "EDIT" ? (
+          <>
+            <Pressable style={styles.bottomBtn} onPress={cancelEditingTimes} testID="cancel-edit-times-btn">
+              <Text style={styles.bottomBtnText}>CANCEL</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.bottomBtn, styles.bottomBtnPrimary, savingTimes && styles.bottomBtnDisabled]}
+              onPress={saveMyTimes}
+              disabled={savingTimes}
+              testID="save-edit-times-btn"
+            >
+              <Feather name="check" size={14} color={Colors.black} />
+              <Text style={styles.bottomBtnPrimaryText}>
+                {savingTimes ? "SAVING…" : `SAVE ${pendingKeys.size} TIME${pendingKeys.size === 1 ? "" : "S"}`}
+              </Text>
+            </Pressable>
+          </>
+        ) : (
+          <Pressable style={styles.bottomBtn} onPress={() => setShowHost(true)} testID="host-run-add-btn">
+            <Feather name="plus" size={14} color={Colors.text} />
+            <Text style={styles.bottomBtnText}>CREATE RUN</Text>
+          </Pressable>
+        )}
       </View>
+
+      {saveTimesFailed ? (
+        <View style={[styles.saveTimesError, { bottom: (Platform.OS === "web" ? 148 : bottom + 148) }]}>
+          <Text style={styles.saveTimesErrorText}>SOME TIMES DIDN'T SAVE. YOUR SELECTIONS ARE STILL HERE. TRY AGAIN.</Text>
+        </View>
+      ) : null}
 
       <HostRunModal
         visible={showHost}
@@ -1014,14 +1157,6 @@ export default function ScheduleScreen() {
         defaultCourt={court}
         organizerId={currentUser.id}
         onCreated={refreshRuns}
-      />
-
-      <PlanVisitModal
-        visible={showPlan}
-        onClose={() => setShowPlan(false)}
-        defaultCourt={court}
-        defaultDayIndex={selectedSlot ? selectedSlot.day : 0}
-        onSubmit={addPlannedVisit}
       />
 
       <CourtPickerModal
@@ -1075,6 +1210,72 @@ const styles = StyleSheet.create({
     color: Colors.muted,
     letterSpacing: 1.5,
   },
+  scheduleModeRow: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    gap: 8,
+  },
+  scheduleModeToggle: {
+    minHeight: 38,
+    flexDirection: "row",
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.surface,
+    overflow: "hidden",
+  },
+  scheduleModeButton: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  scheduleModeButtonActive: { backgroundColor: Colors.surfaceHigh },
+  scheduleModeText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.muted,
+    letterSpacing: 1.5,
+  },
+  scheduleModeTextActive: { color: Colors.text },
+  scheduleModeStatus: {
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 9,
+    color: Colors.textSecondary,
+    letterSpacing: 1,
+  },
+  editOptions: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surface,
+    gap: 8,
+  },
+  editOptionsLabel: {
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 9,
+    color: Colors.textSecondary,
+    letterSpacing: 1.2,
+  },
+  editVisibilityRow: { flexDirection: "row", gap: 4 },
+  editVisibilityButton: {
+    flex: 1,
+    minHeight: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+  },
+  editVisibilityButtonActive: { backgroundColor: Colors.surfaceHigh, borderColor: Colors.textSecondary },
+  editVisibilityText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 8,
+    color: Colors.muted,
+    letterSpacing: 1,
+  },
+  editVisibilityTextActive: { color: Colors.text },
   visibilityHint: {
     fontFamily: Typography.body,
     fontSize: 11,
@@ -1137,6 +1338,8 @@ const styles = StyleSheet.create({
   heatMid: { backgroundColor: Colors.accentGlow, borderColor: Colors.borderSubtle },
   heatHigh: { backgroundColor: Colors.accent, borderColor: Colors.accent },
   heatCellSelected: { borderColor: Colors.white, borderWidth: 1.5 },
+  heatCellMine: { borderColor: Colors.text, borderWidth: 2 },
+  heatCellDisabled: { opacity: 0.34 },
   heatCellCount: {
     fontFamily: Typography.heading,
     fontSize: 12,
@@ -1313,6 +1516,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.text,
     letterSpacing: 1.5,
+  },
+  bottomBtnPrimary: { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  bottomBtnDisabled: { opacity: 0.56 },
+  bottomBtnPrimaryText: {
+    fontFamily: Typography.heading,
+    fontSize: 11,
+    color: Colors.black,
+    letterSpacing: 1.3,
+  },
+  saveTimesError: {
+    position: "absolute",
+    left: 20,
+    right: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: Colors.loss,
+    backgroundColor: Colors.background,
+  },
+  saveTimesErrorText: {
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 10,
+    color: Colors.loss,
+    lineHeight: 14,
+    letterSpacing: 0.5,
   },
 
   // ── Court picker ──

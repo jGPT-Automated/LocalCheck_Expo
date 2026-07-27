@@ -31,18 +31,29 @@ shipped to the client, so only ever put **publishable/anon** values here.
 | `EXPO_PUBLIC_SUPABASE_URL` | public | `https://qkrnmyexzvaxiqfxwwfb.supabase.co` |
 | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | public (anon) | Supabase → Project Settings → API → publishable/anon key |
 | `EXPO_PUBLIC_MAPBOX_TOKEN` | public token | Mapbox public (`pk.…`) token, if maps are used |
+| `MAPBOX_DOWNLOADS_TOKEN` | secret | Mapbox secret (`sk.…`) token with `Downloads:Read`; native SDK download during EAS build |
+| `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` | secret compatibility name | Same scoped Mapbox download credential, retained for RN Mapbox build tooling compatibility |
 
 **Where to set them:**
-- **Local:** `artifacts/mobile/.env` (copy from `.env.example`).
+- **Local:** `artifacts/mobile/.env` (copy from `.env.example`) for public runtime values only.
 - **Builds/CI:** as **EAS environment variables** on the `production` environment
   (Expo dashboard → project → Environment variables, or `eas env:create`). The
   production build reads these; without them the app can't reach Supabase.
+- The successful build-9 setup stores all five variables in Expo's development,
+  preview, and production environments. Both Mapbox download names are secret.
 
 **Which are actually required (verified against the code):**
 - `EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — **required.**
   Read in `lib/supabase.ts`; without them every query/auth call fails.
-- `EXPO_PUBLIC_MAPBOX_TOKEN` — **optional.** Read in `MapScreen.tsx` /
-  `MapScreen.web.tsx`; missing ⇒ "MAPBOX KEY NEEDED" placeholder, rest of app works.
+- `EXPO_PUBLIC_MAPBOX_TOKEN` — **required for the production map experience.**
+  Read at runtime for map tiles/styles.
+- `MAPBOX_DOWNLOADS_TOKEN` — **required for native builds.** `app.config.js`
+  passes it to `@rnmapbox/maps` as `RNMapboxMapsDownloadToken`. Missing or
+  incorrectly scoped credentials caused MapboxCommon HTTP 403 during the
+  pre-build-9 workflow.
+- `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` — compatibility variable retained in Expo.
+  The current app config directly reads `MAPBOX_DOWNLOADS_TOKEN`; do not remove
+  either name from the proven build environment without a successful replacement build.
 
 **Legacy vars — do NOT set for the production iOS app:** `EXPO_PUBLIC_DOMAIN`,
 `EXPO_PUBLIC_REPL_ID`, `REPLIT_*`, `BASE_PATH`, `PORT`. They only drive the old

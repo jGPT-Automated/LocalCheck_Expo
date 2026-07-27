@@ -26,6 +26,7 @@ import { Colors } from "@/constants/colors";
 import { AppProvider } from "@/context/AppContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { CourtPresenceProvider } from "@/context/CourtPresenceContext";
+import { RealtimeHubProvider } from "@/context/RealtimeHubContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -68,7 +69,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * The entire data layer (presence realtime, app polling, court drawer) only
+ * The entire data layer (scoped Realtime, authoritative fetches, court drawer) only
  * exists while a session exists. Signed out ⇒ zero Supabase traffic — the
  * 2026-07-19 outage was unauthenticated web previews polling forever because
  * AppProvider lived outside the auth gate.
@@ -77,11 +78,13 @@ function DataProviders({ children }: { children: React.ReactNode }) {
   const { session } = useAuth();
   if (!session) return <>{children}</>;
   return (
-    <CourtPresenceProvider>
-      <AppProvider>
-        <CourtSheetProvider>{children}</CourtSheetProvider>
-      </AppProvider>
-    </CourtPresenceProvider>
+    <RealtimeHubProvider>
+      <CourtPresenceProvider>
+        <AppProvider>
+          <CourtSheetProvider>{children}</CourtSheetProvider>
+        </AppProvider>
+      </CourtPresenceProvider>
+    </RealtimeHubProvider>
   );
 }
 

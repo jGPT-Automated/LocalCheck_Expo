@@ -44,6 +44,8 @@ export interface Court {
   neighborhood: string;
   city: string;
   address: string;
+  /** Canonical Supabase market name (for example, "Houston"). */
+  market?: string;
   latitude: number;
   longitude: number;
   activeCount: number;
@@ -181,5 +183,19 @@ export function getSportColor(sport: CourtSport): string {
     case "TENNIS": return "#FFE135";
     case "SOCCER": return "#4ECDC4";
     case "VOLLEYBALL": return "#A855F7";
+  }
+}
+
+/**
+ * Court identity art uses a quieter blue/green system while orange remains
+ * reserved for live state and primary actions.
+ */
+export function getCourtIdentityColor(sport: CourtSport): string {
+  switch (sport) {
+    case "BASKETBALL": return "#6F8FEA";
+    case "PICKLEBALL": return "#58C9A3";
+    case "TENNIS": return "#D4C75A";
+    case "SOCCER": return "#57B8B2";
+    case "VOLLEYBALL": return "#A477D3";
   }
 }

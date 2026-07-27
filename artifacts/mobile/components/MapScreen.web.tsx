@@ -3,18 +3,19 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AddCourtModal } from "@/components/AddCourtModal";
-import { CourtListItem } from "@/components/CourtListItem";
 import { useCourtSheet } from "@/components/sheet/CourtSheetHost";
 import { Colors } from "@/constants/colors";
-import { Court, getSportColor } from "@/constants/data";
+import {
+  Court,
+  CourtSport,
+  getCourtIdentityColor,
+} from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts } from "@/context/CourtPresenceContext";
@@ -29,115 +30,104 @@ declare global {
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN ?? "";
 const HAS_TOKEN = MAPBOX_TOKEN && MAPBOX_TOKEN !== "YOUR_MAPBOX_TOKEN_HERE";
 
-function buildPinElement(court: Court, isSelected: boolean): HTMLElement {
-  const isCommunity = court.status === "community";
-  const isConfirmed = court.status === "confirmed";
-  const isPending = court.status === "pending";
-  const isActive = court.activeCount > 0;
-  const sportColor = getSportColor(court.sport);
+const SOURCE_ID = "explore-courts";
+const CLUSTER_LAYER_ID = "explore-court-clusters";
+const CLUSTER_COUNT_LAYER_ID = "explore-court-cluster-count";
+const QUIET_GLOW_LAYER_ID = "explore-court-quiet-glow";
+const QUIET_LAYER_ID = "explore-court-quiet";
+const ACTIVE_GLOW_LAYER_ID = "explore-court-active-glow";
+const ACTIVE_LAYER_ID = "explore-court-active";
+const ACTIVE_COUNT_LAYER_ID = "explore-court-active-count";
+const LOCAL_RING_LAYER_ID = "explore-court-local-ring";
 
-  const wrapper = document.createElement("div");
-  wrapper.style.cssText = `
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    position: relative;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-    ${isCommunity
-      ? `border: 2px solid ${Colors.accent}; background: ${Colors.accent};`
-      : isConfirmed
-      ? `border: 2px solid rgba(255,255,255,0.75); background: rgba(13,13,16,0.88);`
-      : `border: 2px dashed rgba(255,255,255,0.25); background: rgba(13,13,16,0.5);`
-    }
-    ${isSelected
-      ? `border: 2.5px solid #fff; background: #fff; transform: scale(1.25);`
-      : isActive && !isCommunity
-      ? `box-shadow: 0 0 10px rgba(255,85,0,0.6); border-color: ${Colors.accent};`
-      : ""
-    }
-  `;
-
-  if (isActive) {
-    const countEl = document.createElement("div");
-    countEl.style.cssText = `
-      font-family: 'Oswald', sans-serif;
-      font-size: 13px;
-      font-weight: 700;
-      line-height: 1;
-      color: ${isCommunity || isSelected ? "#000" : "#fff"};
-    `;
-    countEl.textContent = String(court.activeCount);
-    wrapper.appendChild(countEl);
-
-    const dot = document.createElement("div");
-    dot.style.cssText = `
-      position: absolute;
-      top: -2px; right: -2px;
-      width: 8px; height: 8px; border-radius: 50%;
-      background: ${sportColor};
-      border: 1.5px solid #0d0d10;
-      animation: pulse 2s infinite;
-    `;
-    wrapper.appendChild(dot);
-  } else {
-    const sportDot = document.createElement("div");
-    sportDot.style.cssText = `
-      width: 10px; height: 10px; border-radius: 50%;
-      background: ${sportColor};
-      opacity: ${isPending ? 0.35 : 1};
-    `;
-    wrapper.appendChild(sportDot);
-  }
-
-  return wrapper;
+function buildCourtGeoJSON(courts: Court[], localCourtId: string | null) {
+  return {
+    type: "FeatureCollection" as const,
+    features: courts.map((court) => ({
+      type: "Feature" as const,
+      id: court.id,
+      geometry: {
+        type: "Point" as const,
+        coordinates: [court.longitude, court.latitude],
+      },
+      properties: {
+        id: court.id,
+        active: court.activeCount ?? 0,
+        confirmed: court.status === "confirmed",
+        isLocal: court.id === localCourtId,
+        sportColor: getCourtIdentityColor(court.sport),
+      },
+    })),
+  };
 }
 
 function MapboxMap({
   courts,
   onCourtSelect,
-  selectedId,
-  onAddCourt,
   onBoundsChange,
+  initialCenter,
+  localCourtId,
 }: {
   courts: Court[];
   onCourtSelect: (c: Court) => void;
-  selectedId: string | null;
-  onAddCourt: () => void;
   onBoundsChange?: (sw: { lat: number; lng: number }, ne: { lat: number; lng: number }) => void;
+  initialCenter: [number, number];
+  localCourtId: string | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
-  const markersRef = useRef<Map<string, any>>(new Map());
+  const onBoundsChangeRef = useRef(onBoundsChange);
+  const onCourtSelectRef = useRef(onCourtSelect);
+  const courtsRef = useRef(courts);
   const [mapReady, setMapReady] = useState(false);
   const overlayOpacity = useRef(new Animated.Value(1)).current;
+
+  onBoundsChangeRef.current = onBoundsChange;
+  onCourtSelectRef.current = onCourtSelect;
+  courtsRef.current = courts;
 
   useEffect(() => {
     if (!HAS_TOKEN || !containerRef.current) return;
 
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = "https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css";
-    document.head.appendChild(link);
+    let cancelled = false;
+    const cssId = "localcheck-mapbox-css";
+    if (!document.getElementById(cssId)) {
+      const link = document.createElement("link");
+      link.id = cssId;
+      link.rel = "stylesheet";
+      link.href = "https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css";
+      document.head.appendChild(link);
+    }
 
-    const animStyle = document.createElement("style");
-    animStyle.textContent = `@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(1.8)} }`;
-    document.head.appendChild(animStyle);
+    const controlStyleId = "localcheck-mapbox-controls";
+    if (!document.getElementById(controlStyleId)) {
+      const controlStyle = document.createElement("style");
+      controlStyle.id = controlStyleId;
+      controlStyle.textContent = `
+        .mapboxgl-ctrl-group {
+          background: rgba(13,13,15,0.75) !important;
+          border-radius: 0 !important;
+          border: 1px solid rgba(255,255,255,0.08) !important;
+          backdrop-filter: blur(8px);
+        }
+        .mapboxgl-ctrl button { background-color: transparent !important; }
+        .mapboxgl-ctrl button .mapboxgl-ctrl-icon { filter: invert(0.6) !important; }
+        .mapboxgl-ctrl button:hover .mapboxgl-ctrl-icon { filter: invert(1) !important; }
+        .mapboxgl-ctrl-top-right { top: 178px !important; right: 12px !important; }
+      `;
+      document.head.appendChild(controlStyle);
+    }
 
-    const script = document.createElement("script");
-    script.src = "https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js";
-    script.onload = () => {
+    const bootMap = () => {
+      if (cancelled || !containerRef.current || mapRef.current) return;
       const mapboxgl = window.mapboxgl;
       mapboxgl.accessToken = MAPBOX_TOKEN;
 
       const map = new mapboxgl.Map({
         container: containerRef.current,
         style: "mapbox://styles/mapbox/dark-v11",
-        center: [-73.97, 40.76],
-        zoom: 11,
+        center: initialCenter,
+        zoom: 12.5,
         attributionControl: false,
       });
 
@@ -149,40 +139,152 @@ function MapboxMap({
         trackUserLocation: true,
       }), "top-right");
 
-      const controlStyle = document.createElement("style");
-      controlStyle.textContent = `
-        .mapboxgl-ctrl-group {
-          background: rgba(13,13,15,0.75) !important;
-          border-radius: 0 !important;
-          border: 1px solid rgba(255,255,255,0.08) !important;
-          backdrop-filter: blur(8px);
-        }
-        .mapboxgl-ctrl button {
-          background-color: transparent !important;
-        }
-        .mapboxgl-ctrl button .mapboxgl-ctrl-icon {
-          filter: invert(0.6) !important;
-        }
-        .mapboxgl-ctrl button:hover .mapboxgl-ctrl-icon {
-          filter: invert(1) !important;
-        }
-        .mapboxgl-ctrl-top-right {
-          top: 178px !important;
-          right: 12px !important;
-        }
-      `;
-      document.head.appendChild(controlStyle);
-
       const emitBounds = () => {
         const b = map.getBounds();
-        onBoundsChange?.(
+        onBoundsChangeRef.current?.(
           { lat: b.getSouth(), lng: b.getWest() },
           { lat: b.getNorth(), lng: b.getEast() }
         );
       };
 
       map.on("load", () => {
+        if (cancelled) return;
         mapRef.current = map;
+
+        map.addSource(SOURCE_ID, {
+          type: "geojson",
+          data: buildCourtGeoJSON(courtsRef.current, localCourtId),
+          cluster: true,
+          clusterRadius: 46,
+          clusterMaxZoom: 13,
+        });
+        map.addLayer({
+          id: CLUSTER_LAYER_ID,
+          type: "circle",
+          source: SOURCE_ID,
+          filter: ["has", "point_count"],
+          paint: {
+            "circle-color": Colors.surfaceHigh,
+            "circle-radius": ["step", ["get", "point_count"], 15, 25, 19, 100, 24],
+            "circle-stroke-width": 1.5,
+            "circle-stroke-color": Colors.accent,
+            "circle-opacity": 0.94,
+          },
+        });
+        map.addLayer({
+          id: CLUSTER_COUNT_LAYER_ID,
+          type: "symbol",
+          source: SOURCE_ID,
+          filter: ["has", "point_count"],
+          layout: {
+            "text-field": ["get", "point_count_abbreviated"],
+            "text-size": 12,
+            "text-allow-overlap": true,
+          },
+          paint: { "text-color": Colors.text },
+        });
+        map.addLayer({
+          id: QUIET_GLOW_LAYER_ID,
+          type: "circle",
+          source: SOURCE_ID,
+          filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "active"], 0]],
+          paint: {
+            "circle-color": ["get", "sportColor"],
+            "circle-radius": 15,
+            "circle-opacity": 0.14,
+            "circle-blur": 0.7,
+          },
+        });
+        map.addLayer({
+          id: QUIET_LAYER_ID,
+          type: "circle",
+          source: SOURCE_ID,
+          filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "active"], 0]],
+          paint: {
+            "circle-color": ["get", "sportColor"],
+            "circle-radius": 7,
+            "circle-stroke-width": 1.75,
+            "circle-stroke-color": Colors.text,
+            "circle-opacity": ["case", ["get", "confirmed"], 0.95, 0.68],
+          },
+        });
+        map.addLayer({
+          id: ACTIVE_GLOW_LAYER_ID,
+          type: "circle",
+          source: SOURCE_ID,
+          filter: ["all", ["!", ["has", "point_count"]], [">", ["get", "active"], 0]],
+          paint: {
+            "circle-color": Colors.accent,
+            "circle-radius": 20,
+            "circle-opacity": 0.24,
+            "circle-blur": 0.85,
+          },
+        });
+        map.addLayer({
+          id: ACTIVE_LAYER_ID,
+          type: "circle",
+          source: SOURCE_ID,
+          filter: ["all", ["!", ["has", "point_count"]], [">", ["get", "active"], 0]],
+          paint: {
+            "circle-color": Colors.accent,
+            "circle-radius": 12,
+            "circle-stroke-width": 1.5,
+            "circle-stroke-color": Colors.background,
+          },
+        });
+        map.addLayer({
+          id: ACTIVE_COUNT_LAYER_ID,
+          type: "symbol",
+          source: SOURCE_ID,
+          filter: ["all", ["!", ["has", "point_count"]], [">", ["get", "active"], 0]],
+          layout: {
+            "text-field": ["to-string", ["get", "active"]],
+            "text-size": 12,
+            "text-allow-overlap": true,
+          },
+          paint: { "text-color": Colors.black },
+        });
+        map.addLayer({
+          id: LOCAL_RING_LAYER_ID,
+          type: "circle",
+          source: SOURCE_ID,
+          filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "isLocal"], true]],
+          paint: {
+            "circle-color": "rgba(0,0,0,0)",
+            "circle-radius": 17,
+            "circle-stroke-width": 2,
+            "circle-stroke-color": Colors.text,
+          },
+        });
+
+        map.on("click", CLUSTER_LAYER_ID, (event: any) => {
+          const feature = map.queryRenderedFeatures(event.point, { layers: [CLUSTER_LAYER_ID] })[0];
+          if (!feature) return;
+          const source = map.getSource(SOURCE_ID);
+          source.getClusterExpansionZoom(feature.properties.cluster_id, (error: Error | null, zoom: number) => {
+            if (error) return;
+            map.easeTo({ center: feature.geometry.coordinates, zoom, duration: 450, essential: true });
+          });
+        });
+        const selectCourt = (event: any) => {
+          const feature = event.features?.[0];
+          const court = courtsRef.current.find((item) => item.id === feature?.properties?.id);
+          if (!court) return;
+          onCourtSelectRef.current(court);
+          map.easeTo({
+            center: [court.longitude, court.latitude],
+            zoom: Math.max(map.getZoom(), 14),
+            duration: 550,
+            essential: true,
+          });
+        };
+        map.on("click", QUIET_LAYER_ID, selectCourt);
+        map.on("click", ACTIVE_LAYER_ID, selectCourt);
+        [CLUSTER_LAYER_ID, QUIET_LAYER_ID, ACTIVE_LAYER_ID].forEach((layerId) => {
+          map.on("mouseenter", layerId, () => { map.getCanvas().style.cursor = "pointer"; });
+          map.on("mouseleave", layerId, () => { map.getCanvas().style.cursor = ""; });
+        });
+
         setMapReady(true);
         emitBounds();
         map.on("moveend", emitBounds);
@@ -193,55 +295,40 @@ function MapboxMap({
         }).start();
       });
     };
-    document.head.appendChild(script);
+
+    let script: HTMLScriptElement | null = null;
+    if (window.mapboxgl) {
+      bootMap();
+    } else {
+      script = document.createElement("script");
+      script.src = "https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js";
+      script.onload = bootMap;
+      document.head.appendChild(script);
+    }
 
     return () => {
+      cancelled = true;
       mapRef.current?.remove();
-      document.head.removeChild(link);
+      mapRef.current = null;
+      if (script?.parentNode) script.parentNode.removeChild(script);
     };
   }, []);
 
   useEffect(() => {
-    if (!mapReady || !mapRef.current || !HAS_TOKEN) return;
-    const mapboxgl = window.mapboxgl;
-
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current.clear();
-
-    courts.forEach((court) => {
-      const isSelected = court.id === selectedId;
-      const el = buildPinElement(court, isSelected);
-
-      el.onmouseenter = () => {
-        if (!isSelected) {
-          el.style.transform = "scale(1.15)";
-          el.style.zIndex = "10";
-        }
-      };
-      el.onmouseleave = () => {
-        if (!isSelected) {
-          el.style.transform = "scale(1)";
-          el.style.zIndex = "1";
-        }
-      };
-      el.onclick = (e) => {
-        e.stopPropagation();
-        onCourtSelect(court);
-        mapRef.current?.flyTo({
-          center: [court.longitude, court.latitude],
-          zoom: 14,
-          duration: 800,
-          essential: true,
-        });
-      };
-
-      const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
-        .setLngLat([court.longitude, court.latitude])
-        .addTo(mapRef.current);
-
-      markersRef.current.set(court.id, marker);
+    if (!mapReady || !mapRef.current) return;
+    mapRef.current.easeTo({
+      center: initialCenter,
+      zoom: 12.5,
+      duration: 650,
+      essential: true,
     });
-  }, [mapReady, courts, selectedId]);
+  }, [mapReady, initialCenter[0], initialCenter[1]]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !HAS_TOKEN) return;
+    const source = mapRef.current.getSource(SOURCE_ID);
+    source?.setData(buildCourtGeoJSON(courts, localCourtId));
+  }, [mapReady, courts, localCourtId]);
 
   if (!HAS_TOKEN) {
     return (
@@ -273,9 +360,8 @@ function MapboxMap({
   );
 }
 
-export function MapScreen() {
-  const { courts: contextCourts, checkedInCourtId } = useApp();
-  const { top } = useSafeAreaInsets();
+export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | "ALL" }) {
+  const { courts: contextCourts, localCourt } = useApp();
   const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
   // Selecting a court opens the app-wide court drawer (see CourtSheetHost).
   const { openCourtSheet } = useCourtSheet();
@@ -284,9 +370,7 @@ export function MapScreen() {
     openCourtSheet({ courtId: selectedCourt.id, distanceKm: selectedCourt.distanceKm ?? undefined });
     setSelectedCourt(null);
   }, [selectedCourt]);
-  const [view, setView] = useState<"MAP" | "LIST">("MAP");
   const [showAddModal, setShowAddModal] = useState(false);
-  const topPad = 67;
 
   // Courts stream from Supabase per viewport (same source as native) —
   // context courts only overlay extra fields for ids already in view.
@@ -306,29 +390,39 @@ export function MapScreen() {
           sw.lat - latPad,
           sw.lng - lngPad,
           ne.lat + latPad,
-          ne.lng + lngPad
+          ne.lng + lngPad,
+          sportFilter,
+          250,
+          localCourt?.market
         );
         if (seq !== boundsSeq.current) return;
         setViewportCourts(found);
       }, 400);
     },
-    []
+    [sportFilter, localCourt?.market]
   );
 
   const rawCourts = React.useMemo(() => {
     const merged = new Map<string, Court>();
     viewportCourts.forEach((c) => merged.set(c.id, c));
     contextCourts.forEach((c) => {
-      if (merged.has(c.id)) merged.set(c.id, { ...merged.get(c.id)!, ...c });
+      const belongsToCurrentMarket =
+        !localCourt ||
+        c.id === localCourt.id ||
+        (!!localCourt.market && c.market === localCourt.market);
+      if (merged.has(c.id) || belongsToCurrentMarket) {
+        merged.set(c.id, merged.has(c.id) ? { ...merged.get(c.id)!, ...c } : c);
+      }
     });
-    return Array.from(merged.values());
-  }, [viewportCourts, contextCourts]);
+    return Array.from(merged.values()).filter(
+      (court) => sportFilter === "ALL" || court.sport === sportFilter
+    );
+  }, [viewportCourts, contextCourts, localCourt, sportFilter]);
 
   // Overlay live counts from the shared presence store onto the fetched
   // snapshots, so markers/cards update in real time when anyone checks in/out
   // or switches local court — the snapshot alone goes stale the moment it lands.
-  const courtIds = React.useMemo(() => rawCourts.map((c) => c.id), [rawCourts]);
-  const liveCounts = useCourtCounts(courtIds);
+  const liveCounts = useCourtCounts(rawCourts);
   const courts = React.useMemo(
     () =>
       rawCourts.map((c) => {
@@ -342,54 +436,35 @@ export function MapScreen() {
 
   const activeCourts = courts.filter((c) => c.activeCount > 0);
 
-  // The bottom sheet holds a snapshot from when the marker was clicked —
-  // overlay live counts onto it too so the selected-court card stays current.
-  const selectedLive = selectedCourt ? liveCounts[selectedCourt.id] : undefined;
-  const selectedCourtLive =
-    selectedCourt && selectedLive
-      ? { ...selectedCourt, activeCount: selectedLive.activeCount, localCount: selectedLive.localCount }
-      : selectedCourt;
+  const initialCenter = React.useMemo<[number, number]>(
+    () =>
+      localCourt
+        ? [localCourt.longitude, localCourt.latitude]
+        : contextCourts[0]
+        ? [contextCourts[0].longitude, contextCourts[0].latitude]
+        : [-96, 37.5],
+    [localCourt?.id, localCourt?.latitude, localCourt?.longitude, contextCourts]
+  );
 
   return (
     <View style={styles.container}>
-      <View style={[styles.topBar, { paddingTop: topPad + 12 }]}>
-        <View style={styles.searchBar}>
-          <Text style={styles.searchPlaceholder}>SEARCH COURTS...</Text>
-        </View>
-        <View style={styles.viewToggle}>
-          <Pressable
-            onPress={() => setView("MAP")}
-            style={[styles.toggleBtn, view === "MAP" && styles.toggleBtnActive]}
-          >
-            <Text style={[styles.toggleText, view === "MAP" && styles.toggleTextActive]}>MAP</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setView("LIST")}
-            style={[styles.toggleBtn, view === "LIST" && styles.toggleBtnActive]}
-          >
-            <Text style={[styles.toggleText, view === "LIST" && styles.toggleTextActive]}>LIST</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      {view === "MAP" ? (
-        <View style={StyleSheet.absoluteFill}>
+      <View style={StyleSheet.absoluteFill}>
           <MapboxMap
             courts={courts}
             onCourtSelect={setSelectedCourt}
-            selectedId={selectedCourt?.id ?? null}
-            onAddCourt={() => setShowAddModal(true)}
             onBoundsChange={handleBoundsChange}
+            initialCenter={initialCenter}
+            localCourtId={localCourt?.id ?? null}
           />
 
-          {activeCourts.length > 0 && !selectedCourt && (
-            <View style={[styles.liveBar, { top: topPad + 112 }]}>
-              <Text style={styles.liveBarText}>
-                {activeCourts.length} COURTS LIVE
-              </Text>
-              <View style={styles.liveDot} />
-            </View>
-          )}
+          <View style={[styles.liveBar, { top: 12 }]}>
+            <Text style={styles.liveBarText}>
+              {activeCourts.length > 0
+                ? `${activeCourts.length} COURT${activeCourts.length === 1 ? "" : "S"} LIVE`
+                : "NO LIVE COURTS IN VIEW"}
+            </Text>
+            <View style={styles.liveDot} />
+          </View>
 
           <Pressable
             style={styles.addCourtFab}
@@ -401,33 +476,19 @@ export function MapScreen() {
 
           <View style={styles.legend}>
             <View style={styles.legendItem}>
-              <View style={[styles.legendPin, styles.legendConfirmed]} />
-              <Text style={styles.legendText}>CONFIRMED</Text>
+              <View style={[styles.legendPin, styles.legendActive]} />
+              <Text style={styles.legendText}>ACTIVE NOW</Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendPin, styles.legendCommunity]} />
-              <Text style={styles.legendText}>COMMUNITY</Text>
+              <View style={[styles.legendPin, styles.legendBasketball]} />
+              <Text style={styles.legendText}>BASKETBALL</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendPin, styles.legendPickleball]} />
+              <Text style={styles.legendText}>PICKLEBALL</Text>
             </View>
           </View>
-        </View>
-      ) : (
-        <ScrollView
-          style={[styles.list, { marginTop: topPad + 112 }]}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <Text style={styles.listHeader}>{courts.length} COURTS NEARBY</Text>
-          {courts.map((court) => (
-            <CourtListItem
-              key={court.id}
-              court={court}
-              onPress={(c) => { setSelectedCourt(c); setView("MAP"); }}
-              isCheckedIn={checkedInCourtId === court.id}
-            />
-          ))}
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      )}
+      </View>
 
       <AddCourtModal
         visible={showAddModal}
@@ -439,39 +500,6 @@ export function MapScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.surfaceDark },
-  topBar: {
-    position: "absolute", top: 0, left: 0, right: 0, zIndex: 20,
-    paddingHorizontal: 16, paddingBottom: 12,
-    gap: 8,
-  },
-  searchBar: {
-    alignSelf: "stretch",
-    backgroundColor: Colors.surfaceDark,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  searchPlaceholder: { fontFamily: Typography.heading, fontSize: 13, color: Colors.mutedDark, letterSpacing: 1.5 },
-  viewToggle: {
-    alignSelf: "flex-end",
-    flexDirection: "row",
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surfaceDark,
-  },
-  toggleBtn: { paddingHorizontal: 12, paddingVertical: 10 },
-  toggleBtnActive: { backgroundColor: Colors.accent },
-  toggleText: { fontFamily: Typography.heading, fontSize: 11, color: Colors.mutedDark, letterSpacing: 1.5 },
-  toggleTextActive: { color: Colors.black },
-  list: { flex: 1, backgroundColor: Colors.background },
-  listContent: { paddingBottom: 100 },
-  listHeader: {
-    fontFamily: Typography.heading, fontSize: 11, color: Colors.muted, letterSpacing: 3,
-    paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1,
-    borderColor: Colors.borderLight, textTransform: "uppercase" as const,
-    backgroundColor: Colors.white,
-  },
   liveBar: {
     position: "absolute",
     left: 16,
@@ -518,9 +546,10 @@ const styles = StyleSheet.create({
   },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 8 },
   legendPin: { width: 14, height: 14, borderRadius: 7, borderWidth: 1.5 },
-  legendConfirmed: { borderColor: "rgba(255,255,255,0.7)", backgroundColor: "rgba(13,13,16,0.88)" },
-  legendCommunity: { borderColor: Colors.accent, backgroundColor: Colors.accent },
-  legendText: { fontFamily: Typography.heading, fontSize: 8, color: Colors.muted, letterSpacing: 1.5 },
+  legendActive: { borderColor: Colors.accent, backgroundColor: Colors.accent },
+  legendBasketball: { borderColor: Colors.text, backgroundColor: getCourtIdentityColor("BASKETBALL") },
+  legendPickleball: { borderColor: Colors.text, backgroundColor: getCourtIdentityColor("PICKLEBALL") },
+  legendText: { fontFamily: Typography.bodySemiBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.2 },
   noTokenBox: {
     flex: 1,
     backgroundColor: Colors.surfaceDark,

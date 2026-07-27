@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -30,7 +30,6 @@ import { searchPlayers } from "@/services/profileService";
 
 type Tab = "LEADERBOARD" | "LOG GAME";
 type Scope = "GLOBAL" | "REGIONAL" | "LOCAL";
-const SPORT_TABS: (CourtSport | "ALL")[] = ["ALL", "BASKETBALL", "PICKLEBALL"];
 
 export default function CompeteScreen() {
   const {
@@ -42,8 +41,7 @@ export default function CompeteScreen() {
     preferredSport,
     preferredCourtId,
   } = useApp();
-  const { top, bottom } = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : top;
+  const { bottom } = useSafeAreaInsets();
 
   // Deep-link support: /(tabs)/compete?tab=log&courtId=... opens Log Game
   // pre-scoped to a court (used by the run screen's LOG A GAME button).
@@ -53,10 +51,6 @@ export default function CompeteScreen() {
 
   const [tab, setTab] = useState<Tab>(params.tab === "log" ? "LOG GAME" : "LEADERBOARD");
   const [scope, setScope] = useState<Scope>("LOCAL");
-  const [sportFilter, setSportFilter] = useState<CourtSport | "ALL">(
-    preferredSport ?? "ALL"
-  );
-  const [leaderboardPlayers, setLeaderboardPlayers] = useState<Player[]>([]);
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   // Bumped after a confirmed logged game so standings reflect the Elo change.
@@ -66,23 +60,20 @@ export default function CompeteScreen() {
     if (params.tab === "log") setTab("LOG GAME");
   }, [params.tab]);
 
-  // Fetch real leaderboard from Supabase whenever scope/sport/local court changes
+  // Profiles currently store one overall Elo. Scope is real; a sport switch
+  // would only relabel the same standings, so we do not present one until the
+  // backend has per-sport ratings.
   useEffect(() => {
     let mounted = true;
     setLeaderboardLoading(true);
-    fetchLeaderboard(scope, scope === "LOCAL" ? localCourtId : null, sportFilter === "ALL" ? null : sportFilter)
+    fetchLeaderboard(scope, scope === "LOCAL" ? localCourtId : null)
       .then((players) => {
         if (!mounted) return;
-        // Public leaderboard visibility: only show players with public-ish visibility.
-        // The profiles table has no visibility column, so we show everyone.
-        // LocalPlus paywall is preserved conceptually but not enforced by data.
-        const visible = players;
-        setLeaderboardPlayers(visible);
         setAllPlayers(players);
       })
       .finally(() => { if (mounted) setLeaderboardLoading(false); });
     return () => { mounted = false; };
-  }, [scope, sportFilter, localCourtId, leaderboardRefreshKey]);
+  }, [scope, localCourtId, leaderboardRefreshKey]);
 
   // Opponent preselect (deep link): resolve only if the player exists in the
   // loaded player list; otherwise the picker stays empty as usual.
@@ -94,26 +85,28 @@ export default function CompeteScreen() {
   const myRank = allPlayers.findIndex((p) => p.id === currentUser.id) + 1;
   const amIVisible = visibility === "public" && isLocalPlus;
   const showMyRank = myRank > 0 && amIVisible;
+  const leaderboardPlayers = useMemo(
+    () =>
+      showMyRank
+        ? allPlayers
+        : allPlayers.filter((player) => player.id !== currentUser.id),
+    [allPlayers, currentUser.id, showMyRank]
+  );
 
   return (
     <View style={styles.container}>
       <ScreenHeader
         title="COMPETE"
-        subtitle={
-          scope === "LOCAL" && localCourt
-            ? localCourt.name.toUpperCase()
-            : scope === "LOCAL"
-            ? "LOCAL RANKINGS"
-            : scope === "REGIONAL"
-            ? "REGIONAL RANKINGS"
-            : "GLOBAL RANKINGS"
-        }
         right={
           myRank > 0 ? (
             <View style={styles.myRankBadge}>
               <Text style={[styles.myRankNum, !showMyRank && styles.myRankNumDim]}>#{myRank}</Text>
               <Text style={styles.myRankLabel}>
-                {showMyRank ? "YOUR RANK" : "HIDDEN — LOCALPLUS"}
+                {showMyRank
+                  ? "YOUR RANK"
+                  : visibility === "public"
+                  ? "HIDDEN — LOCALPLUS"
+                  : "HIDDEN — PRIVATE"}
               </Text>
             </View>
           ) : undefined
@@ -138,13 +131,16 @@ export default function CompeteScreen() {
       {tab === "LEADERBOARD" ? (
         <LeaderboardView
           players={leaderboardPlayers}
-          allPlayers={allPlayers}
           myRank={myRank}
           showMyRank={showMyRank}
+          currentUserId={currentUser.id}
+          hiddenReason={
+            visibility === "public"
+              ? "LOCALPLUS REQUIRED TO APPEAR"
+              : "PRIVATE · EXCLUDED FROM PUBLIC LIST"
+          }
           scope={scope}
           setScope={setScope}
-          sportFilter={sportFilter}
-          setSportFilter={setSportFilter}
           localCourt={localCourt}
           bottom={bottom}
           loading={leaderboardLoading}
@@ -169,31 +165,43 @@ export default function CompeteScreen() {
 
 function LeaderboardView({
   players,
-  allPlayers,
   myRank,
   showMyRank,
+  currentUserId,
+  hiddenReason,
   scope,
   setScope,
-  sportFilter,
-  setSportFilter,
   localCourt,
   bottom,
   loading,
 }: {
   players: Player[];
-  allPlayers: Player[];
   myRank: number;
   showMyRank: boolean;
+  currentUserId: string;
+  hiddenReason: string;
   scope: Scope;
   setScope: (s: Scope) => void;
-  sportFilter: CourtSport | "ALL";
-  setSportFilter: (f: CourtSport | "ALL") => void;
   localCourt: { id: string; name: string; sport: CourtSport } | null;
   bottom: number;
   loading?: boolean;
 }) {
   const router = useRouter();
   const { isFriend } = useApp();
+  const rankedRows = useMemo(() => {
+    const rows: Array<
+      | { kind: "player"; player: Player; rank: number }
+      | { kind: "hidden"; rank: number }
+    > = players.map((player, index) => ({ kind: "player", player, rank: index + 1 }));
+
+    // The owner sees a private placeholder at their would-be position, while
+    // the public players keep their own 1..N rank sequence. The placeholder
+    // therefore does not push anyone else down the public leaderboard.
+    if (!showMyRank && myRank > 0 && currentUserId) {
+      rows.splice(Math.min(myRank - 1, rows.length), 0, { kind: "hidden", rank: myRank });
+    }
+    return rows;
+  }, [currentUserId, myRank, players, showMyRank]);
 
   return (
     <ScrollView
@@ -202,7 +210,7 @@ function LeaderboardView({
         paddingBottom: Platform.OS === "web" ? 84 : bottom + 100,
       }}
     >
-      {/* Scope + sport filters */}
+      {/* Scope is backed by real data; Elo is currently one overall rating. */}
       <View style={styles.filtersRow}>
         <View style={styles.scopeToggle}>
           {(["LOCAL", "REGIONAL", "GLOBAL"] as Scope[]).map((s) => (
@@ -217,67 +225,67 @@ function LeaderboardView({
             </Pressable>
           ))}
         </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.sportPills}
-        >
-          {SPORT_TABS.map((sp) => (
-            <Pressable
-              key={sp}
-              style={[styles.sportPill, sportFilter === sp && styles.sportPillActive]}
-              onPress={() => setSportFilter(sp)}
-            >
-              <Text
-                style={[
-                  styles.sportPillText,
-                  sportFilter === sp && styles.sportPillTextActive,
-                ]}
-              >
-                {sp === "ALL" ? "All" : sp === "BASKETBALL" ? "BB" : "PB"}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
       </View>
 
       {/* Scope label */}
-      {scope === "LOCAL" && localCourt && (
-        <View style={styles.scopeLabel}>
+      <View style={styles.scopeLabel}>
+        {scope === "LOCAL" && localCourt ? (
+          <>
           <View
             style={[
               styles.scopeDot,
               { backgroundColor: getSportColor(localCourt.sport) },
             ]}
           />
-          <Text style={styles.scopeLabelText}>{localCourt.name.toUpperCase()}</Text>
-        </View>
-      )}
+            <Text style={styles.scopeLabelText} numberOfLines={1}>
+              {localCourt.name.toUpperCase()} · {localCourt.sport}
+            </Text>
+          </>
+        ) : (
+          <Text style={styles.scopeLabelText}>OVERALL ELO</Text>
+        )}
+      </View>
 
       {loading ? (
         <View style={styles.emptyState}>
           <ActivityIndicator color={Colors.accent} />
         </View>
-      ) : players.length === 0 ? (
+      ) : rankedRows.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>NO PLAYERS FOR THIS FILTER</Text>
+          <Text style={styles.emptyText}>NO PLAYERS IN THIS SCOPE</Text>
         </View>
       ) : (
-        <>
-          {players.map((player, index) => {
+          rankedRows.map((row) => {
+            if (row.kind === "hidden") {
+              return (
+                <View key="current-user-hidden" style={[styles.leaderRow, styles.hiddenLeaderRow]}>
+                  <Text style={styles.yourPositionRank}>#{row.rank}</Text>
+                  <View style={styles.hiddenAvatar}>
+                    <Ionicons name="eye-off" size={15} color={Colors.muted} />
+                  </View>
+                  <View style={styles.playerInfo}>
+                    <Text style={styles.yourPositionText}>YOU — HIDDEN</Text>
+                    <Text style={styles.yourPositionSub}>{hiddenReason}</Text>
+                  </View>
+                  <Text style={styles.hiddenBadge}>HIDDEN</Text>
+                </View>
+              );
+            }
+
+            const { player, rank } = row;
             const tierColor = getTierColor(player.tier);
-            const isTop3 = index < 3;
+            const isTop3 = rank <= 3;
             const sportColor = player.sport ? getSportColor(player.sport) : Colors.muted;
             return (
               <Pressable
                 key={player.id}
-                style={[styles.leaderRow, index === 0 && styles.leaderRowFirst]}
+                style={[styles.leaderRow, rank === 1 && styles.leaderRowFirst]}
                 onPress={() => router.push(`/player/${player.id}`)}
               >
                 <Text style={[styles.rank, isTop3 && styles.rankTop]}>
-                  {index + 1}
+                  {rank}
                 </Text>
-                <PlayerAvatar initials={player.avatar} size={36} accent={index === 0} />
+                <PlayerAvatar initials={player.avatar} size={36} accent={rank === 1} />
                 <View style={styles.playerInfo}>
                   <View style={styles.playerNameRow}>
                     <Text style={styles.playerName} numberOfLines={1}>{player.name.toUpperCase()}</Text>
@@ -307,19 +315,7 @@ function LeaderboardView({
                 </View>
               </Pressable>
             );
-          })}
-          {/* Show "Your Position" indicator if user is ranked but not visible in leaderboard */}
-          {!showMyRank && myRank > 0 && (
-            <View style={styles.yourPositionRow}>
-              <Text style={styles.yourPositionRank}>#{myRank}</Text>
-              <Ionicons name="person" size={16} color={Colors.muted} />
-              <Text style={styles.yourPositionText}>YOU — HIDDEN</Text>
-              <Text style={styles.yourPositionSub}>
-                Go public + LocalPlus to appear
-              </Text>
-            </View>
-          )}
-        </>
+          })
       )}
     </ScrollView>
   );
@@ -770,16 +766,11 @@ const styles = StyleSheet.create({
     textTransform: "uppercase" as const,
   },
 
-  // ── Hidden position indicator ──
-  yourPositionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
+  // ── Inline private position indicator ──
+  hiddenLeaderRow: {
     backgroundColor: Colors.surfaceHigh,
+    borderLeftWidth: 2,
+    borderLeftColor: Colors.muted,
   },
   yourPositionRank: {
     fontFamily: Typography.heading,
@@ -788,19 +779,35 @@ const styles = StyleSheet.create({
     width: 28,
     textAlign: "center" as const,
   },
+  hiddenAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.sm,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
   yourPositionText: {
     fontFamily: Typography.heading,
     fontSize: 13,
     color: Colors.muted,
     letterSpacing: 0.5,
-    flex: 1,
   },
   yourPositionSub: {
     fontFamily: Typography.bodyMedium,
-    fontSize: 9,
+    fontSize: 8,
     color: Colors.mutedDark,
-    letterSpacing: 1,
+    letterSpacing: 0.8,
     textTransform: "uppercase" as const,
+    marginTop: 3,
+  },
+  hiddenBadge: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 8,
+    color: Colors.mutedDark,
+    letterSpacing: 1.2,
   },
 
   // ── Tabs ──
@@ -830,7 +837,6 @@ const styles = StyleSheet.create({
   filtersRow: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    gap: 10,
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,
     backgroundColor: Colors.surface,
@@ -839,12 +845,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     borderWidth: 0.5,
     borderColor: Colors.border,
-    alignSelf: "flex-start",
+    alignSelf: "stretch",
     borderRadius: Radius.xs,
     overflow: "hidden",
   },
   scopeBtn: {
-    paddingHorizontal: 14,
+    flex: 1,
+    alignItems: "center",
     paddingVertical: 7,
   },
   scopeBtnActive: { backgroundColor: Colors.surfaceHigh },
@@ -855,24 +862,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
   scopeBtnTextActive: { color: Colors.text },
-  sportPills: { gap: 6, alignItems: "center" },
-  sportPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    borderRadius: Radius.xs,
-  },
-  sportPillActive: {
-    backgroundColor: Colors.accentDim,
-    borderColor: Colors.accent,
-  },
-  sportPillText: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    color: Colors.muted,
-  },
-  sportPillTextActive: { color: Colors.accent },
   scopeLabel: {
     flexDirection: "row",
     alignItems: "center",

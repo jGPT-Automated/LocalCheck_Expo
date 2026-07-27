@@ -126,10 +126,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Restore session on mount
     supabase.auth.getSession().then(async ({ data: { session: s } }) => {
-      // Authenticate the Realtime socket so RLS-protected postgres_changes
-      // (check_ins etc. are authenticated-role-only) actually deliver. Without
-      // this the socket runs as anon and every scoped presence event is
-      // silently dropped by RLS. setAuth is synchronous (no API call).
+      // Authenticate the Realtime socket before private Broadcast channels
+      // subscribe. Without this JWT, realtime.messages RLS rejects every
+      // scoped invalidation. setAuth is synchronous (no API call).
       supabase.realtime.setAuth(s?.access_token ?? null);
       setSession(s);
       setUser(s?.user ?? null);
