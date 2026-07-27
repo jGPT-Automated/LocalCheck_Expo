@@ -12,8 +12,8 @@ release runbook for deployment steps.
 | GitHub repository | `jGPT-Automated/LocalCheck_Expo` |
 | Canonical local folder | `/Users/JesseH/Projects/LocalCheck_Expo` |
 | Branch | `main` |
-| Local `HEAD` and GitHub commit | The containing `main` commit is the delivered candidate; verify with `git rev-parse HEAD` when checkout state matters. |
-| Local working tree | Candidate includes private Broadcast, Mapbox-native Explore layers/clustering, premium Explore cards, truthful Compete privacy/rank presentation, Schedule batch editing, tests, preview tooling, and documentation. |
+| Local `HEAD` and GitHub commit | Local `main` contains the candidate at `32bc0d6`. `origin/main` does not yet contain it because GitHub push execution was blocked by the Codex account usage limit. |
+| Local working tree | Clean after the candidate commit. The candidate includes private Broadcast, Mapbox-native Explore layers/clustering, premium Explore cards, truthful Compete privacy/rank presentation, Schedule batch editing, tests, preview tooling, and documentation. |
 | Release tag | `v1.0.4` → checkpoint commit |
 | TestFlight | LocalCheck `1.0.0 (9)` available to Jesse |
 | Successful EAS workflow | `019f9e9b-188e-70b8-9ff3-f1aa9a66b52e` |
