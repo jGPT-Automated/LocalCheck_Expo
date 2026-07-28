@@ -6,6 +6,7 @@ import { Feather } from "@expo/vector-icons";
 
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { FormSheet } from "@/components/sheet/FormSheet";
 import { Colors, Radius } from "@/constants/colors";
 import { getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
@@ -235,14 +236,7 @@ function EditRunModal({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.editSheet, { paddingTop: Platform.OS === "ios" ? top : top + 12 }]}>
-        <View style={styles.editHeader}>
-          <Text style={styles.editTitle}>EDIT RUN</Text>
-          <Pressable onPress={onClose} hitSlop={12}>
-            <Feather name="x" size={22} color={Colors.muted} />
-          </Pressable>
-        </View>
+    <FormSheet visible={visible} onClose={onClose} title="Edit run">
         <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
           <Text style={styles.editLabel}>TITLE</Text>
           <TextInput
@@ -272,8 +266,7 @@ function EditRunModal({
             <Text style={styles.editSaveText}>{saving ? "SAVING…" : "SAVE CHANGES"}</Text>
           </Pressable>
         </ScrollView>
-      </View>
-    </Modal>
+    </FormSheet>
   );
 }
 
