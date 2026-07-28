@@ -1,7 +1,7 @@
 # LocalCheck Launch Control
 
 Status: Active operating document
-Last verified: 2026-07-27
+Last verified: 2026-07-28
 Release authority: Jesse must explicitly approve production deploys, TestFlight builds/submissions, backend mutations, and merges.
 
 ## Jesse's launch order
@@ -10,7 +10,7 @@ This is the priority order. Do not let lower-level technical hygiene displace it
 
 1. **Get current `main` onto Jesse's phone.** Complete: `main` commit `249c926`, tag `v1.0.4`, produced LocalCheck 1.0.0 build 9. App Store Connect processing completed and TestFlight now offers the update.
 2. **Make the native map genuinely good.** On the new TestFlight build, verify stable markers, correct court positions, immediate styling, smooth pan/zoom, reliable selection and native sheet behavior, loading/error states, and outdoor legibility. The old web/native map behavior is not accepted as evidence.
-3. **Deliver and prove the private Broadcast client on phones.** The source candidate now consumes authorized `court:*`, `market:*`, `user:*`, and `run:*` invalidations, suspends channels in the background, retains foreground catch-up, and exposes failures. Its first TestFlight-to-browser check worked without a tab switch. Jesse approved the source push to `main`, but GitHub execution was blocked by the Codex account usage limit; OTA or TestFlight delivery remains unapproved, and build 9 still contains the rejected public listeners.
+3. **Deliver and prove the private Broadcast client on phones.** GitHub `main` now contains the client that consumes authorized `court:*`, `market:*`, `user:*`, and `run:*` invalidations, suspends channels in the background, retains foreground catch-up, and exposes failures. Its first TestFlight-to-browser check worked without a tab switch. OTA or TestFlight delivery remains unapproved, and build 9 still contains the rejected public listeners.
 4. **Then do the cohesive UI/brand pass.** One court identity, component grammar, spacing/type/color/motion system, and honest states across mobile and web—great-looking and consistent, not a patchwork.
 5. **Then close the remaining functional and App Store loops.** Game flow, privacy, settings, onboarding, account deletion, store assets/metadata, and review submission.
 
@@ -29,7 +29,7 @@ Database advisor notes, RPC implementation details, and scale optimizations are 
 | Surface | Verified state | Authority / constraint |
 | --- | --- | --- |
 | Shared backend | `LocalCheckProd` (`qkrnmyexzvaxiqfxwwfb`) is healthy; 56 courts and the current mobile v2 schema are live. The old `jzclwnzcektqhgkkdeje` project still exists but is deprecated. | No new production schema until web and mobile use one contract. Do not delete or pause the old project without Jesse's approval. |
-| Mobile source | Local `main` commit `32bc0d6` contains the private-Broadcast client, Mapbox-native Explore layers/clustering, premium Explore cards, corrected Compete presentation, Schedule batch editing, focused release gate, recovered live migration source, and consolidated documentation. Apple Sign-In remains enabled. `origin/main` does not yet contain the candidate because the approved push was blocked by the Codex account usage limit. | Browser QA passed scoped Realtime receiving, Explore list/map/cluster behavior, Compete presentation, and Schedule multi-select. Build 9 still has the old listeners and UI; pushing source does not deliver it to TestFlight. |
+| Mobile source | GitHub `main` contains feature commit `32bc0d6`: the private-Broadcast client, Mapbox-native Explore layers/clustering, premium Explore cards, corrected Compete presentation, Schedule batch editing, focused release gate, recovered live migration source, and consolidated documentation. Apple Sign-In remains enabled. | Browser QA passed scoped Realtime receiving, Explore list/map/cluster behavior, Compete presentation, and Schedule multi-select. Build 9 still has the old listeners and UI; source delivery does not update TestFlight. |
 | Mobile distribution | EAS is connected to the correct repo and `artifacts/mobile`; all environments point to LocalCheckProd and have the required Mapbox tokens. LocalCheck 1.0.0 build 9 completed and TestFlight offers it as an update. | Install build 9, then run native map and two-device Realtime acceptance. |
 | Public website | The deployed site is visually aligned with the graphite/orange direction and its court explorer resolves 56 Supabase courts. `LocalCheck_WEB` main is PR #1 at `7a5b74d`. | The old PR #2 checkout is archived at `/Users/JesseH/Projects/archive/LocalCheck_WEB_PR2-branch-2026-07-26`. It is ten commits ahead of main with preserved local package changes and must not be mistaken for deployed truth. |
 | Web PR #2 | Weather and shared-planning heatmap are implemented, but GitHub has no status checks. | Blocked from merge: two unresolved P2 review threads, a non-critical weather request without a timeout, stale-session recovery, and a second planning model (`court_time_intents`) that conflicts with production `planned_visits`. |

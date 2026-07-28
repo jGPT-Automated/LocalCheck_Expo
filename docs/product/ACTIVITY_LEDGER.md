@@ -1,7 +1,7 @@
 # LocalCheck Activity Ledger
 
 Status: Active, chronological operating record
-Last updated: 2026-07-27
+Last updated: 2026-07-28
 
 ## How this ledger is used
 
@@ -10,6 +10,14 @@ Last updated: 2026-07-27
 - Do not rewrite history to make a failed attempt disappear. Later entries may correct earlier conclusions with new evidence.
 - Keep `LAUNCH_CONTROL.md` as the concise current-state and priority view. Use this file for the chronological trail that explains how the project reached that state.
 - Product and design decisions also belong in `DECISIONS.md`; notable brand-system changes also belong in `CHANGELOG.md`.
+
+## 2026-07-28 — Verified MVP candidate delivered to GitHub main
+
+**Outcome requested:** Retry the final source push after the previous Codex usage-limit rejection, without disturbing newer local work.
+
+**Action and verification:** Refreshed the explicit remote `main` ref, confirmed local `main` still contained feature commit `32bc0d6` and documentation commit `f973ac3`, and pushed `249c926..f973ac3` to GitHub `main` without force. The canonical checkout had since moved to `fix/schedule-save-and-navigation-polish` with two newer commits and an unrelated untracked `.claude/launch.json`; that branch and file were preserved untouched. This follow-up record was prepared from an isolated `main` worktree and pushed separately so the repository no longer claims delivery is blocked.
+
+**Boundary:** Source delivery only. No OTA, TestFlight build/submission, production schema mutation, merge of the newer fix branch, or release action was performed.
 
 ## 2026-07-27 — Map layers, Explore card grammar, and Schedule batch editing completed
 
