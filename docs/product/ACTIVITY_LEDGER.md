@@ -11,6 +11,20 @@ Last updated: 2026-07-28
 - Keep `LAUNCH_CONTROL.md` as the concise current-state and priority view. Use this file for the chronological trail that explains how the project reached that state.
 - Product and design decisions also belong in `DECISIONS.md`; notable brand-system changes also belong in `CHANGELOG.md`.
 
+## 2026-07-28 — MVP consolidation candidate: Profile, Court Details, Schedule, and repeatable preview
+
+**Outcome requested:** Prioritize the supplied Profile and Court Details mocks, make Schedule truly save, keep Apple Sign-In untouched, and stop before push/OTA so Jesse can inspect the product decisions visually.
+
+**Implementation:** Rebuilt Profile around the approved identity/Elo/stat/tab hierarchy and replaced the mislabeled court-time-minutes value with a real lifetime `check_ins` row count. Consolidated Home, Explore, and Court Details on the same smoked sport-identity court card; corrected its four-stat narrow-iPhone overflow. Court Details now has Feed, a real here-now/locals list, and the supplied seven-day court heatmap backed by `planned_visits`, visible run participants, privacy-safe anonymous counts, add/remove attendance, and a court-preselected Create Run handoff. Schedule keeps View/Edit multi-select, disables unchanged saves, retains failed work, and uses idempotent inserts rather than the rejected update-style upsert. Incoming friend accept/decline and player request states are present in the candidate, but Friends remains after the current core-screen acceptance gate.
+
+**Preview/tooling repair:** Canonical root and mobile `node_modules` are real pnpm installs, not archive links. The preview script now avoids Expo's unwritable external cache and automatically uses a fresh interactive export when Watchman is absent, because normal Node watching reaches `EMFILE`. The workspace override that excluded the Mac ARM LightningCSS helper was removed and the lockfile records that optional native package. The deprecated Mapbox config-plugin token property was removed; native builds now read `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` directly from EAS.
+
+**Verification:** `pnpm --filter @workspace/mobile check:release` passes TypeScript and all five focused Realtime tests; `git diff --check` passes; a fresh canonical web export serves successfully on port 8081. Automated visual comparison is still blocked because the chosen in-app browser refuses automated localhost control. Jesse's refreshed signed-in preview is therefore the visual and interaction acceptance surface.
+
+**Boundary:** No push, merge, OTA, TestFlight build/submission, production schema mutation, or Apple Sign-In change. The account-deletion client/Edge Function remains an undeployed candidate and must not be called complete. Profile visibility is still not a durable backend contract.
+
+**Next highest-value action:** Jesse checks Profile, Court Details → Details, and Schedule → Edit in the refreshed preview. Fix visible or behavioral mismatches, obtain explicit approval, then create a clean reviewed commit before any delivery action.
+
 ## 2026-07-28 — Verified MVP candidate delivered to GitHub main
 
 **Outcome requested:** Retry the final source push after the previous Codex usage-limit rejection, without disturbing newer local work.
@@ -330,3 +344,13 @@ The supplied Profile capture showing `0 CHECK-INS` is a separate data-contract b
 **Action:** Exported verified `jGPT-Automated/LocalCheck_WEB` `main` at `7a5b74d03aaa` into `LocalCheck_Expo/artifacts/web` using Git's commit archive. No dependencies or nested Git metadata were copied. All 56 source files matched the upstream commit before adding `UPSTREAM.md` provenance.
 
 **Boundary:** This completes source organization, not web integration acceptance. The web app still carries its upstream npm lockfile while the parent workspace uses pnpm, and disk is too constrained for a safe fresh install. Build and preview verification remain a separate gate.
+
+## 2026-07-28 — MVP visual and Schedule candidate verified locally
+
+**Implemented:** Consolidated the primary-tab header and Oswald/Inter hierarchy; tightened matte court cards; moved sport filtering into the Explore search row; preserved city-scoped court discovery; added ranked/friend avatar states; rebuilt Me; split Court Details into Feed, Locals, Schedule, and Details; and rebuilt Schedule around 8 AM–11 PM heat buckets, current-time focus, View/Edit modes, a snapping run rail, and the shared form-sheet shell.
+
+**Runtime evidence:** The signed-in export preview rendered Home, Explore List/Map, Compete, Me, all four Court Details tabs, the Schedule heatmap, and the Host a Run drawer. Direct `/schedule` and `/court/:id` loads now resolve through the preview app shell. The exported bundle is explicitly no-cache, preventing the stable Expo development bundle name from retaining a previous build after restart.
+
+**Static evidence:** `pnpm --filter @workspace/mobile run check:release` passed TypeScript and all five scoped-Realtime tests. Browser logs contained framework deprecation warnings and one self-recovered court-channel warning, but no render or navigation exception during the inspected flows.
+
+**Boundaries:** Apple Sign-In was not changed. No Supabase migration, Elo rewrite, merge, push, OTA, EAS build, or TestFlight action occurred. The external Elo handoff remains review-only until its schema assumptions and match-confirmation lifecycle are reconciled with the live contract.

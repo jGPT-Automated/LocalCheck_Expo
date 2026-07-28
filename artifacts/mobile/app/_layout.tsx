@@ -6,10 +6,10 @@ import {
   useFonts as useInterFonts,
 } from "@expo-google-fonts/inter";
 import {
-  Kanit_500Medium,
-  Kanit_600SemiBold,
-  Kanit_700Bold,
-} from "@expo-google-fonts/kanit";
+  Oswald_500Medium,
+  Oswald_600SemiBold,
+  Oswald_700Bold,
+} from "@expo-google-fonts/oswald";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -118,9 +118,9 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
-    Kanit_500Medium,
-    Kanit_600SemiBold,
-    Kanit_700Bold,
+    Oswald_500Medium,
+    Oswald_600SemiBold,
+    Oswald_700Bold,
   });
 
   useEffect(() => {

@@ -13,10 +13,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 
 import { AnimatedEntry } from "@/components/AnimatedEntry";
-import { BrutalistButton } from "@/components/BrutalistButton";
-import { LivePulse } from "@/components/LivePulse";
+import { CourtListItem } from "@/components/CourtListItem";
 import { LogoMark } from "@/components/brand/LogoMark";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { Colors, Radius } from "@/constants/colors";
 import { FeedItem } from "@/constants/data";
 import { Typography } from "@/constants/typography";
@@ -130,82 +130,43 @@ export function HomeScreen() {
   return (
     <View style={styles.container}>
       {/* ── Brand header: logo lockup left, live pulse right ── */}
-      <View style={[styles.header, { paddingTop: topPad + 12 }]}>
-        <View style={styles.brandLockup}>
-          <LogoMark size={26} />
-          <Text style={styles.brandWordmark}>LOCALCHECK</Text>
-        </View>
-        {activeTotal > 0 && (
+      <ScreenHeader
+        title="LOCALCHECK"
+        wordmark
+        right={activeTotal > 0 ? (
           <View style={styles.headerLive}>
             <Text style={styles.headerLiveText}>
               {approx}
               {activeTotal} ACTIVE
             </Text>
           </View>
-        )}
-      </View>
+        ) : undefined}
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 84 : bottom + 96 }}
       >
-        {/* ── Hero court card ── */}
-        <View style={styles.heroCard}>
-          <View style={styles.heroTopRow}>
-            <View style={styles.sportChip}>
-              <Feather name="globe" size={10} color={Colors.textSecondary} />
-              <Text style={styles.sportChipText}>{localCourt.sport}</Text>
-            </View>
-            {activeTotal > 0 && (
-              <View style={styles.liveNow}>
-                <LivePulse size={5} color={Colors.accent} style={{ marginRight: 5 }} />
-                <Text style={styles.liveNowText}>LIVE NOW</Text>
-              </View>
-            )}
-          </View>
-
-          <Text style={styles.courtName}>{localCourt.name.toUpperCase()}</Text>
-          {courtMeta ? <Text style={styles.courtMeta}>{courtMeta}</Text> : null}
-
-          <View style={styles.statRow}>
-            <View style={styles.statCell}>
-              <Text style={[styles.statValue, styles.statValueAccent]}>
-                {approx}
-                {activeTotal}
-              </Text>
-              <Text style={styles.statLabel}>ACTIVE NOW</Text>
-            </View>
-            <View style={[styles.statCell, styles.statCellBorder]}>
-              <Text style={styles.statValue}>{localCount}</Text>
-              <Text style={styles.statLabel}>LOCALS</Text>
-            </View>
-            <View style={[styles.statCell, styles.statCellBorder]}>
-              <Text style={styles.statValue}>{courtRuns.length}</Text>
-              <Text style={styles.statLabel}>RUNS THIS WK</Text>
-            </View>
-            <View style={[styles.statCell, styles.statCellBorder]}>
-              <Text style={styles.statValue}>{weeklyActive ?? "–"}</Text>
-              <Text style={styles.statLabel}>ACTIVE THIS WK</Text>
-            </View>
-          </View>
-
-          <View style={styles.checkInRow}>
-            <BrutalistButton
-              label={isCheckedIn ? "CHECKED IN ✓" : "CHECK IN"}
-              onPress={handleCheckIn}
-              variant={isCheckedIn ? "outline" : "accent"}
-              style={styles.checkInBtn}
-              testID="home-check-in-btn"
-            />
-            <Pressable
-              style={styles.viewBtn}
-              onPress={() => router.push(`/court/${localCourt.id}`)}
-              accessibilityLabel="Open court page"
-            >
-              <Feather name="chevron-right" size={18} color={Colors.textSecondary} />
-            </Pressable>
-          </View>
-        </View>
+        {/* One court identity card across Home, Explore, and Court Details. */}
+        <CourtListItem
+          court={{
+            ...localCourt,
+            activeCount: activeTotal,
+            localCount,
+            neighborhood: courtMeta,
+          }}
+          featured
+          isLocalCourt
+          isCheckedIn={isCheckedIn}
+          onCheckIn={() => void handleCheckIn()}
+          onView={() => router.push(`/court/${localCourt.id}`)}
+          stats={[
+            { label: "ACTIVE NOW", value: `${approx}${activeTotal}`, live: activeTotal > 0 },
+            { label: "LOCALS", value: localCount },
+            { label: "RUNS", value: courtRuns.length },
+            { label: "THIS WEEK", value: weeklyActive ?? "–" },
+          ]}
+        />
 
         {/* ── Who's here ── */}
         <View style={styles.section}>

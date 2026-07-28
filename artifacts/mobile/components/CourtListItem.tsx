@@ -1,7 +1,6 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Feather } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { Colors, Radius } from "@/constants/colors";
 import {
@@ -13,32 +12,28 @@ import { LivePulse } from "./LivePulse";
 
 interface CourtListItemProps {
   court: Court;
-  onPress: (court: Court) => void;
+  onPress?: (court: Court) => void;
   isCheckedIn?: boolean;
   isLocalCourt?: boolean;
   featured?: boolean;
   onCheckIn?: (court: Court) => void;
+  onView?: (court: Court) => void;
+  stats?: Array<{
+    label: string;
+    value: string | number;
+    live?: boolean;
+  }>;
 }
 
 function SportGlyph({ sport, color }: { sport: Court["sport"]; color: string }) {
-  if (sport === "BASKETBALL") {
-    return (
-      <View style={[styles.glyphBall, { borderColor: color }]}>
-        <View style={[styles.glyphBallVertical, { backgroundColor: color }]} />
-        <View style={[styles.glyphBallHorizontal, { backgroundColor: color }]} />
-      </View>
-    );
-  }
-  if (sport === "PICKLEBALL" || sport === "TENNIS") {
-    return (
-      <View style={styles.glyphPaddleWrap}>
-        <View style={[styles.glyphPaddle, { borderColor: color }]} />
-        <View style={[styles.glyphPaddleHandle, { backgroundColor: color }]} />
-        <View style={[styles.glyphPaddleBall, { backgroundColor: color }]} />
-      </View>
-    );
-  }
-  return <Feather name="circle" size={13} color={color} />;
+  const icon = sport === "BASKETBALL"
+    ? "basketball"
+    : sport === "PICKLEBALL"
+      ? "table-tennis"
+      : sport === "TENNIS"
+        ? "tennis"
+        : "circle-outline";
+  return <MaterialCommunityIcons name={icon} size={14} color={color} />;
 }
 
 function CourtGeometry({ sport, color }: { sport: Court["sport"]; color: string }) {
@@ -91,30 +86,34 @@ export function CourtListItem({
   isLocalCourt,
   featured,
   onCheckIn,
+  onView,
+  stats,
 }: CourtListItemProps) {
   const isActive = court.activeCount > 0;
   const identityColor = getCourtIdentityColor(court.sport);
+  const cardStats = stats ?? [
+    { label: "ACTIVE NOW", value: court.activeCount ?? 0, live: isActive },
+    { label: "LOCALS", value: court.localCount ?? 0 },
+  ];
 
   return (
     <View
-      style={[styles.container, featured && styles.containerFeatured]}
+      style={[
+        styles.container,
+        { borderLeftColor: identityColor },
+        featured && styles.containerFeatured,
+      ]}
       testID={`court-${court.id}`}
     >
-      <LinearGradient
-        pointerEvents="none"
-        colors={["rgba(21,21,25,0)", `${identityColor}18`, "rgba(21,21,25,0.96)"]}
-        start={{ x: 0.1, y: 0.9 }}
-        end={{ x: 1, y: 0.15 }}
-        style={StyleSheet.absoluteFill}
-      />
       <View pointerEvents="none" style={[styles.smokeOrb, { backgroundColor: `${identityColor}10` }]} />
       <CourtGeometry sport={court.sport} color={identityColor} />
 
       <Pressable
-        onPress={() => onPress(court)}
+        onPress={onPress ? () => onPress(court) : undefined}
+        disabled={!onPress}
         style={({ pressed }) => [styles.body, pressed && styles.pressed]}
-        accessibilityRole="button"
-        accessibilityLabel={`Open ${court.name}`}
+        accessibilityRole={onPress ? "button" : undefined}
+        accessibilityLabel={onPress ? `Open ${court.name}` : undefined}
       >
         <View style={styles.topline}>
           <View
@@ -144,24 +143,20 @@ export function CourtListItem({
         </Text>
 
         <View style={styles.statsRow}>
-          <View style={styles.statBlock}>
-            <View style={styles.statValueRow}>
-              {isActive ? (
-                <LivePulse size={7} color={Colors.accent} />
-              ) : (
-                <View style={styles.quietDot} />
-              )}
-              <Text style={[styles.statValue, isActive && styles.statValueLive]}>
-                {court.activeCount ?? 0}
-              </Text>
-            </View>
-            <Text style={styles.statLabel}>ACTIVE NOW</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statBlock}>
-            <Text style={styles.statValue}>{court.localCount ?? 0}</Text>
-            <Text style={styles.statLabel}>LOCALS</Text>
-          </View>
+          {cardStats.map((stat, index) => (
+            <React.Fragment key={stat.label}>
+              {index > 0 && <View style={styles.statDivider} />}
+              <View style={styles.statBlock}>
+                <View style={styles.statValueRow}>
+                  {stat.live ? <LivePulse size={7} color={Colors.accent} /> : null}
+                  <Text style={[styles.statValue, stat.live && styles.statValueLive]}>
+                    {stat.value}
+                  </Text>
+                </View>
+                <Text style={styles.statLabel}>{stat.label}</Text>
+              </View>
+            </React.Fragment>
+          ))}
           {isCheckedIn && (
             <View style={styles.checkedInBadge}>
               <Text style={styles.checkedInText}>HERE ✓</Text>
@@ -170,22 +165,36 @@ export function CourtListItem({
         </View>
       </Pressable>
 
-      {onCheckIn ? (
-        <Pressable
-          style={({ pressed }) => [
-            styles.checkInButton,
-            isCheckedIn && styles.checkInButtonActive,
-            pressed && styles.checkInButtonPressed,
-          ]}
-          onPress={() => onCheckIn(court)}
-          accessibilityRole="button"
-          accessibilityLabel={isCheckedIn ? `Check out of ${court.name}` : `Check in to ${court.name}`}
-          testID={`court-check-in-${court.id}`}
-        >
-          <Text style={[styles.checkInText, isCheckedIn && styles.checkInTextActive]}>
-            {isCheckedIn ? "CHECKED IN ✓" : "CHECK IN"}
-          </Text>
-        </Pressable>
+      {onCheckIn || onView ? (
+        <View style={[styles.actionRow, !onView && styles.actionRowSolo]}>
+          {onCheckIn ? (
+            <Pressable
+              style={({ pressed }) => [
+                styles.checkInButton,
+                isCheckedIn && styles.checkInButtonActive,
+                pressed && styles.checkInButtonPressed,
+              ]}
+              onPress={() => onCheckIn(court)}
+              accessibilityRole="button"
+              accessibilityLabel={isCheckedIn ? `Check out of ${court.name}` : `Check in to ${court.name}`}
+              testID={`court-check-in-${court.id}`}
+            >
+              <Text style={[styles.checkInText, isCheckedIn && styles.checkInTextActive]}>
+                {isCheckedIn ? "CHECKED IN ✓" : "CHECK IN"}
+              </Text>
+            </Pressable>
+          ) : null}
+          {onView ? (
+            <Pressable
+              style={({ pressed }) => [styles.viewButton, pressed && styles.checkInButtonPressed]}
+              onPress={() => onView(court)}
+              accessibilityRole="button"
+              accessibilityLabel={`View ${court.name}`}
+            >
+              <Feather name="chevron-right" size={19} color={Colors.textSecondary} />
+            </Pressable>
+          ) : null}
+        </View>
       ) : null}
     </View>
   );
@@ -193,48 +202,49 @@ export function CourtListItem({
 
 const styles = StyleSheet.create({
   container: {
-    minHeight: 176,
+    minHeight: 154,
     backgroundColor: Colors.surface,
     borderWidth: 1,
+    borderLeftWidth: 2,
     borderColor: Colors.border,
     borderRadius: Radius.lg,
     marginHorizontal: 16,
     marginVertical: 5,
     overflow: "hidden",
   },
-  containerFeatured: { minHeight: 202 },
+  containerFeatured: { minHeight: 178 },
   pressed: { opacity: 0.84 },
-  body: { flex: 1, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10, zIndex: 2 },
+  body: { flex: 1, paddingHorizontal: 14, paddingTop: 13, paddingBottom: 8, zIndex: 2 },
   smokeOrb: {
     position: "absolute",
-    width: 190,
-    height: 190,
-    borderRadius: 95,
-    right: -58,
-    top: -62,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    right: -44,
+    top: -54,
   },
-  topline: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 28 },
+  topline: { flexDirection: "row", alignItems: "center", gap: 7, minHeight: 22 },
   sportEmblem: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
   sportLabel: {
     fontFamily: Typography.bodyBold,
-    fontSize: 9,
+    fontSize: 8,
     color: Colors.textSecondary,
-    letterSpacing: 1.9,
+    letterSpacing: 1.5,
     textTransform: "uppercase" as const,
   },
   localBadge: {
     marginLeft: "auto",
     borderWidth: 1,
     borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
     backgroundColor: "rgba(12,12,12,0.72)",
   },
   localBadgeText: {
@@ -245,35 +255,36 @@ const styles = StyleSheet.create({
   name: {
     maxWidth: "76%",
     fontFamily: Typography.heading,
-    fontSize: 20,
-    lineHeight: 22,
+    fontSize: 18,
+    lineHeight: 20,
     color: Colors.text,
     letterSpacing: 0.1,
-    marginTop: 14,
+    marginTop: 10,
     textTransform: "uppercase" as const,
   },
-  nameFeatured: { fontSize: 25, lineHeight: 27, maxWidth: "82%" },
+  nameFeatured: { fontSize: 22, lineHeight: 24, maxWidth: "82%" },
   meta: {
     maxWidth: "72%",
     fontFamily: Typography.body,
-    fontSize: 11,
+    fontSize: 10,
     color: Colors.muted,
-    marginTop: 5,
+    marginTop: 3,
   },
   statsRow: {
-    marginTop: 14,
-    minHeight: 44,
+    marginTop: 10,
+    minHeight: 38,
     flexDirection: "row",
     alignItems: "stretch",
     borderTopWidth: 1,
     borderTopColor: Colors.borderSubtle,
   },
-  statBlock: { minWidth: 82, flex: 1, justifyContent: "center", paddingHorizontal: 4 },
+  // Four-stat cards must still fit the narrowest supported iPhone width.
+  statBlock: { minWidth: 0, flex: 1, justifyContent: "center", paddingHorizontal: 4 },
   statValueRow: { flexDirection: "row", alignItems: "center", gap: 7 },
   statValue: {
     fontFamily: Typography.heading,
-    fontSize: 22,
-    lineHeight: 23,
+    fontSize: 19,
+    lineHeight: 20,
     color: Colors.text,
   },
   statValueLive: { color: Colors.accent },
@@ -281,7 +292,7 @@ const styles = StyleSheet.create({
     fontFamily: Typography.bodyBold,
     fontSize: 7,
     color: Colors.muted,
-    letterSpacing: 1.4,
+    letterSpacing: 1.1,
     marginTop: 2,
   },
   statDivider: { width: 1, height: 28, alignSelf: "center", backgroundColor: Colors.borderSubtle },
@@ -300,15 +311,26 @@ const styles = StyleSheet.create({
     color: Colors.black,
     letterSpacing: 1.2,
   },
+  actionRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginHorizontal: 14,
+    marginBottom: 12,
+    zIndex: 3,
+  },
+  actionRowSolo: { width: "72%", alignSelf: "center" },
   checkInButton: {
-    minHeight: 44,
-    marginHorizontal: 16,
-    marginBottom: 14,
+    flex: 1,
+    minHeight: 40,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: Radius.sm,
     backgroundColor: Colors.accent,
-    zIndex: 3,
+    shadowColor: Colors.accent,
+    shadowOpacity: 0.28,
+    shadowRadius: 9,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 5,
   },
   checkInButtonActive: {
     backgroundColor: Colors.surfaceHigh,
@@ -323,27 +345,16 @@ const styles = StyleSheet.create({
     letterSpacing: 1.6,
   },
   checkInTextActive: { color: Colors.text },
-  glyphBall: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+  viewButton: {
+    width: 48,
+    minHeight: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.surfaceHigh,
     borderWidth: 1,
-    overflow: "hidden",
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
   },
-  glyphBallVertical: { position: "absolute", width: 1, height: 14, left: 6 },
-  glyphBallHorizontal: { position: "absolute", height: 1, width: 14, top: 6 },
-  glyphPaddleWrap: { width: 16, height: 16, position: "relative", transform: [{ rotate: "-22deg" }] },
-  glyphPaddle: {
-    position: "absolute",
-    width: 9,
-    height: 11,
-    borderRadius: 5,
-    borderWidth: 1,
-    left: 1,
-    top: 0,
-  },
-  glyphPaddleHandle: { position: "absolute", width: 2, height: 6, left: 8, top: 9 },
-  glyphPaddleBall: { position: "absolute", width: 3, height: 3, borderRadius: 2, right: 0, top: 2 },
   artLayer: {
     ...StyleSheet.absoluteFillObject,
     opacity: 0.27,

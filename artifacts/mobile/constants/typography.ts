@@ -1,9 +1,14 @@
-// Kanit (SNKRS-adjacent geometric sans) for headings/stats/labels,
-// Inter for body copy. Change fonts HERE only — components must reference
-// these tokens, never literal font names.
+// Oswald is the canonical condensed display face from Design.pdf and Logo.png;
+// Inter carries body copy. Components reference these tokens rather than font
+// names so the brand stays consistent across the MVP.
 export const Typography = {
-  heading: "Kanit_700Bold",
-  headingRegular: "Kanit_500Medium",
+  // 600 is the default display weight. 700 is reserved for the handful of
+  // places that genuinely need emphasis; using it everywhere made the UI
+  // feel crowded and flattened the hierarchy.
+  heading: "Oswald_600SemiBold",
+  headingBold: "Oswald_700Bold",
+  headingRegular: "Oswald_500Medium",
+  headingSemiBold: "Oswald_600SemiBold",
   body: "Inter_400Regular",
   bodyMedium: "Inter_500Medium",
   bodySemiBold: "Inter_600SemiBold",

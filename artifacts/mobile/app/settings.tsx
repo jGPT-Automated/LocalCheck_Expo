@@ -1,807 +1,233 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import {
-  Alert,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors, Radius } from "@/constants/colors";
-import { CourtSport, getSportColor } from "@/constants/data";
+import { CourtSport } from "@/constants/data";
 import { Typography } from "@/constants/typography";
-import { useApp } from "@/context/AppContext";
+import { useApp, Visibility } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
+import { deleteCurrentAccount } from "@/services/accountService";
 
-type Visibility = "public" | "friends" | "private";
+const WEBSITE_URL = process.env.EXPO_PUBLIC_WEBSITE_URL ?? "https://localchecksports.com";
 
-const VISIBILITY_OPTIONS: { value: Visibility; label: string; icon: string; desc: string }[] = [
-  { value: "public", label: "PUBLIC", icon: "globe-outline", desc: "Anyone can see your profile and rank" },
-  { value: "friends", label: "FRIENDS", icon: "people-outline", desc: "Only friends see your activity" },
-  { value: "private", label: "PRIVATE", icon: "lock-closed-outline", desc: "Your profile is hidden from rankings" },
+const VISIBILITY_OPTIONS: Array<{ value: Visibility; label: string; description: string }> = [
+  { value: "public", label: "PUBLIC", description: "Anyone at the court can see your live check-in." },
+  { value: "friends", label: "FRIENDS", description: "Only accepted friends can see your identity." },
+  { value: "private", label: "PRIVATE", description: "Count me as active without showing my profile." },
 ];
-
-function LocalPlusModal({
-  visible,
-  onClose,
-  onUpgrade,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  onUpgrade: () => void;
-}) {
-  return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.modalOverlay} onPress={onClose}>
-        <View style={styles.modalCard}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>LOCALPLUS</Text>
-            <Pressable onPress={onClose} hitSlop={12}>
-              <Ionicons name="close" size={22} color={Colors.muted} />
-            </Pressable>
-          </View>
-
-          <View style={styles.plusHero}>
-            <Ionicons name="star" size={32} color={Colors.accent} />
-            <Text style={styles.plusPrice}>$4.99/mo</Text>
-          </View>
-
-          <View style={styles.plusBenefits}>
-            <View style={styles.benefitRow}>
-              <Ionicons name="infinite" size={16} color={Colors.accent} />
-              <Text style={styles.benefitText}>Full match history — every game</Text>
-            </View>
-            <View style={styles.benefitRow}>
-              <Ionicons name="trophy" size={16} color={Colors.accent} />
-              <Text style={styles.benefitText}>Public leaderboard visibility</Text>
-            </View>
-            <View style={styles.benefitRow}>
-              <Ionicons name="analytics" size={16} color={Colors.accent} />
-              <Text style={styles.benefitText}>Advanced stats & trends</Text>
-            </View>
-            <View style={styles.benefitRow}>
-              <Ionicons name="color-wand" size={16} color={Colors.accent} />
-              <Text style={styles.benefitText}>Custom profile badge</Text>
-            </View>
-          </View>
-
-          <Pressable style={styles.upgradeBtn} onPress={onUpgrade}>
-            <Text style={styles.upgradeBtnText}>UPGRADE TO LOCALPLUS</Text>
-          </Pressable>
-          <Pressable style={styles.cancelBtn} onPress={onClose}>
-            <Text style={styles.cancelBtnText}>MAYBE LATER</Text>
-          </Pressable>
-        </View>
-      </Pressable>
-    </Modal>
-  );
-}
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { currentUser, isLocalPlus, setVisibility, visibility, preferredSport, setPreferredSport, preferredCourtId, setPreferredCourtId, localCourt } = useApp();
+  const { currentUser, visibility, setVisibility, preferredSport, setPreferredSport, localCourt } = useApp();
   const { user, profile, signOut } = useAuth();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
+  const [deleting, setDeleting] = useState(false);
 
-  const [showPlusModal, setShowPlusModal] = useState(false);
-  const [notifications, setNotifications] = useState(true);
-  const [locationSharing, setLocationSharing] = useState(true);
-  const [haptics, setHaptics] = useState(true);
-  const [darkMode, setDarkMode] = useState(true);
-
-  const handleUpgrade = () => {
-    setShowPlusModal(false);
-    // In a real app, this would trigger an IAP flow
-    Alert.alert("LocalPlus", "This would open the App Store purchase flow.", [{ text: "OK" }]);
+  const openWebsitePath = (path: string) => {
+    void Linking.openURL(`${WEBSITE_URL}${path}`);
   };
 
   const handleLogout = () => {
-    Alert.alert("Log Out", "Are you sure you want to log out?", [
+    Alert.alert("Log out?", "You can sign back in at any time.", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Log Out",
         style: "destructive",
         onPress: async () => {
           await signOut();
-          router.push("/auth");
+          router.replace("/auth");
         },
       },
     ]);
   };
 
+  const executeDelete = async () => {
+    if (!user || deleting) return;
+    setDeleting(true);
+    let appleAuthorizationCode: string | null = null;
+
+    try {
+      const usesApple = user.app_metadata?.provider === "apple"
+        || user.identities?.some((identity) => identity.provider === "apple");
+      if (usesApple) {
+        if (Platform.OS !== "ios") {
+          Alert.alert("Use your iPhone", "Apple accounts must be reauthenticated on iPhone before deletion.");
+          return;
+        }
+        const credential = await AppleAuthentication.signInAsync({ requestedScopes: [] });
+        appleAuthorizationCode = credential.authorizationCode;
+        if (!appleAuthorizationCode) {
+          Alert.alert("Could not verify Apple account", "Please try again before deleting your account.");
+          return;
+        }
+      }
+
+      const result = await deleteCurrentAccount(appleAuthorizationCode);
+      if (!result.ok) {
+        Alert.alert("Account not deleted", result.error ?? "Please try again.");
+        return;
+      }
+      router.replace("/auth");
+    } catch (error: any) {
+      if (error?.code !== "ERR_REQUEST_CANCELED") {
+        Alert.alert("Account not deleted", "We could not verify the request. Please try again.");
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleDeleteAccount = () => {
     Alert.alert(
-      "Delete Account",
-      "This permanently deletes all your data. This cannot be undone.",
+      "Permanently delete account?",
+      "This removes your LocalCheck account, profile, social connections, and activity tied to it. This cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => Alert.alert("Account deletion request sent.", "", [{ text: "OK" }]),
-        },
+        { text: "Delete Account", style: "destructive", onPress: () => void executeDelete() },
       ]
     );
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: topPad + 12 }]}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
-          <Ionicons name="chevron-back" size={24} color={Colors.text} />
+    <View style={styles.screen}>
+      <View style={[styles.header, { paddingTop: topPad + 10 }]}>
+        <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={12}>
+          <Feather name="chevron-left" size={20} color={Colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>SETTINGS</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: 34 }} />
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 84 : bottom + 100 }}
+        contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 90 : bottom + 80 }}
       >
-        {/* Profile Card */}
-        <View style={styles.profileCard}>
-          <PlayerAvatar initials={currentUser.avatar} size={56} />
-          <View style={styles.profileInfo}>
+        <View style={styles.profileRow}>
+          <PlayerAvatar initials={currentUser.avatar || "LC"} size={52} />
+          <View style={{ flex: 1 }}>
             <Text style={styles.profileName}>{currentUser.name.toUpperCase()}</Text>
-            <View style={styles.profileBadges}>
-              <Text style={[styles.profileTier, { color: getTierColor(currentUser.tier) }]}>
-                {currentUser.tier}
-              </Text>
-              {isLocalPlus && (
-                <View style={styles.plusBadge}>
-                  <Ionicons name="star" size={10} color={Colors.accent} />
-                  <Text style={styles.plusBadgeText}>LOCALPLUS</Text>
-                </View>
-              )}
-            </View>
+            <Text style={styles.profileMeta}>@{profile?.username || "player"} · {currentUser.elo} ELO</Text>
           </View>
         </View>
 
-        {/* Visibility Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>PROFILE VISIBILITY</Text>
-          <View style={styles.sectionCard}>
-            {VISIBILITY_OPTIONS.map((opt) => {
-              const active = visibility === opt.value;
+        <Section title="CHECK-IN PRIVACY">
+          <View style={styles.segmented}>
+            {VISIBILITY_OPTIONS.map((option) => {
+              const active = visibility === option.value;
               return (
                 <Pressable
-                  key={opt.value}
-                  style={[styles.visibilityRow, active && styles.visibilityRowActive]}
-                  onPress={() => setVisibility(opt.value)}
+                  key={option.value}
+                  style={[styles.segment, active && styles.segmentActive]}
+                  onPress={() => void setVisibility(option.value)}
                 >
-                  <View style={styles.visibilityLeft}>
-                    <Ionicons
-                      name={opt.icon as any}
-                      size={18}
-                      color={active ? Colors.text : Colors.muted}
-                    />
-                    <View>
-                      <Text style={[styles.visibilityLabel, active && styles.visibilityLabelActive]}>
-                        {opt.label}
-                      </Text>
-                      <Text style={styles.visibilityDesc}>{opt.desc}</Text>
-                    </View>
-                  </View>
-                  {active && <Ionicons name="checkmark" size={18} color={Colors.accent} />}
+                  <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{option.label}</Text>
                 </Pressable>
               );
             })}
           </View>
-        </View>
+          <Text style={styles.explanation}>
+            {VISIBILITY_OPTIONS.find((option) => option.value === visibility)?.description}
+          </Text>
+        </Section>
 
-        {/* LocalPlus Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>SUBSCRIPTION</Text>
-          <View style={styles.sectionCard}>
-            {isLocalPlus ? (
-              <View style={styles.plusActiveRow}>
-                <View style={styles.plusActiveLeft}>
-                  <Ionicons name="star" size={20} color={Colors.accent} />
-                  <View>
-                    <Text style={styles.plusActiveTitle}>LOCALPLUS ACTIVE</Text>
-                    <Text style={styles.plusActiveSub}>Renews on Jul 20, 2026</Text>
-                  </View>
-                </View>
-                <Text style={styles.plusActivePrice}>$4.99/mo</Text>
-              </View>
-            ) : (
-              <Pressable style={styles.plusUpgradeRow} onPress={() => setShowPlusModal(true)}>
-                <View style={styles.plusUpgradeLeft}>
-                  <Ionicons name="star-outline" size={20} color={Colors.accent} />
-                  <View>
-                    <Text style={styles.plusUpgradeTitle}>UPGRADE TO LOCALPLUS</Text>
-                    <Text style={styles.plusUpgradeSub}>Unlock full history & public rank</Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={Colors.muted} />
-              </Pressable>
-            )}
-          </View>
-        </View>
-
-        {/* Preferences Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>PREFERENCES</Text>
-          <View style={styles.sectionCard}>
-            <View style={styles.toggleRow}>
-              <View style={styles.toggleLeft}>
-                <Ionicons name="notifications-outline" size={18} color={Colors.text} />
-                <Text style={styles.toggleLabel}>Push Notifications</Text>
-              </View>
-              <Switch
-                value={notifications}
-                onValueChange={setNotifications}
-                trackColor={{ false: Colors.mutedDark, true: Colors.accentDim }}
-                thumbColor={notifications ? Colors.accent : Colors.muted}
-              />
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.toggleRow}>
-              <View style={styles.toggleLeft}>
-                <Ionicons name="location-outline" size={18} color={Colors.text} />
-                <Text style={styles.toggleLabel}>Location Sharing</Text>
-              </View>
-              <Switch
-                value={locationSharing}
-                onValueChange={setLocationSharing}
-                trackColor={{ false: Colors.mutedDark, true: Colors.accentDim }}
-                thumbColor={locationSharing ? Colors.accent : Colors.muted}
-              />
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.toggleRow}>
-              <View style={styles.toggleLeft}>
-                <Ionicons name="pulse-outline" size={18} color={Colors.text} />
-                <Text style={styles.toggleLabel}>Haptic Feedback</Text>
-              </View>
-              <Switch
-                value={haptics}
-                onValueChange={setHaptics}
-                trackColor={{ false: Colors.mutedDark, true: Colors.accentDim }}
-                thumbColor={haptics ? Colors.accent : Colors.muted}
-              />
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.toggleRow}>
-              <View style={styles.toggleLeft}>
-                <Ionicons name="moon-outline" size={18} color={Colors.text} />
-                <Text style={styles.toggleLabel}>Dark Mode</Text>
-              </View>
-              <Switch
-                value={darkMode}
-                onValueChange={setDarkMode}
-                trackColor={{ false: Colors.mutedDark, true: Colors.accentDim }}
-                thumbColor={darkMode ? Colors.accent : Colors.muted}
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* Sport Preferences Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>SPORT PREFERENCES</Text>
-          <View style={styles.sectionCard}>
-            <View style={styles.prefRow}>
-              <View style={styles.prefLeft}>
-                <Ionicons name="basketball-outline" size={18} color={Colors.text} />
-                <View>
-                  <Text style={styles.prefLabel}>PREFERRED SPORT</Text>
-                  <Text style={styles.prefDesc}>Default sport for compete & log game</Text>
-                </View>
-              </View>
-            </View>
-            <View style={styles.prefSportRow}>
-              {(["BASKETBALL", "PICKLEBALL"] as CourtSport[]).map((s) => (
+        <Section title="SPORT">
+          <View style={styles.segmented}>
+            {(["BASKETBALL", "PICKLEBALL"] as CourtSport[]).map((sport) => {
+              const active = preferredSport === sport;
+              return (
                 <Pressable
-                  key={s}
-                  style={[
-                    styles.prefSportPill,
-                    preferredSport === s && styles.prefSportPillActive,
-                  ]}
-                  onPress={() => setPreferredSport(preferredSport === s ? null : s)}
+                  key={sport}
+                  style={[styles.segment, active && styles.segmentActive]}
+                  onPress={() => void setPreferredSport(sport)}
                 >
-                  <View style={[styles.prefSportDot, { backgroundColor: getSportColor(s) }]} />
-                  <Text style={[styles.prefSportText, preferredSport === s && styles.prefSportTextActive]}>
-                    {s === "BASKETBALL" ? "BB" : "PB"}
+                  <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+                    {sport === "BASKETBALL" ? "BASKETBALL" : "PICKLEBALL"}
                   </Text>
                 </Pressable>
-              ))}
-            </View>
-            <View style={styles.divider} />
-
-            {/* Local court — set via Explore, not a list */}
-            <Pressable style={styles.actionRow} onPress={() => router.push("/(tabs)/explore")}>
-              <View style={styles.actionLeft}>
-                <Ionicons name="location-outline" size={18} color={Colors.text} />
-                <View>
-                  <Text style={styles.prefLabel}>LOCAL COURT</Text>
-                  <Text style={styles.prefDesc}>
-                    {localCourt ? localCourt.name : "Not set — tap to explore"}
-                  </Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={Colors.muted} />
-            </Pressable>
+              );
+            })}
           </View>
-        </View>
+        </Section>
 
-        {/* Account Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ACCOUNT</Text>
-          <View style={styles.sectionCard}>
-            <Pressable style={styles.actionRow} onPress={() => router.push("/auth")}>
-              <View style={styles.actionLeft}>
-                <Ionicons name="person-circle-outline" size={18} color={Colors.text} />
-                <View>
-                  <Text style={styles.actionLabel}>{user ? "MANAGE ACCOUNT" : "SIGN IN"}</Text>
-                  {user && (
-                    <Text style={[styles.actionLabel, { fontSize: 10, color: Colors.muted, letterSpacing: 0.5 }]}>
-                      {profile?.display_name ?? user.email}
-                    </Text>
-                  )}
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={Colors.muted} />
-            </Pressable>
-            <View style={styles.divider} />
-            <Pressable style={styles.actionRow}>
-              <View style={styles.actionLeft}>
-                <Ionicons name="shield-outline" size={18} color={Colors.text} />
-                <Text style={styles.actionLabel}>Privacy Policy</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={Colors.muted} />
-            </Pressable>
-            <View style={styles.divider} />
-            <Pressable style={styles.actionRow}>
-              <View style={styles.actionLeft}>
-                <Ionicons name="document-text-outline" size={18} color={Colors.text} />
-                <Text style={styles.actionLabel}>Terms of Service</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={Colors.muted} />
-            </Pressable>
-            <View style={styles.divider} />
-            <Pressable style={styles.actionRow}>
-              <View style={styles.actionLeft}>
-                <Ionicons name="help-circle-outline" size={18} color={Colors.text} />
-                <Text style={styles.actionLabel}>Support & FAQ</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={Colors.muted} />
-            </Pressable>
-          </View>
-        </View>
+        <Section title="LOCAL COURT">
+          <SettingsRow
+            icon="map-pin"
+            label={localCourt?.name ?? "CHOOSE A LOCAL COURT"}
+            detail={localCourt ? "Your home base" : "Find it in Explore"}
+            onPress={() => router.push("/(tabs)/explore")}
+          />
+        </Section>
 
-        {/* Danger Zone */}
-        <View style={styles.section}>
-          <View style={[styles.sectionCard, styles.dangerCard]}>
-            <Pressable style={styles.dangerRow} onPress={handleLogout}>
-              <Ionicons name="log-out-outline" size={18} color={Colors.loss} />
-              <Text style={styles.dangerLabel}>Log Out</Text>
-            </Pressable>
-            <View style={styles.divider} />
-            <Pressable style={styles.dangerRow} onPress={handleDeleteAccount}>
-              <Ionicons name="trash-outline" size={18} color={Colors.loss} />
-              <Text style={styles.dangerLabel}>Delete Account</Text>
-            </Pressable>
-          </View>
-        </View>
+        <Section title="LEGAL & SUPPORT">
+          <SettingsRow icon="shield" label="PRIVACY POLICY" onPress={() => openWebsitePath("/privacy")} />
+          <SettingsRow icon="file-text" label="TERMS OF SERVICE" onPress={() => openWebsitePath("/terms")} />
+          <SettingsRow icon="help-circle" label="HELP & SUPPORT" onPress={() => openWebsitePath("/support")} />
+        </Section>
 
-        <Text style={styles.version}>LocalCheck v1.0.0</Text>
+        <Section title="ACCOUNT">
+          <SettingsRow icon="log-out" label="LOG OUT" onPress={handleLogout} />
+          <Pressable style={({ pressed }) => [styles.deleteRow, pressed && styles.pressed]} onPress={handleDeleteAccount} disabled={deleting}>
+            {deleting ? <ActivityIndicator color={Colors.loss} size="small" /> : <Feather name="trash-2" size={17} color={Colors.loss} />}
+            <Text style={styles.deleteText}>{deleting ? "DELETING…" : "DELETE ACCOUNT"}</Text>
+          </Pressable>
+        </Section>
+
+        <Text style={styles.version}>LOCALCHECK 1.0.0</Text>
       </ScrollView>
-
-      <LocalPlusModal visible={showPlusModal} onClose={() => setShowPlusModal(false)} onUpgrade={handleUpgrade} />
     </View>
   );
 }
 
-function getTierColor(tier: string): string {
-  switch (tier) {
-    case "PLATINUM": return "#E8E8FF";
-    case "GOLD": return "#FFD53D";
-    case "SILVER": return "#C8C8D0";
-    case "BRONZE": return "#CF8558";
-    default: return "#555566";
-  }
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.sectionSurface}>{children}</View>
+    </View>
+  );
+}
+
+function SettingsRow({ icon, label, detail, onPress }: { icon: React.ComponentProps<typeof Feather>["name"]; label: string; detail?: string; onPress: () => void }) {
+  return (
+    <Pressable style={({ pressed }) => [styles.settingsRow, pressed && styles.pressed]} onPress={onPress}>
+      <Feather name={icon} size={17} color={Colors.textSecondary} />
+      <View style={{ flex: 1 }}>
+        <Text style={styles.settingsLabel} numberOfLines={1}>{label}</Text>
+        {detail ? <Text style={styles.settingsDetail}>{detail}</Text> : null}
+      </View>
+      <Feather name="chevron-right" size={17} color={Colors.muted} />
+    </Pressable>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  headerTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 16,
-    color: Colors.text,
-    letterSpacing: 2,
-  },
-
-  profileCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
-  profileInfo: { gap: 4 },
-  profileName: {
-    fontFamily: Typography.heading,
-    fontSize: 20,
-    color: Colors.white,
-    letterSpacing: 0.5,
-  },
-  profileBadges: { flexDirection: "row", gap: 8, alignItems: "center" },
-  profileTier: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    letterSpacing: 1.5,
-  },
-  plusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: Colors.accentDim,
-    borderWidth: 1,
-    borderColor: Colors.accent,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radius.xs,
-  },
-  plusBadgeText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.accent,
-    letterSpacing: 1,
-  },
-
-  section: { paddingHorizontal: 20, marginBottom: 20 },
-  sectionTitle: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 10,
-    color: Colors.muted,
-    letterSpacing: 2.5,
-    marginBottom: 8,
-    textTransform: "uppercase" as const,
-  },
-  sectionCard: {
-    backgroundColor: Colors.surface,
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    borderRadius: Radius.sm,
-    overflow: "hidden",
-  },
-
-  visibilityRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
-  },
-  visibilityRowActive: {
-    backgroundColor: Colors.surfaceHigh,
-  },
-  visibilityLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flex: 1,
-  },
-  visibilityLabel: {
-    fontFamily: Typography.heading,
-    fontSize: 13,
-    color: Colors.muted,
-    letterSpacing: 1,
-  },
-  visibilityLabelActive: {
-    color: Colors.text,
-  },
-  visibilityDesc: {
-    fontFamily: Typography.body,
-    fontSize: 11,
-    color: Colors.mutedDark,
-    marginTop: 2,
-  },
-
-  plusUpgradeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
-  plusUpgradeLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flex: 1,
-  },
-  plusUpgradeTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 13,
-    color: Colors.accent,
-    letterSpacing: 1,
-  },
-  plusUpgradeSub: {
-    fontFamily: Typography.body,
-    fontSize: 11,
-    color: Colors.muted,
-    marginTop: 2,
-  },
-
-  plusActiveRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
-  plusActiveLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flex: 1,
-  },
-  plusActiveTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 13,
-    color: Colors.accent,
-    letterSpacing: 1,
-  },
-  plusActiveSub: {
-    fontFamily: Typography.body,
-    fontSize: 11,
-    color: Colors.muted,
-    marginTop: 2,
-  },
-  plusActivePrice: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.text,
-  },
-
-  toggleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  toggleLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  toggleLabel: {
-    fontFamily: Typography.body,
-    fontSize: 14,
-    color: Colors.text,
-  },
-
-  divider: {
-    height: 0.5,
-    backgroundColor: Colors.border,
-    marginLeft: 48,
-  },
-
-  actionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  actionLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  actionLabel: {
-    fontFamily: Typography.body,
-    fontSize: 14,
-    color: Colors.text,
-  },
-
-  dangerCard: {
-    borderColor: Colors.lossDim,
-  },
-  dangerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  dangerLabel: {
-    fontFamily: Typography.body,
-    fontSize: 14,
-    color: Colors.loss,
-  },
-
-  version: {
-    fontFamily: Typography.body,
-    fontSize: 11,
-    color: Colors.mutedDark,
-    textAlign: "center",
-    marginTop: 8,
-    marginBottom: 20,
-  },
-
-  // Sport Preferences
-  prefRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 4,
-    gap: 12,
-  },
-  prefLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  prefLabel: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
-    color: Colors.text,
-    letterSpacing: 1,
-  },
-  prefDesc: {
-    fontFamily: Typography.body,
-    fontSize: 11,
-    color: Colors.mutedDark,
-    marginTop: 2,
-  },
-  prefSportRow: {
-    flexDirection: "row",
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-  },
-  prefSportPill: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    padding: 10,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.surface,
-    justifyContent: "center",
-  },
-  prefSportPillActive: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.accentDim,
-  },
-  prefSportDot: { width: 8, height: 8, borderRadius: 4 },
-  prefSportText: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
-    color: Colors.muted,
-    letterSpacing: 1,
-  },
-  prefSportTextActive: { color: Colors.text },
-  prefCourtRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-  },
-  prefCourtPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.surface,
-  },
-  prefCourtPillActive: {
-    borderColor: Colors.text,
-    backgroundColor: Colors.surfaceHigh,
-  },
-  prefCourtText: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    color: Colors.muted,
-  },
-  prefCourtTextActive: { color: Colors.text },
-
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: Colors.overlay,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-  },
-  modalCard: {
-    width: "100%",
-    maxWidth: 340,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 20,
-    gap: 12,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  modalTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.text,
-    letterSpacing: 2,
-  },
-  plusHero: {
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  plusPrice: {
-    fontFamily: Typography.heading,
-    fontSize: 28,
-    color: Colors.text,
-    letterSpacing: -0.5,
-  },
-  plusBenefits: {
-    gap: 10,
-    paddingVertical: 4,
-  },
-  benefitRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  benefitText: {
-    fontFamily: Typography.body,
-    fontSize: 13,
-    color: Colors.textSecondary,
-  },
-  upgradeBtn: {
-    backgroundColor: Colors.accent,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  upgradeBtnText: {
-    fontFamily: Typography.heading,
-    fontSize: 13,
-    color: Colors.white,
-    letterSpacing: 1.5,
-  },
-  cancelBtn: {
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  cancelBtnText: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 12,
-    color: Colors.muted,
-    letterSpacing: 1,
-  },
+  screen: { flex: 1, backgroundColor: Colors.background },
+  header: { minHeight: 94, paddingHorizontal: 16, paddingBottom: 14, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", borderBottomWidth: 1, borderBottomColor: Colors.border },
+  backButton: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderRadius: 17, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
+  headerTitle: { fontFamily: Typography.heading, fontSize: 19, color: Colors.text, letterSpacing: 1.2 },
+  profileRow: { paddingHorizontal: 20, paddingVertical: 22, flexDirection: "row", alignItems: "center", gap: 13 },
+  profileName: { fontFamily: Typography.heading, fontSize: 20, lineHeight: 22, color: Colors.text, letterSpacing: 0.4 },
+  profileMeta: { fontFamily: Typography.bodyMedium, fontSize: 9, color: Colors.muted, letterSpacing: 0.8, marginTop: 4 },
+  section: { paddingHorizontal: 20, marginBottom: 21 },
+  sectionTitle: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.muted, letterSpacing: 1.8, marginBottom: 8 },
+  sectionSurface: { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md, overflow: "hidden" },
+  segmented: { flexDirection: "row", margin: 10, gap: 6 },
+  segment: { flex: 1, minHeight: 38, alignItems: "center", justifyContent: "center", borderRadius: Radius.sm, backgroundColor: Colors.surfaceHigh, borderWidth: 1, borderColor: "transparent", paddingHorizontal: 5 },
+  segmentActive: { borderColor: Colors.accent, backgroundColor: Colors.accentDim },
+  segmentText: { fontFamily: Typography.bodyBold, fontSize: 7, color: Colors.muted, letterSpacing: 0.9, textAlign: "center" },
+  segmentTextActive: { color: Colors.text },
+  explanation: { fontFamily: Typography.body, fontSize: 11, lineHeight: 16, color: Colors.muted, paddingHorizontal: 13, paddingBottom: 13 },
+  settingsRow: { minHeight: 58, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 12, borderBottomWidth: 1, borderBottomColor: Colors.borderSubtle },
+  settingsLabel: { fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.text, letterSpacing: 0.55 },
+  settingsDetail: { fontFamily: Typography.body, fontSize: 9, color: Colors.muted, marginTop: 3 },
+  deleteRow: { minHeight: 58, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
+  deleteText: { fontFamily: Typography.bodyBold, fontSize: 9, color: Colors.loss, letterSpacing: 1.2 },
+  pressed: { opacity: 0.65 },
+  version: { fontFamily: Typography.bodyMedium, fontSize: 7, color: Colors.mutedDark, letterSpacing: 1.3, textAlign: "center", marginTop: 2 },
 });

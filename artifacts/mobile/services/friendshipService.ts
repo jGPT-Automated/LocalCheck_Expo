@@ -48,6 +48,21 @@ export async function fetchFriendIds(userId: string): Promise<string[]> {
   return friends.map((f) => f.id);
 }
 
+/** Pending requests addressed to the signed-in user, with requester profiles. */
+export async function fetchIncomingFriendRequests(userId: string): Promise<Player[]> {
+  const { data, error } = await supabase
+    .from("friendships")
+    .select("requester:profiles!friendships_requester_id_fkey(*)")
+    .eq("addressee_id", userId)
+    .eq("status", "pending");
+  if (error || !data) {
+    if (error) console.warn("fetchIncomingFriendRequests failed", error.message);
+    return [];
+  }
+  return (data as unknown as Array<{ requester: SupabaseProfile | null }>)
+    .flatMap((row) => row.requester ? [mapProfileToPlayer(row.requester)] : []);
+}
+
 /**
  * Every friendship row involving this user, keyed by the *other* user's id,
  * including 'pending' ones. `fetchFriends` deliberately returns only accepted

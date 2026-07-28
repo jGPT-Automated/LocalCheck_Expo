@@ -13,7 +13,7 @@ release runbook for deployment steps.
 | Canonical local folder | `/Users/JesseH/Projects/LocalCheck_Expo` |
 | Delivery branch | GitHub `main` |
 | Delivered source | GitHub `main` contains feature commit `32bc0d6` and its delivery record. Verify the current remote tip when an exact hash matters. |
-| Local working state | The canonical checkout is on the newer `fix/schedule-save-and-navigation-polish` branch with an unrelated untracked `.claude/launch.json`; neither was altered or included in the `main` delivery. |
+| Local working state | Active candidate branch `codex/mvp-consolidation` at `0bc14d2`, based on GitHub `main` `7772b61`, plus an uncommitted Profile/Court Details/shared-system pass. The unrelated untracked `.claude/launch.json` is user-owned and untouched. |
 | Release tag | `v1.0.4` → checkpoint commit |
 | TestFlight | LocalCheck `1.0.0 (9)` available to Jesse |
 | Successful EAS workflow | `019f9e9b-188e-70b8-9ff3-f1aa9a66b52e` |
@@ -36,6 +36,10 @@ the browser, but it has not been delivered to TestFlight.
 - A local Realtime release candidate now replaces every shipping-app `postgres_changes` listener with authorized private Broadcast topics. One hub deduplicates topics, coalesces invalidations, caps exact court topics, closes all channels while inactive/hidden, restores desired topics on return, and fails closed after repeated subscription errors.
 - Explore now uses a Compete-style full-width `List` / `Map` switch, market-scoped discovery (five visible, ten fetched), premium smoky cards with in-card Check In, active/local counts, and restrained sport metadata. Web points are Mapbox canvas layers with built-in clustering; native uses the equivalent `ShapeSource` layers. The signed-in preview passed list, cluster-rendering, and Schedule multi-select checks.
 - Schedule now has inline `View / Edit` mode. Cell taps only update pending local state; `Save` commits the additions/removals together and performs one catch-up refresh. Browser QA selected and cancelled multiple cells without writing test data.
+- The local MVP visual candidate now applies one shared Oswald/Inter type hierarchy and header baseline across primary tabs; compact matte court cards; real sport-library icons; smaller settings and map chrome; and ranked/friend avatar states where orange glow means ranked and the star means friend.
+- Schedule now covers 8 AM through 11 PM in two-hour heat buckets, defaults to the current bucket whenever the screen regains focus, highlights the current row/column/cell, separates View from Edit, and presents upcoming runs as a horizontal snapping rail. Create Run and Add Court share the same form-sheet shell.
+- Court Details now keeps one stable court card above four scrollable sections: `Feed`, `Locals`, `Schedule`, and `Details`. Locals use the requested ranked/friend avatar language; Schedule reuses the heatmap contract; Details only renders court-facility facts that actually exist in the data.
+- The canonical dependency tree is now a real pnpm install rather than archive symlinks. `script/start_local_preview.sh` produces a fresh interactive export at port 8081 when Watchman is unavailable; the export and release gate pass from the canonical checkout.
 - Compete no longer presents `All / BB / PB` as separate rankings when the backend stores only one overall Elo. A hidden current-user placeholder now appears inline at its would-be position without changing public row numbering or duplicating the user publicly in that client view.
 - The local mobile release gate now runs TypeScript plus five focused Realtime lifecycle/scoping tests; it passed on 2026-07-27.
 - The exact applied `v2_scoped_realtime_broadcast` migration source was recovered byte-for-byte from the archived release worktree into `docs/supabase/migrations/202607220004_v2_scoped_realtime_broadcast.sql` and checked against the live functions, policy, triggers, and `courts_with_stats.market` contract. No production mutation was made.
@@ -54,12 +58,14 @@ the browser, but it has not been delivered to TestFlight.
   - **Add Friend** — fixed client-side. `friendships` is SELECT-only; the old code inserted directly and discarded the error. Now uses `request_friend` / `accept_friend_request` / `remove_friendship`. Note `request_friend` creates **`pending`**, so the profile button shows `REQUESTED`; an accept/decline surface is still needed.
   - **Add a Court** — still broken. `courts` is SELECT-only and no `create_court` RPC exists. Needs a product decision plus a migration.
   - **Edit a Run** — still broken. `runs` is SELECT-only and no update RPC exists.
-- The client no longer reports an empty or court-less Schedule save as success.
-- Add Friend does nothing in build 9 and is a confirmed regression.
-- Profile `CHECK-INS` is wired to `total_court_time_minutes`, so the label and value do not represent the same metric; this is separate from Realtime delivery.
-- Normal Expo live preview is not yet reliable in the clean checkout. Both canonical `node_modules` paths are symlinks into the archived pre-main checkout. Metro's live server reaches the external dependency tree, then fails with `EMFILE` because Watchman is absent and the archived root dependency tree contains roughly 445,000 files. `script/start_local_preview.sh` now provides one repeatable entrypoint: normal Expo when dependencies are canonical, or an interactive export-and-serve fallback while the archive links remain. The fallback is suitable as a second Realtime client but has no hot reload and is not the durable dependency repair.
+- The local candidate no longer reports an empty or court-less Schedule save as success. It disables an unchanged Save, retains failed selections, and supports a Court Details deep-link with the court preselected. Signed-in write proof on a physical client is still required before delivery.
+- Add Friend does nothing in build 9. The local candidate uses the existing friend-request RPCs and includes incoming accept/decline surfaces, but physical two-account proof is still required.
+- The local Profile candidate obtains a real lifetime `check_ins` row count rather than labeling court-time minutes as check-ins.
+- Normal hot-reload Expo web still needs Watchman on this machine; without it, Node file watching reaches `EMFILE`. The repeatable export-and-serve fallback is working, but source edits require restarting the script.
+- The repeatable preview server now sends no-cache headers for every export asset and serves the Expo app shell for direct client routes such as `/schedule` and `/court/:id`. This prevents the stable development bundle filename from reopening a stale build after restart. It remains an export preview, so code edits still require rerunning the script.
 - The imported web app has not yet passed install/build/preview inside this pnpm workspace; source synchronization is complete, integration is not.
-- UI needs the documented shared-system pass: safe areas, headers, typography, spacing, colors, components, sheets/forms, court tabs, map layout, and terminology.
+- The shared-system browser pass is complete. Physical iPhone acceptance remains open for safe areas, keyboard/sheet behavior, native Mapbox, dense Schedule states, and same-viewport comparison against the supplied mocks.
+- Account-deletion client and Edge Function source exist in the local candidate. The function is not deployed or physically tested, and Apple revocation secrets are not verified; keep this a merge/release blocker rather than presenting a dead control.
 - App Store release QA/submission is still ahead.
 
 ## Approved working direction
@@ -69,20 +75,20 @@ the browser, but it has not been delivered to TestFlight.
 - Schedule defaults to the shared heatmap; `Edit My Times` enables multi-select and `Done` saves once.
 - Host a Run uses standard native date/time controls and the shared modal-form shell.
 - Court preview uses a proven contextual bottom sheet; form tasks use a standard modal presentation.
-- Court pages use a stable summary followed by `Feed`, `Locals`, and `Details` tabs.
+- Court pages use a stable summary followed by `Feed`, `Locals`, `Schedule`, and `Details` tabs.
 - Explore keeps the shared header and uses `List` / `Map` as its primary view switch.
-- Court cards use basketball blue and pickleball green only as restrained metadata in the emblem, faint geometry, and smoked hue; no colored side stripe. Orange remains the live/action signal.
+- Court cards use basketball blue and pickleball green only as restrained metadata in the emblem, faint glowing court geometry, smoked hue, and a thin left identity edge. Orange remains the live/action/ranked signal.
 - Presence terminology converges on `Check in`, `Here now`, and `Locals` with one meaning per count.
 - A court check-in is durable database state, not WebSocket presence. Phone lock, backgrounding, disconnect, or leaving a screen never means checkout. Live subscriptions exist only while a relevant screen is active; returning to the app performs one scoped catch-up refresh without requiring tab switching.
 
 ## Next sequence
 
-1. Restore the local preview with a canonical, lockfile-derived mobile dependency installation. First establish a safe disk budget; then move the archived-dependency symlinks to `Delete`, replace the ignored `.env` link with a canonical local `.env` without exposing its values, run a filtered pnpm install for the mobile app and its workspace dependencies, and verify typecheck plus the normal Expo start command. Do not make the archived checkout a permanent Metro dependency.
-2. Review the private-Broadcast candidate on `main`, prove reverse-direction/background/scoping behavior, then obtain Jesse's explicit approval before OTA/TestFlight delivery.
-3. After approved delivery, run the physical native-map acceptance pass and capture evidence; do not substitute the verified web preview for the phone.
-4. Complete two-phone live-flow acceptance and fix Add Friend.
-5. Implement shared tokens/components and the approved screen changes collaboratively.
-6. Complete App Store QA, screenshots/metadata, and submission.
+1. Jesse reviews Home, Explore List/Map, Profile, Compete, Court Details, and Schedule in the refreshed preview; fix visible mismatch before release.
+2. Prove Schedule add/remove persistence with a signed-in account. Preserve Apple Sign-In unchanged.
+3. Review and implement the standard-Elo match lifecycle as a separate backend contract with atomic, idempotent writes and confirmation states.
+4. Prove Add Friend with two accounts, then add the intentionally small notification set: run invite, friend request/accept, and final score confirm/object.
+5. Obtain Jesse's explicit approval before merging/pushing or triggering OTA. Physical Mapbox and two-way Realtime acceptance remain separate native QA gates.
+6. Complete recovery snapshot/runbook, privacy/compliance, App Store QA, screenshots/metadata, external TestFlight, and submission.
 
 ## Web truth
 
@@ -97,4 +103,6 @@ the browser, but it has not been delivered to TestFlight.
 - Launch burn-down: [`product/LAUNCH_CONTROL.md`](product/LAUNCH_CONTROL.md)
 - Build-9 screen map: [`product/screen-library/releases/ios-1.0.0-build-9/SCREEN_MAP.md`](product/screen-library/releases/ios-1.0.0-build-9/SCREEN_MAP.md)
 - Release procedure: [`RELEASE_RUNBOOK.md`](RELEASE_RUNBOOK.md)
+- Canonical design-system entry: [`product/design system/README.md`](product/design%20system/README.md)
+- Current design acceptance: [`product/DESIGN_QA.md`](product/DESIGN_QA.md)
 - Workspace/archive classification: [`WORKSPACE_MAP.md`](WORKSPACE_MAP.md)

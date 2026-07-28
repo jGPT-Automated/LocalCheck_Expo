@@ -45,13 +45,15 @@ export function FormSheet({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
+      animationType={Platform.OS === "web" ? "fade" : "slide"}
+      presentationStyle={Platform.OS === "ios" ? "pageSheet" : "fullScreen"}
+      transparent={Platform.OS === "web"}
       onRequestClose={onClose}
       // Keeps the status-bar area dark while the sheet slides in on Android.
       statusBarTranslucent
     >
-      <View style={styles.sheet}>
+      <View style={[styles.modalRoot, Platform.OS === "web" && styles.modalRootWeb]}>
+        <View style={[styles.sheet, Platform.OS === "web" && styles.sheetWeb]}>
         <View style={[styles.header, { paddingTop: headerTopPad }]}>
           <View style={styles.headerText}>
             {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
@@ -73,15 +75,38 @@ export function FormSheet({
           )}
         </View>
         {children}
+        </View>
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  modalRoot: { flex: 1 },
+  modalRootWeb: {
+    justifyContent: "flex-end",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.68)",
+    paddingHorizontal: 12,
+  },
   sheet: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  sheetWeb: {
+    width: "100%",
+    maxWidth: 540,
+    maxHeight: "90%",
+    borderTopLeftRadius: Radius.lg,
+    borderTopRightRadius: Radius.lg,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: Colors.border,
+    overflow: "hidden",
+    shadowColor: Colors.black,
+    shadowOpacity: 0.45,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: -8 },
   },
   header: {
     flexDirection: "row",

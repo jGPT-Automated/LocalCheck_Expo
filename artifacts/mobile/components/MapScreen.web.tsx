@@ -113,7 +113,7 @@ function MapboxMap({
         .mapboxgl-ctrl button { background-color: transparent !important; }
         .mapboxgl-ctrl button .mapboxgl-ctrl-icon { filter: invert(0.6) !important; }
         .mapboxgl-ctrl button:hover .mapboxgl-ctrl-icon { filter: invert(1) !important; }
-        .mapboxgl-ctrl-top-right { top: 178px !important; right: 12px !important; }
+        .mapboxgl-ctrl-top-right { top: 12px !important; right: 12px !important; }
       `;
       document.head.appendChild(controlStyle);
     }
@@ -457,7 +457,7 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
             localCourtId={localCourt?.id ?? null}
           />
 
-          <View style={[styles.liveBar, { top: 12 }]}>
+          <View style={[styles.liveBar, activeCourts.length === 0 && styles.liveBarQuiet, { top: 12 }]}>
             <Text style={styles.liveBarText}>
               {activeCourts.length > 0
                 ? `${activeCourts.length} COURT${activeCourts.length === 1 ? "" : "S"} LIVE`
@@ -502,9 +502,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.surfaceDark },
   liveBar: {
     position: "absolute",
-    left: 16,
+    left: 64,
+    right: 64,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     backgroundColor: Colors.surfaceDark,
     borderWidth: 1,
@@ -513,6 +515,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     zIndex: 10,
   },
+  liveBarQuiet: { backgroundColor: "rgba(13,13,16,0.52)", opacity: 0.72 },
   liveBarText: { fontFamily: Typography.heading, fontSize: 11, color: Colors.white, letterSpacing: 2 },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.accent },
   addCourtFab: {
@@ -534,22 +537,22 @@ const styles = StyleSheet.create({
   },
   legend: {
     position: "absolute",
-    bottom: 160,
+    bottom: 16,
     left: 16,
     backgroundColor: "rgba(13,13,16,0.88)",
     borderWidth: 1,
     borderColor: Colors.border,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+    gap: 4,
     zIndex: 10,
   },
-  legendItem: { flexDirection: "row", alignItems: "center", gap: 8 },
-  legendPin: { width: 14, height: 14, borderRadius: 7, borderWidth: 1.5 },
+  legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
+  legendPin: { width: 9, height: 9, borderRadius: 5, borderWidth: 1 },
   legendActive: { borderColor: Colors.accent, backgroundColor: Colors.accent },
   legendBasketball: { borderColor: Colors.text, backgroundColor: getCourtIdentityColor("BASKETBALL") },
   legendPickleball: { borderColor: Colors.text, backgroundColor: getCourtIdentityColor("PICKLEBALL") },
-  legendText: { fontFamily: Typography.bodySemiBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.2 },
+  legendText: { fontFamily: Typography.bodySemiBold, fontSize: 8, color: Colors.textSecondary, letterSpacing: 1 },
   noTokenBox: {
     flex: 1,
     backgroundColor: Colors.surfaceDark,

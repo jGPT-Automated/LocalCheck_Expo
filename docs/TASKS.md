@@ -26,12 +26,13 @@
 
 ## P1 — MVP core
 
-- ✅ **T5. Court view: active now + LOCALS list** — court sheet shows WHO'S
+- 🔨 **T5. Court view: active now + LOCALS list** — court sheet shows WHO'S
   HERE (avatar squares = active) and a LOCALS **list** (usernames + LAST
   CHECK-IN date per player, tap → profile). Data:
   `fetchLocalsWithLastCheckIn` (PostgREST per-parent embed, prod-verified).
-  Visibility filtering still pending (part of T9). Court profile page
-  (/court/[id]) still needs the same LOCALS list.
+  Visibility filtering still pending (part of T9). The local Court profile
+  candidate now has the same live/locals split plus its real seven-day court
+  schedule; preview and privacy acceptance remain open.
 - ✅ **T6. Log Game from player profile** — LOG GAME button beside ADD FRIEND;
   deep link `/(tabs)/compete?tab=log&opponentId=<id>` preselects the opponent.
 - ⬜ **T7. Game loop verified end-to-end** — two-account live test: log game →
@@ -46,12 +47,13 @@
 
 ## P2 — MVP polish / UX
 
-- ⬜ **T10. Schedule tab pivot → weekly availability calendar** — primary
+- 🔨 **T10. Schedule tab pivot → weekly availability calendar** — primary
   surface = 7-day rolling week view of planned visits ("when I'm going"),
   with the user's own times + friends' times overlaid on one calendar so
   overlap is visible. Per-court version of the same view (public users only).
-  Runs become secondary. Research standard weekly-calendar UI patterns first
-  (predictable, familiar interactions — availability grid, not a booking app).
+  Runs become secondary. The local candidate has View/Edit multi-select,
+  idempotent persistence, privacy choices for new times, and the matching
+  per-court view. Signed-in add/remove proof and visual acceptance remain.
 - ✅ **T11. Create-run / plan-visit modals rebuilt** — native pageSheet modals
   (swipe-to-dismiss); court field defaults to local court with ✕ + debounced
   typeahead; symmetric rolling-7-day grid; times/max-players in equal-width

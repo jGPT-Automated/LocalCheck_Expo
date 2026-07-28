@@ -1,472 +1,413 @@
+import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React from "react";
-import {
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { LogoMark } from "@/components/brand/LogoMark";
 import { BrutalistButton } from "@/components/BrutalistButton";
-import { LivePulse } from "@/components/LivePulse";
+import { CourtListItem } from "@/components/CourtListItem";
+import { CourtSchedulePanel } from "@/components/CourtSchedulePanel";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { RunCard } from "@/components/RunCard";
-import { StatBlock } from "@/components/StatBlock";
 import { Colors, Radius } from "@/constants/colors";
-import { Court, Player, getSportColor } from "@/constants/data";
+import { Court } from "@/constants/data";
 import { Typography } from "@/constants/typography";
-import { AnimatedEntry } from "@/components/AnimatedEntry";
 import { useApp } from "@/context/AppContext";
-import { usePresence } from "@/context/CourtPresenceContext";
+import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
 import { fetchCourtById } from "@/services/courtService";
+import { fetchLocalsWithLastCheckIn, LocalWithLastCheckIn } from "@/services/profileService";
 
-// BACKEND NOTE: court detail → GET /api/v1/courts/:id
-// Roster (live) → GET /api/v1/courts/:id/roster
-// Upcoming runs → GET /api/v1/courts/:id/runs?status=upcoming
-// Check in → POST /api/v1/courts/:id/checkins
-// Check out → DELETE /api/v1/courts/:id/checkins/me
+type CourtTab = "feed" | "locals" | "schedule" | "details";
 
 export default function CourtProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { courts, runs, checkIn, checkOut, checkedInCourtId, setLocalCourt, localCourtId, localCourt: ctxLocalCourt } =
-    useApp();
+  const {
+    courts,
+    runs,
+    feed,
+    checkIn,
+    checkOut,
+    checkedInCourtId,
+    setLocalCourt,
+    localCourtId,
+    localCourt: contextLocalCourt,
+    isFriend,
+  } = useApp();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
-
-  // Courts list is no longer preloaded; try local cache then fetch from Supabase
+  const [activeTab, setActiveTab] = React.useState<CourtTab>("feed");
   const [court, setCourt] = React.useState<Court | null>(
-    courts.find((c) => c.id === id) ?? (ctxLocalCourt?.id === id ? ctxLocalCourt : null)
+    courts.find((item) => item.id === id) ?? (contextLocalCourt?.id === id ? contextLocalCourt : null)
   );
   const [fetchError, setFetchError] = React.useState(false);
-  // Live roster + locals from the shared presence store — updates in real
-  // time when any user checks in/out or switches their local court.
-  const { roster: activePlayers, localCount } = usePresence(id ? String(id) : null);
+  const [locals, setLocals] = React.useState<LocalWithLastCheckIn[]>([]);
+  const courtId = id ? String(id) : null;
+  const { roster, localCount } = usePresence(courtId);
+  const countMap = useCourtCounts(court ? [court] : []);
 
   React.useEffect(() => {
-    if (court) return; // already resolved
-    fetchCourtById(String(id)).then((c) => {
-      if (c) setCourt(c);
+    if (!courtId || court?.id === courtId) return;
+    setFetchError(false);
+    fetchCourtById(courtId).then((result) => {
+      if (result) setCourt(result);
       else setFetchError(true);
     });
-  }, [id]);
+  }, [courtId, court?.id]);
 
-  const courtRuns = runs.filter((r) => r.courtId === id);
-  const isCheckedIn = checkedInCourtId === id;
-  const isMyLocal = localCourtId === id;
+  React.useEffect(() => {
+    if (!courtId) {
+      setLocals([]);
+      return;
+    }
+    let cancelled = false;
+    fetchLocalsWithLastCheckIn(courtId).then((result) => {
+      if (!cancelled) setLocals(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [courtId]);
 
   if (!court) {
     return (
       <View style={styles.notFound}>
         <Text style={styles.notFoundText}>{fetchError ? "COURT NOT FOUND" : "LOADING…"}</Text>
-        {fetchError && <BrutalistButton label="GO BACK" onPress={() => router.back()} variant="outline" />}
+        {fetchError ? <BrutalistButton label="GO BACK" onPress={() => router.back()} variant="outline" /> : null}
       </View>
     );
   }
 
-  const sportColor = getSportColor(court.sport);
-  const activeCount = activePlayers.length;
+  const courtRuns = runs
+    .filter((run) => run.courtId === court.id && new Date(run.startTimeIso).getTime() >= Date.now())
+    .sort((a, b) => a.startTimeIso.localeCompare(b.startTimeIso));
+  // Court pages carry a longer history; Home remains the concise overview.
+  const courtFeed = feed.filter((item) => item.courtId === court.id).slice(0, 30);
+  const statsActive = countMap[court.id]?.activeCount ?? court.activeCount ?? 0;
+  const activeCount = Math.max(roster.length, statsActive);
+  const hiddenCount = Math.max(0, activeCount - roster.length);
+  const isCheckedIn = checkedInCourtId === court.id;
+  const isMyLocal = localCourtId === court.id;
+  const details = getCourtDetails(court);
+  const hereNowIds = new Set(roster.map((player) => player.id));
+  const visibleLocals = locals.filter(({ player }) => !hereNowIds.has(player.id));
+  const privateLocalCount = Math.max(0, localCount - locals.length);
+  const uniqueVisiblePlayers = Array.from(new Map([
+    ...roster.map((player) => [player.id, player] as const),
+    ...locals.map(({ player }) => [player.id, player] as const),
+  ]).values());
+  const rankedIds = new Set(
+    uniqueVisiblePlayers
+      .sort((a, b) => b.elo - a.elo)
+      .slice(0, uniqueVisiblePlayers.length === 0 ? 0 : Math.max(1, Math.ceil(uniqueVisiblePlayers.length * 0.1)))
+      .map((player) => player.id)
+  );
+  const courtMetrics = getCourtMetrics(court);
 
-  // Only attributes with real values — the live DB stores none of these, so
-  // they typically come from user-added courts. Never invent defaults.
-  const courtDetails: { label: string; value: string }[] = [
-    court.courtCount != null ? { label: "Courts", value: String(court.courtCount) } : null,
-    court.hoopCount != null ? { label: "Hoops", value: String(court.hoopCount) } : null,
-    court.netType != null ? { label: "Net Type", value: court.netType } : null,
-    court.rimType != null ? { label: "Rim", value: court.rimType } : null,
-    court.surface != null ? { label: "Surface", value: court.surface } : null,
-    court.lights != null ? { label: "Lights", value: court.lights ? "YES" : "NO" } : null,
-    court.covered != null ? { label: "Covered", value: court.covered ? "YES" : "NO" } : null,
-    court.waterFountain != null ? { label: "Water", value: court.waterFountain ? "YES" : "NO" } : null,
-    court.maxCapacity != null ? { label: "Max Players", value: String(court.maxCapacity) } : null,
-    court.addedDate != null ? { label: "Added", value: court.addedDate } : null,
-  ].filter((d): d is { label: string; value: string } => d !== null);
+  const handleCheckIn = async () => {
+    if (isCheckedIn) await checkOut();
+    else await checkIn(court.id);
+  };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.screen}>
+      <View style={[styles.header, { paddingTop: topPad + 10 }]}>
+        <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={12}>
+          <Feather name="chevron-left" size={20} color={Colors.text} />
+        </Pressable>
+        <LogoMark size={20} />
+        <Text style={styles.headerTitle} numberOfLines={1}>{court.name}</Text>
+      </View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingBottom: (Platform.OS === "web" ? 34 : bottom) + 100,
-        }}
+        contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 92 : bottom + 108 }}
       >
-        {/* ── Clean Header (no background image) ── */}
-        <View style={[styles.hero, { paddingTop: topPad + 12 }]}>
-          <View style={[styles.sportAccentBar, { backgroundColor: sportColor }]} />
+        <View style={styles.cardWrap}>
+          <CourtListItem
+            court={{ ...court, activeCount, localCount }}
+            featured
+            isLocalCourt={isMyLocal}
+            isCheckedIn={isCheckedIn}
+            onCheckIn={() => void handleCheckIn()}
+            stats={[
+              { label: "ACTIVE NOW", value: hiddenCount > 0 ? `~${activeCount}` : activeCount, live: activeCount > 0 },
+              { label: "LOCALS", value: localCount },
+              { label: "VISITS", value: court.ratingCount ?? 0 },
+              { label: "RUNS", value: courtRuns.length },
+            ]}
+          />
+        </View>
 
-          {/* Back */}
-          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
-            <Text style={styles.backText}>‹ BACK</Text>
-          </Pressable>
+        <View style={styles.tabs}>
+          <Tab label="FEED" active={activeTab === "feed"} onPress={() => setActiveTab("feed")} />
+          <Tab label="LOCALS" active={activeTab === "locals"} onPress={() => setActiveTab("locals")} />
+          <Tab label="SCHEDULE" active={activeTab === "schedule"} onPress={() => setActiveTab("schedule")} />
+          <Tab label="DETAILS" active={activeTab === "details"} onPress={() => setActiveTab("details")} />
+        </View>
 
-          {/* Meta row */}
-          <View style={styles.heroMeta}>
-            <View style={styles.sportTag}>
-              <View style={[styles.sportDot, { backgroundColor: sportColor }]} />
-              <Text style={[styles.sportText, { color: sportColor }]}>{court.sport}</Text>
-            </View>
-            {activeCount > 0 && (
-              <View style={styles.liveChip}>
-                <LivePulse size={4} color={Colors.black} style={{ marginRight: 4 }} />
-                <Text style={styles.liveText}>LIVE</Text>
+        {activeTab === "feed" ? (
+          <View style={styles.section}>
+            {courtFeed.length > 0 ? courtFeed.map((item, index) => (
+              <View key={item.id} style={styles.timelineRow}>
+                <View style={styles.timelineRail}>
+                  <View style={[styles.timelineDot, index === 0 && styles.timelineDotActive]} />
+                  {index < courtFeed.length - 1 ? <View style={styles.timelineLine} /> : null}
+                </View>
+                <View style={styles.timelineCopy}>
+                  <Text style={styles.timelineMessage}>{item.message}</Text>
+                  <Text style={styles.timelineTime}>{item.timestamp}</Text>
+                </View>
               </View>
+            )) : (
+              <EmptyState title="NO COURT ACTIVITY YET" body="The first check-in or game here will start the feed." />
             )}
           </View>
+        ) : null}
 
-          <Text style={styles.heroName}>{court.name.toUpperCase()}</Text>
-          <Text style={styles.heroAddress}>
-            {court.neighborhood} · {court.city}
-          </Text>
-          <Text style={styles.heroFullAddress}>{court.address}</Text>
-        </View>
+        {activeTab === "locals" ? (
+          <View>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>HERE NOW · {activeCount}</Text>
+            </View>
+            <View style={styles.section}>
+              {roster.length > 0 ? roster.map((player) => (
+                <Pressable
+                  key={player.id}
+                  style={({ pressed }) => [styles.personRow, pressed && styles.pressed]}
+                  onPress={() => router.push(`/player/${player.id}`)}
+                >
+                  <PlayerAvatar
+                    initials={player.avatar}
+                    size={42}
+                    ranked={rankedIds.has(player.id)}
+                    friend={isFriend(player.id)}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.personName}>{player.name.toUpperCase()}</Text>
+                    <Text style={styles.personMeta}>ACTIVE NOW{rankedIds.has(player.id) ? " · RANKED" : ""}</Text>
+                  </View>
+                  <Text style={styles.personElo}>{player.elo}</Text>
+                </Pressable>
+              )) : (
+                <EmptyState title="NOBODY PUBLICLY CHECKED IN" body="Private check-ins still count toward the live total without exposing the player." />
+              )}
+              {hiddenCount > 0 ? (
+                <Text style={styles.hiddenNote}>+{hiddenCount} PRIVATE {hiddenCount === 1 ? "PLAYER" : "PLAYERS"} INCLUDED IN THE LIVE COUNT</Text>
+              ) : null}
+            </View>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>LOCALS · {localCount}</Text>
+            </View>
+            <View style={styles.section}>
+              {visibleLocals.length > 0 ? visibleLocals.map(({ player, lastCheckInAt }) => (
+                <Pressable
+                  key={player.id}
+                  style={({ pressed }) => [styles.personRow, pressed && styles.pressed]}
+                  onPress={() => router.push(`/player/${player.id}`)}
+                >
+                  <PlayerAvatar
+                    initials={player.avatar}
+                    size={42}
+                    ranked={rankedIds.has(player.id)}
+                    friend={isFriend(player.id)}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.personName}>{player.name.toUpperCase()}</Text>
+                    <Text style={[styles.personMeta, styles.personMetaQuiet]}>
+                      {lastCheckInAt ? `LAST HERE ${relativeTime(lastCheckInAt)}` : "LOCAL PLAYER"}
+                    </Text>
+                  </View>
+                  <Text style={styles.personElo}>{player.elo}</Text>
+                </Pressable>
+              )) : (
+                <Text style={styles.bodyCopy}>No visible local profiles yet.</Text>
+              )}
+              {privateLocalCount > 0 ? (
+                <Text style={styles.hiddenNote}>+{privateLocalCount} PRIVATE {privateLocalCount === 1 ? "LOCAL" : "LOCALS"} INCLUDED IN THE COUNT</Text>
+              ) : null}
+            </View>
+          </View>
+        ) : null}
 
-        {/* ── Stats Bar (real data: live presence, lifetime check-ins, locals) ── */}
-        <View style={styles.statsBar}>
-          <StatBlock value={activeCount} label="On Court" />
-          <View style={styles.statDiv} />
-          <StatBlock value={court.ratingCount ?? 0} label="Visits" />
-          <View style={styles.statDiv} />
-          <StatBlock value={localCount} label={`Local${localCount !== 1 ? "s" : ""}`} />
-        </View>
+        {activeTab === "schedule" ? (
+          <View>
+            <CourtSchedulePanel court={court} />
 
-        {/* ── Live Roster ── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>LIVE ROSTER</Text>
-          {activePlayers.length === 0 ? (
-            <Text style={styles.emptyText}>NO PLAYERS CHECKED IN YET</Text>
-          ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.rosterRow}>
-                {activePlayers.map((player) => (
-                  <AnimatedEntry key={player.id}>
-                    <View style={styles.rosterItem}>
-                      <PlayerAvatar initials={player.avatar} size={44} />
-                      <Text style={styles.rosterName}>
-                        {player.name.split(" ")[0].toUpperCase()}
-                      </Text>
-                      <Text style={styles.rosterElo}>{player.elo}</Text>
-                    </View>
-                  </AnimatedEntry>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>UPCOMING RUNS</Text>
+            </View>
+            <View style={styles.runSection}>
+              {courtRuns.length > 0 ? courtRuns.map((run) => <RunCard key={run.id} run={run} />) : (
+                <Pressable style={({ pressed }) => [styles.hostRun, pressed && styles.pressed]} onPress={() => router.push("/(tabs)/schedule")}>
+                  <View>
+                    <Text style={styles.hostRunTitle}>BE THE FIRST TO HOST</Text>
+                    <Text style={styles.hostRunBody}>Set a time. Build the run.</Text>
+                  </View>
+                  <Feather name="arrow-up-right" size={18} color={Colors.textSecondary} />
+                </Pressable>
+              )}
+            </View>
+          </View>
+        ) : null}
+
+        {activeTab === "details" ? (
+          <View>
+            {courtMetrics.length > 0 ? (
+              <View style={styles.metricGrid}>
+                {courtMetrics.map((metric) => (
+                  <View key={metric.label} style={styles.metricCell}>
+                    <Feather name={metric.icon} size={15} color={Colors.accent} />
+                    <Text style={styles.metricValue}>{metric.value}</Text>
+                    <Text style={styles.metricLabel}>{metric.label}</Text>
+                  </View>
                 ))}
               </View>
-            </ScrollView>
-          )}
-        </View>
+            ) : null}
 
-        {/* ── Upcoming Runs ── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>UPCOMING RUNS</Text>
-          {courtRuns.length === 0 ? (
-            <Pressable
-              style={({ pressed }) => [styles.hostCTA, pressed && styles.pressed]}
-              onPress={() => router.push("/(tabs)/schedule")}
-            >
-              <View>
-                <Text style={styles.hostCTATitle}>BE THE FIRST{"\n"}TO HOST</Text>
-                <Text style={styles.hostCTASub}>Set a time. Build the run.</Text>
-              </View>
-              <Text style={styles.hostCTAArrow}>→</Text>
-            </Pressable>
-          ) : (
-            courtRuns.map((run) => <RunCard key={run.id} run={run} />)
-          )}
-        </View>
-
-        {/* ── Court Details (only shown when real attributes exist) ── */}
-        {courtDetails.length > 0 && (
-          <View style={styles.sectionFlat}>
-            <Text style={styles.sectionTitle}>DETAILS</Text>
-            <View style={styles.detailsGrid}>
-              {courtDetails.map(({ label, value }) => (
-                <View key={label} style={styles.detailRow}>
-                  <Text style={styles.detailKey}>{label}</Text>
-                  <Text style={styles.detailVal}>{value}</Text>
+            {details.length > 0 ? (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>COURT DETAILS</Text>
                 </View>
-              ))}
+                <View style={styles.detailList}>
+                  {details.map((detail) => (
+                    <View key={detail.label} style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>{detail.label}</Text>
+                      <Text style={styles.detailValue}>{detail.value}</Text>
+                    </View>
+                  ))}
+                </View>
+              </>
+            ) : null}
+
+            <View style={styles.localActionWrap}>
+              <Pressable
+                style={[styles.localAction, isMyLocal && styles.localActionActive]}
+                onPress={() => void setLocalCourt(isMyLocal ? null : court.id, court)}
+              >
+                <Feather name={isMyLocal ? "check" : "map-pin"} size={16} color={isMyLocal ? Colors.black : Colors.text} />
+                <Text style={[styles.localActionText, isMyLocal && styles.localActionTextActive]}>
+                  {isMyLocal ? "MY LOCAL COURT" : "SET AS MY LOCAL COURT"}
+                </Text>
+              </Pressable>
             </View>
           </View>
-        )}
-
-        {/* ── Set as Local ── */}
-        <View style={styles.localSection}>
-          <Pressable
-            style={[styles.localBtn, isMyLocal && styles.localBtnActive]}
-            onPress={() => setLocalCourt(isMyLocal ? null : court.id, court)}
-          >
-            <Text style={[styles.localBtnText, isMyLocal && styles.localBtnTextActive]}>
-              {isMyLocal ? "✕ REMOVE MY LOCAL COURT" : "☆ SET AS MY LOCAL COURT"}
-            </Text>
-            {!isMyLocal && (
-              <Text style={styles.localBtnSub}>
-                {localCount} local{localCount !== 1 ? "s" : ""}
-                {court.status === "community" ? " · Community Court" : court.status === "confirmed" ? " · Confirmed Court" : ""}
-              </Text>
-            )}
-          </Pressable>
-        </View>
+        ) : null}
       </ScrollView>
-
-      {/* ── Sticky Footer ── */}
-      <View
-        style={[
-          styles.stickyFooter,
-          { paddingBottom: (Platform.OS === "web" ? 34 : bottom) + 12 },
-        ]}
-      >
-        <BrutalistButton
-          label={isCheckedIn ? "CHECKED IN ✓" : "CHECK IN"}
-          onPress={async () => {
-            isCheckedIn ? await checkOut() : await checkIn(court.id);
-          }}
-          variant={isCheckedIn ? "outline" : "accent"}
-          style={{ flex: 1 }}
-          testID="court-check-in-btn"
-        />
-      </View>
     </View>
   );
 }
 
+function Tab({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={[styles.tab, active && styles.tabActive]}>
+      <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function EmptyState({ title, body }: { title: string; body: string }) {
+  return (
+    <View style={styles.empty}>
+      <Text style={styles.emptyTitle}>{title}</Text>
+      <Text style={styles.emptyBody}>{body}</Text>
+    </View>
+  );
+}
+
+function relativeTime(value: string): string {
+  const elapsed = Date.now() - new Date(value).getTime();
+  if (!Number.isFinite(elapsed) || elapsed < 0) return "RECENTLY";
+  const minutes = Math.floor(elapsed / 60_000);
+  if (minutes < 60) return minutes <= 1 ? "JUST NOW" : `${minutes} MIN AGO`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} HR${hours === 1 ? "" : "S"} AGO`;
+  const days = Math.floor(hours / 24);
+  return `${days} DAY${days === 1 ? "" : "S"} AGO`;
+}
+
+function getCourtDetails(court: Court): Array<{ label: string; value: string }> {
+  return [
+    court.address ? { label: "ADDRESS", value: court.address } : null,
+    court.market ? { label: "MARKET", value: court.market } : null,
+    court.surface ? { label: "SURFACE", value: court.surface } : null,
+    court.netType ? { label: "NET", value: court.netType } : null,
+    court.rimType ? { label: "RIM", value: court.rimType } : null,
+    court.waterFountain != null ? { label: "WATER", value: court.waterFountain ? "YES" : "NO" } : null,
+    court.status ? { label: "SOURCE", value: court.status === "confirmed" ? "CONFIRMED COURT" : "COMMUNITY COURT" } : null,
+  ].filter((item): item is { label: string; value: string } => item !== null);
+}
+
+function getCourtMetrics(
+  court: Court
+): Array<{
+  label: string;
+  value: string;
+  icon: React.ComponentProps<typeof Feather>["name"];
+}> {
+  const metrics: Array<{
+    label: string;
+    value: string;
+    icon: React.ComponentProps<typeof Feather>["name"];
+  }> = [];
+  if (court.courtCount != null) metrics.push({ label: "COURTS", value: String(court.courtCount), icon: "grid" });
+  if (court.hoopCount != null) metrics.push({ label: "HOOPS", value: String(court.hoopCount), icon: "circle" });
+  if (court.covered != null) metrics.push({ label: "COVERED", value: court.covered ? "YES" : "NO", icon: "umbrella" });
+  if (court.lights != null) metrics.push({ label: "LIGHTS", value: court.lights ? "YES" : "NO", icon: "sun" });
+  return metrics;
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  notFound: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 20,
-    padding: 40,
-  },
-  notFoundText: {
-    fontFamily: Typography.heading,
-    fontSize: 24,
-    color: Colors.text,
-    letterSpacing: 2,
-  },
-
-  // ── Hero ──
-  hero: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  sportAccentBar: {
-    height: 2,
-    marginBottom: 16,
-    marginHorizontal: -20,
-  },
-  backBtn: { marginBottom: 14 },
-  backText: {
-    fontFamily: Typography.heading,
-    fontSize: 13,
-    color: Colors.muted,
-    letterSpacing: 1,
-  },
-  heroMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 10,
-  },
-  sportTag: { flexDirection: "row", alignItems: "center", gap: 5 },
-  sportDot: { width: 6, height: 6, borderRadius: 3 },
-  sportText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 10,
-    letterSpacing: 2,
-    textTransform: "uppercase" as const,
-  },
-  liveChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.accent,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: Radius.xs,
-  },
-  liveText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.black,
-    letterSpacing: 2,
-  },
-  heroName: {
-    fontFamily: Typography.heading,
-    fontSize: 36,
-    color: Colors.text,
-    letterSpacing: 0.5,
-    lineHeight: 38,
-    marginBottom: 4,
-  },
-  heroAddress: {
-    fontFamily: Typography.body,
-    fontSize: 13,
-    color: Colors.muted,
-    marginBottom: 2,
-  },
-  heroFullAddress: {
-    fontFamily: Typography.body,
-    fontSize: 11,
-    color: Colors.mutedDark,
-  },
-
-  // ── Stats Bar ──
-  statsBar: {
-    flexDirection: "row",
-    borderBottomWidth: 0.5,
-    borderColor: Colors.border,
-    paddingVertical: 14,
-    backgroundColor: Colors.surface,
-  },
-  statDiv: { width: 0.5, backgroundColor: Colors.border },
-
-  // ── Section ──
-  section: {
-    paddingHorizontal: 20,
-    paddingTop: 22,
-    paddingBottom: 16,
-    borderBottomWidth: 0.5,
-    borderColor: Colors.border,
-  },
-  sectionFlat: {
-    paddingHorizontal: 20,
-    paddingTop: 22,
-    paddingBottom: 16,
-    borderBottomWidth: 0.5,
-    borderColor: Colors.border,
-  },
-  sectionTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
-    color: Colors.text,
-    letterSpacing: 3,
-    marginBottom: 14,
-    textTransform: "uppercase" as const,
-    borderBottomWidth: 0.5,
-    borderColor: Colors.border,
-    paddingBottom: 8,
-  },
-  emptyText: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 12,
-    color: Colors.muted,
-    letterSpacing: 1.5,
-    textTransform: "uppercase" as const,
-    paddingVertical: 8,
-  },
-
-  // ── Roster ──
-  rosterRow: { flexDirection: "row", gap: 12 },
-  rosterItem: { alignItems: "center" },
-  rosterName: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.text,
-    marginTop: 5,
-    letterSpacing: 0.5,
-  },
-  rosterElo: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
-    color: Colors.muted,
-    marginTop: 1,
-  },
-
-  // ── Host CTA ──
-  hostCTA: {
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    padding: 20,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: Colors.surfaceHigh,
-  },
-  pressed: { backgroundColor: Colors.surfaceHigh },
-  hostCTATitle: {
-    fontFamily: Typography.heading,
-    fontSize: 20,
-    color: Colors.text,
-    letterSpacing: 1,
-  },
-  hostCTASub: {
-    fontFamily: Typography.body,
-    fontSize: 12,
-    color: Colors.muted,
-    marginTop: 4,
-  },
-  hostCTAArrow: {
-    fontFamily: Typography.heading,
-    fontSize: 28,
-    color: Colors.muted,
-  },
-
-  // ── Details Grid ──
-  detailsGrid: {},
-  detailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 0.5,
-    borderColor: Colors.border,
-  },
-  detailKey: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 12,
-    color: Colors.muted,
-  },
-  detailVal: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.text,
-    letterSpacing: 0.5,
-  },
-
-  // ── Local Section ──
-  localSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  localBtn: {
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: Colors.surface,
-  },
-  localBtnActive: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.accentDim,
-  },
-  localBtnText: {
-    fontFamily: Typography.heading,
-    fontSize: 13,
-    color: Colors.muted,
-    letterSpacing: 1.5,
-    marginBottom: 2,
-  },
-  localBtnTextActive: { color: Colors.accent },
-  localBtnSub: {
-    fontFamily: Typography.body,
-    fontSize: 11,
-    color: Colors.mutedDark,
-  },
-
-  // ── Footer ──
-  stickyFooter: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    backgroundColor: Colors.surface,
-    borderTopWidth: 0.5,
-    borderColor: Colors.border,
-    flexDirection: "row",
-  },
+  screen: { flex: 1, backgroundColor: Colors.background },
+  notFound: { flex: 1, alignItems: "center", justifyContent: "center", gap: 18, padding: 30, backgroundColor: Colors.background },
+  notFoundText: { fontFamily: Typography.heading, fontSize: 22, color: Colors.text, letterSpacing: 1.2 },
+  header: { minHeight: 94, paddingHorizontal: 16, paddingBottom: 14, flexDirection: "row", alignItems: "flex-end", gap: 9, borderBottomWidth: 1, borderBottomColor: Colors.border },
+  backButton: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, marginRight: 2 },
+  headerTitle: { flex: 1, fontFamily: Typography.heading, fontSize: 17, lineHeight: 21, color: Colors.text, letterSpacing: 0.5, textTransform: "uppercase" },
+  cardWrap: { paddingTop: 10 },
+  tabs: { flexDirection: "row", marginTop: 10, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: Colors.border },
+  tab: { flex: 1, alignItems: "center", paddingVertical: 13, borderBottomWidth: 2, borderBottomColor: "transparent" },
+  tabActive: { borderBottomColor: Colors.accent },
+  tabText: { fontFamily: Typography.bodyBold, fontSize: 9, color: Colors.muted, letterSpacing: 1.5 },
+  tabTextActive: { color: Colors.text },
+  section: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 22 },
+  sectionHeader: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 9, borderBottomWidth: 1, borderBottomColor: Colors.borderSubtle },
+  sectionTitle: { fontFamily: Typography.bodyBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.9 },
+  timelineRow: { flexDirection: "row", minHeight: 60 },
+  timelineRail: { width: 20, alignItems: "center" },
+  timelineDot: { width: 8, height: 8, borderRadius: 4, marginTop: 5, borderWidth: 1, borderColor: Colors.mutedDark, backgroundColor: Colors.background },
+  timelineDotActive: { borderColor: Colors.accent, backgroundColor: Colors.accent },
+  timelineLine: { flex: 1, width: 1, backgroundColor: Colors.border, marginVertical: 4 },
+  timelineCopy: { flex: 1, paddingLeft: 8, paddingBottom: 15 },
+  timelineMessage: { fontFamily: Typography.bodyMedium, fontSize: 12, lineHeight: 17, color: Colors.text },
+  timelineTime: { fontFamily: Typography.bodyMedium, fontSize: 8, color: Colors.muted, letterSpacing: 1.1, marginTop: 4, textTransform: "uppercase" },
+  personRow: { minHeight: 65, flexDirection: "row", alignItems: "center", gap: 12, borderBottomWidth: 1, borderBottomColor: Colors.borderSubtle },
+  personName: { fontFamily: Typography.heading, fontSize: 15, color: Colors.text, letterSpacing: 0.4 },
+  personMeta: { fontFamily: Typography.bodyBold, fontSize: 7, color: Colors.accent, letterSpacing: 1.2, marginTop: 3 },
+  personMetaQuiet: { color: Colors.muted },
+  personElo: { fontFamily: Typography.heading, fontSize: 16, color: Colors.textSecondary },
+  hiddenNote: { fontFamily: Typography.bodyBold, fontSize: 8, lineHeight: 13, color: Colors.muted, letterSpacing: 1.1, marginTop: 14 },
+  bodyCopy: { fontFamily: Typography.body, fontSize: 12, lineHeight: 18, color: Colors.muted },
+  runSection: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 },
+  hostRun: { minHeight: 82, padding: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md },
+  hostRunTitle: { fontFamily: Typography.heading, fontSize: 18, color: Colors.text, letterSpacing: 0.5 },
+  hostRunBody: { fontFamily: Typography.body, fontSize: 11, color: Colors.muted, marginTop: 4 },
+  metricGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 20, paddingTop: 22 },
+  metricCell: { width: "48%", minHeight: 92, padding: 13, justifyContent: "flex-end", borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md, backgroundColor: Colors.surface },
+  metricValue: { fontFamily: Typography.heading, fontSize: 22, color: Colors.text, marginTop: 9 },
+  metricLabel: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.muted, letterSpacing: 1.4, marginTop: 2 },
+  detailList: { paddingHorizontal: 20 },
+  detailRow: { minHeight: 50, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 20, borderBottomWidth: 1, borderBottomColor: Colors.borderSubtle },
+  detailLabel: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.muted, letterSpacing: 1.4 },
+  detailValue: { flex: 1, textAlign: "right", fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
+  localActionWrap: { paddingHorizontal: 20, paddingTop: 24 },
+  localAction: { minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.sm, backgroundColor: Colors.surface },
+  localActionActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  localActionText: { fontFamily: Typography.heading, fontSize: 11, color: Colors.text, letterSpacing: 1.4 },
+  localActionTextActive: { color: Colors.black },
+  empty: { paddingVertical: 42, alignItems: "center", paddingHorizontal: 24 },
+  emptyTitle: { fontFamily: Typography.heading, fontSize: 17, color: Colors.text, textAlign: "center", letterSpacing: 0.8 },
+  emptyBody: { fontFamily: Typography.body, fontSize: 12, lineHeight: 18, color: Colors.muted, textAlign: "center", marginTop: 7 },
+  pressed: { opacity: 0.72 },
 });

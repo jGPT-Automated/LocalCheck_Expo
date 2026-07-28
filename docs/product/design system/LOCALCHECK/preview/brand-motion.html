@@ -1,0 +1,16 @@
+<!-- @dsCard group="Brand" name="Motion" subtitle="One heartbeat, short transitions, 2px lifts" viewport="780x340" -->
+<!DOCTYPE html><html><head><meta charset="UTF-8"><link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="card.css"><style>.pulse-demo{position:relative;display:grid;width:80px;height:80px;place-items:center}.ring{position:absolute;inset:18%;border:1px solid rgba(255,104,38,.35);border-radius:50%;animation:lc-court-focus-pulse 4.8s ease-out infinite}.ring:nth-child(2){animation-delay:1.6s}.ring:nth-child(3){animation-delay:3.2s}</style></head><body class="lc-root">
+<div class="grp"><div class="cap">live-pulse — 2.4s ease-in-out infinite · the product heartbeat</div>
+<div class="row" style="gap:34px">
+<span class="lc-eyebrow lc-eyebrow--light"><i class="lc-live-dot"></i> Live now</span>
+<span class="lc-signal-well"><i class="lc-live-dot"></i></span>
+<div class="pulse-demo"><i class="ring"></i><i class="ring"></i><i class="ring"></i><i style="width:22px;height:22px;border-radius:50%;background:rgba(255,101,34,.34);box-shadow:0 0 28px 10px rgba(252,76,2,.14)"></i></div>
+<div class="lc-marker" style="margin-left:8px"><span></span></div>
+</div><p class="note">court-focus-pulse 4.8s (rings staggered 0 / 1.6s / 3.2s) · map-marker-pulse 2.6s · selected-pulse 2.2s</p></div>
+<div class="grp"><div class="cap">Hover = lift</div><div class="row" style="gap:14px">
+<button class="lc-btn lc-btn--sm">Rest</button>
+<button class="lc-btn lc-btn--sm" style="background:var(--orange-bright);transform:translateY(-2px)">translateY(-2px)</button>
+<span style="display:inline-grid;width:110px;height:52px;place-items:center;border:1px solid var(--line-strong);border-radius:16px;background:var(--card);box-shadow:var(--sh-card-hover);transform:translateY(-4px);font-size:8px;font-weight:760;letter-spacing:.1em;color:var(--ink-4)">CARD −4PX</span>
+</div></div>
+<div class="grp"><div class="cap">Durations</div>
+<p class="note" style="color:var(--muted)">150ms filters and cells · <b>160ms</b> the default for buttons, chips, links, panels · 180ms opacity (toast) · 200–220ms cards. Easing is plain <b>ease</b> — no cubic-bezier, no spring. Hero parallax is rAF-driven: shift −46px, scale 1.055, copy +22px, opacity ×0.8 over one viewport. Everything collapses to 0.01ms under prefers-reduced-motion.</p></div></body></html>

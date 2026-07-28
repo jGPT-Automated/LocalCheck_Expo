@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -34,54 +33,14 @@ function getHeadToHeadStats(sharedMatches: MatchResult[]) {
   return { wins, losses, total, winRate, matches: sharedMatches };
 }
 
-function UpgradeModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.modalOverlay} onPress={onClose}>
-        <View style={styles.upgradeCard}>
-          <View style={styles.upgradeHeader}>
-            <Ionicons name="lock-closed" size={22} color={Colors.accent} />
-            <Text style={styles.upgradeTitle}>LOCALPLUS REQUIRED</Text>
-          </View>
-          <Text style={styles.upgradeBody}>
-            Upgrade to LocalPlus to see your full head-to-head stats, matchup history, and
-            filtered games against this player.
-          </Text>
-          <View style={styles.upgradeFeatures}>
-            <View style={styles.featureRow}>
-              <Ionicons name="checkmark" size={14} color={Colors.win} />
-              <Text style={styles.featureText}>Wins / Losses / Win Rate</Text>
-            </View>
-            <View style={styles.featureRow}>
-              <Ionicons name="checkmark" size={14} color={Colors.win} />
-              <Text style={styles.featureText}>Games where you both played</Text>
-            </View>
-            <View style={styles.featureRow}>
-              <Ionicons name="checkmark" size={14} color={Colors.win} />
-              <Text style={styles.featureText}>ELO tracking per matchup</Text>
-            </View>
-          </View>
-          <Pressable style={styles.upgradeBtn} onPress={onClose}>
-            <Text style={styles.upgradeBtnText}>UPGRADE — $4.99/MO</Text>
-          </Pressable>
-          <Pressable onPress={onClose} hitSlop={12}>
-            <Text style={styles.upgradeSkip}>Not now</Text>
-          </Pressable>
-        </View>
-      </Pressable>
-    </Modal>
-  );
-}
-
 export default function PlayerProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { currentUser, isLocalPlus, isFriend, isFriendPending, addFriend, removeFriend } =
+  const { currentUser, isFriend, isFriendPending, incomingFriendRequests, acceptFriendRequest, addFriend, removeFriend } =
     useApp();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
 
-  const [showUpgrade, setShowUpgrade] = useState(false);
   const [player, setPlayer] = useState<Player | null>(null);
   const [playerMatches, setPlayerMatches] = useState<MatchResult[]>([]);
   const [sharedMatches, setSharedMatches] = useState<MatchResult[]>([]);
@@ -127,6 +86,7 @@ export default function PlayerProfileScreen() {
   // request_friend creates a *pending* row; showing "ADD FRIEND" again after a
   // successful request is what made this button read as broken.
   const isRequestPending = isFriendPending(player.id);
+  const isIncomingRequest = incomingFriendRequests.some((requester) => requester.id === player.id);
   const tierColor = getTierColor(player.tier);
   const total = player.wins + player.losses;
   const winRate = total > 0 ? Math.round((player.wins / total) * 100) : 0;
@@ -135,17 +95,15 @@ export default function PlayerProfileScreen() {
   const h2h = getHeadToHeadStats(sharedMatches);
 
   const handleToggleFriend = () => {
+    if (isIncomingRequest) {
+      void acceptFriendRequest(player.id);
+      return;
+    }
     // A pending request is withdrawn through the same remove_friendship RPC.
     if (isFriendStatus || isRequestPending) {
       removeFriend(player.id);
     } else {
       addFriend(player.id);
-    }
-  };
-
-  const handleViewH2H = () => {
-    if (!isLocalPlus) {
-      setShowUpgrade(true);
     }
   };
 
@@ -158,7 +116,7 @@ export default function PlayerProfileScreen() {
         <Text style={styles.headerTitle}>PROFILE</Text>
         <Pressable onPress={handleToggleFriend} hitSlop={12}>
           <Ionicons
-            name={isFriendStatus ? "person-remove" : "person-add"}
+            name={isFriendStatus ? "person-remove" : isIncomingRequest ? "person-add" : "person-add"}
             size={20}
             color={isFriendStatus ? Colors.loss : Colors.win}
           />
@@ -221,15 +179,9 @@ export default function PlayerProfileScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>HEAD TO HEAD</Text>
-            {!isLocalPlus && (
-              <View style={styles.lockBadge}>
-                <Ionicons name="lock-closed" size={10} color={Colors.muted} />
-              </View>
-            )}
           </View>
 
-          {isLocalPlus ? (
-            <>
+          <>
               <View style={styles.h2hGrid}>
                 <View style={styles.h2hCell}>
                   <Text style={[styles.h2hVal, { color: Colors.win }]}>{h2h.wins}</Text>
@@ -290,19 +242,7 @@ export default function PlayerProfileScreen() {
                   ))}
                 </>
               )}
-            </>
-          ) : (
-            <Pressable style={styles.h2hPaywall} onPress={handleViewH2H}>
-              <Ionicons name="lock-closed" size={18} color={Colors.muted} />
-              <View style={styles.h2hPaywallText}>
-                <Text style={styles.h2hPaywallTitle}>HEAD TO HEAD HIDDEN</Text>
-                <Text style={styles.h2hPaywallSub}>
-                  Upgrade to LocalPlus to see your matchup stats and shared game history
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={Colors.muted} />
-            </Pressable>
-          )}
+          </>
         </View>
 
         {/* Action Buttons */}
@@ -319,6 +259,8 @@ export default function PlayerProfileScreen() {
             <Text style={[styles.actionBtnText, isFriendStatus && styles.actionBtnTextDanger]}>
               {isFriendStatus
                 ? "REMOVE FRIEND"
+                : isIncomingRequest
+                  ? "ACCEPT REQUEST"
                 : isRequestPending
                   ? "REQUESTED"
                   : "ADD FRIEND"}
@@ -335,8 +277,6 @@ export default function PlayerProfileScreen() {
           />
         </View>
       </ScrollView>
-
-      <UpgradeModal visible={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </View>
   );
 }

@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { Colors, Radius } from "@/constants/colors";
-import { CourtSport, getSportColor, getTierColor, Player } from "@/constants/data";
+import { CourtSport, getSportColor, Player } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
@@ -134,6 +134,7 @@ export default function CompeteScreen() {
           myRank={myRank}
           showMyRank={showMyRank}
           currentUserId={currentUser.id}
+          currentUser={currentUser}
           hiddenReason={
             visibility === "public"
               ? "LOCALPLUS REQUIRED TO APPEAR"
@@ -168,6 +169,7 @@ function LeaderboardView({
   myRank,
   showMyRank,
   currentUserId,
+  currentUser,
   hiddenReason,
   scope,
   setScope,
@@ -179,6 +181,7 @@ function LeaderboardView({
   myRank: number;
   showMyRank: boolean;
   currentUserId: string;
+  currentUser: Player;
   hiddenReason: string;
   scope: Scope;
   setScope: (s: Scope) => void;
@@ -259,22 +262,23 @@ function LeaderboardView({
             if (row.kind === "hidden") {
               return (
                 <View key="current-user-hidden" style={[styles.leaderRow, styles.hiddenLeaderRow]}>
-                  <Text style={styles.yourPositionRank}>#{row.rank}</Text>
-                  <View style={styles.hiddenAvatar}>
-                    <Ionicons name="eye-off" size={15} color={Colors.muted} />
-                  </View>
+                  <Text style={styles.rank}>{row.rank}</Text>
+                  <PlayerAvatar initials={currentUser.avatar} size={36} />
                   <View style={styles.playerInfo}>
                     <Text style={styles.yourPositionText}>YOU — HIDDEN</Text>
+                    <Text style={styles.wlText}>{currentUser.wins}W · {currentUser.losses}L</Text>
                     <Text style={styles.yourPositionSub}>{hiddenReason}</Text>
                   </View>
-                  <Text style={styles.hiddenBadge}>HIDDEN</Text>
+                  <View style={styles.eloBlock}>
+                    <Text style={[styles.eloVal, styles.eloValHidden]}>{currentUser.elo}</Text>
+                    <Text style={styles.eloLbl}>ELO</Text>
+                  </View>
                 </View>
               );
             }
 
             const { player, rank } = row;
-            const tierColor = getTierColor(player.tier);
-            const isTop3 = rank <= 3;
+            const isTop10 = rank <= 10;
             const sportColor = player.sport ? getSportColor(player.sport) : Colors.muted;
             return (
               <Pressable
@@ -282,18 +286,16 @@ function LeaderboardView({
                 style={[styles.leaderRow, rank === 1 && styles.leaderRowFirst]}
                 onPress={() => router.push(`/player/${player.id}`)}
               >
-                <Text style={[styles.rank, isTop3 && styles.rankTop]}>
-                  {rank}
-                </Text>
-                <PlayerAvatar initials={player.avatar} size={36} accent={rank === 1} />
+                <Text style={[styles.rank, isTop10 && styles.rankTop]}>{rank}</Text>
+                <PlayerAvatar
+                  initials={player.avatar}
+                  size={36}
+                  ranked={isTop10}
+                  friend={isFriend(player.id)}
+                />
                 <View style={styles.playerInfo}>
                   <View style={styles.playerNameRow}>
                     <Text style={styles.playerName} numberOfLines={1}>{player.name.toUpperCase()}</Text>
-                    {isFriend(player.id) && (
-                      <View style={styles.leaderFriendBadge}>
-                        <Text style={styles.leaderFriendBadgeText}>FRIEND</Text>
-                      </View>
-                    )}
                   </View>
                   <View style={styles.playerBadges}>
                     {player.sport && (
@@ -301,9 +303,7 @@ function LeaderboardView({
                         {player.sport === "BASKETBALL" ? "BB" : "PB"}
                       </Text>
                     )}
-                    <Text style={[styles.tierText, { color: tierColor }]}>
-                      {player.tier}
-                    </Text>
+                    {isTop10 ? <Text style={styles.rankedText}>RANKED</Text> : null}
                     <Text style={styles.wlText}>
                       {player.wins}W · {player.losses}L
                     </Text>
@@ -898,7 +898,7 @@ const styles = StyleSheet.create({
     width: 28,
     textAlign: "center" as const,
   },
-  rankTop: { color: Colors.text, fontSize: 22 },
+  rankTop: { color: Colors.text },
   playerInfo: { flex: 1 },
   playerNameRow: {
     flexDirection: "row",
@@ -907,7 +907,7 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   playerName: {
-    fontFamily: Typography.heading,
+    fontFamily: Typography.headingRegular,
     fontSize: 14,
     color: Colors.text,
     letterSpacing: 0.3,
@@ -919,6 +919,12 @@ const styles = StyleSheet.create({
     fontSize: 9,
     letterSpacing: 1.5,
     textTransform: "uppercase" as const,
+  },
+  rankedText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 8,
+    color: Colors.accent,
+    letterSpacing: 1.3,
   },
   sportText: {
     fontFamily: Typography.bodyBold,
@@ -938,6 +944,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     lineHeight: 22,
   },
+  eloValHidden: { color: Colors.textSecondary },
   eloLbl: {
     fontFamily: Typography.bodyMedium,
     fontSize: 8,

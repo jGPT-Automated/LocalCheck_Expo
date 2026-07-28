@@ -25,10 +25,17 @@ import {
   deletePlannedVisit,
   fetchPlannedVisits,
 } from "@/services/plannedVisitService";
-import { checkInToCourt, checkOutOfCourt, fetchCheckedInCourtId } from "@/services/checkInService";
+import {
+  checkInToCourt,
+  checkOutOfCourt,
+  fetchCheckedInCourtId,
+  fetchUserCheckInCount,
+} from "@/services/checkInService";
 import {
   addFriend,
+  acceptFriendRequest,
   fetchFriends,
+  fetchIncomingFriendRequests,
   fetchFriendshipStates,
   removeFriend,
 } from "@/services/friendshipService";
@@ -72,6 +79,7 @@ interface AppContextValue {
   isLocalPlus: boolean;
   visibility: Visibility;
   friendIds: string[];
+  incomingFriendRequests: Player[];
   preferredSport: CourtSport | null;
   preferredCourtId: string | null;
   checkIn: (courtId: string) => Promise<void>;
@@ -94,6 +102,7 @@ interface AppContextValue {
   setPreferredSport: (sport: CourtSport | null) => Promise<void>;
   setPreferredCourtId: (courtId: string | null) => Promise<void>;
   addFriend: (playerId: string) => Promise<void>;
+  acceptFriendRequest: (playerId: string) => Promise<boolean>;
   removeFriend: (playerId: string) => Promise<void>;
   isFriend: (playerId: string) => boolean;
   isFriendPending: (playerId: string) => boolean;
@@ -169,9 +178,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [plannedVisits, setPlannedVisits] = useState<PlannedVisit[]>([]);
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [matches, setMatches] = useState<MatchResult[]>([]);
+  const [checkInCount, setCheckInCount] = useState(0);
   const [isLocalPlus, setIsLocalPlusState] = useState<boolean>(false);
   const [visibility, setVisibilityState] = useState<Visibility>("public");
   const [friendIds, setFriendIds] = useState<string[]>([]);
+  const [incomingFriendRequests, setIncomingFriendRequests] = useState<Player[]>([]);
   // Outgoing requests awaiting a reply. Kept separate from friendIds so the
   // UI never presents a pending request as an established friendship.
   const [pendingFriendIds, setPendingFriendIds] = useState<string[]>([]);
@@ -187,7 +198,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // same refresh from the realtime event.
   const refreshPresence = usePresenceRefresh();
 
-  const currentUser = useMemo(() => profileToPlayer(profile), [profile]);
+  const currentUser = useMemo(
+    () => ({ ...profileToPlayer(profile), checkIns: checkInCount }),
+    [profile, checkInCount]
+  );
 
   // ─── Derive UI preferences from the authoritative Supabase profile ─────────
   // local_court_id is the user's saved home court AND is mutable in-session via
@@ -323,13 +337,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setMatches(items);
   }, [userId]);
 
+  const refreshCheckInCount = useCallback(async () => {
+    if (!userId) {
+      setCheckInCount(0);
+      return;
+    }
+    setCheckInCount(await fetchUserCheckInCount(userId));
+  }, [userId]);
+
   const refreshFriends = useCallback(async () => {
     if (!userId) return;
-    const [list, states] = await Promise.all([
+    const [list, states, incoming] = await Promise.all([
       fetchFriends(userId),
       fetchFriendshipStates(userId),
+      fetchIncomingFriendRequests(userId),
     ]);
     setFriends(list);
+    setIncomingFriendRequests(incoming);
     setFriendIds(list.map((f) => f.id));
     setPendingFriendIds(
       Object.entries(states)
@@ -348,12 +372,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         refreshPlannedVisits(),
         refreshFeed(),
         refreshMatches(),
+        refreshCheckInCount(),
         refreshFriends(),
       ]);
       if (mounted) setIsLoading(false);
     })();
     return () => { mounted = false; };
-  }, [refreshRuns, refreshPlannedVisits, refreshFeed, refreshMatches, refreshFriends]);
+  }, [refreshRuns, refreshPlannedVisits, refreshFeed, refreshMatches, refreshCheckInCount, refreshFriends]);
 
   // NO recurring poll. Live convergence comes from the scoped realtime
   // channels (CourtPresenceContext); shared state here resyncs exactly once
@@ -371,12 +396,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         refreshFeed(),
         refreshRuns(),
         refreshPlannedVisits(),
+        refreshCheckInCount(),
         refreshFriends(),
       ]);
     } finally {
       resyncInFlight.current = false;
     }
-  }, [userId, refreshFeed, refreshRuns, refreshPlannedVisits, refreshFriends]);
+  }, [userId, refreshFeed, refreshRuns, refreshPlannedVisits, refreshCheckInCount, refreshFriends]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
@@ -427,6 +453,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return realtimeHub.subscribe(topic, (batch: RealtimeInvalidationBatch) => {
       if (batchHasResource(batch, USER_CHECKIN_RESOURCES)) {
         scheduleRealtimeRefresh("checked-in", refreshCheckedIn);
+        scheduleRealtimeRefresh("check-in-count", refreshCheckInCount);
       }
       if (batchHasResource(batch, USER_PROFILE_RESOURCES)) {
         scheduleRealtimeRefresh("profile", refreshProfile);
@@ -451,6 +478,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     userId,
     realtimeHub,
     refreshCheckedIn,
+    refreshCheckInCount,
     refreshProfile,
     refreshFriends,
     refreshMatches,
@@ -503,6 +531,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (ok) {
         setCheckedInCourtId(courtId);
         setLastVisitedCourtId(courtId);
+        void refreshCheckInCount();
       }
       // Converge the acting device now (don't wait for its own realtime echo):
       // the court acted on, plus the court implicitly checked out of — the
@@ -511,17 +540,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (prevCourtId && prevCourtId !== courtId) refreshPresence(prevCourtId);
       refreshFeed();
     },
-    [userId, visibility, checkedInCourtId, refreshPresence, refreshFeed]
+    [userId, visibility, checkedInCourtId, refreshPresence, refreshFeed, refreshCheckInCount]
   );
 
   const checkOut = useCallback(async () => {
     if (!userId) return;
     const prevCourtId = checkedInCourtId;
     const ok = await checkOutOfCourt(userId);
-    if (ok) setCheckedInCourtId(null);
+    if (ok) {
+      setCheckedInCourtId(null);
+      void refreshCheckInCount();
+    }
     if (prevCourtId) refreshPresence(prevCourtId);
     refreshFeed();
-  }, [userId, checkedInCourtId, refreshPresence, refreshFeed]);
+  }, [userId, checkedInCourtId, refreshPresence, refreshFeed, refreshCheckInCount]);
 
   const visitCourt = useCallback(async (courtId: string) => {
     setLastVisitedCourtId(courtId);
@@ -620,6 +652,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await refreshFriends();
   }, [userId, refreshFriends]);
 
+  const acceptFriendRequestAction = useCallback(async (playerId: string): Promise<boolean> => {
+    const ok = await acceptFriendRequest(playerId);
+    if (ok) await refreshFriends();
+    return ok;
+  }, [refreshFriends]);
+
   const isFriend = useCallback((playerId: string) => friendIds.includes(playerId), [friendIds]);
   const isFriendPending = useCallback(
     (playerId: string) => pendingFriendIds.includes(playerId),
@@ -716,6 +754,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isLocalPlus,
         visibility,
         friendIds,
+        incomingFriendRequests,
         preferredSport,
         preferredCourtId,
         checkIn,
@@ -733,6 +772,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setPreferredSport,
         setPreferredCourtId,
         addFriend: addFriendAction,
+        acceptFriendRequest: acceptFriendRequestAction,
         removeFriend: removeFriendAction,
         isFriend,
         isFriendPending,

@@ -92,6 +92,7 @@ export interface GameRun {
   maxPlayers: number;
   participants: Player[];
   hostId: string;
+  hostName?: string;
   skillLevel: "ALL LEVELS" | "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
 }
 

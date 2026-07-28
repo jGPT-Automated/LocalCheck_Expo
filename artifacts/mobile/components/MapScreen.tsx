@@ -374,19 +374,16 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
       </MapView>
 
       <View style={[styles.topBar, { top: 12 }]}>
-        <View style={styles.liveBadge}>
+        <View style={[styles.liveBadge, liveCourtCount === 0 && styles.liveBadgeQuiet]}>
           <View style={styles.liveDot} />
           <Text style={styles.liveBadgeText}>
             {liveCourtCount > 0 ? `${liveCourtCount} LIVE NOW` : "NO LIVE COURTS IN VIEW"}
           </Text>
         </View>
-        <Text style={styles.mapScope}>
-          {sportFilter === "ALL" ? "ALL COURTS" : sportFilter}
-        </Text>
       </View>
 
       {/* ── Legend ── */}
-      <View style={[styles.legend, { bottom: bottom + 96 }]}>
+      <View style={[styles.legend, { bottom: 16 }]}>
         <View style={styles.legendRow}>
           <View style={[styles.legendDot, { backgroundColor: Colors.accent }]} />
           <Text style={styles.legendText}>ACTIVE NOW</Text>
@@ -445,6 +442,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
+  liveBadgeQuiet: { backgroundColor: "rgba(16,16,16,0.52)", opacity: 0.72 },
   liveDot: {
     width: 6,
     height: 6,
@@ -490,15 +488,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radius.sm,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    gap: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+    gap: 4,
   },
-  legendRow: { flexDirection: "row", alignItems: "center", gap: 7 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  legendDot: { width: 7, height: 7, borderRadius: 4 },
   legendText: {
     fontFamily: Typography.bodyMedium,
-    fontSize: 9,
+    fontSize: 8,
     color: Colors.textSecondary,
     letterSpacing: 1.5,
   },

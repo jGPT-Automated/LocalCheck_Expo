@@ -51,12 +51,12 @@ Never record secret values in Git or chat.
 | `EXPO_PUBLIC_SUPABASE_URL` | LocalCheckProd URL | development, preview, production |
 | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Client publishable key | development, preview, production |
 | `EXPO_PUBLIC_MAPBOX_TOKEN` | Runtime public map token | development, preview, production |
-| `MAPBOX_DOWNLOADS_TOKEN` | Secret Mapbox native SDK download token with `Downloads:Read` | development, preview, production |
-| `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` | Secret compatibility name for RN Mapbox tooling | development, preview, production |
+| `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` | Secret Mapbox native SDK download token with `Downloads:Read` | development, preview, production |
 
-`app.config.js` directly passes `MAPBOX_DOWNLOADS_TOKEN` to the
-`@rnmapbox/maps` config plugin. Keep the RN-prefixed compatibility variable in
-Expo because it was present in the successful build-9 environment.
+`@rnmapbox/maps` now reads `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` directly from the EAS
+environment. Do not pass the old `RNMapboxMapsDownloadToken` plugin property;
+the installed plugin marks it deprecated and warns that it writes the secret
+into generated native properties.
 
 ## 5. Load-bearing configuration
 

@@ -26,26 +26,13 @@
       }
     },
     "android": {
-      "package": "com.realjess.localcheck",
-      "permissions": [
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.RECORD_AUDIO"
-      ]
+      "package": "com.realjess.localcheck"
     },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
     "plugins": [
-      [
-        "expo-router",
-        {
-          "origin": "https://replit.com/"
-        }
-      ],
+      "expo-router",
       "expo-font",
       "expo-web-browser",
       "expo-secure-store",
@@ -60,7 +47,8 @@
         "expo-image-picker",
         {
           "photosPermission": "LocalCheck lets you attach a photo to verify a court you're adding.",
-          "cameraPermission": "LocalCheck uses your camera to photograph and verify a court you're adding."
+          "cameraPermission": "LocalCheck uses your camera to photograph and verify a court you're adding.",
+          "microphonePermission": false
         }
       ]
     ],

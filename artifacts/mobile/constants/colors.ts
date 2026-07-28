@@ -1,19 +1,20 @@
-// Premium neutral dark grey — no blue tint anywhere (2026-07-18 rebrand).
-// Depth = background → surface → surfaceHigh + 1px borders. No shadows.
+// Canonical tokens from docs/product/design system/Design.pdf.
+// Orange is reserved for live state and primary actions; sport identity uses
+// restrained blue/green metadata inside court cards.
 export const Colors = {
   primary: "#FFFFFF",
-  background: "#101010",
-  surface: "#1A1A1A",
-  surfaceHigh: "#262626",
-  surfaceDark: "#0C0C0C",
-  card: "#1A1A1A",
-  border: "#2C2C2C",
-  borderLight: "#2C2C2C",
-  borderSubtle: "#222222",
-  text: "#F5F5F5",
-  textSecondary: "#A6A6A6",
-  muted: "#7C7C7C",
-  mutedDark: "#4A4A4A",
+  background: "#0D0D10",
+  surface: "#151519",
+  surfaceHigh: "#1E1E26",
+  surfaceDark: "#09090B",
+  card: "#151519",
+  border: "#28282F",
+  borderLight: "#34343E",
+  borderSubtle: "#202027",
+  text: "#F2F2F6",
+  textSecondary: "#9A9AAA",
+  muted: "#72728A",
+  mutedDark: "#4B4B5C",
   accent: "#FF5500",
   accentDim: "rgba(255,85,0,0.12)",
   accentGlow: "rgba(255,85,0,0.35)",

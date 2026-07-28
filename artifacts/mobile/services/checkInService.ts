@@ -93,6 +93,20 @@ export async function fetchActiveCheckInCount(courtId: string): Promise<number> 
   }
 }
 
+/** Lifetime check-in count for the signed-in player's Profile stat. */
+export async function fetchUserCheckInCount(userId: string): Promise<number> {
+  try {
+    const { count, error } = await supabase
+      .from("check_ins")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId);
+    if (error || count == null) return 0;
+    return count;
+  } catch {
+    return 0;
+  }
+}
+
 /**
  * Distinct players who checked in at a court in the trailing 7 days — the
  * "ACTIVE THIS WK" stat on the home hero. One indexed read; distinct is
