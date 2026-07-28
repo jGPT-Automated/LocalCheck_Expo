@@ -26,7 +26,12 @@ import {
   fetchPlannedVisits,
 } from "@/services/plannedVisitService";
 import { checkInToCourt, checkOutOfCourt, fetchCheckedInCourtId } from "@/services/checkInService";
-import { addFriend, fetchFriends, removeFriend } from "@/services/friendshipService";
+import {
+  addFriend,
+  fetchFriends,
+  fetchFriendshipStates,
+  removeFriend,
+} from "@/services/friendshipService";
 import { fetchFeed } from "@/services/feedService";
 import { fetchGamesByPlayer } from "@/services/gameService";
 import { fetchScheduledGames, joinScheduledGame } from "@/services/scheduledGameService";
@@ -91,6 +96,7 @@ interface AppContextValue {
   addFriend: (playerId: string) => Promise<void>;
   removeFriend: (playerId: string) => Promise<void>;
   isFriend: (playerId: string) => boolean;
+  isFriendPending: (playerId: string) => boolean;
   getFriendsList: () => Player[];
   refreshCourtState: (courtIdOverride?: string) => Promise<void>;
   refreshCheckedIn: () => Promise<void>;
@@ -166,6 +172,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isLocalPlus, setIsLocalPlusState] = useState<boolean>(false);
   const [visibility, setVisibilityState] = useState<Visibility>("public");
   const [friendIds, setFriendIds] = useState<string[]>([]);
+  // Outgoing requests awaiting a reply. Kept separate from friendIds so the
+  // UI never presents a pending request as an established friendship.
+  const [pendingFriendIds, setPendingFriendIds] = useState<string[]>([]);
   const [friends, setFriends] = useState<Player[]>([]);
   const [preferredSport, setPreferredSportState] = useState<CourtSport | null>(null);
   const [preferredCourtId, setPreferredCourtIdState] = useState<string | null>(null);
@@ -316,9 +325,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const refreshFriends = useCallback(async () => {
     if (!userId) return;
-    const list = await fetchFriends(userId);
+    const [list, states] = await Promise.all([
+      fetchFriends(userId),
+      fetchFriendshipStates(userId),
+    ]);
     setFriends(list);
     setFriendIds(list.map((f) => f.id));
+    setPendingFriendIds(
+      Object.entries(states)
+        .filter(([, state]) => state.status === "pending")
+        .map(([otherId]) => otherId)
+    );
   }, [userId]);
 
   // Initial data load when the user or local court changes.
@@ -575,21 +592,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setPreferredCourtIdState(courtId);
   }, []);
 
+  // Adding a friend creates a *pending request*, never a friendship — see
+  // request_friend in friendshipService. The previous optimistic
+  // `setFriendIds([...prev, playerId])` claimed instant friendship, then
+  // refreshFriends (accepted-only) removed it again, which is what made the
+  // button look like it did nothing even once the write started succeeding.
   const addFriendAction = useCallback(async (playerId: string) => {
     if (!userId) return;
-    setFriendIds((prev) => (prev.includes(playerId) ? prev : [...prev, playerId]));
-    await addFriend(userId, playerId);
-    await refreshFriends();
+    const status = await addFriend(userId, playerId);
+    if (status === "accepted") {
+      await refreshFriends();
+      return;
+    }
+    if (status === "pending") {
+      setPendingFriendIds((prev) =>
+        prev.includes(playerId) ? prev : [...prev, playerId]
+      );
+    }
   }, [userId, refreshFriends]);
 
   const removeFriendAction = useCallback(async (playerId: string) => {
     if (!userId) return;
+    const ok = await removeFriend(userId, playerId);
+    if (!ok) return;
     setFriendIds((prev) => prev.filter((id) => id !== playerId));
-    await removeFriend(userId, playerId);
+    setPendingFriendIds((prev) => prev.filter((id) => id !== playerId));
     await refreshFriends();
   }, [userId, refreshFriends]);
 
   const isFriend = useCallback((playerId: string) => friendIds.includes(playerId), [friendIds]);
+  const isFriendPending = useCallback(
+    (playerId: string) => pendingFriendIds.includes(playerId),
+    [pendingFriendIds]
+  );
   const getFriendsList = useCallback(() => friends, [friends]);
 
   const joinRun = useCallback(
@@ -700,6 +735,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addFriend: addFriendAction,
         removeFriend: removeFriendAction,
         isFriend,
+        isFriendPending,
         getFriendsList,
         refreshCourtState,
         refreshCheckedIn,

@@ -76,7 +76,8 @@ function UpgradeModal({ visible, onClose }: { visible: boolean; onClose: () => v
 export default function PlayerProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { currentUser, isLocalPlus, isFriend, addFriend, removeFriend } = useApp();
+  const { currentUser, isLocalPlus, isFriend, isFriendPending, addFriend, removeFriend } =
+    useApp();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
 
@@ -123,6 +124,9 @@ export default function PlayerProfileScreen() {
   }
 
   const isFriendStatus = isFriend(player.id);
+  // request_friend creates a *pending* row; showing "ADD FRIEND" again after a
+  // successful request is what made this button read as broken.
+  const isRequestPending = isFriendPending(player.id);
   const tierColor = getTierColor(player.tier);
   const total = player.wins + player.losses;
   const winRate = total > 0 ? Math.round((player.wins / total) * 100) : 0;
@@ -131,7 +135,8 @@ export default function PlayerProfileScreen() {
   const h2h = getHeadToHeadStats(sharedMatches);
 
   const handleToggleFriend = () => {
-    if (isFriendStatus) {
+    // A pending request is withdrawn through the same remove_friendship RPC.
+    if (isFriendStatus || isRequestPending) {
       removeFriend(player.id);
     } else {
       addFriend(player.id);
@@ -312,7 +317,11 @@ export default function PlayerProfileScreen() {
               color={isFriendStatus ? Colors.loss : Colors.text}
             />
             <Text style={[styles.actionBtnText, isFriendStatus && styles.actionBtnTextDanger]}>
-              {isFriendStatus ? "REMOVE FRIEND" : "ADD FRIEND"}
+              {isFriendStatus
+                ? "REMOVE FRIEND"
+                : isRequestPending
+                  ? "REQUESTED"
+                  : "ADD FRIEND"}
             </Text>
           </Pressable>
           <BrutalistButton
