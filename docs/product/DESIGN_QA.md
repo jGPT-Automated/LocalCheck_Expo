@@ -2,6 +2,7 @@
 
 Status: Browser-verified; physical iPhone/TestFlight acceptance pending
 Last verified: 2026-07-28, America/Chicago
+Review source: draft PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/22), implementation commit `db7e0db`
 
 ## Reference targets
 
@@ -57,6 +58,6 @@ Last verified: 2026-07-28, America/Chicago
 
 ## Release boundary
 
-The browser preview is not native proof. Do not merge, publish an OTA, trigger
+The browser preview is not native proof. Do not merge PR #22, publish an OTA, trigger
 an EAS build, submit to TestFlight, or mutate Supabase without Jesse's explicit
 approval after reviewing the candidate.

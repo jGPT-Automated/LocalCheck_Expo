@@ -13,7 +13,8 @@ release runbook for deployment steps.
 | Canonical local folder | `/Users/JesseH/Projects/LocalCheck_Expo` |
 | Delivery branch | GitHub `main` |
 | Delivered source | GitHub `main` contains feature commit `32bc0d6` and its delivery record. Verify the current remote tip when an exact hash matters. |
-| Local working state | Active candidate branch `codex/mvp-consolidation` at `0bc14d2`, based on GitHub `main` `7772b61`, plus an uncommitted Profile/Court Details/shared-system pass. The unrelated untracked `.claude/launch.json` is user-owned and untouched. |
+| Canonical review PR | Draft [#22 — consolidate LocalCheck MVP candidate](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/22), branch `codex/mvp-consolidation`, implementation commit `db7e0db`, based directly on GitHub `main` `7772b61`. |
+| Local working state | The canonical candidate is committed and pushed. PR #21 is superseded by #22 because its useful implementation is absorbed here and its original missing-`GRANT` diagnosis was incorrect. The user-owned `.claude/launch.json` remains untouched and locally excluded. |
 | Release tag | `v1.0.4` → checkpoint commit |
 | TestFlight | LocalCheck `1.0.0 (9)` available to Jesse |
 | Successful EAS workflow | `019f9e9b-188e-70b8-9ff3-f1aa9a66b52e` |
@@ -83,11 +84,11 @@ the browser, but it has not been delivered to TestFlight.
 
 ## Next sequence
 
-1. Jesse reviews Home, Explore List/Map, Profile, Compete, Court Details, and Schedule in the refreshed preview; fix visible mismatch before release.
+1. Jesse reviews Home, Explore List/Map, Profile, Compete, Court Details, and Schedule from draft PR #22 in the refreshed preview; fix visible mismatch before release.
 2. Prove Schedule add/remove persistence with a signed-in account. Preserve Apple Sign-In unchanged.
 3. Review and implement the standard-Elo match lifecycle as a separate backend contract with atomic, idempotent writes and confirmation states.
 4. Prove Add Friend with two accounts, then add the intentionally small notification set: run invite, friend request/accept, and final score confirm/object.
-5. Obtain Jesse's explicit approval before merging/pushing or triggering OTA. Physical Mapbox and two-way Realtime acceptance remain separate native QA gates.
+5. Obtain Jesse's explicit approval before merging PR #22 or triggering OTA/EAS/TestFlight. Physical Mapbox and two-way Realtime acceptance remain separate native QA gates.
 6. Complete recovery snapshot/runbook, privacy/compliance, App Store QA, screenshots/metadata, external TestFlight, and submission.
 
 ## Web truth

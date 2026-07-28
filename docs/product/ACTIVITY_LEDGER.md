@@ -11,6 +11,20 @@ Last updated: 2026-07-28
 - Keep `LAUNCH_CONTROL.md` as the concise current-state and priority view. Use this file for the chronological trail that explains how the project reached that state.
 - Product and design decisions also belong in `DECISIONS.md`; notable brand-system changes also belong in `CHANGELOG.md`.
 
+## 2026-07-28 — Canonical MVP draft PR opened; stale preview and PR split resolved
+
+**Outcome requested:** Restart the stale local preview, consolidate every current MVP change into one canonical review PR, preserve useful history while removing competing open PRs, and leave the canonical checkout clean before any merge or TestFlight action.
+
+**Preview:** Stopped the old port-8081 process, rebuilt the canonical Expo web export, and served it with no-cache asset headers plus Expo Router direct-route fallback. The user's visible `/compete` tab was explicitly refreshed to the new bundle and showed the current ranked/hidden-row candidate rather than the stale UI.
+
+**Repository:** Committed the Profile, Court Details, Schedule, Friends, shared visual system, preview tooling, canonical design assets, and account-deletion candidate as `db7e0db` on `codex/mvp-consolidation`. Opened draft PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/22) directly against `main`. A final documentation-only commit follows this entry. PR #21's code is fully represented by this branch; #21 is closed as superseded rather than deleted so its discussion and commits remain recoverable.
+
+**Configuration cleanup:** Removed a stale Expo Router production origin pointing to `replit.com`; LocalCheck does not use that host for production server requests. Disabled the image picker's default Android microphone permission because LocalCheck only requests court photos. Kept the existing Expo project, OTA URL, bundle identifier, Supabase target, and Apple Sign-In capability unchanged.
+
+**Verification:** `pnpm --filter @workspace/mobile run check:release` passed TypeScript and all five focused Realtime tests. Expo public-config resolution passed without the stale host or microphone permission. `git diff --check` passed. The preview remains browser evidence only; native Mapbox, Schedule writes, sheets/safe areas, account deletion, and reverse-direction Realtime still require their documented physical/backend acceptance.
+
+**Boundary:** Draft PR and documentation only. No merge, OTA, EAS build, TestFlight submission, Supabase function deployment/migration, or App Store action was performed. Jesse's explicit approval remains required after visual review.
+
 ## 2026-07-28 — MVP consolidation candidate: Profile, Court Details, Schedule, and repeatable preview
 
 **Outcome requested:** Prioritize the supplied Profile and Court Details mocks, make Schedule truly save, keep Apple Sign-In untouched, and stop before push/OTA so Jesse can inspect the product decisions visually.
