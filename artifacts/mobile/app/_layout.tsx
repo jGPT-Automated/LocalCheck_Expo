@@ -91,7 +91,15 @@ function DataProviders({ children }: { children: React.ReactNode }) {
 function RootLayoutNav() {
   return (
     <AuthGate>
-      <Stack screenOptions={{ headerShown: false }}>
+      {/* `contentStyle` is what sits behind a card while it is being dragged.
+          Without it react-navigation uses its default light theme background,
+          which flashed white on every interactive swipe-back. */}
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: Colors.background },
+        }}
+      >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="court/[id]" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="run/[id]" options={{ headerShown: false, presentation: "card" }} />
@@ -127,7 +135,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView style={{ flex: 1 }}>
+          {/* Paints the root native view dark so nothing light is ever exposed
+              behind a card mid-gesture or between screen transitions. */}
+          <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.background }}>
             <KeyboardProvider>
               <AuthProvider>
                 <DataProviders>

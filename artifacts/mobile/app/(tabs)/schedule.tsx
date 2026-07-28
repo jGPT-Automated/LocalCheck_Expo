@@ -17,6 +17,7 @@ import { Colors, Radius } from "@/constants/colors";
 import { Court, PlannedVisit, getSportColor } from "@/constants/data";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { FormSheet } from "@/components/sheet/FormSheet";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { createScheduledGame } from "@/services/scheduledGameService";
@@ -289,7 +290,6 @@ function HostRunModal({
   organizerId: string;
   onCreated: () => Promise<void>;
 }) {
-  const { top } = useSafeAreaInsets();
 
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
@@ -341,14 +341,7 @@ function HostRunModal({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.sheet, { paddingTop: Platform.OS === "ios" ? top : top + 12 }]}>
-        <View style={styles.sheetHeader}>
-          <Text style={styles.sheetTitle}>HOST A RUN</Text>
-          <Pressable onPress={onClose} style={styles.sheetClose} hitSlop={12}>
-            <Feather name="x" size={22} color={Colors.muted} />
-          </Pressable>
-        </View>
+    <FormSheet visible={visible} onClose={onClose} title="Host a run">
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.sheetContent}
@@ -410,8 +403,7 @@ function HostRunModal({
             </Text>
           </Pressable>
         </ScrollView>
-      </View>
-    </Modal>
+    </FormSheet>
   );
 }
 
@@ -435,7 +427,6 @@ function PlanVisitModal({
   defaultDayIndex: number;
   onSubmit: (courtId: string, plannedAtIso: string, note?: string, visibility?: Visibility) => Promise<boolean>;
 }) {
-  const { top } = useSafeAreaInsets();
 
   const [note, setNote] = useState("");
   const [court, setCourt] = useState<Court | null>(defaultCourt);
@@ -478,14 +469,7 @@ function PlanVisitModal({
   const activeHint = VISIBILITY_OPTIONS.find((o) => o.value === visibility)?.hint;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.sheet, { paddingTop: Platform.OS === "ios" ? top : top + 12 }]}>
-        <View style={styles.sheetHeader}>
-          <Text style={styles.sheetTitle}>I'LL BE THERE</Text>
-          <Pressable onPress={onClose} style={styles.sheetClose} hitSlop={12}>
-            <Feather name="x" size={22} color={Colors.muted} />
-          </Pressable>
-        </View>
+    <FormSheet visible={visible} onClose={onClose} title="I'll be there">
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.sheetContent}
@@ -540,8 +524,7 @@ function PlanVisitModal({
             </Text>
           </Pressable>
         </ScrollView>
-      </View>
-    </Modal>
+    </FormSheet>
   );
 }
 
@@ -587,17 +570,9 @@ function CourtPickerModal({
   localCourt: Court | null;
   onSelect: (c: Court) => void;
 }) {
-  const { top } = useSafeAreaInsets();
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.sheet, { paddingTop: Platform.OS === "ios" ? top : top + 12 }]}>
-        <View style={styles.sheetHeader}>
-          <Text style={styles.sheetTitle}>PICK A COURT</Text>
-          <Pressable onPress={onClose} style={styles.sheetClose} hitSlop={12}>
-            <Feather name="x" size={22} color={Colors.muted} />
-          </Pressable>
-        </View>
-        <ScrollView contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">
+    <FormSheet visible={visible} onClose={onClose} title="Pick a court">
+      <ScrollView contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">
           {localCourt && (
             <Pressable
               style={styles.pickerLocalRow}
@@ -620,9 +595,8 @@ function CourtPickerModal({
             }}
             onClear={() => {}}
           />
-        </ScrollView>
-      </View>
-    </Modal>
+      </ScrollView>
+    </FormSheet>
   );
 }
 
@@ -646,7 +620,9 @@ export default function ScheduleScreen() {
   const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
   const [editVisibility, setEditVisibility] = useState<Visibility>("public");
   const [savingTimes, setSavingTimes] = useState(false);
-  const [saveTimesFailed, setSaveTimesFailed] = useState(false);
+  // Null when there is nothing to say. Any string here is shown verbatim, so a
+  // save can never look successful when nothing actually reached the database.
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
   // Anonymous planned-time counts per slot (from court_planned_times RPC):
   // includes friends-only/private plans so heatmap intensity is honest without
   // exposing who they are.
@@ -814,13 +790,13 @@ export default function ScheduleScreen() {
   const beginEditingTimes = () => {
     setPendingKeys(new Set(myVisitsByKey.keys()));
     setSelectedSlot(null);
-    setSaveTimesFailed(false);
+    setSaveNotice(null);
     setScheduleMode("EDIT");
   };
 
   const cancelEditingTimes = () => {
     setPendingKeys(new Set());
-    setSaveTimesFailed(false);
+    setSaveNotice(null);
     setScheduleMode("VIEW");
   };
 
@@ -831,11 +807,18 @@ export default function ScheduleScreen() {
       else next.add(key);
       return next;
     });
-    setSaveTimesFailed(false);
+    setSaveNotice(null);
   };
 
   const saveMyTimes = async () => {
-    if (!court || savingTimes) return;
+    if (savingTimes) return;
+    // Save used to return silently with no court selected, so the button simply
+    // did nothing. Send the user to the picker instead of failing invisibly.
+    if (!court) {
+      setSaveNotice("PICK A COURT BEFORE SAVING YOUR TIMES.");
+      setShowPicker(true);
+      return;
+    }
     const additions = Array.from(pendingKeys)
       .filter((key) => !myVisitsByKey.has(key))
       .map((key) => {
@@ -849,12 +832,20 @@ export default function ScheduleScreen() {
       .filter(([key]) => !pendingKeys.has(key))
       .flatMap(([, visits]) => visits.map((visit) => visit.id));
 
+    // A batch of nothing must never report success. This happened when every
+    // pending slot had already passed: `additions` became `[]`, and
+    // `[].every(Boolean)` is `true`, so the editor closed as if it had saved.
+    if (additions.length === 0 && removals.length === 0) {
+      setSaveNotice("THOSE TIMES HAVE ALREADY PASSED. PICK A TIME LATER TODAY OR THIS WEEK.");
+      return;
+    }
+
     setSavingTimes(true);
-    setSaveTimesFailed(false);
+    setSaveNotice(null);
     const ok = await savePlannedVisitBatch(court.id, additions, removals, editVisibility);
     setSavingTimes(false);
     if (!ok) {
-      setSaveTimesFailed(true);
+      setSaveNotice("SOME TIMES DIDN'T SAVE. YOUR SELECTIONS ARE STILL HERE. TRY AGAIN.");
       return;
     }
     setScheduleMode("VIEW");
@@ -867,6 +858,20 @@ export default function ScheduleScreen() {
     <View style={styles.container}>
       <ScreenHeader
         title="SCHEDULE"
+        right={
+          <Pressable
+            onPress={scheduleMode === "EDIT" ? cancelEditingTimes : beginEditingTimes}
+            hitSlop={12}
+            style={styles.headerAction}
+            accessibilityRole="button"
+            accessibilityLabel={scheduleMode === "EDIT" ? "Cancel editing my times" : "Edit my times"}
+            testID="schedule-edit-toggle"
+          >
+            <Text style={styles.headerActionText}>
+              {scheduleMode === "EDIT" ? "CANCEL" : "EDIT"}
+            </Text>
+          </Pressable>
+        }
       />
 
       <ScrollView
@@ -888,25 +893,13 @@ export default function ScheduleScreen() {
           <Text style={styles.weekTag}>NEXT 7 DAYS</Text>
         </View>
 
+        {/* Mode lives in the header action (EDIT / CANCEL) — this row only
+            reports state, so the grid stays the tallest thing on screen. */}
         <View style={styles.scheduleModeRow}>
-          <View style={styles.scheduleModeToggle} accessibilityRole="tablist">
-            {(["VIEW", "EDIT"] as const).map((mode) => (
-              <Pressable
-                key={mode}
-                style={[styles.scheduleModeButton, scheduleMode === mode && styles.scheduleModeButtonActive]}
-                onPress={() => mode === "EDIT" ? beginEditingTimes() : cancelEditingTimes()}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: scheduleMode === mode }}
-                accessibilityLabel={`${mode === "EDIT" ? "Edit" : "View"} my times`}
-              >
-                <Text style={[styles.scheduleModeText, scheduleMode === mode && styles.scheduleModeTextActive]}>
-                  {mode}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
           <Text style={styles.scheduleModeStatus}>
-            {scheduleMode === "EDIT" ? `${pendingKeys.size} SELECTED` : "TAP A TIME TO SEE WHO'S GOING"}
+            {scheduleMode === "EDIT"
+              ? `${pendingKeys.size} SELECTED — TAP TO ADD OR REMOVE`
+              : "TAP A TIME TO SEE WHO'S GOING"}
           </Text>
         </View>
 
@@ -1145,9 +1138,9 @@ export default function ScheduleScreen() {
         )}
       </View>
 
-      {saveTimesFailed ? (
+      {saveNotice ? (
         <View style={[styles.saveTimesError, { bottom: (Platform.OS === "web" ? 148 : bottom + 148) }]}>
-          <Text style={styles.saveTimesErrorText}>SOME TIMES DIDN'T SAVE. YOUR SELECTIONS ARE STILL HERE. TRY AGAIN.</Text>
+          <Text style={styles.saveTimesErrorText}>{saveNotice}</Text>
         </View>
       ) : null}
 
@@ -1215,28 +1208,21 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     gap: 8,
   },
-  scheduleModeToggle: {
-    minHeight: 38,
-    flexDirection: "row",
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.surface,
-    overflow: "hidden",
+  // Edit / Cancel lives in the ScreenHeader action slot. 44pt minimum target
+  // per Apple HIG, hit-slopped so the text itself can stay small.
+  headerAction: {
+    minHeight: 44,
+    minWidth: 44,
+    alignItems: "flex-end",
+    justifyContent: "flex-end",
+    paddingBottom: 2,
   },
-  scheduleModeButton: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  scheduleModeButtonActive: { backgroundColor: Colors.surfaceHigh },
-  scheduleModeText: {
+  headerActionText: {
     fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.muted,
+    fontSize: 11,
+    color: Colors.accent,
     letterSpacing: 1.5,
   },
-  scheduleModeTextActive: { color: Colors.text },
   scheduleModeStatus: {
     fontFamily: Typography.bodySemiBold,
     fontSize: 9,
@@ -1571,26 +1557,6 @@ const styles = StyleSheet.create({
   },
 
   // ── Create-run / plan-visit page sheets (used by the modals above) ──
-  sheet: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  sheetHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderColor: Colors.border,
-  },
-  sheetTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 16,
-    color: Colors.text,
-    letterSpacing: 3,
-  },
-  sheetClose: { padding: 4 },
   sheetContent: {
     paddingHorizontal: 20,
     paddingBottom: 40,

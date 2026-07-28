@@ -375,7 +375,16 @@ export function AddCourtModal({ visible, onClose, initialLatitude, initialLongit
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.modal, { paddingTop: Platform.OS === "ios" ? top : top + 12 }]}>
+      {/* An iOS pageSheet is already inset below the status bar, so adding the
+          full top inset again pushed the header into the sheet's rounded
+          corners. Matches components/sheet/FormSheet.tsx — keep them in sync
+          until this modal's stepper header is folded into that shell. */}
+      <View
+        style={[
+          styles.modal,
+          { paddingTop: Platform.OS === "ios" ? 14 : Math.max(top, 12) + 6 },
+        ]}
+      >
         <View style={styles.header}>
           <Pressable onPress={onClose} style={styles.closeBtn} hitSlop={12}>
             <Ionicons name="close" size={22} color={Colors.muted} />
