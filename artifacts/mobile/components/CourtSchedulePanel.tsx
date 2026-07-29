@@ -266,7 +266,10 @@ export function CourtSchedulePanel({ court }: { court: Court }) {
               </Pressable>
               <Pressable
                 style={styles.action}
-                onPress={() => router.push({ pathname: "/(tabs)/schedule", params: { courtId: court.id } })}
+                onPress={() => router.push({
+                  pathname: "/(tabs)/schedule",
+                  params: { courtId: court.id, openCreate: "1" },
+                })}
               >
                 <Text style={styles.actionText}>CREATE A RUN</Text>
               </Pressable>

@@ -615,7 +615,7 @@ export default function ScheduleScreen() {
     removePlannedVisit,
     savePlannedVisitBatch,
   } = useApp();
-  const params = useLocalSearchParams<{ courtId?: string }>();
+  const params = useLocalSearchParams<{ courtId?: string; openCreate?: string }>();
   const { bottom } = useSafeAreaInsets();
 
   const [showHost, setShowHost] = useState(false);
@@ -633,6 +633,8 @@ export default function ScheduleScreen() {
   // includes friends-only/private plans so heatmap intensity is honest without
   // exposing who they are.
   const [plannedBuckets, setPlannedBuckets] = useState<Record<string, number>>({});
+  const consumedCourtParamRef = useRef<string | null>(null);
+  const consumedCreateParamRef = useRef<string | null>(null);
 
   // Default to the local court once it hydrates; an explicit pick wins.
   const court = pickedCourt ?? localCourt;
@@ -641,7 +643,8 @@ export default function ScheduleScreen() {
   // from the in-memory discovery set first, then fall back to one direct read.
   useEffect(() => {
     const requestedId = typeof params.courtId === "string" ? params.courtId : null;
-    if (!requestedId || pickedCourt?.id === requestedId) return;
+    if (!requestedId || consumedCourtParamRef.current === requestedId) return;
+    consumedCourtParamRef.current = requestedId;
     const known = courts.find((item) => item.id === requestedId);
     if (known) {
       setPickedCourt(known);
@@ -654,7 +657,19 @@ export default function ScheduleScreen() {
     return () => {
       cancelled = true;
     };
-  }, [params.courtId, courts, pickedCourt?.id]);
+  }, [params.courtId, courts]);
+
+  // A Court Details "Create a run" handoff opens the form exactly once after
+  // the requested court is selected. Later manual court choices stay manual.
+  useEffect(() => {
+    const requestedId = typeof params.courtId === "string" ? params.courtId : null;
+    const openCreate = params.openCreate === "1";
+    const requestKey = openCreate ? `${requestedId ?? "local"}:create` : null;
+    if (!requestKey || consumedCreateParamRef.current === requestKey) return;
+    if (requestedId && court?.id !== requestedId) return;
+    consumedCreateParamRef.current = requestKey;
+    setShowHost(true);
+  }, [params.courtId, params.openCreate, court?.id]);
 
   // ── Rolling week: today + next 6 days. Deliberately NOT paginated — planned
   // "My Times" is a near-term "who's pulling up this week" signal; scheduling

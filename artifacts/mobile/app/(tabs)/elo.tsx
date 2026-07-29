@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { Href, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -11,6 +11,7 @@ import { getEloTier } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
+import { useNotifications } from "@/context/NotificationContext";
 
 type ProfileTab = "activity" | "friends";
 
@@ -24,8 +25,18 @@ function shortDate(value: string): string {
 export default function MeScreen() {
   const router = useRouter();
   const { profile } = useAuth();
-  const { currentUser, feed, matches, localCourt, getFriendsList } = useApp();
+  const {
+    currentUser,
+    feed,
+    matches,
+    localCourt,
+    getFriendsList,
+    incomingFriendRequests,
+    acceptFriendRequest,
+    removeFriend,
+  } = useApp();
   const { bottom } = useSafeAreaInsets();
+  const { unreadCount } = useNotifications();
   const [activeTab, setActiveTab] = useState<ProfileTab>("activity");
 
   const friends = getFriendsList();
@@ -44,15 +55,31 @@ export default function MeScreen() {
     <View style={styles.screen}>
       <ScreenHeader
         title="ME"
-        right={<Pressable
-          onPress={() => router.push("/settings")}
-          style={styles.headerAction}
-          accessibilityRole="button"
-          accessibilityLabel="Open settings"
-          hitSlop={12}
-        >
-          <Feather name="settings" size={15} color={Colors.textSecondary} />
-        </Pressable>
+        right={<View style={styles.headerActions}>
+          <Pressable
+            onPress={() => router.push("/notifications" as Href)}
+            style={styles.headerAction}
+            accessibilityRole="button"
+            accessibilityLabel={unreadCount > 0 ? `Open notifications, ${unreadCount} unread` : "Open notifications"}
+            hitSlop={12}
+          >
+            <Feather name="bell" size={15} color={Colors.textSecondary} />
+            {unreadCount > 0 ? (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>{Math.min(unreadCount, 9)}</Text>
+              </View>
+            ) : null}
+          </Pressable>
+          <Pressable
+            onPress={() => router.push("/settings")}
+            style={styles.headerAction}
+            accessibilityRole="button"
+            accessibilityLabel="Open settings"
+            hitSlop={12}
+          >
+            <Feather name="settings" size={15} color={Colors.textSecondary} />
+          </Pressable>
+        </View>
         }
       />
 
@@ -138,6 +165,41 @@ export default function MeScreen() {
           </View>
         ) : (
           <View style={styles.content}>
+            {incomingFriendRequests.length > 0 ? (
+              <View style={styles.requestGroup}>
+                <Text style={styles.requestGroupTitle}>FRIEND REQUESTS</Text>
+                {incomingFriendRequests.map((player) => (
+                  <View key={player.id} style={styles.requestRow}>
+                    <Pressable
+                      style={styles.requestIdentity}
+                      onPress={() => router.push(`/player/${player.id}`)}
+                    >
+                      <PlayerAvatar initials={player.avatar} size={38} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.friendName}>{player.name.toUpperCase()}</Text>
+                        <Text style={styles.friendMeta}>{player.elo} ELO</Text>
+                      </View>
+                    </Pressable>
+                    <Pressable
+                      style={styles.acceptRequest}
+                      onPress={() => void acceptFriendRequest(player.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Accept ${player.name}'s friend request`}
+                    >
+                      <Text style={styles.acceptRequestText}>ACCEPT</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.declineRequest}
+                      onPress={() => void removeFriend(player.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Decline ${player.name}'s friend request`}
+                    >
+                      <Feather name="x" size={14} color={Colors.muted} />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            ) : null}
             {friends.length > 0 ? friends.map((friend) => (
               <Pressable
                 key={friend.id}
@@ -151,9 +213,18 @@ export default function MeScreen() {
                 </View>
                 <Feather name="chevron-right" size={18} color={Colors.muted} />
               </Pressable>
-            )) : (
+            )) : incomingFriendRequests.length === 0 ? (
               <EmptyState title="YOUR COURT CREW STARTS HERE" body="Open a player profile to send a friend request." />
-            )}
+            ) : null}
+            <Pressable
+              style={styles.manageFriends}
+              onPress={() => router.push("/friends")}
+              accessibilityRole="button"
+              accessibilityLabel="Find and manage friends"
+            >
+              <Text style={styles.manageFriendsText}>FIND & MANAGE FRIENDS</Text>
+              <Feather name="arrow-up-right" size={14} color={Colors.accent} />
+            </Pressable>
           </View>
         )}
       </ScrollView>
@@ -202,6 +273,9 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     backgroundColor: Colors.surface,
   },
+  headerActions: { flexDirection: "row", gap: 8 },
+  notificationBadge: { position: "absolute", top: -4, right: -4, minWidth: 15, height: 15, paddingHorizontal: 3, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: Colors.accent, borderWidth: 1, borderColor: Colors.background },
+  notificationBadgeText: { fontFamily: Typography.bodyBold, fontSize: 7, color: "#080808" },
   identity: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 22, gap: 14 },
   avatarGlow: {
     padding: 2,
@@ -240,7 +314,7 @@ const styles = StyleSheet.create({
   timelineDotActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
   timelineLine: { flex: 1, width: 1, backgroundColor: Colors.border, marginVertical: 4 },
   timelineCopy: { flex: 1, paddingLeft: 8, paddingBottom: 15 },
-  timelineMessage: { fontFamily: Typography.bodyMedium, fontSize: 12, lineHeight: 17, color: Colors.text },
+  timelineMessage: { fontFamily: Typography.bodyExtraLight, fontSize: 12, lineHeight: 17, color: Colors.text },
   timelineTime: { fontFamily: Typography.bodyMedium, fontSize: 8, color: Colors.muted, letterSpacing: 1.2, marginTop: 4, textTransform: "uppercase" },
   matchRow: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, borderBottomWidth: 1, borderBottomColor: Colors.borderSubtle },
   resultBadge: { width: 28, height: 28, borderRadius: Radius.sm, backgroundColor: Colors.surfaceHigh, alignItems: "center", justifyContent: "center" },
@@ -248,6 +322,15 @@ const styles = StyleSheet.create({
   friendRow: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 66, borderBottomWidth: 1, borderBottomColor: Colors.borderSubtle },
   friendName: { fontFamily: Typography.heading, fontSize: 15, color: Colors.text, letterSpacing: 0.4 },
   friendMeta: { fontFamily: Typography.bodyMedium, fontSize: 8, color: Colors.muted, letterSpacing: 1.1, marginTop: 3 },
+  requestGroup: { marginBottom: 10 },
+  requestGroupTitle: { fontFamily: Typography.bodySemiBold, fontSize: 8, color: Colors.accent, letterSpacing: 1.5, marginBottom: 7 },
+  requestRow: { minHeight: 58, flexDirection: "row", alignItems: "center", gap: 7, borderBottomWidth: 1, borderBottomColor: Colors.borderSubtle },
+  requestIdentity: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10 },
+  acceptRequest: { minHeight: 30, justifyContent: "center", paddingHorizontal: 10, borderRadius: Radius.sm, backgroundColor: Colors.accent },
+  acceptRequestText: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.black, letterSpacing: 1 },
+  declineRequest: { width: 30, height: 30, alignItems: "center", justifyContent: "center", borderRadius: Radius.sm, borderWidth: 1, borderColor: Colors.border },
+  manageFriends: { minHeight: 46, marginTop: 18, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface },
+  manageFriendsText: { fontFamily: Typography.bodySemiBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.2 },
   pressed: { opacity: 0.7 },
   empty: { paddingVertical: 44, alignItems: "center", paddingHorizontal: 28 },
   emptyTitle: { fontFamily: Typography.heading, fontSize: 17, color: Colors.text, letterSpacing: 1.1, textAlign: "center" },

@@ -15,17 +15,24 @@ import { Court } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
+import { useRealtimeHub } from "@/context/RealtimeHubContext";
+import { batchHasResource, RealtimeTopic } from "@/lib/realtimeHub";
 import { fetchCourtById } from "@/services/courtService";
-import { fetchLocalsWithLastCheckIn, LocalWithLastCheckIn } from "@/services/profileService";
+import { fetchFeed } from "@/services/feedService";
+import {
+  fetchLeaderboard,
+  fetchLocalsWithLastCheckIn,
+  LocalWithLastCheckIn,
+} from "@/services/profileService";
 
 type CourtTab = "feed" | "locals" | "schedule" | "details";
+const COURT_FEED_RESOURCES = ["activity_events", "activity_event_likes"] as const;
 
 export default function CourtProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const {
     courts,
     runs,
-    feed,
     checkIn,
     checkOut,
     checkedInCourtId,
@@ -42,7 +49,10 @@ export default function CourtProfileScreen() {
   );
   const [fetchError, setFetchError] = React.useState(false);
   const [locals, setLocals] = React.useState<LocalWithLastCheckIn[]>([]);
+  const [courtFeed, setCourtFeed] = React.useState<Awaited<ReturnType<typeof fetchFeed>>>([]);
+  const [rankedIds, setRankedIds] = React.useState<Set<string>>(new Set());
   const courtId = id ? String(id) : null;
+  const realtimeHub = useRealtimeHub();
   const { roster, localCount } = usePresence(courtId);
   const countMap = useCourtCounts(court ? [court] : []);
 
@@ -69,6 +79,49 @@ export default function CourtProfileScreen() {
     };
   }, [courtId]);
 
+  const courtFeedRequestRef = React.useRef(0);
+  const refreshCourtFeed = React.useCallback(async () => {
+    if (!courtId) {
+      setCourtFeed([]);
+      return;
+    }
+    const requestId = ++courtFeedRequestRef.current;
+    const items = await fetchFeed(courtId);
+    if (requestId === courtFeedRequestRef.current) setCourtFeed(items.slice(0, 30));
+  }, [courtId]);
+
+  React.useEffect(() => {
+    void refreshCourtFeed();
+    return () => {
+      courtFeedRequestRef.current += 1;
+    };
+  }, [refreshCourtFeed]);
+
+  // Court Details owns the exact court it is showing. Subscribe only while
+  // this screen is mounted, then refetch that court's authoritative feed.
+  React.useEffect(() => {
+    if (!courtId) return;
+    return realtimeHub.subscribe(`court:${courtId}` as RealtimeTopic, (batch) => {
+      if (batchHasResource(batch, COURT_FEED_RESOURCES)) void refreshCourtFeed();
+    });
+  }, [courtId, realtimeHub, refreshCourtFeed]);
+
+  // Use the same local top-10 leaderboard contract as Compete. A visible
+  // court roster must never manufacture a rank from only the people on screen.
+  React.useEffect(() => {
+    if (!court) {
+      setRankedIds(new Set());
+      return;
+    }
+    let cancelled = false;
+    fetchLeaderboard("LOCAL", court.id, court.sport).then((players) => {
+      if (!cancelled) setRankedIds(new Set(players.slice(0, 10).map((player) => player.id)));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [court?.id, court?.sport]);
+
   if (!court) {
     return (
       <View style={styles.notFound}>
@@ -81,8 +134,6 @@ export default function CourtProfileScreen() {
   const courtRuns = runs
     .filter((run) => run.courtId === court.id && new Date(run.startTimeIso).getTime() >= Date.now())
     .sort((a, b) => a.startTimeIso.localeCompare(b.startTimeIso));
-  // Court pages carry a longer history; Home remains the concise overview.
-  const courtFeed = feed.filter((item) => item.courtId === court.id).slice(0, 30);
   const statsActive = countMap[court.id]?.activeCount ?? court.activeCount ?? 0;
   const activeCount = Math.max(roster.length, statsActive);
   const hiddenCount = Math.max(0, activeCount - roster.length);
@@ -92,16 +143,6 @@ export default function CourtProfileScreen() {
   const hereNowIds = new Set(roster.map((player) => player.id));
   const visibleLocals = locals.filter(({ player }) => !hereNowIds.has(player.id));
   const privateLocalCount = Math.max(0, localCount - locals.length);
-  const uniqueVisiblePlayers = Array.from(new Map([
-    ...roster.map((player) => [player.id, player] as const),
-    ...locals.map(({ player }) => [player.id, player] as const),
-  ]).values());
-  const rankedIds = new Set(
-    uniqueVisiblePlayers
-      .sort((a, b) => b.elo - a.elo)
-      .slice(0, uniqueVisiblePlayers.length === 0 ? 0 : Math.max(1, Math.ceil(uniqueVisiblePlayers.length * 0.1)))
-      .map((player) => player.id)
-  );
   const courtMetrics = getCourtMetrics(court);
 
   const handleCheckIn = async () => {
@@ -239,7 +280,13 @@ export default function CourtProfileScreen() {
             </View>
             <View style={styles.runSection}>
               {courtRuns.length > 0 ? courtRuns.map((run) => <RunCard key={run.id} run={run} />) : (
-                <Pressable style={({ pressed }) => [styles.hostRun, pressed && styles.pressed]} onPress={() => router.push("/(tabs)/schedule")}>
+                <Pressable
+                  style={({ pressed }) => [styles.hostRun, pressed && styles.pressed]}
+                  onPress={() => router.push({
+                    pathname: "/(tabs)/schedule",
+                    params: { courtId: court.id, openCreate: "1" },
+                  })}
+                >
                   <View>
                     <Text style={styles.hostRunTitle}>BE THE FIRST TO HOST</Text>
                     <Text style={styles.hostRunBody}>Set a time. Build the run.</Text>

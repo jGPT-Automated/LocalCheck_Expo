@@ -1,8 +1,8 @@
 # LocalCheck design QA — canonical MVP candidate
 
 Status: Browser-verified; physical iPhone/TestFlight acceptance pending
-Last verified: 2026-07-28, America/Chicago
-Review source: draft PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/22), implementation commit `db7e0db`
+Last verified: 2026-07-29, America/Chicago
+Review source: open PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/22), branch `codex/mvp-consolidation`
 
 ## Reference targets
 
@@ -12,6 +12,7 @@ Review source: draft PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/
 - `design system/Design.pdf`
 - `design system/Logo.png`
 - `design system/LOCALCHECK/README.md`
+- `/Users/JesseH/Downloads/IMG_4869.jpg` through `IMG_4874.jpg` (selected visual anchors)
 
 ## Candidate surfaces
 
@@ -34,6 +35,9 @@ Review source: draft PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/
   focus, exposes View/Edit states, and opens the shared Host a Run form.
 - Explore uses a city-scoped bounded list, a compact sport dropdown, full-width
   List/Map tabs, Mapbox canvas layers, and compact matte court cards.
+- Primary-tab titles use the requested 22 px Inter treatment. The Explore sport
+  filter sits unboxed before Search; regular court names are lighter, one line,
+  and more compact while the local court can still use two lines.
 - Court Details keeps one identity card above Feed, Locals, Schedule, and
   Details; the longer feed and tab contents scroll with the screen.
 - Ranked avatars use an orange glow; the star means accepted friend.
@@ -41,10 +45,31 @@ Review source: draft PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/
   routes, preventing an earlier export bundle from surviving a restart.
 - `pnpm --filter @workspace/mobile run check:release` passes TypeScript and all
   five focused Realtime tests. `git diff --check` passes.
+- Side-by-side source/implementation evidence and pass history are recorded in
+  [`../../design-qa.md`](../../design-qa.md) and `design-qa/2026-07-29/`.
+- The selected-court sheet still emits a React 19 `element.ref` deprecation
+  message from its dependency on web. It rendered and interacted correctly in
+  this pass; track the dependency warning separately from visual acceptance.
+- Home now renders its local court as a full-width matte section instead of an
+  Explore card. The sport mark and color are quiet, stats are centered, and
+  `View all` is part of the roster header. Only the Activity Feed is vertically
+  scrollable; the header, court, roster, and Next Run remain fixed.
+- The Home check-in action is inset from the section edges and uses restrained
+  orange elevation. Me activity copy uses the loaded Inter extra-light face so
+  dense feed rows no longer read as uniformly bold. These two changes still
+  need Jesse's visible phone-width acceptance in the refreshed preview.
+- A fresh Expo web export containing the review fixes is served at
+  `http://127.0.0.1:8081/` with no-cache headers. The existing signed-in browser
+  tab was reloaded and visually checked at phone width. Home showed the inset,
+  elevated check-in action; Me showed the lighter activity copy and reachable
+  Friends surface. Court Details → Schedule → Create a Run opened the Host Run
+  form with Jaycee Park already selected. No form was submitted and no QA data
+  was written.
 
 ## Open gates before merge/release
 
 - Jesse visual review at the actual phone viewport.
+- Jesse accepts the refreshed Home and Me polish in the visible preview.
 - Physical iPhone verification of safe areas, sheets, keyboard behavior,
   Schedule add/remove persistence, native Mapbox marker/camera behavior, and
   two-way Realtime recovery.
@@ -52,9 +77,9 @@ Review source: draft PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/
   heatmap; pinning remains a product decision for short phones.
 - Court facility details only render fields that exist. Hours/lighting/coverage
   need a trusted data source before the UI may promise them.
-- The account-deletion client and Edge Function source exist locally, but the
-  function and Apple revocation secrets must be deployed and tested before the
-  button can be called release-ready.
+- The account-deletion client, Edge Function source, reproducible foreign-key
+  contract, and matching Apple secret names exist locally. The function must be
+  deployed and physically tested before the button can be called release-ready.
 
 ## Release boundary
 

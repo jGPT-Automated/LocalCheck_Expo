@@ -23,6 +23,12 @@ export interface UserProfile {
   elo_rating: number;
   wins: number;
   losses: number;
+  elo_basketball: number;
+  elo_pickleball: number;
+  basketball_wins: number;
+  basketball_losses: number;
+  pickleball_wins: number;
+  pickleball_losses: number;
   total_court_time_minutes: number;
   apple_private_email: boolean;
   push_notifications_enabled: boolean;

@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as AppleAuthentication from "expo-apple-authentication";
-import { useRouter } from "expo-router";
+import { Href, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -11,6 +11,7 @@ import { CourtSport } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp, Visibility } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
+import { useNotifications } from "@/context/NotificationContext";
 import { deleteCurrentAccount } from "@/services/accountService";
 
 const WEBSITE_URL = process.env.EXPO_PUBLIC_WEBSITE_URL ?? "https://localchecksports.com";
@@ -28,6 +29,7 @@ export default function SettingsScreen() {
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
   const [deleting, setDeleting] = useState(false);
+  const { pushEnabled, enablePush, disablePush } = useNotifications();
 
   const openWebsitePath = (path: string) => {
     void Linking.openURL(`${WEBSITE_URL}${path}`);
@@ -92,6 +94,16 @@ export default function SettingsScreen() {
         { text: "Delete Account", style: "destructive", onPress: () => void executeDelete() },
       ]
     );
+  };
+
+  const togglePush = async () => {
+    if (pushEnabled) {
+      const ok = await disablePush();
+      if (!ok) Alert.alert("Could not turn off alerts", "Please try again.");
+      return;
+    }
+    const result = await enablePush();
+    if (!result.ok) Alert.alert("Alerts are not on", result.message ?? "Please try again.");
   };
 
   return (
@@ -161,6 +173,21 @@ export default function SettingsScreen() {
             label={localCourt?.name ?? "CHOOSE A LOCAL COURT"}
             detail={localCourt ? "Your home base" : "Find it in Explore"}
             onPress={() => router.push("/(tabs)/explore")}
+          />
+        </Section>
+
+        <Section title="ALERTS">
+          <SettingsRow
+            icon="bell"
+            label="PUSH NOTIFICATIONS"
+            detail={pushEnabled ? "Run invites, friend updates, and score reviews" : "Off"}
+            onPress={() => void togglePush()}
+          />
+          <SettingsRow
+            icon="inbox"
+            label="NOTIFICATION INBOX"
+            detail="See all LocalCheck alerts"
+            onPress={() => router.push("/notifications" as Href)}
           />
         </Section>
 

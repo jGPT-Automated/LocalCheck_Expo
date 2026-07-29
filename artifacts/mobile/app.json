@@ -37,6 +37,7 @@
       "expo-web-browser",
       "expo-secure-store",
       "expo-apple-authentication",
+      "expo-notifications",
       [
         "expo-location",
         {

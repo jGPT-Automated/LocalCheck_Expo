@@ -55,3 +55,6 @@ Thumbs.db
 
 # Apple signing keys — never commit
 *.p8
+
+# Supabase CLI local project state
+supabase/.temp/

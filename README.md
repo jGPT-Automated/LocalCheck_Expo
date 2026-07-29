@@ -12,6 +12,7 @@ LocalCheck brings the raw energy of street sports to your pocket. Discover who's
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | Single agent/human entry point and operating rules |
 | [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md) | Exact build-9 checkpoint, current truth, and next sequence |
+| [`docs/APP_ARCHITECTURE.md`](docs/APP_ARCHITECTURE.md) | Required page, data, Realtime, and native guardrails |
 | [`docs/product/ACTIVITY_LEDGER.md`](docs/product/ACTIVITY_LEDGER.md) | Chronological activity, decisions, failures, and resolutions |
 | [`docs/product/LAUNCH_CONTROL.md`](docs/product/LAUNCH_CONTROL.md) | Launch burn-down and acceptance gates |
 | [`docs/RELEASE_RUNBOOK.md`](docs/RELEASE_RUNBOOK.md) | **Repeatable Expo → EAS → TestFlight flow** |
@@ -114,8 +115,8 @@ Full component/motion/voice detail: [`DESIGN.md`](DESIGN.md).
 | **Mobile Framework** | Expo SDK 54 (React Native) with Expo Router |
 | **Navigation** | Expo Router file-based routing + Classic Tabs (iOS uses SF Symbols, Android/web uses Feather icons) |
 | **Backend** | **Supabase** — LocalCheckProd (`qkrnmyexzvaxiqfxwwfb`, us-east-2), shared with the web app: Postgres + Auth + RLS. The only backend |
-| **Data layer** | `services/*` (one file per domain) → Supabase; RPCs `log_game` + `switch_active_checkin` for atomic writes |
-| **State Management** | React Context (`AuthContext` session, `AppContext` app state, 30s polling) |
+| **Data layer** | `services/*` (one file per domain) → Supabase; approved RPCs own atomic behavior |
+| **State Management** | Auth-gated React Context plus scoped private Broadcast invalidation and authoritative refetch; no global polling |
 | **Session persistence** | `expo-secure-store` (native) / localStorage (web) — the **only** client-persisted state |
 | **Fonts** | Oswald (headings/stats) + Inter (body) via `@expo-google-fonts` |
 | **Icons** | `@expo/vector-icons` (Feather) + SF Symbols (iOS) |
@@ -137,9 +138,9 @@ Full component/motion/voice detail: [`DESIGN.md`](DESIGN.md).
   `games` + `game_participants`, `scheduled_games` + participants,
   `friendships`, `feed_posts` (+likes), `planned_visits`, `push_tokens`,
   `subscriptions`.
-- **RPCs that MUST be used instead of raw writes:**
-  - `switch_active_checkin(p_court_id, p_visibility, p_note)` — atomic check-in switch
-  - `log_game(p_court_id, p_opponent_id, p_my_side, p_score_a, p_score_b, p_winner_side, p_notes)` — game + Elo K=32
+- **RPCs that MUST be used instead of raw writes:** check-in/out, run actions,
+  friend actions, and match actions. The exact current map is in
+  [`docs/BACKEND_WRITE_PATHS.md`](docs/BACKEND_WRITE_PATHS.md).
 - **Enums are lowercase**: `winner_side`/`team_side` = `a`/`b`; run status =
   `scheduled`/`cancelled`/`completed`; RSVP = `going`/`waitlist`/`declined`.
 - `profiles.is_pro` is **trigger-derived** from `subscriptions` — never write it from the client.
@@ -195,8 +196,11 @@ lib/                      # legacy Replit workspace packages (db, api-spec, …)
 ## State Architecture
 
 `AuthContext` owns the Supabase session (SecureStore-persisted) and profile
-provisioning. `AppContext` is the app-state source of truth — **all data comes
-from Supabase via `services/*`; nothing app-level is cached on device.**
+provisioning. Authenticated data providers then own Realtime, notifications,
+court presence, shared app data, and the court sheet in a fixed order. **All
+product data comes from Supabase through `services/*`; Realtime only triggers a
+scoped authoritative refetch.** The full contributor contract is in
+[`docs/APP_ARCHITECTURE.md`](docs/APP_ARCHITECTURE.md).
 
 ### Core State (AppContext)
 

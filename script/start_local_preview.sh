@@ -6,6 +6,7 @@ PORT="${PORT:-8081}"
 WORKSPACE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MOBILE_ROOT="$WORKSPACE_ROOT/artifacts/mobile"
 PREVIEW_CONFIG="$WORKSPACE_ROOT/script/metro.preview.config.cjs"
+EXPO_BIN="$MOBILE_ROOT/node_modules/.bin/expo"
 
 show_usage() {
   printf '%s\n' \
@@ -41,6 +42,12 @@ if [[ ! -e "$MOBILE_ROOT/.env" ]]; then
   exit 1
 fi
 
+if [[ ! -x "$EXPO_BIN" ]]; then
+  printf 'Missing installed Expo command: %s\n' "$EXPO_BIN" >&2
+  printf 'Restore the canonical lockfile install before starting the preview.\n' >&2
+  exit 1
+fi
+
 if [[ "$MODE" == "start" ]] && command -v curl >/dev/null 2>&1; then
   if curl --fail --silent "http://127.0.0.1:$PORT/" | rg --quiet '<title>LocalCheck</title>'; then
     printf 'LocalCheck preview is already running at http://127.0.0.1:%s/\n' "$PORT"
@@ -53,11 +60,11 @@ if [[ ! -L "$WORKSPACE_ROOT/node_modules" ]] && \
   command -v watchman >/dev/null 2>&1; then
   if [[ "$MODE" == "--export-only" ]] || [[ "$MODE" == "export-only" ]]; then
     cd "$MOBILE_ROOT"
-    EXPO_NO_CACHE=1 exec pnpm exec expo export --platform web --dev --no-minify
+    EXPO_NO_CACHE=1 exec "$EXPO_BIN" export --platform web --dev --no-minify
   fi
 
   cd "$MOBILE_ROOT"
-  EXPO_NO_CACHE=1 exec pnpm exec expo start --web --localhost --port "$PORT"
+  EXPO_NO_CACHE=1 exec "$EXPO_BIN" start --web --localhost --port "$PORT"
 fi
 
 if [[ ! -e "$WORKSPACE_ROOT/node_modules" ]] || [[ ! -e "$MOBILE_ROOT/node_modules" ]]; then
@@ -76,7 +83,7 @@ fi
 
 cd "$MOBILE_ROOT"
 EXPO_NO_CACHE=1 EXPO_OVERRIDE_METRO_CONFIG="$PREVIEW_CONFIG" \
-  pnpm exec expo export \
+  "$EXPO_BIN" export \
     --platform web \
     --dev \
     --no-minify \

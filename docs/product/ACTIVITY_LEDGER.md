@@ -1,7 +1,7 @@
 # LocalCheck Activity Ledger
 
 Status: Active, chronological operating record
-Last updated: 2026-07-28
+Last updated: 2026-07-29
 
 ## How this ledger is used
 
@@ -10,6 +10,86 @@ Last updated: 2026-07-28
 - Do not rewrite history to make a failed attempt disappear. Later entries may correct earlier conclusions with new evidence.
 - Keep `LAUNCH_CONTROL.md` as the concise current-state and priority view. Use this file for the chronological trail that explains how the project reached that state.
 - Product and design decisions also belong in `DECISIONS.md`; notable brand-system changes also belong in `CHANGELOG.md`.
+
+## 2026-07-29 — PR #22 review fixes implemented locally
+
+**Outcome requested:** Use one simple review loop: fix every open PR #22
+comment, include the latest Home and Me polish, verify the candidate, push it,
+then reply to and resolve each GitHub thread before asking for merge approval.
+
+**Implementation:** Added incoming friend-request actions to Me, made a
+Schedule deep link initialize court selection only once, retained the last
+verified lifetime check-in count when a refresh fails, scoped Court Feed to the
+opened court, routed Court Schedule creation into the preselected Host Run
+form, and derived ranked court avatars from the same local leaderboard service
+used by Compete. The Home check-in action is narrower and elevated; Me activity
+copy uses the loaded Inter extra-light face.
+
+**Account deletion:** Read-only production inspection confirms the current
+foreign-key contract supports auth-user deletion. Added an unapplied migration
+that reproduces that contract in a replacement project. Updated the Edge
+Function to generate Apple's short-lived ES256 revocation client secret from
+the four uploaded raw Apple secrets. The function is still undeployed and
+physically untested; no Supabase data or schema changed.
+
+**Verification:** Direct mobile TypeScript passed, all five focused Realtime
+tests passed, `git diff --check` passed, and a fresh Expo export returned HTTP
+200 with no-cache headers for `/` and `/elo`. Signed-in phone-width browser QA
+confirmed the Home action, lighter Me activity copy, Friends access, exact
+non-local court feed data, and Court Schedule → Create a Run opening the
+preselected Host Run form. No form was submitted and no QA data was written.
+
+**Delivery state:** GitHub push, thread replies, and thread resolution are the
+remaining gates for this review loop. PR #22 remains the only candidate. No
+merge, OTA, EAS build, TestFlight action, or production backend mutation is
+authorized in this step.
+
+## 2026-07-29 — Home MVP section and contributor protection contract
+
+**Outcome requested:** Make the final Home change for the canonical MVP PR,
+restart the preview, and document the working architecture so later cloud UI
+tasks cannot silently break app logic, connectivity, dependencies, or release
+boundaries.
+
+**Home:** Replaced the reusable discovery-card treatment with a full-width
+matte local-court section. The sport mark is small and quiet, sport text is
+lighter, confirmed activity stats are centered, and the local-court badge is
+restrained. A non-local discovery card now exposes a dim `Set local` action.
+Moved the detached roster count into an inline `View all` action. Kept Next Run
+in its compact form. The header, court section, roster, and Next Run stay fixed;
+only the Activity Feed scrolls.
+
+**Architecture:** Added `docs/APP_ARCHITECTURE.md` to the mandatory `AGENTS.md`
+read order. It records provider order, screen owners, service/RPC write paths,
+private Realtime topics, native-build boundaries, and a page-by-page list of
+behavior that UI contributors must preserve. Updated the README, current state,
+launch control, design decision, and design QA records to point to the same
+contract.
+
+**Preview/tooling:** A fresh Expo web export compiled and is served with no-cache
+headers at `http://127.0.0.1:8081/`. The preview launcher now calls the app's
+installed Expo binary directly. This avoids a pnpm-version mismatch that
+prompted to replace the workspace dependency tree; the prompt was declined and
+no dependency was changed. The first OS screenshot showed the browser still
+holding the prior page. Refreshing the app window hid the browser pane, so the
+fresh bundle is live but this Home state still needs Jesse's visible reload
+acceptance.
+
+**Release boundary:** No merge, OTA, TestFlight build, Supabase migration, Edge
+Function deployment, or production data change occurred. Draft PR #22 remains
+the only review candidate.
+
+## 2026-07-29 — Preview restart and account-deletion review correction
+
+**Outcome requested:** Restart the canonical preview, inspect the open review threads on draft PR #22, and verify the proposed Apple revocation-secret setup before Jesse enters any credentials.
+
+**Preview:** Rebuilt the canonical `codex/mvp-consolidation` web export with the repository-pinned pnpm `10.13.1` toolchain and served it at `http://127.0.0.1:8081/`. Port 8081 returned HTTP 200 with explicit no-cache headers. Runtime Supabase data remains interactive; source edits require another export restart.
+
+**Review correction:** A reviewer predicted that `auth.admin.deleteUser` would be blocked by profile foreign keys using `ON DELETE RESTRICT`, based on an archived pre-repair checkpoint. A fresh read-only inspection of LocalCheckProd found `profiles.id -> auth.users(id) ON DELETE CASCADE`; current profile-owned rows cascade, while retained history such as `activity_events.actor_id` and `courts.added_by` uses `SET NULL`. The archived constraint claim is not current production evidence.
+
+**Real deletion gate:** The candidate Edge Function is still undeployed and untested. Its source currently reads `APPLE_CLIENT_ID` and a prebuilt `APPLE_CLIENT_SECRET`; it does not consume the raw `APPLE_PRIVATE_KEY`, `APPLE_KEY_ID`, or `APPLE_TEAM_ID` values Jesse collected. Before secrets are entered or the function is deployed, choose and implement one contract: preferably generate Apple's short-lived ES256 client-secret JWT inside the function from those four raw values, rather than manually rotating a stored client-secret JWT. No secret value, function deployment, database mutation, PR-thread reply, or thread resolution occurred in this review.
+
+**Other open review findings:** Six client behaviors need scoped follow-up: incoming friend requests are not reachable from Me; a Schedule court deep link can overwrite a later manual court selection; a failed lifetime check-in count is presented as zero; non-local Court Feed reads from local-court-only state; Court Schedule's create action does not open the form; and the displayed court rank is derived from the visible roster rather than an authoritative leaderboard. The ranking contract requires Jesse's product decision before implementation.
 
 ## 2026-07-28 — Canonical MVP draft PR opened; stale preview and PR split resolved
 
@@ -368,3 +448,43 @@ The supplied Profile capture showing `0 CHECK-INS` is a separate data-contract b
 **Static evidence:** `pnpm --filter @workspace/mobile run check:release` passed TypeScript and all five scoped-Realtime tests. Browser logs contained framework deprecation warnings and one self-recovered court-channel warning, but no render or navigation exception during the inspected flows.
 
 **Boundaries:** Apple Sign-In was not changed. No Supabase migration, Elo rewrite, merge, push, OTA, EAS build, or TestFlight action occurred. The external Elo handoff remains review-only until its schema assumptions and match-confirmation lifecycle are reconciled with the live contract.
+
+## 2026-07-29 — Reference-led density and header pass verified
+
+**Visual direction:** Used Jesse's `IMG_4869.jpg`–`IMG_4874.jpg` set as the spacing and restraint anchor without copying its camo avatar texture or fake map tiles.
+
+**Implemented:** Standardized primary-tab titles at 22 px Inter; moved the unboxed Explore sport filter before Search; reduced discovery-card height, padding, emblem size, button shadow, and action height; and changed normal court names to a lighter, one-line treatment. The featured local court may still wrap to two lines. Existing plain player tiles keep orange glow for ranked users and a star for friends.
+
+**Evidence:** A fresh signed-in export rendered Home, Explore List/Map, the selected map sheet, Schedule, Compete, Me, and Court Details at `430 × 932`. Combined source/implementation comparisons are in `docs/product/design-qa/2026-07-29/`, with the required report at `design-qa.md`. Direct TypeScript and `git diff --check` passed.
+
+**Boundary:** The proposed collapsing Home card and pinned Schedule heatmap remain an interaction decision. No merge, push, OTA, EAS build, TestFlight action, Apple Sign-In change, or Supabase mutation occurred.
+
+## 2026-07-29 — Notification and sport-Elo MVP candidate prepared
+
+**Product contract:** Basketball and pickleball now have separate candidate
+ratings. Both start at 1200 and use standard K=32 Elo. Logged scores stay
+pending until the named opponent confirms them, an objection changes no
+rating, and a bounded database job confirms unanswered scores after seven
+days. The old combined rating stays for older installed clients.
+
+**Notification scope:** Added a durable in-app inbox for friend request,
+friend accepted, run invite, score review, score confirmed, and score objected.
+Run hosts can invite accepted friends. Push permission is only requested after
+the user turns alerts on; the app does not prompt on launch. Added the Expo push
+sender source and deduplication state, but did not deploy it.
+
+**Reliability:** Court sport is authoritative, pending games do not appear in
+confirmed history, rating changes are atomic, and the score form carries one
+stable request ID across retries to prevent duplicate matches.
+
+**Evidence:** Direct TypeScript passed, all five scoped-Realtime tests passed,
+Expo public config resolved the notification plugin, `git diff --check` passed,
+and a fresh web export bundled the new routes and packages. Read-only live
+queries confirmed the two current pending matches use supported sports. No live
+row, schema, function, secret, webhook, or Edge Function changed.
+
+**Release boundary:** A production migration, Edge Function deployment,
+Database Webhook, two-account database test, and two-phone push test remain.
+Because `expo-notifications` and `expo-device` add native code, phone push needs
+a new TestFlight build; it cannot be added to build 9 by OTA alone. Apple
+Sign-In was not changed.

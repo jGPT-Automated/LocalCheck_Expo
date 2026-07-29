@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as Crypto from "expo-crypto";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -19,7 +20,6 @@ import { Colors, Radius } from "@/constants/colors";
 import { CourtSport, getSportColor, Player } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
-import { useAuth } from "@/context/AuthContext";
 import { fetchLeaderboard } from "@/services/profileService";
 import { logGame } from "@/services/gameService";
 import { searchPlayers } from "@/services/profileService";
@@ -35,6 +35,7 @@ export default function CompeteScreen() {
   const {
     localCourtId,
     localCourt,
+    courts,
     currentUser,
     isLocalPlus,
     visibility,
@@ -51,29 +52,34 @@ export default function CompeteScreen() {
 
   const [tab, setTab] = useState<Tab>(params.tab === "log" ? "LOG GAME" : "LEADERBOARD");
   const [scope, setScope] = useState<Scope>("LOCAL");
+  const [rankingSport, setRankingSport] = useState<CourtSport>(
+    preferredSport ?? localCourt?.sport ?? "BASKETBALL"
+  );
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
-  // Bumped after a confirmed logged game so standings reflect the Elo change.
-  const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(0);
 
   useEffect(() => {
     if (params.tab === "log") setTab("LOG GAME");
   }, [params.tab]);
 
-  // Profiles currently store one overall Elo. Scope is real; a sport switch
-  // would only relabel the same standings, so we do not present one until the
-  // backend has per-sport ratings.
+  useEffect(() => {
+    if (preferredSport) setRankingSport(preferredSport);
+    else if (localCourt?.sport === "BASKETBALL" || localCourt?.sport === "PICKLEBALL") {
+      setRankingSport(localCourt.sport);
+    }
+  }, [localCourt?.sport, preferredSport]);
+
   useEffect(() => {
     let mounted = true;
     setLeaderboardLoading(true);
-    fetchLeaderboard(scope, scope === "LOCAL" ? localCourtId : null)
+    fetchLeaderboard(scope, scope === "GLOBAL" ? null : localCourtId, rankingSport)
       .then((players) => {
         if (!mounted) return;
         setAllPlayers(players);
       })
       .finally(() => { if (mounted) setLeaderboardLoading(false); });
     return () => { mounted = false; };
-  }, [scope, localCourtId, leaderboardRefreshKey]);
+  }, [scope, localCourtId, rankingSport, currentUser.elo]);
 
   // Opponent preselect (deep link): resolve only if the player exists in the
   // loaded player list; otherwise the picker stays empty as usual.
@@ -83,6 +89,7 @@ export default function CompeteScreen() {
       : null;
 
   const myRank = allPlayers.findIndex((p) => p.id === currentUser.id) + 1;
+  const rankedCurrentUser = allPlayers.find((p) => p.id === currentUser.id) ?? currentUser;
   const amIVisible = visibility === "public" && isLocalPlus;
   const showMyRank = myRank > 0 && amIVisible;
   const leaderboardPlayers = useMemo(
@@ -134,7 +141,7 @@ export default function CompeteScreen() {
           myRank={myRank}
           showMyRank={showMyRank}
           currentUserId={currentUser.id}
-          currentUser={currentUser}
+          currentUser={rankedCurrentUser}
           hiddenReason={
             visibility === "public"
               ? "LOCALPLUS REQUIRED TO APPEAR"
@@ -142,6 +149,8 @@ export default function CompeteScreen() {
           }
           scope={scope}
           setScope={setScope}
+          sport={rankingSport}
+          setSport={setRankingSport}
           localCourt={localCourt}
           bottom={bottom}
           loading={leaderboardLoading}
@@ -149,13 +158,12 @@ export default function CompeteScreen() {
       ) : (
         <LogGameView
           currentUser={currentUser}
-          courts={localCourt ? [localCourt] : []}
+          courts={courts}
           bottom={bottom}
-          preferredSport={preferredSport}
+          preferredSport={localCourt?.sport ?? preferredSport}
           preferredCourtId={(typeof params.courtId === "string" ? params.courtId : null) ?? preferredCourtId}
           preselectedOpponent={preselectedOpponent}
           localCourtId={localCourtId}
-          onLogged={() => setLeaderboardRefreshKey((k) => k + 1)}
         />
       )}
     </View>
@@ -173,6 +181,8 @@ function LeaderboardView({
   hiddenReason,
   scope,
   setScope,
+  sport,
+  setSport,
   localCourt,
   bottom,
   loading,
@@ -185,6 +195,8 @@ function LeaderboardView({
   hiddenReason: string;
   scope: Scope;
   setScope: (s: Scope) => void;
+  sport: CourtSport;
+  setSport: (sport: CourtSport) => void;
   localCourt: { id: string; name: string; sport: CourtSport } | null;
   bottom: number;
   loading?: boolean;
@@ -213,7 +225,7 @@ function LeaderboardView({
         paddingBottom: Platform.OS === "web" ? 84 : bottom + 100,
       }}
     >
-      {/* Scope is backed by real data; Elo is currently one overall rating. */}
+      {/* Scope and sport both map to authoritative database columns. */}
       <View style={styles.filtersRow}>
         <View style={styles.scopeToggle}>
           {(["LOCAL", "REGIONAL", "GLOBAL"] as Scope[]).map((s) => (
@@ -224,6 +236,21 @@ function LeaderboardView({
             >
               <Text style={[styles.scopeBtnText, scope === s && styles.scopeBtnTextActive]}>
                 {s}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <View style={styles.sportToggle}>
+          {(["BASKETBALL", "PICKLEBALL"] as CourtSport[]).map((value) => (
+            <Pressable
+              key={value}
+              style={[styles.sportFilterBtn, sport === value && styles.sportFilterBtnActive]}
+              onPress={() => setSport(value)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: sport === value }}
+            >
+              <Text style={[styles.sportFilterText, sport === value && styles.sportFilterTextActive]}>
+                {value === "BASKETBALL" ? "BB" : "PB"}
               </Text>
             </Pressable>
           ))}
@@ -241,11 +268,11 @@ function LeaderboardView({
             ]}
           />
             <Text style={styles.scopeLabelText} numberOfLines={1}>
-              {localCourt.name.toUpperCase()} · {localCourt.sport}
+              {localCourt.name.toUpperCase()} · {sport}
             </Text>
           </>
         ) : (
-          <Text style={styles.scopeLabelText}>OVERALL ELO</Text>
+          <Text style={styles.scopeLabelText}>{sport} ELO</Text>
         )}
       </View>
 
@@ -341,23 +368,25 @@ function LogGameView({
   preferredCourtId,
   preselectedOpponent,
   localCourtId,
-  onLogged,
 }: {
   currentUser: ReturnType<typeof useApp>["currentUser"];
-  courts: ReturnType<typeof useApp>["courts"] | { id: string; name: string }[];
+  courts: ReturnType<typeof useApp>["courts"];
   bottom: number;
   preferredSport: CourtSport | null;
   preferredCourtId: string | null;
   preselectedOpponent: Player | null;
   localCourtId: string | null;
-  onLogged: () => void;
 }) {
-  const { isFriend, getFriendsList, refreshMatches, refreshFeed } = useApp();
-  const { refreshProfile } = useAuth();
+  const { isFriend, getFriendsList } = useApp();
 
   // Default court: preferredCourtId > localCourtId > empty
-  const defaultCourtId = preferredCourtId ?? localCourtId ?? "";
-  const defaultSport = preferredSport ?? "";
+  const supportedCourts = useMemo(
+    () => courts.filter((court) => court.sport === "BASKETBALL" || court.sport === "PICKLEBALL"),
+    [courts]
+  );
+  const defaultCourtId = preferredCourtId ?? localCourtId ?? supportedCourts[0]?.id ?? "";
+  const defaultCourt = supportedCourts.find((court) => court.id === defaultCourtId);
+  const defaultSport = defaultCourt?.sport ?? preferredSport ?? "";
 
   const [form, setForm] = useState<GameLog>({
     sport: defaultSport,
@@ -374,6 +403,18 @@ function LogGameView({
   const [opponentQuery, setOpponentQuery] = useState("");
   const [opponentSuggestions, setOpponentSuggestions] = useState<Player[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [clientRequestId, setClientRequestId] = useState(() => Crypto.randomUUID());
+
+  // A court owns its sport. This keeps the label and the rating update in
+  // agreement, including when the court arrives after the screen first opens.
+  useEffect(() => {
+    const nextCourtId = form.courtId || defaultCourtId;
+    const selectedCourt = supportedCourts.find((court) => court.id === nextCourtId);
+    if (!selectedCourt) return;
+    setForm((current) => current.courtId === nextCourtId && current.sport === selectedCourt.sport
+      ? current
+      : { ...current, courtId: nextCourtId, sport: selectedCourt.sport });
+  }, [defaultCourtId, form.courtId, supportedCourts]);
 
   // Apply the deep-linked opponent once it resolves from the loaded player
   // list. Never clobbers a manually chosen (or cleared) opponent.
@@ -414,9 +455,9 @@ function LogGameView({
     if (!canSubmit || !form.opponentId || !form.courtId) return;
     setSubmitting(true);
     setSubmitError(null);
-    let ok = false;
+    let result: { ok: boolean; matchId?: string } = { ok: false };
     try {
-      ok = await logGame({
+      result = await logGame({
         courtId: form.courtId,
         createdBy: currentUser.id,
         myScore: myScoreNum,
@@ -424,24 +465,22 @@ function LogGameView({
         opponentId: form.opponentId,
         sport: form.sport as CourtSport,
         note: form.note,
+        clientRequestId,
       });
     } catch (e) {
       console.warn("logGame failed", e);
-      ok = false;
+      result = { ok: false };
     }
     setSubmitting(false);
-    if (!ok) {
+    if (!result.ok) {
       // Keep the form intact so the user can retry.
       setSubmitError("COULD NOT LOG GAME — NOTHING WAS SAVED. TRY AGAIN.");
       return;
     }
-    // Confirmed write: the RPC has already updated both players' Elo and
-    // win/loss counts. Pull the fresh state everywhere it's displayed.
-    refreshProfile();
-    refreshMatches();
-    refreshFeed();
-    onLogged();
+    // The score is pending. The opponent receives a review action; ratings and
+    // public history remain unchanged until confirmation.
     setSubmitted(true);
+    setClientRequestId(Crypto.randomUUID());
     setTimeout(() => setSubmitted(false), 3000);
     setForm({
       sport: defaultSport,
@@ -492,8 +531,8 @@ function LogGameView({
     return (
       <View style={styles.successState}>
         <Text style={styles.successIcon}>✓</Text>
-        <Text style={styles.successTitle}>GAME LOGGED</Text>
-        <Text style={styles.successSub}>ELO and records updated for both players.</Text>
+        <Text style={styles.successTitle}>SCORE SENT FOR REVIEW</Text>
+        <Text style={styles.successSub}>Your opponent can confirm or object. No rating changes yet.</Text>
       </View>
     );
   }
@@ -515,11 +554,11 @@ function LogGameView({
       <View style={styles.fieldGroup}>
         <Text style={styles.fieldLabel}>COURT</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.courtPills}>
-          {courts.map((c) => (
+          {supportedCourts.map((c) => (
             <Pressable
               key={c.id}
               style={[styles.courtPill, form.courtId === c.id && styles.courtPillActive]}
-              onPress={() => setForm((f) => ({ ...f, courtId: c.id }))}
+              onPress={() => setForm((f) => ({ ...f, courtId: c.id, sport: c.sport }))}
             >
               <Text style={[styles.courtPillText, form.courtId === c.id && styles.courtPillTextActive]}>
                 {c.name}
@@ -529,32 +568,25 @@ function LogGameView({
         </ScrollView>
       </View>
 
-      {/* Sport */}
+      {/* The selected court controls the sport used for ranking. */}
       <View style={styles.fieldGroup}>
-        <Text style={styles.fieldLabel}>SPORT</Text>
+        <Text style={styles.fieldLabel}>RANKED SPORT</Text>
         <View style={styles.sportGrid}>
-          {(["BASKETBALL", "PICKLEBALL"] as CourtSport[]).map((s) => (
-            <Pressable
-              key={s}
-              style={[styles.sportOption, form.sport === s && styles.sportOptionActive]}
-              onPress={() => setForm((f) => ({ ...f, sport: s }))}
-            >
+          {form.sport ? (
+            <View style={[styles.sportOption, styles.sportOptionActive]}>
               <View
                 style={[
                   styles.sportOptionDot,
-                  { backgroundColor: getSportColor(s) },
+                  { backgroundColor: getSportColor(form.sport) },
                 ]}
               />
-              <Text
-                style={[
-                  styles.sportOptionText,
-                  form.sport === s && styles.sportOptionTextActive,
-                ]}
-              >
-                {s}
+              <Text style={[styles.sportOptionText, styles.sportOptionTextActive]}>
+                {form.sport}
               </Text>
-            </Pressable>
-          ))}
+            </View>
+          ) : (
+            <Text style={styles.opponentPlaceholder}>CHOOSE A COURT FIRST</Text>
+          )}
         </View>
       </View>
 
@@ -862,6 +894,11 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
   scopeBtnTextActive: { color: Colors.text },
+  sportToggle: { flexDirection: "row", alignSelf: "flex-end", gap: 6, marginTop: 8 },
+  sportFilterBtn: { minWidth: 42, minHeight: 28, alignItems: "center", justifyContent: "center", borderRadius: Radius.xs, borderWidth: 1, borderColor: Colors.border },
+  sportFilterBtnActive: { borderColor: Colors.accent, backgroundColor: Colors.accentDim },
+  sportFilterText: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.muted, letterSpacing: 1 },
+  sportFilterTextActive: { color: Colors.text },
   scopeLabel: {
     flexDirection: "row",
     alignItems: "center",

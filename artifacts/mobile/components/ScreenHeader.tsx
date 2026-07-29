@@ -7,8 +7,8 @@ import { Colors } from "@/constants/colors";
 import { Typography } from "@/constants/typography";
 
 /**
- * Canonical tab-screen header: LC mark + Oswald title lockup on a surface band.
- * with a bottom hairline (per the brand lockup sheet — logo sits at cap
+ * Canonical tab-screen header: LC mark + compact Inter title lockup on a
+ * surface band with a bottom hairline (per the brand lockup sheet — logo sits at cap
  * height, left of the title). Every tab screen renders this — never
  * hand-roll a header again (that's how the four screens drifted).
  * `right` is the action slot (MAP toggle, "+" button, rank readout, …).
@@ -30,7 +30,7 @@ export function ScreenHeader({
     <View style={[styles.header, { paddingTop: topPad + 12 }]}>
       <View style={{ flex: 1 }}>
         <View style={[styles.lockup, wordmark && styles.wordmarkLockup]}>
-          <LogoMark size={wordmark ? 28 : 30} />
+          <LogoMark size={wordmark ? 28 : 26} />
           <Text style={[styles.title, wordmark && styles.wordmarkTitle]}>{title}</Text>
         </View>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
@@ -80,15 +80,15 @@ const styles = StyleSheet.create({
   lockup: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
   wordmarkLockup: { gap: 5 },
   title: {
-    fontFamily: Typography.heading,
-    fontSize: 28,
+    fontFamily: Typography.bodyBold,
+    fontSize: 22,
     color: Colors.text,
-    letterSpacing: 1,
-    lineHeight: 34,
+    letterSpacing: 1.2,
+    lineHeight: 27,
     textTransform: "uppercase" as const,
   },
   wordmarkTitle: {

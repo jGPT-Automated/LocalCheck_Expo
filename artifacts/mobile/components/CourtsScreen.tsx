@@ -43,6 +43,7 @@ export function CourtsScreen() {
     preferredSport,
     localCourt,
     localCourtId,
+    setLocalCourt,
   } = useApp();
   const { openCourtSheet: presentCourtSheet } = useCourtSheet();
 
@@ -189,6 +190,13 @@ export function CourtsScreen() {
     }
   };
 
+  const handleSetLocalCourt = async (court: Court) => {
+    if (Platform.OS !== "web") {
+      void Haptics.selectionAsync();
+    }
+    await setLocalCourt(court.id, court);
+  };
+
   return (
     <View style={styles.container}>
       <ScreenHeader
@@ -197,6 +205,19 @@ export function CourtsScreen() {
 
       <View style={styles.searchArea}>
         <View style={styles.searchRow}>
+          <Pressable
+            style={styles.sportMenuButton}
+            onPress={() => setSportMenuOpen((open) => !open)}
+            accessibilityRole="button"
+            accessibilityLabel="Filter courts by sport"
+            accessibilityState={{ expanded: sportMenuOpen }}
+          >
+            <Text style={styles.sportMenuButtonText}>
+              {sportFilter === "ALL" ? "ALL" : sportFilter === "BASKETBALL" ? "BB" : "PB"}
+            </Text>
+            <Feather name="chevron-down" size={11} color={Colors.muted} />
+          </Pressable>
+          <View style={styles.searchDivider} />
           <Feather name="search" size={15} color={Colors.muted} />
           <TextInput
             style={styles.searchInput}
@@ -213,18 +234,6 @@ export function CourtsScreen() {
             clearButtonMode="while-editing"
           />
           {searchLoading && <ActivityIndicator size="small" color={Colors.muted} />}
-          <Pressable
-            style={styles.sportMenuButton}
-            onPress={() => setSportMenuOpen((open) => !open)}
-            accessibilityRole="button"
-            accessibilityLabel="Filter courts by sport"
-            accessibilityState={{ expanded: sportMenuOpen }}
-          >
-            <Text style={styles.sportMenuButtonText}>
-              {sportFilter === "ALL" ? "ALL" : sportFilter === "BASKETBALL" ? "BB" : "PB"}
-            </Text>
-            <Feather name="chevron-down" size={12} color={Colors.textSecondary} />
-          </Pressable>
         </View>
         {sportMenuOpen ? (
           <View style={styles.sportMenu}>
@@ -326,6 +335,7 @@ export function CourtsScreen() {
                   onPress={openCourt}
                   isCheckedIn={checkedInCourtId === court.id}
                   onCheckIn={handleCourtCheckIn}
+                  onSetLocalCourt={handleSetLocalCourt}
                 />
               ))
             )}
@@ -376,23 +386,19 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   sportMenuButton: {
-    minWidth: 54,
-    height: 30,
-    paddingHorizontal: 9,
+    minWidth: 32,
+    height: 44,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 5,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.surfaceHigh,
+    gap: 3,
   },
-  sportMenuButtonText: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.text, letterSpacing: 1.2 },
+  sportMenuButtonText: { fontFamily: Typography.bodyBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.2 },
+  searchDivider: { width: 1, height: 18, backgroundColor: Colors.border },
   sportMenu: {
     position: "absolute",
     top: 40,
-    right: 12,
+    left: 12,
     width: 172,
     padding: 5,
     borderWidth: 1,
@@ -426,15 +432,15 @@ const styles = StyleSheet.create({
   },
   modeTabActive: { backgroundColor: Colors.surfaceHigh },
   modeTabText: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 10,
     color: Colors.muted,
-    letterSpacing: 1.8,
+    letterSpacing: 1.5,
   },
   modeTabTextActive: { color: Colors.text },
   list: { flex: 1 },
-  localSection: { paddingTop: 20, paddingBottom: 8 },
-  discoverySection: { paddingTop: 18 },
+  localSection: { paddingTop: 16, paddingBottom: 6 },
+  discoverySection: { paddingTop: 14 },
   sectionHeadingRow: {
     flexDirection: "row",
     alignItems: "center",

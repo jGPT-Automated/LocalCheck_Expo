@@ -145,19 +145,34 @@ function profileToPlayer(profile: ReturnType<typeof useAuth>["profile"]): Player
     .join("")
     .toUpperCase()
     .slice(0, 2);
-  const elo = profile.elo_rating ?? 1200;
+  const sport = (profile.preferred_sport?.toUpperCase() as CourtSport | undefined);
+  const elo = sport === "BASKETBALL"
+    ? profile.elo_basketball ?? profile.elo_rating ?? 1200
+    : sport === "PICKLEBALL"
+    ? profile.elo_pickleball ?? profile.elo_rating ?? 1200
+    : profile.elo_rating ?? 1200;
+  const wins = sport === "BASKETBALL"
+    ? profile.basketball_wins ?? profile.wins ?? 0
+    : sport === "PICKLEBALL"
+    ? profile.pickleball_wins ?? profile.wins ?? 0
+    : profile.wins ?? 0;
+  const losses = sport === "BASKETBALL"
+    ? profile.basketball_losses ?? profile.losses ?? 0
+    : sport === "PICKLEBALL"
+    ? profile.pickleball_losses ?? profile.losses ?? 0
+    : profile.losses ?? 0;
   return {
     id: profile.id,
     name,
     elo,
     tier: getEloTier(elo),
     avatar: initials,
-    wins: profile.wins ?? 0,
-    losses: profile.losses ?? 0,
+    wins,
+    losses,
     checkIns: profile.total_court_time_minutes ?? 0,
     memberSince: profile.created_at,
     courtId: profile.local_court_id ?? undefined,
-    sport: (profile.preferred_sport?.toUpperCase() as CourtSport) ?? undefined,
+    sport,
     visibility: "public",
     isLocalPlus: !!profile.is_pro,
     friendIds: [],
@@ -342,7 +357,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setCheckInCount(0);
       return;
     }
-    setCheckInCount(await fetchUserCheckInCount(userId));
+    const verifiedCount = await fetchUserCheckInCount(userId);
+    // A failed read is unknown, not zero. Keep the last verified value so a
+    // transient outage cannot erase the user's visible history.
+    if (verifiedCount != null) setCheckInCount(verifiedCount);
   }, [userId]);
 
   const refreshFriends = useCallback(async () => {

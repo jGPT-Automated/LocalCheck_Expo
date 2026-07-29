@@ -94,6 +94,24 @@ gated on a successful verify). Tracked as a follow-up, not an env you can just s
 | **Supabase account access token** (`sbp_…`) | secret | agents querying/altering schema via the Supabase MCP | Store as a Devin org/user secret. **Rotate it** — it was pasted in chat during setup (Supabase → Account → Access Tokens). |
 | Supabase **service_role** key | secret | server-side only, if ever needed | Never ship to the client. Not currently used by the app. |
 
+### Account deletion Edge Function
+
+The `delete-account` function generates Apple's short-lived revocation client
+secret when it runs. Set these four values as Supabase project secrets. Never
+put their values in Git, Expo public variables, app code, or command output.
+
+| Secret | Source |
+|---|---|
+| `APPLE_PRIVATE_KEY` | Full contents of Apple's `.p8` private-key file |
+| `APPLE_KEY_ID` | The key ID from `AuthKey_<KEY_ID>.p8` |
+| `APPLE_TEAM_ID` | Apple Developer Team ID |
+| `APPLE_CLIENT_ID` | LocalCheck iOS bundle identifier |
+
+The four secrets were uploaded to LocalCheckProd on 2026-07-29. The source is
+aligned with those names, but deployment and physical delete-account proof are
+still required. Do not store a manually generated `APPLE_CLIENT_SECRET`; it
+expires and creates an avoidable rotation task.
+
 ---
 
 ## 5. Rotation & leak response

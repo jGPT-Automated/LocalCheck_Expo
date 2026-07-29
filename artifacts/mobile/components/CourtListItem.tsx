@@ -18,6 +18,7 @@ interface CourtListItemProps {
   featured?: boolean;
   onCheckIn?: (court: Court) => void;
   onView?: (court: Court) => void;
+  onSetLocalCourt?: (court: Court) => void;
   stats?: Array<{
     label: string;
     value: string | number;
@@ -87,6 +88,7 @@ export function CourtListItem({
   featured,
   onCheckIn,
   onView,
+  onSetLocalCourt,
   stats,
 }: CourtListItemProps) {
   const isActive = court.activeCount > 0;
@@ -128,14 +130,29 @@ export function CourtListItem({
             <SportGlyph sport={court.sport} color={identityColor} />
           </View>
           <Text style={styles.sportLabel}>{court.sport}</Text>
-          {isLocalCourt && (
-            <View style={[styles.localBadge, { borderColor: `${identityColor}80` }]}>
-              <Text style={[styles.localBadgeText, { color: identityColor }]}>MY LOCAL COURT</Text>
+          {isLocalCourt ? (
+            <View style={styles.localBadge}>
+              <Text style={styles.localBadgeText}>MY LOCAL COURT</Text>
             </View>
-          )}
+          ) : onSetLocalCourt ? (
+            <Pressable
+              style={({ pressed }) => [styles.localBadge, styles.localBadgeDim, pressed && styles.localBadgePressed]}
+              onPress={(event) => {
+                event.stopPropagation();
+                onSetLocalCourt(court);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`Set ${court.name} as my local court`}
+            >
+              <Text style={[styles.localBadgeText, styles.localBadgeTextDim]}>SET LOCAL</Text>
+            </Pressable>
+          ) : null}
         </View>
 
-        <Text style={[styles.name, featured && styles.nameFeatured]} numberOfLines={2}>
+        <Text
+          style={[styles.name, featured && styles.nameFeatured]}
+          numberOfLines={featured ? 2 : 1}
+        >
           {court.name}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
@@ -202,19 +219,19 @@ export function CourtListItem({
 
 const styles = StyleSheet.create({
   container: {
-    minHeight: 154,
+    minHeight: 134,
     backgroundColor: Colors.surface,
     borderWidth: 1,
-    borderLeftWidth: 2,
+    borderLeftWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radius.lg,
     marginHorizontal: 16,
     marginVertical: 5,
     overflow: "hidden",
   },
-  containerFeatured: { minHeight: 178 },
+  containerFeatured: { minHeight: 158 },
   pressed: { opacity: 0.84 },
-  body: { flex: 1, paddingHorizontal: 14, paddingTop: 13, paddingBottom: 8, zIndex: 2 },
+  body: { flex: 1, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 4, zIndex: 2 },
   smokeOrb: {
     position: "absolute",
     width: 150,
@@ -223,11 +240,11 @@ const styles = StyleSheet.create({
     right: -44,
     top: -54,
   },
-  topline: { flexDirection: "row", alignItems: "center", gap: 7, minHeight: 22 },
+  topline: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 18 },
   sportEmblem: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 19,
+    height: 19,
+    borderRadius: 10,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
@@ -242,6 +259,7 @@ const styles = StyleSheet.create({
   localBadge: {
     marginLeft: "auto",
     borderWidth: 1,
+    borderColor: Colors.borderLight,
     borderRadius: 999,
     paddingHorizontal: 7,
     paddingVertical: 3,
@@ -250,19 +268,23 @@ const styles = StyleSheet.create({
   localBadgeText: {
     fontFamily: Typography.bodyBold,
     fontSize: 7,
+    color: Colors.textSecondary,
     letterSpacing: 1.2,
   },
+  localBadgeDim: { borderColor: Colors.borderSubtle, backgroundColor: "rgba(12,12,12,0.42)" },
+  localBadgeTextDim: { color: Colors.mutedDark },
+  localBadgePressed: { borderColor: Colors.accent, opacity: 0.9 },
   name: {
     maxWidth: "76%",
-    fontFamily: Typography.heading,
-    fontSize: 18,
-    lineHeight: 20,
+    fontFamily: Typography.headingRegular,
+    fontSize: 17,
+    lineHeight: 19,
     color: Colors.text,
     letterSpacing: 0.1,
-    marginTop: 10,
+    marginTop: 7,
     textTransform: "uppercase" as const,
   },
-  nameFeatured: { fontSize: 22, lineHeight: 24, maxWidth: "82%" },
+  nameFeatured: { fontSize: 20, lineHeight: 22, maxWidth: "82%" },
   meta: {
     maxWidth: "72%",
     fontFamily: Typography.body,
@@ -271,8 +293,8 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   statsRow: {
-    marginTop: 10,
-    minHeight: 38,
+    marginTop: 7,
+    minHeight: 32,
     flexDirection: "row",
     alignItems: "stretch",
     borderTopWidth: 1,
@@ -315,22 +337,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     marginHorizontal: 14,
-    marginBottom: 12,
+    marginBottom: 9,
     zIndex: 3,
   },
   actionRowSolo: { width: "72%", alignSelf: "center" },
   checkInButton: {
     flex: 1,
-    minHeight: 40,
+    minHeight: 36,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: Radius.sm,
     backgroundColor: Colors.accent,
     shadowColor: Colors.accent,
-    shadowOpacity: 0.28,
-    shadowRadius: 9,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 5,
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
   checkInButtonActive: {
     backgroundColor: Colors.surfaceHigh,
@@ -339,15 +361,15 @@ const styles = StyleSheet.create({
   },
   checkInButtonPressed: { opacity: 0.82 },
   checkInText: {
-    fontFamily: Typography.heading,
-    fontSize: 11,
+    fontFamily: Typography.bodyBold,
+    fontSize: 10,
     color: Colors.black,
     letterSpacing: 1.6,
   },
   checkInTextActive: { color: Colors.text },
   viewButton: {
-    width: 48,
-    minHeight: 40,
+    width: 42,
+    minHeight: 36,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Colors.surfaceHigh,

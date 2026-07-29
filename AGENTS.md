@@ -7,12 +7,13 @@ growth. Do not let secondary technical cleanup displace that outcome.
 ## Read order
 
 1. [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md) — exact checkpoint, source of truth, priorities, and open acceptance gates.
-2. [`docs/product/ACTIVITY_LEDGER.md`](docs/product/ACTIVITY_LEDGER.md) — chronological actions, failures, decisions, and reasons.
-3. [`docs/product/LAUNCH_CONTROL.md`](docs/product/LAUNCH_CONTROL.md) — launch burn-down and cross-platform status.
-4. [`docs/product/screen-library/releases/ios-1.0.0-build-9/SCREEN_MAP.md`](docs/product/screen-library/releases/ios-1.0.0-build-9/SCREEN_MAP.md) — physical build-9 UI/flow baseline.
-5. [`docs/RELEASE_RUNBOOK.md`](docs/RELEASE_RUNBOOK.md) — repeatable Expo → EAS → TestFlight procedure.
-6. For UI work, read [`docs/product/DESIGN.md`](docs/product/DESIGN.md), [`docs/product/DECISIONS.md`](docs/product/DECISIONS.md), and the canonical [`docs/product/design system/README.md`](docs/product/design%20system/README.md) before editing.
-7. For visual acceptance, read [`docs/product/DESIGN_QA.md`](docs/product/DESIGN_QA.md) and compare the requested phone state against the supplied mocks at the same viewport.
+2. [`docs/APP_ARCHITECTURE.md`](docs/APP_ARCHITECTURE.md) — mandatory page-by-page logic, data, Realtime, and native guardrails.
+3. [`docs/product/ACTIVITY_LEDGER.md`](docs/product/ACTIVITY_LEDGER.md) — chronological actions, failures, decisions, and reasons.
+4. [`docs/product/LAUNCH_CONTROL.md`](docs/product/LAUNCH_CONTROL.md) — launch burn-down and cross-platform status.
+5. [`docs/product/screen-library/releases/ios-1.0.0-build-9/SCREEN_MAP.md`](docs/product/screen-library/releases/ios-1.0.0-build-9/SCREEN_MAP.md) — physical build-9 UI/flow baseline.
+6. [`docs/RELEASE_RUNBOOK.md`](docs/RELEASE_RUNBOOK.md) — repeatable Expo → EAS → TestFlight procedure.
+7. For UI work, read [`docs/product/DESIGN.md`](docs/product/DESIGN.md), [`docs/product/DECISIONS.md`](docs/product/DECISIONS.md), and the canonical [`docs/product/design system/README.md`](docs/product/design%20system/README.md) before editing.
+8. For visual acceptance, read [`docs/product/DESIGN_QA.md`](docs/product/DESIGN_QA.md) and compare the requested phone state against the supplied mocks at the same viewport.
 
 ## Current authority
 
@@ -66,6 +67,7 @@ LocalCheck_Expo/
   README.md                        product/repo overview
   docs/
     CURRENT_STATE.md               exact current checkpoint
+    APP_ARCHITECTURE.md            mandatory page and data guardrails
     RELEASE_RUNBOOK.md              Expo/TestFlight repeatable flow
     WORKSPACE_MAP.md                active vs archived folders and monorepo direction
     product/                        product, brand, launch, decisions, ledger, screen library

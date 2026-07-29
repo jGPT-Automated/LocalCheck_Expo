@@ -94,16 +94,16 @@ export async function fetchActiveCheckInCount(courtId: string): Promise<number> 
 }
 
 /** Lifetime check-in count for the signed-in player's Profile stat. */
-export async function fetchUserCheckInCount(userId: string): Promise<number> {
+export async function fetchUserCheckInCount(userId: string): Promise<number | null> {
   try {
     const { count, error } = await supabase
       .from("check_ins")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId);
-    if (error || count == null) return 0;
+    if (error || count == null) return null;
     return count;
   } catch {
-    return 0;
+    return null;
   }
 }
 

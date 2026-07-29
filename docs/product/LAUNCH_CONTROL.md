@@ -1,7 +1,7 @@
 # LocalCheck Launch Control
 
 Status: Active operating document
-Last verified: 2026-07-28
+Last verified: 2026-07-29
 Release authority: Jesse must explicitly approve production deploys, TestFlight builds/submissions, backend mutations, and merges.
 
 ## Jesse's launch order
@@ -29,7 +29,7 @@ Database advisor notes, RPC implementation details, and scale optimizations are 
 | Surface | Verified state | Authority / constraint |
 | --- | --- | --- |
 | Shared backend | `LocalCheckProd` (`qkrnmyexzvaxiqfxwwfb`) is healthy; 56 courts and the current mobile v2 schema are live. The old `jzclwnzcektqhgkkdeje` project still exists but is deprecated. | No new production schema until web and mobile use one contract. Do not delete or pause the old project without Jesse's approval. |
-| Mobile source | GitHub `main` contains feature commit `32bc0d6`. Draft PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/22) is the single canonical MVP review candidate for the later Schedule/friend fixes, Profile/Court Details/shared UI pass, preview repair, and design-system source. Apple Sign-In remains enabled and unchanged. | Browser QA and the release gate pass. PR #22 is not merged; build 9 still has the old listeners and UI. Source delivery alone does not update TestFlight. |
+| Mobile source | GitHub `main` contains feature commit `32bc0d6`. Draft PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/22) is the single canonical MVP review candidate for Schedule/friend fixes, Profile/Court Details/Home/shared UI, scoped Realtime, preview repair, and the notification/sport-Elo candidate. The mandatory contributor guardrails are in [`../APP_ARCHITECTURE.md`](../APP_ARCHITECTURE.md). Apple Sign-In remains enabled and unchanged. | PR #22 is not merged; build 9 still has the old listeners and UI. Notification/Elo backend activation, phone push, and physical QA remain gated. Source delivery alone does not update TestFlight. |
 | Mobile distribution | EAS is connected to the correct repo and `artifacts/mobile`; all environments point to LocalCheckProd and have the required Mapbox tokens. LocalCheck 1.0.0 build 9 completed and TestFlight offers it as an update. | Install build 9, then run native map and two-device Realtime acceptance. |
 | Public website | The deployed site is visually aligned with the graphite/orange direction and its court explorer resolves 56 Supabase courts. `LocalCheck_WEB` main is PR #1 at `7a5b74d`. | The old PR #2 checkout is archived at `/Users/JesseH/Projects/archive/LocalCheck_WEB_PR2-branch-2026-07-26`. It is ten commits ahead of main with preserved local package changes and must not be mistaken for deployed truth. |
 | Web PR #2 | Weather and shared-planning heatmap are implemented, but GitHub has no status checks. | Blocked from merge: two unresolved P2 review threads, a non-critical weather request without a timeout, stale-session recovery, and a second planning model (`court_time_intents`) that conflicts with production `planned_visits`. |
@@ -119,7 +119,7 @@ Every implementation task given to another agent must include:
 
 ## Immediate decision queue
 
-1. Jesse reviews draft PR #22 in the refreshed local preview across Home, Explore List/Map, Schedule, Court Details, Compete, and Me. Correct visible mobile mismatches before delivery.
+1. Jesse reviews open PR #22 in the refreshed local preview across Home, Explore List/Map, Schedule, Court Details, Compete, and Me. Correct visible mobile mismatches before delivery.
 2. Preserve Apple Sign-In unchanged. Prove Schedule add/remove persistence and the shared form sheets on a physical signed-in client.
 3. Review the cloud Elo PR and handoff selectively against the live schema. Do not apply its migration wholesale or mutate production before the match confirmation/objection lifecycle is approved.
 4. Obtain Jesse's explicit delivery approval before merging PR #22 or taking any OTA, EAS build, or TestFlight action.

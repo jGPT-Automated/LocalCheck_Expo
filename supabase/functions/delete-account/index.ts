@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { importPKCS8, SignJWT } from "npm:jose@5.9.6";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,12 +13,34 @@ function json(status: number, body: Record<string, unknown>) {
   });
 }
 
-async function revokeAppleAuthorizationCode(code: string): Promise<void> {
+async function createAppleClientSecret(): Promise<{ clientId: string; clientSecret: string }> {
   const clientId = Deno.env.get("APPLE_CLIENT_ID");
-  const clientSecret = Deno.env.get("APPLE_CLIENT_SECRET");
-  if (!clientId || !clientSecret) {
+  const keyId = Deno.env.get("APPLE_KEY_ID");
+  const teamId = Deno.env.get("APPLE_TEAM_ID");
+  const rawPrivateKey = Deno.env.get("APPLE_PRIVATE_KEY");
+  if (!clientId || !keyId || !teamId || !rawPrivateKey) {
     throw new Error("Apple account deletion is not configured yet.");
   }
+
+  // Supabase secrets preserve PEM newlines. The replacement also supports a
+  // literal \n form if a CI system escaped the value before upload.
+  const privateKeyPem = rawPrivateKey.replace(/\\n/g, "\n");
+  const signingKey = await importPKCS8(privateKeyPem, "ES256");
+  const now = Math.floor(Date.now() / 1000);
+  const clientSecret = await new SignJWT({})
+    .setProtectedHeader({ alg: "ES256", kid: keyId })
+    .setIssuer(teamId)
+    .setSubject(clientId)
+    .setAudience("https://appleid.apple.com")
+    .setIssuedAt(now)
+    .setExpirationTime(now + 5 * 60)
+    .sign(signingKey);
+
+  return { clientId, clientSecret };
+}
+
+async function revokeAppleAuthorizationCode(code: string): Promise<void> {
+  const { clientId, clientSecret } = await createAppleClientSecret();
 
   const tokenResponse = await fetch("https://appleid.apple.com/auth/token", {
     method: "POST",

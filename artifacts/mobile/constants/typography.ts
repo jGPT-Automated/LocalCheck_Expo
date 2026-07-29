@@ -10,6 +10,7 @@ export const Typography = {
   headingRegular: "Oswald_500Medium",
   headingSemiBold: "Oswald_600SemiBold",
   body: "Inter_400Regular",
+  bodyExtraLight: "Inter_200ExtraLight",
   bodyMedium: "Inter_500Medium",
   bodySemiBold: "Inter_600SemiBold",
   bodyBold: "Inter_700Bold",

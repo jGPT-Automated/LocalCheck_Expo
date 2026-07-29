@@ -1,4 +1,5 @@
 import {
+  Inter_200ExtraLight,
   Inter_400Regular,
   Inter_500Medium,
   Inter_600SemiBold,
@@ -26,6 +27,7 @@ import { Colors } from "@/constants/colors";
 import { AppProvider } from "@/context/AppContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { CourtPresenceProvider } from "@/context/CourtPresenceContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 import { RealtimeHubProvider } from "@/context/RealtimeHubContext";
 
 SplashScreen.preventAutoHideAsync();
@@ -79,11 +81,13 @@ function DataProviders({ children }: { children: React.ReactNode }) {
   if (!session) return <>{children}</>;
   return (
     <RealtimeHubProvider>
-      <CourtPresenceProvider>
-        <AppProvider>
-          <CourtSheetProvider>{children}</CourtSheetProvider>
-        </AppProvider>
-      </CourtPresenceProvider>
+      <NotificationProvider>
+        <CourtPresenceProvider>
+          <AppProvider>
+            <CourtSheetProvider>{children}</CourtSheetProvider>
+          </AppProvider>
+        </CourtPresenceProvider>
+      </NotificationProvider>
     </RealtimeHubProvider>
   );
 }
@@ -105,6 +109,8 @@ function RootLayoutNav() {
         <Stack.Screen name="run/[id]" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="player/[id]" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="friends" options={{ headerShown: false, presentation: "card" }} />
+        <Stack.Screen name="notifications" options={{ headerShown: false, presentation: "card" }} />
+        <Stack.Screen name="match/[id]" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="settings" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="auth" options={{ headerShown: false }} />
       </Stack>
@@ -114,6 +120,7 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useInterFonts({
+    Inter_200ExtraLight,
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
