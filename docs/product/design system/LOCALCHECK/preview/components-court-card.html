@@ -1,0 +1,38 @@
+<!-- @dsCard group="Components" name="Court Card" subtitle="Sport geometry, live rail, honest metrics" viewport="1000x460" -->
+<!DOCTYPE html><html><head><meta charset="UTF-8"><link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="card.css"><style>.cc{position:relative;z-index:2;display:flex;min-height:378px;flex-direction:column;padding:25px 27px 24px 28px}.top{display:flex;align-items:center;justify-content:space-between}.ball{width:13px;height:13px;border-radius:50%;border:1px solid currentColor;position:relative}.ball::after{position:absolute;top:-1px;bottom:-1px;left:5px;border-left:1px solid currentColor;content:""}.mstrip{display:grid;grid-template-columns:1fr 1fr;margin-top:auto;overflow:hidden}.m{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:9px;align-items:center;min-height:66px;padding:9px 14px}.m+.m{border-left:1px solid rgba(242,242,246,.085)}.m b{color:#ececf1;font-size:9px;font-weight:780;letter-spacing:.13em;text-transform:uppercase}.m small{color:#797986;font-size:9px}.acts{display:flex;gap:10px;margin-top:13px}</style></head><body class="lc-root">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+<article class="lc-court-card">
+<div class="lc-court-art lc-court-art--basketball"><span class="lc-line-boundary"></span><span class="lc-line-arc"></span><span class="lc-line-key"></span><span class="lc-line-circle"></span><span class="lc-line-rim"></span></div>
+<div class="lc-court-shade"></div>
+<div class="cc">
+<div class="top"><span class="lc-label" style="color:var(--bball-label)"><span class="lc-icon-tile"><i class="ball"></i></span>Basketball</span><span class="lc-chip">Austin launch court</span></div>
+<div style="max-width:72%;margin-top:22px">
+<h3 class="lc-title" style="font-size:34px;letter-spacing:-.015em;line-height:1.03">Hancock Recreation Center</h3>
+<div style="display:flex;align-items:center;gap:6px;margin-top:13px;color:#b6b6c2;font-size:12px;font-weight:550"><i style="width:7px;height:7px;border-radius:50%;background:var(--orange)"></i>Austin, TX<i style="width:3px;height:3px;border-radius:50%;background:#5d5d68;margin:0 2px"></i>Austin launch court</div>
+<p style="margin:8px 0 0;color:#868695;font-size:11px;line-height:1.5">2 courts <span style="color:#53535e">·</span> Outdoor · public &amp; free</p>
+</div>
+<div class="mstrip lc-glass">
+<div class="m"><span class="lc-signal-well"><i class="lc-live-dot"></i></span><strong class="lc-metric">0</strong><span style="display:flex;flex-direction:column;gap:3px;min-width:0"><b>Live now</b><small>No public check-ins yet</small></span></div>
+<div class="m"><span style="display:flex"><span class="lc-avatar lc-avatar--sm" style="border-color:#c89056">JM</span><span class="lc-avatar lc-avatar--sm" style="border-color:#98a3b7;margin-left:-8px">AR</span></span><strong class="lc-metric">0</strong><span style="display:flex;flex-direction:column;gap:3px;min-width:0"><b>Locals</b><small>Call this home</small></span></div>
+</div>
+<div class="acts"><button class="lc-btn lc-btn--sm">Check in</button><button class="lc-btn lc-btn--sm lc-btn--view">View court →</button></div>
+</div>
+</article>
+<article class="lc-court-card lc-court-card--pickleball">
+<div class="lc-court-art lc-court-art--pickleball" style="color:var(--pball-line)"><span class="lc-line-boundary"></span><span class="lc-line-net"></span><span class="lc-line-kitchen lc-line-kitchen--left"></span><span class="lc-line-kitchen lc-line-kitchen--right"></span><span class="lc-line-center lc-line-center--left"></span><span class="lc-line-center lc-line-center--right"></span></div>
+<div class="lc-court-shade"></div>
+<div class="cc">
+<div class="top"><span class="lc-label" style="color:var(--pball-label)"><span class="lc-icon-tile lc-icon-tile--pickleball"><i class="ball"></i></span>Pickleball</span><span class="lc-chip" style="color:#e0d0bf">⌂ Your local court</span></div>
+<div style="max-width:72%;margin-top:22px">
+<h3 class="lc-title" style="font-size:34px;letter-spacing:-.015em;line-height:1.03">Pan American Pickleball Courts</h3>
+<div style="display:flex;align-items:center;gap:6px;margin-top:13px;color:#b6b6c2;font-size:12px;font-weight:550"><i style="width:7px;height:7px;border-radius:50%;background:var(--orange)"></i>Austin, TX<i style="width:3px;height:3px;border-radius:50%;background:#5d5d68;margin:0 2px"></i>Austin launch court</div>
+<p style="margin:8px 0 0;color:#868695;font-size:11px;line-height:1.5">6 courts <span style="color:#53535e">·</span> Outdoor · public &amp; free</p>
+</div>
+<div class="mstrip lc-glass">
+<div class="m"><span class="lc-signal-well"><i class="lc-live-dot"></i></span><strong class="lc-metric">3</strong><span style="display:flex;flex-direction:column;gap:3px;min-width:0"><b>Live now</b><small>You are checked in</small></span></div>
+<div class="m"><span style="display:flex"><span class="lc-avatar lc-avatar--sm" style="border-color:#c89056">TK</span><span class="lc-avatar lc-avatar--sm" style="border-color:#737a70;margin-left:-8px">MC</span></span><strong class="lc-metric">12</strong><span style="display:flex;flex-direction:column;gap:3px;min-width:0"><b>Locals</b><small>Call this home</small></span></div>
+</div>
+<div class="acts"><button class="lc-btn lc-btn--sm lc-btn--checked">✓ Checked in</button><button class="lc-btn lc-btn--sm lc-btn--view">View court →</button></div>
+</div>
+</article>
+</div></body></html>

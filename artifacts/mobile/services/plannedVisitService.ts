@@ -117,6 +117,22 @@ export async function createPlannedVisit(
   visibility: string = "public"
 ): Promise<boolean> {
   try {
+    // `ignoreDuplicates` makes this ON CONFLICT DO NOTHING instead of DO UPDATE.
+    //
+    // This is required, not a preference. LocalCheckProd grants `authenticated`
+    // column-level INSERT on (user_id, court_id, planned_at, note, visibility)
+    // but column-level UPDATE on everything EXCEPT user_id — deliberately, so a
+    // row can never be reassigned to another user. A plain upsert compiles to
+    // ON CONFLICT DO UPDATE SET user_id = excluded.user_id, …, which needs
+    // UPDATE on user_id and is rejected with 42501 before RLS is consulted.
+    // That silently broke every "Save my times" write (verified 2026-07-27:
+    // zero rows written, and the same statement succeeds with DO NOTHING).
+    //
+    // Do NOT "fix" this by granting UPDATE on the table, which is what
+    // Postgres's own error hint suggests — that re-grants user_id and undoes
+    // the v2_api_grants_and_rls design. Posting a planned time is idempotent,
+    // so DO NOTHING is also the correct semantics. Visibility applies to newly
+    // added times; changing it on an existing row is a separate update.
     const { error } = await supabase.from("planned_visits").upsert(
       {
         user_id: userId,
@@ -125,7 +141,7 @@ export async function createPlannedVisit(
         note: note?.trim() ? note.trim() : null,
         visibility,
       },
-      { onConflict: "user_id,court_id,planned_at" }
+      { onConflict: "user_id,court_id,planned_at", ignoreDuplicates: true }
     );
     if (error) {
       console.warn("createPlannedVisit failed", error.message);

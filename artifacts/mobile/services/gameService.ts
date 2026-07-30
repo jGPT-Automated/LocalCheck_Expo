@@ -17,6 +17,11 @@ interface SupabaseMatch {
   score_a: number;
   score_b: number;
   winner_side: "a" | "b" | null;
+  sport: "basketball" | "pickleball";
+  status: "pending" | "confirmed" | "rejected";
+  confirmation_method: "manual" | "automatic" | null;
+  review_due_at: string;
+  confirmed_at: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -26,6 +31,23 @@ interface SupabaseMatch {
     side: "a" | "b";
     profiles: SupabaseProfile | null;
   }>;
+}
+
+export interface MatchReview {
+  id: string;
+  courtId: string;
+  courtName: string;
+  createdBy: string;
+  opponentId: string;
+  creatorName: string;
+  opponentName: string;
+  sport: CourtSport;
+  status: "pending" | "confirmed" | "rejected";
+  confirmationMethod: "manual" | "automatic" | null;
+  playedAt: string;
+  reviewDueAt: string;
+  scoreA: number;
+  scoreB: number;
 }
 
 function normalizeSport(raw: string | null | undefined): CourtSport {
@@ -88,7 +110,8 @@ export async function logGame(payload: {
   opponentId: string;
   sport: CourtSport;
   note?: string;
-}): Promise<boolean> {
+  clientRequestId?: string;
+}): Promise<{ ok: boolean; matchId?: string }> {
   // log_match validates scores/ties server-side, but reject obviously bad
   // input client-side too for a fast, clear failure.
   const { myScore, theirScore } = payload;
@@ -100,24 +123,24 @@ export async function logGame(payload: {
     myScore === theirScore
   ) {
     console.warn("logGame rejected invalid scores", myScore, theirScore);
-    return false;
+    return { ok: false };
   }
-  // log_match atomically inserts the match + both participants, computes the
-  // Elo update, and posts the match_result activity_event. Caller derived from
-  // auth.uid(); winner is computed server-side from the scores.
-  const { error } = await supabase.rpc("log_match", {
+  // log_match atomically inserts the pending score and both participants.
+  // Elo changes only after the named opponent confirms the score.
+  const { data, error } = await supabase.rpc("log_match", {
     p_court_id: payload.courtId,
     p_opponent_id: payload.opponentId,
     p_my_score: myScore,
     p_opponent_score: theirScore,
     p_notes: payload.note?.trim() ? payload.note.trim() : null,
     p_visibility: "public",
+    p_client_request_id: payload.clientRequestId ?? null,
   });
   if (error) {
     console.warn("logGame failed", error.message);
-    return false;
+    return { ok: false };
   }
-  return true;
+  return { ok: true, matchId: (data as { id?: string } | null)?.id };
 }
 
 export async function fetchGamesByCourt(courtId: string): Promise<MatchResult[]> {
@@ -126,6 +149,7 @@ export async function fetchGamesByCourt(courtId: string): Promise<MatchResult[]>
       .from("matches")
       .select(MATCH_SELECT)
       .eq("court_id", courtId)
+      .eq("status", "confirmed")
       .order("played_at", { ascending: false })
       .limit(50);
     if (error || !data) return [];
@@ -143,6 +167,7 @@ export async function fetchGamesByPlayer(userId: string): Promise<MatchResult[]>
       .from("matches")
       .select(MATCH_SELECT)
       .in("id", matchIds)
+      .eq("status", "confirmed")
       .order("played_at", { ascending: false })
       .limit(50);
     if (error || !data) {
@@ -172,6 +197,7 @@ export async function fetchHeadToHeadGames(
       .from("matches")
       .select(MATCH_SELECT)
       .in("id", shared)
+      .eq("status", "confirmed")
       .order("played_at", { ascending: false })
       .limit(50);
     if (error || !data) {
@@ -189,6 +215,7 @@ export async function fetchRecentGames(limit = 20): Promise<MatchResult[]> {
     const { data, error } = await supabase
       .from("matches")
       .select(MATCH_SELECT)
+      .eq("status", "confirmed")
       .order("played_at", { ascending: false })
       .limit(limit);
     if (error || !data) return [];
@@ -196,4 +223,54 @@ export async function fetchRecentGames(limit = 20): Promise<MatchResult[]> {
   } catch {
     return [];
   }
+}
+
+export async function fetchMatchReview(matchId: string): Promise<MatchReview | null> {
+  const { data, error } = await supabase
+    .from("matches")
+    .select("*, courts(name,sport_type), creator:profiles!matches_created_by_fkey(display_name,username), opponent:profiles!matches_opponent_id_fkey(display_name,username)")
+    .eq("id", matchId)
+    .maybeSingle();
+  if (error || !data) {
+    if (error) console.warn("fetchMatchReview failed", error.message);
+    return null;
+  }
+  const row = data as unknown as SupabaseMatch & {
+    creator?: { display_name: string | null; username: string | null } | null;
+    opponent?: { display_name: string | null; username: string | null } | null;
+  };
+  return {
+    id: row.id,
+    courtId: row.court_id,
+    courtName: row.courts?.name ?? "Unknown Court",
+    createdBy: row.created_by,
+    opponentId: row.opponent_id,
+    creatorName: row.creator?.display_name || row.creator?.username || "Player",
+    opponentName: row.opponent?.display_name || row.opponent?.username || "Player",
+    sport: normalizeSport(row.sport ?? row.courts?.sport_type),
+    status: row.status,
+    confirmationMethod: row.confirmation_method,
+    playedAt: row.played_at,
+    reviewDueAt: row.review_due_at,
+    scoreA: row.score_a,
+    scoreB: row.score_b,
+  };
+}
+
+export async function confirmMatch(matchId: string): Promise<boolean> {
+  const { error } = await supabase.rpc("confirm_match", { p_match_id: matchId });
+  if (error) {
+    console.warn("confirmMatch failed", error.message);
+    return false;
+  }
+  return true;
+}
+
+export async function rejectMatch(matchId: string): Promise<boolean> {
+  const { error } = await supabase.rpc("reject_match", { p_match_id: matchId });
+  if (error) {
+    console.warn("rejectMatch failed", error.message);
+    return false;
+  }
+  return true;
 }

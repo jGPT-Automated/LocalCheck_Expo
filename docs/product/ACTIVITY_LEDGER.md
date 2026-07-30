@@ -1,7 +1,7 @@
 # LocalCheck Activity Ledger
 
 Status: Active, chronological operating record
-Last updated: 2026-07-28
+Last updated: 2026-07-29
 
 ## How this ledger is used
 
@@ -11,6 +11,114 @@ Last updated: 2026-07-28
 - Keep `LAUNCH_CONTROL.md` as the concise current-state and priority view. Use this file for the chronological trail that explains how the project reached that state.
 - Product and design decisions also belong in `DECISIONS.md`; notable brand-system changes also belong in `CHANGELOG.md`.
 
+## 2026-07-29 — PR #22 review fixes implemented locally
+
+**Outcome requested:** Use one simple review loop: fix every open PR #22
+comment, include the latest Home and Me polish, verify the candidate, push it,
+then reply to and resolve each GitHub thread before asking for merge approval.
+
+**Implementation:** Added incoming friend-request actions to Me, made a
+Schedule deep link initialize court selection only once, retained the last
+verified lifetime check-in count when a refresh fails, scoped Court Feed to the
+opened court, routed Court Schedule creation into the preselected Host Run
+form, and derived ranked court avatars from the same local leaderboard service
+used by Compete. The Home check-in action is narrower and elevated; Me activity
+copy uses the loaded Inter extra-light face.
+
+**Account deletion:** Read-only production inspection confirms the current
+foreign-key contract supports auth-user deletion. Added an unapplied migration
+that reproduces that contract in a replacement project. Updated the Edge
+Function to generate Apple's short-lived ES256 revocation client secret from
+the four uploaded raw Apple secrets. The function is still undeployed and
+physically untested; no Supabase data or schema changed.
+
+**Verification:** Direct mobile TypeScript passed, all five focused Realtime
+tests passed, `git diff --check` passed, and a fresh Expo export returned HTTP
+200 with no-cache headers for `/` and `/elo`. Signed-in phone-width browser QA
+confirmed the Home action, lighter Me activity copy, Friends access, exact
+non-local court feed data, and Court Schedule → Create a Run opening the
+preselected Host Run form. No form was submitted and no QA data was written.
+
+**Delivery state:** GitHub push, thread replies, and thread resolution are the
+remaining gates for this review loop. PR #22 remains the only candidate. No
+merge, OTA, EAS build, TestFlight action, or production backend mutation is
+authorized in this step.
+
+## 2026-07-29 — Home MVP section and contributor protection contract
+
+**Outcome requested:** Make the final Home change for the canonical MVP PR,
+restart the preview, and document the working architecture so later cloud UI
+tasks cannot silently break app logic, connectivity, dependencies, or release
+boundaries.
+
+**Home:** Replaced the reusable discovery-card treatment with a full-width
+matte local-court section. The sport mark is small and quiet, sport text is
+lighter, confirmed activity stats are centered, and the local-court badge is
+restrained. A non-local discovery card now exposes a dim `Set local` action.
+Moved the detached roster count into an inline `View all` action. Kept Next Run
+in its compact form. The header, court section, roster, and Next Run stay fixed;
+only the Activity Feed scrolls.
+
+**Architecture:** Added `docs/APP_ARCHITECTURE.md` to the mandatory `AGENTS.md`
+read order. It records provider order, screen owners, service/RPC write paths,
+private Realtime topics, native-build boundaries, and a page-by-page list of
+behavior that UI contributors must preserve. Updated the README, current state,
+launch control, design decision, and design QA records to point to the same
+contract.
+
+**Preview/tooling:** A fresh Expo web export compiled and is served with no-cache
+headers at `http://127.0.0.1:8081/`. The preview launcher now calls the app's
+installed Expo binary directly. This avoids a pnpm-version mismatch that
+prompted to replace the workspace dependency tree; the prompt was declined and
+no dependency was changed. The first OS screenshot showed the browser still
+holding the prior page. Refreshing the app window hid the browser pane, so the
+fresh bundle is live but this Home state still needs Jesse's visible reload
+acceptance.
+
+**Release boundary:** No merge, OTA, TestFlight build, Supabase migration, Edge
+Function deployment, or production data change occurred. Draft PR #22 remains
+the only review candidate.
+
+## 2026-07-29 — Preview restart and account-deletion review correction
+
+**Outcome requested:** Restart the canonical preview, inspect the open review threads on draft PR #22, and verify the proposed Apple revocation-secret setup before Jesse enters any credentials.
+
+**Preview:** Rebuilt the canonical `codex/mvp-consolidation` web export with the repository-pinned pnpm `10.13.1` toolchain and served it at `http://127.0.0.1:8081/`. Port 8081 returned HTTP 200 with explicit no-cache headers. Runtime Supabase data remains interactive; source edits require another export restart.
+
+**Review correction:** A reviewer predicted that `auth.admin.deleteUser` would be blocked by profile foreign keys using `ON DELETE RESTRICT`, based on an archived pre-repair checkpoint. A fresh read-only inspection of LocalCheckProd found `profiles.id -> auth.users(id) ON DELETE CASCADE`; current profile-owned rows cascade, while retained history such as `activity_events.actor_id` and `courts.added_by` uses `SET NULL`. The archived constraint claim is not current production evidence.
+
+**Real deletion gate:** The candidate Edge Function is still undeployed and untested. Its source currently reads `APPLE_CLIENT_ID` and a prebuilt `APPLE_CLIENT_SECRET`; it does not consume the raw `APPLE_PRIVATE_KEY`, `APPLE_KEY_ID`, or `APPLE_TEAM_ID` values Jesse collected. Before secrets are entered or the function is deployed, choose and implement one contract: preferably generate Apple's short-lived ES256 client-secret JWT inside the function from those four raw values, rather than manually rotating a stored client-secret JWT. No secret value, function deployment, database mutation, PR-thread reply, or thread resolution occurred in this review.
+
+**Other open review findings:** Six client behaviors need scoped follow-up: incoming friend requests are not reachable from Me; a Schedule court deep link can overwrite a later manual court selection; a failed lifetime check-in count is presented as zero; non-local Court Feed reads from local-court-only state; Court Schedule's create action does not open the form; and the displayed court rank is derived from the visible roster rather than an authoritative leaderboard. The ranking contract requires Jesse's product decision before implementation.
+
+## 2026-07-28 — Canonical MVP draft PR opened; stale preview and PR split resolved
+
+**Outcome requested:** Restart the stale local preview, consolidate every current MVP change into one canonical review PR, preserve useful history while removing competing open PRs, and leave the canonical checkout clean before any merge or TestFlight action.
+
+**Preview:** Stopped the old port-8081 process, rebuilt the canonical Expo web export, and served it with no-cache asset headers plus Expo Router direct-route fallback. The user's visible `/compete` tab was explicitly refreshed to the new bundle and showed the current ranked/hidden-row candidate rather than the stale UI.
+
+**Repository:** Committed the Profile, Court Details, Schedule, Friends, shared visual system, preview tooling, canonical design assets, and account-deletion candidate as `db7e0db` on `codex/mvp-consolidation`. Opened draft PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/22) directly against `main`. A final documentation-only commit follows this entry. PR #21's code is fully represented by this branch; #21 is closed as superseded rather than deleted so its discussion and commits remain recoverable.
+
+**Configuration cleanup:** Removed a stale Expo Router production origin pointing to `replit.com`; LocalCheck does not use that host for production server requests. Disabled the image picker's default Android microphone permission because LocalCheck only requests court photos. Kept the existing Expo project, OTA URL, bundle identifier, Supabase target, and Apple Sign-In capability unchanged.
+
+**Verification:** `pnpm --filter @workspace/mobile run check:release` passed TypeScript and all five focused Realtime tests. Expo public-config resolution passed without the stale host or microphone permission. `git diff --check` passed. The preview remains browser evidence only; native Mapbox, Schedule writes, sheets/safe areas, account deletion, and reverse-direction Realtime still require their documented physical/backend acceptance.
+
+**Boundary:** Draft PR and documentation only. No merge, OTA, EAS build, TestFlight submission, Supabase function deployment/migration, or App Store action was performed. Jesse's explicit approval remains required after visual review.
+
+## 2026-07-28 — MVP consolidation candidate: Profile, Court Details, Schedule, and repeatable preview
+
+**Outcome requested:** Prioritize the supplied Profile and Court Details mocks, make Schedule truly save, keep Apple Sign-In untouched, and stop before push/OTA so Jesse can inspect the product decisions visually.
+
+**Implementation:** Rebuilt Profile around the approved identity/Elo/stat/tab hierarchy and replaced the mislabeled court-time-minutes value with a real lifetime `check_ins` row count. Consolidated Home, Explore, and Court Details on the same smoked sport-identity court card; corrected its four-stat narrow-iPhone overflow. Court Details now has Feed, a real here-now/locals list, and the supplied seven-day court heatmap backed by `planned_visits`, visible run participants, privacy-safe anonymous counts, add/remove attendance, and a court-preselected Create Run handoff. Schedule keeps View/Edit multi-select, disables unchanged saves, retains failed work, and uses idempotent inserts rather than the rejected update-style upsert. Incoming friend accept/decline and player request states are present in the candidate, but Friends remains after the current core-screen acceptance gate.
+
+**Preview/tooling repair:** Canonical root and mobile `node_modules` are real pnpm installs, not archive links. The preview script now avoids Expo's unwritable external cache and automatically uses a fresh interactive export when Watchman is absent, because normal Node watching reaches `EMFILE`. The workspace override that excluded the Mac ARM LightningCSS helper was removed and the lockfile records that optional native package. The deprecated Mapbox config-plugin token property was removed; native builds now read `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` directly from EAS.
+
+**Verification:** `pnpm --filter @workspace/mobile check:release` passes TypeScript and all five focused Realtime tests; `git diff --check` passes; a fresh canonical web export serves successfully on port 8081. Automated visual comparison is still blocked because the chosen in-app browser refuses automated localhost control. Jesse's refreshed signed-in preview is therefore the visual and interaction acceptance surface.
+
+**Boundary:** No push, merge, OTA, TestFlight build/submission, production schema mutation, or Apple Sign-In change. The account-deletion client/Edge Function remains an undeployed candidate and must not be called complete. Profile visibility is still not a durable backend contract.
+
+**Next highest-value action:** Jesse checks Profile, Court Details → Details, and Schedule → Edit in the refreshed preview. Fix visible or behavioral mismatches, obtain explicit approval, then create a clean reviewed commit before any delivery action.
+
 ## 2026-07-28 — Verified MVP candidate delivered to GitHub main
 
 **Outcome requested:** Retry the final source push after the previous Codex usage-limit rejection, without disturbing newer local work.
@@ -18,6 +126,49 @@ Last updated: 2026-07-28
 **Action and verification:** Refreshed the explicit remote `main` ref, confirmed local `main` still contained feature commit `32bc0d6` and documentation commit `f973ac3`, and pushed `249c926..f973ac3` to GitHub `main` without force. The canonical checkout had since moved to `fix/schedule-save-and-navigation-polish` with two newer commits and an unrelated untracked `.claude/launch.json`; that branch and file were preserved untouched. This follow-up record was prepared from an isolated `main` worktree and pushed separately so the repository no longer claims delivery is blocked.
 
 **Boundary:** Source delivery only. No OTA, TestFlight build/submission, production schema mutation, merge of the newer fix branch, or release action was performed.
+## 2026-07-27 — CORRECTION: write-path audit; Schedule and Add Friend root-caused and fixed without any migration
+
+**This entry corrects the previous one.** That entry concluded Schedule could not save because `planned_visits` was missing a `GRANT INSERT`, and proposed a migration. **That diagnosis was wrong.** It was reached from `information_schema.role_table_grants`, which shows only *table-level* grants and silently hides column-level ones. The migration was never applied and has been deleted.
+
+**Actual root cause (Schedule):** LocalCheckProd grants `authenticated` column-level INSERT on `(user_id, court_id, planned_at, note, visibility)` and column-level UPDATE on the same set **minus `user_id`** — deliberately, so a row can never be reassigned to another user. The client used `.upsert()`, which PostgREST compiles to `INSERT … ON CONFLICT DO UPDATE SET user_id = excluded.user_id, …`. That requires UPDATE on `user_id` and is rejected with `42501` before RLS is consulted. Confirmed empirically by running the exact statement as `authenticated` in a rolled-back transaction: the upsert failed with `42501`, and the same insert with `ON CONFLICT DO NOTHING` succeeded and wrote a row. Fix is `ignoreDuplicates: true`, client-side only. **No database change was made or is needed.** Postgres's own error hint suggests granting table UPDATE; following it would re-grant `user_id` and undo the v2 design, and is explicitly warned against in code and docs.
+
+**Actual root cause (Add Friend):** `friendships` is SELECT-only for `authenticated`; v2 routes all friendship writes through `request_friend`, `accept_friend_request`, and `remove_friendship`. `addFriend` inserted directly with `status: 'accepted'`, never destructured `error`, and wrapped the call in a `catch` that cannot fire because supabase-js returns errors rather than throwing — so the failure was fully invisible while the UI optimistically showed success. Now wired to the RPCs. Critically, `request_friend` creates **`pending`**, not `accepted`, while `fetchFriends` filters to `accepted`: swapping in the RPC alone would have produced the identical "button does nothing" symptom. Added `fetchFriendshipStates`, a separate `pendingFriendIds` in `AppContext`, and a `REQUESTED` button state; removing a pending request reuses `remove_friendship`. The optimistic `setFriendIds` that caused the flash-then-revert is gone.
+
+**Two more broken write paths found by the same audit, not fixed:** `createCourt` inserts into `courts` (SELECT-only, and no `create_court` RPC exists), and `updateScheduledGame` updates `runs` (SELECT-only, no update RPC). Both need a product decision plus a migration and are recorded rather than guessed at.
+
+**Provenance correction:** `docs/supabase/migrations/20260713_planned_visits.sql` and its pre-v2 siblings were applied to project `jzclwnzcektqhgkkdeje`, not LocalCheckProd. They do not describe the current database and must not be used to reason about current privileges. LocalCheckProd's real history is the `v2_*` migrations applied 2026-07-23.
+
+**New durable doc:** [`docs/BACKEND_WRITE_PATHS.md`](../BACKEND_WRITE_PATHS.md) maps every client write to its correct backend path, records the two traps (column-level grants invisible in `role_table_grants`; `.upsert()` requiring UPDATE on every payload column), lists the still-broken paths, and gives the read-only privilege queries plus the rolled-back-transaction recipe for proving a write works before shipping it.
+
+**Verification:** `pnpm run check:release` green — TypeScript clean, five Realtime tests passing. Both root causes and the Schedule fix were proven against production in transactions that rolled back; no row was added, changed, or deleted. **Not verified:** signed-in click-through of the repaired Schedule save and Add Friend button, because confirming them requires signing in.
+
+**Boundary:** No migration applied, no schema change, no production data mutation, no OTA, no TestFlight build, no merge.
+
+**Next highest-value action:** Sign in on the preview and confirm a planned visit actually persists and the friend button reaches `REQUESTED`; then decide the product shape for Add a Court and Edit a Run, which remain hard-blocked.
+
+## 2026-07-27 — Checkpoint pushed as PR #20; Schedule save root-caused to a missing GRANT; navigation and sheet polish
+
+**Outcome requested:** Review the unpushed local work against `main` and open a PR to lock the checkpoint in; onboard through the agent docs and report whether that read order works; confirm a live preview; run an honest UI/UX and architecture review; then fix the highest-leverage defects — Schedule "My Times" not saving, the `View / Edit` control, the white flash on interactive swipe-back, and the inconsistent task sheets.
+
+**Checkpoint delivered:** Local `main` was two commits ahead of `origin/main` (`32bc0d6`, `f973ac3`) with a clean tree. Both were pushed on branch `checkpoint/realtime-broadcast-and-mvp-ui` and opened as PR #20 against `main`. `pnpm run check:release` was re-run independently on that branch before opening it: TypeScript clean, five Realtime tests passing. Local `main` was not moved.
+
+**Schedule save — root cause found, and it was not the client.** Jesse reported the heatmap could not save times, and his capture showed the partial-failure banner. Read-only inspection of LocalCheckProd showed `planned_visits` held two rows with the newest dated 2026-07-23 and zero rows written in the previous three hours, so the writes never reached Postgres. The unique constraint `(user_id, court_id, planned_at)` that the client's `onConflict` depends on exists; the RLS policies `planned_visits_insert_self` and `planned_visits_update_self` exist and are correct; the schema, the broadcast trigger, and the `activity_events` upsert target all check out. The actual defect is at the privilege layer: `planned_visits` grants to `authenticated` are `SELECT, DELETE` only. RLS filters rows *within* privileges a role already holds, so without `GRANT INSERT` Postgres rejects with `42501` before any policy runs, and the existing insert/update policies are dead letters. Because `DELETE` *is* granted, removals succeeded while every addition failed — exactly the partial-failure banner. `20260713_planned_visits.sql` created the table and its policies but never issued the grants.
+
+**Migration written, not applied:** `docs/supabase/migrations/20260727_grant_planned_visits_writes.sql` grants `insert, update` on `public.planned_visits` to `authenticated` and asserts afterward that both the grant and the governing policy exist. It widens no row-level access — effective access remains `user_id = auth.uid()` per the existing policies. `activity_events` deliberately keeps `SELECT`-only for `authenticated` because only the `SECURITY DEFINER` trigger writes it. **This has not been applied to production; it needs Jesse's go-ahead.** Until it is applied, Schedule saving stays broken regardless of client changes.
+
+**Client defects fixed alongside it:** `saveMyTimes` returned silently when no court was selected, so Save did nothing with no feedback; it now shows a message and opens the court picker. It also called an empty batch a success — every pending slot already past reduced `additions` to `[]`, and `[].every(Boolean)` is `true`, so the editor closed as if it had saved. An empty batch is now reported honestly. The single boolean failure flag became a message field so a save can never look successful when nothing reached the database. Past slots were already disabled in edit mode, so that path was a narrow edge case rather than the reported bug.
+
+**Design changes:** The full-width `VIEW / EDIT` segmented control was removed — mode is not navigation, and a segmented control reads as a destination. `EDIT` / `CANCEL` now lives in the existing `ScreenHeader` action slot (iOS Reminders/Photos grammar), which also returns vertical space to the grid; the row beneath now only reports state. The white flash on interactive swipe-back was react-navigation's default light card background: the root `Stack` had no `contentStyle`, so one was set to `Colors.background`, and `GestureHandlerRootView` was given the same background so nothing light is exposed mid-gesture.
+
+**Sheet unification:** Five `presentationStyle="pageSheet"` modals each hand-rolled their own header, and all repeated `paddingTop: Platform.OS === "ios" ? top : top + 12` — which double-counts the inset on iOS, where a pageSheet is already inset below the status bar. That is why sheet titles collided with the status bar and rounded corners in Jesse's captures. `components/sheet/FormSheet.tsx` is now the single shell for task/creation forms: consistent header, eyebrow, 44pt close target, and correct per-platform top padding. Pick a Court, Host a Run, I'll Be There, and Edit Run were migrated to it and their dead local styles removed. `AddCourtModal` keeps its bespoke stepper header for now and received only the padding correction, with a comment tying it to `FormSheet`; folding it in fully is an open follow-up. The `@gorhom/bottom-sheet` court preview is unchanged — quick look stays a bottom sheet, doing a task uses `FormSheet`.
+
+**Review findings recorded:** Colour and type tokens are well adopted (28 of 36 files import `Colors`, 24 import `Typography`, one literal font name app-wide), but there is no spacing scale at all, 517 raw `<Text>` and 255 raw `Pressable` call sites, 28 independent `StyleSheet.create` blocks, 38 distinct raw hex literals, and 24 raw `rgba()` literals. `ScreenHeader` covers three files against a decision that all five primary tabs share it. The approved presence vocabulary is unadopted: `HERE NOW` appears zero times while `ACTIVE` appears 219 times and `LIVE` 107. `explore.tsx` and `index.tsx` have no safe-area handling at all. Two entirely different tab bars ship simultaneously (`NativeTabs` and a classic JS `Tabs`), so the web preview cannot validate iOS visual work.
+
+**Verification:** `pnpm run check:release` passed after every edit — TypeScript clean, five Realtime tests passing. The preview was rebuilt and served, and the new code was confirmed present in the exported bundle. The app booted with no new console errors (only a pre-existing React 19 `element.ref` library warning). **Not verified:** the signed-in Schedule screen was not visually confirmed. Expo's dev export writes a constant bundle filename (`entry-d41d8cd9…`, the MD5 of an empty string), so the browser served a stale cached bundle; clearing that cache also cleared the session, and entering credentials is outside what this agent will do. Pixel confirmation of the Edit/Cancel header, the sheets, and the swipe-back background is an open manual check.
+
+**Boundary:** No production database change, no OTA, no TestFlight build or submission, and no merge. Local `main` untouched; work is on `fix/schedule-save-and-navigation-polish`.
+
+**Next highest-value action:** Apply the `planned_visits` grant migration with Jesse's approval — Schedule cannot save until then — then sweep `services/` for the same swallow-and-return-false pattern that hid this failure for days.
 
 ## 2026-07-27 — Map layers, Explore card grammar, and Schedule batch editing completed
 
@@ -287,3 +438,53 @@ The supplied Profile capture showing `0 CHECK-INS` is a separate data-contract b
 **Action:** Exported verified `jGPT-Automated/LocalCheck_WEB` `main` at `7a5b74d03aaa` into `LocalCheck_Expo/artifacts/web` using Git's commit archive. No dependencies or nested Git metadata were copied. All 56 source files matched the upstream commit before adding `UPSTREAM.md` provenance.
 
 **Boundary:** This completes source organization, not web integration acceptance. The web app still carries its upstream npm lockfile while the parent workspace uses pnpm, and disk is too constrained for a safe fresh install. Build and preview verification remain a separate gate.
+
+## 2026-07-28 — MVP visual and Schedule candidate verified locally
+
+**Implemented:** Consolidated the primary-tab header and Oswald/Inter hierarchy; tightened matte court cards; moved sport filtering into the Explore search row; preserved city-scoped court discovery; added ranked/friend avatar states; rebuilt Me; split Court Details into Feed, Locals, Schedule, and Details; and rebuilt Schedule around 8 AM–11 PM heat buckets, current-time focus, View/Edit modes, a snapping run rail, and the shared form-sheet shell.
+
+**Runtime evidence:** The signed-in export preview rendered Home, Explore List/Map, Compete, Me, all four Court Details tabs, the Schedule heatmap, and the Host a Run drawer. Direct `/schedule` and `/court/:id` loads now resolve through the preview app shell. The exported bundle is explicitly no-cache, preventing the stable Expo development bundle name from retaining a previous build after restart.
+
+**Static evidence:** `pnpm --filter @workspace/mobile run check:release` passed TypeScript and all five scoped-Realtime tests. Browser logs contained framework deprecation warnings and one self-recovered court-channel warning, but no render or navigation exception during the inspected flows.
+
+**Boundaries:** Apple Sign-In was not changed. No Supabase migration, Elo rewrite, merge, push, OTA, EAS build, or TestFlight action occurred. The external Elo handoff remains review-only until its schema assumptions and match-confirmation lifecycle are reconciled with the live contract.
+
+## 2026-07-29 — Reference-led density and header pass verified
+
+**Visual direction:** Used Jesse's `IMG_4869.jpg`–`IMG_4874.jpg` set as the spacing and restraint anchor without copying its camo avatar texture or fake map tiles.
+
+**Implemented:** Standardized primary-tab titles at 22 px Inter; moved the unboxed Explore sport filter before Search; reduced discovery-card height, padding, emblem size, button shadow, and action height; and changed normal court names to a lighter, one-line treatment. The featured local court may still wrap to two lines. Existing plain player tiles keep orange glow for ranked users and a star for friends.
+
+**Evidence:** A fresh signed-in export rendered Home, Explore List/Map, the selected map sheet, Schedule, Compete, Me, and Court Details at `430 × 932`. Combined source/implementation comparisons are in `docs/product/design-qa/2026-07-29/`, with the required report at `design-qa.md`. Direct TypeScript and `git diff --check` passed.
+
+**Boundary:** The proposed collapsing Home card and pinned Schedule heatmap remain an interaction decision. No merge, push, OTA, EAS build, TestFlight action, Apple Sign-In change, or Supabase mutation occurred.
+
+## 2026-07-29 — Notification and sport-Elo MVP candidate prepared
+
+**Product contract:** Basketball and pickleball now have separate candidate
+ratings. Both start at 1200 and use standard K=32 Elo. Logged scores stay
+pending until the named opponent confirms them, an objection changes no
+rating, and a bounded database job confirms unanswered scores after seven
+days. The old combined rating stays for older installed clients.
+
+**Notification scope:** Added a durable in-app inbox for friend request,
+friend accepted, run invite, score review, score confirmed, and score objected.
+Run hosts can invite accepted friends. Push permission is only requested after
+the user turns alerts on; the app does not prompt on launch. Added the Expo push
+sender source and deduplication state, but did not deploy it.
+
+**Reliability:** Court sport is authoritative, pending games do not appear in
+confirmed history, rating changes are atomic, and the score form carries one
+stable request ID across retries to prevent duplicate matches.
+
+**Evidence:** Direct TypeScript passed, all five scoped-Realtime tests passed,
+Expo public config resolved the notification plugin, `git diff --check` passed,
+and a fresh web export bundled the new routes and packages. Read-only live
+queries confirmed the two current pending matches use supported sports. No live
+row, schema, function, secret, webhook, or Edge Function changed.
+
+**Release boundary:** A production migration, Edge Function deployment,
+Database Webhook, two-account database test, and two-phone push test remain.
+Because `expo-notifications` and `expo-device` add native code, phone push needs
+a new TestFlight build; it cannot be added to build 9 by OTA alone. Apple
+Sign-In was not changed.

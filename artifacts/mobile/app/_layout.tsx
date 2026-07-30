@@ -1,4 +1,5 @@
 import {
+  Inter_200ExtraLight,
   Inter_400Regular,
   Inter_500Medium,
   Inter_600SemiBold,
@@ -6,10 +7,10 @@ import {
   useFonts as useInterFonts,
 } from "@expo-google-fonts/inter";
 import {
-  Kanit_500Medium,
-  Kanit_600SemiBold,
-  Kanit_700Bold,
-} from "@expo-google-fonts/kanit";
+  Oswald_500Medium,
+  Oswald_600SemiBold,
+  Oswald_700Bold,
+} from "@expo-google-fonts/oswald";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -26,6 +27,7 @@ import { Colors } from "@/constants/colors";
 import { AppProvider } from "@/context/AppContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { CourtPresenceProvider } from "@/context/CourtPresenceContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 import { RealtimeHubProvider } from "@/context/RealtimeHubContext";
 
 SplashScreen.preventAutoHideAsync();
@@ -79,11 +81,13 @@ function DataProviders({ children }: { children: React.ReactNode }) {
   if (!session) return <>{children}</>;
   return (
     <RealtimeHubProvider>
-      <CourtPresenceProvider>
-        <AppProvider>
-          <CourtSheetProvider>{children}</CourtSheetProvider>
-        </AppProvider>
-      </CourtPresenceProvider>
+      <NotificationProvider>
+        <CourtPresenceProvider>
+          <AppProvider>
+            <CourtSheetProvider>{children}</CourtSheetProvider>
+          </AppProvider>
+        </CourtPresenceProvider>
+      </NotificationProvider>
     </RealtimeHubProvider>
   );
 }
@@ -91,12 +95,22 @@ function DataProviders({ children }: { children: React.ReactNode }) {
 function RootLayoutNav() {
   return (
     <AuthGate>
-      <Stack screenOptions={{ headerShown: false }}>
+      {/* `contentStyle` is what sits behind a card while it is being dragged.
+          Without it react-navigation uses its default light theme background,
+          which flashed white on every interactive swipe-back. */}
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: Colors.background },
+        }}
+      >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="court/[id]" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="run/[id]" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="player/[id]" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="friends" options={{ headerShown: false, presentation: "card" }} />
+        <Stack.Screen name="notifications" options={{ headerShown: false, presentation: "card" }} />
+        <Stack.Screen name="match/[id]" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="settings" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="auth" options={{ headerShown: false }} />
       </Stack>
@@ -106,13 +120,14 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useInterFonts({
+    Inter_200ExtraLight,
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
-    Kanit_500Medium,
-    Kanit_600SemiBold,
-    Kanit_700Bold,
+    Oswald_500Medium,
+    Oswald_600SemiBold,
+    Oswald_700Bold,
   });
 
   useEffect(() => {
@@ -127,7 +142,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView style={{ flex: 1 }}>
+          {/* Paints the root native view dark so nothing light is ever exposed
+              behind a card mid-gesture or between screen transitions. */}
+          <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.background }}>
             <KeyboardProvider>
               <AuthProvider>
                 <DataProviders>

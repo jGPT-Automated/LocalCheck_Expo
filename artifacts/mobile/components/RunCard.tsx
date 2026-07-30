@@ -32,6 +32,7 @@ export function RunCard({ run }: RunCardProps) {
       <View style={styles.center}>
         <Text style={styles.title}>{run.title}</Text>
         <Text style={styles.level}>{run.skillLevel}</Text>
+        <Text style={styles.createdBy}>CREATED BY {run.hostName?.toUpperCase() || "COURT LOCAL"}</Text>
         <View style={styles.meta}>
           <View style={styles.avatarRow}>
             {run.participants.slice(0, 4).map((p, i) => (
@@ -71,7 +72,11 @@ const styles = StyleSheet.create({
   title: { fontFamily: Typography.heading, fontSize: 14, color: Colors.text, letterSpacing: 0.5 },
   level: {
     fontFamily: Typography.bodyMedium, fontSize: 9, color: Colors.muted,
-    letterSpacing: 1.5, textTransform: "uppercase" as const, marginTop: 2, marginBottom: 6,
+    letterSpacing: 1.5, textTransform: "uppercase" as const, marginTop: 2,
+  },
+  createdBy: {
+    fontFamily: Typography.bodyMedium, fontSize: 7, color: Colors.mutedDark,
+    letterSpacing: 1, marginTop: 3, marginBottom: 6,
   },
   meta: { flexDirection: "row", alignItems: "center", gap: 10 },
   avatarRow: { flexDirection: "row" },

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LocalCheck — Find Your Run</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+body{margin:0;background:var(--night);color:var(--ink);font-family:var(--font-body);-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+/* hero */
+.hero{position:relative;min-height:720px;height:100svh;max-height:1040px;overflow:hidden;isolation:isolate;background:var(--void)}
+.hero__art,.hero__veil{position:absolute;inset:0;width:100%;height:100%}
+.hero__art{z-index:0;object-fit:cover;object-position:center;transform-origin:63% 58%}
+.hero__veil{z-index:1}
+.hero__focus{position:absolute;z-index:2;top:48%;left:65.4%;width:clamp(150px,17vw,290px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(255,92,24,.19) 0%,rgba(252,76,2,.075) 32%,transparent 70%);transform:translate(-50%,-50%);pointer-events:none}
+.hero__focus i{position:absolute;inset:18%;border:1px solid rgba(255,104,38,.18);border-radius:50%;opacity:0;animation:lc-court-focus-pulse 4.8s ease-out infinite}
+.hero__focus i:nth-child(2){animation-delay:1.6s}
+.hero__focus i:nth-child(3){inset:42%;border:0;background:rgba(255,101,34,.34);box-shadow:0 0 28px 10px rgba(252,76,2,.14);opacity:.65;animation:none}
+.site-header{position:relative;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:40px clamp(30px,4.2vw,74px) 0}
+.brand{display:inline-flex;align-items:center;gap:13px;min-height:48px}
+.nav{display:flex;align-items:center;gap:clamp(25px,2.8vw,48px)}
+.nav a{position:relative;padding:16px 0;font-size:12px;font-weight:650;letter-spacing:.15em;text-transform:uppercase;color:var(--ink)}
+.nav a::after{position:absolute;right:0;bottom:8px;left:0;height:1px;background:var(--orange);content:"";opacity:0;transform:scaleX(.45);transition:opacity 180ms ease,transform 180ms ease}
+.nav a:hover::after{opacity:1;transform:scaleX(1)}
+.nav a.lc-btn{padding:0 24px}
+.nav a.lc-btn::after{display:none}
+.hero__copy{position:absolute;z-index:3;top:30%;left:clamp(30px,4.8vw,82px);width:min(560px,43vw)}
+.hero__eyebrow{margin-bottom:20px}
+.hero__actions{display:flex;align-items:center;gap:26px;margin-top:32px}
+.hero__copy>p{margin:27px 0 0}
+.hero__signal{position:absolute;z-index:3;bottom:36px;left:clamp(30px,4.8vw,82px);display:flex;align-items:center;gap:17px;color:#a4a4ae;font-size:10px;font-weight:650;letter-spacing:.12em;text-transform:uppercase}
+.hero__signal strong{color:#fff}
+.hero__signal>i{width:3px;height:3px;border-radius:50%;background:#666670}
+.qr{position:absolute;z-index:3;right:clamp(30px,4.8vw,82px);bottom:35px;display:flex;width:92px;align-items:center;flex-direction:column;gap:9px}
+.qr span{color:#c8c8d0;font-size:8px;font-weight:700;letter-spacing:.19em;line-height:1.25;text-align:center;text-transform:uppercase}
+.qr img{display:block;width:78px;height:78px;padding:5px;background:#fff;image-rendering:pixelated}
+/* sections */
+.section{padding:clamp(92px,9vw,150px) clamp(24px,5vw,84px)}
+.section-heading{display:grid;max-width:1440px;margin:0 auto 58px;grid-template-columns:minmax(0,1.1fr) minmax(320px,.75fr);gap:60px;align-items:end}
+.section-heading h2{margin:15px 0 0}
+.section-heading>p{max-width:540px;margin:0 0 4px}
+.court-grid{display:grid;max-width:1440px;margin:0 auto;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.cc{position:relative;z-index:2;display:flex;min-height:378px;flex-direction:column;padding:25px 27px 24px 28px}
+.cc__top{display:flex;align-items:center;justify-content:space-between}
+.cc__main{max-width:72%;margin-top:22px}
+.cc__main h3{margin:0;font-family:var(--font-display);font-size:clamp(29px,2.3vw,38px);font-weight:600;letter-spacing:-.015em;line-height:1.03;text-transform:uppercase}
+.cc__loc{display:flex;align-items:center;gap:6px;margin-top:13px;color:#b6b6c2;font-size:12px;font-weight:550}
+.cc__main>p{margin:8px 0 0;color:#868695;font-size:11px;line-height:1.5}
+.mstrip{display:grid;width:min(100%,590px);grid-template-columns:1fr 1fr;margin-top:auto;overflow:hidden}
+.m{display:grid;min-height:66px;grid-template-columns:auto auto minmax(0,1fr);gap:9px;align-items:center;padding:9px 14px}
+.m+.m{border-left:1px solid rgba(242,242,246,.085)}
+.m b{color:#ececf1;font-size:9px;font-weight:780;letter-spacing:.13em;text-transform:uppercase}
+.m small{color:#797986;font-size:9px}
+.m>span:last-child{display:flex;min-width:0;flex-direction:column;gap:3px}
+.cc__acts{display:flex;gap:10px;margin-top:13px}
+.ball{position:relative;width:13px;height:13px;border-radius:50%;border:1px solid currentColor}
+.ball::after{position:absolute;top:-1px;bottom:-1px;left:5px;border-left:1px solid currentColor;content:""}
+.legend{display:flex;max-width:1440px;align-items:center;justify-content:center;gap:36px;margin:30px auto 0;color:#777785;font-size:10px;font-weight:650;letter-spacing:.06em;text-transform:uppercase}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+/* paper band */
+.how{display:grid;grid-template-columns:minmax(290px,.8fr) minmax(0,1.55fr);gap:clamp(70px,10vw,170px)}
+.how__intro{max-width:500px}
+.how__intro p{max-width:420px;margin:28px 0 0;color:var(--paper-muted);font-size:15px;line-height:1.75}
+.steps article{position:relative;display:grid;min-height:168px;grid-template-columns:55px 56px minmax(150px,.75fr) minmax(240px,1fr);gap:22px;align-items:center;border-bottom:1px solid var(--paper-line)}
+.steps article>span{color:var(--orange);font-family:var(--font-display);font-size:14px;font-weight:700}
+.step-icon{display:grid;width:48px;height:48px;place-items:center;border:1px solid var(--paper-rule);border-radius:50%;font-size:17px}
+.steps h3{margin:0;font-family:var(--font-display);font-size:28px;font-weight:600;letter-spacing:-.02em;text-transform:uppercase}
+.steps p{margin:0;color:#5d5d62;font-size:13px;line-height:1.65}
+/* about */
+.about__panel{display:grid;max-width:1440px;margin:0 auto;grid-template-columns:minmax(300px,.85fr) minmax(480px,1.15fr);gap:clamp(70px,10vw,160px);align-items:center}
+.about__copy p{max-width:490px;margin:28px 0 25px}
+.rank{overflow:hidden;border:1px solid rgba(242,242,246,.13);border-radius:24px;background:linear-gradient(145deg,#22222a,#17171c);box-shadow:var(--sh-rank)}
+.rank header{display:flex;min-height:90px;flex-direction:column;justify-content:center;padding:0 30px;border-bottom:1px solid var(--line)}
+.rank header span{color:var(--orange-bright);font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}
+.rank header strong{margin-top:7px;font-family:var(--font-display);font-size:23px;font-weight:600;letter-spacing:.03em;text-transform:uppercase}
+.rank__row{display:grid;min-height:68px;grid-template-columns:32px 40px 1fr 55px 38px;gap:12px;align-items:center;padding:0 28px;border-bottom:1px solid var(--line-soft);color:#c4c4ce}
+.rank__row.is-current{background:linear-gradient(90deg,rgba(252,76,2,.12),transparent 82%)}
+.rank__row>span:first-child{color:var(--dim-2);font-family:var(--font-display);font-size:13px}
+.rank__row strong{font-size:12px;font-weight:650}
+.rank__score{color:#fff;font-family:var(--font-display);font-size:18px}
+.rank__row small{color:#78877d;font-size:9px}
+.rank footer{display:flex;min-height:58px;align-items:center;justify-content:space-between;padding:0 30px;color:#777783;font-size:9px;font-weight:650;letter-spacing:.1em;text-transform:uppercase}
+/* cta + footer */
+.final-cta{display:flex;min-height:610px;align-items:center;flex-direction:column;justify-content:center;text-align:center}
+.final-cta h2{margin:15px 0 0;font-size:clamp(76px,10vw,168px)}
+.final-cta h2 span{color:var(--orange);text-shadow:var(--orange-text-glow)}
+.final-cta p{margin:22px 0 30px}
+.site-footer{display:grid;min-height:110px;padding:25px clamp(24px,5vw,84px);grid-template-columns:1fr auto 1fr;align-items:center;border-top:1px solid rgba(242,242,246,.09);background:var(--footer)}
+.site-footer>p{color:#6d6d78;font-size:10px;font-weight:650;letter-spacing:.14em;text-transform:uppercase;margin:0}
+.site-footer>div{display:flex;justify-content:flex-end;gap:25px;color:#767681;font-size:10px}
+@media(max-width:1180px){.court-grid{grid-template-columns:1fr}.how{grid-template-columns:1fr}}
+@media(max-width:880px){.nav{display:none}.hero__copy{width:min(640px,calc(100vw - 60px))}.qr{display:none}.section-heading{grid-template-columns:1fr;gap:28px}.about__panel{grid-template-columns:1fr}.site-footer{grid-template-columns:1fr 1fr}}
+</style></head>
+<body class="lc-root">
+<main id="top">
+<section class="hero">
+<img class="hero__art" src="../../assets/hero-map.png" alt="Dark topographic Austin map with live routes converging at a basketball court">
+<div class="hero__veil lc-hero-veil"></div>
+<div class="hero__focus"><i></i><i></i><i></i></div>
+<header class="site-header">
+<a class="brand" href="#top"><img src="../../assets/logo-mark.svg" width="42" height="42" alt=""><span class="lc-wordmark">LOCALCHECK</span></a>
+<nav class="nav"><a href="#courts">Find games</a><a href="#how">How it works</a><a href="#about">About</a><a href="#top">Log in</a><a class="lc-btn lc-btn--nav" href="#courts">Check in</a></nav>
+</header>
+<div class="hero__copy">
+<span class="lc-eyebrow lc-eyebrow--light hero__eyebrow"><i class="lc-live-dot"></i> Seven cities now mapped</span>
+<h1 class="lc-h1-hero">Find<br>your<br>run<span>.</span></h1>
+<p class="lc-hero-sub">Live courts. Real competition.</p>
+<div class="hero__actions"><a class="lc-btn lc-btn--hero" href="#courts">Explore 56 courts →</a><a class="lc-text-btn" href="#how">See how it works ›</a></div>
+</div>
+<div class="hero__signal"><span><strong>56</strong> launch courts</span><i></i><span><strong>28</strong> basketball</span><i></i><span><strong>28</strong> pickleball</span></div>
+<a class="qr" href="#top"><img src="../../assets/qr-localcheck.png" alt="QR code for LocalCheck" width="78" height="78"><span>Download App</span></a>
+</section>
+
+<section class="section lc-section-glow" id="courts">
+<div class="section-heading">
+<div><span class="lc-eyebrow lc-eyebrow--orange">Launch court preview</span><h2 class="lc-h2">Know before<br>you go.</h2></div>
+<p class="lc-body">One court card, everywhere. The map starts with verified venue identity and access; live and local counts stay honest as the community checks in.</p>
+</div>
+<div class="court-grid">
+<article class="lc-court-card">
+<div class="lc-court-art lc-court-art--basketball"><span class="lc-line-boundary"></span><span class="lc-line-arc"></span><span class="lc-line-key"></span><span class="lc-line-circle"></span><span class="lc-line-rim"></span></div>
+<div class="lc-court-shade"></div>
+<div class="cc">
+<div class="cc__top"><span class="lc-label" style="color:var(--bball-label)"><span class="lc-icon-tile"><i class="ball"></i></span>Basketball</span><span class="lc-chip">Austin launch court</span></div>
+<div class="cc__main"><h3>Hancock Recreation Center</h3>
+<div class="cc__loc"><i class="lc-live-dot lc-live-dot--sm"></i>Austin, TX<i style="width:3px;height:3px;border-radius:50%;background:#5d5d68;margin:0 2px"></i>Austin launch court</div>
+<p>2 courts <span style="color:#53535e">·</span> Outdoor · public &amp; free</p></div>
+<div class="mstrip lc-glass">
+<div class="m"><span class="lc-signal-well"><i class="lc-live-dot"></i></span><strong class="lc-metric">0</strong><span><b>Live now</b><small>No public check-ins yet</small></span></div>
+<div class="m"><span style="display:flex"><span class="lc-avatar lc-avatar--sm" style="border-color:#c89056">JM</span><span class="lc-avatar lc-avatar--sm" style="border-color:#98a3b7;margin-left:-8px">AR</span></span><strong class="lc-metric">0</strong><span><b>Locals</b><small>Call this home</small></span></div>
+</div>
+<div class="cc__acts"><button class="lc-btn lc-btn--sm">Check in</button><a class="lc-btn lc-btn--sm lc-btn--view" href="#courts">View court →</a></div>
+</div>
+</article>
+<article class="lc-court-card lc-court-card--pickleball">
+<div class="lc-court-art lc-court-art--pickleball" style="color:var(--pball-line)"><span class="lc-line-boundary"></span><span class="lc-line-net"></span><span class="lc-line-kitchen lc-line-kitchen--left"></span><span class="lc-line-kitchen lc-line-kitchen--right"></span><span class="lc-line-center lc-line-center--left"></span><span class="lc-line-center lc-line-center--right"></span></div>
+<div class="lc-court-shade"></div>
+<div class="cc">
+<div class="cc__top"><span class="lc-label" style="color:var(--pball-label)"><span class="lc-icon-tile lc-icon-tile--pickleball"><i class="ball"></i></span>Pickleball</span><span class="lc-chip">Austin launch court</span></div>
+<div class="cc__main"><h3>Pan American Pickleball Courts</h3>
+<div class="cc__loc"><i class="lc-live-dot lc-live-dot--sm"></i>Austin, TX<i style="width:3px;height:3px;border-radius:50%;background:#5d5d68;margin:0 2px"></i>Austin launch court</div>
+<p>6 courts <span style="color:#53535e">·</span> Outdoor · public &amp; free</p></div>
+<div class="mstrip lc-glass">
+<div class="m"><span class="lc-signal-well"><i class="lc-live-dot"></i></span><strong class="lc-metric">0</strong><span><b>Live now</b><small>No public check-ins yet</small></span></div>
+<div class="m"><span style="display:flex"><span class="lc-avatar lc-avatar--sm" style="border-color:#737a70">TK</span><span class="lc-avatar lc-avatar--sm" style="border-color:#98a3b7;margin-left:-8px">MC</span></span><strong class="lc-metric">0</strong><span><b>Locals</b><small>Call this home</small></span></div>
+</div>
+<div class="cc__acts"><button class="lc-btn lc-btn--sm">Check in</button><a class="lc-btn lc-btn--sm lc-btn--view" href="#courts">View court →</a></div>
+</div>
+</article>
+</div>
+<div class="legend"><span><i class="lc-live-dot lc-live-dot--sm"></i> Orange always means live</span><span>Counts start at zero—not fabricated</span><span>Court geometry distinguishes each sport</span></div>
+</section>
+
+<section class="section how lc-paper" id="how">
+<div class="how__intro"><span class="lc-eyebrow" style="color:var(--paper-eyebrow)">No empty-court gamble</span><h2 class="lc-h2">From couch<br>to court.</h2><p>LocalCheck turns the group text into a live, shared picture of your local sports scene.</p></div>
+<div class="steps lc-paper-rule">
+<article><span>01</span><div class="step-icon">◎</div><h3>Find the run</h3><p>Browse nearby basketball and pickleball courts by real activity—not stale reviews.</p></article>
+<article><span>02</span><div class="step-icon">✓</div><h3>Check in</h3><p>One tap tells your local community the court is active and keeps the live picture honest.</p></article>
+<article><span>03</span><div class="step-icon">◷</div><h3>Plan the week</h3><p>Mark when you are coming, see who else is in, and let the next run organize itself.</p></article>
+</div>
+</section>
+
+<section class="section about" id="about">
+<div class="about__panel">
+<div class="about__copy"><span class="lc-eyebrow lc-eyebrow--orange">Built for local competition</span><h2 class="lc-h2">Show up.<br>Play for something.</h2><p class="lc-body">Log games, build a real local ranking, and see the people who make your home court what it is.</p><button class="lc-text-btn" style="color:#ededf1">Explore competition →</button></div>
+<div class="rank">
+<header><span>East Austin · Basketball</span><strong>Local ranking</strong></header>
+<div class="rank__row is-current"><span>01</span><span class="lc-avatar lc-avatar--sm" style="width:34px;height:34px;border-radius:9px;border-color:var(--orange)">JM</span><strong>Jordan Miles</strong><span class="rank__score">1284</span><small>+18</small></div>
+<div class="rank__row"><span>02</span><span class="lc-avatar lc-avatar--sm" style="width:34px;height:34px;border-radius:9px;border-color:#6a6a76">AR</span><strong>Alex Rivera</strong><span class="rank__score">1251</span><small>+7</small></div>
+<div class="rank__row"><span>03</span><span class="lc-avatar lc-avatar--sm" style="width:34px;height:34px;border-radius:9px;border-color:#6a6a76">TK</span><strong>Taylor Kim</strong><span class="rank__score">1219</span><small>+11</small></div>
+<div class="rank__row"><span>04</span><span class="lc-avatar lc-avatar--sm" style="width:34px;height:34px;border-radius:9px;border-color:#6a6a76">MC</span><strong>Morgan Chen</strong><span class="rank__score">1188</span><small>—</small></div>
+<footer><span>Updated after every ranked game</span><span>↗</span></footer>
+</div>
+</div>
+</section>
+
+<section class="section final-cta lc-cta-glow">
+<span class="lc-eyebrow lc-eyebrow--orange">The launch map is ready</span>
+<h2 class="lc-h2">Find your run<span>.</span></h2>
+<p class="lc-body">Browse the first 56 source-backed basketball and pickleball courts.</p>
+<a class="lc-btn lc-btn--hero" href="#courts">Explore courts →</a>
+</section>
+
+<footer class="site-footer">
+<a class="brand" href="#top" style="gap:10px"><img src="../../assets/logo-mark.svg" width="34" height="34" alt=""><span class="lc-wordmark" style="font-size:21px">LOCALCHECK</span></a>
+<p>Live courts. Real competition.</p>
+<div><a href="#top">Back to top</a><span>© 2026 LocalCheck</span></div>
+</footer>
+</main>
+<script>
+const hero=document.querySelector('.hero'),art=document.querySelector('.hero__art'),copy=document.querySelector('.hero__copy');
+if(!matchMedia('(prefers-reduced-motion: reduce)').matches){let f=0;const up=()=>{const p=Math.min(1,Math.max(0,scrollY/Math.max(innerHeight,1)));art.style.transform='translate3d(0,'+(p*-46)+'px,0) scale('+(1+p*.055)+')';art.style.opacity=1-p*.2;copy.style.transform='translateY('+(p*22)+'px)';f=0};addEventListener('scroll',()=>{if(!f)f=requestAnimationFrame(up)},{passive:true});up()}
+</script>
+</body></html>

@@ -13,8 +13,8 @@ See @AGENTS.md for project rules, architecture, and the OTA-vs-full-build decisi
 This repo's docs are load-bearing for every future agent (Claude, Codex, Devin) that works here. Stale docs are worse than no docs.
 
 - `README.md` — must reflect what's actually true right now. If a change makes a line in it wrong, fix the line in the same session, don't defer it.
-- `docs/SOURCE_OF_TRUTH.md` — the prioritized task list and project status. Update it when you ship something or discover something that changes priority.
-- `ACTIVITY_LOG.md` and `dev_agent.md`'s Activity log section — append what you did, in the format already established there, before ending a session. Write it as if you won't be the one reading it next, because you won't be.
+- `docs/CURRENT_STATE.md` — the current checkpoint, priorities, and open acceptance gates. Update it when you ship something or discover something that changes priority. (`docs/SOURCE_OF_TRUTH.md` is a historical pointer now — don't update it as if it were live.)
+- `docs/product/ACTIVITY_LEDGER.md` — append a dated entry for what you did, in the format already established there, before ending a session. Write it as if you won't be the one reading it next, because you won't be. (Root `ACTIVITY_LOG.md` and `dev_agent.md` are historical; `AGENTS.md` §Read order is authoritative.)
 - `docs/SECRETS_AND_ENV.md` — update immediately if you add, rotate, or discover a new required env var or credential.
 - If you find a doc that's already stale, fix it as part of the work — don't just work around it and leave it wrong for the next agent.
 

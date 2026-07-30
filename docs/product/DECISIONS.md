@@ -2,6 +2,20 @@
 
 Status: Proposed. Nothing in this file is locked until the corresponding roadmap gate is confirmed by the user.
 
+## 2026-07-29 — Home is a fixed court hub, not a discovery card
+
+**Working decision confirmed by Jesse:** Home presents the local court as one
+full-width matte page section. It uses a quiet sport-ball mark, thin sport
+metadata, centered confirmed activity stats, and a restrained local-court
+label. `Who's Here` owns its inline `View all` action. The header, court
+summary, roster, and Next Run remain fixed; only the Activity Feed scrolls.
+Reusable court cards remain on Explore and map selection surfaces.
+
+**Why:** Home is the player's personal court hub, not a discovery result. A
+full-width section gives the page one clear structure, removes the detached
+count control, avoids conflicting blue/green slabs, and keeps the court truth
+visible while the longer activity history moves.
+
 ## 2026-07-27 — Explore is local-first, bounded, and sport-identifiable
 
 **Working decision confirmed by Jesse:** Explore uses a full-width `List` / `Map` switch. The list features `My Local Court`, then a small market/city-scoped set of relevant courts with `View All`; it does not download or foreground an unbounded global catalog. Court cards show active and local counts and carry their Check In action inside the card. Basketball blue and pickleball green may appear only as restrained metadata in a monochrome-style sport emblem, faint court geometry, and a smoked background hue. Court cards do not use a colored side stripe or a separate action row. LocalCheck orange remains reserved for live state and primary actions.

@@ -1,7 +1,7 @@
 # LocalCheck Launch Control
 
 Status: Active operating document
-Last verified: 2026-07-28
+Last verified: 2026-07-29
 Release authority: Jesse must explicitly approve production deploys, TestFlight builds/submissions, backend mutations, and merges.
 
 ## Jesse's launch order
@@ -9,10 +9,10 @@ Release authority: Jesse must explicitly approve production deploys, TestFlight 
 This is the priority order. Do not let lower-level technical hygiene displace it.
 
 1. **Get current `main` onto Jesse's phone.** Complete: `main` commit `249c926`, tag `v1.0.4`, produced LocalCheck 1.0.0 build 9. App Store Connect processing completed and TestFlight now offers the update.
-2. **Make the native map genuinely good.** On the new TestFlight build, verify stable markers, correct court positions, immediate styling, smooth pan/zoom, reliable selection and native sheet behavior, loading/error states, and outdoor legibility. The old web/native map behavior is not accepted as evidence.
-3. **Deliver and prove the private Broadcast client on phones.** GitHub `main` now contains the client that consumes authorized `court:*`, `market:*`, `user:*`, and `run:*` invalidations, suspends channels in the background, retains foreground catch-up, and exposes failures. Its first TestFlight-to-browser check worked without a tab switch. OTA or TestFlight delivery remains unapproved, and build 9 still contains the rejected public listeners.
-4. **Then do the cohesive UI/brand pass.** One court identity, component grammar, spacing/type/color/motion system, and honest states across mobile and web—great-looking and consistent, not a patchwork.
-5. **Then close the remaining functional and App Store loops.** Game flow, privacy, settings, onboarding, account deletion, store assets/metadata, and review submission.
+2. **Finish the agreed MVP core candidate.** Profile, shared Court Details/court cards, Schedule persistence, then the standard-Elo match lifecycle. Apple Sign-In stays unchanged.
+3. **Then prove Friends and the intentionally small notification set.** Run invite, friend request/accept, and final-score confirm/object only.
+4. **Then return to native/reliability acceptance.** Verify Mapbox physically and finish reverse-direction/background Realtime checks in parallel with real pilot feedback.
+5. **Then close App Store loops.** Privacy, onboarding, account deletion, recovery, store assets/metadata, external TestFlight, and review submission.
 
 Database advisor notes, RPC implementation details, and scale optimizations are not launch blockers unless they directly break one of those five outcomes.
 
@@ -29,7 +29,7 @@ Database advisor notes, RPC implementation details, and scale optimizations are 
 | Surface | Verified state | Authority / constraint |
 | --- | --- | --- |
 | Shared backend | `LocalCheckProd` (`qkrnmyexzvaxiqfxwwfb`) is healthy; 56 courts and the current mobile v2 schema are live. The old `jzclwnzcektqhgkkdeje` project still exists but is deprecated. | No new production schema until web and mobile use one contract. Do not delete or pause the old project without Jesse's approval. |
-| Mobile source | GitHub `main` contains feature commit `32bc0d6`: the private-Broadcast client, Mapbox-native Explore layers/clustering, premium Explore cards, corrected Compete presentation, Schedule batch editing, focused release gate, recovered live migration source, and consolidated documentation. Apple Sign-In remains enabled. | Browser QA passed scoped Realtime receiving, Explore list/map/cluster behavior, Compete presentation, and Schedule multi-select. Build 9 still has the old listeners and UI; source delivery does not update TestFlight. |
+| Mobile source | GitHub `main` contains feature commit `32bc0d6`. Draft PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/22) is the single canonical MVP review candidate for Schedule/friend fixes, Profile/Court Details/Home/shared UI, scoped Realtime, preview repair, and the notification/sport-Elo candidate. The mandatory contributor guardrails are in [`../APP_ARCHITECTURE.md`](../APP_ARCHITECTURE.md). Apple Sign-In remains enabled and unchanged. | PR #22 is not merged; build 9 still has the old listeners and UI. Notification/Elo backend activation, phone push, and physical QA remain gated. Source delivery alone does not update TestFlight. |
 | Mobile distribution | EAS is connected to the correct repo and `artifacts/mobile`; all environments point to LocalCheckProd and have the required Mapbox tokens. LocalCheck 1.0.0 build 9 completed and TestFlight offers it as an update. | Install build 9, then run native map and two-device Realtime acceptance. |
 | Public website | The deployed site is visually aligned with the graphite/orange direction and its court explorer resolves 56 Supabase courts. `LocalCheck_WEB` main is PR #1 at `7a5b74d`. | The old PR #2 checkout is archived at `/Users/JesseH/Projects/archive/LocalCheck_WEB_PR2-branch-2026-07-26`. It is ten commits ahead of main with preserved local package changes and must not be mistaken for deployed truth. |
 | Web PR #2 | Weather and shared-planning heatmap are implemented, but GitHub has no status checks. | Blocked from merge: two unresolved P2 review threads, a non-critical weather request without a timeout, stale-session recovery, and a second planning model (`court_time_intents`) that conflicts with production `planned_visits`. |
@@ -37,7 +37,7 @@ Database advisor notes, RPC implementation details, and scale optimizations are 
 | Brand | This folder is the working governance and cross-platform product contract. | `DESIGN.md`, the logo, and its decisions remain draft until Jesse locks them through collaborative review. |
 | JAWS | Contains historical research and experimental specimens; `Brand Asset Sheet.dc.html` is the current provisional visual base. | Its bracketed-check construction and heavy display typography are not final. Reconcile conflicting specimens before reuse. |
 | Agent library | `/Users/JesseH/Projects/agents` is a reusable skill/reference corpus, not a LocalCheck product repo. | Use its rigorous-verifier contract for evidence, resource, lifecycle, and end-to-end checks; do not treat generic design files as product decisions. |
-| Local verification | The stale Expo checkout is preserved in `/Users/JesseH/Projects/archive/LocalCheck_Expo-local-before-main-2026-07-26`. The repeatable export fallback is live at `http://127.0.0.1:8081/`; release checks and signed-in Explore/Compete/Schedule browser QA pass. Its two `node_modules` paths still link into the archive, so normal Metro live mode remains blocked by `EMFILE`. | The fallback is interactive but has no hot reload and is not native proof. Budget disk, replace the symlinks with a filtered lockfile-derived mobile install, then verify normal Expo start. Do not delete archived work or run a large dependency install without a safe storage plan. |
+| Local verification | The stale checkout remains preserved in the archive, while the canonical repo now has a real lockfile-derived pnpm install. The repeatable export fallback is live at port 8081 and the release gate passes. Normal Expo live mode still reaches `EMFILE` because Watchman is not installed. | The fallback is interactive but has no hot reload and is not native proof. Restart it after code edits; TestFlight remains authoritative for Mapbox, Apple Sign-In, SecureStore, and Location. |
 
 ## Burn-down
 
@@ -48,7 +48,7 @@ Database advisor notes, RPC implementation details, and scale optimizations are 
 - [x] Verify LocalCheckProd health, realtime publication membership, Apple provider state, and current data shape.
 - [x] Archive the dirty/diverged local Expo checkout intact and restore the canonical local path to clean GitHub `main` at `7a6862e`.
 - [x] Land a release gate on mobile `main` before OTA publication. `check:release` runs TypeScript plus five focused Realtime tests.
-- [ ] Verify the release candidate locally/cloud-side without relying on the stale branch checkout.
+- [x] Verify the release candidate builds from the canonical checkout without relying on the stale branch checkout. The interactive web export and release gate pass; visual acceptance remains open.
 - [x] Repair the Mapbox SDK-download credential and pass native dependency installation.
 - [x] Resolve the EAS fingerprint mismatch, build current `main`, and deliver LocalCheck 1.0.0 build 9 to TestFlight.
 - [ ] Deliver the local private-Broadcast replacement for every shipping-app `postgres_changes` listener after review and Jesse's explicit push/release approval.
@@ -62,7 +62,7 @@ Database advisor notes, RPC implementation details, and scale optimizations are 
 
 - [ ] Prove the game loop end to end against LocalCheckProd, including Elo/win/loss/profile/feed effects.
 - [ ] Complete visibility/privacy enforcement across leaderboards, planned visits, schedules, profiles, and court people lists. The local duplicate/inline Compete presentation is fixed, but `profiles` still has no persisted visibility contract and the database cannot yet enforce leaderboard privacy.
-- [ ] Make the weekly availability calendar the primary planning surface and use the same `planned_visits` contract on web and mobile.
+- [ ] Accept and physically prove the weekly availability candidate. Mobile now uses the same `planned_visits` contract on Schedule and Court Details, with multi-select batch save and idempotent inserts; signed-in add/remove proof remains.
 - [ ] Reorganize Settings; fix Manage Account; remove or wire dead controls; keep LocalPlus hidden for MVP.
 - [ ] Rebuild onboarding on current `main` and verify first-session success on a clean account.
 - [ ] Resolve the missing `POST /api/courts/verify` path or remove the production-facing add-court promise.
@@ -119,12 +119,12 @@ Every implementation task given to another agent must include:
 
 ## Immediate decision queue
 
-1. Review the local Explore/map candidate, then obtain Jesse's explicit delivery approval before treating its passed browser QA as a phone feature.
-2. Baseline captured 2026-07-27: two clients on the same court stayed inconsistent until navigation; Realtime logs confirmed public channels were rejected by the private-only project.
-3. Review the completed Broadcast candidate and recovered migration source on `main`; do not publish an OTA/TestFlight update until Jesse explicitly approves that boundary.
-4. Finish reverse-direction/background/scoping checks, then run two-phone Realtime acceptance without tab switching after delivery.
-5. Turn failures from those passes into the next tightly scoped implementation work.
-6. Start the collaborative cross-platform UI/brand pass only after those functional foundations are proven.
+1. Jesse reviews open PR #22 in the refreshed local preview across Home, Explore List/Map, Schedule, Court Details, Compete, and Me. Correct visible mobile mismatches before delivery.
+2. Preserve Apple Sign-In unchanged. Prove Schedule add/remove persistence and the shared form sheets on a physical signed-in client.
+3. Review the cloud Elo PR and handoff selectively against the live schema. Do not apply its migration wholesale or mutate production before the match confirmation/objection lifecycle is approved.
+4. Obtain Jesse's explicit delivery approval before merging PR #22 or taking any OTA, EAS build, or TestFlight action.
+5. After delivery, finish reverse-direction/background/scoping checks and run two-phone Realtime acceptance without tab switching.
+6. Turn physical QA and pilot feedback into the next tightly scoped implementation pass.
 
 ## Evidence ledger — 2026-07-27
 

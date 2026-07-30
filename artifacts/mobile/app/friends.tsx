@@ -21,7 +21,16 @@ import { searchPlayers } from "@/services/profileService";
 
 export default function FriendsScreen() {
   const router = useRouter();
-  const { friendIds, isFriend, addFriend, removeFriend, getFriendsList, currentUser } = useApp();
+  const {
+    isFriend,
+    isFriendPending,
+    addFriend,
+    removeFriend,
+    acceptFriendRequest,
+    incomingFriendRequests,
+    getFriendsList,
+    currentUser,
+  } = useApp();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
 
@@ -104,6 +113,29 @@ export default function FriendsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 84 : bottom + 100 }}
       >
+        {activeTab === "FRIENDS" && incomingFriendRequests.length > 0 && (
+          <View style={styles.requestSection}>
+            <Text style={styles.requestTitle}>FRIEND REQUESTS</Text>
+            {incomingFriendRequests.map((player) => (
+              <View key={player.id} style={styles.requestRow}>
+                <Pressable style={styles.requestIdentity} onPress={() => router.push(`/player/${player.id}`)}>
+                  <PlayerAvatar initials={player.avatar} size={40} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.rowName}>{player.name.toUpperCase()}</Text>
+                    <Text style={styles.rowElo}>{player.elo} ELO</Text>
+                  </View>
+                </Pressable>
+                <Pressable style={styles.acceptButton} onPress={() => void acceptFriendRequest(player.id)}>
+                  <Text style={styles.acceptButtonText}>ACCEPT</Text>
+                </Pressable>
+                <Pressable style={styles.declineButton} onPress={() => void removeFriend(player.id)}>
+                  <Ionicons name="close" size={15} color={Colors.muted} />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        )}
+
         {activeTab === "FRIENDS" && friends.length === 0 && (
           <View style={styles.emptyState}>
             <Ionicons name="people" size={32} color={Colors.mutedDark} />
@@ -126,6 +158,7 @@ export default function FriendsScreen() {
             key={player.id}
             player={player}
             isFriend={isFriend(player.id)}
+            isPending={isFriendPending(player.id)}
             onPress={() => router.push(`/player/${player.id}`)}
             onToggleFriend={() =>
               isFriend(player.id) ? removeFriend(player.id) : addFriend(player.id)
@@ -140,11 +173,13 @@ export default function FriendsScreen() {
 function FriendRow({
   player,
   isFriend: friendStatus,
+  isPending,
   onPress,
   onToggleFriend,
 }: {
   player: Player;
   isFriend: boolean;
+  isPending: boolean;
   onPress: () => void;
   onToggleFriend: () => void;
 }) {
@@ -164,7 +199,7 @@ function FriendRow({
         </View>
       </View>
       <Pressable
-        style={[styles.rowAction, friendStatus && styles.rowActionRemove]}
+        style={[styles.rowAction, (friendStatus || isPending) && styles.rowActionRemove]}
         onPress={(e) => {
           e.stopPropagation();
           onToggleFriend();
@@ -172,9 +207,9 @@ function FriendRow({
         hitSlop={10}
       >
         <Ionicons
-          name={friendStatus ? "remove" : "add"}
+          name={friendStatus ? "remove" : isPending ? "time-outline" : "add"}
           size={16}
-          color={friendStatus ? Colors.loss : Colors.win}
+          color={friendStatus ? Colors.loss : isPending ? Colors.muted : Colors.accent}
         />
       </Pressable>
     </Pressable>
@@ -248,6 +283,34 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
     backgroundColor: Colors.surface,
   },
+  requestSection: {
+    margin: 16,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  requestTitle: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 8,
+    color: Colors.accent,
+    letterSpacing: 1.5,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  requestRow: {
+    minHeight: 62,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 10,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderSubtle,
+  },
+  requestIdentity: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
+  acceptButton: { minHeight: 32, justifyContent: "center", paddingHorizontal: 11, backgroundColor: Colors.accent },
+  acceptButtonText: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.black, letterSpacing: 1 },
+  declineButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
   searchInput: {
     flex: 1,
     fontFamily: Typography.bodyMedium,

@@ -2,7 +2,7 @@
 // @rnmapbox/maps is a NATIVE module: it needs this plugin + a full EAS build
 // (tag → Release iOS) to reach devices — map JS changes after that ship OTA.
 //
-// MAPBOX_DOWNLOADS_TOKEN: a secret (sk.*) Mapbox token with the
+// RNMAPBOX_MAPS_DOWNLOAD_TOKEN: a secret (sk.*) Mapbox token with the
 // Downloads:Read scope, set as an EAS environment variable — required for the
 // iOS/Android native SDK download during prebuild. The public EXPO_PUBLIC_
 // MAPBOX_TOKEN in .env is NOT sufficient for builds (runtime tiles only).
@@ -13,12 +13,6 @@ module.exports = ({ config }) => ({
   ...config,
   plugins: [
     ...appJson.expo.plugins,
-    [
-      "@rnmapbox/maps",
-      {
-        RNMapboxMapsDownloadToken:
-          process.env.MAPBOX_DOWNLOADS_TOKEN ?? undefined,
-      },
-    ],
+    "@rnmapbox/maps",
   ],
 });

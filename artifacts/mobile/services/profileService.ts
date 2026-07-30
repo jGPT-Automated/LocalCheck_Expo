@@ -12,13 +12,19 @@ export interface SupabaseProfile {
   elo_rating: number;
   wins: number;
   losses: number;
+  elo_basketball: number;
+  elo_pickleball: number;
+  basketball_wins: number;
+  basketball_losses: number;
+  pickleball_wins: number;
+  pickleball_losses: number;
   total_court_time_minutes: number;
   local_court_id: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export function mapProfileToPlayer(row: Partial<SupabaseProfile>): Player {
+export function mapProfileToPlayer(row: Partial<SupabaseProfile>, sport?: CourtSport | null): Player {
   const name = row.display_name || row.username || "Player";
   const initials = name
     .split(" ")
@@ -27,19 +33,33 @@ export function mapProfileToPlayer(row: Partial<SupabaseProfile>): Player {
     .join("")
     .toUpperCase()
     .slice(0, 2);
-  const elo = row.elo_rating ?? 1200;
+  const elo = sport === "BASKETBALL"
+    ? row.elo_basketball ?? row.elo_rating ?? 1200
+    : sport === "PICKLEBALL"
+    ? row.elo_pickleball ?? row.elo_rating ?? 1200
+    : row.elo_rating ?? 1200;
+  const wins = sport === "BASKETBALL"
+    ? row.basketball_wins ?? row.wins ?? 0
+    : sport === "PICKLEBALL"
+    ? row.pickleball_wins ?? row.wins ?? 0
+    : row.wins ?? 0;
+  const losses = sport === "BASKETBALL"
+    ? row.basketball_losses ?? row.losses ?? 0
+    : sport === "PICKLEBALL"
+    ? row.pickleball_losses ?? row.losses ?? 0
+    : row.losses ?? 0;
   return {
     id: row.id ?? "",
     name,
     elo,
     tier: getEloTier(elo),
     avatar: initials,
-    wins: row.wins ?? 0,
-    losses: row.losses ?? 0,
+    wins,
+    losses,
     checkIns: row.total_court_time_minutes ?? 0,
     memberSince: row.created_at ?? new Date().toISOString(),
     courtId: row.local_court_id ?? undefined,
-    sport: undefined,
+    sport: sport ?? undefined,
     visibility: "public",
     isLocalPlus: false,
     friendIds: [],
@@ -71,7 +91,7 @@ export async function fetchLocals(courtId: string): Promise<Player[]> {
       .select("*")
       .eq("local_court_id", courtId);
     if (error || !data) return [];
-    return (data as SupabaseProfile[]).map(mapProfileToPlayer);
+    return (data as SupabaseProfile[]).map((row) => mapProfileToPlayer(row));
   } catch {
     return [];
   }
@@ -176,7 +196,7 @@ export async function searchPlayers(query: string): Promise<Player[]> {
       .or(`display_name.ilike.%${trimmed}%,username.ilike.%${trimmed}%`)
       .limit(20);
     if (error || !data) return [];
-    return (data as SupabaseProfile[]).map(mapProfileToPlayer);
+    return (data as SupabaseProfile[]).map((row) => mapProfileToPlayer(row));
   } catch {
     return [];
   }
@@ -189,20 +209,40 @@ export async function fetchLeaderboard(
   sport?: CourtSport | null
 ): Promise<Player[]> {
   try {
-    let q = supabase.from("profiles").select("*");
+    let regionalCourtIds: string[] | null = null;
 
-    if (scope === "LOCAL" && courtId) {
-      q = q.eq("local_court_id", courtId);
+    if (scope === "REGIONAL" && courtId) {
+      const { data: anchor } = await supabase
+        .from("courts")
+        .select("market")
+        .eq("id", courtId)
+        .maybeSingle();
+      const market = (anchor as { market?: string | null } | null)?.market;
+      if (!market) return [];
+      const { data: marketCourts } = await supabase
+        .from("courts")
+        .select("id")
+        .eq("market", market)
+        .eq("is_archived", false)
+        .limit(500);
+      regionalCourtIds = (marketCourts as Array<{ id: string }> | null)?.map((court) => court.id) ?? [];
+      if (regionalCourtIds.length === 0) return [];
     }
 
-    // Profiles don't have a sport column, so we can't filter by sport reliably.
-    // If the user's local court has a sport and scope is LOCAL, the leaderboard
-    // naturally reflects that sport. For GLOBAL, we return all players.
-    void sport;
+    const buildQuery = (orderColumn: string) => {
+      let query = supabase.from("profiles").select("*");
+      if (scope === "LOCAL" && courtId) query = query.eq("local_court_id", courtId);
+      if (scope === "REGIONAL" && regionalCourtIds) query = query.in("local_court_id", regionalCourtIds);
+      return query.order(orderColumn, { ascending: false }).limit(100);
+    };
 
-    const { data, error } = await q.order("elo_rating", { ascending: false }).limit(100);
-    if (error || !data) return [];
-    return (data as SupabaseProfile[]).map(mapProfileToPlayer);
+    const ratingColumn = sport === "PICKLEBALL" ? "elo_pickleball" : "elo_basketball";
+    let result = await buildQuery(ratingColumn);
+    // Rollout safety: an older backend can still show its combined rating
+    // until the additive sport-rating migration is applied.
+    if (result.error?.code === "42703") result = await buildQuery("elo_rating");
+    if (result.error || !result.data) return [];
+    return (result.data as SupabaseProfile[]).map((row) => mapProfileToPlayer(row, sport));
   } catch {
     return [];
   }

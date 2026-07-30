@@ -6,25 +6,29 @@ import { Feather } from "@expo/vector-icons";
 
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { FormSheet } from "@/components/sheet/FormSheet";
 import { Colors, Radius } from "@/constants/colors";
 import { getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useRealtimeHub } from "@/context/RealtimeHubContext";
 import { batchHasResource, type RealtimeTopic } from "@/lib/realtimeHub";
+import { inviteFriendToRun } from "@/services/notificationService";
 import { updateScheduledGame } from "@/services/scheduledGameService";
 
 const RUN_SIZES = [4, 6, 8, 10];
 
 export default function RunScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { runs, joinRun, currentUser, refreshRuns } = useApp();
+  const { runs, joinRun, currentUser, refreshRuns, getFriendsList } = useApp();
   const realtimeHub = useRealtimeHub();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [invitedIds, setInvitedIds] = useState<string[]>([]);
+  const [invitingId, setInvitingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -52,6 +56,10 @@ export default function RunScreen() {
   const isHost = run.hostId === currentUser.id;
   // Before the start time the run can be edited; after it, it's a played game to log.
   const hasStarted = new Date(run.startTimeIso).getTime() <= Date.now();
+  const participantIds = new Set(run.participants.map((player) => player.id));
+  const inviteableFriends = getFriendsList()
+    .filter((friend) => !participantIds.has(friend.id))
+    .slice(0, 8);
 
   const handleJoin = async () => {
     if (isJoined || isFull || joining) return;
@@ -60,6 +68,14 @@ export default function RunScreen() {
     const ok = await joinRun(run.id);
     setJoining(false);
     if (!ok) setJoinError(true);
+  };
+
+  const handleInvite = async (friendId: string) => {
+    if (invitingId || invitedIds.includes(friendId)) return;
+    setInvitingId(friendId);
+    const ok = await inviteFriendToRun(run.id, friendId);
+    setInvitingId(null);
+    if (ok) setInvitedIds((ids) => [...ids, friendId]);
   };
 
   return (
@@ -124,6 +140,30 @@ export default function RunScreen() {
             </View>
           ))}
         </View>
+
+        {isHost && !hasStarted && inviteableFriends.length > 0 ? (
+          <View style={styles.inviteSection}>
+            <Text style={styles.resultLabel}>INVITE FRIENDS</Text>
+            {inviteableFriends.map((friend) => {
+              const invited = invitedIds.includes(friend.id);
+              return (
+                <View key={friend.id} style={styles.inviteRow}>
+                  <PlayerAvatar initials={friend.avatar} size={32} />
+                  <Text style={styles.inviteName} numberOfLines={1}>{friend.name.toUpperCase()}</Text>
+                  <Pressable
+                    style={[styles.inviteButton, invited && styles.inviteButtonDone]}
+                    onPress={() => void handleInvite(friend.id)}
+                    disabled={invited || invitingId === friend.id}
+                  >
+                    <Text style={[styles.inviteButtonText, invited && styles.inviteButtonTextDone]}>
+                      {invited ? "INVITED" : invitingId === friend.id ? "SENDING…" : "INVITE"}
+                    </Text>
+                  </Pressable>
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
 
         {/* Before start: host can edit the run. After start: it's a played
             game anyone here can log (routes to the Compete log flow). */}
@@ -235,14 +275,7 @@ function EditRunModal({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.editSheet, { paddingTop: Platform.OS === "ios" ? top : top + 12 }]}>
-        <View style={styles.editHeader}>
-          <Text style={styles.editTitle}>EDIT RUN</Text>
-          <Pressable onPress={onClose} hitSlop={12}>
-            <Feather name="x" size={22} color={Colors.muted} />
-          </Pressable>
-        </View>
+    <FormSheet visible={visible} onClose={onClose} title="Edit run">
         <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
           <Text style={styles.editLabel}>TITLE</Text>
           <TextInput
@@ -272,8 +305,7 @@ function EditRunModal({
             <Text style={styles.editSaveText}>{saving ? "SAVING…" : "SAVE CHANGES"}</Text>
           </Pressable>
         </ScrollView>
-      </View>
-    </Modal>
+    </FormSheet>
   );
 }
 
@@ -315,6 +347,13 @@ const styles = StyleSheet.create({
   resultLabel: { fontFamily: Typography.heading, fontSize: 13, color: Colors.text, letterSpacing: 3, borderBottomWidth: 1, borderColor: Colors.border, paddingBottom: 10, marginBottom: 12, textTransform: "uppercase" as const },
   resultButtons: { flexDirection: "row", gap: 10 },
   resultBtn: { flex: 1 },
+  inviteSection: { paddingHorizontal: 20, paddingTop: 24 },
+  inviteRow: { minHeight: 52, flexDirection: "row", alignItems: "center", gap: 10, borderBottomWidth: 1, borderBottomColor: Colors.borderSubtle },
+  inviteName: { flex: 1, fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.text, letterSpacing: 0.4 },
+  inviteButton: { minWidth: 70, minHeight: 30, paddingHorizontal: 10, alignItems: "center", justifyContent: "center", borderRadius: Radius.xs, borderWidth: 1, borderColor: Colors.accent },
+  inviteButtonDone: { borderColor: Colors.border, backgroundColor: Colors.surfaceHigh },
+  inviteButtonText: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.accent, letterSpacing: 0.8 },
+  inviteButtonTextDone: { color: Colors.muted },
   footer: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingTop: 12, backgroundColor: Colors.surface, borderTopWidth: 1, borderColor: Colors.border },
   joinError: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.loss, letterSpacing: 1.5, textAlign: "center", marginBottom: 8 },
 

@@ -43,11 +43,13 @@ export function CourtsScreen() {
     preferredSport,
     localCourt,
     localCourtId,
+    setLocalCourt,
   } = useApp();
   const { openCourtSheet: presentCourtSheet } = useCourtSheet();
 
   const [mode, setMode] = useState<ExploreMode>("LIST");
   const [sportFilter, setSportFilter] = useState<SportFilter>(preferredSport ?? "ALL");
+  const [sportMenuOpen, setSportMenuOpen] = useState(false);
   const [nearbyCourts, setNearbyCourts] = useState<Court[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
@@ -188,29 +190,70 @@ export function CourtsScreen() {
     }
   };
 
+  const handleSetLocalCourt = async (court: Court) => {
+    if (Platform.OS !== "web") {
+      void Haptics.selectionAsync();
+    }
+    await setLocalCourt(court.id, court);
+  };
+
   return (
     <View style={styles.container}>
       <ScreenHeader
         title="EXPLORE"
       />
 
-      <View style={styles.searchRow}>
-        <Feather name="search" size={15} color={Colors.muted} />
-        <TextInput
-          style={styles.searchInput}
-          value={searchQuery}
-          onChangeText={(value) => {
-            setSearchQuery(value);
-            if (value.trim().length >= 2) setMode("LIST");
-          }}
-          placeholder="Search courts..."
-          placeholderTextColor={Colors.mutedDark}
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="search"
-          clearButtonMode="while-editing"
-        />
-        {searchLoading && <ActivityIndicator size="small" color={Colors.muted} />}
+      <View style={styles.searchArea}>
+        <View style={styles.searchRow}>
+          <Pressable
+            style={styles.sportMenuButton}
+            onPress={() => setSportMenuOpen((open) => !open)}
+            accessibilityRole="button"
+            accessibilityLabel="Filter courts by sport"
+            accessibilityState={{ expanded: sportMenuOpen }}
+          >
+            <Text style={styles.sportMenuButtonText}>
+              {sportFilter === "ALL" ? "ALL" : sportFilter === "BASKETBALL" ? "BB" : "PB"}
+            </Text>
+            <Feather name="chevron-down" size={11} color={Colors.muted} />
+          </Pressable>
+          <View style={styles.searchDivider} />
+          <Feather name="search" size={15} color={Colors.muted} />
+          <TextInput
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={(value) => {
+              setSearchQuery(value);
+              if (value.trim().length >= 2) setMode("LIST");
+            }}
+            placeholder="Search courts..."
+            placeholderTextColor={Colors.mutedDark}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+          />
+          {searchLoading && <ActivityIndicator size="small" color={Colors.muted} />}
+        </View>
+        {sportMenuOpen ? (
+          <View style={styles.sportMenu}>
+            {(["ALL", "BASKETBALL", "PICKLEBALL"] as SportFilter[]).map((sport) => (
+              <Pressable
+                key={sport}
+                style={[styles.sportMenuItem, sportFilter === sport && styles.sportMenuItemActive]}
+                onPress={() => {
+                  setSportFilter(sport);
+                  setSportMenuOpen(false);
+                }}
+              >
+                <Text style={[styles.sportMenuItemText, sportFilter === sport && styles.sportMenuItemTextActive]}>
+                  {sport === "ALL" ? "ALL COURTS" : sport}
+                </Text>
+                {sportFilter === sport ? <Feather name="check" size={13} color={Colors.accent} /> : null}
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.modeSwitch} accessibilityRole="tablist">
@@ -232,23 +275,6 @@ export function CourtsScreen() {
             </Text>
           </Pressable>
         ))}
-      </View>
-
-      <View style={styles.filterStrip}>
-        {(["ALL", "BASKETBALL", "PICKLEBALL"] as SportFilter[]).map((sport) => (
-          <Pressable
-            key={sport}
-            style={[styles.filterPill, sportFilter === sport && styles.filterPillActive]}
-            onPress={() => setSportFilter(sport)}
-          >
-            <Text style={[styles.filterText, sportFilter === sport && styles.filterTextActive]}>
-              {sport === "ALL" ? "ALL COURTS" : sport}
-            </Text>
-          </Pressable>
-        ))}
-        <Text style={styles.scopeText} numberOfLines={1}>
-          {localCourt?.market ? `SCOPED TO ${localCourt.market.toUpperCase()}` : "LOCATION SCOPED"}
-        </Text>
       </View>
 
       {mode === "MAP" ? (
@@ -309,6 +335,7 @@ export function CourtsScreen() {
                   onPress={openCourt}
                   isCheckedIn={checkedInCourtId === court.id}
                   onCheckIn={handleCourtCheckIn}
+                  onSetLocalCourt={handleSetLocalCourt}
                 />
               ))
             )}
@@ -340,6 +367,7 @@ export function CourtsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  searchArea: { position: "relative", zIndex: 12 },
   searchRow: {
     minHeight: 44,
     flexDirection: "row",
@@ -357,14 +385,41 @@ const styles = StyleSheet.create({
     color: Colors.text,
     paddingVertical: 8,
   },
+  sportMenuButton: {
+    minWidth: 32,
+    height: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3,
+  },
+  sportMenuButtonText: { fontFamily: Typography.bodyBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.2 },
+  searchDivider: { width: 1, height: 18, backgroundColor: Colors.border },
+  sportMenu: {
+    position: "absolute",
+    top: 40,
+    left: 12,
+    width: 172,
+    padding: 5,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surfaceHigh,
+    shadowColor: Colors.black,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 10,
+  },
+  sportMenuItem: { minHeight: 38, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderRadius: Radius.xs },
+  sportMenuItemActive: { backgroundColor: Colors.surface },
+  sportMenuItemText: { fontFamily: Typography.bodySemiBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.2 },
+  sportMenuItemTextActive: { color: Colors.text },
   modeSwitch: {
     minHeight: 40,
     flexDirection: "row",
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderWidth: 0.5,
+    borderBottomWidth: 1,
     borderColor: Colors.border,
-    borderRadius: Radius.xs,
     overflow: "hidden",
     backgroundColor: Colors.surface,
   },
@@ -377,47 +432,15 @@ const styles = StyleSheet.create({
   },
   modeTabActive: { backgroundColor: Colors.surfaceHigh },
   modeTabText: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 10,
     color: Colors.muted,
-    letterSpacing: 1.8,
+    letterSpacing: 1.5,
   },
   modeTabTextActive: { color: Colors.text },
-  filterStrip: {
-    minHeight: 46,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  filterPill: {
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  filterPillActive: { borderColor: Colors.textSecondary, backgroundColor: Colors.surfaceHigh },
-  filterText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 8,
-    color: Colors.muted,
-    letterSpacing: 1.2,
-  },
-  filterTextActive: { color: Colors.text },
-  scopeText: {
-    flex: 1,
-    textAlign: "right",
-    fontFamily: Typography.bodyMedium,
-    fontSize: 7,
-    color: Colors.mutedDark,
-    letterSpacing: 0.8,
-  },
   list: { flex: 1 },
-  localSection: { paddingTop: 20, paddingBottom: 8 },
-  discoverySection: { paddingTop: 18 },
+  localSection: { paddingTop: 16, paddingBottom: 6 },
+  discoverySection: { paddingTop: 14 },
   sectionHeadingRow: {
     flexDirection: "row",
     alignItems: "center",

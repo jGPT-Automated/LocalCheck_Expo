@@ -74,6 +74,7 @@ export function mapScheduledGameToRun(row: SupabaseRun): GameRun {
     maxPlayers,
     participants,
     hostId: row.organizer_id,
+    hostName: row.organizer?.display_name || row.organizer?.username || undefined,
     skillLevel: "ALL LEVELS",
   };
 }

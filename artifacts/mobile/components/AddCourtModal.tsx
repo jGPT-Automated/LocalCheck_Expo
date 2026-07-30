@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -18,6 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors, Radius } from "@/constants/colors";
+import { FormSheet } from "@/components/sheet/FormSheet";
 import { Court, CourtSport, SPORT_ICONS } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
@@ -45,7 +45,7 @@ const API_BASE = process.env.EXPO_PUBLIC_DOMAIN
 
 export function AddCourtModal({ visible, onClose, initialLatitude, initialLongitude }: Props) {
   const { currentUser, addCourt } = useApp();
-  const { top, bottom } = useSafeAreaInsets();
+  const { bottom } = useSafeAreaInsets();
 
   const [step, setStep] = useState<Step>("form");
   const [name, setName] = useState("");
@@ -373,60 +373,23 @@ export function AddCourtModal({ visible, onClose, initialLatitude, initialLongit
     );
   };
 
+  const stepNumber = step === "form" ? 1 : step === "photo" ? 2 : step === "verifying" ? 3 : 4;
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.modal, { paddingTop: Platform.OS === "ios" ? top : top + 12 }]}>
-        <View style={styles.header}>
-          <Pressable onPress={onClose} style={styles.closeBtn} hitSlop={12}>
-            <Ionicons name="close" size={22} color={Colors.muted} />
-          </Pressable>
-          <View style={styles.progressRow}>
-            {["form", "photo", "verifying", "result"].map((s, i) => (
-              <View
-                key={s}
-                style={[
-                  styles.progressDot,
-                  (step === s ||
-                    (step === "verifying" && i <= 2) ||
-                    (step === "result" && i <= 3) ||
-                    (step === "photo" && i <= 1) ||
-                    (step === "form" && i === 0)) && styles.progressDotActive,
-                ]}
-              />
-            ))}
-          </View>
-        </View>
-
-        {step === "form" && renderForm()}
-        {step === "photo" && renderPhoto()}
-        {step === "verifying" && renderVerifying()}
-        {step === "result" && renderResult()}
-      </View>
-    </Modal>
+    <FormSheet
+      visible={visible}
+      onClose={onClose}
+      title="Add a court"
+      eyebrow={`STEP ${stepNumber} OF 4`}
+    >
+      {step === "form" && renderForm()}
+      {step === "photo" && renderPhoto()}
+      {step === "verifying" && renderVerifying()}
+      {step === "result" && renderResult()}
+    </FormSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  modal: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderColor: Colors.border,
-  },
-  closeBtn: { padding: 4 },
-  progressRow: { flexDirection: "row", gap: 6 },
-  progressDot: {
-    width: 8, height: 8, borderRadius: 4,
-    backgroundColor: Colors.border,
-  },
-  progressDotActive: { backgroundColor: Colors.accent },
   content: { padding: 24 },
   centerContent: {
     flex: 1, justifyContent: "center", alignItems: "center",
