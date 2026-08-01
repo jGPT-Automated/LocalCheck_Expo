@@ -11,7 +11,7 @@ LocalCheck brings the raw energy of street sports to your pocket. Discover who's
 | Doc | What it is |
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | Single agent/human entry point and operating rules |
-| [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md) | Exact build-9 checkpoint, current truth, and next sequence |
+| [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md) | Exact current checkpoint, current truth, and next sequence |
 | [`docs/APP_ARCHITECTURE.md`](docs/APP_ARCHITECTURE.md) | Required page, data, Realtime, and native guardrails |
 | [`docs/product/ACTIVITY_LEDGER.md`](docs/product/ACTIVITY_LEDGER.md) | Chronological activity, decisions, failures, and resolutions |
 | [`docs/product/LAUNCH_CONTROL.md`](docs/product/LAUNCH_CONTROL.md) | Launch burn-down and acceptance gates |
@@ -381,9 +381,16 @@ plain Expo Go** — use a development build, TestFlight, or web for quick checks
 
 ### Shipping a change
 
-Read [`docs/PLAYBOOK_DEPLOY.md`](docs/PLAYBOOK_DEPLOY.md). Short version:
-JS-only → merge to `main` → OTA update reaches installed TestFlight builds on
-next launch. Native/config change → `v*` tag → EAS build + TestFlight submit.
+Read [`docs/RELEASE_RUNBOOK.md`](docs/RELEASE_RUNBOOK.md) — the canonical,
+current procedure. [`docs/PLAYBOOK_DEPLOY.md`](docs/PLAYBOOK_DEPLOY.md) is
+kept only for older failure-history detail; where the two disagree, the
+runbook wins. Short version: JS-only → merge to `main` → OTA update reaches
+installed TestFlight builds on next launch, **but only builds whose runtime
+version matches** — a native-requiring change (new module/plugin/permission)
+merged without bumping `app.json`'s `version` will crash older installed
+binaries instead of updating them (see RELEASE_RUNBOOK.md §6). Native/config
+change → bump the version → `v*` tag (check `git ls-remote --tags` for the
+next free name first) → EAS build + TestFlight submit.
 **Every deploy trigger needs Jesse's explicit go-ahead.**
 
 ---

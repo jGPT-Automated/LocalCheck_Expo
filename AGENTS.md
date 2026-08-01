@@ -19,8 +19,8 @@ growth. Do not let secondary technical cleanup displace that outcome.
 
 - **Canonical repo:** `jGPT-Automated/LocalCheck_Expo`, branch `main`.
 - **Canonical local folder:** `/Users/JesseH/Projects/LocalCheck_Expo`.
-- **Installed native checkpoint:** TestFlight `1.0.0 (9)`, tag `v1.0.4`.
-- **GitHub source:** verify `origin/main` at task start; on 2026-07-28 it was `7772b61`.
+- **Installed native checkpoint:** TestFlight `1.0.1 (13)`, tag `v1.0.5`. Push notification registration is broken on this build — open issue, see `docs/CURRENT_STATE.md`.
+- **GitHub source:** verify `origin/main` at task start; on 2026-08-01 it was `d193ac8` (PR #22 MVP consolidation + PR #23 version bump).
 - **Mobile app root:** `artifacts/mobile/`. Run Expo and EAS commands there.
 - **EAS project:** `agenticjess-os/localcheck`, project id `9c906173-0258-45a9-a3fe-786cda373c66`.
 - **Backend:** Supabase LocalCheckProd `qkrnmyexzvaxiqfxwwfb`.

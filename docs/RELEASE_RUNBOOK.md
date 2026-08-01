@@ -1,6 +1,6 @@
 # Expo and TestFlight release runbook
 
-Last verified end-to-end: 2026-07-26, `v1.0.4` → TestFlight `1.0.0 (9)`
+Last verified end-to-end: 2026-08-01, `v1.0.5` → TestFlight `1.0.1 (13)`
 
 This is the canonical repeatable path. Run Expo/EAS commands from
 `/Users/JesseH/Projects/LocalCheck_Expo/artifacts/mobile`.
@@ -67,14 +67,17 @@ into generated native properties.
 - Runtime policy: `appVersion`. This replaced the nondeterministic local-vs-EAS fingerprint policy that blocked build 9.
 - EAS stores signing and App Store Connect credentials; do not add local credential files to Git.
 
-## 6. Build-9 failure signatures worth remembering
+## 6. Build failure signatures worth remembering
 
 | Failure | Cause | Proven resolution |
 | --- | --- | --- |
 | MapboxCommon download returned HTTP 403 | Secret token lacked correct scope/wiring | Mapbox secret token with `Downloads:Read`, stored as Expo secret env variables. |
-| Local and EAS fingerprints differed | Generated native/autolinking content produced nondeterministic hashes | Runtime policy changed to `appVersion`; commit `249c926`. |
+| Local and EAS fingerprints differed | Generated native/autolinking content produced nondeterministic hashes | Runtime policy changed to `appVersion`; commit `249c926`. **Do not revert this to `fingerprint` or any other policy** — it was a deliberate fix for this exact bug. |
 | pnpm lock/config mismatch | EAS worker toolchain too old | Keep pnpm `10.13.1` pin. |
 | `configs.toReversed is not a function` during OTA export | Worker Node version too old for Metro | Keep Node `20.19.4` pin in OTA workflow. |
+| `Provisioning profile "...AppStore..." doesn't support the Push Notifications capability` / `doesn't include the aps-environment entitlement` (Xcode build error, `XCODE_BUILD_ERROR`) | A plugin requiring a new native capability (here: `expo-notifications`) was added to `app.json`, but the EAS-managed provisioning profile predates it and wasn't regenerated. `eas build`'s automatic capability sync (see [Expo iOS capabilities docs](https://docs.expo.dev/build-reference/ios-capabilities/)) did not self-heal across two separate build attempts in this project's case — don't assume it will. | 1) Enable the capability on the App ID in [Apple Developer Console](https://developer.apple.com/account/resources/identifiers/list) if it isn't already. 2) Run `cd artifacts/mobile && eas credentials` → iOS → `production` → **Build Credentials: Manage everything needed to build your project** → when asked "Would you like to reuse the original profile?" say **no**, then "Generate a new Apple Provisioning Profile?" say **yes**. Deleting/regenerating a provisioning profile this way is safe — it only clears EAS's cached copy, doesn't touch Apple's side, and has zero effect on any build already live in TestFlight/App Store ([Expo app-credentials docs](https://docs.expo.dev/app-signing/app-credentials/)). |
+| App launches, then crashes ~0.3–0.5s later with `SIGABRT` in `StartupProcedure.throwException` → `ErrorRecovery.crash` → `ErrorRecovery.notify(newRemoteLoadStatus:)` | This is `expo-updates`' own recovery system giving up, not a native crash — it means a fatal JS error occurred on launch, usually because the OTA update just downloaded relies on native code the installed binary doesn't have. Confirmed here: `expo-notifications` was added to `app.json` in the same commit that got auto-published via `publish-ota-update.yml` (which fires on every push to `main`, unconditionally), landing that JS on an older native binary that predated the module. [Expo's error-recovery docs](https://docs.expo.dev/eas-update/error-recovery.md) and [runtime-versions docs](https://docs.expo.dev/eas-update/runtime-versions.md) both describe this exact failure mode. | Bump `expo.version` in `app.json` (runtime policy is `appVersion`, so this also bumps the effective runtime version) *before or in the same commit as* any change that adds/removes a native module, plugin, permission, or entitlement. This makes the next native build's runtime version distinct, so it stops matching OTA updates meant for the old runtime. Does **not** fix already-installed old binaries — they need to be replaced by the new build. |
+| "Rerunning" an old EAS Workflow run produces an unexpectedly old build | EAS Workflow's re-run action replays that run's *original* triggering git ref (e.g. an old tag), it does **not** re-resolve to the branch's current HEAD. Manually re-running a run tied to `refs/tags/v1.0.4` will always rebuild the exact commit that tag points to, even months later. | To build current `main`, always cut a **new, unique tag** on the current commit and push it (step 3B above) — never re-run an old workflow run expecting it to pick up new work. Check `git ls-remote --tags <repo-url>` for the full existing tag list before choosing a name; this repo already has `v1.0.1`–`v1.0.5` in use. |
 
 ## 7. Definition of delivered
 

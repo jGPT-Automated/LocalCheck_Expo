@@ -488,3 +488,81 @@ Database Webhook, two-account database test, and two-phone push test remain.
 Because `expo-notifications` and `expo-device` add native code, phone push needs
 a new TestFlight build; it cannot be added to build 9 by OTA alone. Apple
 Sign-In was not changed.
+
+## 2026-08-01 — Build 9→13 incident: stale rerun, provisioning profile, OTA/native crash, resolved
+
+**Starting complaint:** Jesse reported TestFlight showed older/worse behavior
+than expected after "rerunning" a workflow, and asked for help understanding
+why. Three separate, real problems were found and fixed; this entry is the
+full record so a future agent doesn't have to re-derive any of it.
+
+**Problem 1 — TestFlight looked rolled back.** Build 12 (installed) and build 9
+(the known-good earlier checkpoint) were the *exact same source commit*,
+`249c926`. Cause: EAS Workflow's "re-run" action replays a run's original
+triggering git ref — it does not re-resolve to `main`'s current HEAD. A
+manual re-run of the old build-9 workflow run (tied to tag `v1.0.4`) rebuilt
+that same old commit under a new build number. `main` itself (PR #22,
+`bcf9605`) had never successfully built. Fix: always cut a fresh tag on the
+current commit instead of re-running old runs (now documented in
+RELEASE_RUNBOOK.md §6).
+
+**Problem 2 — builds against `main` failed to compile.** Builds 10 and 11
+(targeting `bcf9605`) both errored with `XCODE_BUILD_ERROR`: the cached iOS
+provisioning profile (generated 2026-07-08) didn't include the Push
+Notifications / `aps-environment` entitlement that `expo-notifications`
+(added in PR #22, confirmed absent from `app.json` at commit `249c926` via
+`git show`) now requires. Jesse enabled the capability on the App ID in Apple
+Developer Console; the profile itself still needed regenerating. Fix: `eas
+credentials` → iOS → `production` → Build Credentials → declined to reuse the
+original profile, generated a new one. Confirmed resolved when build 13
+compiled clean past the "Run fastlane" step.
+
+**Problem 3 — the installed app (build 9/12) crashed on launch.** Crash
+signature: `SIGABRT` in `StartupProcedure.throwException` →
+`ErrorRecovery.crash` → `ErrorRecovery.notify(newRemoteLoadStatus:)`, ~0.37s
+after launch. Root cause, confirmed against Expo's own error-recovery and
+runtime-versions docs (not just inferred): `publish-ota-update.yml` publishes
+to the `production` channel on *every* push to `main`, unconditionally. When
+PR #22 merged, its `expo-notifications` addition got OTA-published under the
+unchanged `runtimeVersion` (`policy: appVersion`, still resolving to `1.0.0`),
+so build 9/12's older native binary — compiled before that native module
+existed — downloaded and tried to run JS that called a native API it didn't
+have. `expo-updates`' own error-recovery exhausted its rollback options (fresh
+install, nothing to roll back to) and crashed by design. This exact risk was
+already flagged in the 2026-07-29 ledger entry above ("phone push... cannot
+be added to build 9 by OTA alone") — it happened anyway because
+`publish-ota-update.yml` has no gate against it. Fix: bumped `expo.version`
+1.0.0 → 1.0.1 (PR #23, `d193ac8`), which also bumps the effective runtime
+version, so the next native build stops being OTA-compatible with updates
+meant for the old runtime. Does not retroactively fix already-installed
+binaries.
+
+**Delivery:** Tag `v1.0.5` on `d193ac8` → workflow `019fbb3e-b3b6-7830-ad63-cb4545af256c`
+→ build 13 (app version 1.0.1) → both `build_ios` and `submit_ios` succeeded →
+App Store Connect processed it → Jesse updated via TestFlight.
+
+**Verified on-device by Jesse:** App launches without the crash, "works for
+the most part," "feels snappy," core logic present. This is real, positive,
+physical-device evidence — the app is functional again.
+
+**Still open, found during this pass:** Push notification registration fails
+on build 13 — "Alerts are not on: The phone could not be registered" — a
+different failure from problems 2 and 3 above, not yet root-caused. Leading
+theory: EAS credentials has a separate "Push Notifications: Manage your Apple
+Push Notifications Key" entry (an APNs auth key, distinct from the
+distribution cert/provisioning profile) that this session never touched. See
+`docs/CURRENT_STATE.md` "What is not complete" for the exact next check.
+
+**Process gap surfaced, not yet fixed:** `publish-ota-update.yml` has no check
+for whether a push to `main` is JS-only vs. native-requiring. That gap is what
+let problem 3 happen. Worth a guard before it recurs; left as an open decision
+for Jesse rather than changed unilaterally.
+
+**Mistake made and corrected mid-session, worth recording:** attempted to tag
+the fix as `v1.0.1` without first checking the full existing tag list —
+`v1.0.1`–`v1.0.4` already existed from this project's build 4–9 history. `git`
+correctly rejected the push (tags aren't force-overwritten by default); no
+damage occurred. Corrected by running `git ls-remote --tags` against the
+remote directly before choosing `v1.0.5`. Lesson: check full tag/version
+history before picking any release identifier, not just the locally-cached
+subset.

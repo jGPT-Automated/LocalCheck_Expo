@@ -24,4 +24,5 @@ Each release folder contains:
 
 ## Releases
 
-- [`ios-1.0.0-build-9`](releases/ios-1.0.0-build-9/SCREEN_MAP.md) — current `main` baseline delivered through TestFlight on 2026-07-26.
+- [`ios-1.0.0-build-9`](releases/ios-1.0.0-build-9/SCREEN_MAP.md) — delivered through TestFlight on 2026-07-26. No longer current.
+- **`ios-1.0.1-build-13`** — delivered through TestFlight on 2026-08-01 (PR #22 MVP consolidation + provisioning-profile/version-bump fixes; see `docs/CURRENT_STATE.md`). This is the current shipped build, but **no screen-library capture exists for it yet** — the next UI-focused session should record one before making further visual changes, since build-9's captures are now a release behind.

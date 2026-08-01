@@ -1,6 +1,6 @@
 # LocalCheck current state
 
-Last verified: 2026-07-29, America/Chicago
+Last verified: 2026-08-01, America/Chicago
 
 This is the short current truth. Use the activity ledger for history and the
 release runbook for deployment steps.
@@ -12,20 +12,22 @@ release runbook for deployment steps.
 | GitHub repository | `jGPT-Automated/LocalCheck_Expo` |
 | Canonical local folder | `/Users/JesseH/Projects/LocalCheck_Expo` |
 | Delivery branch | GitHub `main` |
-| Delivered source | GitHub `main` contains feature commit `32bc0d6` and its delivery record. Verify the current remote tip when an exact hash matters. |
-| Canonical review PR | Open [#22 — consolidate LocalCheck MVP candidate](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/22), branch `codex/mvp-consolidation`, based directly on GitHub `main` `7772b61`. GitHub currently marks it ready for review, but open product and physical-device gates still block merge. Use the current PR head when an exact candidate hash matters. |
-| Local working state | PR #22 is the only canonical review branch. Its seven review findings now have locally verified fixes awaiting push: friend-request access, stable Schedule court selection, retained check-in history on fetch failure, court-scoped feed data, Create Run routing, authoritative ranked badges, and reproducible account-deletion constraints/secrets. Nothing in this PR is merged or active in Supabase. PR #21 remains superseded because its useful implementation is absorbed by #22. The user-owned `.claude/launch.json` remains untouched and locally excluded. |
-| Release tag | `v1.0.4` → checkpoint commit |
-| TestFlight | LocalCheck `1.0.0 (9)` available to Jesse |
-| Successful EAS workflow | `019f9e9b-188e-70b8-9ff3-f1aa9a66b52e` |
+| Delivered source | GitHub `main` is `d193ac8` — PR #22 (MVP consolidation) merged 2026-07-30, plus PR #23 (app version 1.0.0→1.0.1) merged 2026-07-31. Verify the current remote tip when an exact hash matters. |
+| Canonical review PR | [#22 — consolidate LocalCheck MVP candidate](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/22) is merged and closed, not open. It is now historical — its content is `main`. |
+| Local working state | No open review branch. `main` is the working source of truth. |
+| Release tag | `v1.0.5` → checkpoint commit `d193ac8` (app version `1.0.1`, build 13). `v1.0.4` (commit `249c926`, build 9) is the prior checkpoint, now superseded. |
+| TestFlight | LocalCheck `1.0.1 (13)` delivered 2026-08-01; Jesse confirmed it launches, feels snappy, and core logic works. Push notification registration is still broken on this build — see "What is not complete." |
+| Successful EAS workflow | `019fbb3e-b3b6-7830-ad63-cb4545af256c` (build 13 + submit, 2026-08-01). Prior checkpoint: `019f9e9b-188e-70b8-9ff3-f1aa9a66b52e` (build 9, 2026-07-26). |
 | Expo project id | `9c906173-0258-45a9-a3fe-786cda373c66` |
 | Supabase project | LocalCheckProd `qkrnmyexzvaxiqfxwwfb` |
 
-Build 9 is the first solid checkpoint for this phase: the current GitHub main
-reached TestFlight, native Mapbox dependencies installed, and Apple Sign-In
-remains enabled. Its public Realtime listeners are rejected by the private-only
-project. The local candidate now receives scoped private Broadcast updates in
-the browser, but it has not been delivered to TestFlight.
+Build 13 is the current solid checkpoint: it carries PR #22's full MVP
+consolidation (Home/Explore/Schedule/Court Details/Compete UI, the notification
+inbox and sport-Elo candidate, private-Broadcast Realtime client changes) plus
+the fixes below. Two-device Realtime acceptance and the notification/Elo
+backend deploy remain open — build 13 contains the client code, not proof it
+works end to end on hardware. See [`ACTIVITY_LEDGER.md`](product/ACTIVITY_LEDGER.md)
+2026-08-01 entry for the full build-9→13 incident writeup.
 
 ## What is complete
 
@@ -50,14 +52,18 @@ the browser, but it has not been delivered to TestFlight.
 - Build-9 screen/flow evidence and Jesse's annotations are stored under `docs/product/screen-library/releases/ios-1.0.0-build-9/`.
 - Product, brand, launch, decision, and activity documents are consolidated under `docs/product/`.
 - A dependency-free snapshot of web `main` at `7a5b74d` is imported under `artifacts/web`; its 56 source files matched the verified upstream commit before adding local provenance metadata.
+- PR #22 (MVP consolidation) merged to `main` as `bcf9605` on 2026-07-30.
+- The iOS distribution provisioning profile was regenerated via `eas credentials` (Build Credentials → do not reuse original → generate new) so it includes the Push Notifications / `aps-environment` capability that `expo-notifications` (added in PR #22) requires to compile. This was blocking every build of `main` (builds 10, 11) with `XCODE_BUILD_ERROR` before the fix.
+- App version bumped `1.0.0` → `1.0.1` (PR #23, commit `d193ac8`) so the runtime version changes too (`runtimeVersion.policy: appVersion`). This stops future native binaries from being considered OTA-compatible with updates meant for the pre-`expo-notifications` runtime.
+- Tag `v1.0.5` → build 13 → TestFlight, both `build_ios` and `submit_ios` succeeded (workflow `019fbb3e-b3b6-7830-ad63-cb4545af256c`). Jesse confirmed on-device: no launch crash, app "works for the most part," "feels snappy," core logic present.
 
 ## What is not complete
 
 - The notification and sport-Elo candidate is not active in LocalCheckProd. The migration and Edge Function source have not been deployed, the Database Webhook has not been created, and no notification row or rating was changed during this implementation pass.
-- Phone push requires a new native iOS build because the candidate adds `expo-notifications` and `expo-device`. Build 9 cannot receive this feature through OTA alone. The durable in-app inbox remains the source of truth if a phone push fails.
+- Phone push registration is still broken on build 13, even with the native module present and the provisioning-profile entitlement fixed. Tapping "Turn on Phone Alerts" returns "Alerts are not on: The phone could not be registered." Not yet root-caused. Leading theory (unverified): EAS credentials has a distinct, separate "Push Notifications: Manage your Apple Push Notifications Key" entry that this session never touched — only "Build Credentials" (distribution cert + provisioning profile) was regenerated. `expo-notifications`' `getExpoPushTokenAsync()` needs an APNs key uploaded to EAS so Expo's push service can talk to Apple on the app's behalf; if that key was never created, registration would fail exactly like this. Check `eas credentials` → iOS → production → "Push Notifications: Manage your Apple Push Notifications Key" before assuming anything else. The durable in-app inbox remains the source of truth if phone push stays broken.
 - The current Elo candidate is intentionally basic: separate basketball and pickleball ratings, 1200 start, standard K=32, opponent confirmation, objection with no rating change, and seven-day automatic confirmation. Advanced rating mechanics and the final objected-score retention rule remain later work.
-- TestFlight build 9 still opens public `postgres_changes` channels, so LocalCheckProd continues to log `PrivateOnly` retries from that installed client. Jesse approved saving the repaired source candidate to `main`, but no OTA/TestFlight delivery was authorized, so the installed phone client remains unchanged.
-- The rebuilt local browser joined private Jaycee Park, Houston, and signed-in-user topics with `SUBSCRIBED` status and no local `PrivateOnly` error. Jesse then confirmed a TestFlight-originated court change appeared live in the already-open browser without a tab switch. This proves the new receiving path; reverse-direction and full two-phone acceptance remain open until the repaired client is delivered to the phone.
+- Build 13 now ships the private-Broadcast Realtime client (it was part of PR #22, merged 2026-07-30) — the old public `postgres_changes`/`PrivateOnly` failure mode described below should no longer apply to what's installed, but this has **not been re-verified against build 13 specifically**. Confirm before relying on it.
+- The rebuilt local browser joined private Jaycee Park, Houston, and signed-in-user topics with `SUBSCRIBED` status and no local `PrivateOnly` error. Jesse then confirmed a TestFlight-originated court change (from build 9) appeared live in the already-open browser without a tab switch. This proved the new receiving path against build 9; reverse-direction and full two-phone acceptance on build 13 remain open.
 - Physical native-map acceptance remains open. The web preview passed Houston market scope, map-layer positioning, low-zoom clustering, and styling. Cluster expansion now follows Mapbox GL JS's documented callback contract, but its final automated click replay was blocked by the preview controller's localhost safety policy. TestFlight build 9 does not contain this candidate.
 - App-wide profile privacy is not complete. The current `profiles` contract has no persisted visibility field, leaderboard queries cannot filter it, and the Settings value is session-scoped check-in visibility. The local Compete presentation prevents the signed-in hidden user from appearing twice, but durable cross-client privacy requires an approved schema/service/RLS change and full surface audit.
 - Four client write paths target tables they cannot write. LocalCheckProd is a v2 schema that revoked default ACLs and routes behaviour through `SECURITY DEFINER` RPCs, with narrow **column-level** grants on a few tables. `information_schema.role_table_grants` hides column-level grants, which is why this went unnoticed. Full map and verification recipes: [`BACKEND_WRITE_PATHS.md`](BACKEND_WRITE_PATHS.md).
@@ -91,12 +97,32 @@ the browser, but it has not been delivered to TestFlight.
 
 ## Next sequence
 
-1. Jesse reviews Home, Explore List/Map, Profile, Compete, Court Details, and Schedule from open PR #22 in the refreshed preview; fix visible mismatch before release.
-2. Prove Schedule add/remove persistence with a signed-in account. Preserve Apple Sign-In unchanged.
-3. Review the prepared notification and sport-Elo contract, then obtain Jesse's explicit approval before applying its migration or deploying its push sender.
-4. Prove the in-app inbox and score confirm/object flow with two accounts. Then make one native iOS build and prove phone pushes on physical devices.
-5. Obtain Jesse's explicit approval before merging PR #22 or triggering OTA/EAS/TestFlight. Physical Mapbox and two-way Realtime acceptance remain separate native QA gates.
-6. Complete recovery snapshot/runbook, privacy/compliance, App Store QA, screenshots/metadata, external TestFlight, and submission.
+Build 13 is live and functional on Jesse's phone as of 2026-08-01. PR #22 is
+merged; steps 1, 2, and 5 below from the pre-2026-08-01 plan are done. Updated
+priority order:
+
+1. **UI/design polish** — Jesse's stated next priority now that the app is
+   functional again ("this could finally be the last push, ui update stuff").
+2. Root-cause and fix phone-push registration ("Alerts are not on: the phone
+   could not be registered") — see the APNs-key theory in "What is not
+   complete." Needs another native build once fixed (push key alone may not
+   need one — confirm before assuming a rebuild is required).
+3. Review the prepared notification and sport-Elo backend contract, then
+   obtain Jesse's explicit approval before applying its migration or deploying
+   its push sender.
+4. Re-run two-device Realtime acceptance against build 13 specifically (prior
+   proof was against build 9's older client).
+5. Physical Mapbox quality acceptance on build 13.
+6. Complete recovery snapshot/runbook, privacy/compliance, App Store QA,
+   screenshots/metadata, external TestFlight, and submission.
+
+**Process gap worth deciding on, not yet fixed:** `publish-ota-update.yml`
+fires on every push to `main` regardless of content. That's what let PR #22's
+`expo-notifications` addition (a native-requiring change) get OTA-published
+onto build 9's older native binary and crash it — see the RELEASE_RUNBOOK
+gotcha and the 2026-08-01 ledger entry. Worth a guard (e.g. only auto-publish
+when the diff is JS/asset-only) but that's a workflow-behavior decision for
+Jesse, not something to change unilaterally.
 
 ## Web truth
 
