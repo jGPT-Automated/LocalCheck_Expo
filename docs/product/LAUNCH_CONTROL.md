@@ -1,14 +1,14 @@
 # LocalCheck Launch Control
 
 Status: Active operating document
-Last verified: 2026-07-29
+Last verified: 2026-08-01
 Release authority: Jesse must explicitly approve production deploys, TestFlight builds/submissions, backend mutations, and merges.
 
 ## Jesse's launch order
 
 This is the priority order. Do not let lower-level technical hygiene displace it.
 
-1. **Get current `main` onto Jesse's phone.** Complete: `main` commit `249c926`, tag `v1.0.4`, produced LocalCheck 1.0.0 build 9. App Store Connect processing completed and TestFlight now offers the update.
+1. **Get current `main` onto Jesse's phone.** Complete: `main` commit `d193ac8`, tag `v1.0.5`, produced LocalCheck 1.0.1 build 13 (PR #22 MVP consolidation + PR #23 version bump). App Store Connect processing completed, TestFlight offers the update, and Jesse confirmed on-device it launches without crashing, feels snappy, and core logic works. Prior checkpoint was `249c926`/`v1.0.4`/build 9. See `ACTIVITY_LEDGER.md` 2026-08-01 entry for the incident/fix writeup — push notification registration is still broken on build 13 and remains open.
 2. **Finish the agreed MVP core candidate.** Profile, shared Court Details/court cards, Schedule persistence, then the standard-Elo match lifecycle. Apple Sign-In stays unchanged.
 3. **Then prove Friends and the intentionally small notification set.** Run invite, friend request/accept, and final-score confirm/object only.
 4. **Then return to native/reliability acceptance.** Verify Mapbox physically and finish reverse-direction/background Realtime checks in parallel with real pilot feedback.
@@ -29,8 +29,8 @@ Database advisor notes, RPC implementation details, and scale optimizations are 
 | Surface | Verified state | Authority / constraint |
 | --- | --- | --- |
 | Shared backend | `LocalCheckProd` (`qkrnmyexzvaxiqfxwwfb`) is healthy; 56 courts and the current mobile v2 schema are live. The old `jzclwnzcektqhgkkdeje` project still exists but is deprecated. | No new production schema until web and mobile use one contract. Do not delete or pause the old project without Jesse's approval. |
-| Mobile source | GitHub `main` contains feature commit `32bc0d6`. Draft PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/22) is the single canonical MVP review candidate for Schedule/friend fixes, Profile/Court Details/Home/shared UI, scoped Realtime, preview repair, and the notification/sport-Elo candidate. The mandatory contributor guardrails are in [`../APP_ARCHITECTURE.md`](../APP_ARCHITECTURE.md). Apple Sign-In remains enabled and unchanged. | PR #22 is not merged; build 9 still has the old listeners and UI. Notification/Elo backend activation, phone push, and physical QA remain gated. Source delivery alone does not update TestFlight. |
-| Mobile distribution | EAS is connected to the correct repo and `artifacts/mobile`; all environments point to LocalCheckProd and have the required Mapbox tokens. LocalCheck 1.0.0 build 9 completed and TestFlight offers it as an update. | Install build 9, then run native map and two-device Realtime acceptance. |
+| Mobile source | GitHub `main` is `d193ac8`. PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/22) — the MVP review candidate for Schedule/friend fixes, Profile/Court Details/Home/shared UI, scoped Realtime, preview repair, and the notification/sport-Elo candidate — merged 2026-07-30. PR #23 (app version 1.0.0→1.0.1) merged 2026-07-31. The mandatory contributor guardrails are in [`../APP_ARCHITECTURE.md`](../APP_ARCHITECTURE.md). Apple Sign-In remains enabled and unchanged. | Notification/Elo backend activation (migration, Edge Function, webhook) and physical two-device QA remain gated/open. Phone push registration is broken on build 13 (separate bug, see `ACTIVITY_LEDGER.md`). |
+| Mobile distribution | EAS is connected to the correct repo and `artifacts/mobile`; all environments point to LocalCheckProd and have the required Mapbox tokens. LocalCheck 1.0.1 build 13 completed 2026-08-01 and TestFlight offers it as an update; Jesse confirmed it installs and runs without the prior launch crash. | Fix phone-push registration, then run native map and two-device Realtime acceptance against build 13 specifically (prior acceptance evidence was against build 9's older client). |
 | Public website | The deployed site is visually aligned with the graphite/orange direction and its court explorer resolves 56 Supabase courts. `LocalCheck_WEB` main is PR #1 at `7a5b74d`. | The old PR #2 checkout is archived at `/Users/JesseH/Projects/archive/LocalCheck_WEB_PR2-branch-2026-07-26`. It is ten commits ahead of main with preserved local package changes and must not be mistaken for deployed truth. |
 | Web PR #2 | Weather and shared-planning heatmap are implemented, but GitHub has no status checks. | Blocked from merge: two unresolved P2 review threads, a non-critical weather request without a timeout, stale-session recovery, and a second planning model (`court_time_intents`) that conflicts with production `planned_visits`. |
 | Web PR #3 | Remotion-style hero work is open and mergeable. | Defer until product/release foundations are closed; brand roadmap treats launch-media motion as optional after the product UI is approved. |
@@ -119,12 +119,37 @@ Every implementation task given to another agent must include:
 
 ## Immediate decision queue
 
-1. Jesse reviews open PR #22 in the refreshed local preview across Home, Explore List/Map, Schedule, Court Details, Compete, and Me. Correct visible mobile mismatches before delivery.
-2. Preserve Apple Sign-In unchanged. Prove Schedule add/remove persistence and the shared form sheets on a physical signed-in client.
-3. Review the cloud Elo PR and handoff selectively against the live schema. Do not apply its migration wholesale or mutate production before the match confirmation/objection lifecycle is approved.
-4. Obtain Jesse's explicit delivery approval before merging PR #22 or taking any OTA, EAS build, or TestFlight action.
-5. After delivery, finish reverse-direction/background/scoping checks and run two-phone Realtime acceptance without tab switching.
-6. Turn physical QA and pilot feedback into the next tightly scoped implementation pass.
+Items 1 and 4 from the pre-2026-08-01 queue are done: PR #22 merged, build 13
+delivered to TestFlight with Jesse's approval on each release-triggering
+action (provisioning-profile regen, version bump, tag push). Remaining:
+
+1. **UI/design polish** — Jesse's explicitly stated next priority now that the
+   app is functional again.
+2. Root-cause and fix phone-push registration on build 13 (see
+   `CURRENT_STATE.md` and the 2026-08-01 `ACTIVITY_LEDGER.md` entry).
+3. Preserve Apple Sign-In unchanged. Prove Schedule add/remove persistence and
+   the shared form sheets on a physical signed-in client.
+4. Review the cloud Elo PR and handoff selectively against the live schema. Do
+   not apply its migration wholesale or mutate production before the match
+   confirmation/objection lifecycle is approved.
+5. Finish reverse-direction/background/scoping checks and run two-phone
+   Realtime acceptance against build 13 specifically — prior acceptance
+   evidence (2026-07-27) was against build 9's older client.
+6. Turn physical QA and pilot feedback into the next tightly scoped
+   implementation pass.
+7. Decide whether `publish-ota-update.yml` needs a guard against publishing
+   native-requiring changes unconditionally — see the 2026-08-01 ledger entry
+   for why this matters; it's what caused this session's crash.
+
+## Evidence ledger — 2026-08-01
+
+- EAS build history: builds 10 and 11 (`main`/`bcf9605`) both errored with `XCODE_BUILD_ERROR` — stale provisioning profile missing the Push Notifications/`aps-environment` entitlement `expo-notifications` now requires.
+- Fix: `eas credentials` → iOS `production` → Build Credentials → declined reusing the original profile → new profile generated (Developer Portal ID `DR4YF2N5J5`).
+- Version bump: `app.json` `expo.version` `1.0.0` → `1.0.1` via PR #23 (`d193ac8`), so the next native build's runtime version diverges from OTA updates published for the old one.
+- Tag `v1.0.5` on `d193ac8` → workflow `019fbb3e-b3b6-7830-ad63-cb4545af256c` → build 13 → both `build_ios` and `submit_ios` succeeded.
+- Physical evidence: Jesse confirmed on TestFlight that build 13 installs, launches without the prior `ErrorRecovery`/SIGABRT crash, feels snappy, and core logic works.
+- Still failing: push notification registration ("Alerts are not on: The phone could not be registered") on build 13 — separate, unresolved issue; see `ACTIVITY_LEDGER.md`.
+- Full incident writeup with root causes for all three problems found (stale-rerun mechanism, provisioning profile, OTA/native runtime mismatch): `ACTIVITY_LEDGER.md` 2026-08-01 entry.
 
 ## Evidence ledger — 2026-07-27
 
