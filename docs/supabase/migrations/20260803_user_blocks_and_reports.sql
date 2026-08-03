@@ -234,6 +234,44 @@ create trigger prevent_blocked_run_interaction
 before insert or update on public.run_invitations
 for each row execute function private.prevent_blocked_run_interaction();
 
+-- Protect every participant write, including SECURITY DEFINER RPCs such as
+-- join_run that insert directly without creating an invitation first.
+create or replace function private.prevent_blocked_run_participation()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_organizer_id uuid;
+begin
+  select r.organizer_id into v_organizer_id
+  from public.runs r where r.id = new.run_id;
+  if v_organizer_id is not null
+     and private.users_are_blocked(v_organizer_id, new.user_id) then
+    raise exception 'interaction is blocked' using errcode = '42501';
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function private.prevent_blocked_run_participation() from public, anon, authenticated;
+drop trigger if exists prevent_blocked_run_participation on public.run_participants;
+create trigger prevent_blocked_run_participation
+before insert or update on public.run_participants
+for each row execute function private.prevent_blocked_run_participation();
+
+-- The client probes this function before rendering safety actions. On a backend
+-- where this migration is not yet applied, the missing RPC keeps them hidden.
+create or replace function public.safety_controls_available()
+returns boolean
+language sql
+stable
+security invoker
+set search_path = ''
+as $$ select true $$;
+revoke execute on function public.safety_controls_available() from public, anon;
+grant execute on function public.safety_controls_available() to authenticated;
+
 create or replace function public.request_friend(p_addressee_id uuid)
 returns public.friendships
 language plpgsql

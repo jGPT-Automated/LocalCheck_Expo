@@ -60,7 +60,7 @@ Database advisor notes, RPC implementation details, and scale optimizations are 
 
 ### P1 — pilot-ready product
 
-- [ ] Deploy and physically prove Add Court's completed authenticated Gemini verification/create source; then finish Edit Run's authorized update path. Add Court now has a library-backed task sheet, no manual sport selector, server-side duplicate/rate guards, and a complete authorized row insert, but the `verify-court` function was not deployed because the Codex account usage limit blocked the deployment path before mutation. See `ADD_COURT_HANDOFF.md`.
+- [ ] Apply Add Court's atomic creation migration, deploy its authenticated Gemini function, and physically prove the flow; then finish Edit Run's authorized update path. Add Court now has a library-backed task sheet, no manual sport selector, canonical-market resolution, and transactional duplicate/rate guards, but neither the migration nor `verify-court` function is deployed. See `ADD_COURT_HANDOFF.md`.
 - [ ] Establish the shared production UI foundation and migrate the core journey. Current assessment: [`assessments/2026-08-01-current-build-assessment.md`](assessments/2026-08-01-current-build-assessment.md).
   Local candidate implemented and browser-reviewed on 2026-08-01; Expo Go,
   physical iPhone accessibility/sheet/map QA, release checks, and Jesse's

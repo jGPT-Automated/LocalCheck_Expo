@@ -2,6 +2,11 @@ import { supabase } from "@/lib/supabase";
 
 export type ReportReason = "spam" | "harassment" | "impersonation" | "unsafe_behavior" | "other";
 
+export async function safetyControlsAvailable(): Promise<boolean> {
+  const { data, error } = await supabase.rpc("safety_controls_available");
+  return !error && data === true;
+}
+
 export async function blockUser(userId: string): Promise<boolean> {
   const { data, error } = await supabase.rpc("block_user", { p_blocked_id: userId });
   if (error) {

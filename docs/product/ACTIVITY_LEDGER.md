@@ -1,5 +1,25 @@
 # LocalCheck Activity Ledger
 
+## 2026-08-03 - PR #25 review boundaries hardened
+
+**Review findings:** Add Court used the reverse-geocoded city as its market and
+performed quota/duplicate reads separately from insertion. The safety migration
+guarded invitations but not direct run-participant writes, while its client
+controls would publish before the unapplied RPCs existed.
+
+**Implementation:** Added a service-role-only transactional court-create RPC.
+It takes one advisory transaction lock, resolves the nearest established market
+within the metro radius, checks the per-user UTC quota and 150-meter same-sport
+duplicate boundary, and inserts only if both checks pass. The Edge Function now
+delegates the entire persistence boundary to that RPC. The safety migration now
+guards every run-participant insert/update against the run organizer's blocked
+relationships and exposes an authenticated capability probe; player profiles
+render Report/Block only after that probe succeeds.
+
+**Boundary:** No migration, Edge Function, OTA, or production change was
+performed. Apply both migrations before deploying `verify-court`; the safety
+controls intentionally stay hidden until their migration is live.
+
 Status: Active, chronological operating record
 Last updated: 2026-08-03
 

@@ -52,18 +52,6 @@ function slugify(value: string): string {
   return `${base}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
-function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const radius = 6_371_000;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2;
-  return radius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
 function outputText(payload: unknown): string {
   if (!payload || typeof payload !== "object") return "";
   const steps = (payload as { steps?: unknown }).steps;
@@ -205,19 +193,6 @@ Deno.serve(async (request) => {
     return json(400, { error: "Use a clear JPEG, PNG, WebP, HEIC, or HEIF photo under 6 MB." });
   }
 
-  const admin = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const startOfDay = new Date();
-  startOfDay.setUTCHours(0, 0, 0, 0);
-  const { count, error: countError } = await admin
-    .from("courts")
-    .select("id", { count: "exact", head: true })
-    .eq("added_by", userData.user.id)
-    .gte("created_at", startOfDay.toISOString());
-  if (countError) return json(503, { error: "Court verification is temporarily unavailable." });
-  if ((count ?? 0) >= 5) return json(429, { error: "You have reached today's court-submission limit." });
-
   let analysis: GeminiCourtResult;
   try {
     analysis = await analyzeCourtPhoto(geminiApiKey, imageBase64, imageMimeType);
@@ -239,54 +214,37 @@ Deno.serve(async (request) => {
     });
   }
 
-  const nearbyRadius = 0.002;
-  const { data: nearby, error: nearbyError } = await admin
-    .from("courts")
-    .select("id,name,latitude,longitude,sport_type")
-    .eq("sport_type", analysis.sport)
-    .gte("latitude", latitude - nearbyRadius)
-    .lte("latitude", latitude + nearbyRadius)
-    .gte("longitude", longitude - nearbyRadius)
-    .lte("longitude", longitude + nearbyRadius)
-    .eq("is_archived", false);
-  if (nearbyError) return json(503, { error: "Nearby courts could not be checked." });
-  const duplicate = nearby?.find((court) =>
-    haversineMeters(latitude, longitude, Number(court.latitude), Number(court.longitude)) <= 150
-  );
-  if (duplicate) {
-    return json(409, { error: `${duplicate.name} is already on LocalCheck near this pin.` });
-  }
-
   const sportLabel = analysis.sport === "basketball" ? "Basketball" : "Pickleball";
   const courtName = name || `${sportLabel} Court`;
   const sourceUrl = `https://maps.apple.com/?ll=${latitude.toFixed(6)},${longitude.toFixed(6)}`;
-  const { data: court, error: insertError } = await admin
-    .from("courts")
-    .insert({
-      slug: slugify(courtName),
-      name: courtName,
-      short_name: courtName.slice(0, 32),
-      address,
-      city,
-      state,
-      market: city,
-      location: city,
-      latitude,
-      longitude,
-      sport_type: analysis.sport,
-      access_type: accessType,
-      setting: analysis.setting,
-      launch_reason: "Community submission verified from a current court photo.",
-      verification_status: "source_and_detection",
-      source_url: sourceUrl,
-      source_tier: "community",
-      image_url: null,
-      added_by: userData.user.id,
-    })
-    .select("id,name,address,latitude,longitude,sport_type,image_url,is_archived,location,city,state,market,added_by,created_at")
-    .single();
+  const admin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  // The database RPC owns market resolution, quota enforcement, duplicate
+  // detection, and insertion in one transaction. Keeping those decisions out
+  // of the Edge Function prevents concurrent requests from racing the guards.
+  const { data: court, error: insertError } = await admin.rpc("create_verified_court", {
+    p_added_by: userData.user.id,
+    p_slug: slugify(courtName),
+    p_name: courtName,
+    p_address: address,
+    p_city: city,
+    p_state: state,
+    p_latitude: latitude,
+    p_longitude: longitude,
+    p_sport_type: analysis.sport,
+    p_access_type: accessType,
+    p_setting: analysis.setting,
+    p_source_url: sourceUrl,
+  });
   if (insertError || !court) {
     console.error("Verified court insert failed", insertError?.code);
+    if (insertError?.message.includes("court submission limit")) {
+      return json(429, { error: "You have reached today's court-submission limit." });
+    }
+    if (insertError?.message.startsWith("duplicate court:")) {
+      return json(409, { error: `${insertError.message.slice("duplicate court:".length).trim()} is already on LocalCheck near this pin.` });
+    }
     return json(409, { error: "The photo was verified, but the court could not be added." });
   }
 

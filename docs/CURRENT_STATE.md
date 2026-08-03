@@ -83,6 +83,16 @@ See [`ACTIVITY_LEDGER.md`](product/ACTIVITY_LEDGER.md)
 
 ## What is not complete
 
+- The Add Court review follow-up now derives an established canonical market
+  from nearby court coordinates and moves quota, duplicate detection, and
+  insertion into one locked database transaction. Its new migration and the
+  updated `verify-court` function remain unapplied/undeployed, so Add Court is
+  still not a production-ready flow.
+- Report/Block controls now fail closed behind a backend capability probe, and
+  the unapplied safety migration blocks direct `run_participants` writes across
+  blocked relationships as well as invitations. Until that migration is
+  applied, installed clients do not render the controls.
+
 - LocalCheckProd is now in a **partial notification state**. Read-only inspection on 2026-08-01 confirmed live `notifications`, `push_tokens`, and `run_invitations` tables; notification/run RPCs; and `profiles.push_notifications_enabled`. The `send-notification` Edge Function was not deployed (only `delete-account` was listed), and no Database Webhook or two-phone delivery proof was established. The exact reduced migration applied to production is not represented as one canonical migration on GitHub `main`; reconcile repository and live truth before further backend work.
 - The sport-split Elo backend is not active. Live `profiles` still exposes the combined `elo_rating` and does not expose `elo_basketball` or `elo_pickleball`; the client fallback prevents a crash but the UI promise remains ahead of storage truth.
 - Phone push registration is still broken on build 13, even with the native module present and the provisioning-profile entitlement fixed. Tapping "Turn on Phone Alerts" returns "Alerts are not on: The phone could not be registered." Not yet root-caused. Leading theory (unverified): EAS credentials has a distinct, separate "Push Notifications: Manage your Apple Push Notifications Key" entry that this session never touched — only "Build Credentials" (distribution cert + provisioning profile) was regenerated. `expo-notifications`' `getExpoPushTokenAsync()` needs an APNs key uploaded to EAS so Expo's push service can talk to Apple on the app's behalf; if that key was never created, registration would fail exactly like this. Check `eas credentials` → iOS → production → "Push Notifications: Manage your Apple Push Notifications Key" before assuming anything else. The durable in-app inbox remains the source of truth if phone push stays broken.

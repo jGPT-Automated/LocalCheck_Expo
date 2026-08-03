@@ -25,14 +25,16 @@ The candidate replaces that boundary end to end:
 - `courtService.createCourt()` invokes the authenticated `verify-court` Edge
   Function. The client no longer writes `courts` directly.
 - The Edge Function authenticates the Supabase user, validates and bounds the
-  request, enforces five submissions per user per UTC day, calls Gemini with a
-  structured JSON schema, applies an 80% acceptance threshold, rejects a
-  same-sport court within 150 meters, and inserts the complete production row
-  with the service role.
+  request, calls Gemini with a structured JSON schema, and applies an 80%
+  acceptance threshold. A service-role-only database RPC then resolves the
+  nearest established canonical market within 80 km and atomically enforces
+  the five-per-UTC-day quota, rejects a same-sport court within 150 meters, and
+  inserts the complete production row under one transaction lock.
 - The submitted photo is analyzed inline and is not persisted. The Gemini API
   key remains in the Supabase secret named `GEMINI_API_KEY`.
 
-No database migration or new native dependency is required. The installed
+The atomic court-creation migration must be applied before the Edge Function is
+deployed. No new native dependency is required. The installed
 `@gorhom/bottom-sheet`, `expo-location`, and `expo-image-picker` packages are
 reused, so this client change is OTA-compatible with the current binary.
 
@@ -52,11 +54,12 @@ The source was not deployed in this session. Both the Supabase connector and
 the CLI approval path were blocked by the Codex account usage limit before a
 deployment could begin; no production function, schema, or row changed.
 
-From a session with Supabase access, deploy only this function with JWT
-verification enabled:
+From a session with Supabase access, apply the migration first and then deploy
+the function with JWT verification enabled:
 
 ```bash
 cd /Users/JesseH/Projects/LocalCheck_Expo
+supabase db push --project-ref qkrnmyexzvaxiqfxwwfb
 supabase functions deploy verify-court --project-ref qkrnmyexzvaxiqfxwwfb
 ```
 

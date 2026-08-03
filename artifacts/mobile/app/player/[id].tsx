@@ -22,7 +22,7 @@ import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { fetchGamesByPlayer, fetchHeadToHeadGames } from "@/services/gameService";
 import { fetchProfile } from "@/services/profileService";
-import { blockUser, ReportReason, reportUser } from "@/services/safetyService";
+import { blockUser, ReportReason, reportUser, safetyControlsAvailable } from "@/services/safetyService";
 
 /** Deterministic head-to-head stats from persisted games both users played in. */
 function getHeadToHeadStats(sharedMatches: MatchResult[]) {
@@ -44,6 +44,15 @@ export default function PlayerProfileScreen() {
   const [playerMatches, setPlayerMatches] = useState<MatchResult[]>([]);
   const [sharedMatches, setSharedMatches] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSafetyControls, setShowSafetyControls] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    void safetyControlsAvailable().then((available) => {
+      if (mounted) setShowSafetyControls(available);
+    });
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -273,7 +282,7 @@ export default function PlayerProfileScreen() {
             testID="log-game-btn"
           />
         </View>
-        <View style={styles.safetyRow}>
+        {showSafetyControls && <View style={styles.safetyRow}>
           <Pressable
             style={({ pressed }) => [styles.safetyButton, pressed && styles.pressed]}
             onPress={handleReport}
@@ -292,7 +301,7 @@ export default function PlayerProfileScreen() {
             <Ionicons name="ban-outline" size={15} color={Colors.loss} />
             <Text style={[styles.safetyText, { color: Colors.loss }]}>BLOCK</Text>
           </Pressable>
-        </View>
+        </View>}
     </ProfileScaffold>
   );
 }
