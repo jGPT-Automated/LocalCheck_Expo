@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { DetailHeader } from "@/components/DetailHeader";
 import { Colors } from "@/constants/colors";
 import { getTierColor, Player } from "@/constants/data";
 import { Typography } from "@/constants/typography";
@@ -31,8 +32,7 @@ export default function FriendsScreen() {
     getFriendsList,
     currentUser,
   } = useApp();
-  const { top, bottom } = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : top;
+  const { bottom } = useSafeAreaInsets();
 
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<"FRIENDS" | "DISCOVER">("FRIENDS");
@@ -65,13 +65,7 @@ export default function FriendsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: topPad + 12 }]}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
-          <Ionicons name="arrow-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>FRIENDS</Text>
-        <View style={{ width: 22 }} />
-      </View>
+      <DetailHeader title="FRIENDS" onBack={() => router.back()} />
 
       <View style={styles.tabRow}>
         {(["FRIENDS", "DISCOVER"] as const).map((t) => (
@@ -79,6 +73,8 @@ export default function FriendsScreen() {
             key={t}
             style={[styles.tabBtn, activeTab === t && styles.tabBtnActive]}
             onPress={() => setActiveTab(t)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === t }}
           >
             <Text style={[styles.tabBtnText, activeTab === t && styles.tabBtnTextActive]}>
               {t}
@@ -103,7 +99,12 @@ export default function FriendsScreen() {
           autoCapitalize="none"
         />
         {search.length > 0 && (
-          <Pressable onPress={() => setSearch("")} hitSlop={8}>
+          <Pressable
+            onPress={() => setSearch("")}
+            style={styles.clearSearchButton}
+            accessibilityRole="button"
+            accessibilityLabel="Clear search"
+          >
             <Ionicons name="close-circle" size={16} color={Colors.muted} />
           </Pressable>
         )}
@@ -118,17 +119,32 @@ export default function FriendsScreen() {
             <Text style={styles.requestTitle}>FRIEND REQUESTS</Text>
             {incomingFriendRequests.map((player) => (
               <View key={player.id} style={styles.requestRow}>
-                <Pressable style={styles.requestIdentity} onPress={() => router.push(`/player/${player.id}`)}>
+                <Pressable
+                  style={styles.requestIdentity}
+                  onPress={() => router.push(`/player/${player.id}`)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${player.name}'s profile`}
+                >
                   <PlayerAvatar initials={player.avatar} size={40} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.rowName}>{player.name.toUpperCase()}</Text>
                     <Text style={styles.rowElo}>{player.elo} ELO</Text>
                   </View>
                 </Pressable>
-                <Pressable style={styles.acceptButton} onPress={() => void acceptFriendRequest(player.id)}>
+                <Pressable
+                  style={styles.acceptButton}
+                  onPress={() => void acceptFriendRequest(player.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Accept ${player.name}'s friend request`}
+                >
                   <Text style={styles.acceptButtonText}>ACCEPT</Text>
                 </Pressable>
-                <Pressable style={styles.declineButton} onPress={() => void removeFriend(player.id)}>
+                <Pressable
+                  style={styles.declineButton}
+                  onPress={() => void removeFriend(player.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Decline ${player.name}'s friend request`}
+                >
                   <Ionicons name="close" size={15} color={Colors.muted} />
                 </Pressable>
               </View>
@@ -186,7 +202,12 @@ function FriendRow({
   const tierColor = getTierColor(player.tier);
 
   return (
-    <Pressable style={styles.row} onPress={onPress}>
+    <Pressable
+      style={styles.row}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${player.name}'s profile`}
+    >
       <PlayerAvatar initials={player.avatar} size={44} />
       <View style={styles.rowInfo}>
         <Text style={styles.rowName}>{player.name.toUpperCase()}</Text>
@@ -205,6 +226,8 @@ function FriendRow({
           onToggleFriend();
         }}
         hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel={friendStatus ? `Remove ${player.name} as a friend` : isPending ? `Friend request to ${player.name} pending` : `Add ${player.name} as a friend`}
       >
         <Ionicons
           name={friendStatus ? "remove" : isPending ? "time-outline" : "add"}
@@ -219,23 +242,6 @@ function FriendRow({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
 
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  headerTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.text,
-    letterSpacing: 3,
-  },
-
   tabRow: {
     flexDirection: "row",
     backgroundColor: Colors.surface,
@@ -244,6 +250,7 @@ const styles = StyleSheet.create({
   },
   tabBtn: {
     flex: 1,
+    minHeight: 44,
     alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 3,
@@ -291,7 +298,7 @@ const styles = StyleSheet.create({
   },
   requestTitle: {
     fontFamily: Typography.bodyBold,
-    fontSize: 8,
+    fontSize: 10,
     color: Colors.accent,
     letterSpacing: 1.5,
     paddingHorizontal: 12,
@@ -307,10 +314,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.borderSubtle,
   },
-  requestIdentity: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
-  acceptButton: { minHeight: 32, justifyContent: "center", paddingHorizontal: 11, backgroundColor: Colors.accent },
-  acceptButtonText: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.black, letterSpacing: 1 },
-  declineButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
+  requestIdentity: { flex: 1, minWidth: 0, minHeight: 44, flexDirection: "row", alignItems: "center", gap: 10 },
+  acceptButton: { minHeight: 44, justifyContent: "center", paddingHorizontal: 11, backgroundColor: Colors.accent },
+  acceptButtonText: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.black, letterSpacing: 1 },
+  declineButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
+  clearSearchButton: { width: 44, height: 44, marginVertical: -8, alignItems: "center", justifyContent: "center" },
   searchInput: {
     flex: 1,
     fontFamily: Typography.bodyMedium,
@@ -354,8 +362,8 @@ const styles = StyleSheet.create({
     color: Colors.muted,
   },
   rowAction: {
-    width: 32,
-    height: 32,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 0.5,

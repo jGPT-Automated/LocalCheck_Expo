@@ -1,15 +1,15 @@
 # LocalCheck Launch Control
 
 Status: Active operating document
-Last verified: 2026-08-01
+Last verified: 2026-08-03
 Release authority: Jesse must explicitly approve production deploys, TestFlight builds/submissions, backend mutations, and merges.
 
 ## Jesse's launch order
 
 This is the priority order. Do not let lower-level technical hygiene displace it.
 
-1. **Get current `main` onto Jesse's phone.** Complete: `main` commit `d193ac8`, tag `v1.0.5`, produced LocalCheck 1.0.1 build 13 (PR #22 MVP consolidation + PR #23 version bump). App Store Connect processing completed, TestFlight offers the update, and Jesse confirmed on-device it launches without crashing, feels snappy, and core logic works. Prior checkpoint was `249c926`/`v1.0.4`/build 9. See `ACTIVITY_LEDGER.md` 2026-08-01 entry for the incident/fix writeup — push notification registration is still broken on build 13 and remains open.
-2. **Finish the agreed MVP core candidate.** Profile, shared Court Details/court cards, Schedule persistence, then the standard-Elo match lifecycle. Apple Sign-In stays unchanged.
+1. **Get the current app-source checkpoint onto Jesse's phone.** Complete: app-source commit `d193ac8`, tag `v1.0.5`, produced LocalCheck 1.0.1 build 13 (PR #22 MVP consolidation + PR #23 version bump). GitHub `main` has since advanced to documentation commit `81ff0a4` without changing that binary checkpoint. App Store Connect processing completed, TestFlight offers the update, and Jesse confirmed on-device it launches without crashing, feels snappy, and core logic works. Prior checkpoint was `249c926`/`v1.0.4`/build 9. See `ACTIVITY_LEDGER.md` 2026-08-01 entry for the incident/fix writeup — push notification registration is still broken on build 13 and remains open.
+2. **Bring the current UI to the public-app bar.** Use the 2026-08-01 assessment to remove false affordances, establish shared production primitives, repair first-run identity/location/privacy, and normalize accessibility/action states before adding delight. Apple Sign-In stays unchanged.
 3. **Then prove Friends and the intentionally small notification set.** Run invite, friend request/accept, and final-score confirm/object only.
 4. **Then return to native/reliability acceptance.** Verify Mapbox physically and finish reverse-direction/background Realtime checks in parallel with real pilot feedback.
 5. **Then close App Store loops.** Privacy, onboarding, account deletion, recovery, store assets/metadata, external TestFlight, and review submission.
@@ -29,7 +29,7 @@ Database advisor notes, RPC implementation details, and scale optimizations are 
 | Surface | Verified state | Authority / constraint |
 | --- | --- | --- |
 | Shared backend | `LocalCheckProd` (`qkrnmyexzvaxiqfxwwfb`) is healthy; 56 courts and the current mobile v2 schema are live. The old `jzclwnzcektqhgkkdeje` project still exists but is deprecated. | No new production schema until web and mobile use one contract. Do not delete or pause the old project without Jesse's approval. |
-| Mobile source | GitHub `main` is `d193ac8`. PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/22) — the MVP review candidate for Schedule/friend fixes, Profile/Court Details/Home/shared UI, scoped Realtime, preview repair, and the notification/sport-Elo candidate — merged 2026-07-30. PR #23 (app version 1.0.0→1.0.1) merged 2026-07-31. The mandatory contributor guardrails are in [`../APP_ARCHITECTURE.md`](../APP_ARCHITECTURE.md). Apple Sign-In remains enabled and unchanged. | Notification/Elo backend activation (migration, Edge Function, webhook) and physical two-device QA remain gated/open. Phone push registration is broken on build 13 (separate bug, see `ACTIVITY_LEDGER.md`). |
+| Mobile source | GitHub `main` is `81ff0a4`. PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/22) merged the MVP candidate; PR #23 changed app/runtime version to 1.0.1; PR #24 refreshed current build/incident documentation. Build 13 still comes from tag `v1.0.5` at `d193ac8`. The mandatory contributor guardrails are in [`../APP_ARCHITECTURE.md`](../APP_ARCHITECTURE.md). Apple Sign-In remains enabled and unchanged. | Notification storage/RPCs are partially live, but sender/webhook delivery and sport-split Elo storage are not. Physical two-device QA remains open. Phone push registration is broken on build 13. |
 | Mobile distribution | EAS is connected to the correct repo and `artifacts/mobile`; all environments point to LocalCheckProd and have the required Mapbox tokens. LocalCheck 1.0.1 build 13 completed 2026-08-01 and TestFlight offers it as an update; Jesse confirmed it installs and runs without the prior launch crash. | Fix phone-push registration, then run native map and two-device Realtime acceptance against build 13 specifically (prior acceptance evidence was against build 9's older client). |
 | Public website | The deployed site is visually aligned with the graphite/orange direction and its court explorer resolves 56 Supabase courts. `LocalCheck_WEB` main is PR #1 at `7a5b74d`. | The old PR #2 checkout is archived at `/Users/JesseH/Projects/archive/LocalCheck_WEB_PR2-branch-2026-07-26`. It is ten commits ahead of main with preserved local package changes and must not be mistaken for deployed truth. |
 | Web PR #2 | Weather and shared-planning heatmap are implemented, but GitHub has no status checks. | Blocked from merge: two unresolved P2 review threads, a non-critical weather request without a timeout, stale-session recovery, and a second planning model (`court_time_intents`) that conflicts with production `planned_visits`. |
@@ -60,12 +60,18 @@ Database advisor notes, RPC implementation details, and scale optimizations are 
 
 ### P1 — pilot-ready product
 
+- [ ] Deploy and physically prove Add Court's completed authenticated Gemini verification/create source; then finish Edit Run's authorized update path. Add Court now has a library-backed task sheet, no manual sport selector, server-side duplicate/rate guards, and a complete authorized row insert, but the `verify-court` function was not deployed because the Codex account usage limit blocked the deployment path before mutation. See `ADD_COURT_HANDOFF.md`.
+- [ ] Establish the shared production UI foundation and migrate the core journey. Current assessment: [`assessments/2026-08-01-current-build-assessment.md`](assessments/2026-08-01-current-build-assessment.md).
+  Local candidate implemented and browser-reviewed on 2026-08-01; Expo Go,
+  physical iPhone accessibility/sheet/map QA, release checks, and Jesse's
+  approval remain before this item is complete.
+- [ ] Meet the accessibility baseline: readable type, 44-point targets, roles/states, VoiceOver order, Dynamic Type, reduced motion, outdoor contrast, and long-content resilience.
 - [ ] Prove the game loop end to end against LocalCheckProd, including Elo/win/loss/profile/feed effects.
 - [ ] Complete visibility/privacy enforcement across leaderboards, planned visits, schedules, profiles, and court people lists. The local duplicate/inline Compete presentation is fixed, but `profiles` still has no persisted visibility contract and the database cannot yet enforce leaderboard privacy.
 - [ ] Accept and physically prove the weekly availability candidate. Mobile now uses the same `planned_visits` contract on Schedule and Court Details, with multi-select batch save and idempotent inserts; signed-in add/remove proof remains.
-- [ ] Reorganize Settings; fix Manage Account; remove or wire dead controls; keep LocalPlus hidden for MVP.
+- [ ] Reorganize Settings; fix Manage Account; wire dead controls; keep LocalPlus visible only with honest entitlement state and complete its RevenueCat purchase/restore path before it becomes purchasable.
 - [ ] Rebuild onboarding on current `main` and verify first-session success on a clean account.
-- [ ] Resolve the missing `POST /api/courts/verify` path or remove the production-facing add-court promise.
+- [x] Replace the missing `POST /api/courts/verify` source path with an authenticated server-side vision verification and authorized court-create path; the Gemini secret remains server-side. Deployment and physical proof are tracked separately above.
 - [ ] Add crash/error visibility and a minimal incident runbook before expanding the pilot.
 
 ### P1 — website reliability and coherence
@@ -80,9 +86,9 @@ Database advisor notes, RPC implementation details, and scale optimizations are 
 
 - [ ] Implement in-app account deletion; Apple requires deletion, not only deactivation. Revoke Sign in with Apple tokens where applicable.
 - [ ] Publish and link a privacy policy in the app and App Store metadata.
-- [ ] Inventory user-generated/social surfaces and add filtering, reporting, blocking, and support contact paths before public release.
+- [ ] Apply and physically verify the checked-in user block/report migration and profile controls; add the support contact path before public release.
 - [ ] Prepare accurate location and data-use disclosures.
-- [ ] Keep LocalPlus/IAP unavailable until the entitlement and purchase path meet App Store rules.
+- [ ] Complete LocalPlus with RevenueCat, StoreKit product mapping, purchase/restore, and server-side entitlement sync before enabling purchase in the release build; do not delete its designed UI.
 - [ ] Complete App Store Connect metadata, screenshots, review notes, support URL, age rating, privacy nutrition labels, and a review account/instructions where needed. EAS Submit only uploads the binary; it does not submit the app for App Review.
 
 ### P2 — hardening and scale
@@ -123,8 +129,9 @@ Items 1 and 4 from the pre-2026-08-01 queue are done: PR #22 merged, build 13
 delivered to TestFlight with Jesse's approval on each release-triggering
 action (provisioning-profile regen, version bump, tag push). Remaining:
 
-1. **UI/design polish** — Jesse's explicitly stated next priority now that the
-   app is functional again.
+1. **Production UI system and journey repair** — Jesse's explicitly stated next
+   priority now that the app is functional again. Follow the 2026-08-01
+   assessment: table stakes first, then LocalCheck-specific delight.
 2. Root-cause and fix phone-push registration on build 13 (see
    `CURRENT_STATE.md` and the 2026-08-01 `ACTIVITY_LEDGER.md` entry).
 3. Preserve Apple Sign-In unchanged. Prove Schedule add/remove persistence and

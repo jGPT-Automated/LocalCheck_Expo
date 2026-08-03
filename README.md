@@ -73,7 +73,7 @@ Full component/motion/voice detail: [`DESIGN.md`](DESIGN.md).
 | **Player Profile** | `/player/[id]` | Player detail with head-to-head stats, add friend, match history |
 | **Friends** | `/friends` | Friend list (Supabase `friendships`) |
 | **Settings** | `/settings` | Visibility, LocalPlus, preferences, sport preferences, account |
-| **Onboarding** | `/onboarding` | Username / sport / location steps — **rebuild pending** (closed PR #7; see SOURCE_OF_TRUTH) |
+| **First run** | No dedicated route | Current signup goes directly to Home; identity / sport / location / privacy / local-court onboarding is a documented production gap in `docs/product/assessments/2026-08-01-current-build-assessment.md` |
 
 ---
 
@@ -165,7 +165,7 @@ artifacts/
         elo.tsx           # Me — ELO dashboard
         _layout.tsx       # Tab navigation (ClassicTabLayout only)
       auth.tsx            # Sign in / create account
-      onboarding.tsx      # (rebuild pending — see SOURCE_OF_TRUTH)
+      # No onboarding route currently; first-run rebuild is documented in the current assessment
       court/[id].tsx      # Court profile
       run/[id].tsx        # Run lobby
       player/[id].tsx     # Player profile + head-to-head

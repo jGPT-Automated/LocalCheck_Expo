@@ -112,7 +112,7 @@ export function CourtSheetContent({
   return (
     <BottomSheetScrollView
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: bottom + 32 }}
+      contentContainerStyle={[styles.scrollContent, { paddingBottom: bottom + 32 }]}
     >
       {/* ── Peek layer: visible at the 46% snap point ── */}
       <View style={styles.peekHeader}>
@@ -287,6 +287,7 @@ export function CourtSheetContent({
 }
 
 const styles = StyleSheet.create({
+  scrollContent: { backgroundColor: Colors.background },
   loading: { alignItems: "center", justifyContent: "center", paddingVertical: 64 },
 
   peekHeader: {

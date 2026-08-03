@@ -1,4 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
+import {
+  BottomSheetScrollView,
+  BottomSheetTextInput,
+  BottomSheetView,
+} from "@gorhom/bottom-sheet";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import React, { useCallback, useEffect, useState } from "react";
@@ -8,29 +13,26 @@ import {
   Image,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AppTabs } from "@/components/AppTabs";
+import { BrutalistButton } from "@/components/BrutalistButton";
+import { TaskBottomSheet } from "@/components/sheet/TaskBottomSheet";
 import { Colors, Radius } from "@/constants/colors";
-import { FormSheet } from "@/components/sheet/FormSheet";
-import { Court, CourtSport, SPORT_ICONS } from "@/constants/data";
-import { Typography } from "@/constants/typography";
+import { ControlSize, Spacing } from "@/constants/layout";
+import { Typography, TypeScale } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import type {
+  CourtAccessType,
+  CourtSubmissionResult,
+  VerifiedCourtSubmission,
+} from "@/services/courtService";
 
-const SPORTS: CourtSport[] = ["BASKETBALL", "PICKLEBALL", "TENNIS", "SOCCER", "VOLLEYBALL"];
-
-type Step = "form" | "photo" | "verifying" | "result";
-
-interface VerifyResult {
-  verified: boolean;
-  confidence: number;
-  reason: string;
-}
+type Step = "details" | "photo" | "verifying" | "result";
 
 interface Props {
   visible: boolean;
@@ -39,41 +41,87 @@ interface Props {
   initialLongitude?: number;
 }
 
-const API_BASE = process.env.EXPO_PUBLIC_DOMAIN
-  ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/api`
-  : "/api";
+const ACCESS_OPTIONS = [
+  { value: "public_free", label: "Free" },
+  { value: "public_paid", label: "Paid" },
+  { value: "private_paid", label: "Private" },
+] as const;
+
+const US_STATE_CODES: Record<string, string> = {
+  alabama: "AL", alaska: "AK", arizona: "AZ", arkansas: "AR", california: "CA",
+  colorado: "CO", connecticut: "CT", delaware: "DE", florida: "FL", georgia: "GA",
+  hawaii: "HI", idaho: "ID", illinois: "IL", indiana: "IN", iowa: "IA",
+  kansas: "KS", kentucky: "KY", louisiana: "LA", maine: "ME", maryland: "MD",
+  massachusetts: "MA", michigan: "MI", minnesota: "MN", mississippi: "MS",
+  missouri: "MO", montana: "MT", nebraska: "NE", nevada: "NV",
+  "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY",
+  "north carolina": "NC", "north dakota": "ND", ohio: "OH", oklahoma: "OK",
+  oregon: "OR", pennsylvania: "PA", "rhode island": "RI", "south carolina": "SC",
+  "south dakota": "SD", tennessee: "TN", texas: "TX", utah: "UT", vermont: "VT",
+  virginia: "VA", washington: "WA", "west virginia": "WV", wisconsin: "WI",
+  wyoming: "WY", "district of columbia": "DC",
+};
+
+function normalizeState(region: string | null | undefined): string {
+  const trimmed = region?.trim() ?? "";
+  if (/^[a-z]{2}$/i.test(trimmed)) return trimmed.toUpperCase();
+  return US_STATE_CODES[trimmed.toLowerCase()] ?? "";
+}
+
+function buildAddress(place: Location.LocationGeocodedAddress): string {
+  const street = [place.streetNumber, place.street].filter(Boolean).join(" ").trim();
+  return street || place.name?.trim() || place.formattedAddress?.split(",")[0]?.trim() || "";
+}
 
 export function AddCourtModal({ visible, onClose, initialLatitude, initialLongitude }: Props) {
-  const { currentUser, addCourt } = useApp();
+  const { addCourt } = useApp();
   const { bottom } = useSafeAreaInsets();
-
-  const [step, setStep] = useState<Step>("form");
+  const [step, setStep] = useState<Step>("details");
   const [name, setName] = useState("");
-  const [sport, setSport] = useState<CourtSport>("BASKETBALL");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [stateCode, setStateCode] = useState("");
+  const [accessType, setAccessType] = useState<CourtAccessType>("public_free");
   const [latitude, setLatitude] = useState<number | null>(initialLatitude ?? null);
   const [longitude, setLongitude] = useState<number | null>(initialLongitude ?? null);
   const [locating, setLocating] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
-  const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
+  const [photoMimeType, setPhotoMimeType] = useState("image/jpeg");
+  const [result, setResult] = useState<CourtSubmissionResult | null>(null);
+
+  const fillAddress = useCallback(async (lat: number, lng: number) => {
+    if (Platform.OS === "web") return;
+    try {
+      const [place] = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+      if (!place) return;
+      setAddress((current) => current || buildAddress(place));
+      setCity((current) => current || place.city?.trim() || place.district?.trim() || "");
+      setStateCode((current) => current || normalizeState(place.region));
+    } catch {
+      // Coordinates remain usable. The editable fields make a failed device
+      // geocoder recoverable instead of blocking the submission.
+    }
+  }, []);
 
   useEffect(() => {
-    if (visible) {
-      setStep("form");
-      setName("");
-      setSport("BASKETBALL");
-      setPhotoUri(null);
-      setPhotoBase64(null);
-      setVerifyResult(null);
-      if (initialLatitude && initialLongitude) {
-        setLatitude(initialLatitude);
-        setLongitude(initialLongitude);
-      } else {
-        setLatitude(null);
-        setLongitude(null);
-      }
-    }
-  }, [visible, initialLatitude, initialLongitude]);
+    if (!visible) return;
+    setStep("details");
+    setName("");
+    setAddress("");
+    setCity("");
+    setStateCode("");
+    setAccessType("public_free");
+    setPhotoUri(null);
+    setPhotoBase64(null);
+    setPhotoMimeType("image/jpeg");
+    setResult(null);
+    const nextLat = initialLatitude ?? null;
+    const nextLng = initialLongitude ?? null;
+    setLatitude(nextLat);
+    setLongitude(nextLng);
+    if (nextLat != null && nextLng != null) void fillAddress(nextLat, nextLng);
+  }, [visible, initialLatitude, initialLongitude, fillAddress]);
 
   const getLocation = useCallback(async () => {
     setLocating(true);
@@ -81,9 +129,9 @@ export function AddCourtModal({ visible, onClose, initialLatitude, initialLongit
       if (Platform.OS === "web") {
         await new Promise<void>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              setLatitude(pos.coords.latitude);
-              setLongitude(pos.coords.longitude);
+            (position) => {
+              setLatitude(position.coords.latitude);
+              setLongitude(position.coords.longitude);
               resolve();
             },
             () => reject(new Error("Location unavailable")),
@@ -91,475 +139,359 @@ export function AddCourtModal({ visible, onClose, initialLatitude, initialLongit
           );
         });
       } else {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          Alert.alert("Permission Denied", "Location permission is needed to pin your court.");
+        const permission = await Location.requestForegroundPermissionsAsync();
+        if (permission.status !== "granted") {
+          Alert.alert("Location needed", "Allow location to pin the court you are standing at.");
           return;
         }
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-        setLatitude(loc.coords.latitude);
-        setLongitude(loc.coords.longitude);
+        const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        setLatitude(location.coords.latitude);
+        setLongitude(location.coords.longitude);
+        await fillAddress(location.coords.latitude, location.coords.longitude);
       }
     } catch {
-      Alert.alert("Error", "Could not get your location. Please try again.");
+      Alert.alert("Location unavailable", "Move closer to the court and try again.");
     } finally {
       setLocating(false);
     }
+  }, [fillAddress]);
+
+  const savePhoto = useCallback((asset: ImagePicker.ImagePickerAsset) => {
+    if (!asset.base64) {
+      Alert.alert("Photo unavailable", "LocalCheck could not read this photo. Please choose another one.");
+      return;
+    }
+    setPhotoUri(asset.uri);
+    setPhotoBase64(asset.base64);
+    setPhotoMimeType(asset.mimeType ?? "image/jpeg");
   }, []);
 
   const pickPhoto = useCallback(async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permission Denied", "Photo library permission is needed.");
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permission.status !== "granted") {
+      Alert.alert("Photo access needed", "Allow photo access to choose a court photo.");
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
+    const picked = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: "images",
-      quality: 0.6,
+      quality: 0.65,
       base64: true,
       allowsEditing: true,
       aspect: [4, 3],
     });
-    if (!result.canceled && result.assets[0]) {
-      setPhotoUri(result.assets[0].uri);
-      setPhotoBase64(result.assets[0].base64 ?? null);
-    }
-  }, []);
+    if (!picked.canceled && picked.assets[0]) savePhoto(picked.assets[0]);
+  }, [savePhoto]);
 
   const takePhoto = useCallback(async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permission Denied", "Camera permission is needed to verify the court.");
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (permission.status !== "granted") {
+      Alert.alert("Camera access needed", "Allow camera access to photograph the court.");
       return;
     }
-    const result = await ImagePicker.launchCameraAsync({
+    const captured = await ImagePicker.launchCameraAsync({
       mediaTypes: "images",
-      quality: 0.6,
+      quality: 0.65,
       base64: true,
       allowsEditing: true,
       aspect: [4, 3],
     });
-    if (!result.canceled && result.assets[0]) {
-      setPhotoUri(result.assets[0].uri);
-      setPhotoBase64(result.assets[0].base64 ?? null);
-    }
-  }, []);
+    if (!captured.canceled && captured.assets[0]) savePhoto(captured.assets[0]);
+  }, [savePhoto]);
 
-  const verifyPhoto = useCallback(async () => {
-    if (!photoBase64) return;
-    setStep("verifying");
-    try {
-      const res = await fetch(`${API_BASE}/courts/verify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: photoBase64, sport }),
-      });
-      const data: VerifyResult = await res.json();
-      setVerifyResult(data);
-      setStep("result");
-    } catch {
-      setVerifyResult({
-        verified: false,
-        confidence: 0,
-        reason: "Could not connect to verification service. Please check your connection.",
-      });
-      setStep("result");
-    }
-  }, [photoBase64, sport]);
+  const detailsReady =
+    latitude != null &&
+    longitude != null &&
+    address.trim().length >= 2 &&
+    city.trim().length >= 2 &&
+    /^[A-Za-z]{2}$/.test(stateCode.trim());
 
-  const confirmAddCourt = useCallback(async () => {
-    if (!latitude || !longitude || !verifyResult?.verified) return;
-    const courtName = name.trim() || `${sport.charAt(0) + sport.slice(1).toLowerCase()} Court`;
-    const newCourt: Court = {
-      id: `uc_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      name: courtName,
-      sport,
-      neighborhood: "",
-      city: "",
-      address: "",
+  const submit = useCallback(async () => {
+    if (!detailsReady || latitude == null || longitude == null || !photoBase64) return;
+    const submission: VerifiedCourtSubmission = {
+      name: name.trim() || undefined,
+      address: address.trim(),
+      city: city.trim(),
+      state: stateCode.trim().toUpperCase(),
       latitude,
       longitude,
-      activeCount: 0,
-      status: "confirmed",
-      addedBy: currentUser.id,
-      verificationPhoto: photoUri ?? undefined,
+      accessType,
+      imageBase64: photoBase64,
+      imageMimeType: photoMimeType,
     };
-    await addCourt(newCourt);
-    onClose();
-  }, [name, sport, latitude, longitude, verifyResult, photoUri, currentUser, addCourt, onClose]);
+    setStep("verifying");
+    const nextResult = await addCourt(submission);
+    setResult(nextResult);
+    setStep("result");
+  }, [detailsReady, latitude, longitude, photoBase64, name, address, city, stateCode, accessType, photoMimeType, addCourt]);
 
-  const renderForm = () => (
-    <ScrollView
-      contentContainerStyle={[styles.content, { paddingBottom: bottom + 24 }]}
-      showsVerticalScrollIndicator={false}
+  const resetPhoto = useCallback(() => {
+    setPhotoUri(null);
+    setPhotoBase64(null);
+    setResult(null);
+    setStep("photo");
+  }, []);
+
+  const renderDetails = () => (
+    <BottomSheetScrollView
+      contentContainerStyle={[styles.content, { paddingBottom: bottom + Spacing.xl }]}
       keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.stepLabel}>STEP 1 OF 2 — COURT DETAILS</Text>
-      <Text style={styles.title}>ADD A COURT</Text>
-      <Text style={styles.subtitle}>Pin a real court to the map. A photo is required for AI verification.</Text>
+      <Text style={styles.intro}>Pin the court where you are standing. Gemini identifies basketball or pickleball from your photo.</Text>
 
-      <Text style={styles.fieldLabel}>COURT NAME (OPTIONAL)</Text>
-      <TextInput
+      <Text style={styles.fieldLabel}>COURT NAME — OPTIONAL</Text>
+      <BottomSheetTextInput
+        accessibilityLabel="Court name"
+        autoCapitalize="words"
+        maxLength={120}
+        onChangeText={setName}
+        placeholder="West Side Courts"
+        placeholderTextColor={Colors.mutedDark}
         style={styles.input}
         value={name}
-        onChangeText={setName}
-        placeholder="e.g. West Side Courts"
-        placeholderTextColor={Colors.mutedDark}
-        autoCapitalize="words"
       />
 
-      <Text style={styles.fieldLabel}>SPORT</Text>
-      <View style={styles.sportRow}>
-        {SPORTS.map((s) => (
-          <Pressable
-            key={s}
-            style={[styles.sportBtn, sport === s && styles.sportBtnActive]}
-            onPress={() => setSport(s)}
-          >
-            <Text style={styles.sportIcon}>{SPORT_ICONS[s]}</Text>
-            <Text style={[styles.sportText, sport === s && styles.sportTextActive]}>
-              {s.slice(0, 4)}
-            </Text>
-          </Pressable>
-        ))}
+      <Text style={styles.fieldLabel}>LOCATION</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Use my current location"
+        disabled={locating}
+        onPress={getLocation}
+        style={({ pressed }) => [styles.locationAction, pressed && styles.pressed]}
+      >
+        {locating ? <ActivityIndicator color={Colors.accent} /> : <Ionicons name="locate" size={18} color={Colors.accent} />}
+        <View style={styles.locationCopy}>
+          <Text style={styles.locationActionTitle}>{locating ? "LOCATING…" : latitude == null ? "USE MY LOCATION" : "REFRESH LOCATION"}</Text>
+          <Text style={styles.locationActionMeta}>
+            {latitude == null || longitude == null ? "Required to place the court" : `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`}
+          </Text>
+        </View>
+      </Pressable>
+
+      <BottomSheetTextInput
+        accessibilityLabel="Court street address"
+        autoCapitalize="words"
+        maxLength={250}
+        onChangeText={setAddress}
+        placeholder="Street address or park name"
+        placeholderTextColor={Colors.mutedDark}
+        style={styles.input}
+        value={address}
+      />
+      <View style={styles.locationFields}>
+        <BottomSheetTextInput
+          accessibilityLabel="Court city"
+          autoCapitalize="words"
+          maxLength={80}
+          onChangeText={setCity}
+          placeholder="City"
+          placeholderTextColor={Colors.mutedDark}
+          style={[styles.input, styles.cityInput]}
+          value={city}
+        />
+        <BottomSheetTextInput
+          accessibilityLabel="Court state abbreviation"
+          autoCapitalize="characters"
+          autoCorrect={false}
+          maxLength={2}
+          onChangeText={(value) => setStateCode(value.replace(/[^A-Za-z]/g, "").toUpperCase())}
+          placeholder="ST"
+          placeholderTextColor={Colors.mutedDark}
+          style={[styles.input, styles.stateInput]}
+          value={stateCode}
+        />
       </View>
 
-      <Text style={styles.fieldLabel}>YOUR LOCATION</Text>
-      {latitude && longitude ? (
-        <View style={styles.locationBox}>
-          <Ionicons name="location" size={16} color={Colors.accent} />
-          <Text style={styles.locationText}>
-            {latitude.toFixed(5)}, {longitude.toFixed(5)}
-          </Text>
-          <Pressable onPress={getLocation} style={styles.refreshBtn}>
-            <Ionicons name="refresh" size={14} color={Colors.muted} />
-          </Pressable>
-        </View>
-      ) : (
-        <Pressable style={styles.locationCta} onPress={getLocation} disabled={locating}>
-          {locating ? (
-            <ActivityIndicator size="small" color={Colors.accent} />
-          ) : (
-            <Ionicons name="locate" size={18} color={Colors.accent} />
-          )}
-          <Text style={styles.locationCtaText}>
-            {locating ? "LOCATING..." : "DROP PIN AT MY LOCATION"}
-          </Text>
-        </Pressable>
-      )}
+      <Text style={styles.fieldLabel}>ACCESS</Text>
+      <AppTabs items={ACCESS_OPTIONS} value={accessType} onChange={setAccessType} variant="segmented" style={styles.accessTabs} />
 
-      <Pressable
-        style={[styles.nextBtn, (!latitude || !longitude) && styles.nextBtnDisabled]}
+      <BrutalistButton
+        accessibilityHint="Continue to photograph the court"
+        disabled={!detailsReady}
+        icon={<Ionicons name="arrow-forward" size={17} color={Colors.black} />}
+        label="Continue to photo"
         onPress={() => setStep("photo")}
-        disabled={!latitude || !longitude}
-      >
-        <Text style={styles.nextBtnText}>NEXT — TAKE PHOTO</Text>
-        <Ionicons name="arrow-forward" size={16} color={Colors.black} />
-      </Pressable>
-    </ScrollView>
+        variant="accent"
+      />
+      {!detailsReady ? <Text style={styles.helper}>Add your current location, address, city, and two-letter state.</Text> : null}
+    </BottomSheetScrollView>
   );
 
   const renderPhoto = () => (
-    <ScrollView
-      contentContainerStyle={[styles.content, { paddingBottom: bottom + 24 }]}
+    <BottomSheetScrollView
+      contentContainerStyle={[styles.content, { paddingBottom: bottom + Spacing.xl }]}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.stepLabel}>STEP 2 OF 2 — VERIFY COURT</Text>
-      <Text style={styles.title}>PHOTOGRAPH THE COURT</Text>
-      <Text style={styles.subtitle}>
-        Take a clear photo showing the court. AI will verify this is a real, accessible court.
-      </Text>
-
+      <Text style={styles.intro}>Show the playable surface, lines, and hoops or net. The photo is analyzed for this submission and is not stored.</Text>
       {photoUri ? (
         <View style={styles.photoPreviewWrap}>
           <Image source={{ uri: photoUri }} style={styles.photoPreview} resizeMode="cover" />
-          <Pressable style={styles.retakeBtn} onPress={() => { setPhotoUri(null); setPhotoBase64(null); }}>
-            <Text style={styles.retakeBtnText}>RETAKE</Text>
+          <Pressable accessibilityRole="button" onPress={resetPhoto} style={styles.retakeButton}>
+            <Text style={styles.retakeText}>RETAKE</Text>
           </Pressable>
         </View>
       ) : (
         <View style={styles.photoOptions}>
-          <Pressable style={styles.photoBtn} onPress={takePhoto}>
-            <Ionicons name="camera" size={28} color={Colors.accent} />
-            <Text style={styles.photoBtnText}>TAKE PHOTO</Text>
+          <Pressable accessibilityRole="button" onPress={takePhoto} style={({ pressed }) => [styles.photoButton, pressed && styles.pressed]}>
+            <Ionicons name="camera" size={27} color={Colors.accent} />
+            <Text style={styles.photoButtonTitle}>TAKE PHOTO</Text>
+            <Text style={styles.photoButtonMeta}>Best verification</Text>
           </Pressable>
           <View style={styles.photoDivider} />
-          <Pressable style={styles.photoBtn} onPress={pickPhoto}>
-            <Ionicons name="images" size={28} color={Colors.muted} />
-            <Text style={styles.photoBtnText}>CHOOSE FROM LIBRARY</Text>
+          <Pressable accessibilityRole="button" onPress={pickPhoto} style={({ pressed }) => [styles.photoButton, pressed && styles.pressed]}>
+            <Ionicons name="images" size={27} color={Colors.textSecondary} />
+            <Text style={styles.photoButtonTitle}>PHOTO LIBRARY</Text>
+            <Text style={styles.photoButtonMeta}>Choose a clear photo</Text>
           </Pressable>
         </View>
       )}
 
-      <View style={styles.tipBox}>
-        <Ionicons name="information-circle" size={14} color={Colors.accent} />
-        <Text style={styles.tipText}>
-          Make sure the court markings, hoops, or nets are clearly visible. Selfies or street photos will be rejected.
-        </Text>
+      <View style={styles.infoBox}>
+        <Ionicons name="sparkles" size={16} color={Colors.accent} />
+        <Text style={styles.infoText}>Gemini detects the sport and court setting. Other sports, screenshots, renderings, or unclear photos are rejected.</Text>
       </View>
 
-      <View style={styles.rowBtns}>
-        <Pressable style={styles.backBtn} onPress={() => setStep("form")}>
-          <Ionicons name="arrow-back" size={16} color={Colors.muted} />
-          <Text style={styles.backBtnText}>BACK</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.verifyBtn, !photoBase64 && styles.nextBtnDisabled]}
-          onPress={verifyPhoto}
+      <View style={styles.actionRow}>
+        <BrutalistButton label="Back" onPress={() => setStep("details")} style={styles.secondaryAction} variant="outline" />
+        <BrutalistButton
           disabled={!photoBase64}
-        >
-          <Text style={styles.nextBtnText}>VERIFY WITH AI</Text>
-          <Ionicons name="shield-checkmark" size={16} color={Colors.black} />
-        </Pressable>
+          icon={<Ionicons name="shield-checkmark" size={17} color={Colors.black} />}
+          label="Verify & add"
+          onPress={submit}
+          style={styles.primaryAction}
+          variant="accent"
+        />
       </View>
-    </ScrollView>
+    </BottomSheetScrollView>
   );
 
   const renderVerifying = () => (
-    <View style={[styles.content, styles.centerContent, { paddingBottom: bottom + 24 }]}>
+    <BottomSheetView style={[styles.centerContent, { paddingBottom: bottom + Spacing.xl }]}>
       <ActivityIndicator size="large" color={Colors.accent} />
-      <Text style={styles.verifyingTitle}>ANALYZING PHOTO...</Text>
-      <Text style={styles.verifyingText}>
-        Our AI is checking that this is a real, accessible court. This takes just a moment.
-      </Text>
-    </View>
+      <Text style={styles.stateTitle}>CHECKING THE COURT</Text>
+      <Text style={styles.stateBody}>Verifying the photo, checking nearby duplicates, and creating the court.</Text>
+    </BottomSheetView>
   );
 
   const renderResult = () => {
-    if (!verifyResult) return null;
-    const { verified, confidence, reason } = verifyResult;
+    if (!result) return null;
+    const added = result.verified && result.court;
     return (
-      <View style={[styles.content, { paddingBottom: bottom + 24 }]}>
-        <View style={[styles.resultBadge, verified ? styles.resultBadgeOk : styles.resultBadgeFail]}>
-          <Ionicons
-            name={verified ? "checkmark-circle" : "close-circle"}
-            size={48}
-            color={verified ? Colors.accent : "#FF3B30"}
-          />
+      <BottomSheetView style={[styles.resultContent, { paddingBottom: bottom + Spacing.xl }]}>
+        <View style={[styles.resultIcon, added ? styles.resultIconSuccess : styles.resultIconFailure]}>
+          <Ionicons name={added ? "checkmark" : "close"} size={34} color={added ? Colors.accent : Colors.loss} />
         </View>
-        <Text style={styles.resultTitle}>{verified ? "COURT VERIFIED!" : "NOT VERIFIED"}</Text>
-        <Text style={styles.resultReason}>{reason}</Text>
-        {verified && (
-          <Text style={styles.resultConfidence}>{confidence}% confidence</Text>
-        )}
-
-        {verified ? (
-          <>
-            <View style={styles.courtInfoPreview}>
-              <Text style={styles.courtPreviewName}>{name.trim() || `${sport.charAt(0) + sport.slice(1).toLowerCase()} Court`}</Text>
-              <Text style={styles.courtPreviewCoords}>{latitude?.toFixed(5)}, {longitude?.toFixed(5)}</Text>
-              <View style={styles.courtPreviewStatus}>
-                <View style={styles.statusDot} />
-                <Text style={styles.statusText}>CONFIRMED COURT</Text>
-              </View>
-            </View>
-            <Pressable style={styles.addBtn} onPress={confirmAddCourt}>
-              <Ionicons name="add-circle" size={18} color={Colors.black} />
-              <Text style={styles.nextBtnText}>ADD TO MAP</Text>
-            </Pressable>
-          </>
-        ) : (
-          <View style={styles.rowBtns}>
-            <Pressable style={styles.backBtn} onPress={() => { setStep("photo"); setPhotoUri(null); setPhotoBase64(null); }}>
-              <Ionicons name="camera" size={16} color={Colors.muted} />
-              <Text style={styles.backBtnText}>NEW PHOTO</Text>
-            </Pressable>
-            <Pressable style={styles.backBtn} onPress={onClose}>
-              <Text style={styles.backBtnText}>CANCEL</Text>
-            </Pressable>
+        <Text style={styles.stateTitle}>{added ? "COURT ADDED" : "PHOTO NOT VERIFIED"}</Text>
+        <Text style={styles.stateBody}>{result.reason}</Text>
+        {added ? (
+          <View style={styles.courtSummary}>
+            <Text style={styles.courtName}>{result.court?.name}</Text>
+            <Text style={styles.detectedSport}>{result.sport} · {result.confidence}% confidence</Text>
+            <Text style={styles.courtAddress}>{result.court?.address}</Text>
           </View>
-        )}
-      </View>
+        ) : null}
+        <BrutalistButton
+          label={added ? "Done" : "Try another photo"}
+          onPress={added ? onClose : resetPhoto}
+          style={styles.resultAction}
+          variant={added ? "accent" : "outline"}
+        />
+      </BottomSheetView>
     );
   };
 
-  const stepNumber = step === "form" ? 1 : step === "photo" ? 2 : step === "verifying" ? 3 : 4;
+  const eyebrow = step === "details" ? "STEP 1 OF 2 · DETAILS" : step === "photo" ? "STEP 2 OF 2 · PHOTO" : step === "verifying" ? "GEMINI VISION" : "VERIFICATION RESULT";
+
   return (
-    <FormSheet
-      visible={visible}
-      onClose={onClose}
-      title="Add a court"
-      eyebrow={`STEP ${stepNumber} OF 4`}
-    >
-      {step === "form" && renderForm()}
+    <TaskBottomSheet visible={visible} onClose={onClose} title="Add a court" eyebrow={eyebrow}>
+      {step === "details" && renderDetails()}
       {step === "photo" && renderPhoto()}
       {step === "verifying" && renderVerifying()}
       {step === "result" && renderResult()}
-    </FormSheet>
+    </TaskBottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 24 },
-  centerContent: {
-    flex: 1, justifyContent: "center", alignItems: "center",
-    gap: 16, padding: 24,
-  },
-  stepLabel: {
-    fontFamily: Typography.heading, fontSize: 10, color: Colors.accent,
-    letterSpacing: 2, marginBottom: 4,
-  },
-  title: {
-    fontFamily: Typography.heading, fontSize: 26, color: Colors.white,
-    letterSpacing: 1, marginBottom: 8,
-  },
-  subtitle: {
-    fontFamily: Typography.body, fontSize: 13, color: Colors.muted,
-    lineHeight: 19, marginBottom: 28,
+  content: { padding: Spacing.screen, gap: Spacing.sm },
+  intro: {
+    fontFamily: Typography.body,
+    ...TypeScale.bodyMedium,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
   },
   fieldLabel: {
-    fontFamily: Typography.heading, fontSize: 10, color: Colors.mutedDark,
-    letterSpacing: 2, marginBottom: 8,
+    fontFamily: Typography.bodyBold,
+    ...TypeScale.label,
+    color: Colors.muted,
+    letterSpacing: 1.4,
+    marginTop: Spacing.xs,
   },
   input: {
-    backgroundColor: Colors.card,
-    borderWidth: 1,
+    minHeight: ControlSize.regular,
+    backgroundColor: Colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
     borderRadius: Radius.sm,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    color: Colors.white,
+    color: Colors.text,
     fontFamily: Typography.body,
     fontSize: 15,
-    marginBottom: 24,
   },
-  sportRow: {
-    flexDirection: "row", gap: 8, flexWrap: "wrap", marginBottom: 24,
+  locationAction: {
+    minHeight: 64,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingHorizontal: 14,
+    paddingVertical: Spacing.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.accent,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.accentDim,
   },
-  sportBtn: {
-    alignItems: "center", justifyContent: "center",
-    paddingHorizontal: 12, paddingVertical: 8,
-    borderWidth: 1.5, borderColor: Colors.border,
-    borderRadius: Radius.sm, gap: 2, minWidth: 56,
-  },
-  sportBtnActive: { borderColor: Colors.accent, backgroundColor: "rgba(255,85,0,0.08)" },
-  sportIcon: { fontSize: 18 },
-  sportText: {
-    fontFamily: Typography.heading, fontSize: 9, color: Colors.mutedDark,
-    letterSpacing: 1,
-  },
-  sportTextActive: { color: Colors.accent },
-  locationBox: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    backgroundColor: Colors.card, borderWidth: 1,
-    borderColor: Colors.accent, borderRadius: Radius.sm,
-    padding: 12, marginBottom: 28,
-  },
-  locationText: { fontFamily: Typography.body, fontSize: 13, color: Colors.white, flex: 1 },
-  refreshBtn: { padding: 4 },
-  locationCta: {
-    flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: Colors.card, borderWidth: 1.5,
-    borderColor: Colors.border, borderRadius: Radius.sm,
-    padding: 14, marginBottom: 28,
-  },
-  locationCtaText: {
-    fontFamily: Typography.heading, fontSize: 12, color: Colors.white, letterSpacing: 1.5,
-  },
-  nextBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 8, backgroundColor: Colors.accent,
-    borderRadius: Radius.sm, paddingVertical: 14,
-  },
-  nextBtnDisabled: { opacity: 0.35 },
-  nextBtnText: {
-    fontFamily: Typography.heading, fontSize: 13, color: Colors.black, letterSpacing: 2,
-  },
+  locationCopy: { flex: 1, gap: 2 },
+  locationActionTitle: { fontFamily: Typography.heading, fontSize: 13, color: Colors.text, letterSpacing: 1.2 },
+  locationActionMeta: { fontFamily: Typography.body, ...TypeScale.supporting, color: Colors.textSecondary },
+  locationFields: { flexDirection: "row", gap: Spacing.sm },
+  cityInput: { flex: 1 },
+  stateInput: { width: 72, textAlign: "center" },
+  accessTabs: { marginBottom: Spacing.sm },
+  helper: { fontFamily: Typography.body, ...TypeScale.supporting, color: Colors.muted, textAlign: "center" },
   photoOptions: {
-    flexDirection: "row", borderWidth: 1, borderColor: Colors.border,
-    borderRadius: Radius.sm, overflow: "hidden", marginBottom: 20,
-    height: 160,
+    height: 176,
+    flexDirection: "row",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    overflow: "hidden",
+    backgroundColor: Colors.surface,
   },
-  photoBtn: {
-    flex: 1, alignItems: "center", justifyContent: "center", gap: 8,
-    backgroundColor: Colors.card,
-  },
-  photoDivider: { width: 1, backgroundColor: Colors.border },
-  photoBtnText: {
-    fontFamily: Typography.heading, fontSize: 9, color: Colors.muted, letterSpacing: 1.5,
-    textAlign: "center",
-  },
-  photoPreviewWrap: { marginBottom: 20, borderRadius: Radius.sm, overflow: "hidden" },
-  photoPreview: { width: "100%", height: 200, borderRadius: Radius.sm },
-  retakeBtn: {
-    position: "absolute", bottom: 8, right: 8,
-    backgroundColor: "rgba(0,0,0,0.7)", borderRadius: Radius.xs,
-    paddingHorizontal: 10, paddingVertical: 5,
-  },
-  retakeBtnText: {
-    fontFamily: Typography.heading, fontSize: 9, color: Colors.white, letterSpacing: 1.5,
-  },
-  tipBox: {
-    flexDirection: "row", gap: 8, alignItems: "flex-start",
-    backgroundColor: "rgba(255,85,0,0.06)", borderWidth: 1,
-    borderColor: "rgba(255,85,0,0.2)", borderRadius: Radius.sm,
-    padding: 12, marginBottom: 24,
-  },
-  tipText: {
-    flex: 1, fontFamily: Typography.body, fontSize: 12, color: Colors.muted,
-    lineHeight: 17,
-  },
-  rowBtns: { flexDirection: "row", gap: 10 },
-  backBtn: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.sm,
-    paddingHorizontal: 16, paddingVertical: 14,
-  },
-  backBtnText: {
-    fontFamily: Typography.heading, fontSize: 11, color: Colors.muted, letterSpacing: 1.5,
-  },
-  verifyBtn: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 8, backgroundColor: Colors.accent, borderRadius: Radius.sm, paddingVertical: 14,
-  },
-  verifyingTitle: {
-    fontFamily: Typography.heading, fontSize: 20, color: Colors.white,
-    letterSpacing: 2, textAlign: "center",
-  },
-  verifyingText: {
-    fontFamily: Typography.body, fontSize: 13, color: Colors.muted,
-    textAlign: "center", lineHeight: 19, maxWidth: 280,
-  },
-  resultBadge: {
-    width: 100, height: 100, borderRadius: 50,
-    alignItems: "center", justifyContent: "center",
-    marginBottom: 12, alignSelf: "center",
-  },
-  resultBadgeOk: { backgroundColor: "rgba(255,85,0,0.1)", borderWidth: 2, borderColor: Colors.accent },
-  resultBadgeFail: { backgroundColor: "rgba(255,59,48,0.1)", borderWidth: 2, borderColor: "#FF3B30" },
-  resultTitle: {
-    fontFamily: Typography.heading, fontSize: 22, color: Colors.white,
-    letterSpacing: 2, textAlign: "center", marginBottom: 8,
-  },
-  resultReason: {
-    fontFamily: Typography.body, fontSize: 14, color: Colors.muted,
-    textAlign: "center", lineHeight: 20, marginBottom: 6,
-  },
-  resultConfidence: {
-    fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.accent,
-    textAlign: "center", marginBottom: 24, letterSpacing: 0.5,
-  },
-  courtInfoPreview: {
-    backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border,
-    borderRadius: Radius.sm, padding: 16, marginBottom: 20, gap: 4,
-  },
-  courtPreviewName: {
-    fontFamily: Typography.heading, fontSize: 16, color: Colors.white, letterSpacing: 1,
-  },
-  courtPreviewCoords: {
-    fontFamily: Typography.body, fontSize: 12, color: Colors.muted,
-  },
-  courtPreviewStatus: {
-    flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4,
-  },
-  statusDot: {
-    width: 8, height: 8, borderRadius: 4, borderWidth: 1.5, borderColor: Colors.accent,
-  },
-  statusText: {
-    fontFamily: Typography.heading, fontSize: 9, color: Colors.accent, letterSpacing: 1.5,
-  },
-  addBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 8, backgroundColor: Colors.accent, borderRadius: Radius.sm, paddingVertical: 14,
-  },
+  photoButton: { flex: 1, alignItems: "center", justifyContent: "center", gap: 7, padding: Spacing.sm },
+  photoDivider: { width: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
+  photoButtonTitle: { fontFamily: Typography.heading, fontSize: 12, color: Colors.text, letterSpacing: 1.2 },
+  photoButtonMeta: { fontFamily: Typography.body, ...TypeScale.supporting, color: Colors.muted, textAlign: "center" },
+  photoPreviewWrap: { borderRadius: Radius.md, overflow: "hidden", backgroundColor: Colors.surface },
+  photoPreview: { width: "100%", height: 238 },
+  retakeButton: { position: "absolute", right: Spacing.sm, bottom: Spacing.sm, minHeight: 36, justifyContent: "center", paddingHorizontal: 14, borderRadius: Radius.sm, backgroundColor: Colors.overlay },
+  retakeText: { fontFamily: Typography.heading, fontSize: 11, color: Colors.text, letterSpacing: 1.2 },
+  infoBox: { flexDirection: "row", alignItems: "flex-start", gap: Spacing.sm, padding: Spacing.sm, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border, borderRadius: Radius.sm, backgroundColor: Colors.surface },
+  infoText: { flex: 1, fontFamily: Typography.body, ...TypeScale.supporting, color: Colors.textSecondary },
+  actionRow: { flexDirection: "row", gap: Spacing.sm, marginTop: Spacing.xs },
+  secondaryAction: { flex: 0.42 },
+  primaryAction: { flex: 1 },
+  centerContent: { flex: 1, alignItems: "center", justifyContent: "center", gap: Spacing.md, padding: Spacing.xl },
+  resultContent: { flex: 1, alignItems: "center", padding: Spacing.xl, paddingTop: Spacing.xxl },
+  resultIcon: { width: 76, height: 76, borderRadius: 38, alignItems: "center", justifyContent: "center", marginBottom: Spacing.md, borderWidth: 1 },
+  resultIconSuccess: { borderColor: Colors.accent, backgroundColor: Colors.accentDim },
+  resultIconFailure: { borderColor: Colors.loss, backgroundColor: Colors.lossDim },
+  stateTitle: { fontFamily: Typography.heading, fontSize: 21, lineHeight: 26, color: Colors.text, letterSpacing: 1.8, textAlign: "center" },
+  stateBody: { maxWidth: 330, fontFamily: Typography.body, ...TypeScale.bodyMedium, color: Colors.textSecondary, textAlign: "center" },
+  courtSummary: { alignSelf: "stretch", gap: 4, marginTop: Spacing.lg, padding: Spacing.md, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border, borderRadius: Radius.md, backgroundColor: Colors.surface },
+  courtName: { fontFamily: Typography.heading, fontSize: 17, lineHeight: 22, color: Colors.text, letterSpacing: 0.8 },
+  detectedSport: { fontFamily: Typography.bodyBold, ...TypeScale.label, color: Colors.accent, letterSpacing: 1, textTransform: "uppercase" },
+  courtAddress: { fontFamily: Typography.body, ...TypeScale.supporting, color: Colors.textSecondary },
+  resultAction: { alignSelf: "stretch", marginTop: Spacing.lg },
+  pressed: { opacity: 0.72 },
 });

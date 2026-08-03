@@ -5,6 +5,7 @@ import { AppState, Platform } from "react-native";
 import { useAuth } from "@/context/AuthContext";
 import { useRealtimeHub } from "@/context/RealtimeHubContext";
 import { batchHasResource, RealtimeTopic } from "@/lib/realtimeHub";
+import { getSafeNotificationRoute } from "@/lib/notificationRoutes";
 import {
   AppNotification,
   fetchNotifications,
@@ -83,8 +84,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     void import("expo-notifications").then((Notifications) => {
       if (cancelled) return;
       responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
-        const path = response.notification.request.content.data?.path;
-        if (typeof path === "string" && path.startsWith("/")) router.push(path as Href);
+        const path = getSafeNotificationRoute(response.notification.request.content.data?.path);
+        if (path) router.push(path as Href);
       });
     });
     return () => {
@@ -102,7 +103,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         ));
       }
     }
-    if (notification.path?.startsWith("/")) router.push(notification.path as Href);
+    const path = getSafeNotificationRoute(notification.path);
+    if (path) router.push(path as Href);
   }, [router]);
 
   const readAll = useCallback(async () => {

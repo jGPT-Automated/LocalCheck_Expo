@@ -196,6 +196,9 @@ importers:
       expo-apple-authentication:
         specifier: ^8.0.8
         version: 8.0.8(expo@54.0.33)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))
+      expo-application:
+        specifier: ~7.0.8
+        version: 7.0.8(expo@54.0.33)
       expo-crypto:
         specifier: ^15.0.9
         version: 15.0.9(expo@54.0.33)

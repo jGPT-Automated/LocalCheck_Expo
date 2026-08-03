@@ -9,12 +9,28 @@ export const Typography = {
   headingBold: "Oswald_700Bold",
   headingRegular: "Oswald_500Medium",
   headingSemiBold: "Oswald_600SemiBold",
+  // Shared brand lockup role. Screen titles must not tune this independently.
+  wordmark: "Oswald_500Medium",
   body: "Inter_400Regular",
   bodyExtraLight: "Inter_200ExtraLight",
   bodyMedium: "Inter_500Medium",
   bodySemiBold: "Inter_600SemiBold",
   bodyBold: "Inter_700Bold",
 };
+
+// Compact mobile product scale. The role names are semantic so screens do not
+// invent local sizes. Values are anchored to the Material 3 title/body/label
+// ladder, then tightened where the condensed LocalCheck display face allows it.
+export const TypeScale = {
+  navigation: { fontSize: 23, lineHeight: 27, letterSpacing: 1.5 },
+  navigationIdentity: { fontSize: 17, lineHeight: 22, letterSpacing: 0.8 },
+  titleMedium: { fontSize: 16, lineHeight: 20, letterSpacing: 0.3 },
+  bodyMedium: { fontSize: 14, lineHeight: 20 },
+  supporting: { fontSize: 12, lineHeight: 16 },
+  label: { fontSize: 11, lineHeight: 16 },
+  metricLarge: { fontSize: 24, lineHeight: 28 },
+  metric: { fontSize: 18, lineHeight: 22 },
+} as const;
 
 export const FontSizes = {
   xs: 11,

@@ -1,7 +1,5 @@
 import { BlurView } from "expo-blur";
-import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Tabs } from "expo-router";
-import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
@@ -9,47 +7,21 @@ import { Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors } from "@/constants/colors";
-
-function NativeTabLayout() {
-  return (
-    <NativeTabs>
-      <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: "house", selected: "house.fill" }} />
-        <Label>Home</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="schedule">
-        <Icon sf={{ default: "calendar", selected: "calendar" }} />
-        <Label>Schedule</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="compete">
-        <Icon sf={{ default: "trophy", selected: "trophy.fill" }} />
-        <Label>Compete</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="explore">
-        <Icon sf={{ default: "map", selected: "map.fill" }} />
-        <Label>Explore</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="elo">
-        <Icon sf={{ default: "person", selected: "person.fill" }} />
-        <Label>Me</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
-  );
-}
+import { AppShell } from "@/constants/layout";
 
 function ClassicTabLayout() {
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
   const { bottom } = useSafeAreaInsets();
 
-  const TAB_ICON_AREA = 52;
+  const TAB_ICON_AREA = AppShell.tabBarIconArea;
   const tabBarHeight = isWeb ? 84 : TAB_ICON_AREA + bottom;
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors.accent,
-        tabBarInactiveTintColor: Colors.mutedDark,
+        tabBarInactiveTintColor: Colors.muted,
         headerShown: false,
         tabBarStyle: {
           position: "absolute",
@@ -63,7 +35,7 @@ function ClassicTabLayout() {
         },
         tabBarLabelStyle: {
           fontFamily: "Inter_600SemiBold",
-          fontSize: 9,
+          fontSize: 10,
           letterSpacing: 0.5,
           textTransform: "uppercase",
           marginBottom: 0,

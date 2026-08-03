@@ -9,10 +9,13 @@ This folder governs LocalCheck product identity across web, mobile, launch media
 3. `ROADMAP.md` — phased brand/design scope and approval gates.
 4. `PRODUCT.md` — purpose, users, jobs, brand register, and non-negotiable product truths.
 5. `DESIGN.md` — draft shared visual, component, motion, content, and accessibility contract.
-6. `DECISIONS.md` — proposed and confirmed decisions with reasoning.
-7. `REFERENCES.md` — evaluated external references and pending adoption decisions.
-8. `CHANGELOG.md` — versioned record of approved material changes.
-9. `screen-library/` — release-specific screen captures, flow maps, regressions, and marketing-source notes.
+6. `DESIGN_FOUNDATION.md` — current pre-TestFlight shared UI foundation and acceptance gate.
+7. `SCREEN_SYSTEM.md` — canonical route-to-shell/component map for every current mobile screen.
+8. `DECISIONS.md` — proposed and confirmed decisions with reasoning.
+9. `REFERENCES.md` — evaluated external references and pending adoption decisions.
+10. `CHANGELOG.md` — versioned record of approved material changes.
+11. `assessments/` — dated current-build product/UI assessments and scoped improvement backlogs.
+12. `screen-library/` — release-specific screen captures, flow maps, regressions, and marketing-source notes.
 
 ## Documentation operating rule
 

@@ -52,12 +52,24 @@ Orange is the single identity accent. Sport is communicated through a text label
 - Use a named product type ramp across every screen: primary tab title, screen/venue title, section heading, body/action, supporting text, and metadata. A role keeps the same family, size, weight, line-height, and tracking wherever it appears.
 - Weight and uppercase do not substitute for hierarchy. Use scale, spacing, contrast, and placement together.
 - Define one spacing rhythm and shared horizontal screen gutters; do not choose padding independently for every card, label, or section.
+- Compact product typography follows a semantic ladder rather than one-off
+  numbers: navigation 23/27, dynamic navigation identity 17/22, compact title
+  16/20, body 14/20, supporting text 12/16, label 11/16, large metric 24/28,
+  and compact metric 18/22. Long usernames never inherit the full wordmark
+  title size.
+- The 11-point label role is the practical floor for meaningful interface text.
+  Smaller type is decorative only and cannot carry required meaning.
 
 ### Primary tab header contract
 
 - Home, Schedule, Compete, Explore, and Profile use one shared header grammar: the LocalCheck mark paired with the current page title as a single visual lockup.
 - The page title uses the same approved display family, weight logic, tracking, cap treatment, and optical height as the LocalCheck wordmark. The exact typeface remains open, but the wordmark and tab-title tokens may not drift apart.
-- Change the word, not the header identity: `HOME`, `SCHEDULE`, `COMPETE`, `EXPLORE`, `PROFILE`.
+- Home uses the actual `LOCALCHECK` wordmark. The other primary tabs change the
+  word within the same lockup: `SCHEDULE`, `COMPETE`, `EXPLORE`, and the
+  signed-in player's username on `ME`.
+- Detail screens keep the same left-edge mark footprint. The mark resolves into
+  the standard back affordance during navigation, with a direct state change
+  when Reduce Motion is enabled.
 - Do not place a profile avatar in the primary tab header. Profile navigation already belongs to the `Me` tab; a second entry point adds clutter and breaks the lockup.
 - Header content stays clear of the iOS status area while its screen content scrolls beneath or below it according to the approved navigation pattern.
 

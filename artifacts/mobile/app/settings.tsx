@@ -1,13 +1,16 @@
 import { Feather } from "@expo/vector-icons";
 import * as AppleAuthentication from "expo-apple-authentication";
+import * as Application from "expo-application";
+import Constants from "expo-constants";
 import { Href, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { DetailHeader } from "@/components/DetailHeader";
+import { AppTabs } from "@/components/AppTabs";
 import { Colors, Radius } from "@/constants/colors";
-import { CourtSport } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp, Visibility } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
@@ -15,6 +18,8 @@ import { useNotifications } from "@/context/NotificationContext";
 import { deleteCurrentAccount } from "@/services/accountService";
 
 const WEBSITE_URL = process.env.EXPO_PUBLIC_WEBSITE_URL ?? "https://localchecksports.com";
+const APP_VERSION = Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? "UNKNOWN";
+const BUILD_VERSION = Application.nativeBuildVersion;
 
 const VISIBILITY_OPTIONS: Array<{ value: Visibility; label: string; description: string }> = [
   { value: "public", label: "PUBLIC", description: "Anyone at the court can see your live check-in." },
@@ -26,8 +31,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { currentUser, visibility, setVisibility, preferredSport, setPreferredSport, localCourt } = useApp();
   const { user, profile, signOut } = useAuth();
-  const { top, bottom } = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : top;
+  const { bottom } = useSafeAreaInsets();
   const [deleting, setDeleting] = useState(false);
   const { pushEnabled, enablePush, disablePush } = useNotifications();
 
@@ -108,13 +112,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.header, { paddingTop: topPad + 10 }]}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={12}>
-          <Feather name="chevron-left" size={20} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>SETTINGS</Text>
-        <View style={{ width: 34 }} />
-      </View>
+      <DetailHeader title="SETTINGS" onBack={() => router.back()} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -129,42 +127,29 @@ export default function SettingsScreen() {
         </View>
 
         <Section title="CHECK-IN PRIVACY">
-          <View style={styles.segmented}>
-            {VISIBILITY_OPTIONS.map((option) => {
-              const active = visibility === option.value;
-              return (
-                <Pressable
-                  key={option.value}
-                  style={[styles.segment, active && styles.segmentActive]}
-                  onPress={() => void setVisibility(option.value)}
-                >
-                  <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{option.label}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          <AppTabs
+            items={VISIBILITY_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
+            value={visibility}
+            onChange={(value) => void setVisibility(value)}
+            variant="segmented"
+            style={styles.segmented}
+          />
           <Text style={styles.explanation}>
             {VISIBILITY_OPTIONS.find((option) => option.value === visibility)?.description}
           </Text>
         </Section>
 
         <Section title="SPORT">
-          <View style={styles.segmented}>
-            {(["BASKETBALL", "PICKLEBALL"] as CourtSport[]).map((sport) => {
-              const active = preferredSport === sport;
-              return (
-                <Pressable
-                  key={sport}
-                  style={[styles.segment, active && styles.segmentActive]}
-                  onPress={() => void setPreferredSport(sport)}
-                >
-                  <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
-                    {sport === "BASKETBALL" ? "BASKETBALL" : "PICKLEBALL"}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          <AppTabs
+            items={([
+              { value: "BASKETBALL", label: "BASKETBALL" },
+              { value: "PICKLEBALL", label: "PICKLEBALL" },
+            ] as const)}
+            value={preferredSport ?? "BASKETBALL"}
+            onChange={(value) => void setPreferredSport(value)}
+            variant="segmented"
+            style={styles.segmented}
+          />
         </Section>
 
         <Section title="LOCAL COURT">
@@ -199,13 +184,22 @@ export default function SettingsScreen() {
 
         <Section title="ACCOUNT">
           <SettingsRow icon="log-out" label="LOG OUT" onPress={handleLogout} />
-          <Pressable style={({ pressed }) => [styles.deleteRow, pressed && styles.pressed]} onPress={handleDeleteAccount} disabled={deleting}>
+          <Pressable
+            style={({ pressed }) => [styles.deleteRow, pressed && styles.pressed]}
+            onPress={handleDeleteAccount}
+            disabled={deleting}
+            accessibilityRole="button"
+            accessibilityLabel="Delete account"
+            accessibilityState={{ disabled: deleting }}
+          >
             {deleting ? <ActivityIndicator color={Colors.loss} size="small" /> : <Feather name="trash-2" size={17} color={Colors.loss} />}
             <Text style={styles.deleteText}>{deleting ? "DELETING…" : "DELETE ACCOUNT"}</Text>
           </Pressable>
         </Section>
 
-        <Text style={styles.version}>LOCALCHECK 1.0.0</Text>
+        <Text style={styles.version}>
+          LOCALCHECK {APP_VERSION}{BUILD_VERSION ? ` (${BUILD_VERSION})` : ""}
+        </Text>
       </ScrollView>
     </View>
   );
@@ -222,7 +216,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function SettingsRow({ icon, label, detail, onPress }: { icon: React.ComponentProps<typeof Feather>["name"]; label: string; detail?: string; onPress: () => void }) {
   return (
-    <Pressable style={({ pressed }) => [styles.settingsRow, pressed && styles.pressed]} onPress={onPress}>
+    <Pressable
+      style={({ pressed }) => [styles.settingsRow, pressed && styles.pressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={detail ? `${label}. ${detail}` : label}
+    >
       <Feather name={icon} size={17} color={Colors.textSecondary} />
       <View style={{ flex: 1 }}>
         <Text style={styles.settingsLabel} numberOfLines={1}>{label}</Text>
@@ -235,20 +234,13 @@ function SettingsRow({ icon, label, detail, onPress }: { icon: React.ComponentPr
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
-  header: { minHeight: 94, paddingHorizontal: 16, paddingBottom: 14, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", borderBottomWidth: 1, borderBottomColor: Colors.border },
-  backButton: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderRadius: 17, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
-  headerTitle: { fontFamily: Typography.heading, fontSize: 19, color: Colors.text, letterSpacing: 1.2 },
   profileRow: { paddingHorizontal: 20, paddingVertical: 22, flexDirection: "row", alignItems: "center", gap: 13 },
   profileName: { fontFamily: Typography.heading, fontSize: 20, lineHeight: 22, color: Colors.text, letterSpacing: 0.4 },
   profileMeta: { fontFamily: Typography.bodyMedium, fontSize: 9, color: Colors.muted, letterSpacing: 0.8, marginTop: 4 },
   section: { paddingHorizontal: 20, marginBottom: 21 },
-  sectionTitle: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.muted, letterSpacing: 1.8, marginBottom: 8 },
+  sectionTitle: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.muted, letterSpacing: 1.8, marginBottom: 8 },
   sectionSurface: { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md, overflow: "hidden" },
-  segmented: { flexDirection: "row", margin: 10, gap: 6 },
-  segment: { flex: 1, minHeight: 38, alignItems: "center", justifyContent: "center", borderRadius: Radius.sm, backgroundColor: Colors.surfaceHigh, borderWidth: 1, borderColor: "transparent", paddingHorizontal: 5 },
-  segmentActive: { borderColor: Colors.accent, backgroundColor: Colors.accentDim },
-  segmentText: { fontFamily: Typography.bodyBold, fontSize: 7, color: Colors.muted, letterSpacing: 0.9, textAlign: "center" },
-  segmentTextActive: { color: Colors.text },
+  segmented: { margin: 10 },
   explanation: { fontFamily: Typography.body, fontSize: 11, lineHeight: 16, color: Colors.muted, paddingHorizontal: 13, paddingBottom: 13 },
   settingsRow: { minHeight: 58, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 12, borderBottomWidth: 1, borderBottomColor: Colors.borderSubtle },
   settingsLabel: { fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.text, letterSpacing: 0.55 },
@@ -256,5 +248,5 @@ const styles = StyleSheet.create({
   deleteRow: { minHeight: 58, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
   deleteText: { fontFamily: Typography.bodyBold, fontSize: 9, color: Colors.loss, letterSpacing: 1.2 },
   pressed: { opacity: 0.65 },
-  version: { fontFamily: Typography.bodyMedium, fontSize: 7, color: Colors.mutedDark, letterSpacing: 1.3, textAlign: "center", marginTop: 2 },
+  version: { fontFamily: Typography.bodyMedium, fontSize: 9, color: Colors.mutedDark, letterSpacing: 1.3, textAlign: "center", marginTop: 2 },
 });

@@ -15,7 +15,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { ScreenHeader } from "@/components/ScreenHeader";
+import { AppTabs } from "@/components/AppTabs";
+import { HeaderMetric, ScreenHeader } from "@/components/ScreenHeader";
 import { Colors, Radius } from "@/constants/colors";
 import { CourtSport, getSportColor, Player } from "@/constants/data";
 import { Typography } from "@/constants/typography";
@@ -104,36 +105,29 @@ export default function CompeteScreen() {
     <View style={styles.container}>
       <ScreenHeader
         title="COMPETE"
-        right={
-          myRank > 0 ? (
-            <View style={styles.myRankBadge}>
-              <Text style={[styles.myRankNum, !showMyRank && styles.myRankNumDim]}>#{myRank}</Text>
-              <Text style={styles.myRankLabel}>
-                {showMyRank
-                  ? "YOUR RANK"
-                  : visibility === "public"
-                  ? "HIDDEN — LOCALPLUS"
-                  : "HIDDEN — PRIVATE"}
-              </Text>
-            </View>
-          ) : undefined
-        }
+        right={(
+          <HeaderMetric
+            value={myRank > 0 ? `#${myRank}` : "--"}
+            label={showMyRank ? "YOUR RANK" : "HIDDEN"}
+            accessibilityLabel={myRank > 0
+              ? showMyRank
+                ? `Your rank is ${myRank}`
+                : `Your rank is ${myRank}, hidden because ${visibility === "public" ? "LocalPlus is required" : "your profile is private"}`
+              : "Your rank is not available"}
+            tone={showMyRank ? "accent" : "muted"}
+          />
+        )}
       />
 
       {/* ── Tab Row ── */}
-      <View style={styles.tabRow}>
-        {(["LEADERBOARD", "LOG GAME"] as Tab[]).map((t) => (
-          <Pressable
-            key={t}
-            style={[styles.tabBtn, tab === t && styles.tabBtnActive]}
-            onPress={() => setTab(t)}
-          >
-            <Text style={[styles.tabBtnText, tab === t && styles.tabBtnTextActive]}>
-              {t}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+      <AppTabs
+        items={([
+          { value: "LEADERBOARD", label: "LEADERBOARD" },
+          { value: "LOG GAME", label: "LOG GAME" },
+        ] as const)}
+        value={tab}
+        onChange={setTab}
+      />
 
       {tab === "LEADERBOARD" ? (
         <LeaderboardView
@@ -227,34 +221,22 @@ function LeaderboardView({
     >
       {/* Scope and sport both map to authoritative database columns. */}
       <View style={styles.filtersRow}>
-        <View style={styles.scopeToggle}>
-          {(["LOCAL", "REGIONAL", "GLOBAL"] as Scope[]).map((s) => (
-            <Pressable
-              key={s}
-              style={[styles.scopeBtn, scope === s && styles.scopeBtnActive]}
-              onPress={() => setScope(s)}
-            >
-              <Text style={[styles.scopeBtnText, scope === s && styles.scopeBtnTextActive]}>
-                {s}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <View style={styles.sportToggle}>
-          {(["BASKETBALL", "PICKLEBALL"] as CourtSport[]).map((value) => (
-            <Pressable
-              key={value}
-              style={[styles.sportFilterBtn, sport === value && styles.sportFilterBtnActive]}
-              onPress={() => setSport(value)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: sport === value }}
-            >
-              <Text style={[styles.sportFilterText, sport === value && styles.sportFilterTextActive]}>
-                {value === "BASKETBALL" ? "BB" : "PB"}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <AppTabs
+          items={(["LOCAL", "REGIONAL", "GLOBAL"] as Scope[]).map((value) => ({ value, label: value }))}
+          value={scope}
+          onChange={setScope}
+          variant="segmented"
+        />
+        <AppTabs
+          items={(["BASKETBALL", "PICKLEBALL"] as CourtSport[]).map((value) => ({
+            value,
+            label: value === "BASKETBALL" ? "BB" : "PB",
+          }))}
+          value={sport}
+          onChange={setSport}
+          variant="segmented"
+          style={styles.sportToggle}
+        />
       </View>
 
       {/* Scope label */}
@@ -776,28 +758,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase" as const,
     marginTop: 2,
   },
-  myRankBadge: {
-    alignItems: "center",
-    paddingBottom: 2,
-  },
-  myRankNum: {
-    fontFamily: Typography.heading,
-    fontSize: 22,
-    color: Colors.accent,
-    letterSpacing: 0.5,
-    lineHeight: 24,
-  },
-  myRankNumDim: {
-    color: Colors.muted,
-  },
-  myRankLabel: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 8,
-    color: Colors.muted,
-    letterSpacing: 1.5,
-    textTransform: "uppercase" as const,
-  },
-
   // ── Inline private position indicator ──
   hiddenLeaderRow: {
     backgroundColor: Colors.surfaceHigh,
@@ -873,32 +833,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
     backgroundColor: Colors.surface,
   },
-  scopeToggle: {
-    flexDirection: "row",
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    alignSelf: "stretch",
-    borderRadius: Radius.xs,
-    overflow: "hidden",
-  },
-  scopeBtn: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 7,
-  },
-  scopeBtnActive: { backgroundColor: Colors.surfaceHigh },
-  scopeBtnText: {
-    fontFamily: Typography.heading,
-    fontSize: 10,
-    color: Colors.muted,
-    letterSpacing: 1.5,
-  },
-  scopeBtnTextActive: { color: Colors.text },
-  sportToggle: { flexDirection: "row", alignSelf: "flex-end", gap: 6, marginTop: 8 },
-  sportFilterBtn: { minWidth: 42, minHeight: 28, alignItems: "center", justifyContent: "center", borderRadius: Radius.xs, borderWidth: 1, borderColor: Colors.border },
-  sportFilterBtnActive: { borderColor: Colors.accent, backgroundColor: Colors.accentDim },
-  sportFilterText: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.muted, letterSpacing: 1 },
-  sportFilterTextActive: { color: Colors.text },
+  sportToggle: { width: 104, alignSelf: "flex-end", marginTop: 8 },
   scopeLabel: {
     flexDirection: "row",
     alignItems: "center",

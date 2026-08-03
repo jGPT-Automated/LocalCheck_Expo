@@ -13,6 +13,20 @@ interface WebhookPayload {
   record?: { id?: string };
 }
 
+async function sendToExpo(messages: Record<string, unknown>[]): Promise<Response> {
+  let response: Response | null = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    response = await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(messages),
+    });
+    if (response.status !== 429 && response.status < 500) return response;
+    if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 250 * (4 ** attempt)));
+  }
+  return response!;
+}
+
 Deno.serve(async (request) => {
   if (request.method !== "POST") return json(405, { error: "Method not allowed" });
 
@@ -73,11 +87,7 @@ Deno.serve(async (request) => {
     sound: "default",
     channelId: "default",
   }));
-  const pushResponse = await fetch("https://exp.host/--/api/v2/push/send", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify(messages),
-  });
+  const pushResponse = await sendToExpo(messages);
   const pushPayload = await pushResponse.json().catch(() => ({}));
   const tickets = Array.isArray(pushPayload?.data) ? pushPayload.data : [];
 
@@ -91,14 +101,32 @@ Deno.serve(async (request) => {
     await admin.from("push_tokens").update({ enabled: false, updated_at: new Date().toISOString() }).in("id", deadTokenIds);
   }
 
+  const ticketErrors = tickets.flatMap((ticket: {
+    status?: string;
+    message?: string;
+    details?: { error?: string };
+  }) => ticket.status === "error"
+    ? [ticket.details?.error ?? ticket.message ?? "Unknown Expo ticket error"]
+    : []
+  );
+  const apiErrors = Array.isArray(pushPayload?.errors)
+    ? pushPayload.errors.map((error: { message?: string }) => error.message ?? "Unknown Expo API error")
+    : [];
   const sent = pushResponse.ok && tickets.some((ticket: { status?: string }) => ticket.status === "ok");
+  const errorSummary = [...ticketErrors, ...apiErrors].join("; ").slice(0, 1000);
   await admin.from("notifications").update(sent ? {
     push_status: "sent",
     push_sent_at: new Date().toISOString(),
+    last_push_error: errorSummary || null,
   } : {
     push_status: "failed",
-    last_push_error: `Expo push failed (${pushResponse.status})`,
+    last_push_error: errorSummary || `Expo push failed (${pushResponse.status})`,
   }).eq("id", notification.id);
 
-  return json(sent ? 200 : 502, { sent, devices: messages.length });
+  return json(sent ? 200 : 502, {
+    sent,
+    devices: messages.length,
+    accepted: tickets.filter((ticket: { status?: string }) => ticket.status === "ok").length,
+    failed: ticketErrors.length,
+  });
 });
