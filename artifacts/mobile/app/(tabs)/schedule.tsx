@@ -16,7 +16,8 @@ import { Feather } from "@expo/vector-icons";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, PlannedVisit, getSportColor } from "@/constants/data";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { ScreenHeader } from "@/components/ScreenHeader";
+import { AppTabs } from "@/components/AppTabs";
+import { HeaderMetric, ScreenHeader } from "@/components/ScreenHeader";
 import { FormSheet } from "@/components/sheet/FormSheet";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
@@ -795,6 +796,13 @@ export default function ScheduleScreen() {
     [slotMap, slotHidden]
   );
 
+  const oneHourAttendance = useMemo(() => {
+    if (!court) return 0;
+    const lookahead = new Date(Date.now() + 60 * 60_000);
+    const key = bucketKey(lookahead.toISOString());
+    return key ? slotTotal(key) : 0;
+  }, [court, bucketKey, slotTotal]);
+
   const myVisitsByKey = useMemo(() => {
     const map = new Map<string, PlannedVisit[]>();
     if (!court) return map;
@@ -923,7 +931,16 @@ export default function ScheduleScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="SCHEDULE" />
+      <ScreenHeader
+        title="SCHEDULE"
+        right={(
+          <HeaderMetric
+            value={oneHourAttendance}
+            label="GOING +1H"
+            accessibilityLabel={`${oneHourAttendance} players going in the one-hour look-ahead block`}
+          />
+        )}
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -944,20 +961,16 @@ export default function ScheduleScreen() {
             <Text style={styles.weekLabel}>{weekLabel}</Text>
             <Text style={styles.weekTag}>NEXT 7 DAYS</Text>
           </View>
-          <View style={styles.modeToggle} accessibilityRole="tablist">
-            {(["VIEW", "EDIT"] as const).map((mode) => (
-              <Pressable
-                key={mode}
-                onPress={() => mode === "EDIT" ? beginEditingTimes() : cancelEditingTimes()}
-                style={[styles.modeToggleButton, scheduleMode === mode && styles.modeToggleButtonActive]}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: scheduleMode === mode }}
-                testID={mode === "EDIT" ? "schedule-edit-toggle" : "schedule-view-toggle"}
-              >
-                <Text style={[styles.modeToggleText, scheduleMode === mode && styles.modeToggleTextActive]}>{mode}</Text>
-              </Pressable>
-            ))}
-          </View>
+          <AppTabs
+            items={([
+              { value: "VIEW", label: "VIEW", testID: "schedule-view-toggle" },
+              { value: "EDIT", label: "EDIT", testID: "schedule-edit-toggle" },
+            ] as const)}
+            value={scheduleMode}
+            onChange={(mode) => mode === "EDIT" ? beginEditingTimes() : cancelEditingTimes()}
+            variant="segmented"
+            style={styles.modeToggle}
+          />
         </View>
 
         {/* Mode lives in the header action (EDIT / CANCEL) — this row only
@@ -973,21 +986,13 @@ export default function ScheduleScreen() {
         {scheduleMode === "EDIT" ? (
           <View style={styles.editOptions}>
             <Text style={styles.editOptionsLabel}>NEW TIMES VISIBLE TO</Text>
-            <View style={styles.editVisibilityRow}>
-              {VISIBILITY_OPTIONS.map((option) => (
-                <Pressable
-                  key={option.value}
-                  onPress={() => setEditVisibility(option.value)}
-                  style={[styles.editVisibilityButton, editVisibility === option.value && styles.editVisibilityButtonActive]}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: editVisibility === option.value }}
-                >
-                  <Text style={[styles.editVisibilityText, editVisibility === option.value && styles.editVisibilityTextActive]}>
-                    {option.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+            <AppTabs
+              items={VISIBILITY_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
+              value={editVisibility}
+              onChange={setEditVisibility}
+              variant="segmented"
+              style={styles.editVisibilityRow}
+            />
           </View>
         ) : null}
 
@@ -1293,7 +1298,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     gap: 8,
   },
-  modeToggle: { flexDirection: "row", minHeight: 34, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.sm, overflow: "hidden", backgroundColor: Colors.surface },
+  modeToggle: { minWidth: 132 },
   modeToggleButton: { minWidth: 50, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 },
   modeToggleButtonActive: { backgroundColor: Colors.surfaceHigh },
   modeToggleText: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.muted, letterSpacing: 1.1 },
@@ -1320,7 +1325,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     letterSpacing: 1.2,
   },
-  editVisibilityRow: { flexDirection: "row", gap: 4 },
+  editVisibilityRow: { width: "100%" },
   editVisibilityButton: {
     flex: 1,
     minHeight: 34,

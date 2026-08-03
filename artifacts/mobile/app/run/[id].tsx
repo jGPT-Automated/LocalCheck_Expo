@@ -2,9 +2,9 @@ import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
 
 import { BrutalistButton } from "@/components/BrutalistButton";
+import { DetailHeader } from "@/components/DetailHeader";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { FormSheet } from "@/components/sheet/FormSheet";
 import { Colors, Radius } from "@/constants/colors";
@@ -22,8 +22,7 @@ export default function RunScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { runs, joinRun, currentUser, refreshRuns, getFriendsList } = useApp();
   const realtimeHub = useRealtimeHub();
-  const { top, bottom } = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : top;
+  const { bottom } = useSafeAreaInsets();
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -40,9 +39,12 @@ export default function RunScreen() {
   const run = runs.find((r) => r.id === id);
   if (!run) {
     return (
-      <View style={styles.notFound}>
-        <Text style={styles.notFoundText}>RUN NOT FOUND</Text>
-        <BrutalistButton label="GO BACK" onPress={() => router.back()} variant="outline" />
+      <View style={styles.container}>
+        <DetailHeader title="RUN DETAILS" onBack={() => router.back()} />
+        <View style={styles.notFound}>
+          <Text style={styles.notFoundText}>RUN NOT FOUND</Text>
+          <BrutalistButton label="GO BACK" onPress={() => router.back()} variant="outline" />
+        </View>
       </View>
     );
   }
@@ -80,27 +82,23 @@ export default function RunScreen() {
 
   return (
     <View style={styles.container}>
+      <DetailHeader title="RUN DETAILS" onBack={() => router.back()} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: (Platform.OS === "web" ? 34 : bottom) + 120 }}
       >
-        <View style={[styles.header, { paddingTop: topPad + 12 }]}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={16}>
-            <Text style={styles.backText}>‹</Text>
-          </Pressable>
-          <View style={styles.headerMain}>
-            <View style={styles.headerMeta}>
-              <View style={[styles.sportTag, { borderColor: sportColor }]}>
-                <View style={[styles.sportDot, { backgroundColor: sportColor }]} />
-                <Text style={[styles.sportTagText, { color: sportColor }]}>{run.sport}</Text>
-              </View>
-              <View style={styles.levelTag}>
-                <Text style={styles.levelText}>{run.skillLevel}</Text>
-              </View>
+        <View style={styles.runSummary}>
+          <View style={styles.headerMeta}>
+            <View style={[styles.sportTag, { borderColor: sportColor }]}>
+              <View style={[styles.sportDot, { backgroundColor: sportColor }]} />
+              <Text style={[styles.sportTagText, { color: sportColor }]}>{run.sport}</Text>
             </View>
-            <Text style={styles.runTitle}>{run.title}</Text>
-            <Text style={styles.runInfo}>{run.time} · {run.date} · {run.courtName.toUpperCase()}</Text>
+            <View style={styles.levelTag}>
+              <Text style={styles.levelText}>{run.skillLevel}</Text>
+            </View>
           </View>
+          <Text style={styles.runTitle}>{run.title}</Text>
+          <Text style={styles.runInfo}>{run.time} · {run.date} · {run.courtName.toUpperCase()}</Text>
         </View>
 
         <View style={styles.controlRow}>
@@ -313,15 +311,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   notFound: { flex: 1, justifyContent: "center", alignItems: "center", gap: 20, padding: 40 },
   notFoundText: { fontFamily: Typography.heading, fontSize: 24, color: Colors.text, letterSpacing: 2 },
-  header: {
-    paddingHorizontal: 20, paddingBottom: 20,
+  runSummary: {
+    paddingHorizontal: 20, paddingVertical: 20,
     borderBottomWidth: 1, borderColor: Colors.border,
     backgroundColor: Colors.black,
-    flexDirection: "row", gap: 16,
   },
-  backBtn: {},
-  backText: { fontFamily: Typography.heading, fontSize: 26, color: Colors.white, lineHeight: 28 },
-  headerMain: { flex: 1 },
   headerMeta: { flexDirection: "row", gap: 8, marginBottom: 8 },
   sportTag: { flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3 },
   sportDot: { width: 6, height: 6, borderRadius: 3 },

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { Animated, StyleSheet, View, ViewStyle } from "react-native";
 
 import { Colors } from "@/constants/colors";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
 interface LivePulseProps {
   size?: number;
@@ -12,8 +13,14 @@ interface LivePulseProps {
 export function LivePulse({ size = 8, color = Colors.accent, style }: LivePulseProps) {
   const pulse = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(1)).current;
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
+    if (reducedMotion !== false) {
+      pulse.setValue(1);
+      opacity.setValue(1);
+      return;
+    }
     const anim = Animated.loop(
       Animated.sequence([
         Animated.parallel([
@@ -29,11 +36,11 @@ export function LivePulse({ size = 8, color = Colors.accent, style }: LivePulseP
     );
     anim.start();
     return () => anim.stop();
-  }, []);
+  }, [opacity, pulse, reducedMotion]);
 
   return (
     <View style={[{ width: size * 2.5, height: size * 2.5, alignItems: "center", justifyContent: "center" }, style]}>
-      <Animated.View
+      {reducedMotion === false ? <Animated.View
         style={[
           styles.ring,
           {
@@ -45,7 +52,7 @@ export function LivePulse({ size = 8, color = Colors.accent, style }: LivePulseP
             opacity,
           },
         ]}
-      />
+      /> : null}
       <View
         style={[
           styles.dot,

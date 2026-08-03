@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   },
   sportLabel: {
     fontFamily: Typography.bodyBold,
-    fontSize: 8,
+    fontSize: 9,
     color: Colors.textSecondary,
     letterSpacing: 1.5,
     textTransform: "uppercase" as const,
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   },
   localBadgeText: {
     fontFamily: Typography.bodyBold,
-    fontSize: 7,
+    fontSize: 9,
     color: Colors.textSecondary,
     letterSpacing: 1.2,
   },
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   statValueLive: { color: Colors.accent },
   statLabel: {
     fontFamily: Typography.bodyBold,
-    fontSize: 7,
+    fontSize: 9,
     color: Colors.muted,
     letterSpacing: 1.1,
     marginTop: 2,
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   },
   checkedInText: {
     fontFamily: Typography.bodyBold,
-    fontSize: 8,
+    fontSize: 9,
     color: Colors.black,
     letterSpacing: 1.2,
   },
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   actionRowSolo: { width: "72%", alignSelf: "center" },
   checkInButton: {
     flex: 1,
-    minHeight: 36,
+    minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: Radius.sm,
@@ -368,8 +368,8 @@ const styles = StyleSheet.create({
   },
   checkInTextActive: { color: Colors.text },
   viewButton: {
-    width: 42,
-    minHeight: 36,
+    width: 44,
+    minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Colors.surfaceHigh,

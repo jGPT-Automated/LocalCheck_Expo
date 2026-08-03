@@ -98,7 +98,7 @@ export async function setPushPreference(enabled: boolean): Promise<boolean> {
 export async function savePushToken(
   token: string,
   platform: "ios" | "android"
-): Promise<boolean> {
+): Promise<{ ok: boolean; error?: string }> {
   const { error } = await supabase.rpc("register_push_token", {
     p_expo_push_token: token,
     p_platform: platform,
@@ -106,9 +106,9 @@ export async function savePushToken(
   });
   if (error) {
     console.warn("savePushToken failed", error.message);
-    return false;
+    return { ok: false, error: error.message };
   }
-  return true;
+  return { ok: true };
 }
 
 export async function inviteFriendToRun(runId: string, friendId: string): Promise<boolean> {

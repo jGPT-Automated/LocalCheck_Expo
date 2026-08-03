@@ -1,0 +1,364 @@
+﻿LocalCheck_Expo - Production Privacy Manifest & App Store Compliance Assets
+Overview & Target Locations
+This document contains the exact production assets required for LocalCheck_Expo to pass Apple's App Store Review and satisfy iOS Privacy Manifest (PrivacyInfo.xcprivacy) requirements.
+Asset 1: Expo app.json Configuration Snippet
+Target File Path: artifacts/mobile/app.json (inside the "ios" configuration object)n
+"ios": {
+"supportsTablet": false,
+"bundleIdentifier": "com.realjess.localcheck",
+"usesAppleSignIn": true,
+"infoPlist": {
+"ITSAppUsesNonExemptEncryption": false,
+"NSLocationWhenInUseUsageDescription": "LocalCheck uses your location to find courts near you and show who's playing nearby.",
+"NSCameraUsageDescription": "LocalCheck uses your camera to photograph and verify a court you're adding.",
+"NSPhotoLibraryUsageDescription": "LocalCheck lets you attach a photo to verify a court you're adding."
+},
+"privacyManifests": {
+"NSPrivacyTracking": false,
+"NSPrivacyTrackingDomains": [],
+"NSPrivacyAccessedAPITypes": [
+{
+"NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+"NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+},
+{
+"NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+"NSPrivacyAccessedAPITypeReasons": ["C617.1"]
+}
+],
+"NSPrivacyCollectedDataTypes": [
+{
+"NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypePreciseLocation",
+"NSPrivacyCollectedDataTypeLinked": true,
+"NSPrivacyCollectedDataTypeTracking": false,
+"NSPrivacyCollectedDataTypePurposes": ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
+},
+{
+"NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeName",
+"NSPrivacyCollectedDataTypeLinked": true,
+"NSPrivacyCollectedDataTypeTracking": false,
+"NSPrivacyCollectedDataTypePurposes": ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
+},
+{
+"NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeEmailAddress",
+"NSPrivacyCollectedDataTypeLinked": true,
+"NSPrivacyCollectedDataTypeTracking": false,
+"NSPrivacyCollectedDataTypePurposes": ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
+},
+{
+"NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypePhotosorVideos",
+"NSPrivacyCollectedDataTypeLinked": true,
+"NSPrivacyCollectedDataTypeTracking": false,
+"NSPrivacyCollectedDataTypePurposes": ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
+},
+{
+"NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeUserID",
+"NSPrivacyCollectedDataTypeLinked": true,
+"NSPrivacyCollectedDataTypeTracking": false,
+"NSPrivacyCollectedDataTypePurposes": ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
+}
+]
+}
+}
+
+
+## Asset 2: Native PrivacyManifest File (PrivacyInfo.xcprivacy)
+
+
+**Target File Path**: `ios/PrivacyInfo.xcprivacy` (or `artifacts/mobile/ios/PrivacyInfo.xcprivacy`)
+
+
+```xml
+
+
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+
+
+<plist version="1.0">
+
+
+<dict>
+
+
+        <key>NSPrivacyTracking</key>
+
+
+        <false/>
+
+
+        <key>NSPrivacyTrackingDomains</key>
+
+
+        <array/>
+
+
+        <key>NSPrivacyAccessedAPITypes</key>
+
+
+        <array>
+
+
+                <dict>
+
+
+                        <key>NSPrivacyAccessedAPIType</key>
+
+
+                        <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+
+
+                        <key>NSPrivacyAccessedAPITypeReasons</key>
+
+
+                        <array>
+
+
+                                <string>CA92.1</string>
+
+
+                        </array>
+
+
+                </dict>
+
+
+                <dict>
+
+
+                        <key>NSPrivacyAccessedAPIType</key>
+
+
+                        <string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+
+
+                        <key>NSPrivacyAccessedAPITypeReasons</key>
+
+
+                        <array>
+
+
+                                <string>C617.1</string>
+
+
+                        </array>
+
+
+                </dict>
+
+
+        </array>
+
+
+        <key>NSPrivacyCollectedDataTypes</key>
+
+
+        <array>
+
+
+                <dict>
+
+
+                        <key>NSPrivacyCollectedDataType</key>
+
+
+                        <string>NSPrivacyCollectedDataTypePreciseLocation</string>
+
+
+                        <key>NSPrivacyCollectedDataTypeLinked</key>
+
+
+                        <true/>
+
+
+                        <key>NSPrivacyCollectedDataTypeTracking</key>
+
+
+                        <false/>
+
+
+                        <key>NSPrivacyCollectedDataTypePurposes</key>
+
+
+                        <array>
+
+
+                                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+
+
+                        </array>
+
+
+                </dict>
+
+
+                <dict>
+
+
+                        <key>NSPrivacyCollectedDataType</key>
+
+
+                        <string>NSPrivacyCollectedDataTypeName</string>
+
+
+                        <key>NSPrivacyCollectedDataTypeLinked</key>
+
+
+                        <true/>
+
+
+                        <key>NSPrivacyCollectedDataTypeTracking</key>
+
+
+                        <false/>
+
+
+                        <key>NSPrivacyCollectedDataTypePurposes</key>
+
+
+                        <array>
+
+
+                                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+
+
+                        </array>
+
+
+                </dict>
+
+
+                <dict>
+
+
+                        <key>NSPrivacyCollectedDataType</key>
+
+
+                        <string>NSPrivacyCollectedDataTypeEmailAddress</string>
+
+
+                        <key>NSPrivacyCollectedDataTypeLinked</key>
+
+
+                        <true/>
+
+
+                        <key>NSPrivacyCollectedDataTypeTracking</key>
+
+
+                        <false/>
+
+
+                        <key>NSPrivacyCollectedDataTypePurposes</key>
+
+
+                        <array>
+
+
+                                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+
+
+                        </array>
+
+
+                </dict>
+
+
+                <dict>
+
+
+                        <key>NSPrivacyCollectedDataType</key>
+
+
+                        <string>NSPrivacyCollectedDataTypePhotosorVideos</string>
+
+
+                        <key>NSPrivacyCollectedDataTypeLinked</key>
+
+
+                        <true/>
+
+
+                        <key>NSPrivacyCollectedDataTypeTracking</key>
+
+
+                        <false/>
+
+
+                        <key>NSPrivacyCollectedDataTypePurposes</key>
+
+
+                        <array>
+
+
+                                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+
+
+                        </array>
+
+
+                </dict>
+
+
+                <dict>
+
+
+                        <key>NSPrivacyCollectedDataType</key>
+
+
+                        <string>NSPrivacyCollectedDataTypeUserID</string>
+
+
+                        <key>NSPrivacyCollectedDataTypeLinked</key>
+
+
+                        <true/>
+
+
+                        <key>NSPrivacyCollectedDataTypeTracking</key>
+
+
+                        <false/>
+
+
+                        <key>NSPrivacyCollectedDataTypePurposes</key>
+
+
+                        <array>
+
+
+                                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+
+
+                        </array>
+
+
+                </dict>
+
+
+        </array>
+
+
+</dict>
+
+
+</plist>
+Asset 3: App Store Connect Privacy Questionnaire Box-Checking Checklist
+Target Location: App Store Connect -> App Privacy Section
+
+
+1. Data Collection Question:
+   * Select Yes (App collects data).
+2. Selected Data Categories:
+   * Location: Check Precise Location
+   * Contact Info: Check Name and Email Address
+   * User Content: Check Photos or Videos
+   * Identifiers: Check User ID
+3. Category Configuration Answers:
+   * Precise Location: App Functionality | Linked to User: Yes | Tracking: No
+|---|
+   * Email Address: App Functionality | Linked to User: Yes | Tracking: No
+   * Photos or Videos: App Functionality | Linked to User: Yes | Tracking: No
+   * User ID: App Functionality | Linked to User: Yes | Tracking: No

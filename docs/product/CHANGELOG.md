@@ -2,6 +2,39 @@
 
 All notable LocalCheck brand-system changes are recorded here.
 
+## Unreleased sheet-system checkpoint - 2026-08-02
+
+- Rebuilt the contextual court sheet around one animated background and one
+  continuous custom handle/content surface.
+- Added top safe-area ownership while preserving the existing compact/full
+  detents, backdrop dismissal, downward-pan dismissal, and court logic.
+- Added the canonical `SCREEN_SYSTEM.md` route-to-shell map covering every
+  current primary, detail, task, overlay, and hidden legacy route.
+- Saved compact/expanded before-and-after gesture evidence under
+  `design-qa/2026-08-02-court-sheet/`.
+
+## Unreleased profile typography correction - 2026-08-02
+
+- Added a semantic mobile type scale benchmarked against the official Material
+  3 title, body, supporting, label, and metric ladder.
+- Reduced the Me header handle, shared profile name, avatar, ELO, and stat row
+  from oversized display treatment to compact product roles.
+- Raised undersized profile labels onto an 11/16 minimum role and replaced the
+  activity feed's extra-light type with normal body text.
+- Saved same-viewport before/after evidence under
+  `design-qa/2026-08-02-profile-type-scale/`.
+
+## Unreleased header identity update - 2026-08-02
+
+- Restored the actual `LOCALCHECK` wordmark to Home while keeping the shared
+  lockup grammar across Schedule, Compete, Explore, and Me.
+- Replaced the scaled in-app raster mark with the approved native SVG geometry
+  for crisp rendering at header and boot sizes.
+- Added one shared 23-point Oswald 500 wordmark role with 1.5-point tracking and
+  reduced the primary mark to 26 points.
+- Replaced the unrelated boxed detail chevron with a 44-point branded back
+  control that resolves from the mark over 220ms and respects Reduce Motion.
+
 ## Unreleased product update — 2026-07-27
 
 - Added the local-first Explore structure: full-width `List` / `Map`, featured local court, market-scoped bounded discovery, and `View All`.

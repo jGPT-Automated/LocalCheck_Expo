@@ -1,10 +1,11 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors, Radius } from "@/constants/colors";
+import { DetailHeader } from "@/components/DetailHeader";
 import { Typography } from "@/constants/typography";
 import { useNotifications } from "@/context/NotificationContext";
 import { NotificationType } from "@/services/notificationService";
@@ -28,7 +29,7 @@ function timeAgo(value: string): string {
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const { top, bottom } = useSafeAreaInsets();
+  const { bottom } = useSafeAreaInsets();
   const {
     notifications,
     unreadCount,
@@ -38,8 +39,6 @@ export default function NotificationsScreen() {
     readAll,
     enablePush,
   } = useNotifications();
-  const topPad = Platform.OS === "web" ? 67 : top;
-
   const turnOnPush = async () => {
     const result = await enablePush();
     if (!result.ok) Alert.alert("Alerts are not on", result.message ?? "Please try again.");
@@ -47,24 +46,30 @@ export default function NotificationsScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.header, { paddingTop: topPad + 10 }]}>
-        <Pressable onPress={() => router.back()} style={styles.headerButton} hitSlop={12}>
-          <Feather name="chevron-left" size={20} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title}>NOTIFICATIONS</Text>
-          <Text style={styles.subtitle}>{unreadCount > 0 ? `${unreadCount} NEW` : "YOU'RE CAUGHT UP"}</Text>
-        </View>
-        {unreadCount > 0 ? (
-          <Pressable onPress={() => void readAll()} hitSlop={10}>
+      <DetailHeader
+        title="NOTIFICATIONS"
+        subtitle={unreadCount > 0 ? `${unreadCount} NEW` : "YOU'RE CAUGHT UP"}
+        onBack={() => router.back()}
+        right={unreadCount > 0 ? (
+          <Pressable
+            onPress={() => void readAll()}
+            accessibilityRole="button"
+            accessibilityLabel="Mark all notifications as read"
+            style={({ pressed }) => [styles.readAllButton, pressed && styles.pressed]}
+          >
             <Text style={styles.readAll}>READ ALL</Text>
           </Pressable>
-        ) : <View style={{ width: 56 }} />}
-      </View>
+        ) : undefined}
+      />
 
       <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: bottom + 40 }}>
         {!pushEnabled ? (
-          <Pressable style={styles.pushCard} onPress={() => void turnOnPush()}>
+          <Pressable
+            style={styles.pushCard}
+            onPress={() => void turnOnPush()}
+            accessibilityRole="button"
+            accessibilityLabel="Turn on phone alerts"
+          >
             <View style={styles.pushIcon}><Feather name="bell" size={16} color={Colors.accent} /></View>
             <View style={{ flex: 1 }}>
               <Text style={styles.pushTitle}>TURN ON PHONE ALERTS</Text>
@@ -91,6 +96,8 @@ export default function NotificationsScreen() {
               pressed && styles.pressed,
             ]}
             onPress={() => void openNotification(item)}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.title}. ${item.body}`}
           >
             <View style={[styles.icon, !item.readAt && styles.iconUnread]}>
               <Feather name={ICONS[item.type]} size={16} color={!item.readAt ? Colors.accent : Colors.textSecondary} />
@@ -113,11 +120,8 @@ export default function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
-  header: { minHeight: 94, paddingHorizontal: 16, paddingBottom: 13, flexDirection: "row", alignItems: "flex-end", gap: 12, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  headerButton: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderRadius: 17, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
-  title: { fontFamily: Typography.heading, fontSize: 19, color: Colors.text, letterSpacing: 1 },
-  subtitle: { fontFamily: Typography.bodyBold, fontSize: 7, color: Colors.muted, letterSpacing: 1.4, marginTop: 3 },
-  readAll: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.accent, letterSpacing: 1.1, paddingBottom: 10 },
+  readAllButton: { minWidth: 56, minHeight: 44, alignItems: "center", justifyContent: "center" },
+  readAll: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.accent, letterSpacing: 1.1 },
   pushCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: "rgba(255,85,0,0.36)", borderRadius: Radius.md, backgroundColor: Colors.accentDim },
   pushIcon: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderRadius: 17, backgroundColor: Colors.surface },
   pushTitle: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.text, letterSpacing: 0.7 },
@@ -129,7 +133,7 @@ const styles = StyleSheet.create({
   rowTitleLine: { flexDirection: "row", alignItems: "center", gap: 7 },
   rowTitle: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.text, letterSpacing: 0.65 },
   rowBody: { fontFamily: Typography.body, fontSize: 11, lineHeight: 16, color: Colors.textSecondary, marginTop: 4 },
-  time: { fontFamily: Typography.bodyMedium, fontSize: 7, color: Colors.muted, letterSpacing: 1, marginTop: 6 },
+  time: { fontFamily: Typography.bodyMedium, fontSize: 10, color: Colors.muted, letterSpacing: 1, marginTop: 6 },
   dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: Colors.accent },
   pressed: { opacity: 0.68 },
   empty: { alignItems: "center", paddingHorizontal: 34, paddingTop: 80 },

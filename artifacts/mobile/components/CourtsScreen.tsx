@@ -15,7 +15,8 @@ import {
 
 import { CourtListItem } from "@/components/CourtListItem";
 import { MapScreen } from "@/components/MapScreen";
-import { ScreenHeader } from "@/components/ScreenHeader";
+import { AppTabs } from "@/components/AppTabs";
+import { HeaderMetric, ScreenHeader } from "@/components/ScreenHeader";
 import { useCourtSheet } from "@/components/sheet/CourtSheetHost";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, CourtSport } from "@/constants/data";
@@ -33,6 +34,8 @@ type ExploreMode = "LIST" | "MAP";
 
 const DISCOVERY_LIMIT = 10;
 const COLLAPSED_LIMIT = 5;
+const HEADER_RADIUS_MI = 10;
+const KM_TO_MI = 0.621371;
 
 export function CourtsScreen() {
   const {
@@ -175,6 +178,15 @@ export function CourtsScreen() {
   const visibleCourts = isSearchMode || showAll
     ? listSource
     : listSource.slice(0, COLLAPSED_LIMIT);
+  const courtsWithinRadius = nearbyCourts.filter((court) => {
+    if (court.distanceKm == null) return false;
+    return court.distanceKm * KM_TO_MI <= HEADER_RADIUS_MI;
+  }).length;
+  const nearbyMetricValue = loading
+    ? "…"
+    : courtsWithinRadius >= DISCOVERY_LIMIT
+      ? `${courtsWithinRadius}+`
+      : courtsWithinRadius;
 
   const handleCourtCheckIn = async (court: Court) => {
     if (Platform.OS !== "web") {
@@ -201,6 +213,16 @@ export function CourtsScreen() {
     <View style={styles.container}>
       <ScreenHeader
         title="EXPLORE"
+        right={(
+          <HeaderMetric
+            value={nearbyMetricValue}
+            label={`COURTS · ${HEADER_RADIUS_MI} MI`}
+            accessibilityLabel={loading
+              ? "Loading courts within 10 miles"
+              : `${courtsWithinRadius} courts within ${HEADER_RADIUS_MI} miles`}
+            tone="default"
+          />
+        )}
       />
 
       <View style={styles.searchArea}>
@@ -256,26 +278,16 @@ export function CourtsScreen() {
         ) : null}
       </View>
 
-      <View style={styles.modeSwitch} accessibilityRole="tablist">
-        {(["LIST", "MAP"] as ExploreMode[]).map((item) => (
-          <Pressable
-            key={item}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: mode === item }}
-            onPress={() => setMode(item)}
-            style={[styles.modeTab, mode === item && styles.modeTabActive]}
-          >
-            <Feather
-              name={item === "LIST" ? "list" : "map"}
-              size={14}
-              color={mode === item ? Colors.text : Colors.muted}
-            />
-            <Text style={[styles.modeTabText, mode === item && styles.modeTabTextActive]}>
-              {item}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+      <AppTabs
+        items={([
+          { value: "LIST", label: "LIST", icon: (active: boolean) => <Feather name="list" size={15} color={active ? Colors.text : Colors.muted} /> },
+          { value: "MAP", label: "MAP", icon: (active: boolean) => <Feather name="map" size={15} color={active ? Colors.text : Colors.muted} /> },
+        ] as const)}
+        value={mode}
+        onChange={setMode}
+        variant="segmented"
+        style={styles.modeSwitch}
+      />
 
       {mode === "MAP" ? (
         <View style={styles.mapStage}>
@@ -416,12 +428,8 @@ const styles = StyleSheet.create({
   sportMenuItemText: { fontFamily: Typography.bodySemiBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.2 },
   sportMenuItemTextActive: { color: Colors.text },
   modeSwitch: {
-    minHeight: 40,
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderColor: Colors.border,
-    overflow: "hidden",
-    backgroundColor: Colors.surface,
+    marginHorizontal: 20,
+    marginBottom: 12,
   },
   modeTab: {
     flex: 1,

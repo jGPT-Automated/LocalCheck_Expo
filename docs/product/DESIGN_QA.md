@@ -1,8 +1,65 @@
-# LocalCheck design QA — canonical MVP candidate
+# LocalCheck design QA — current main
 
-Status: Browser-verified; physical iPhone/TestFlight acceptance pending
-Last verified: 2026-07-29, America/Chicago
-Review source: open PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/22), branch `codex/mvp-consolidation`
+Status: Current-main browser assessment complete; production UI foundation and physical iPhone acceptance remain
+Last verified: 2026-08-01, America/Chicago
+Review source: GitHub `main` at `81ff0a4`; PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/22) is merged historical context
+
+## Current assessment
+
+The complete first-time-user walkthrough, production table-stakes scorecard,
+component inconsistency inventory, screen-level backlog, delight layer, and nine
+reference captures are in
+[`assessments/2026-08-01-current-build-assessment.md`](assessments/2026-08-01-current-build-assessment.md).
+
+Current design verdict:
+
+- Preserve the graphite/orange athletic identity, court-first Home, honest
+  empty states, familiar five-tab shell, List/Map discovery, and court sheet.
+- The visual direction is stronger than the implementation system. Core
+  surfaces still free-code buttons, rows, tabs/segments, headers, state
+  feedback, spacing, touch targets, and type sizes.
+- The production bar is not yet met for user-controlled identity, first-run
+  location/privacy, accessibility, complete action states, native acceptance,
+  or release/source-of-truth integrity.
+- Delight should come from live court energy, personal progress, and meaningful
+  milestones after navigation, forms, settings, and basic controls are familiar.
+
+The 2026-08-01 browser baseline lives at
+`design-qa/2026-08-01-onboarding-assessment/` and covers Auth, first Home,
+Explore, set local, populated Home, Schedule, Compete, Me, and the court sheet.
+
+## Foundation candidate review
+
+The approved hybrid direction is now represented by a local foundation
+candidate, with the contract and acceptance gates in
+[`DESIGN_FOUNDATION.md`](DESIGN_FOUNDATION.md). A fresh signed-in export at
+`http://127.0.0.1:8082/` was visually reviewed after implementation.
+
+Verified in the current candidate:
+
+- Home, Schedule, Compete, Explore, and Me repeat one mark, title baseline,
+  gutter, surface band, and divider.
+- Me uses the username in the primary header with reachable Notifications and
+  Settings actions.
+- Me and another-player profiles share one identity/ELO/stat scaffold while
+  retaining their existing authoritative data paths and actions.
+- Primary tab, scope, mode, visibility, privacy, sport, and court-section
+  switches use the same tab/segment grammar with selected semantics.
+- Shared buttons and header actions provide at least 44-point targets and
+  restrained pressed feedback; generic taps no longer imply success through a
+  medium haptic.
+- Reduced Motion has a shared hook, live pulse becomes static, and entry motion
+  uses a small opacity/scale change instead of a large spring.
+- The selected-court sheet has one continuous surface with a top-only outline;
+  no side or bottom seam was visible in the resting browser state.
+
+Still required before this checkpoint can be called accepted:
+
+- Physical iPhone and Expo Go review at supported font sizes.
+- VoiceOver order, Dynamic Type, Reduce Motion, outdoor contrast, keyboard,
+  safe-area, and sheet-drag checks.
+- Native Mapbox and the complete release gate.
+- Jesse's direct visual approval before delivery.
 
 ## Reference targets
 
@@ -66,10 +123,15 @@ Review source: open PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/p
   form with Jaycee Park already selected. No form was submitted and no QA data
   was written.
 
-## Open gates before merge/release
+## Open production UI acceptance gates
 
-- Jesse visual review at the actual phone viewport.
-- Jesse accepts the refreshed Home and Me polish in the visible preview.
+- Review and approve the shared production primitives, type ramp, spacing scale,
+  control heights, icon rules, and action-state contract before screen-by-screen
+  polish branches diverge again.
+- Fresh-account first-run identity, sport, market/local-court, and privacy flow;
+  profile editing; and long-content resilience.
+- VoiceOver, Dynamic Type, reduced-motion, outdoor contrast, and 44-point target
+  acceptance across the core journey.
 - Physical iPhone verification of safe areas, sheets, keyboard behavior,
   Schedule add/remove persistence, native Mapbox marker/camera behavior, and
   two-way Realtime recovery.
@@ -83,6 +145,6 @@ Review source: open PR [#22](https://github.com/jGPT-Automated/LocalCheck_Expo/p
 
 ## Release boundary
 
-The browser preview is not native proof. Do not merge PR #22, publish an OTA, trigger
-an EAS build, submit to TestFlight, or mutate Supabase without Jesse's explicit
-approval after reviewing the candidate.
+The browser preview is not native proof. PR #22 is already merged; this document
+does not authorize a merge, OTA, EAS build, TestFlight submission, or Supabase
+mutation. Those actions still require Jesse's explicit approval.

@@ -1,9 +1,8 @@
-import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
+import { DetailHeader } from "@/components/DetailHeader";
 import { Colors, Radius } from "@/constants/colors";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
@@ -13,13 +12,11 @@ import { confirmMatch, fetchMatchReview, MatchReview, rejectMatch } from "@/serv
 export default function MatchReviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { top } = useSafeAreaInsets();
   const { user, refreshProfile } = useAuth();
   const { refreshMatches, refreshFeed } = useApp();
   const [match, setMatch] = useState<MatchReview | null>(null);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
-  const topPad = Platform.OS === "web" ? 67 : top;
 
   const load = async () => {
     if (!id) return;
@@ -44,13 +41,21 @@ export default function MatchReviewScreen() {
   };
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator color={Colors.accent} /></View>;
+    return (
+      <View style={styles.screen}>
+        <DetailHeader title="FINAL SCORE" onBack={() => router.back()} />
+        <View style={styles.center}><ActivityIndicator color={Colors.accent} /></View>
+      </View>
+    );
   }
   if (!match) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.emptyTitle}>SCORE NOT FOUND</Text>
-        <Pressable style={styles.secondaryButton} onPress={() => router.back()}><Text style={styles.secondaryText}>GO BACK</Text></Pressable>
+      <View style={styles.screen}>
+        <DetailHeader title="FINAL SCORE" onBack={() => router.back()} />
+        <View style={styles.center}>
+          <Text style={styles.emptyTitle}>SCORE NOT FOUND</Text>
+          <Pressable style={styles.secondaryButton} onPress={() => router.back()}><Text style={styles.secondaryText}>GO BACK</Text></Pressable>
+        </View>
       </View>
     );
   }
@@ -65,13 +70,7 @@ export default function MatchReviewScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.header, { paddingTop: topPad + 10 }]}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={12}>
-          <Feather name="chevron-left" size={20} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>FINAL SCORE</Text>
-        <View style={{ width: 34 }} />
-      </View>
+      <DetailHeader title="FINAL SCORE" onBack={() => router.back()} />
 
       <View style={styles.content}>
         <View style={styles.metaRow}>
@@ -125,9 +124,6 @@ export default function MatchReviewScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 18, backgroundColor: Colors.background, padding: 24 },
-  header: { minHeight: 94, paddingHorizontal: 16, paddingBottom: 14, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", borderBottomWidth: 1, borderBottomColor: Colors.border },
-  backButton: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderRadius: 17, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
-  headerTitle: { fontFamily: Typography.heading, fontSize: 19, color: Colors.text, letterSpacing: 1 },
   content: { padding: 20 },
   metaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   sport: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.accent, letterSpacing: 1.5 },

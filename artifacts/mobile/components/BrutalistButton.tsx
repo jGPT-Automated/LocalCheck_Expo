@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { Colors, Radius } from "@/constants/colors";
+import { ControlSize } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 
 interface BrutalistButtonProps {
@@ -23,6 +24,9 @@ interface BrutalistButtonProps {
   style?: ViewStyle;
   testID?: string;
   icon?: React.ReactNode;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  haptic?: "none" | "selection" | "impact";
 }
 
 export function BrutalistButton({
@@ -35,11 +39,18 @@ export function BrutalistButton({
   style,
   testID,
   icon,
+  accessibilityLabel,
+  accessibilityHint,
+  haptic = "none",
 }: BrutalistButtonProps) {
   const handlePress = () => {
     if (disabled || loading) return;
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (Platform.OS !== "web" && haptic !== "none") {
+      if (haptic === "selection") {
+        void Haptics.selectionAsync();
+      } else {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
     }
     onPress();
   };
@@ -49,6 +60,10 @@ export function BrutalistButton({
       testID={testID}
       onPress={handlePress}
       disabled={disabled || loading}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
       style={({ pressed }) => [
         styles.base,
         styles[`size_${size}`],
@@ -77,6 +92,7 @@ export function BrutalistButton({
 
 const styles = StyleSheet.create({
   base: {
+    minHeight: ControlSize.minimum,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: Radius.sm,
@@ -93,7 +109,7 @@ const styles = StyleSheet.create({
   variant_ghost: { backgroundColor: "transparent", borderWidth: 0 },
   variant_dark: { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
   disabled: { opacity: 0.3 },
-  pressed: { opacity: 0.75 },
+  pressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },
   label: {
     fontFamily: Typography.heading,
     letterSpacing: 1.5,
