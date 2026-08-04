@@ -42,7 +42,13 @@ import {
 import { fetchFeed } from "@/services/feedService";
 import { fetchGamesByPlayer } from "@/services/gameService";
 import { fetchScheduledGames, joinScheduledGame } from "@/services/scheduledGameService";
-import { createCourt, fetchCourtById, fetchNearbyCourts } from "@/services/courtService";
+import {
+  createCourt,
+  fetchCourtById,
+  fetchNearbyCourts,
+  type CourtSubmissionResult,
+  type VerifiedCourtSubmission,
+} from "@/services/courtService";
 import { updateLocalCourtId, updateProfileFields } from "@/services/profileService";
 import { useAuth } from "@/context/AuthContext";
 import { usePresenceRefresh } from "@/context/CourtPresenceContext";
@@ -96,7 +102,7 @@ interface AppContextValue {
   ) => Promise<boolean>;
   refreshPlannedVisits: () => Promise<void>;
   hypeItem: (feedId: string) => void;
-  addCourt: (court: Court) => Promise<void>;
+  addCourt: (submission: VerifiedCourtSubmission) => Promise<CourtSubmissionResult>;
   setLocalCourt: (courtId: string | null, courtObj?: Court) => Promise<boolean>;
   setVisibility: (v: Visibility) => Promise<void>;
   setPreferredSport: (sport: CourtSport | null) => Promise<void>;
@@ -577,22 +583,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setLastVisitedCourtId(courtId);
   }, []);
 
-  const addCourt = useCallback(async (court: Court) => {
-    if (!userId) return;
-    const created = await createCourt(
-      {
-        name: court.name,
-        address: court.address,
-        latitude: court.latitude,
-        longitude: court.longitude,
-        sport: court.sport,
-        imageUrl: court.imageUri ?? null,
-      },
-      userId
-    );
-    if (created) {
-      setCourts((prev) => [created, ...prev]);
+  const addCourt = useCallback(async (submission: VerifiedCourtSubmission) => {
+    if (!userId) {
+      return {
+        verified: false,
+        confidence: 0,
+        reason: "Sign in again before adding a court.",
+      };
     }
+    const result = await createCourt(submission);
+    if (result.court) {
+      setCourts((prev) => [result.court!, ...prev.filter((court) => court.id !== result.court!.id)]);
+    }
+    return result;
   }, [userId]);
 
   const setLocalCourt = useCallback(async (courtId: string | null, courtObj?: Court): Promise<boolean> => {

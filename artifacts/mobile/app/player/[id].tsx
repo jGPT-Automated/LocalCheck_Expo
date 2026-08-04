@@ -2,9 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Platform,
+  Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -12,10 +11,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrutalistButton } from "@/components/BrutalistButton";
-import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { DetailHeader, HeaderIconButton } from "@/components/DetailHeader";
+import { ProfileScaffold } from "@/components/profile/ProfileScaffold";
 import { Colors } from "@/constants/colors";
 import {
-  getTierColor,
   MatchResult,
   Player,
 } from "@/constants/data";
@@ -23,6 +22,7 @@ import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { fetchGamesByPlayer, fetchHeadToHeadGames } from "@/services/gameService";
 import { fetchProfile } from "@/services/profileService";
+import { blockUser, ReportReason, reportUser, safetyControlsAvailable } from "@/services/safetyService";
 
 /** Deterministic head-to-head stats from persisted games both users played in. */
 function getHeadToHeadStats(sharedMatches: MatchResult[]) {
@@ -38,13 +38,21 @@ export default function PlayerProfileScreen() {
   const router = useRouter();
   const { currentUser, isFriend, isFriendPending, incomingFriendRequests, acceptFriendRequest, addFriend, removeFriend } =
     useApp();
-  const { top, bottom } = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : top;
+  const { bottom } = useSafeAreaInsets();
 
   const [player, setPlayer] = useState<Player | null>(null);
   const [playerMatches, setPlayerMatches] = useState<MatchResult[]>([]);
   const [sharedMatches, setSharedMatches] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSafetyControls, setShowSafetyControls] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    void safetyControlsAvailable().then((available) => {
+      if (mounted) setShowSafetyControls(available);
+    });
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -68,7 +76,8 @@ export default function PlayerProfileScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { paddingTop: topPad + 20, alignItems: "center" }]}>
+      <View style={styles.container}>
+        <DetailHeader title="PROFILE" onBack={() => router.back()} />
         <Text style={styles.notFound}>LOADING…</Text>
       </View>
     );
@@ -76,7 +85,8 @@ export default function PlayerProfileScreen() {
 
   if (!player) {
     return (
-      <View style={[styles.container, { paddingTop: topPad + 20 }]}>
+      <View style={styles.container}>
+        <DetailHeader title="PROFILE" onBack={() => router.back()} />
         <Text style={styles.notFound}>PLAYER NOT FOUND</Text>
       </View>
     );
@@ -87,9 +97,7 @@ export default function PlayerProfileScreen() {
   // successful request is what made this button read as broken.
   const isRequestPending = isFriendPending(player.id);
   const isIncomingRequest = incomingFriendRequests.some((requester) => requester.id === player.id);
-  const tierColor = getTierColor(player.tier);
   const total = player.wins + player.losses;
-  const winRate = total > 0 ? Math.round((player.wins / total) * 100) : 0;
 
   // Head-to-head stats from persisted shared games
   const h2h = getHeadToHeadStats(sharedMatches);
@@ -107,73 +115,71 @@ export default function PlayerProfileScreen() {
     }
   };
 
+  const submitReport = async (reason: ReportReason) => {
+    const ok = await reportUser(player.id, reason);
+    Alert.alert(
+      ok ? "Report received" : "Report not sent",
+      ok ? "Thanks. LocalCheck will review it." : "Please try again."
+    );
+  };
+
+  const handleReport = () => {
+    Alert.alert(`Report ${player.name}?`, "Choose the closest reason.", [
+      { text: "Spam", onPress: () => void submitReport("spam") },
+      { text: "Harassment", onPress: () => void submitReport("harassment") },
+      { text: "Impersonation", onPress: () => void submitReport("impersonation") },
+      { text: "Unsafe behavior", onPress: () => void submitReport("unsafe_behavior") },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
+
+  const handleBlock = () => {
+    Alert.alert(
+      `Block ${player.name}?`,
+      "You will no longer see each other's profiles, activity, check-ins, or run invites.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Block",
+          style: "destructive",
+          onPress: async () => {
+            const ok = await blockUser(player.id);
+            if (ok) router.back();
+            else Alert.alert("Could not block player", "Please try again.");
+          },
+        },
+      ]
+    );
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: topPad + 12 }]}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
-          <Ionicons name="arrow-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>PROFILE</Text>
-        <Pressable onPress={handleToggleFriend} hitSlop={12}>
-          <Ionicons
-            name={isFriendStatus ? "person-remove" : isIncomingRequest ? "person-add" : "person-add"}
-            size={20}
-            color={isFriendStatus ? Colors.loss : Colors.win}
-          />
-        </Pressable>
-      </View>
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 84 : bottom + 100 }}
-      >
-        {/* Profile Hero */}
-        <View style={styles.hero}>
-          <PlayerAvatar initials={player.avatar} size={72} />
-          <Text style={styles.playerName}>{player.name.toUpperCase()}</Text>
-          <View style={styles.tierPill}>
-            <View style={[styles.tierDot, { backgroundColor: tierColor }]} />
-            <Text style={[styles.tierLabel, { color: tierColor }]}>{player.tier}</Text>
-          </View>
-          <Text style={styles.eloText}>{player.elo} ELO</Text>
-          {isFriendStatus && (
-            <View style={styles.friendBadge}>
-              <Ionicons name="people" size={12} color={Colors.win} />
-              <Text style={styles.friendBadgeText}>FRIEND</Text>
-            </View>
+    <ProfileScaffold
+      header={(
+        <DetailHeader
+          title={player.name}
+          subtitle={isFriendStatus ? "FRIEND" : isRequestPending ? "REQUESTED" : undefined}
+          onBack={() => router.back()}
+          right={(
+            <HeaderIconButton
+              icon={isFriendStatus ? "user-minus" : "user-plus"}
+              label={isFriendStatus ? `Remove ${player.name} as a friend` : `Add ${player.name} as a friend`}
+              tone={isFriendStatus ? "danger" : "accent"}
+              onPress={handleToggleFriend}
+            />
           )}
-        </View>
-
-        {/* Stats Grid */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statCell}>
-            <Text style={[styles.statVal, { color: Colors.win }]}>{player.wins}</Text>
-            <Text style={styles.statLbl}>WINS</Text>
-          </View>
-          <View style={[styles.statCell, styles.statCellBorder]}>
-            <Text style={[styles.statVal, { color: Colors.loss }]}>{player.losses}</Text>
-            <Text style={styles.statLbl}>LOSSES</Text>
-          </View>
-          <View style={styles.statCell}>
-            <Text style={styles.statVal}>{winRate}%</Text>
-            <Text style={styles.statLbl}>WIN RATE</Text>
-          </View>
-        </View>
-
-        <View style={styles.statsGrid}>
-          <View style={styles.statCell}>
-            <Text style={styles.statVal}>{player.checkIns}</Text>
-            <Text style={styles.statLbl}>CHECK-INS</Text>
-          </View>
-          <View style={[styles.statCell, styles.statCellBorder]}>
-            <Text style={styles.statVal}>{total}</Text>
-            <Text style={styles.statLbl}>GAMES</Text>
-          </View>
-          <View style={styles.statCell}>
-            <Text style={[styles.statVal, { color: tierColor }]}>{player.tier}</Text>
-            <Text style={styles.statLbl}>TIER</Text>
-          </View>
-        </View>
+        />
+      )}
+      player={player}
+      supportingText={isFriendStatus ? "FRIEND" : player.sport}
+      stats={[
+        { key: "wins", value: player.wins, label: "WINS" },
+        { key: "losses", value: player.losses, label: "LOSSES" },
+        { key: "checkins", value: player.checkIns, label: "CHECK-INS" },
+        { key: "games", value: total, label: "GAMES" },
+      ]}
+      presentation="detail"
+      bottomInset={bottom}
+    >
 
         {/* Head-to-Head Section */}
         <View style={styles.section}>
@@ -276,8 +282,27 @@ export default function PlayerProfileScreen() {
             testID="log-game-btn"
           />
         </View>
-      </ScrollView>
-    </View>
+        {showSafetyControls && <View style={styles.safetyRow}>
+          <Pressable
+            style={({ pressed }) => [styles.safetyButton, pressed && styles.pressed]}
+            onPress={handleReport}
+            accessibilityRole="button"
+            accessibilityLabel={`Report ${player.name}`}
+          >
+            <Ionicons name="flag-outline" size={15} color={Colors.muted} />
+            <Text style={styles.safetyText}>REPORT</Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.safetyButton, pressed && styles.pressed]}
+            onPress={handleBlock}
+            accessibilityRole="button"
+            accessibilityLabel={`Block ${player.name}`}
+          >
+            <Ionicons name="ban-outline" size={15} color={Colors.loss} />
+            <Text style={[styles.safetyText, { color: Colors.loss }]}>BLOCK</Text>
+          </Pressable>
+        </View>}
+    </ProfileScaffold>
   );
 }
 
@@ -553,6 +578,30 @@ const styles = StyleSheet.create({
   actionBtnTextDanger: {
     color: Colors.loss,
   },
+  safetyRow: {
+    flexDirection: "row",
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  safetyButton: {
+    minHeight: 44,
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  safetyText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 10,
+    color: Colors.muted,
+    letterSpacing: 1.2,
+  },
+  pressed: { opacity: 0.65 },
 
   // Upgrade Modal
   modalOverlay: {

@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors, Radius } from "@/constants/colors";
 import { Typography } from "@/constants/typography";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
 /**
  * The one shell for every task/creation form presented over a screen
@@ -37,6 +38,7 @@ export function FormSheet({
   children: React.ReactNode;
 }) {
   const { top } = useSafeAreaInsets();
+  const reducedMotion = useReducedMotion();
 
   // A native iOS pageSheet is already inset below the status bar, so adding the
   // full inset there would double the gap. Every other target needs it.
@@ -45,7 +47,7 @@ export function FormSheet({
   return (
     <Modal
       visible={visible}
-      animationType={Platform.OS === "web" ? "fade" : "slide"}
+      animationType={Platform.OS === "web" || reducedMotion !== false ? "fade" : "slide"}
       presentationStyle={Platform.OS === "ios" ? "pageSheet" : "fullScreen"}
       transparent={Platform.OS === "web"}
       onRequestClose={onClose}

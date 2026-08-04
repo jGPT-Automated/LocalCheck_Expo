@@ -1,6 +1,8 @@
 import {
   BottomSheetBackdrop,
-  BottomSheetBackdropProps,
+  type BottomSheetBackgroundProps,
+  type BottomSheetBackdropProps,
+  type BottomSheetHandleProps,
   BottomSheetModal,
   BottomSheetModalProvider,
 } from "@gorhom/bottom-sheet";
@@ -12,9 +14,11 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors } from "@/constants/colors";
+import { Colors, Radius } from "@/constants/colors";
 import { CourtSheetContent } from "./CourtSheetContent";
 
 /**
@@ -43,6 +47,33 @@ const CourtSheetContext = createContext<CourtSheetApi>({
   closeCourtSheet: () => {},
 });
 
+/**
+ * One background owns the complete sheet surface. Keeping the radii and
+ * hairline on this animated layer prevents the handle and scroll content from
+ * reading as separate panels while the sheet moves between detents.
+ */
+function CourtSheetBackground({ style }: BottomSheetBackgroundProps) {
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[style, styles.sheetBackground]}
+    />
+  );
+}
+
+function CourtSheetHandle(_props: BottomSheetHandleProps) {
+  return (
+    <View
+      accessible
+      accessibilityLabel="Bottom sheet handle"
+      accessibilityRole="adjustable"
+      style={styles.handle}
+    >
+      <View style={styles.grabber} />
+    </View>
+  );
+}
+
 export function useCourtSheet() {
   return useContext(CourtSheetContext);
 }
@@ -50,6 +81,7 @@ export function useCourtSheet() {
 export function CourtSheetProvider({ children }: { children: React.ReactNode }) {
   const modalRef = useRef<BottomSheetModal>(null);
   const [args, setArgs] = useState<OpenArgs | null>(null);
+  const { top } = useSafeAreaInsets();
 
   const openCourtSheet = useCallback((next: OpenArgs) => {
     setArgs(next);
@@ -98,8 +130,16 @@ export function CourtSheetProvider({ children }: { children: React.ReactNode }) 
           enablePanDownToClose
           onDismiss={() => setArgs(null)}
           backdropComponent={renderBackdrop}
+          backgroundComponent={CourtSheetBackground}
+          handleComponent={CourtSheetHandle}
+          topInset={top}
+          // gorhom's own surface defaults to white. The custom background
+          // component covers most of it, but the modal's container still
+          // showed white at the rounded corners — these three clip and colour
+          // the actual container so nothing light can peek through.
+          style={styles.sheet}
           backgroundStyle={styles.sheetBackground}
-          handleIndicatorStyle={styles.grabber}
+          containerStyle={styles.sheetContainer}
         >
           {args && (
             <CourtSheetContent
@@ -116,16 +156,34 @@ export function CourtSheetProvider({ children }: { children: React.ReactNode }) 
 }
 
 const styles = StyleSheet.create({
+  // The modal container itself. Clipping here is what stops a light corner
+  // showing outside the rounded surface.
+  sheet: {
+    overflow: "hidden",
+    borderTopLeftRadius: Radius.lg,
+    borderTopRightRadius: Radius.lg,
+  },
+  sheetContainer: { backgroundColor: "transparent" },
   sheetBackground: {
     backgroundColor: Colors.background,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    borderWidth: 1,
+    borderTopLeftRadius: Radius.lg,
+    borderTopRightRadius: Radius.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
+    overflow: "hidden",
+  },
+  handle: {
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: Radius.lg,
+    borderTopRightRadius: Radius.lg,
   },
   grabber: {
-    backgroundColor: Colors.muted,
-    width: 36,
-    height: 4,
+    backgroundColor: Colors.borderLight,
+    width: 32,
+    height: 3,
+    borderRadius: 2,
   },
 });

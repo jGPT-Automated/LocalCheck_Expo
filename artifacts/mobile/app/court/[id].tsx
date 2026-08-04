@@ -4,10 +4,11 @@ import React from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { LogoMark } from "@/components/brand/LogoMark";
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { CourtListItem } from "@/components/CourtListItem";
+import { AppTabs } from "@/components/AppTabs";
 import { CourtSchedulePanel } from "@/components/CourtSchedulePanel";
+import { DetailHeader } from "@/components/DetailHeader";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { RunCard } from "@/components/RunCard";
 import { Colors, Radius } from "@/constants/colors";
@@ -41,8 +42,7 @@ export default function CourtProfileScreen() {
     localCourt: contextLocalCourt,
     isFriend,
   } = useApp();
-  const { top, bottom } = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : top;
+  const { bottom } = useSafeAreaInsets();
   const [activeTab, setActiveTab] = React.useState<CourtTab>("feed");
   const [court, setCourt] = React.useState<Court | null>(
     courts.find((item) => item.id === id) ?? (contextLocalCourt?.id === id ? contextLocalCourt : null)
@@ -124,9 +124,12 @@ export default function CourtProfileScreen() {
 
   if (!court) {
     return (
-      <View style={styles.notFound}>
-        <Text style={styles.notFoundText}>{fetchError ? "COURT NOT FOUND" : "LOADING…"}</Text>
-        {fetchError ? <BrutalistButton label="GO BACK" onPress={() => router.back()} variant="outline" /> : null}
+      <View style={styles.screen}>
+        <DetailHeader title="COURT" onBack={() => router.back()} />
+        <View style={styles.notFound}>
+          <Text style={styles.notFoundText}>{fetchError ? "COURT NOT FOUND" : "LOADING…"}</Text>
+          {fetchError ? <BrutalistButton label="GO BACK" onPress={() => router.back()} variant="outline" /> : null}
+        </View>
       </View>
     );
   }
@@ -152,13 +155,7 @@ export default function CourtProfileScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.header, { paddingTop: topPad + 10 }]}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={12}>
-          <Feather name="chevron-left" size={20} color={Colors.text} />
-        </Pressable>
-        <LogoMark size={20} />
-        <Text style={styles.headerTitle} numberOfLines={1}>{court.name}</Text>
-      </View>
+      <DetailHeader title={court.name} onBack={() => router.back()} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -180,12 +177,16 @@ export default function CourtProfileScreen() {
           />
         </View>
 
-        <View style={styles.tabs}>
-          <Tab label="FEED" active={activeTab === "feed"} onPress={() => setActiveTab("feed")} />
-          <Tab label="LOCALS" active={activeTab === "locals"} onPress={() => setActiveTab("locals")} />
-          <Tab label="SCHEDULE" active={activeTab === "schedule"} onPress={() => setActiveTab("schedule")} />
-          <Tab label="DETAILS" active={activeTab === "details"} onPress={() => setActiveTab("details")} />
-        </View>
+        <AppTabs
+          items={([
+            { value: "feed", label: "FEED" },
+            { value: "locals", label: "LOCALS" },
+            { value: "schedule", label: "SCHEDULE" },
+            { value: "details", label: "DETAILS" },
+          ] as const)}
+          value={activeTab}
+          onChange={setActiveTab}
+        />
 
         {activeTab === "feed" ? (
           <View style={styles.section}>
@@ -346,14 +347,6 @@ export default function CourtProfileScreen() {
   );
 }
 
-function Tab({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} style={[styles.tab, active && styles.tabActive]}>
-      <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
-    </Pressable>
-  );
-}
-
 function EmptyState({ title, body }: { title: string; body: string }) {
   return (
     <View style={styles.empty}>
@@ -409,9 +402,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
   notFound: { flex: 1, alignItems: "center", justifyContent: "center", gap: 18, padding: 30, backgroundColor: Colors.background },
   notFoundText: { fontFamily: Typography.heading, fontSize: 22, color: Colors.text, letterSpacing: 1.2 },
-  header: { minHeight: 94, paddingHorizontal: 16, paddingBottom: 14, flexDirection: "row", alignItems: "flex-end", gap: 9, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  backButton: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, marginRight: 2 },
-  headerTitle: { flex: 1, fontFamily: Typography.heading, fontSize: 17, lineHeight: 21, color: Colors.text, letterSpacing: 0.5, textTransform: "uppercase" },
   cardWrap: { paddingTop: 10 },
   tabs: { flexDirection: "row", marginTop: 10, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: Colors.border },
   tab: { flex: 1, alignItems: "center", paddingVertical: 13, borderBottomWidth: 2, borderBottomColor: "transparent" },

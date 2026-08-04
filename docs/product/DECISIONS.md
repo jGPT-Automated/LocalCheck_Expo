@@ -2,6 +2,58 @@
 
 Status: Proposed. Nothing in this file is locked until the corresponding roadmap gate is confirmed by the user.
 
+## 2026-08-02: Home carries the wordmark and detail navigation inherits the mark
+
+**Working decision confirmed by Jesse:** The Home header says `LOCALCHECK`, not
+`HOME`. Every primary title uses one smaller, sharper wordmark-grade type role,
+and the bracket-check mark uses its approved vector geometry. On detail routes,
+that same left-edge mark resolves into the back affordance rather than being
+replaced by an unrelated boxed chevron. The interactive target remains at least
+44 points and Reduce Motion receives a direct state change.
+
+**Why:** The previous shared geometry solved drift but still looked bulky and
+generic. A consistent brand lockup should make tab changes feel continuous,
+while detail navigation should preserve standard iOS meaning without visually
+leaving the LocalCheck identity system.
+
+## 2026-08-01: Foundation before standout effects
+
+**Working decision confirmed by Jesse:** Establish and verify one shared mobile
+design foundation before adding shader, number-flow, shared-element, or other
+signature effects. The checkpoint covers the app shell, primary and detail
+headers, type, spacing, controls, profiles, sheets, icons, accessibility, and
+restrained motion while preserving the working UI logic, realtime behavior,
+navigation destinations, and backend contracts.
+
+**Why:** LocalCheck is already functionally close to its first eager TestFlight
+group. Consistency is the current release constraint. Signature interactions
+will have more impact and less implementation risk once they can land on one
+stable component grammar.
+
+## 2026-08-01: Shared profile scaffold
+
+**Working decision confirmed by Jesse:** Me uses `@USERNAME` in the shared
+primary header with settings at the top right. Another player's profile uses
+the same identity, ELO, stats, tabs, and activity scaffold with capability-based
+actions instead of the old separate profile design.
+
+**Why:** Profiles describe the same player model. Separate visual structures
+create drift, duplicate implementation, and make navigation into another
+player's profile feel like leaving the finished application.
+
+## 2026-08-01: Morph transition is a gated post-foundation spike
+
+**Working decision confirmed by sequencing:** The Explore and map card-to-detail
+morph is retained as a high-value interaction concept but deferred until the
+foundation checkpoint is accepted. The spike must compare React Navigation
+shared elements, `react-native-morph-card`, and Expo Router Apple Zoom against
+the actual Expo, Reanimated, iOS, Android, Reduce Motion, Expo Go, and TestFlight
+constraints.
+
+**Why:** The current shared-element path is experimental, the morph-card library
+adds native build surface, and Apple Zoom requires a newer Expo SDK. None should
+quietly expand the release candidate before the shared visual system is stable.
+
 ## 2026-07-29 — Home is a fixed court hub, not a discovery card
 
 **Working decision confirmed by Jesse:** Home presents the local court as one

@@ -12,21 +12,45 @@ release runbook for deployment steps.
 | GitHub repository | `jGPT-Automated/LocalCheck_Expo` |
 | Canonical local folder | `/Users/JesseH/Projects/LocalCheck_Expo` |
 | Delivery branch | GitHub `main` |
-| Delivered source | GitHub `main` is `d193ac8` — PR #22 (MVP consolidation) merged 2026-07-30, plus PR #23 (app version 1.0.0→1.0.1) merged 2026-07-31. Verify the current remote tip when an exact hash matters. |
+| Delivered source | GitHub `main` is `81ff0a4` — PR #22 (MVP consolidation), PR #23 (app version 1.0.0→1.0.1), and PR #24 (current documentation/build-incident refresh) are merged. Tag `v1.0.5` remains the build-13 source checkpoint at `d193ac8`. |
 | Canonical review PR | [#22 — consolidate LocalCheck MVP candidate](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/22) is merged and closed, not open. It is now historical — its content is `main`. |
-| Local working state | No open review branch. `main` is the working source of truth. |
+| Local working state | The current assessment/docs are on local branch `codex/current-build-assessment`; no PR is open. GitHub `main` remains the delivered source of truth. |
 | Release tag | `v1.0.5` → checkpoint commit `d193ac8` (app version `1.0.1`, build 13). `v1.0.4` (commit `249c926`, build 9) is the prior checkpoint, now superseded. |
 | TestFlight | LocalCheck `1.0.1 (13)` delivered 2026-08-01; Jesse confirmed it launches, feels snappy, and core logic works. Push notification registration is still broken on this build — see "What is not complete." |
 | Successful EAS workflow | `019fbb3e-b3b6-7830-ad63-cb4545af256c` (build 13 + submit, 2026-08-01). Prior checkpoint: `019f9e9b-188e-70b8-9ff3-f1aa9a66b52e` (build 9, 2026-07-26). |
 | Expo project id | `9c906173-0258-45a9-a3fe-786cda373c66` |
 | Supabase project | LocalCheckProd `qkrnmyexzvaxiqfxwwfb` |
 
-Build 13 is the current solid checkpoint: it carries PR #22's full MVP
+## Local design-foundation candidate
+
+The local `codex/current-build-assessment` branch now contains the first shared
+UI-foundation checkpoint. It does not change Supabase, Realtime, service, or
+navigation contracts. The candidate adds one app-shell geometry, primary and
+detail headers, shared tabs and segments, 44-point shared controls, reduced
+motion handling, optional rather than generic haptics, one Me/other-player
+profile scaffold, and a continuous court-sheet outline. The confirmed contract
+and release gates are in
+[`product/DESIGN_FOUNDATION.md`](product/DESIGN_FOUNDATION.md).
+
+A fresh interactive web export is running at `http://127.0.0.1:8082/`. Signed-in
+browser review covered Home, Explore, Schedule, Compete, Me, Settings, another
+player's profile, and the selected-court sheet. TypeScript and whitespace checks
+pass. Expo Go and physical iPhone acceptance remain open, so this is not yet a
+TestFlight-ready or delivered checkpoint.
+
+The primary-header candidate now reserves one fixed trailing slot across all
+five tabs. Current browser evidence shows Home live-player count, Schedule's
+one-hour attendance look-ahead, Explore's 10-mile court count, Compete's compact
+rank visibility, and the Me Settings action without changing title geometry.
+
+Build 13 is the current solid device checkpoint: it carries PR #22's full MVP
 consolidation (Home/Explore/Schedule/Court Details/Compete UI, the notification
 inbox and sport-Elo candidate, private-Broadcast Realtime client changes) plus
 the fixes below. Two-device Realtime acceptance and the notification/Elo
-backend deploy remain open — build 13 contains the client code, not proof it
-works end to end on hardware. See [`ACTIVITY_LEDGER.md`](product/ACTIVITY_LEDGER.md)
+end-to-end contract remain open — notification storage/RPCs are now partially
+live, but the push sender is not deployed and split Elo fields are absent.
+Build 13 contains the client code, not proof it works end to end on hardware.
+See [`ACTIVITY_LEDGER.md`](product/ACTIVITY_LEDGER.md)
 2026-08-01 entry for the full build-9→13 incident writeup.
 
 ## What is complete
@@ -59,8 +83,19 @@ works end to end on hardware. See [`ACTIVITY_LEDGER.md`](product/ACTIVITY_LEDGER
 
 ## What is not complete
 
-- The notification and sport-Elo candidate is not active in LocalCheckProd. The migration and Edge Function source have not been deployed, the Database Webhook has not been created, and no notification row or rating was changed during this implementation pass.
-- Phone push registration is still broken on build 13, even with the native module present and the provisioning-profile entitlement fixed. Tapping "Turn on Phone Alerts" returns "Alerts are not on: The phone could not be registered." Not yet root-caused. Leading theory (unverified): EAS credentials has a distinct, separate "Push Notifications: Manage your Apple Push Notifications Key" entry that this session never touched — only "Build Credentials" (distribution cert + provisioning profile) was regenerated. `expo-notifications`' `getExpoPushTokenAsync()` needs an APNs key uploaded to EAS so Expo's push service can talk to Apple on the app's behalf; if that key was never created, registration would fail exactly like this. Check `eas credentials` → iOS → production → "Push Notifications: Manage your Apple Push Notifications Key" before assuming anything else. The durable in-app inbox remains the source of truth if phone push stays broken.
+- The Add Court review follow-up now derives an established canonical market
+  from nearby court coordinates and moves quota, duplicate detection, and
+  insertion into one locked database transaction. Its new migration and the
+  updated `verify-court` function remain unapplied/undeployed, so Add Court is
+  still not a production-ready flow.
+- Report/Block controls now fail closed behind a backend capability probe, and
+  the unapplied safety migration blocks direct `run_participants` writes across
+  blocked relationships as well as invitations. Until that migration is
+  applied, installed clients do not render the controls.
+
+- LocalCheckProd is now in a **partial notification state**. Read-only inspection on 2026-08-01 confirmed live `notifications`, `push_tokens`, and `run_invitations` tables; notification/run RPCs; and `profiles.push_notifications_enabled`. The `send-notification` Edge Function was not deployed (only `delete-account` was listed), and no Database Webhook or two-phone delivery proof was established. The exact reduced migration applied to production is not represented as one canonical migration on GitHub `main`; reconcile repository and live truth before further backend work.
+- The sport-split Elo backend is not active. Live `profiles` still exposes the combined `elo_rating` and does not expose `elo_basketball` or `elo_pickleball`; the client fallback prevents a crash but the UI promise remains ahead of storage truth. Exact remaining delta, enumerated against production 2026-08-03: functions `private.apply_match_elo` and `private.auto_confirm_due_matches`; `profiles.elo_basketball`, `elo_pickleball`, `basketball_wins`, `basketball_losses`, `pickleball_wins`, `pickleball_losses`; `matches.sport`, `review_due_at`, `reviewed_at`, `confirmation_method`. Everything else in `20260729_mvp_notifications_and_sport_elo.sql` is already live, and the live `log_match`/`confirm_match`/`reject_match` are the older single-rating versions, so production is self-consistent. Re-running that migration is additive (no drop/delete/truncate; the combined `elo_rating` is explicitly untouched). Its one abort risk is `matches.sport SET NOT NULL` after the backfill from `courts` — pre-flighted clean: 6 matches, 0 unresolvable. Applying it still needs Jesse's explicit approval.
+- Phone push registration is still broken on build 13. **The APNs-key theory is disproven** (2026-08-03, from the shipped code path): build 13 returns "The phone could not be registered." *only* when `getExpoPushTokenAsync()` **succeeded** and the `register_push_token` RPC then failed — any token-fetch failure is caught and surfaces Apple's own error text instead. So the failure is on the database call, not the Apple credential, and regenerating an APNs key would not have fixed it. Read-only checks confirm the RPC exists, `authenticated` may execute it, `public.push_tokens` has the expected columns, and the `ON CONFLICT (expo_push_token)` target has its unique index — so the real cause is still unidentified. PR #25 replaces the swallowed error with the RPC's actual message, which should name it on the next build; that is the cheapest next step. Separately, `send-notification` is still not deployed, so even a valid token could not receive a push today — the in-app inbox works because notification rows are written by database triggers, not by that function. The durable in-app inbox remains the source of truth.
 - The current Elo candidate is intentionally basic: separate basketball and pickleball ratings, 1200 start, standard K=32, opponent confirmation, objection with no rating change, and seven-day automatic confirmation. Advanced rating mechanics and the final objected-score retention rule remain later work.
 - Build 13 now ships the private-Broadcast Realtime client (it was part of PR #22, merged 2026-07-30) — the old public `postgres_changes`/`PrivateOnly` failure mode described below should no longer apply to what's installed, but this has **not been re-verified against build 13 specifically**. Confirm before relying on it.
 - The rebuilt local browser joined private Jaycee Park, Houston, and signed-in-user topics with `SUBSCRIBED` status and no local `PrivateOnly` error. Jesse then confirmed a TestFlight-originated court change (from build 9) appeared live in the already-open browser without a tab switch. This proved the new receiving path against build 9; reverse-direction and full two-phone acceptance on build 13 remain open.
@@ -69,7 +104,7 @@ works end to end on hardware. See [`ACTIVITY_LEDGER.md`](product/ACTIVITY_LEDGER
 - Four client write paths target tables they cannot write. LocalCheckProd is a v2 schema that revoked default ACLs and routes behaviour through `SECURITY DEFINER` RPCs, with narrow **column-level** grants on a few tables. `information_schema.role_table_grants` hides column-level grants, which is why this went unnoticed. Full map and verification recipes: [`BACKEND_WRITE_PATHS.md`](BACKEND_WRITE_PATHS.md).
   - **Schedule "My Times"** — fixed client-side. `authenticated` may INSERT `user_id` but not UPDATE it, and `.upsert()` compiles to `ON CONFLICT DO UPDATE SET user_id = …`, rejected with `42501`. Now uses `ignoreDuplicates: true` (`DO NOTHING`), verified against production in a rolled-back transaction. **No migration required** — an earlier `GRANT` migration was written on a wrong diagnosis and has been deleted.
   - **Add Friend** — fixed client-side. `friendships` is SELECT-only; the old code inserted directly and discarded the error. Now uses `request_friend` / `accept_friend_request` / `remove_friendship`. `request_friend` creates **`pending`**, the profile button shows `REQUESTED`, and Me → Friends exposes incoming accept/decline actions plus the full Friends screen.
-  - **Add a Court** — still broken. `courts` is SELECT-only and no `create_court` RPC exists. Needs a product decision plus a migration.
+  - **Add a Court** — still broken in build 13, but the local source candidate now replaces the nonexistent `/api/courts/verify` call and rejected direct insert. It uses a Gorhom task sheet, removes manual sport selection, reverse-geocodes editable location data, and invokes an authenticated `verify-court` Edge Function that performs Gemini classification, duplicate protection, and the complete authorized insert together. `GEMINI_API_KEY` is present as a Supabase secret. Deployment was blocked by the Codex account usage limit and did not start; see [`product/ADD_COURT_HANDOFF.md`](product/ADD_COURT_HANDOFF.md) for the exact activation and proof steps.
   - **Edit a Run** — still broken. `runs` is SELECT-only and no update RPC exists.
 - The local candidate no longer reports an empty or court-less Schedule save as success. It disables an unchanged Save, retains failed selections, and supports a Court Details deep-link with the court preselected. Signed-in write proof on a physical client is still required before delivery.
 - Add Friend does nothing in build 9. The local candidate uses the existing friend-request RPCs and includes incoming accept/decline surfaces, but physical two-account proof is still required.
@@ -78,6 +113,9 @@ works end to end on hardware. See [`ACTIVITY_LEDGER.md`](product/ACTIVITY_LEDGER
 - The repeatable preview server now sends no-cache headers for every export asset and serves the Expo app shell for direct client routes such as `/schedule` and `/court/:id`. This prevents the stable development bundle filename from reopening a stale build after restart. It remains an export preview, so code edits still require rerunning the script.
 - The imported web app has not yet passed install/build/preview inside this pnpm workspace; source synchronization is complete, integration is not.
 - The shared-system browser pass is complete. Physical iPhone acceptance remains open for safe areas, keyboard/sheet behavior, native Mapbox, dense Schedule states, and same-viewport comparison against the supplied mocks.
+- The new design-foundation candidate is local only. It still needs Jesse's
+  visible review, Expo Go smoke testing, focused release checks, and explicit
+  approval before any commit, push, OTA, or TestFlight build.
 - Account-deletion client and Edge Function source exist in the local candidate. A 2026-07-29 read-only live-schema check disproved the archived `ON DELETE RESTRICT` review warning: `profiles.id` cascades from `auth.users`, profile-owned rows cascade, and retained historical references use `SET NULL`. A checked-in migration now reproduces that contract. The function now generates Apple's short-lived ES256 client secret from `APPLE_PRIVATE_KEY`, `APPLE_KEY_ID`, `APPLE_TEAM_ID`, and `APPLE_CLIENT_ID`, matching the uploaded Supabase secrets. Deployment and physical delete-account proof remain merge/release blockers.
 - App Store release QA/submission is still ahead.
 
@@ -94,6 +132,48 @@ works end to end on hardware. See [`ACTIVITY_LEDGER.md`](product/ACTIVITY_LEDGER
 - Court cards use basketball blue and pickleball green only as restrained metadata in the emblem, faint glowing court geometry, smoked hue, and a thin left identity edge. Orange remains the live/action/ranked signal.
 - Presence terminology converges on `Check in`, `Here now`, and `Locals` with one meaning per count.
 - A court check-in is durable database state, not WebSocket presence. Phone lock, backgrounding, disconnect, or leaving a screen never means checkout. Live subscriptions exist only while a relevant screen is active; returning to the app performs one scoped catch-up refresh without requiring tab switching.
+- Keep Add Court and LocalPlus in the product plan. Finish their trusted service integrations; do not turn compliance review into a default recommendation to delete functional product surfaces.
+
+## 2026-08-03 — Apple compliance and safety source checkpoint
+
+- Added the supplied Expo `ios.privacyManifests` asset to `app.json`; Expo CNG
+  will generate the native `PrivacyInfo.xcprivacy` during prebuild.
+- Settings now reads the version and build from native application metadata.
+- Notification taps now accept only the known `/friends`, `/notifications`,
+  `/match/<uuid>`, and `/run/<uuid>` destinations. This protects navigation;
+  notification recipient selection remains server-side by `user_id`.
+- Live read-only inspection found the actual push gap: production has the
+  notification/token tables and RPCs, but zero registered device tokens,
+  seven pending notifications, and no deployed `send-notification` function.
+  The local client now surfaces the database registration error instead of the
+  generic "phone could not be registered" message, and the sender source now
+  retries transient Expo failures and records exact ticket errors.
+- Added a local, unapplied `user_blocks` / `user_reports` migration plus profile
+  Report and Block controls. The migration removes friendships, prevents
+  blocked run interactions, and enforces profile/activity/check-in/run
+  visibility at the database layer. No production schema was changed.
+- Added the Apple-only owner checklist under `product/AppStore_Docs`; Google
+  Play is explicitly outside the MVP submission scope.
+- Verification: mobile TypeScript, notification-route tests, and all Realtime
+  tests pass. Production deployment and two-phone push proof remain separate
+  approval/physical acceptance steps.
+
+## 2026-08-03 — Add Court source checkpoint
+
+- Replaced the hand-built/nonfunctional Add Court path with a shared
+  `TaskBottomSheet` backed by `@gorhom/bottom-sheet` modal, scroll, and input
+  primitives.
+- Removed the sport selector. Gemini's structured result is the only sport
+  classification path and accepts basketball or pickleball at 80% confidence.
+- Added editable reverse-geocoded location, explicit access reporting,
+  authenticated invocation, a five-per-day guard, 150-meter duplicate guard,
+  and one server-side verification/create transaction boundary.
+- Photos are analyzed inline but not stored. The Gemini and service-role keys
+  never enter the client.
+- Static/release checks and a fresh web export pass. Production deployment and
+  physical accepted/rejected-photo proof remain open because the Supabase
+  deployment path was blocked by the Codex account usage limit before any
+  mutation occurred.
 
 ## Next sequence
 
@@ -107,9 +187,10 @@ priority order:
    could not be registered") — see the APNs-key theory in "What is not
    complete." Needs another native build once fixed (push key alone may not
    need one — confirm before assuming a rebuild is required).
-3. Review the prepared notification and sport-Elo backend contract, then
-   obtain Jesse's explicit approval before applying its migration or deploying
-   its push sender.
+3. Reconcile the live reduced notification schema/RPC state with one canonical
+   checked-in migration, then obtain Jesse's explicit approval before deploying
+   a push sender/webhook or making any additional production change. Keep the
+   sport-split Elo migration out of the current MVP scope unless separately approved.
 4. Re-run two-device Realtime acceptance against build 13 specifically (prior
    proof was against build 9's older client).
 5. Physical Mapbox quality acceptance on build 13.
@@ -139,5 +220,6 @@ Jesse, not something to change unilaterally.
 - Release procedure: [`RELEASE_RUNBOOK.md`](RELEASE_RUNBOOK.md)
 - Canonical design-system entry: [`product/design system/README.md`](product/design%20system/README.md)
 - Current design acceptance: [`product/DESIGN_QA.md`](product/DESIGN_QA.md)
+- Current first-time-user and production UI assessment: [`product/assessments/2026-08-01-current-build-assessment.md`](product/assessments/2026-08-01-current-build-assessment.md)
 - Required contributor architecture: [`APP_ARCHITECTURE.md`](APP_ARCHITECTURE.md)
 - Workspace/archive classification: [`WORKSPACE_MAP.md`](WORKSPACE_MAP.md)

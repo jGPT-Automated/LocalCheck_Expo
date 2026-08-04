@@ -1,7 +1,91 @@
 # LocalCheck Activity Ledger
 
+## 2026-08-03 - Onboarding blocks integrated; two documented claims disproven
+
+**Requested outcome:** Use the supplied component blocks instead of hand-written
+equivalents, repair the court drawer, standardise the court card, and stand up
+the ELO system.
+
+**Blocks integrated (verbatim, verified by diff):**
+- `shaped-image-shader` (react-native-skia-lab). The 240-line SkSL in
+  `components/onboarding/shapedImageShader.ts` diffs clean against upstream —
+  zero differences.
+- `morphing-text` (react-native-motion `blurred-text-morph`). The 356-line
+  `components/onboarding/morphing-text.tsx` differs from upstream by three
+  lines only: its default font was `@expo-google-fonts/manrope`, which this
+  project does not ship, and now defaults to `Oswald_600SemiBold`.
+- A hand-written letter animation written earlier in the same session was
+  deleted. Free-coding a lookalike instead of fetching the referenced block was
+  the error; the diffs above are the evidence it is corrected.
+- `@shopify/react-native-skia@2.2.12` added via `npx expo install`. Both blocks
+  are Skia, so **neither renders in the web export preview** — verification
+  requires a mobile runtime, which is what the blocks' own workflow mandates.
+
+**Court drawer repairs** (`components/sheet/`): the roster rail was a raw
+React Native `ScrollView` nested inside a `@gorhom/bottom-sheet`, competing with
+the sheet's own pan handler — the cause of the inconsistent up/down swipe. It is
+now a `BottomSheetScrollView`. The modal now also sets `style`,
+`backgroundStyle`, and `containerStyle` explicitly so gorhom's default white
+surface cannot show at the rounded corners.
+
+**Court card standardised** (`components/CourtListItem.tsx`): the card carried
+six font sizes (9/9/9/10/17/19/20) — five of them below Apple's 11pt legibility
+floor — plus arbitrary spacing and four letter-spacings, while `TypeScale`,
+`Spacing`, and `LetterSpacings` already existed unused. All fourteen values now
+resolve from those tokens.
+
+**Two documented claims disproven by direct query of LocalCheckProd:**
+1. `CURRENT_STATE.md` said the notification/sport-Elo migration "has not been
+   deployed". It is **half applied**. Live: every notification and
+   run-invitation function, `log_match`, `confirm_match`, `reject_match`,
+   `register_push_token`, `profiles.push_notifications_enabled`. Missing:
+   `private.apply_match_elo`, `private.auto_confirm_due_matches`, all ten
+   per-sport columns on `profiles`, all four on `matches`. The live match
+   functions are the older single-rating versions, so production is not broken.
+2. The leading theory for broken push registration was a missing APNs key in
+   EAS. The build-13 code path contradicts it: "The phone could not be
+   registered." is returned **only** when `getExpoPushTokenAsync()` succeeded
+   and the `register_push_token` RPC failed. A token-fetch failure surfaces
+   Apple's own error text from the catch block instead. The RPC exists,
+   `authenticated` may execute it, and `push_tokens` has the correct columns and
+   unique index — so the cause is still unknown, but it is not the APNs key.
+   PR #25 already surfaces the real error instead of swallowing it.
+
+**ELO pre-flight (read-only):** the remaining migration half is additive — no
+drop, delete, or truncate; backfills only fill NULLs; the old `elo_rating` is
+explicitly untouched. Its one failure mode is `matches.sport SET NOT NULL` after
+backfilling from `courts`. Verified against production: 6 matches, **0** would
+fail that constraint. 19 profiles, 12 match participants.
+
+**Boundary:** No migration, Edge Function, OTA, build, or production mutation
+was performed. Applying the ELO half remains gated on Jesse's explicit approval.
+
+**Next highest-value action:** one native build (`npx expo run:ios`) to verify
+both Skia blocks on a real runtime, then apply the ELO migration half on
+approval.
+
+## 2026-08-03 - PR #25 review boundaries hardened
+
+**Review findings:** Add Court used the reverse-geocoded city as its market and
+performed quota/duplicate reads separately from insertion. The safety migration
+guarded invitations but not direct run-participant writes, while its client
+controls would publish before the unapplied RPCs existed.
+
+**Implementation:** Added a service-role-only transactional court-create RPC.
+It takes one advisory transaction lock, resolves the nearest established market
+within the metro radius, checks the per-user UTC quota and 150-meter same-sport
+duplicate boundary, and inserts only if both checks pass. The Edge Function now
+delegates the entire persistence boundary to that RPC. The safety migration now
+guards every run-participant insert/update against the run organizer's blocked
+relationships and exposes an authenticated capability probe; player profiles
+render Report/Block only after that probe succeeds.
+
+**Boundary:** No migration, Edge Function, OTA, or production change was
+performed. Apply both migrations before deploying `verify-court`; the safety
+controls intentionally stay hidden until their migration is live.
+
 Status: Active, chronological operating record
-Last updated: 2026-07-29
+Last updated: 2026-08-03
 
 ## How this ledger is used
 
@@ -10,6 +94,152 @@ Last updated: 2026-07-29
 - Do not rewrite history to make a failed attempt disappear. Later entries may correct earlier conclusions with new evidence.
 - Keep `LAUNCH_CONTROL.md` as the concise current-state and priority view. Use this file for the chronological trail that explains how the project reached that state.
 - Product and design decisions also belong in `DECISIONS.md`; notable brand-system changes also belong in `CHANGELOG.md`.
+
+## 2026-08-03 — Add Court rebuilt on a trusted Gemini boundary
+
+**Requested outcome:** Keep Add Court, replace its odd hand-built drawer with a
+library component, remove the manual sport choice, use the newly configured
+Gemini API key, wire the feature end to end, and leave a documented PR for the
+next agent.
+
+**Root cause:** The prior UI posted to a route that does not exist, accepted a
+client-selected sport, manufactured a confirmed local ID, and attempted a
+direct `courts` insert. LocalCheckProd intentionally grants authenticated users
+read access rather than arbitrary court inserts, and the production table now
+requires provenance, access, setting, market, location, and verification fields
+that the client did not provide.
+
+**Implementation:** Added a shared `TaskBottomSheet` using Gorhom's modal,
+scroll, and text-input primitives. The new two-step flow captures editable
+reverse-geocoded location and access, then a court photo; no sport control is
+shown. `courtService` invokes the authenticated `verify-court` Edge Function.
+The function verifies the caller, bounds the payload, limits each user to five
+submissions per UTC day, sends the inline image to Gemini's current Interactions
+API with a strict structured schema, accepts only basketball/pickleball at 80%
+confidence, checks same-sport duplicates within 150 meters, and uses the service
+role only for the complete production insert. The photo is not stored and no
+secret enters the client.
+
+**Evidence:** Mobile `check:release` passed TypeScript, five Realtime tests, and
+two notification-route tests. `git diff --check` and Edge Function TypeScript
+syntax transpilation passed. A fresh Expo web export bundled and started on
+ports 8082/8083. The in-app browser controller blocked localhost navigation by
+policy, so no visual acceptance is claimed.
+
+**Open boundary:** Production deployment was attempted through the supported
+Supabase paths, but the Codex account usage limit blocked both connector and CLI
+approval before a deployment began. No production function, schema, secret, or
+row changed. `ADD_COURT_HANDOFF.md` records the exact deploy command and the
+authenticated, physical-photo, duplicate, and no-write rejection proof still
+required.
+
+## 2026-08-02 - Profile hierarchy normalized against mobile type standards
+
+**Feedback:** The Me header handle and identity panel were visibly oversized.
+The long handle and player name both used 23/27 display treatment, ELO used
+32/35, the avatar was 68 points, and the four-stat row was 70 points high.
+Meanwhile, several supporting labels were only 9 or 10 points. The result was
+simultaneously too loud and too small, with no stable middle hierarchy.
+
+**Benchmark:** Official Material 3 uses 16/24 for `titleMedium`, 14/20 for
+`bodyMedium`, 12/16 for `bodySmall`, and 11/16 for `labelSmall`. Apple identifies
+17 points as the iOS default and 11 points as the custom-interface minimum, and
+requires the relative hierarchy to survive Dynamic Type.
+
+**Implementation:** Added a semantic compact-mobile type scale. The Me handle is
+now 17/22, the shared profile name 16/20, ELO 24/28, stats 18/22, supporting
+text 12/16, and labels 11/16. The shared profile avatar is 56 points and the stat
+row is 58 points. The change applies to the owner and other-player profile
+scaffold without changing profile data, ELO logic, navigation, or backend work.
+
+**Evidence:** Same-viewport 430 x 932 captures are stored under
+`design-qa/2026-08-02-profile-type-scale/`. The after state restores a clear
+identity, context, and metrics sequence. Physical iPhone Dynamic Type,
+VoiceOver, and maximum accessibility sizes remain native acceptance checks.
+
+## 2026-08-02 - Header lockup corrected to the approved identity
+
+**Feedback:** The unified header was geometrically consistent but still looked
+basic and bulky. Home showed the generic destination label `HOME`, the raster
+mark was optically large, and detail routes replaced the identity with a boxed
+chevron.
+
+**Implementation:** Home now carries the `LOCALCHECK` wordmark. Primary and
+detail titles use one 23-point Oswald 500 role with 1.5-point tracking, paired
+with a 26-point vector mark rendered from the approved geometry. Detail routes
+keep the same left-edge footprint and resolve the mark into an orange back
+chevron over the shared 220ms state interval. Reduce Motion skips the spatial
+transition. The back target remains 44 points, and the existing navigation and
+data contracts are unchanged.
+
+**Verification:** `check:release` passed TypeScript plus all five focused
+Realtime tests, and `git diff --check` passed. The preview was rebuilt at
+`http://127.0.0.1:8082/`. Same-viewport browser review confirmed the lighter
+`LOCALCHECK` Home lockup, matching Compete baseline and scale, compact rank
+signal, and the unboxed branded Settings back state. Native push/pop timing,
+Reduce Motion, VoiceOver, and physical iPhone optical review remain checkpoint
+acceptance items.
+
+## 2026-08-02 - Primary-header contextual slot normalized
+
+**Feedback:** The larger Compete rank and hidden-state block changed the visual
+weight and perceived position of that header compared with the other primary
+tabs. Each primary header should carry one useful contextual signal without
+allowing that signal to reshape the shared shell.
+
+**Implementation:** Added one compact, reusable header metric inside a fixed
+44-point trailing slot. Home now shows players live now. Schedule shows the
+number of players in the one-hour look-ahead block. Explore shows the number of
+loaded courts within 10 miles. Compete reduces the rank readout to rank plus a
+short `YOUR RANK` or `HIDDEN` label while keeping the full reason available to
+  accessibility. Me uses the same slot for Settings; the notification inbox
+  remains reachable through Settings. No data writes, backend contracts, or
+  navigation destinations changed.
+
+**Verification:** The focused release gate passed TypeScript plus all five
+Realtime lifecycle/scoping tests, and `git diff --check` passed. The static
+preview was rebuilt at `http://127.0.0.1:8082/`. Same-viewport browser review
+confirmed one matching title baseline and header height across Home, Schedule,
+Compete, Explore, and Me. The visible values were `0 LIVE NOW`, `0 GOING +1H`,
+`8 COURTS · 10 MI`, `#5 HIDDEN`, and the Settings gear. No user or backend data
+was changed during verification.
+
+## 2026-08-01 - Shared mobile design foundation implemented locally
+
+**Outcome requested:** Establish one coherent, iOS-first visual foundation
+across the working application before investing in signature effects. Keep all
+working backend, Realtime, service, and navigation behavior intact, then produce
+an Expo Go and TestFlight review checkpoint.
+
+**Implementation:** Added semantic spacing, control, shell, and motion tokens;
+one shared primary header; one shared detail header and 44-point icon action;
+one reusable underline/segmented tab control; restrained pressed states;
+reduced-motion-aware entry and live-pulse behavior; optional rather than
+generic haptics; and a top-only court-sheet outline. Migrated the primary tabs,
+Settings, Friends, Notifications, Court Details controls, and both owner/remote
+player profiles onto the shared grammar. Me now places `@USERNAME` beside the
+brand mark with Notifications and Settings at the top right. Another player's
+profile uses the same identity, ELO, and stat scaffold instead of the legacy
+parallel layout.
+
+**Transition decision:** Retained the Explore/map card-to-detail morph as a
+high-value post-foundation spike. The current React Navigation path is
+experimental; `react-native-morph-card` adds native build surface; and Expo
+Router Apple Zoom requires the SDK 55 migration. None entered this release
+candidate.
+
+**Verification:** Mobile TypeScript and `git diff --check` pass. The canonical
+static preview was freshly rebuilt and served at
+`http://127.0.0.1:8082/`. Signed-in browser review covered Home, Explore,
+Schedule, Compete, Me, Settings, another-player profile, and the selected-court
+sheet. The shared mark/title coordinates now repeat across primary tabs, the
+long test username truncates safely beside 44-point actions, both profile types
+read as one family, and the court sheet shows no perimeter seam in its resting
+state. No form, check-in, friend, or backend write was submitted during QA.
+
+**Open gate:** Expo Go, physical iPhone safe-area/Dynamic Type/VoiceOver/Reduce
+Motion, sheet drag, native Mapbox, and release-check acceptance remain. No
+commit, push, OTA, TestFlight build, merge, or production mutation was made.
 
 ## 2026-07-29 — PR #22 review fixes implemented locally
 
@@ -566,3 +796,130 @@ damage occurred. Corrected by running `git ls-remote --tags` against the
 remote directly before choosing `v1.0.5`. Lesson: check full tag/version
 history before picking any release identifier, not just the locally-cached
 subset.
+
+## 2026-08-01 — Current-main onboarding and production UI assessment
+
+**Outcome requested:** Onboard to the current Expo project and recent GitHub
+activity, research respected general/mobile design skills, start the canonical
+preview, walk the clean signup and first-session journey as both a new user and
+designer, and produce an evidence-backed current-build assessment with a scoped
+improvement plan. The standard is a familiar production public app first, then
+an intuitive and delightful LocalCheck-specific experience.
+
+**Source and recent activity:** Refreshed `origin/main` before review. Current
+GitHub `main` was `81ff0a4`; no PR was open. PRs #19, #20, #22, #23, and #24
+represent the recent backend/realtime, mobile consolidation, version, and build
+documentation sequence. Tag `v1.0.5` at `d193ac8` remains the build-13/TestFlight
+checkpoint even though documentation commits now advance `main`.
+
+**Runtime walkthrough:** Started `./script/start_local_preview.sh`. Watchman is
+not installed, so its documented static export-and-serve fallback ran
+successfully. A clean QA account was created through visible Auth and one local
+court was set. The review covered Auth, empty Home, Explore List, set local,
+populated Home, Schedule, Compete, Me, Settings, and the court sheet at a phone
+viewport. No check-in, schedule, run, friend, match, notification, or deletion
+action was submitted. Jesse was exercising Realtime concurrently; those
+updates were treated as intentional user activity. Jesse separately confirmed
+logout works in TestFlight and Expo Go, so two inert web-preview attempts are
+not a mobile defect or backlog item.
+
+## 2026-08-03 — Apple manifest, push root cause, and user safety checkpoint
+
+The supplied Apple privacy-manifest asset is now canonical in the Expo config,
+and Settings displays the native application version/build rather than a
+hardcoded string. Notification navigation now uses a tested route allowlist.
+
+Read-only LocalCheckProd evidence narrowed push failure to two concrete gaps:
+`push_tokens` has zero rows and `send-notification` is not deployed; seven inbox
+notifications remain pending. The token RPC and preference RPC do exist. The
+client now reports the actual token-save error, and the checked-in sender now
+retries transient Expo errors and persists exact ticket failures. No Edge
+Function, secret, webhook, schema, or production data changed in this pass.
+
+Added an unapplied directional block/report migration and matching profile UI.
+It uses a separate `user_blocks` relation because blocking is directional,
+removes any friendship, and applies the boundary in RLS instead of relying on a
+cosmetic client filter. Added an Apple-only owner checklist for final URLs,
+App Privacy answers, reviewer account, credentials, and final-binary proof.
+
+Static evidence: `pnpm --filter @workspace/mobile run typecheck`, focused
+notification-route tests, and all five Realtime tests passed.
+
+**Design verdict:** The graphite/orange athletic identity, court-first Home,
+five-tab shell, honest empty states, List/Map discovery, and contextual court
+sheet are strong foundations. The visual direction is ahead of the
+implementation system: 126 direct Pressable compositions coexist with a shared
+button used on only four detail surfaces; secondary headers, selection
+controls, rows, state feedback, spacing, touch targets, and type are repeatedly
+free-coded. The app/component folders contain 172 explicit 6–10 px type
+declarations even though the published scale starts at 11 px. Production
+requirements and delight are scored separately in the report; delight never
+compensates for a failed table-stakes requirement.
+
+**Verified product defects/risks:** Court cards render an interactive `SET
+LOCAL` inside the card Pressable, producing invalid nested-button semantics on
+web. Add a Court is prominently exposed although LocalCheckProd has no
+authorized court-write path; its modal can manufacture a confirmed client ID
+and close as if successful. Host Edit Run is exposed although no update RPC
+exists. Settings uses disclosure-row grammar for an in-place push toggle and
+hard-codes 1.0.0. Reduced motion is not respected by entry/pulse animation.
+Fallback/not-found/error surfaces escape the LocalCheck token and voice system.
+
+**Backend read-only truth:** LocalCheckProd is healthy. It now has notification,
+push-token, and run-invitation storage plus related RPCs and
+`profiles.push_notifications_enabled`. It still has only combined `elo_rating`;
+sport-split columns are absent. Only `delete-account` was listed as a deployed
+Edge Function; `send-notification` was absent. This partial production state is
+newer than the prior current-state paragraph and does not match one canonical
+reduced migration on GitHub `main`. No backend mutation was made in this pass.
+
+**Evidence:** `pnpm --filter @workspace/mobile run check:release` passed
+TypeScript and all five focused Realtime tests. Nine captures are stored under
+`design-qa/2026-08-01-onboarding-assessment/`. The full report is
+[`assessments/2026-08-01-current-build-assessment.md`](assessments/2026-08-01-current-build-assessment.md).
+Mobbin could not be used because its connector required a paid plan. Skill
+research recommended Impeccable + Expo native UI + Vercel React Native, with
+Emil Design Engineering for interaction depth; no skill was installed.
+
+**Boundary:** This was a read-only/code-inspection and user-journey assessment
+apart from the explicitly requested QA signup/local-court selection and
+documentation artifacts. No product code, merge, push, OTA, EAS build,
+TestFlight submission, or production mutation was performed or authorized.
+
+## 2026-08-02 — Court-sheet shell and route-to-screen contract
+
+**Requested checkpoint:** Fix the visually discontinuous court-detail drawer
+one system at a time, state the implementation source before changing it,
+verify it in the phone-size in-app preview, and establish a robust design map so
+screens stop inventing local UI rules. Number-flow check-in motion remains the
+next isolated checkpoint rather than being mixed into this sheet change.
+
+**Source decision:** The supplied Expo Router Drawer article describes global
+side navigation wrapped around bottom tabs. LocalCheck's affected surface is a
+contextual court bottom sheet, and the app already has five stable top-level
+tabs, so no side drawer was added. Current Gorhom v5 documentation supports a
+custom animated `backgroundComponent`, custom handle, fixed detents, and safe
+area insets. Expo's newer native-backed drop-in sheet does not support several
+behaviors this surface uses, and LocalCheck remains on SDK 54; replacing the
+library would add regression and native-build risk. Tamagui's theme model was
+used only as the reference for semantic token ownership, not added as a second
+styling system.
+
+**Implementation:** `CourtSheetHost.tsx` now owns one animated graphite
+background, a continuous 28pt handle region, shared top radii/hairline, and the
+device top inset. `CourtSheetContent.tsx` explicitly paints its content surface
+from the same semantic background. Court data, realtime presence, check-in,
+Set Local, routing, detents, and dismissal logic were not changed.
+
+**Verification:** The initial rebuild exposed a web scroll-indicator regression;
+it was corrected before acceptance. The final preview was exercised at a phone
+viewport in compact and expanded detents, with upward drag and swipe-down
+dismissal. Before/after evidence lives in
+`design-qa/2026-08-02-court-sheet/`. TypeScript and `git diff --check` passed.
+
+**System documentation:** Added `SCREEN_SYSTEM.md`, which maps all five primary
+destinations, every current detail/task route, the hidden legacy Feed route,
+shared headers/profile/sheet/form owners, scrolling rules, overlay rules, and
+the screen acceptance checklist. This is now the implementation map beneath
+`DESIGN.md` and `DESIGN_FOUNDATION.md`; it does not claim that every mapped
+screen already passes the contract.

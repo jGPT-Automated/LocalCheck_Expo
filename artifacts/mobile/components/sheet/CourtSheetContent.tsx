@@ -2,7 +2,7 @@ import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AnimatedEntry } from "@/components/AnimatedEntry";
@@ -112,7 +112,7 @@ export function CourtSheetContent({
   return (
     <BottomSheetScrollView
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: bottom + 32 }}
+      contentContainerStyle={[styles.scrollContent, { paddingBottom: bottom + 32 }]}
     >
       {/* ── Peek layer: visible at the 46% snap point ── */}
       <View style={styles.peekHeader}>
@@ -175,10 +175,17 @@ export function CourtSheetContent({
           <Text style={styles.sectionTitle}>WHO'S HERE</Text>
           {activeCount > 0 && <Text style={styles.sectionAccent}>{activeCount} ACTIVE</Text>}
         </View>
+        {/* The roster rail is a sheet-aware scrollable, not RN's. A raw
+            ScrollView nested in a bottom sheet competes with the sheet's own
+            pan handler, which made dragging up and down inconsistent. */}
         {activeCount === 0 ? (
           <Text style={styles.emptyText}>NO PLAYERS CHECKED IN YET</Text>
         ) : (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rosterRow}>
+          <BottomSheetScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.rosterRow}
+          >
             {roster.map((p) => (
               <AnimatedEntry key={p.id}>
                 <Pressable
@@ -194,7 +201,7 @@ export function CourtSheetContent({
                 </Pressable>
               </AnimatedEntry>
             ))}
-          </ScrollView>
+          </BottomSheetScrollView>
         )}
       </View>
 
@@ -287,6 +294,7 @@ export function CourtSheetContent({
 }
 
 const styles = StyleSheet.create({
+  scrollContent: { backgroundColor: Colors.background },
   loading: { alignItems: "center", justifyContent: "center", paddingVertical: 64 },
 
   peekHeader: {

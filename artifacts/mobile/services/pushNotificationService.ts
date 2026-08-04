@@ -56,9 +56,15 @@ export async function registerPushNotifications(ask: boolean): Promise<PushSetup
     if (!projectId) return { ok: false, status: "error", message: "The app project ID is missing." };
     const token = await Notifications.getExpoPushTokenAsync({ projectId });
     const saved = await savePushToken(token.data, Platform.OS);
-    return saved
+    return saved.ok
       ? { ok: true, status: "enabled" }
-      : { ok: false, status: "error", message: "The phone could not be registered." };
+      : {
+          ok: false,
+          status: "error",
+          message: saved.error
+            ? `The phone token was created, but LocalCheck could not save it: ${saved.error}`
+            : "The phone token was created, but LocalCheck could not save it.",
+        };
   } catch (error) {
     return {
       ok: false,

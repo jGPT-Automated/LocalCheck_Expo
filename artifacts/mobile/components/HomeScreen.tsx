@@ -14,9 +14,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { AnimatedEntry } from "@/components/AnimatedEntry";
-import { LogoMark } from "@/components/brand/LogoMark";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { ScreenHeader } from "@/components/ScreenHeader";
+import { HeaderMetric, ScreenHeader } from "@/components/ScreenHeader";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, FeedItem, getCourtIdentityColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
@@ -138,15 +137,13 @@ export function HomeScreen() {
       {/* ── Brand header: logo lockup left, live pulse right ── */}
       <ScreenHeader
         title="LOCALCHECK"
-        wordmark
-        right={activeTotal > 0 ? (
-          <View style={styles.headerLive}>
-            <Text style={styles.headerLiveText}>
-              {approx}
-              {activeTotal} ACTIVE
-            </Text>
-          </View>
-        ) : undefined}
+        right={(
+          <HeaderMetric
+            value={`${approx}${activeTotal}`}
+            label="LIVE NOW"
+            accessibilityLabel={`${activeTotal} players live now${hiddenCount > 0 ? ", approximate" : ""}`}
+          />
+        )}
       />
 
       {/* Home uses a full-width court section. Compact cards stay in Explore and Map. */}
@@ -411,12 +408,7 @@ function NoCourtState({ topPad, isSignedIn }: { topPad: number; isSignedIn: bool
     // Signed in but no local court set yet → focused CTA
     return (
       <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: topPad + 12 }]}>
-          <View style={styles.brandLockup}>
-            <LogoMark size={26} />
-            <Text style={styles.brandWordmark}>LOCALCHECK</Text>
-          </View>
-        </View>
+        <ScreenHeader title="LOCALCHECK" />
         <View style={styles.noCourtContainer}>
           <Feather name="map-pin" size={28} color={Colors.accent} style={styles.noCourtIcon} />
           <Text style={styles.noCourtTitle}>FIND A COURT</Text>
@@ -487,14 +479,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
     letterSpacing: 2,
   },
-  headerLive: {},
-  headerLiveText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 10,
-    color: Colors.accent,
-    letterSpacing: 1.5,
-  },
-
   // ── Full-width Home court summary ──
   homeCourtSection: {
     minHeight: 184,
@@ -540,7 +524,7 @@ const styles = StyleSheet.create({
   },
   homeSportLabel: {
     fontFamily: Typography.bodyMedium,
-    fontSize: 8,
+    fontSize: 9,
     color: Colors.textSecondary,
     letterSpacing: 1.7,
   },
@@ -554,7 +538,7 @@ const styles = StyleSheet.create({
   },
   homeLocalBadgeText: {
     fontFamily: Typography.bodySemiBold,
-    fontSize: 7,
+    fontSize: 9,
     color: Colors.textSecondary,
     letterSpacing: 1.2,
   },
@@ -602,7 +586,7 @@ const styles = StyleSheet.create({
   homeStatLabel: {
     marginTop: 2,
     fontFamily: Typography.bodySemiBold,
-    fontSize: 7,
+    fontSize: 9,
     color: Colors.muted,
     letterSpacing: 1,
     textAlign: "center",
@@ -614,7 +598,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.borderSubtle,
   },
   homeActionRow: {
-    minHeight: 38,
+    minHeight: 44,
     marginTop: 7,
     marginHorizontal: 12,
     flexDirection: "row",
@@ -622,7 +606,7 @@ const styles = StyleSheet.create({
   },
   homeCheckInButton: {
     flex: 1,
-    minHeight: 38,
+    minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: Radius.sm,
@@ -648,8 +632,8 @@ const styles = StyleSheet.create({
   },
   homeCheckInTextActive: { color: Colors.text },
   homeViewButton: {
-    width: 42,
-    minHeight: 38,
+    width: 44,
+    minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: Radius.sm,
@@ -697,7 +681,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
   viewAllInline: {
-    minHeight: 28,
+    minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
@@ -705,7 +689,7 @@ const styles = StyleSheet.create({
   },
   viewAllInlineText: {
     fontFamily: Typography.bodySemiBold,
-    fontSize: 8,
+    fontSize: 10,
     color: Colors.muted,
     letterSpacing: 1.1,
   },
