@@ -1,13 +1,11 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 
 import { Colors, Radius } from "@/constants/colors";
-import {
-  Court,
-  getCourtIdentityColor,
-} from "@/constants/data";
-import { Typography } from "@/constants/typography";
+import { Court } from "@/constants/data";
+import { Spacing } from "@/constants/layout";
+import { LetterSpacings, TypeScale, Typography } from "@/constants/typography";
 import { LivePulse } from "./LivePulse";
 
 interface CourtListItemProps {
@@ -26,18 +24,13 @@ interface CourtListItemProps {
   }>;
 }
 
-function SportGlyph({ sport, color }: { sport: Court["sport"]; color: string }) {
-  const icon = sport === "BASKETBALL"
-    ? "basketball"
-    : sport === "PICKLEBALL"
-      ? "table-tennis"
-      : sport === "TENNIS"
-        ? "tennis"
-        : "circle-outline";
-  return <MaterialCommunityIcons name={icon} size={14} color={color} />;
-}
-
-function CourtGeometry({ sport, color }: { sport: Court["sport"]; color: string }) {
+/**
+ * Faint court markings behind the card. Deliberately one neutral tone: the
+ * design system reserves colour for the accent, and sport identity is text,
+ * not a theme. (docs/product/design system/README.md)
+ */
+function CourtGeometry({ sport }: { sport: Court["sport"] }) {
+  const color = Colors.borderLight;
   if (sport === "BASKETBALL") {
     return (
       <View pointerEvents="none" style={styles.artLayer}>
@@ -92,7 +85,7 @@ export function CourtListItem({
   stats,
 }: CourtListItemProps) {
   const isActive = court.activeCount > 0;
-  const identityColor = getCourtIdentityColor(court.sport);
+
   const cardStats = stats ?? [
     { label: "ACTIVE NOW", value: court.activeCount ?? 0, live: isActive },
     { label: "LOCALS", value: court.localCount ?? 0 },
@@ -102,13 +95,16 @@ export function CourtListItem({
     <View
       style={[
         styles.container,
-        { borderLeftColor: identityColor },
+        // One accent, and only when the court is actually live.
+        { borderLeftColor: isActive ? Colors.accent : Colors.border },
         featured && styles.containerFeatured,
       ]}
       testID={`court-${court.id}`}
     >
-      <View pointerEvents="none" style={[styles.smokeOrb, { backgroundColor: `${identityColor}10` }]} />
-      <CourtGeometry sport={court.sport} color={identityColor} />
+      {isActive && (
+        <View pointerEvents="none" style={[styles.smokeOrb, { backgroundColor: Colors.accentDim }]} />
+      )}
+      <CourtGeometry sport={court.sport} />
 
       <Pressable
         onPress={onPress ? () => onPress(court) : undefined}
@@ -117,22 +113,19 @@ export function CourtListItem({
         accessibilityRole={onPress ? "button" : undefined}
         accessibilityLabel={onPress ? `Open ${court.name}` : undefined}
       >
-        <View style={styles.topline}>
-          <View
-            style={[
-              styles.sportEmblem,
-              {
-                borderColor: `${identityColor}66`,
-                backgroundColor: `${identityColor}12`,
-              },
-            ]}
+        {/* The court name is the card. Everything else is metadata under it —
+            previously a sport chip led and the name came second, which read as
+            though the sport mattered more than the place. */}
+        <View style={styles.headRow}>
+          <Text
+            style={[styles.name, featured && styles.nameFeatured]}
+            numberOfLines={featured ? 2 : 1}
           >
-            <SportGlyph sport={court.sport} color={identityColor} />
-          </View>
-          <Text style={styles.sportLabel}>{court.sport}</Text>
+            {court.name}
+          </Text>
           {isLocalCourt ? (
             <View style={styles.localBadge}>
-              <Text style={styles.localBadgeText}>MY LOCAL COURT</Text>
+              <Text style={styles.localBadgeText}>MY LOCAL</Text>
             </View>
           ) : onSetLocalCourt ? (
             <Pressable
@@ -149,14 +142,10 @@ export function CourtListItem({
           ) : null}
         </View>
 
-        <Text
-          style={[styles.name, featured && styles.nameFeatured]}
-          numberOfLines={featured ? 2 : 1}
-        >
-          {court.name}
-        </Text>
         <Text style={styles.meta} numberOfLines={1}>
-          {court.neighborhood || court.address || court.market || "Court details"}
+          {[court.neighborhood || court.address || court.market, court.sport]
+            .filter(Boolean)
+            .join("  ·  ")}
         </Text>
 
         <View style={styles.statsRow}>
@@ -225,13 +214,19 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radius.lg,
-    marginHorizontal: 16,
-    marginVertical: 5,
+    marginHorizontal: Spacing.md,
+    marginVertical: Spacing.xxs,
     overflow: "hidden",
   },
   containerFeatured: { minHeight: 158 },
   pressed: { opacity: 0.84 },
-  body: { flex: 1, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 4, zIndex: 2 },
+  body: {
+    flex: 1,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xxs,
+    zIndex: 2,
+  },
   smokeOrb: {
     position: "absolute",
     width: 150,
@@ -240,24 +235,13 @@ const styles = StyleSheet.create({
     right: -44,
     top: -54,
   },
-  topline: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 18 },
-  sportEmblem: {
-    width: 19,
-    height: 19,
-    borderRadius: 10,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sportLabel: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.textSecondary,
-    letterSpacing: 1.5,
-    textTransform: "uppercase" as const,
+  headRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: Spacing.xs,
   },
   localBadge: {
-    marginLeft: "auto",
     borderWidth: 1,
     borderColor: Colors.borderLight,
     borderRadius: 999,
@@ -267,34 +251,34 @@ const styles = StyleSheet.create({
   },
   localBadgeText: {
     fontFamily: Typography.bodyBold,
-    fontSize: 9,
+    fontSize: TypeScale.label.fontSize,
+    lineHeight: TypeScale.label.lineHeight,
     color: Colors.textSecondary,
-    letterSpacing: 1.2,
+    letterSpacing: LetterSpacings.wide,
   },
   localBadgeDim: { borderColor: Colors.borderSubtle, backgroundColor: "rgba(12,12,12,0.42)" },
   localBadgeTextDim: { color: Colors.mutedDark },
   localBadgePressed: { borderColor: Colors.accent, opacity: 0.9 },
   name: {
-    maxWidth: "76%",
+    flex: 1,
     fontFamily: Typography.headingRegular,
-    fontSize: 17,
-    lineHeight: 19,
+    fontSize: 18,
+    lineHeight: 22,
     color: Colors.text,
     letterSpacing: 0.1,
-    marginTop: 7,
     textTransform: "uppercase" as const,
   },
-  nameFeatured: { fontSize: 20, lineHeight: 22, maxWidth: "82%" },
+  nameFeatured: { fontSize: 22, lineHeight: 26 },
   meta: {
-    maxWidth: "72%",
     fontFamily: Typography.body,
-    fontSize: 10,
+    fontSize: TypeScale.supporting.fontSize,
+    lineHeight: TypeScale.supporting.lineHeight,
     color: Colors.muted,
-    marginTop: 3,
+    marginTop: Spacing.xxs,
   },
   statsRow: {
-    marginTop: 7,
-    minHeight: 32,
+    marginTop: Spacing.sm,
+    minHeight: 40,
     flexDirection: "row",
     alignItems: "stretch",
     borderTopWidth: 1,
@@ -305,16 +289,17 @@ const styles = StyleSheet.create({
   statValueRow: { flexDirection: "row", alignItems: "center", gap: 7 },
   statValue: {
     fontFamily: Typography.heading,
-    fontSize: 19,
-    lineHeight: 20,
+    fontSize: 20,
+    lineHeight: 24,
     color: Colors.text,
   },
   statValueLive: { color: Colors.accent },
   statLabel: {
     fontFamily: Typography.bodyBold,
-    fontSize: 9,
+    fontSize: TypeScale.label.fontSize,
+    lineHeight: TypeScale.label.lineHeight,
     color: Colors.muted,
-    letterSpacing: 1.1,
+    letterSpacing: LetterSpacings.wide,
     marginTop: 2,
   },
   statDivider: { width: 1, height: 28, alignSelf: "center", backgroundColor: Colors.borderSubtle },
@@ -329,9 +314,10 @@ const styles = StyleSheet.create({
   },
   checkedInText: {
     fontFamily: Typography.bodyBold,
-    fontSize: 9,
+    fontSize: TypeScale.label.fontSize,
+    lineHeight: TypeScale.label.lineHeight,
     color: Colors.black,
-    letterSpacing: 1.2,
+    letterSpacing: LetterSpacings.wide,
   },
   actionRow: {
     flexDirection: "row",
@@ -362,9 +348,10 @@ const styles = StyleSheet.create({
   checkInButtonPressed: { opacity: 0.82 },
   checkInText: {
     fontFamily: Typography.bodyBold,
-    fontSize: 10,
+    fontSize: TypeScale.label.fontSize,
+    lineHeight: TypeScale.label.lineHeight,
     color: Colors.black,
-    letterSpacing: 1.6,
+    letterSpacing: LetterSpacings.wider,
   },
   checkInTextActive: { color: Colors.text },
   viewButton: {

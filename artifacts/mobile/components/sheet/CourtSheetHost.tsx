@@ -133,6 +133,13 @@ export function CourtSheetProvider({ children }: { children: React.ReactNode }) 
           backgroundComponent={CourtSheetBackground}
           handleComponent={CourtSheetHandle}
           topInset={top}
+          // gorhom's own surface defaults to white. The custom background
+          // component covers most of it, but the modal's container still
+          // showed white at the rounded corners — these three clip and colour
+          // the actual container so nothing light can peek through.
+          style={styles.sheet}
+          backgroundStyle={styles.sheetBackground}
+          containerStyle={styles.sheetContainer}
         >
           {args && (
             <CourtSheetContent
@@ -149,6 +156,14 @@ export function CourtSheetProvider({ children }: { children: React.ReactNode }) 
 }
 
 const styles = StyleSheet.create({
+  // The modal container itself. Clipping here is what stops a light corner
+  // showing outside the rounded surface.
+  sheet: {
+    overflow: "hidden",
+    borderTopLeftRadius: Radius.lg,
+    borderTopRightRadius: Radius.lg,
+  },
+  sheetContainer: { backgroundColor: "transparent" },
   sheetBackground: {
     backgroundColor: Colors.background,
     borderTopLeftRadius: Radius.lg,

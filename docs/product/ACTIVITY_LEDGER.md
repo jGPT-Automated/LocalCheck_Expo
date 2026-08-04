@@ -1,5 +1,69 @@
 # LocalCheck Activity Ledger
 
+## 2026-08-03 - Onboarding blocks integrated; two documented claims disproven
+
+**Requested outcome:** Use the supplied component blocks instead of hand-written
+equivalents, repair the court drawer, standardise the court card, and stand up
+the ELO system.
+
+**Blocks integrated (verbatim, verified by diff):**
+- `shaped-image-shader` (react-native-skia-lab). The 240-line SkSL in
+  `components/onboarding/shapedImageShader.ts` diffs clean against upstream —
+  zero differences.
+- `morphing-text` (react-native-motion `blurred-text-morph`). The 356-line
+  `components/onboarding/morphing-text.tsx` differs from upstream by three
+  lines only: its default font was `@expo-google-fonts/manrope`, which this
+  project does not ship, and now defaults to `Oswald_600SemiBold`.
+- A hand-written letter animation written earlier in the same session was
+  deleted. Free-coding a lookalike instead of fetching the referenced block was
+  the error; the diffs above are the evidence it is corrected.
+- `@shopify/react-native-skia@2.2.12` added via `npx expo install`. Both blocks
+  are Skia, so **neither renders in the web export preview** — verification
+  requires a mobile runtime, which is what the blocks' own workflow mandates.
+
+**Court drawer repairs** (`components/sheet/`): the roster rail was a raw
+React Native `ScrollView` nested inside a `@gorhom/bottom-sheet`, competing with
+the sheet's own pan handler — the cause of the inconsistent up/down swipe. It is
+now a `BottomSheetScrollView`. The modal now also sets `style`,
+`backgroundStyle`, and `containerStyle` explicitly so gorhom's default white
+surface cannot show at the rounded corners.
+
+**Court card standardised** (`components/CourtListItem.tsx`): the card carried
+six font sizes (9/9/9/10/17/19/20) — five of them below Apple's 11pt legibility
+floor — plus arbitrary spacing and four letter-spacings, while `TypeScale`,
+`Spacing`, and `LetterSpacings` already existed unused. All fourteen values now
+resolve from those tokens.
+
+**Two documented claims disproven by direct query of LocalCheckProd:**
+1. `CURRENT_STATE.md` said the notification/sport-Elo migration "has not been
+   deployed". It is **half applied**. Live: every notification and
+   run-invitation function, `log_match`, `confirm_match`, `reject_match`,
+   `register_push_token`, `profiles.push_notifications_enabled`. Missing:
+   `private.apply_match_elo`, `private.auto_confirm_due_matches`, all ten
+   per-sport columns on `profiles`, all four on `matches`. The live match
+   functions are the older single-rating versions, so production is not broken.
+2. The leading theory for broken push registration was a missing APNs key in
+   EAS. The build-13 code path contradicts it: "The phone could not be
+   registered." is returned **only** when `getExpoPushTokenAsync()` succeeded
+   and the `register_push_token` RPC failed. A token-fetch failure surfaces
+   Apple's own error text from the catch block instead. The RPC exists,
+   `authenticated` may execute it, and `push_tokens` has the correct columns and
+   unique index — so the cause is still unknown, but it is not the APNs key.
+   PR #25 already surfaces the real error instead of swallowing it.
+
+**ELO pre-flight (read-only):** the remaining migration half is additive — no
+drop, delete, or truncate; backfills only fill NULLs; the old `elo_rating` is
+explicitly untouched. Its one failure mode is `matches.sport SET NOT NULL` after
+backfilling from `courts`. Verified against production: 6 matches, **0** would
+fail that constraint. 19 profiles, 12 match participants.
+
+**Boundary:** No migration, Edge Function, OTA, build, or production mutation
+was performed. Applying the ELO half remains gated on Jesse's explicit approval.
+
+**Next highest-value action:** one native build (`npx expo run:ios`) to verify
+both Skia blocks on a real runtime, then apply the ELO migration half on
+approval.
+
 ## 2026-08-03 - PR #25 review boundaries hardened
 
 **Review findings:** Add Court used the reverse-geocoded city as its market and
