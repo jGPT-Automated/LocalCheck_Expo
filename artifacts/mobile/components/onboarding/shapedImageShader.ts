@@ -1,4 +1,4 @@
-import { frag } from "@/lib/skia";
+import { Skia, type SkRuntimeEffect } from "@shopify/react-native-skia";
 
 /**
  * "Shaped image shader" — the reveal that resolves the brand artwork out of
@@ -16,7 +16,7 @@ import { frag } from "@/lib/skia";
  * byte-identical (instead of stripping the unused branch) means a future
  * image-to-image transition needs no shader edit.
  */
-export const shapedImageShader = frag`
+const SHAPED_IMAGE_SKSL = `
   uniform shader iPrevImage;
   uniform shader iCurrImage;
   uniform vec2 iResolution;
@@ -258,6 +258,32 @@ export const shapedImageShader = frag`
     return vec4(0.0);
   }
 `;
+
+let compiled: SkRuntimeEffect | null | undefined;
+
+/**
+ * Compile on first use, once, and never throw.
+ *
+ * This used to compile at module scope and throw on failure. That is unsafe
+ * here: the intro renders on the auth screen, which is the app's front door,
+ * and a module-scope throw happens at import — before any error boundary
+ * exists to catch it — so a shader problem would have meant the app could not
+ * open at all. Returning null instead lets the reveal be skipped and the sign
+ * in form render normally.
+ */
+export function getShapedImageShader(): SkRuntimeEffect | null {
+  if (compiled === undefined) {
+    try {
+      compiled = Skia.RuntimeEffect.Make(SHAPED_IMAGE_SKSL) ?? null;
+    } catch {
+      compiled = null;
+    }
+    if (compiled === null) {
+      console.warn("Shaped image shader failed to compile; skipping the reveal.");
+    }
+  }
+  return compiled;
+}
 
 /** Shape stamped by the reveal. 0 circle · 1 triangle · 2 box · 3 parallelogram. */
 export const REVEAL_SHAPE = 2;

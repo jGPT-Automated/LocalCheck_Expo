@@ -6,16 +6,19 @@ import {
   Shader,
   useImage,
 } from "@shopify/react-native-skia";
+// expo-image per
+// .agents/skills/vercel-react-native-skills/rules/ui-expo-image.md (HIGH).
+import { Image } from "expo-image";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { useDerivedValue, type SharedValue } from "react-native-reanimated";
 
 import {
+  getShapedImageShader,
   MAX_SHAPE_SIZE,
   MIN_SHAPE_SIZE,
   REVEAL_SEED,
   REVEAL_SHAPE,
-  shapedImageShader,
 } from "./shapedImageShader";
 
 const ARTWORK = require("@/assets/brand/splash-artwork.png");
@@ -42,6 +45,7 @@ export function ShapedImageReveal({
   height,
 }: ShapedImageRevealProps) {
   const image = useImage(ARTWORK);
+  const shader = getShapedImageShader();
 
   const uniforms = useDerivedValue(() => {
     "worklet";
@@ -65,11 +69,22 @@ export function ShapedImageReveal({
   // an empty shader on slower devices.
   if (!image) return <View style={StyleSheet.absoluteFill} pointerEvents="none" />;
 
+  // No shader — show the artwork plainly rather than nothing. The reveal is a
+  // flourish; the brand image is the content, and it must never depend on a
+  // shader compiling.
+  if (!shader) {
+    return (
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Image source={ARTWORK} style={{ width, height }} contentFit="contain" />
+      </View>
+    );
+  }
+
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <Canvas style={{ width, height }}>
         <Fill>
-          <Shader source={shapedImageShader} uniforms={uniforms}>
+          <Shader source={shader} uniforms={uniforms}>
             <ImageShader
               image={image}
               rect={rect(0, 0, width, height)}
