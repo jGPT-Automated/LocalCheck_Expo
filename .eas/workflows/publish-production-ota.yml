@@ -1,0 +1,22 @@
+name: Publish production OTA
+
+defaults:
+  tools:
+    node: '22'
+    pnpm: '10.13.1'
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  publish:
+    name: Check and publish production update
+    type: update
+    environment: production
+    params:
+      channel: production
+      message: ${{ github.sha }}
+    hooks:
+      before_update:
+        - name: Typecheck and unit tests
+          run: pnpm check

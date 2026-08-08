@@ -1,60 +1,52 @@
-# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
-
-# compiled output
-dist
-tmp
-out-tsc
-*.tsbuildinfo
-.expo
-.expo-shared
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
 # dependencies
-node_modules
+node_modules/
+.firecrawl/
 
-# IDEs and editors
-/.idea
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
 
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+# Native
+ios/
+android/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
 
-# misc
-/.sass-cache
-/connect.lock
-/coverage
-/libpeerconnection.log
-npm-debug.log
-yarn-error.log
-testem.log
-/typings
+# Metro
+.metro-health-check*
 
-# System Files
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
 .DS_Store
-Thumbs.db
+*.pem
 
-.cursor/rules/nx-rules.mdc
-.github/instructions/nx.instructions.md
+# local env files
+.env*.local
 
-# Replit
-.cache/
-.local/
+# typescript
+*.tsbuildinfo
+.vercel
 
-# Env files
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
-# Apple signing keys — never commit
+# local signing secrets (ASC API key, etc.)
+.secrets/
 *.p8
 
-# Supabase CLI local project state
+# Supabase CLI local state
+supabase/.branches/
 supabase/.temp/

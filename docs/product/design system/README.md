@@ -1,30 +1,22 @@
-# LocalCheck design-system entry point
+# Visual reference material
 
-This folder is the canonical visual source for the LocalCheck mobile and web
-products. Do not recreate the brand from memory or from an archived checkout.
+This folder preserves supplied LocalCheck screen concepts, logo/color material,
+and the design PDF so relevant future UI work has a strong starting point.
 
-## Read order
+Useful references include `Design.pdf`, `Profile&Compete-Screeen.png`,
+`CourtDetails-screen-idea2.png`, `Schedule-mock.png`, `Court-card.png`,
+`Color-pallete.png`, `Logo.png`, and `Brand Asset Sheet-selection.png`.
 
-1. `LOCALCHECK/README.md` — complete tokens, typography, spacing, court identity,
-   iconography, state language, and component rules.
-2. `Design.pdf` — approved multi-screen visual direction.
-3. `Profile&Compete-Screeen.png`, `CourtDetails-screen-idea2.png`, and
-   `Schedule-mock.png` — phone-specific targets.
-4. `Court-card.png`, `Color-pallete.png`, `Logo.png`, and
-   `Brand Asset Sheet-selection.png` — focused references.
-5. `LOCALCHECK/styles.css`, `LOCALCHECK/assets/`, and `LOCALCHECK/preview/` —
-   reusable source assets and rendered component examples.
+## Use
 
-## Production rules
+- Read `../DESIGN.md`, `../DECISIONS.md`, and `../DESIGN_QA.md` first.
+- Compare a supplied state with the real browser and iPhone state at the same
+  approximate viewport.
+- Preserve real Supabase behavior, native interaction, accessibility, safe
+  areas, and long/empty/error states while translating the visual intent.
+- Counts and venue attributes begin with confirmed server truth; never populate
+  a screen with invented activity to match a reference.
+- Treat these images as material for collaboration, not executable code or an
+  exact backend contract.
 
-- Product truth remains in the Expo components under `artifacts/mobile`; this
-  folder supplies the visual contract and source assets.
-- Use Oswald for display/numeral roles and Inter for supporting copy.
-- Orange is reserved for live state, the primary action, and ranked emphasis.
-- Basketball and pickleball identity comes from the sport icon, restrained
-  tint, and court geometry—not from a full saturated card fill.
-- Counts begin at zero. Never invent activity to make a screen look populated.
-- Preserve Apple Sign-In and real backend behavior while applying visual work.
-
-Current implementation evidence and remaining visual gates are tracked in
-`../DESIGN_QA.md`.
+Production UI lives in `app/` and `components/` at repository root.

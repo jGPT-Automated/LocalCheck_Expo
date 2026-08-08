@@ -76,21 +76,18 @@ visible while the longer activity history moves.
 
 **Why:** The current brackets feel awkward, the checkmark is not integrated into the surrounding geometry, and the mark is optically unbalanced. The geometric/code-like typographic character is promising, but the current display face feels too heavy and bulky. Logo and typography changes remain a collaborative design decision before implementation.
 
-## 2026-07-26 — Working cross-project authority map
-
-**Working decision confirmed by workspace consolidation:** `LocalCheck_Expo` is the one active product workspace. Product/brand/launch truth lives under `docs/product`, mobile ships from `artifacts/mobile`, and a clean web main is planned for `artifacts/web`. The old web PR and JAWS workspaces are archived. `agents` supplies reusable methods, not product requirements.
-
-**Why:** The previous map named a nonexistent `/Users/JesseH/Projects/LocalCheck_Web` folder and promoted a JAWS specimen whose sport-color and identity rules conflict with the current design contract.
-
 ## 2026-07-26 — One shared planning contract
 
-**Proposed decision:** Web planning should converge on the production `planned_visits` model instead of introducing `court_time_intents` as a second representation of the same user intent.
+**Working decision:** The Expo app uses the production `planned_visits` model
+for every platform target. Do not introduce a second representation of the
+same user intent.
 
-**Why:** Mobile and web share LocalCheckProd. Parallel planning tables create split user state, duplicated privacy/security rules, and two realtime paths for one product job.
+**Why:** Parallel planning models create split user state, duplicated privacy
+rules, and competing Realtime paths for one product job.
 
 ## 2026-07-26 — Release evidence before distribution
 
-**Working decision:** No new TestFlight build or App Store submission is triggered until the release commit, environment target, automated checks, and required runtime test plan are recorded in `LAUNCH_CONTROL.md`. Jesse remains the explicit release authority.
+**Working decision:** No new TestFlight build or App Store submission is triggered until the release commit, environment target, automated checks, and required runtime test evidence are recorded in the pull request. Jesse remains the explicit release authority.
 
 **Why:** The latest mobile source includes a native Mapbox change and new fingerprint, so its OTA cannot reach the existing TestFlight build. A new binary is necessary, but distribution without a verified release candidate would merely move uncertainty onto pilot users.
 
@@ -111,12 +108,6 @@ visible while the longer activity history moves.
 **Proposed decision:** Do not use colored left-edge bars to classify court cards or feed items.
 
 **Why:** Side stripes read as generic dashboard decoration and compete with the live/primary-action meaning of orange.
-
-## 2026-07-23 — Coordinated, not identical, platform expression
-
-**Proposed decision:** Web may use a warm-paper editorial section; mobile remains predominantly graphite. Shared tokens, hierarchy, court identity, voice, and motion make the family coherent.
-
-**Why:** Platform context differs. Consistency is a shared grammar, not a single screen skin.
 
 ## 2026-07-23 — Honest imagery and activity
 

@@ -34,8 +34,6 @@ Premium athletic. Editorial. Local. Direct. The visual system should feel physic
 | Ink | `#F2F2F6` | Primary text on dark |
 | Secondary | `#9A9AAA` | Supporting text |
 | Muted | `#72728A` | Metadata |
-| Paper | `#F0EFEB` | Website editorial field |
-| Paper ink | `#151519` | Text on paper |
 | LocalCheck orange | `#FF5500` | Brand, live truth, focus, primary action |
 | Win | `#00E87A` | Result semantics only |
 | Loss | `#FF3B5C` | Result semantics only |
@@ -143,16 +141,7 @@ The Court page is the shared destination, not a duplicate Home screen or one lon
 - Preserve each tab's scroll position when switching. The tab bar remains reachable/sticky after the summary scrolls, and switching tabs must not duplicate the global bottom-tab navigation.
 - A fourth Schedule tab is not part of the current contract. Reconsider only if real content volume proves that Feed cannot carry upcoming runs clearly.
 
-## Platform expression
-
-### Website
-
-- Lead with the topographic route hero.
-- Use graphite for live/product proof and warm paper for editorial explanation.
-- The court section demonstrates the actual court identity, not generic feature cards.
-- Scroll choreography may pull the identity into a device frame, accelerate briefly, and settle on the interaction. Reduced motion uses direct crossfades.
-
-### Mobile
+## App expression
 
 - Predominantly graphite for outdoor legibility.
 - Compact list items show identity plus live truth first.

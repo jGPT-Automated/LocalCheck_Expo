@@ -1,0 +1,2 @@
+-- Keep committed seed data deterministic, fictional, and local-only.
+-- The MVP currently needs no shared seed rows beyond migration-owned schema.
