@@ -21,6 +21,7 @@ slices.
 
 - Start the maintained client on the current stable Expo SDK, SDK 57.
 - Build a coherent, reusable design system on stable NativeWind.
+- Prioritize reusable cards, drawers/sheets, and screen-transition patterns.
 - Make routes thin and separate product behavior, server state, and UI.
 - Establish predictable safe-area, fixed-region, list, form, and map layouts.
 - Preserve working backend behavior and multi-user semantics.
@@ -39,6 +40,7 @@ slices.
 - Replacing Mapbox during the first external-MVP effort.
 - Shipping Dynamic Island functionality before push notifications and active
   session behavior are verified on physical devices.
+- Treating the sample gooey FAB as a required foundation component.
 
 ## Product identity invariants
 
@@ -50,6 +52,8 @@ slices.
 | Apple team | `6HHLJVQC6W` |
 | Expo project | `agenticjess-os/localcheck` |
 | EAS project ID | `9c906173-0258-45a9-a3fe-786cda373c66` |
+| EAS Updates URL | `https://u.expo.dev/9c906173-0258-45a9-a3fe-786cda373c66` |
+| Application URL scheme | `localcheck` |
 | Supabase project | `qkrnmyexzvaxiqfxwwfb` |
 
 Changing a checkout path, route implementation, dependency set, or UI does not
@@ -76,6 +80,31 @@ grown beyond the structure that should be carried forward:
 
 The current code is an executable product specification and source of reusable
 contracts, not the target frontend structure.
+
+## Verified backend constraints
+
+The reconciled 2026-08-09 production audit is implementation evidence, not a
+reason to duplicate the database. The replacement must begin by generating
+types from production and reconciling service contracts against live behavior.
+It must not port these stale frontend assumptions:
+
+- client-side profile provisioning or writes to nonexistent `profiles.email`;
+- nonexistent sport-specific ELO and win/loss columns;
+- direct writes where production requires an RPC;
+- anonymous access to `court_planned_times`, which is authenticated-only;
+- a notification settings toggle backed by
+  `user_settings.push_notifications_enabled`; the operational path currently
+  uses `profiles.push_notifications_enabled` and `push_tokens.enabled`;
+- a claim that physical push is complete; the `send-notification` source is not
+  deployed and production currently contains no push tokens;
+- a claim that LocalPlus billing ingestion is complete;
+- an assumed Supabase Storage bucket. Production has no application bucket.
+
+Production uses one combined `elo_rating`, `wins`, and `losses` model. Server
+triggers own profile provisioning, metrics, feed projection, notification
+creation, and entitlement projection. Existing domain RPCs own check-in, run,
+match, friendship, notification-read, and push-token mutations. These are
+client contracts, not behavior to recreate in React state.
 
 ## Alternatives considered
 
@@ -122,7 +151,8 @@ Before feature porting, a minimal foundation must prove:
 - native and web builds resolve NativeWind classes;
 - semantic theme values and dark appearance render consistently;
 - class styles coexist with Reanimated animated styles;
-- the selected Skia version renders the planned FAB effect;
+- the selected drawer/sheet and transition primitives render consistently on
+  physical iOS and web;
 - Mapbox and bottom sheets accept their required explicit styles;
 - type checking and production web export remain green.
 
@@ -133,8 +163,8 @@ different styling engine is selected.
 ## Source organization
 
 ```text
-app/                    Thin Expo Router route composition
 src/
+  app/                  Thin Expo Router route composition
   components/
     ui/                 Reusable accessible primitives
     brand/              LocalCheck visual identity
@@ -203,6 +233,11 @@ The first primitive set includes screen, text, button, icon button, card,
 avatar, badge, input, segmented control, list row, section header, sheet,
 dialog, notice, loading state, empty state, and error state.
 
+The first visual research and adaptation pass focuses on cards, drawers/sheets,
+and route transitions. Candidate components are tested in a small gallery
+against LocalCheck tokens, safe areas, accessibility, reduced motion, browser,
+and physical iOS before feature screens depend on them.
+
 Third-party examples are adapted behind these primitives. A copied component
 cannot introduce its own color system, spacing scale, navigation contract,
 state library, or styling engine.
@@ -249,10 +284,11 @@ ready. Supplied artwork may be used after its shipping rights and source are
 recorded. The GPL splash-screen repository is reference only; its source is not
 copied into LocalCheck.
 
-The gooey FAB is reimplemented after the SDK and styling foundation passes. Its
-actions are LocalCheck actions rather than sample video and voice actions. It
-supports accessibility labels, reduced motion, safe-area positioning, backdrop
-dismissal, and deterministic closure during navigation.
+The gooey FAB is an optional later candidate for Schedule or Compete, not a
+foundation deliverable. If selected after the higher-priority cards, drawers,
+and transitions are proven, it is reimplemented with LocalCheck actions and
+must support accessibility labels, reduced motion, safe-area positioning,
+backdrop dismissal, and deterministic closure during navigation.
 
 ## Maps
 
@@ -291,6 +327,7 @@ part of the first external-TestFlight criteria.
 
 - Pass the NativeWind foundation gate.
 - Add tokens and reusable primitives.
+- Prove the card, drawer/sheet, and transition patterns in a component gallery.
 - Establish navigation, authentication gating, error boundaries, loading
   states, safe areas, and server-state ownership.
 - Preserve and test the Supabase service boundary.
@@ -302,7 +339,7 @@ Port and verify in this order:
 1. authentication and profile provisioning;
 2. home, court discovery, court detail, and check-in;
 3. schedule, planned visits, and hosted runs;
-4. competition, match review, results, and sport-specific ELO;
+4. competition, match review, results, and the combined ELO metrics;
 5. profiles, friendships, feed, and in-app notifications;
 6. settings, account deletion, and native permission surfaces;
 7. brand handoff, FAB, and remaining visual polish.
