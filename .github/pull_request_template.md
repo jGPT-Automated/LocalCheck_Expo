@@ -18,8 +18,8 @@
 
 ### Automated
 
-- [ ] `pnpm check`
-- [ ] `pnpm export:web`
+- [ ] `pnpm check:release`
+- [ ] `git diff --check`
 - [ ] Focused regression test added or not applicable (explain below)
 
 ### Runtime evidence

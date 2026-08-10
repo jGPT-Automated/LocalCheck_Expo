@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
@@ -16,6 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LogoMark } from "@/components/brand/LogoMark";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { Colors } from "@/constants/colors";
 import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
@@ -104,9 +104,12 @@ export default function AuthScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
+    <KeyboardAwareScrollViewCompat
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      contentContainerStyle={styles.content}
+      bounces={false}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
       <View style={[styles.hero, { paddingTop: topPad + 12 }]}>
         <View style={styles.brandRow}>
@@ -207,13 +210,17 @@ export default function AuthScreen() {
 
         <Text style={styles.note}>Your account stays signed in on this device.</Text>
       </View>
-    </KeyboardAvoidingView>
+    </KeyboardAwareScrollViewCompat>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.background,
+  },
+  content: {
+    flexGrow: 1,
     backgroundColor: Colors.background,
   },
   hero: {

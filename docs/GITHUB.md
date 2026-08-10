@@ -20,6 +20,12 @@ outcome. Delete the remote task branch after merge. Large stale pull requests
 must not be rebased and merged wholesale; extract one independently reviewed
 change onto current `main`.
 
-If `quality` has not run on `main` yet, merge the lifecycle-reset pull request
-first, wait for its successful `main` run, then add it as the required check in
-the ruleset.
+For the current reset, PR #28 is the only merge candidate. It targets `main`
+directly and contains PR #27 plus every later MVP commit. Close #27 as
+superseded after #28 is current and green; do not stack or merge both. After
+#28's first successful `main` run, select `quality` as the required check if the
+ruleset has not already been enabled.
+
+Closing old pull requests and deleting merged task branches keeps the active
+repository clean without deleting incorporated Git history. A ZIP or safety
+fork is optional insurance, not part of the normal merge procedure.

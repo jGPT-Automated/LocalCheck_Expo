@@ -6,17 +6,20 @@ browser, a LocalCheck development build, and TestFlight.
 
 ## Automated gate
 
-Every pull request runs:
+Every pull request runs the fast CI gate:
 
 ```bash
-pnpm check:release
+pnpm check
+pnpm export:web -- --output-dir /tmp/localcheck-ci-export
 ```
 
-`pnpm check:release` covers TypeScript; focused Realtime, home-presentation,
-player-identity, and schedule-model tests; the design-system consistency guard;
-and a clean production-style web export. Add a focused regression test with
-every bug fix when the behavior can be exercised without a device. CI is a
-merge gate, not proof of native or multi-user behavior.
+CI uses deliberate non-service placeholders and its bundle is never an
+interactive preview. Before handoff, run `pnpm check:release` locally. It covers
+TypeScript; focused Realtime, home-presentation, player-identity, and
+schedule-model tests; the design-system consistency guard; and a fresh export
+verified against the ignored development Supabase configuration. Add a focused
+regression test with every bug fix when behavior can be exercised without a
+device. CI is a merge gate, not proof of native or multi-user behavior.
 
 ## High-risk manual matrix
 
@@ -48,6 +51,12 @@ For a visual change, include a browser screenshot and an iPhone screenshot of
 the same meaningful state. Compare against the applicable reference under
 `docs/product/`. Exercise empty, loading, error, populated, and long-content
 states when they are affected.
+
+For authentication, also test a compact phone, landscape, the software
+keyboard, and a visible error message; every field and action must remain
+reachable. For Schedule, test a compact phone with a selected slot and upcoming
+runs; the one-hour heatmap remains usable and content below it remains
+reachable.
 
 ## Backend acceptance
 

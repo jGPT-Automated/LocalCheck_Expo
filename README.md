@@ -11,7 +11,7 @@ and Edge Functions.
 corepack enable
 corepack prepare pnpm@10.13.1 --activate
 pnpm install --frozen-lockfile
-cp .env.example .env
+cp .env.example .env.local
 pnpm doctor
 pnpm preview:web
 ```
@@ -29,8 +29,14 @@ Apple Sign-In, SecureStore, location, and other native behavior.
 | `pnpm typecheck` | TypeScript validation |
 | `pnpm test` | Automated tests |
 | `pnpm check` | Required fast CI suite |
-| `pnpm export:web` | Production-style web bundle smoke test |
+| `pnpm export:web` | Compile-only web export; not a connected preview |
+| `pnpm check:release` | Full local gate plus verified connected export |
 | `pnpm doctor` | Local development environment check |
+
+`pnpm preview:web` always creates a fresh export, loads the ignored local
+development environment, and proves the bundle contains that Supabase project
+before serving it. Never serve CI output or a generic `pnpm export:web` folder
+as a signed-in preview; CI deliberately bundles non-production placeholders.
 
 ## Structure
 

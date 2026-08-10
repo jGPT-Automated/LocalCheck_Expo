@@ -19,13 +19,13 @@ root.
 corepack enable
 corepack prepare pnpm@10.13.1 --activate
 pnpm install --frozen-lockfile
-cp .env.example .env
+cp .env.example .env.local
 pnpm doctor
 ```
 
-Fill `.env` with the public development Supabase URL/key and public Mapbox
+Fill `.env.local` with the public development Supabase URL/key and public Mapbox
 token. Keep the Mapbox SDK download token in EAS as a secret; never put it in
-`.env` or Git.
+`.env.local` or Git.
 
 For local Supabase work, install Docker Desktop or another Docker-compatible
 runtime, then use `npx supabase start`. Watchman is optional but enables hot
@@ -57,6 +57,17 @@ pnpm preview:web   # browser, fastest feedback, supports simultaneous accounts
 pnpm start         # Expo dev server for a compatible development build
 ```
 
+`pnpm preview:web` is the only supported interactive exported preview. It
+stops only the prior preview recorded by this checkout, uses a new temporary
+directory, overrides ambient public variables from `.env.local`, verifies the
+configured Supabase URL is in the generated JavaScript, and disables browser
+caching. If another process owns the requested port, it exits instead of
+silently reusing unknown content.
+
+`pnpm export:web` and the GitHub Actions export are compile-only checks. Their
+output can contain deliberate placeholder values and must never be opened as a
+connected application.
+
 Expo Go is not an authoritative client because LocalCheck includes custom
 native Mapbox code. Use a LocalCheck development build or TestFlight for phone
 acceptance. The browser remains valuable for layout, annotations, and live
@@ -71,8 +82,8 @@ git status --short
 ```
 
 `pnpm check:release` runs TypeScript, focused Realtime/presentation/identity/
-schedule regression tests, the design-system consistency guard, and a clean
-production-style web export.
+schedule regression tests, the design-system consistency guard, and a fresh
+export that must contain the real ignored development Supabase configuration.
 
 The pull request template captures the outcome, risk category, evidence,
 migration/release needs, and next action. Resolve every review conversation or

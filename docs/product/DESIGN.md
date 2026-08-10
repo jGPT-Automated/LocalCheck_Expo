@@ -2,8 +2,8 @@
 
 Status: Authoritative MVP contract
 
-Version: 3.0.0
-Last verified: 2026-08-09
+Version: 3.0.1
+Last verified: 2026-08-10
 
 This document describes the current product. It replaces earlier competing design notes. The reproducible source artwork and specs live in the LocalCheck Brand Asset Sheet; app tokens live in `constants/` and shared components live in `components/ui/`.
 
@@ -68,7 +68,10 @@ Rules:
 - Minimum touch target: 44×44 points.
 - Screen gutter: `Layout.screenGutter`.
 - Use hairlines and spacing before creating nested cards.
-- Root screen containers are fixed `View`/safe-area layouts. Only the content region that genuinely exceeds the viewport scrolls.
+- Root screen shells keep headers, tabs, and reachable actions stable. The
+  smallest supported viewport, landscape, Dynamic Type, keyboard, and error
+  states must still expose every control; use an adaptive outer scroll region
+  when a fixed body would clip content.
 - Sticky primary actions belong at the reachable bottom edge through `StickyActionBar` or `SpeedDialFab`.
 - Drawers use `@gorhom/bottom-sheet`; focused forms use the shared `FormSheet`.
 
@@ -148,7 +151,9 @@ The court detail page keeps the brand/detail header, six-metric court panel, and
 
 ## Schedule and run flow
 
-- Schedule is a fixed weekly heatmap in view mode.
+- Schedule keeps a stable weekly heatmap footprint in view mode. Its one-hour
+  time axis scrolls independently, and compact screens may scroll the body so
+  selected-slot details and upcoming runs remain reachable.
 - The reachable `SpeedDialFab` exposes **Add times** and **Create run** using the shared Reanimated component and Feather icons.
 - Add-times mode supports multi-select cells and one save action.
 - Scheduled run cards show localized 12-hour time, attendees, and remaining spots. They do not waste space on `VIEW` copy or a text arrow.
@@ -197,7 +202,10 @@ interaction with supported installed primitives and record that decision here.
 - Every icon-only control has an accessible name and hint.
 - Color never carries state alone.
 - Test Dynamic Type, VoiceOver labels, keyboard focus on web, reduced motion, and safe-area behavior.
-- Every visual pass ends with typecheck, unit tests, a production web export, and direct visual checks at an iPhone-sized viewport. Test multi-account realtime behavior separately on two authenticated clients.
+- Every visual pass ends with typecheck, unit tests, a verified connected web
+  export, and direct visual checks at standard and compact iPhone-sized
+  viewports. Test multi-account realtime behavior separately on two
+  authenticated clients.
 
 ## MVP scope guardrail
 

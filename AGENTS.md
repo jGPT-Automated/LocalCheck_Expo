@@ -81,16 +81,19 @@ force-push shared branches, or include unrelated user changes.
   Product data, counts, ELO, and feature state are never device/browser state.
 - Mapbox, notifications, Apple Sign-In, permissions, Expo plugins, entitlements,
   and native dependencies require a new development/TestFlight binary.
-- Secrets belong in ignored `.env`, EAS, Supabase, or the relevant provider.
+- Secrets belong in ignored `.env.local`, EAS, Supabase, or the relevant provider.
   Never commit them or paste them into logs.
+- Interactive browser QA must start with `pnpm preview:web`. Never serve a CI
+  export, a generic `pnpm export:web` directory, or another task's temporary
+  bundle as a connected preview.
 
 ## Definition of done
 
 Run the proportional subset and record it in the pull request:
 
 ```bash
-pnpm check
-pnpm export:web
+pnpm check:release
+git diff --check
 ```
 
 Also perform the relevant signed-in test matrix in `docs/TESTING.md`. A backend

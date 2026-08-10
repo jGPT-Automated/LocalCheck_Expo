@@ -18,7 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      EXPO_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      # Compile-only placeholders. CI exports are never connected previews.
+      EXPO_PUBLIC_SUPABASE_URL: https://ci-placeholder.invalid
       EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
       EXPO_PUBLIC_MAPBOX_TOKEN: pk.ci-placeholder
 
@@ -44,5 +45,8 @@ jobs:
       - name: Typecheck and unit tests
         run: pnpm check
 
-      - name: Bundle web target
+      - name: Bundle web target (compile only)
         run: pnpm export:web -- --output-dir /tmp/localcheck-ci-export
+
+      - name: Prove CI bundle is not a connected preview
+        run: rg --fixed-strings --quiet "https://ci-placeholder.invalid" /tmp/localcheck-ci-export/_expo/static/js/web

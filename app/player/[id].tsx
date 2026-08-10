@@ -18,12 +18,14 @@ import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { HeadToHeadSummary } from "@/components/ui/HeadToHeadSummary";
 import { Colors } from "@/constants/colors";
 import {
+  Court,
   MatchResult,
   Player,
 } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { fetchGamesByPlayer, fetchHeadToHeadGames } from "@/services/gameService";
+import { fetchCourtById } from "@/services/courtService";
 import { fetchProfile } from "@/services/profileService";
 
 /** Deterministic head-to-head stats from persisted games both users played in. */
@@ -51,6 +53,7 @@ export default function PlayerProfileScreen() {
   const topPad = Platform.OS === "web" ? 67 : top;
 
   const [player, setPlayer] = useState<Player | null>(null);
+  const [playerCourt, setPlayerCourt] = useState<Court | null>(null);
   const [playerMatches, setPlayerMatches] = useState<MatchResult[]>([]);
   const [sharedMatches, setSharedMatches] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,13 +71,17 @@ export default function PlayerProfileScreen() {
           : Promise.resolve([] as MatchResult[]),
       ]);
       if (!mounted) return;
+      const cachedCourt = p?.courtId ? courts.find((court) => court.id === p.courtId) : null;
+      const resolvedCourt = p?.courtId && !cachedCourt ? await fetchCourtById(p.courtId) : cachedCourt;
+      if (!mounted) return;
       setPlayer(p);
+      setPlayerCourt(resolvedCourt ?? null);
       setPlayerMatches(m);
       setSharedMatches(shared);
       setLoading(false);
     })();
     return () => { mounted = false; };
-  }, [id, currentUser.id]);
+  }, [id, currentUser.id, courts]);
 
   if (loading) {
     return (
@@ -98,8 +105,6 @@ export default function PlayerProfileScreen() {
   const isRequestPending = isFriendPending(player.id);
   const isIncomingRequest = incomingFriendRequests.some((requester) => requester.id === player.id);
   const total = player.wins + player.losses;
-  const playerCourt = courts.find((court) => court.id === player.courtId);
-
   // Head-to-head stats from persisted shared games
   const h2h = getHeadToHeadStats(sharedMatches);
 
@@ -187,11 +192,10 @@ export default function PlayerProfileScreen() {
             : isIncomingRequest
               ? "ACCEPT REQUEST"
               : isRequestPending
-                ? "REQUESTED"
+                ? "CANCEL REQUEST"
                 : "ADD FRIEND",
           icon: isFriendStatus ? "user-minus" : "user-plus",
           onPress: handleToggleFriend,
-          disabled: isRequestPending,
         }}
       />
       <PlayerQrModal

@@ -7,7 +7,7 @@
     "start": "expo start",
     "start:web": "expo start --web",
     "preview:web": "./scripts/start-web-preview.sh",
-    "export:web": "expo export --platform web",
+    "export:web": "EXPO_NO_CACHE=1 expo export --clear --platform web",
     "typecheck": "tsc --noEmit",
     "test": "pnpm run test:realtime && pnpm run test:home-presentation && pnpm run test:player-identity && pnpm run test:schedule",
     "test:home-presentation": "node --no-warnings --experimental-strip-types --test components/home/homePresentation.test.mts",
@@ -16,7 +16,7 @@
     "test:realtime": "node --no-warnings --experimental-strip-types --test lib/realtimeHub.test.mts",
     "check:design": "node scripts/check-design-consistency.mjs",
     "check": "pnpm run typecheck && pnpm run test && pnpm run check:design",
-    "check:release": "pnpm run check && expo export --platform web --output-dir /tmp/localcheck-release-export",
+    "check:release": "pnpm run check && ./scripts/start-web-preview.sh --export-only",
     "doctor": "./scripts/doctor.sh"
   },
   "engines": {

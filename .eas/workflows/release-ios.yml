@@ -5,10 +5,9 @@ defaults:
     node: '22'
     pnpm: '10.13.1'
 
-# Native-change path: build a production iOS binary and submit it to
-# App Store Connect / TestFlight. Use this when a change can't ship over the
-# air (new native module, permission, SDK bump, or any app.json/eas.json build
-# config change).
+# Release path: build a fresh production iOS binary and submit it to App Store
+# Connect / TestFlight after each approved merge to main. This also covers
+# native changes that cannot ship over the air.
 #
 # Triggered after a reviewed PR lands on main, by a v* version tag, or manually
 # from the EAS dashboard. Main is protected by GitHub checks/review, so this is

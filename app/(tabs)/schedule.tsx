@@ -934,7 +934,12 @@ export default function ScheduleScreen() {
     <View style={styles.container}>
       <ScreenHeader title="SCHEDULE" />
 
-      <View style={styles.scheduleBody}>
+      <ScrollView
+        style={styles.scheduleBody}
+        contentContainerStyle={styles.scheduleBodyContent}
+        nestedScrollEnabled
+        showsVerticalScrollIndicator={false}
+      >
         {/* ── Court selector ── */}
         <Pressable style={styles.courtSelector} onPress={() => setShowPicker(true)} testID="schedule-court-selector">
           <Feather name="map-pin" size={13} color={Colors.accent} />
@@ -1158,7 +1163,7 @@ export default function ScheduleScreen() {
             </View>
           ) : courtRuns.slice(0, 2).map((run) => <RunCard key={run.id} run={run} />)}
         </View>
-      </View>
+      </ScrollView>
 
       {scheduleMode === "VIEW" && court?.id === localCourt?.id ? (
         <SpeedDialFab
@@ -1223,7 +1228,8 @@ export default function ScheduleScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  scheduleBody: { flex: 1, minHeight: 0, paddingBottom: 88 },
+  scheduleBody: { flex: 1, minHeight: 0 },
+  scheduleBodyContent: { flexGrow: 1, paddingBottom: 88 },
   pressed: { backgroundColor: Colors.surfaceHigh },
 
   // ── Court selector + week nav ──

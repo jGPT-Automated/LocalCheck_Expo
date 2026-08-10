@@ -44,6 +44,21 @@ remain in App Store Connect.
 Before the first workflow after this repository reset, set the EAS GitHub base
 directory to the repository root.
 
+For this release, merge PR #28 only. It already contains PR #27. The merge is
+the authorization that starts the workflow; no version tag or second pull
+request is required.
+
+After merge:
+
+1. Watch GitHub `quality` and the EAS `Release iOS (build + TestFlight)` run.
+2. Wait for App Store Connect processing and record the generated build number.
+3. Install that exact build from the internal TestFlight group and run the
+   native/high-risk matrix in `docs/TESTING.md`.
+4. Add the proven build to the external tester group, completing Beta App
+   Review if App Store Connect requires it.
+5. Submit the App Store version only after metadata, privacy answers,
+   screenshots, support URLs, account deletion, and review notes are complete.
+
 ## Backend order
 
 Deploy additive/backward-compatible database changes before enabling dependent
