@@ -1,6 +1,6 @@
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -16,13 +16,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LogoMark } from "@/components/brand/LogoMark";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
+import { SplashReveal } from "@/components/onboarding/SplashReveal";
 import { Colors } from "@/constants/colors";
 import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
 
 // Swap the sign-in artwork by replacing assets/brand/auth-graphic.png —
 // same modular contract as the logo (see DESIGN.md §Brand assets).
-const AUTH_GRAPHIC = require("@/assets/brand/auth-graphic.png");
+const AUTH_GRAPHIC = require("@/assets/brand/splash-artwork.png");
+let hasPlayedSignedOutReveal = false;
 
 /**
  * Auth errors surface to real users — never show raw fetch/JSON dumps
@@ -49,6 +51,11 @@ export default function AuthScreen() {
   const { user, profile, signInWithEmail, signUpWithEmail, signInWithApple, signOut, isLoading } = useAuth();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
+  const [revealDone, setRevealDone] = useState(hasPlayedSignedOutReveal);
+  const finishReveal = useCallback(() => {
+    hasPlayedSignedOutReveal = true;
+    setRevealDone(true);
+  }, []);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -97,13 +104,23 @@ export default function AuthScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+      <View style={[styles.root, { justifyContent: "center", alignItems: "center" }]}>
         <ActivityIndicator color={Colors.accent} />
+        {!revealDone && <SplashReveal mode="signed-out" onDone={finishReveal} />}
       </View>
     );
   }
 
   return (
+    <View style={styles.root}>
+      <View style={styles.backgroundArtwork}>
+        <Image
+          accessibilityLabel="An abstract basketball player rising toward the rim"
+          resizeMode="contain"
+          source={AUTH_GRAPHIC}
+          style={styles.backgroundArtworkImage}
+        />
+      </View>
     <KeyboardAwareScrollViewCompat
       style={styles.container}
       contentContainerStyle={styles.content}
@@ -116,12 +133,6 @@ export default function AuthScreen() {
           <LogoMark size={40} />
           <Text style={styles.brandName}>LOCALCHECK</Text>
         </View>
-        <Image
-          source={AUTH_GRAPHIC}
-          style={styles.heroGraphic}
-          resizeMode="contain"
-          accessibilityLabel="An illuminated overhead sports court"
-        />
         <View style={styles.heroCopy}>
           <Text style={styles.title}>{user ? "WELCOME BACK" : "KNOW BEFORE YOU GO."}</Text>
           <Text style={styles.subtitle}>
@@ -211,22 +222,40 @@ export default function AuthScreen() {
         <Text style={styles.note}>Your account stays signed in on this device.</Text>
       </View>
     </KeyboardAwareScrollViewCompat>
+      {!revealDone && <SplashReveal mode="signed-out" onDone={finishReveal} />}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
     backgroundColor: Colors.background,
   },
+  container: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
   content: {
+    alignItems: "center",
     flexGrow: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: "transparent",
+  },
+  backgroundArtwork: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.34,
+    pointerEvents: "none",
+  },
+  backgroundArtworkImage: {
+    width: "100%",
+    height: "100%",
   },
   hero: {
     flex: 1,
+    maxWidth: 720,
     paddingHorizontal: 24,
     overflow: "hidden",
+    width: "100%",
   },
   brandRow: {
     flexDirection: "row",
@@ -240,14 +269,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
     letterSpacing: 1.8,
   },
-  heroGraphic: {
-    position: "absolute",
-    width: "95%",
-    height: "86%",
-    right: -30,
-    top: 44,
-    opacity: 0.9,
-  },
   heroCopy: {
     marginTop: "auto",
     paddingBottom: 18,
@@ -256,11 +277,13 @@ const styles = StyleSheet.create({
   },
   formPanel: {
     flexShrink: 0,
+    maxWidth: 720,
     paddingHorizontal: 24,
     paddingTop: 18,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
     backgroundColor: Colors.background,
+    width: "100%",
   },
   title: {
     fontFamily: Typography.heading,

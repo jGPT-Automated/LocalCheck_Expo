@@ -14,6 +14,7 @@ interface SupabaseCourtRow {
   image_url?: string | null;
   is_archived?: boolean | null;
   location?: string | null;
+  city?: string | null;
   state?: string | null;
   market?: string | null;
   added_by?: string | null;
@@ -25,7 +26,7 @@ interface SupabaseCourtRow {
   is_confirmed?: boolean | null;
 }
 
-const BASE_COLS = "id,name,short_name,address,latitude,longitude,sport_type,image_url,is_archived,location,state,market,added_by,created_at";
+const BASE_COLS = "id,name,short_name,address,latitude,longitude,sport_type,image_url,is_archived,location,city,state,market,added_by,created_at";
 const STATS_COLS = BASE_COLS + ",active_check_in_count,total_check_ins,local_player_count,is_confirmed";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -43,7 +44,7 @@ function mapRow(row: SupabaseCourtRow): Court {
     shortName: row.short_name ?? undefined,
     sport: normalizeSport(row.sport_type),
     neighborhood: row.location ?? "",
-    city: row.state ?? "",
+    city: row.city ?? row.state ?? "",
     address: row.address ?? "",
     market: row.market ?? undefined,
     latitude: Number(row.latitude),
@@ -303,6 +304,102 @@ export async function fetchCourtsByMarket(
       .slice(0, safeLimit);
   } catch {
     return [];
+  }
+}
+
+export type CourtAccessType = "public_free" | "public_paid" | "private_paid";
+
+export interface VerifiedCourtSubmission {
+  name?: string;
+  address: string;
+  city: string;
+  state: string;
+  latitude: number;
+  longitude: number;
+  accessType: CourtAccessType;
+  imageBase64: string;
+  imageMimeType: string;
+}
+
+export interface CourtSubmissionResult {
+  verified: boolean;
+  confidence: number;
+  reason: string;
+  sport?: CourtSport;
+  court?: Court;
+}
+
+interface CourtSubmissionResponse {
+  verified?: unknown;
+  confidence?: unknown;
+  reason?: unknown;
+  sport?: unknown;
+  court?: unknown;
+}
+
+async function functionErrorMessage(error: unknown): Promise<string> {
+  if (error && typeof error === "object" && "context" in error) {
+    const context = (error as { context?: unknown }).context;
+    if (context instanceof Response) {
+      const payload = await context.clone().json().catch(() => null) as { error?: unknown } | null;
+      if (typeof payload?.error === "string" && payload.error.trim()) return payload.error;
+    }
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return "The court verification service is unavailable. Please try again.";
+}
+
+/**
+ * Gemini verification and the privileged insert stay together in the
+ * authenticated Edge Function. The client never receives the Gemini key and
+ * cannot manufacture a confirmed court row.
+ */
+export async function createCourt(
+  input: VerifiedCourtSubmission
+): Promise<CourtSubmissionResult> {
+  try {
+    const { data, error } = await supabase.functions.invoke("verify-court", {
+      body: input,
+    });
+    if (error) {
+      return {
+        verified: false,
+        confidence: 0,
+        reason: await functionErrorMessage(error),
+      };
+    }
+
+    const payload = (data ?? {}) as CourtSubmissionResponse;
+    const rawSport = typeof payload.sport === "string" ? payload.sport.toUpperCase() : "";
+    const sport = rawSport === "BASKETBALL" || rawSport === "PICKLEBALL"
+      ? (rawSport as CourtSport)
+      : undefined;
+    const verified = payload.verified === true;
+    const confidence = typeof payload.confidence === "number"
+      ? Math.max(0, Math.min(100, Math.round(payload.confidence)))
+      : 0;
+    const reason = typeof payload.reason === "string" && payload.reason.trim()
+      ? payload.reason.trim()
+      : verified
+      ? "Court verified."
+      : "This photo could not be verified as a supported court.";
+    const court = verified && payload.court && typeof payload.court === "object"
+      ? mapRow(payload.court as SupabaseCourtRow)
+      : undefined;
+
+    return {
+      verified: verified && !!court,
+      confidence,
+      reason,
+      sport,
+      court,
+    };
+  } catch (error) {
+    return {
+      verified: false,
+      confidence: 0,
+      reason: await functionErrorMessage(error),
+    };
   }
 }
 

@@ -1,10 +1,11 @@
 import { Href, useRouter } from "expo-router";
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AppState, Platform } from "react-native";
 
 import { useAuth } from "@/context/AuthContext";
 import { useRealtimeHub } from "@/context/RealtimeHubContext";
 import { batchHasResource, RealtimeTopic } from "@/lib/realtimeHub";
+import { getSafeNotificationRoute } from "@/lib/notificationRoutes";
 import {
   AppNotification,
   fetchNotifications,
@@ -37,6 +38,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const router = useRouter();
   const { user, profile, refreshProfile } = useAuth();
   const realtimeHub = useRealtimeHub();
+  const handledResponseIdRef = useRef<string | null>(null);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -83,9 +85,21 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     void configureForegroundNotifications();
     void import("expo-notifications").then((Notifications) => {
       if (cancelled) return;
-      responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
-        const path = response.notification.request.content.data?.path;
-        if (typeof path === "string" && path.startsWith("/")) router.push(path as Href);
+      const handleResponse = (response: Awaited<ReturnType<typeof Notifications.getLastNotificationResponseAsync>>) => {
+        if (!response) return;
+        const identifier = response.notification.request.identifier;
+        if (handledResponseIdRef.current === identifier) return;
+        handledResponseIdRef.current = identifier;
+        const path = getSafeNotificationRoute(response.notification.request.content.data?.path);
+        if (path) router.push(path as Href);
+      };
+      responseSubscription = Notifications.addNotificationResponseReceivedListener(handleResponse);
+      void Notifications.getLastNotificationResponseAsync().then((response) => {
+        if (cancelled || !response) return;
+        handleResponse(response);
+        // Clearing prevents a response from a previous launch from routing the
+        // user again on a later ordinary app open.
+        return Notifications.clearLastNotificationResponseAsync();
       });
     });
     return () => {
@@ -107,7 +121,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   const openNotification = useCallback(async (notification: AppNotification) => {
     await readNotification(notification);
-    if (notification.path?.startsWith("/")) router.push(notification.path as Href);
+    const path = getSafeNotificationRoute(notification.path);
+    if (path) router.push(path as Href);
   }, [readNotification, router]);
 
   const readAll = useCallback(async () => {

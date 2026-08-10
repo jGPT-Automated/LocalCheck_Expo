@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -27,6 +28,12 @@ import { useApp } from "@/context/AppContext";
 import { fetchGamesByPlayer, fetchHeadToHeadGames } from "@/services/gameService";
 import { fetchCourtById } from "@/services/courtService";
 import { fetchProfile } from "@/services/profileService";
+import {
+  blockUser,
+  type ReportReason,
+  reportUser,
+  safetyControlsAvailable,
+} from "@/services/safetyService";
 
 /** Deterministic head-to-head stats from persisted games both users played in. */
 function getHeadToHeadStats(sharedMatches: MatchResult[]) {
@@ -58,6 +65,19 @@ export default function PlayerProfileScreen() {
   const [sharedMatches, setSharedMatches] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [qrVisible, setQrVisible] = useState(false);
+  const [showSafetyControls, setShowSafetyControls] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    if (currentUser.id && currentUser.id !== id) {
+      void safetyControlsAvailable().then((available) => {
+        if (mounted) setShowSafetyControls(available);
+      });
+    } else {
+      setShowSafetyControls(false);
+    }
+    return () => { mounted = false; };
+  }, [currentUser.id, id]);
 
   useEffect(() => {
     let mounted = true;
@@ -121,6 +141,43 @@ export default function PlayerProfileScreen() {
     }
   };
 
+  const submitReport = async (reason: ReportReason) => {
+    const ok = await reportUser(player.id, reason);
+    Alert.alert(
+      ok ? "Report received" : "Report not sent",
+      ok ? "Thanks. LocalCheck will review it." : "Please try again."
+    );
+  };
+
+  const handleReport = () => {
+    Alert.alert(`Report ${player.name}?`, "Choose the closest reason.", [
+      { text: "Spam", onPress: () => void submitReport("spam") },
+      { text: "Harassment", onPress: () => void submitReport("harassment") },
+      { text: "Impersonation", onPress: () => void submitReport("impersonation") },
+      { text: "Unsafe behavior", onPress: () => void submitReport("unsafe_behavior") },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
+
+  const handleBlock = () => {
+    Alert.alert(
+      `Block ${player.name}?`,
+      "You will no longer see each other's profiles, activity, check-ins, or run invites.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Block",
+          style: "destructive",
+          onPress: async () => {
+            const ok = await blockUser(player.id);
+            if (ok) router.canGoBack() ? router.back() : router.replace("/(tabs)");
+            else Alert.alert("Could not block player", "Please try again.");
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <DetailHeader
@@ -175,6 +232,30 @@ export default function PlayerProfileScreen() {
                 </View>
               </View>
             ))}
+          </View>
+        ) : null}
+
+        {showSafetyControls ? (
+          <View style={styles.safetySection}>
+            <Text style={styles.safetyIntro}>SAFETY</Text>
+            <View style={styles.safetyRow}>
+              <Pressable
+                accessibilityLabel={`Report ${player.name}`}
+                accessibilityRole="button"
+                onPress={handleReport}
+                style={({ pressed }) => [styles.safetyButton, pressed && styles.safetyButtonPressed]}
+              >
+                <Text style={styles.safetyText}>REPORT</Text>
+              </Pressable>
+              <Pressable
+                accessibilityLabel={`Block ${player.name}`}
+                accessibilityRole="button"
+                onPress={handleBlock}
+                style={({ pressed }) => [styles.safetyButton, pressed && styles.safetyButtonPressed]}
+              >
+                <Text style={[styles.safetyText, styles.safetyDanger]}>BLOCK</Text>
+              </Pressable>
+            </View>
           </View>
         ) : null}
 
@@ -356,6 +437,33 @@ const styles = StyleSheet.create({
     textTransform: "uppercase" as const,
     marginBottom: 10,
   },
+  safetySection: {
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
+  },
+  safetyIntro: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.muted,
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  safetyRow: { flexDirection: "row", gap: 12 },
+  safetyButton: {
+    minHeight: 44,
+    justifyContent: "center",
+    paddingRight: 18,
+  },
+  safetyButtonPressed: { opacity: 0.68 },
+  safetyText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 10,
+    color: Colors.textSecondary,
+    letterSpacing: 1.2,
+  },
+  safetyDanger: { color: Colors.loss },
 
   // H2H Grid
   h2hGrid: {

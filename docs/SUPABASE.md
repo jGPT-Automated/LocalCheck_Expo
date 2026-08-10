@@ -7,27 +7,28 @@ supabase/
   config.toml          local project configuration
   migrations/         immutable ordered schema history
   functions/          Edge Function source
-  tests/database/      pgTAP authorization and contract tests
+  tests/database/      SQL authorization and contract specifications
   seed.sql             safe local-only seed entry point
 ```
 
-The migration files were reconciled from the live production
-`supabase_migrations.schema_migrations` ledger on 2026-08-08. They describe
-changes already applied to production. Never rename, edit, or replay an applied
-file as a new change.
+The migration files through `20260804125610` were reconciled from the live
+production `supabase_migrations.schema_migrations` ledger. Files dated
+`20260810200103` and later are PR #28 release-candidate source and are not yet
+applied. Never rename, edit, or replay an applied file as a new change.
 
-## Local stack
+## Ground every backend change
 
-Install Docker Desktop or another Docker-compatible runtime, then:
+Before editing migration or function source, inspect `LocalCheckProd` read-only:
 
-```bash
-npx supabase start
-npx supabase db reset
-npx supabase test db
-```
+- confirm project ref `qkrnmyexzvaxiqfxwwfb` is active;
+- compare the live migration ledger with `supabase/migrations/`;
+- inspect the affected tables, columns, functions, policies, extensions, and
+  deployed Edge Functions;
+- state which proposed files are already deployed and which remain source-only.
 
-`db reset` rebuilds the local database from migrations and local seed data. It
-must never target production.
+Read-only inspection is grounding, not release authorization. Do not create a
+new backend environment, apply SQL, deploy a function, change secrets, or alter
+project settings unless the task explicitly authorizes that external action.
 
 ## Create a change
 
@@ -36,27 +37,45 @@ npx supabase migration new <short_description>
 ```
 
 Write one forward migration. Include RLS, grants, indexes, Realtime/publication
-effects, and recovery notes as part of the same pull request. Validate from a
-fresh local reset and test both allowed and denied users.
-
-Before deployment, compare local files with the linked project:
-
-```bash
-npx supabase link --project-ref qkrnmyexzvaxiqfxwwfb
-npx supabase migration list
-npx supabase db push --dry-run
-```
-
-Linking is local configuration. `db push` without `--dry-run`, function deploy,
-and production secrets are external production actions and require explicit
-authorization.
+effects, and recovery notes as part of the same pull request. Compare it with
+the verified live contract, run focused source/unit checks, and document the
+intended-user and denied-user acceptance cases. Migration apply, function
+deploy, and production-secret changes require explicit release authorization.
 
 ## Edge Functions
 
-Serve locally with `npx supabase functions serve <name>`. Keep service-role and
-provider secrets in Supabase; public Expo variables never contain them. Deploy
-one named function at a time and verify its authenticated and unauthorized
-paths.
+Keep service-role and provider secrets in Supabase; public Expo variables never
+contain them. Test pure request/delivery logic from source. After explicit
+release approval, deploy one named function at a time and verify its
+authenticated and unauthorized paths.
+
+PR #28 adds two functions:
+
+- `verify-court` requires the caller's user JWT, validates a submitted court
+  photo with Gemini, and delegates the write to the service-role-only
+  `create_verified_court` database function.
+- `send-notification` accepts only the private database webhook secret. It
+  atomically claims queued inbox rows, stores Expo tickets, checks receipts,
+  retries bounded transient failures, and removes tokens Expo marks invalid.
+
+The notification webhook URL and shared secret live in Supabase Vault. Public
+Expo variables and migration source never contain the secret. A recurring
+cold-worker job provides recovery in addition to the insert webhook, so a
+temporary delivery failure does not strand inbox rows.
+
+## PR #28 additive migrations
+
+- `20260810200103_add_verified_court_creation.sql`: daily quota, market bounds,
+  150m duplicate rejection, advisory locking, and atomic court creation.
+- `20260810200110_add_user_safety_controls.sql`: block/report storage,
+  filtering, RLS, grants, and write guards.
+- `20260810200118_complete_sport_elo_review.sql`: basketball/pickleball ratings,
+  pending review, confirm/reject, and three-day automatic confirmation.
+- `20260810200126_complete_push_delivery.sql`: durable claims, delivery
+  attempts, webhook dispatch, and recurring recovery.
+
+These files are source-only until the release approval gate. Their presence in
+Git does not mean they are deployed or production-proven.
 
 ## Realtime and API safety
 

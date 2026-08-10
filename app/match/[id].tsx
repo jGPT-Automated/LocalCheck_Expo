@@ -88,7 +88,7 @@ export default function MatchReviewScreen() {
           <Text style={styles.explanation}>
             {canConfirm
               ? "Confirm the final score, or object if it is wrong. Your rating changes only after confirmation."
-              : "Waiting for your opponent. If they do not respond, this score confirms after seven days."}
+              : "Waiting for your opponent. If they do not respond, this score confirms after three days."}
           </Text>
         ) : (
           <Text style={styles.explanation}>

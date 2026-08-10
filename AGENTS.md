@@ -10,7 +10,7 @@ its Supabase source of truth. Read this file before changing anything.
 3. `docs/DEVELOPMENT.md` — setup, branch, preview, and handoff workflow.
 4. `docs/TESTING.md` — required automated and multi-user verification.
 5. `docs/RELEASE.md` — OTA, TestFlight, and rollback procedure.
-6. `docs/SUPABASE.md` — migrations, functions, local stack, and deployment.
+6. `docs/SUPABASE.md` — live-cloud grounding, migrations, functions, and deployment.
 7. For product or visual work, read the relevant files under `docs/product/`.
 
 ## Repository authority

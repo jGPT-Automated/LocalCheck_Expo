@@ -10,6 +10,9 @@
 - Confirmation updates the match and both player ratings atomically.
 - Rejection keeps an auditable non-public record and changes no rating.
 - A stable request identifier prevents duplicate submissions.
+- Silence automatically confirms a pending score after three days. The same
+  database confirmation function is used by an explicit opponent confirmation
+  and by the recurring automatic-confirmation job.
 
 Any automatic-confirmation timing is database policy and must be surfaced to
 both players before it is changed.
@@ -25,7 +28,13 @@ confirmation, and rejection.
 - Users may read only their own inbox and push tokens.
 - Database functions create inbox events and prevent duplicates.
 - One private user topic invalidates the open inbox; there is no polling loop.
-- The push Edge Function claims work before sending.
+- The push Edge Function claims work before sending and recovers stale claims.
+- Expo tickets and receipts are durable per-token attempts. Transient delivery
+  failures retry within a bounded limit; `DeviceNotRegistered` removes the bad
+  token rather than repeatedly sending to it.
+- Foreground taps, background taps, and cold-start responses all pass through
+  one allow-listed route resolver and are deduplicated by notification request
+  identifier.
 
 ## Source and acceptance
 

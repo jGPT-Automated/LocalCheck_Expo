@@ -24,7 +24,7 @@ import { Colors, Radius } from "@/constants/colors";
 import { CourtSport, getSportColor, Player } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
-import { fetchLeaderboard } from "@/services/profileService";
+import { fetchLeaderboard, fetchProfile } from "@/services/profileService";
 import { logGame } from "@/services/gameService";
 import { searchPlayers } from "@/services/profileService";
 
@@ -57,6 +57,7 @@ export default function CompeteScreen() {
     preferredSport ?? localCourt?.sport ?? "BASKETBALL"
   );
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
+  const [deepLinkedOpponent, setDeepLinkedOpponent] = useState<Player | null>(null);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
 
   useEffect(() => {
@@ -82,12 +83,20 @@ export default function CompeteScreen() {
     return () => { mounted = false; };
   }, [scope, localCourtId, rankingSport, currentUser.elo]);
 
-  // Opponent preselect (deep link): resolve only if the player exists in the
-  // loaded player list; otherwise the picker stays empty as usual.
-  const preselectedOpponent =
-    typeof params.opponentId === "string"
-      ? allPlayers.find((p) => p.id === params.opponentId) ?? null
-      : null;
+  // Profile/QR deep links are identity lookups, not leaderboard lookups. A
+  // valid opponent can be outside the current local/regional/ranked scope.
+  useEffect(() => {
+    let mounted = true;
+    const opponentId = typeof params.opponentId === "string" ? params.opponentId : null;
+    if (!opponentId || opponentId === currentUser.id) {
+      setDeepLinkedOpponent(null);
+      return () => { mounted = false; };
+    }
+    void fetchProfile(opponentId).then((opponent) => {
+      if (mounted) setDeepLinkedOpponent(opponent);
+    });
+    return () => { mounted = false; };
+  }, [currentUser.id, params.opponentId]);
 
   const myRank = allPlayers.findIndex((p) => p.id === currentUser.id) + 1;
   const rankedCurrentUser = allPlayers.find((p) => p.id === currentUser.id) ?? currentUser;
@@ -146,7 +155,7 @@ export default function CompeteScreen() {
           inSheet
           preferredSport={localCourt?.sport ?? preferredSport}
           preferredCourtId={(typeof params.courtId === "string" ? params.courtId : null) ?? preferredCourtId}
-          preselectedOpponent={preselectedOpponent}
+          preselectedOpponent={deepLinkedOpponent}
           localCourtId={localCourtId}
         />
       </FormSheet>

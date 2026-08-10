@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -32,6 +32,7 @@ function shortDate(value: string): string {
 
 export default function MeScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ tab?: ProfileTab }>();
   const { profile } = useAuth();
   const {
     currentUser,
@@ -58,6 +59,12 @@ export default function MeScreen() {
   } | null>(null);
 
   const friends = getFriendsList();
+
+  useEffect(() => {
+    if (params.tab === "activity" || params.tab === "friends" || params.tab === "inbox") {
+      setActiveTab(params.tab);
+    }
+  }, [params.tab]);
   const activity = useMemo(
     () => feed.filter((item) => item.playerId === currentUser.id).slice(0, 8),
     [feed, currentUser.id]
@@ -90,6 +97,20 @@ export default function MeScreen() {
       <ScreenHeader
         title={currentUser.name}
         right={<View style={styles.headerActions}>
+          <Pressable
+            onPress={() => router.push("/notifications")}
+            style={styles.headerAction}
+            accessibilityRole="button"
+            accessibilityLabel={unreadCount > 0 ? `Open notifications, ${unreadCount} unread` : "Open notifications"}
+            hitSlop={12}
+          >
+            <Feather name="bell" size={15} color={Colors.textSecondary} />
+            {unreadCount > 0 ? (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>{Math.min(unreadCount, 99)}</Text>
+              </View>
+            ) : null}
+          </Pressable>
           <Pressable
             onPress={() => router.push("/settings")}
             style={styles.headerAction}

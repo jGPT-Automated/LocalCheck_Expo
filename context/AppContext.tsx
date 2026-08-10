@@ -42,7 +42,13 @@ import {
 import { fetchFeed } from "@/services/feedService";
 import { fetchGamesByPlayer } from "@/services/gameService";
 import { fetchScheduledGames, joinScheduledGame } from "@/services/scheduledGameService";
-import { fetchCourtById, fetchNearbyCourts } from "@/services/courtService";
+import {
+  createCourt,
+  fetchCourtById,
+  fetchNearbyCourts,
+  type CourtSubmissionResult,
+  type VerifiedCourtSubmission,
+} from "@/services/courtService";
 import { updateLocalCourtId, updateProfileFields } from "@/services/profileService";
 import { useAuth } from "@/context/AuthContext";
 import { usePresenceRefresh } from "@/context/CourtPresenceContext";
@@ -82,6 +88,7 @@ interface AppContextValue {
   incomingFriendRequests: Player[];
   preferredSport: CourtSport | null;
   preferredCourtId: string | null;
+  addCourt: (submission: VerifiedCourtSubmission) => Promise<CourtSubmissionResult>;
   checkIn: (courtId: string) => Promise<void>;
   checkOut: () => Promise<void>;
   visitCourt: (courtId: string) => Promise<void>;
@@ -271,6 +278,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     loadCourts();
   }, [loadCourts]);
+
+  const addCourtAction = useCallback(async (submission: VerifiedCourtSubmission) => {
+    const result = await createCourt(submission);
+    if (result.court) {
+      // The verification response is the narrowest possible invalidation: add
+      // only the new authoritative row. Explore separately refreshes its
+      // market-scoped list after the sheet reports success.
+      setCourts((current) => [
+        result.court!,
+        ...current.filter((court) => court.id !== result.court!.id),
+      ]);
+    }
+    return result;
+  }, []);
 
   // ─── Hydrate the local court object from its id. localCourtId is already kept
   // in sync with the authoritative profile.local_court_id (see the sync effect
@@ -756,6 +777,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         incomingFriendRequests,
         preferredSport,
         preferredCourtId,
+        addCourt: addCourtAction,
         checkIn,
         checkOut,
         visitCourt,

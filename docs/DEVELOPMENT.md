@@ -27,9 +27,12 @@ Fill `.env.local` with the public development Supabase URL/key and public Mapbox
 token. Keep the Mapbox SDK download token in EAS as a secret; never put it in
 `.env.local` or Git.
 
-For local Supabase work, install Docker Desktop or another Docker-compatible
-runtime, then use `npx supabase start`. Watchman is optional but enables hot
-reload for larger Expo web trees on macOS.
+Before changing Supabase source, inspect `LocalCheckProd` read-only and compare
+its current migration ledger, tables, functions, policies, and deployed Edge
+Functions with the repository. Do not introduce a separate backend environment
+or mutate production unless the task explicitly authorizes that action.
+
+Watchman is optional but enables hot reload for larger Expo web trees on macOS.
 
 ## Daily branch workflow
 

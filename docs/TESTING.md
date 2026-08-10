@@ -15,11 +15,14 @@ pnpm export:web -- --output-dir /tmp/localcheck-ci-export
 
 CI uses deliberate non-service placeholders and its bundle is never an
 interactive preview. Before handoff, run `pnpm check:release` locally. It covers
-TypeScript; focused Realtime, home-presentation, player-identity, and
-schedule-model tests; the design-system consistency guard; and a fresh export
-verified against the ignored development Supabase configuration. Add a focused
-regression test with every bug fix when behavior can be exercised without a
-device. CI is a merge gate, not proof of native or multi-user behavior.
+TypeScript; focused backend, Add Court, splash/logo, notification-routing,
+Realtime, home-presentation, player-identity, and schedule-model tests; the
+design-system consistency guard; and a fresh export verified against the
+ignored development Supabase configuration. CI's bundle assertion is a
+portable Node script and does not assume `rg` exists on the runner. Add a
+focused regression test with every bug fix when behavior can be exercised
+without a device. CI is a merge gate, not proof of native or multi-user
+behavior.
 
 ## High-risk manual matrix
 
@@ -37,6 +40,10 @@ in the pull request; never record passwords or tokens.
 | Notification inbox/read state | 2 signed-in users | durable inbox and unread count agree |
 | Realtime lifecycle | browser + iPhone | background/foreground catches up once; no duplicate updates |
 | Privacy/RLS | allowed + denied user | permitted row works; unauthorized read/write is denied |
+| Add Court | 2 users + 2 photos | accepted insert, rejected photo, quota and duplicate denial |
+| Block/report | blocker + blocked user | filtered reads and denied social writes agree |
+| QR profile → Log Game | cold + warm app | profile resolves by ID and opponent is prefilled |
+| Push delivery | 2 iPhones | foreground, background, cold start, retry, invalid token cleanup |
 
 ## Native acceptance
 
@@ -58,15 +65,36 @@ reachable. For Schedule, test a compact phone with a selected slot and upcoming
 runs; the one-hour heatmap remains usable and content below it remains
 reachable.
 
+Inspect the signed-out artwork reveal, the signed-in pin → W → check launch,
+and Reduce Motion. At compact and desktop browser widths, open court, run,
+player, match, notification, and settings detail headers and confirm the shared
+back-logo frame does not overflow.
+
 ## Backend acceptance
 
-Run database tests locally after migrations:
+Run the focused backend source and behavior checks:
 
 ```bash
-npx supabase start
-npx supabase db reset
-npx supabase test db
+pnpm test:backend
 ```
 
-Prove both the intended user and a user who must be denied. Production is never
-the first place a migration or authorization rule is exercised.
+Before release approval, inspect the live cloud migration ledger, relevant
+tables, functions, policies, extensions, and deployed Edge Functions read-only;
+record the comparison in the pull request. Do not apply a migration or deploy a
+function during inspection. After the approved backward-compatible deployment,
+prove both the intended user and a user who must be denied with dedicated test
+accounts before the client release is activated.
+
+## PR #28 evidence checkpoint — 2026-08-10
+
+- `pnpm check:release` passed for app version `1.0.2`, including 38 focused
+  tests, design consistency, TypeScript, and a connected web export.
+- Expo CLI validated all four `.eas/workflows/*.yml` files against the current
+  workflow contract; `expo install --check` reported dependencies up to date.
+- The in-app browser verified the fresh connected signed-out splash/auth flow
+  at 390×844 and 1280×900. Both widths had matching viewport and document
+  widths, and every auth control remained reachable.
+- Expo's GitHub setting visibly confirmed the base directory saved as `/`.
+- Signed-in detail surfaces, Add Court permissions/photo outcomes, Realtime,
+  push delivery, and the two-account/device matrix remain release-approval
+  evidence; they are not represented as completed by the browser export.

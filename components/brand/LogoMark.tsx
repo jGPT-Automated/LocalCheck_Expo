@@ -1,7 +1,8 @@
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Image, ImageStyle, StyleProp, StyleSheet, View } from "react-native";
+import { Image, ImageStyle, StyleProp, View } from "react-native";
 
+import { backLogoContainerStyle, backLogoFrameStyle } from "@/components/brand/logoPresentation";
 import { Colors } from "@/constants/colors";
 
 /**
@@ -31,9 +32,9 @@ export function LogoMark({
       <View
         accessibilityElementsHidden
         importantForAccessibility="no"
-        style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}
+        style={backLogoContainerStyle(size)}
       >
-        <Image resizeMode="contain" source={FRAME} style={StyleSheet.absoluteFill} />
+        <Image resizeMode="contain" source={FRAME} style={backLogoFrameStyle(size)} />
         <Feather color={Colors.text} name="chevron-left" size={Math.round(size * 0.56)} />
       </View>
     );

@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 
+import { AddCourtModal } from "@/components/AddCourtModal";
 import { CourtListItem } from "@/components/CourtListItem";
 import { MapScreen } from "@/components/MapScreen";
 import { ScreenHeader } from "@/components/ScreenHeader";
@@ -49,6 +50,7 @@ export function CourtsScreen() {
   const [nearbyCourts, setNearbyCourts] = useState<Court[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
+  const [showAddCourt, setShowAddCourt] = useState(false);
   const userLoc = useRef<{ lat: number; lng: number } | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -176,6 +178,18 @@ export function CourtsScreen() {
     <View style={styles.container}>
       <ScreenHeader
         title="EXPLORE"
+        right={(
+          <Pressable
+            accessibilityLabel="Add a court"
+            accessibilityRole="button"
+            onPress={() => setShowAddCourt(true)}
+            style={({ pressed }) => [styles.addCourtAction, pressed && styles.addCourtActionPressed]}
+            testID="add-court-action"
+          >
+            <Feather color={Colors.accent} name="plus" size={15} />
+            <Text style={styles.addCourtActionText}>ADD</Text>
+          </Pressable>
+        )}
       />
 
       <View style={styles.searchArea}>
@@ -314,12 +328,35 @@ export function CourtsScreen() {
           </View>
         </ScrollView>
       )}
+
+      <AddCourtModal
+        initialLatitude={userLoc.current?.lat}
+        initialLongitude={userLoc.current?.lng}
+        onAdded={() => loadDiscovery()}
+        onClose={() => setShowAddCourt(false)}
+        visible={showAddCourt}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  addCourtAction: {
+    minHeight: 36,
+    minWidth: 64,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 5,
+  },
+  addCourtActionPressed: { opacity: 0.68 },
+  addCourtActionText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 10,
+    color: Colors.textSecondary,
+    letterSpacing: 1.2,
+  },
   searchArea: { position: "relative", zIndex: 12 },
   searchRow: {
     minHeight: 44,

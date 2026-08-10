@@ -49,4 +49,4 @@ jobs:
         run: pnpm export:web -- --output-dir /tmp/localcheck-ci-export
 
       - name: Prove CI bundle is not a connected preview
-        run: rg --fixed-strings --quiet "https://ci-placeholder.invalid" /tmp/localcheck-ci-export/_expo/static/js/web
+        run: node scripts/assert-export-placeholder.mjs /tmp/localcheck-ci-export/_expo/static/js/web https://ci-placeholder.invalid

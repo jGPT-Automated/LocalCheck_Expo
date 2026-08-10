@@ -10,8 +10,9 @@ defaults:
 # native changes that cannot ship over the air.
 #
 # Triggered after a reviewed PR lands on main, by a v* version tag, or manually
-# from the EAS dashboard. Main is protected by GitHub checks/review, so this is
-# the single automatic path from an approved merge to TestFlight.
+# from the EAS dashboard. Main is not currently branch-protected, so explicit
+# approval plus a clean PR check/review record is the operational release gate.
+# This is the single automatic path from that approved merge to TestFlight.
 #
 # Signing is handled by the distribution cert + provisioning profile stored on
 # EAS. Submission uses the App Store Connect API key stored on EAS (no local

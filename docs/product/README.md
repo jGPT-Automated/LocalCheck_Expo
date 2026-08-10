@@ -11,8 +11,9 @@ It does not define engineering status or release procedure.
 3. `DECISIONS.md` — dated design/product decisions and their reasoning.
 4. `DESIGN_QA.md` — visual acceptance checklist and reference locations.
 5. `ELO_AND_NOTIFICATIONS.md` — competition and notification product contract.
-6. `ROADMAP.md` — current product sequence, not engineering status.
-7. `REFERENCES.md` — evaluated inspiration and provider links.
+6. `AFFORDANCE_AUDIT.md` — Release 1 preserved, changed, and removed controls.
+7. `ROADMAP.md` — current product sequence, not engineering status.
+8. `REFERENCES.md` — evaluated inspiration and provider links.
 
 Reference images, PDFs, and drafts under `design system/`, `design-qa/`, and
 `references/` may be used when a relevant feature is picked up. They are input

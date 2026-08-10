@@ -46,3 +46,8 @@ verify_jwt = true
 # This function receives a database webhook and authenticates its private
 # x-localcheck-webhook-secret header in the function body.
 verify_jwt = false
+
+[functions.verify-court]
+# Court submissions must carry an authenticated user JWT. The function also
+# calls getUser before invoking its service-role-only insertion RPC.
+verify_jwt = true

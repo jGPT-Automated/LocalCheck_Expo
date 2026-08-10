@@ -1,6 +1,6 @@
 {
   "name": "localcheck",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
@@ -9,7 +9,11 @@
     "preview:web": "./scripts/start-web-preview.sh",
     "export:web": "EXPO_NO_CACHE=1 expo export --clear --platform web",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm run test:realtime && pnpm run test:home-presentation && pnpm run test:player-identity && pnpm run test:schedule",
+    "test": "pnpm run test:backend && pnpm run test:add-court && pnpm run test:brand && pnpm run test:notification-routes && pnpm run test:realtime && pnpm run test:home-presentation && pnpm run test:player-identity && pnpm run test:schedule",
+    "test:backend": "node --no-warnings --experimental-strip-types --test supabase/functions/verify-court/courtVerification.test.mts supabase/functions/send-notification/pushDelivery.test.mts && node --test supabase/tests/source/backendContract.test.mjs",
+    "test:add-court": "node --no-warnings --experimental-strip-types --test components/addCourtModel.test.mts",
+    "test:brand": "node --no-warnings --experimental-strip-types --test components/brand/logoPresentation.test.mts components/onboarding/splashTimeline.test.mts",
+    "test:notification-routes": "node --no-warnings --experimental-strip-types --test lib/notificationRoutes.test.mts",
     "test:home-presentation": "node --no-warnings --experimental-strip-types --test components/home/homePresentation.test.mts",
     "test:player-identity": "node --no-warnings --experimental-strip-types --test components/ui/playerIdentity.test.mts",
     "test:schedule": "node --no-warnings --experimental-strip-types --test components/schedule/scheduleModel.test.mts",
@@ -40,6 +44,7 @@
     "expo-font": "~14.0.12",
     "expo-glass-effect": "~0.1.10",
     "expo-haptics": "~15.0.8",
+    "expo-image-picker": "~17.0.11",
     "expo-linear-gradient": "~15.0.8",
     "expo-linking": "~8.0.12",
     "expo-location": "~19.0.8",

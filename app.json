@@ -3,7 +3,7 @@
     "name": "LocalCheck",
     "slug": "localcheck",
     "owner": "agenticjess-os",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "localcheck",
@@ -36,6 +36,14 @@
       "expo-secure-store",
       "expo-apple-authentication",
       "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "LocalCheck lets you choose a current court photo for verification.",
+          "cameraPermission": "LocalCheck uses the camera to verify the court you are adding.",
+          "microphonePermission": false
+        }
+      ],
       [
         "expo-location",
         {

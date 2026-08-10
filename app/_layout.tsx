@@ -14,7 +14,7 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -22,6 +22,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { LogoMark } from "@/components/brand/LogoMark";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { SplashReveal } from "@/components/onboarding/SplashReveal";
 import { CourtSheetProvider } from "@/components/sheet/CourtSheetHost";
 import { Colors } from "@/constants/colors";
 import { AppProvider } from "@/context/AppContext";
@@ -33,6 +34,7 @@ import { RealtimeHubProvider } from "@/context/RealtimeHubContext";
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
+let hasPlayedSignedInLaunch = false;
 
 const detailScreenOptions = {
   headerShown: false,
@@ -52,6 +54,13 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const { session, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const [signedInLaunchDone, setSignedInLaunchDone] = useState(
+    hasPlayedSignedInLaunch,
+  );
+  const finishSignedInLaunch = useCallback(() => {
+    hasPlayedSignedInLaunch = true;
+    setSignedInLaunchDone(true);
+  }, []);
 
   useEffect(() => {
     if (isLoading) return;
@@ -80,6 +89,14 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       >
         <LogoMark size={88} />
         <ActivityIndicator color={Colors.accent} />
+      </View>
+    );
+  }
+
+  if (session && !signedInLaunchDone) {
+    return (
+      <View style={{ flex: 1, backgroundColor: Colors.background }}>
+        <SplashReveal mode="signed-in" onDone={finishSignedInLaunch} />
       </View>
     );
   }

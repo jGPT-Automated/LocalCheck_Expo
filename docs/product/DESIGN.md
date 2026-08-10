@@ -19,7 +19,13 @@ The product should feel premium, athletic, editorial, local, and direct. It shou
 
 - The bracketed check mark in `assets/brand/logo-mark.png` is the canonical in-app mark.
 - Render it only through `components/brand/LogoMark.tsx`. Replacing that asset updates every in-app lockup.
-- The mark is icon-only; do not recreate it with text glyphs, CSS art, inline SVG, or a second implementation.
+- The mark is icon-only; do not recreate it with text glyphs, CSS art, or a
+  second in-product implementation. The cold-start `SplashReveal` is the one
+  approved motion exception: it reuses PR25's source paths to move from pin to
+  W to the canonical check, then hands off to `LogoMark`.
+- `assets/brand/splash-artwork.png` is the approved signed-out reveal artwork.
+  It is composited at its natural portrait aspect ratio and is not stretched
+  into a landscape hero.
 - Primary tab headers use `ScreenHeader`. Detail pages use `DetailHeader`, whose bracketed `LogoMark` back variant combines canonical brand geometry with the icon library's chevron.
 - All functional icons come from the installed icon libraries. Do not draw icons, use emoji, or use Unicode arrows/checkmarks as substitutes.
 
@@ -120,6 +126,12 @@ Home uses the same material language as a full-width hero, not a floating card. 
 3. Pulling the drawer to 92% reveals who is there, locals, planned visits, and upcoming runs.
 4. Setting or removing a local court happens on the court detail page—not on Explore cards or the preview drawer.
 
+Explore also exposes a compact **Add** header action. Add Court uses the shared
+`FormSheet`, requests a location, lets the player correct the derived address,
+and requires a camera or library photo before verification. A successful
+server response is inserted into the current court list and invalidates only
+court discovery queries.
+
 The court detail page keeps the brand/detail header, six-metric court panel, and tabs fixed. Only the selected tab's content scrolls when needed:
 
 - Feed: paginated activity timeline and game-result modal.
@@ -137,6 +149,9 @@ The court detail page keeps the brand/detail header, six-metric court panel, and
 - ELO is large, centered, and white. Weekly delta is orange (red only when negative).
 - Wins and losses may use green/red values because they are explicit result semantics.
 - Player QR codes deep-link to profiles. A cold-start profile always offers a visible branded back action that returns to the tab app.
+- A player profile keeps **Log Game** reachable even when the player was not
+  loaded through the leaderboard. Report and block actions live in the same
+  profile context and never replace the primary game/friend actions.
 
 ## Activity timeline
 
@@ -167,6 +182,10 @@ The court detail page keeps the brand/detail header, six-metric court panel, and
 - Check-in state may use a restrained spring confirmation.
 - Bottom sheets and speed dials use their established gesture/animation libraries.
 - Honor reduced-motion settings.
+- Signed-in cold starts use a 1.6-second mark sequence: pin → W → check.
+- Signed-out cold starts give the approved artwork and LocalCheck lockup the
+  full reveal before the form becomes interactive. Reduce Motion collapses
+  both paths to the final static state.
 
 ## Pattern provenance
 
