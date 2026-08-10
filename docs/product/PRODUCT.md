@@ -1,56 +1,45 @@
-# LocalCheck Product Context
+# Product context
 
-Last verified: 2026-07-26
-
-## Product
-
-LocalCheck is the live layer for local pickup sports. It helps players understand a court before leaving home, check in when they arrive, organize the next run, and recognize the people who make a court a community.
-
-The launch sports are basketball and pickleball. The launch experience is centered on verified, source-backed courts and honest community activity rather than fabricated popularity.
+LocalCheck is the live layer for local pickup sports. It helps players
+understand a court before leaving home, check in when they arrive, organize the
+next run, and recognize the people who make a court a community. Launch sports
+are basketball and pickleball.
 
 ## Primary users
 
-- Regular local players who loosely plan their week around a home court.
-- Players deciding whether a court is active enough to visit now.
-- Newcomers who need venue access facts and a legible picture of the local community.
+- Regular players who loosely plan their week around a home court.
+- Players deciding whether a nearby court is active enough to visit now.
+- Newcomers who need honest venue facts and a legible local community.
 
 ## Core jobs
 
-1. Know before you go: see the court identity, current activity, access facts, and next likely run.
-2. Check in: make the live picture more useful without exposing private identities.
-3. Plan the week: signal intent, see who is going, and reduce coordination in group messages.
-4. Belong locally: recognize friends, locals, captains, and a player's home-court relationship.
-5. Compete: log games and maintain meaningful local standings.
+1. Know before you go: see court identity, current activity, access facts, and
+   the next likely run.
+2. Check in: improve the live picture without exposing private identities.
+3. Plan: signal intent, coordinate runs, and reduce group-message overhead.
+4. Belong: recognize friends, locals, and a player's home-court relationship.
+5. Compete: submit reviewed results and maintain sport-specific standings.
 
-## Brand register
+## Non-negotiable truths
 
-The product register is premium athletic and editorial: confident, direct, sharp, physical, and useful. Reference territory includes Nike, adidas, SNKRS, Peloton, and Victory Journal. The product must not look like a generic developer dashboard, hacker interface, neon gaming product, or vibe-coded card collection.
+- A court is a shared destination and community identity, not a name plus two
+  counters.
+- Home, Explore, the map sheet, and Court detail use one court identity model at
+  different densities.
+- Orange identifies LocalCheck, live truth, selection, and primary action.
+  Sport is metadata, not a competing theme.
+- Counts and venue attributes are real. Empty states explain confirmed zeroes;
+  failures do not masquerade as zero.
+- Generated media may be atmospheric only. It never represents a real venue.
+- Durable product state lives in Supabase and is protected by RLS.
+- Privacy is enforced by data access and aggregation, not by hiding a control.
 
-Website expression may use an off-white editorial field to create pacing. Mobile remains predominantly graphite for outdoor legibility. Both expressions share typography, hierarchy, motion character, court identity, and a single safety-orange brand accent.
+## Brand register and accessibility
 
-## Non-negotiable product truths
+The register is premium athletic and editorial: confident, direct, sharp,
+physical, and useful. Avoid generic dashboards, hacker neon, gaming tropes, or
+decorative card collections.
 
-- A court is a shared destination and community identity, not only a name plus two counters.
-- One court identity model appears on Home, Explore, map sheets, and the Court page at different densities.
-- Orange identifies LocalCheck, live truth, and primary action. Sport is metadata, not a competing theme color.
-- Counts are honest. Empty states explain what zero means and invite the next useful action.
-- Real venue photography or map geometry may identify a verified court. Generated imagery is atmospheric only and must never represent a real venue.
-- Home and Court pages serve different jobs: Home helps decide what to do; Court organizes live presence, schedule, locals, and activity.
-
-## Accessibility and environment
-
-- Meet WCAG AA contrast for text and controls.
-- Design for outdoor use and bright sunlight, with strong hierarchy and large critical state values.
-- Interactive controls have accessible labels, visible focus treatment, and at least 44x44 px/dp targets.
-- Live changes are announced without relying on color alone.
-- Reduced-motion mode replaces spatial choreography with concise crossfades or direct state changes.
-- Private players contribute only to grouped, non-identifying activity counts.
-
-## Canonical sources
-
-- Governance and decision history: `/Users/JesseH/Projects/LocalCheck_Expo/docs/product`
-- Cross-project launch control: `/Users/JesseH/Projects/LocalCheck_Expo/docs/product/LAUNCH_CONTROL.md`
-- Current provisional visual base: `/Users/JesseH/Projects/LocalCheck_Expo/docs/product/references/Brand Asset Sheet.dc.html`
-- Historical/experimental visual specimens: `/Users/JesseH/Projects/archive/LocalCheck_JAWS-reference-2026-07-26`
-- Archived web PR #2 checkout: `/Users/JesseH/Projects/archive/LocalCheck_WEB_PR2-branch-2026-07-26`
-- Mobile implementation: `/Users/JesseH/Projects/LocalCheck_Expo/artifacts/mobile`
+Meet WCAG AA contrast, support bright outdoor use, provide 44x44 minimum touch
+targets, label controls, communicate state without color alone, and replace
+spatial motion with concise alternatives when reduced motion is enabled.

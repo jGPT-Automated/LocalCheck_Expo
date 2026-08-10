@@ -1,143 +1,120 @@
-# LocalCheck current state
+# Current state
 
-Last verified: 2026-08-01, America/Chicago
+Last reconciled: 2026-08-10 against the isolated PR #28 stabilization worktree
+and the live LocalCheckProd migration ledger. The items under "Release 1 branch
+state" are not production state. Reconfirm the exact `main` SHA after PR #28
+merges.
 
-This is the short current truth. Use the activity ledger for history and the
-release runbook for deployment steps.
+## Production checkpoint
 
-## Solid checkpoint
+- iOS/TestFlight checkpoint: app `1.0.1`, build `13`, release tag `v1.0.5`.
+- PR #28 release candidate: app `1.0.2`; the native version is bumped because
+  Add Court introduces the `expo-image-picker` config plugin. Its build number
+  will be assigned remotely by EAS after the approved merge.
+- EAS project: `agenticjess-os/localcheck`
+  (`9c906173-0258-45a9-a3fe-786cda373c66`).
+- Supabase production project: `qkrnmyexzvaxiqfxwwfb`.
+- Installed binaries use EAS Update with `runtimeVersion.policy = appVersion`.
+- Production OTA rollback remains available through EAS Update republish.
 
-| Item | Verified state |
-| --- | --- |
-| GitHub repository | `jGPT-Automated/LocalCheck_Expo` |
-| Canonical local folder | `/Users/JesseH/Projects/LocalCheck_Expo` |
-| Delivery branch | GitHub `main` |
-| Delivered source | GitHub `main` is `d193ac8` — PR #22 (MVP consolidation) merged 2026-07-30, plus PR #23 (app version 1.0.0→1.0.1) merged 2026-07-31. Verify the current remote tip when an exact hash matters. |
-| Canonical review PR | [#22 — consolidate LocalCheck MVP candidate](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/22) is merged and closed, not open. It is now historical — its content is `main`. |
-| Local working state | No open review branch. `main` is the working source of truth. |
-| Release tag | `v1.0.5` → checkpoint commit `d193ac8` (app version `1.0.1`, build 13). `v1.0.4` (commit `249c926`, build 9) is the prior checkpoint, now superseded. |
-| TestFlight | LocalCheck `1.0.1 (13)` delivered 2026-08-01; Jesse confirmed it launches, feels snappy, and core logic works. Push notification registration is still broken on this build — see "What is not complete." |
-| Successful EAS workflow | `019fbb3e-b3b6-7830-ad63-cb4545af256c` (build 13 + submit, 2026-08-01). Prior checkpoint: `019f9e9b-188e-70b8-9ff3-f1aa9a66b52e` (build 9, 2026-07-26). |
-| Expo project id | `9c906173-0258-45a9-a3fe-786cda373c66` |
-| Supabase project | LocalCheckProd `qkrnmyexzvaxiqfxwwfb` |
+## Current product contract
 
-Build 13 is the current solid checkpoint: it carries PR #22's full MVP
-consolidation (Home/Explore/Schedule/Court Details/Compete UI, the notification
-inbox and sport-Elo candidate, private-Broadcast Realtime client changes) plus
-the fixes below. Two-device Realtime acceptance and the notification/Elo
-backend deploy remain open — build 13 contains the client code, not proof it
-works end to end on hardware. See [`ACTIVITY_LEDGER.md`](product/ACTIVITY_LEDGER.md)
-2026-08-01 entry for the full build-9→13 incident writeup.
+- Authentication: email/password and Apple Sign-In.
+- Discovery: court list/search plus native Mapbox map. Map viewport queries are
+  location-driven across market boundaries; Explore narrows market results in
+  expanding geographic windows before sorting by distance.
+- Presence: atomic check-in switching and server-driven expiration.
+- Privacy: changing check-in visibility updates the active row and projected
+  activity before the selector changes; relaunch hydrates the persisted mode.
+- Schedule: planned visits and hosted runs.
+- Social: profiles, friendships, persisted one-per-user activity hype,
+  notifications, and reversible block/report safety controls managed from
+  Settings.
+- Competition: sport-specific ELO and reviewed match lifecycle.
+- Realtime: private scoped Broadcast invalidation followed by authoritative
+  refetch.
 
-## What is complete
+All durable product state comes from Supabase. There is no application API
+server or local-data fallback. The Expo browser target renders this same app for
+development and testing.
 
-- GitHub main restored as the local mobile source of truth.
-- Mapbox secret download credential fixed in Expo environments.
-- EAS fingerprint mismatch removed by the `appVersion` runtime policy.
-- Tagged iOS build completed and submitted to TestFlight.
-- Old global polling storm removed; acting-device and focus/foreground refreshes remain, without a recurring timer.
-- A local Realtime release candidate now replaces every shipping-app `postgres_changes` listener with authorized private Broadcast topics. One hub deduplicates topics, coalesces invalidations, caps exact court topics, closes all channels while inactive/hidden, restores desired topics on return, and fails closed after repeated subscription errors.
-- Explore now uses a Compete-style full-width `List` / `Map` switch, market-scoped discovery (five visible, ten fetched), premium smoky cards with in-card Check In, active/local counts, and restrained sport metadata. Web points are Mapbox canvas layers with built-in clustering; native uses the equivalent `ShapeSource` layers. The signed-in preview passed list, cluster-rendering, and Schedule multi-select checks.
-- Schedule now has inline `View / Edit` mode. Cell taps only update pending local state; `Save` commits the additions/removals together and performs one catch-up refresh. Browser QA selected and cancelled multiple cells without writing test data.
-- The local MVP visual candidate now applies one shared Oswald/Inter type hierarchy and header baseline across primary tabs; compact matte court cards; real sport-library icons; smaller settings and map chrome; and ranked/friend avatar states where orange glow means ranked and the star means friend.
-- The 2026-07-29 reference pass makes the shared primary-tab title a stable 22 px Inter lockup, moves the unboxed sport filter before Explore search, and reduces normal discovery cards to a lighter one-line court name with tighter spacing. Home now uses a full-width matte court section rather than a discovery card. Its identity, roster, and next run stay fixed while only the activity feed scrolls. The selected map sheet uses court metrics rather than decorative player tiles.
-- Schedule now covers 8 AM through 11 PM in two-hour heat buckets, defaults to the current bucket whenever the screen regains focus, highlights the current row/column/cell, separates View from Edit, and presents upcoming runs as a horizontal snapping rail. Create Run and Add Court share the same form-sheet shell.
-- Court Details now keeps one stable court card above four scrollable sections: `Feed`, `Locals`, `Schedule`, and `Details`. Locals use the requested ranked/friend avatar language; Schedule reuses the heatmap contract; Details only renders court-facility facts that actually exist in the data.
-- The canonical dependency tree is now a real pnpm install rather than archive symlinks. `script/start_local_preview.sh` produces a fresh interactive export at port 8081 when Watchman is unavailable; the export and release gate pass from the canonical checkout.
-- The local Compete candidate now has separate basketball and pickleball views backed by separate rating fields. Until its additive migration is active, it safely falls back to the old combined rating. A hidden current-user placeholder remains inline without changing public row numbering or duplicating the user publicly in that client view.
-- A local notification and score-review candidate now includes an in-app inbox, unread badge, friend request/accept alerts, run invitations, score confirmation/object actions, and bounded phone-push source. Its exact product and activation contract is in [`NOTIFICATIONS_AND_ELO.md`](NOTIFICATIONS_AND_ELO.md).
-- The contributor contract is now explicit in [`APP_ARCHITECTURE.md`](APP_ARCHITECTURE.md). It records provider order, service and RPC boundaries, Realtime topics, native-build gates, and the logic that each screen must preserve during UI work.
-- The local mobile release gate now runs TypeScript plus five focused Realtime lifecycle/scoping tests; it passed on 2026-07-27.
-- The exact applied `v2_scoped_realtime_broadcast` migration source was recovered byte-for-byte from the archived release worktree into `docs/supabase/migrations/202607220004_v2_scoped_realtime_broadcast.sql` and checked against the live functions, policy, triggers, and `courts_with_stats.market` contract. No production mutation was made.
-- Build-9 screen/flow evidence and Jesse's annotations are stored under `docs/product/screen-library/releases/ios-1.0.0-build-9/`.
-- Product, brand, launch, decision, and activity documents are consolidated under `docs/product/`.
-- A dependency-free snapshot of web `main` at `7a5b74d` is imported under `artifacts/web`; its 56 source files matched the verified upstream commit before adding local provenance metadata.
-- PR #22 (MVP consolidation) merged to `main` as `bcf9605` on 2026-07-30.
-- The iOS distribution provisioning profile was regenerated via `eas credentials` (Build Credentials → do not reuse original → generate new) so it includes the Push Notifications / `aps-environment` capability that `expo-notifications` (added in PR #22) requires to compile. This was blocking every build of `main` (builds 10, 11) with `XCODE_BUILD_ERROR` before the fix.
-- App version bumped `1.0.0` → `1.0.1` (PR #23, commit `d193ac8`) so the runtime version changes too (`runtimeVersion.policy: appVersion`). This stops future native binaries from being considered OTA-compatible with updates meant for the pre-`expo-notifications` runtime.
-- Tag `v1.0.5` → build 13 → TestFlight, both `build_ios` and `submit_ios` succeeded (workflow `019fbb3e-b3b6-7830-ad63-cb4545af256c`). Jesse confirmed on-device: no launch crash, app "works for the most part," "feels snappy," core logic present.
+## Known release risks
 
-## What is not complete
+- Mapbox, push notifications, Apple Sign-In, and SecureStore require physical
+  iOS verification; browser success does not prove them.
+- The old Add Court modal that called a dead `/api` route remains retired. The
+  PR #28 branch now has an authenticated Supabase flow, but it is not production
+  proven until its backward-compatible cloud changes are approved, deployed,
+  and accepted/rejected physical photo tests pass.
+- Push registration was reported broken on build 13. Treat it as open until a
+  newer physical build proves registration, foreground/background/cold-start
+  routing, tickets/receipts, retries, and invalid-token cleanup.
+- Account deletion needs physical Apple-token revocation verification before
+  App Store release confidence.
 
-- The notification and sport-Elo candidate is not active in LocalCheckProd. The migration and Edge Function source have not been deployed, the Database Webhook has not been created, and no notification row or rating was changed during this implementation pass.
-- Phone push registration is still broken on build 13, even with the native module present and the provisioning-profile entitlement fixed. Tapping "Turn on Phone Alerts" returns "Alerts are not on: The phone could not be registered." Not yet root-caused. Leading theory (unverified): EAS credentials has a distinct, separate "Push Notifications: Manage your Apple Push Notifications Key" entry that this session never touched — only "Build Credentials" (distribution cert + provisioning profile) was regenerated. `expo-notifications`' `getExpoPushTokenAsync()` needs an APNs key uploaded to EAS so Expo's push service can talk to Apple on the app's behalf; if that key was never created, registration would fail exactly like this. Check `eas credentials` → iOS → production → "Push Notifications: Manage your Apple Push Notifications Key" before assuming anything else. The durable in-app inbox remains the source of truth if phone push stays broken.
-- The current Elo candidate is intentionally basic: separate basketball and pickleball ratings, 1200 start, standard K=32, opponent confirmation, objection with no rating change, and seven-day automatic confirmation. Advanced rating mechanics and the final objected-score retention rule remain later work.
-- Build 13 now ships the private-Broadcast Realtime client (it was part of PR #22, merged 2026-07-30) — the old public `postgres_changes`/`PrivateOnly` failure mode described below should no longer apply to what's installed, but this has **not been re-verified against build 13 specifically**. Confirm before relying on it.
-- The rebuilt local browser joined private Jaycee Park, Houston, and signed-in-user topics with `SUBSCRIBED` status and no local `PrivateOnly` error. Jesse then confirmed a TestFlight-originated court change (from build 9) appeared live in the already-open browser without a tab switch. This proved the new receiving path against build 9; reverse-direction and full two-phone acceptance on build 13 remain open.
-- Physical native-map acceptance remains open. The web preview passed Houston market scope, map-layer positioning, low-zoom clustering, and styling. Cluster expansion now follows Mapbox GL JS's documented callback contract, but its final automated click replay was blocked by the preview controller's localhost safety policy. TestFlight build 9 does not contain this candidate.
-- App-wide profile privacy is not complete. The current `profiles` contract has no persisted visibility field, leaderboard queries cannot filter it, and the Settings value is session-scoped check-in visibility. The local Compete presentation prevents the signed-in hidden user from appearing twice, but durable cross-client privacy requires an approved schema/service/RLS change and full surface audit.
-- Four client write paths target tables they cannot write. LocalCheckProd is a v2 schema that revoked default ACLs and routes behaviour through `SECURITY DEFINER` RPCs, with narrow **column-level** grants on a few tables. `information_schema.role_table_grants` hides column-level grants, which is why this went unnoticed. Full map and verification recipes: [`BACKEND_WRITE_PATHS.md`](BACKEND_WRITE_PATHS.md).
-  - **Schedule "My Times"** — fixed client-side. `authenticated` may INSERT `user_id` but not UPDATE it, and `.upsert()` compiles to `ON CONFLICT DO UPDATE SET user_id = …`, rejected with `42501`. Now uses `ignoreDuplicates: true` (`DO NOTHING`), verified against production in a rolled-back transaction. **No migration required** — an earlier `GRANT` migration was written on a wrong diagnosis and has been deleted.
-  - **Add Friend** — fixed client-side. `friendships` is SELECT-only; the old code inserted directly and discarded the error. Now uses `request_friend` / `accept_friend_request` / `remove_friendship`. `request_friend` creates **`pending`**, the profile button shows `REQUESTED`, and Me → Friends exposes incoming accept/decline actions plus the full Friends screen.
-  - **Add a Court** — still broken. `courts` is SELECT-only and no `create_court` RPC exists. Needs a product decision plus a migration.
-  - **Edit a Run** — still broken. `runs` is SELECT-only and no update RPC exists.
-- The local candidate no longer reports an empty or court-less Schedule save as success. It disables an unchanged Save, retains failed selections, and supports a Court Details deep-link with the court preselected. Signed-in write proof on a physical client is still required before delivery.
-- Add Friend does nothing in build 9. The local candidate uses the existing friend-request RPCs and includes incoming accept/decline surfaces, but physical two-account proof is still required.
-- The local Profile candidate obtains a real lifetime `check_ins` row count rather than labeling court-time minutes as check-ins.
-- Normal hot-reload Expo web still needs Watchman on this machine; without it, Node file watching reaches `EMFILE`. The repeatable export-and-serve fallback is working, but source edits require restarting the script. The launcher now calls the checked-in app's installed Expo binary directly, so a different global or pnpm version cannot prompt an agent to replace the canonical dependency tree.
-- The repeatable preview server now sends no-cache headers for every export asset and serves the Expo app shell for direct client routes such as `/schedule` and `/court/:id`. This prevents the stable development bundle filename from reopening a stale build after restart. It remains an export preview, so code edits still require rerunning the script.
-- The imported web app has not yet passed install/build/preview inside this pnpm workspace; source synchronization is complete, integration is not.
-- The shared-system browser pass is complete. Physical iPhone acceptance remains open for safe areas, keyboard/sheet behavior, native Mapbox, dense Schedule states, and same-viewport comparison against the supplied mocks.
-- Account-deletion client and Edge Function source exist in the local candidate. A 2026-07-29 read-only live-schema check disproved the archived `ON DELETE RESTRICT` review warning: `profiles.id` cascades from `auth.users`, profile-owned rows cascade, and retained historical references use `SET NULL`. A checked-in migration now reproduces that contract. The function now generates Apple's short-lived ES256 client secret from `APPLE_PRIVATE_KEY`, `APPLE_KEY_ID`, `APPLE_TEAM_ID`, and `APPLE_CLIENT_ID`, matching the uploaded Supabase secrets. Deployment and physical delete-account proof remain merge/release blockers.
-- App Store release QA/submission is still ahead.
+## Pull-request quarantine
 
-## Approved working direction
+PR #25 and PR #26 were large, overlapping changes with unresolved review and
+runtime risk. Do not merge either wholesale. Recover an individual change only
+after restating its current product contract, rebasing it onto current `main`,
+and verifying it independently.
 
-- One brand accent: `#FF5500`; no scattered alternate oranges.
-- One shared primary-tab header: mark + tab name; no top-right profile avatar.
-- Schedule defaults to the shared heatmap; `Edit My Times` enables multi-select and `Done` saves once.
-- Host a Run uses standard native date/time controls and the shared modal-form shell.
-- Court preview uses a proven contextual bottom sheet; form tasks use a standard modal presentation.
-- Court pages use a stable summary followed by `Feed`, `Locals`, `Schedule`, and `Details` tabs.
-- Home uses a full-width matte local-court section. `Who's Here` owns its inline `View all` action, and only the Activity Feed scrolls.
-- Explore keeps the shared header and uses `List` / `Map` as its primary view switch.
-- Court cards use basketball blue and pickleball green only as restrained metadata in the emblem, faint glowing court geometry, smoked hue, and a thin left identity edge. Orange remains the live/action/ranked signal.
-- Presence terminology converges on `Check in`, `Here now`, and `Locals` with one meaning per count.
-- A court check-in is durable database state, not WebSocket presence. Phone lock, backgrounding, disconnect, or leaving a screen never means checkout. Live subscriptions exist only while a relevant screen is active; returning to the app performs one scoped catch-up refresh without requiring tab switching.
+PR #28 (`codex/mvp-visual-polish`) is the single final roll-up. Its ancestry
+contains the complete lifecycle reset from PR #27 plus every subsequent MVP UI,
+design-system, testing, and handoff commit. Merge #28 only; close #27 as
+superseded. Closing a pull request or deleting its task branch does not remove
+the commits incorporated into #28 or the review history retained by GitHub.
 
-## Next sequence
+## Release 1 branch state
 
-Build 13 is live and functional on Jesse's phone as of 2026-08-01. PR #22 is
-merged; steps 1, 2, and 5 below from the pre-2026-08-01 plan are done. Updated
-priority order:
+- Add Court, block/report, sport-specific ELO review, three-day automatic
+  confirmation, and durable push delivery have been recovered into the clean
+  root-level app and covered by focused source and unit contracts.
+- The approved splash artwork is present; signed-out launch uses the full
+  reveal and signed-in launch completes pin → W → check in 1.6 seconds.
+- Detail-header logo geometry is explicitly clipped to its requested square,
+  the Me notification bell is restored while Inbox remains, and profile Log
+  Game fetches an opponent by ID rather than leaderboard membership.
+- GitHub CI no longer requires runner-provided `rg`. All four EAS workflow files
+  validate with the Expo schema/CLI.
+- Expo's connected GitHub base directory was changed from `/artifacts/mobile`
+  to `/` on 2026-08-10 and visibly confirmed as saved, so EAS now resolves the
+  cleaned root-level repository.
+- `main` is not currently protected. PR #28 therefore treats explicit approval,
+  a clean `quality` check, and a clean Codex review as mandatory operational
+  gates before merge.
+- The production project was inspected read-only before release: its current
+  migration ledger ends at `20260804125610`, its existing tables/RPCs remain
+  live, and only `delete-account` is currently deployed as an Edge Function.
+  The four PR #28 migrations and two new functions are source-only. Connected
+  signed-out auth/splash QA passed at 390×844 and 1280×900 with no overflow;
+  signed-in connected surfaces and physical-device QA remain open.
 
-1. **UI/design polish** — Jesse's stated next priority now that the app is
-   functional again ("this could finally be the last push, ui update stuff").
-2. Root-cause and fix phone-push registration ("Alerts are not on: the phone
-   could not be registered") — see the APNs-key theory in "What is not
-   complete." Needs another native build once fixed (push key alone may not
-   need one — confirm before assuming a rebuild is required).
-3. Review the prepared notification and sport-Elo backend contract, then
-   obtain Jesse's explicit approval before applying its migration or deploying
-   its push sender.
-4. Re-run two-device Realtime acceptance against build 13 specifically (prior
-   proof was against build 9's older client).
-5. Physical Mapbox quality acceptance on build 13.
-6. Complete recovery snapshot/runbook, privacy/compliance, App Store QA,
-   screenshots/metadata, external TestFlight, and submission.
+## Immediate gates
 
-**Process gap worth deciding on, not yet fixed:** `publish-ota-update.yml`
-fires on every push to `main` regardless of content. That's what let PR #22's
-`expo-notifications` addition (a native-requiring change) get OTA-published
-onto build 9's older native binary and crash it — see the RELEASE_RUNBOOK
-gotcha and the 2026-08-01 ledger entry. Worth a guard (e.g. only auto-publish
-when the diff is JS/asset-only) but that's a workflow-behavior decision for
-Jesse, not something to change unilaterally.
+1. Complete source/release checks, connected preview, and the two-device matrix.
+2. Push the verified snapshot, reply to and resolve PR #28's three review
+   conversations with concrete evidence, and obtain explicit release approval.
+3. Deploy the backward-compatible Supabase changes/functions and verify them.
+4. Keep GitHub's `eas-build-ios:production` label on PR #28 so the Expo GitHub
+   integration
+   produces the pull-request build requested for review. This label does not
+   submit to TestFlight.
+5. The approved merge to `main` automatically produces and submits a fresh
+   TestFlight binary through `.eas/workflows/release-ios.yml`.
+6. In App Store Connect, wait for processing, verify the new build internally,
+   then deliberately add it to the external tester group or App Review. A merge
+   does not perform those App Store Connect approvals.
 
-## Web truth
+## Next-agent starting point
 
-- Remote web `main`: `jGPT-Automated/LocalCheck_WEB` at `7a5b74d03aaa20a07ecf58d3ef4d2daef903c2be`.
-- The old local PR checkout was `codex/weather-auth-heatmap` at `cb60ad406747`, ten commits ahead of main with local package changes. It is preserved at `/Users/JesseH/Projects/archive/LocalCheck_WEB_PR2-branch-2026-07-26` and is not current truth.
-- Current source snapshot: `artifacts/web`, imported from that exact main commit without dependencies or nested Git metadata.
-- Remaining work: validate package-manager integration, build, and preview before calling the web app monorepo-ready. Do not merge the archived PR branch by assumption.
-
-## Evidence and history
-
-- Activity and decisions: [`product/ACTIVITY_LEDGER.md`](product/ACTIVITY_LEDGER.md)
-- Launch burn-down: [`product/LAUNCH_CONTROL.md`](product/LAUNCH_CONTROL.md)
-- Build-9 screen map: [`product/screen-library/releases/ios-1.0.0-build-9/SCREEN_MAP.md`](product/screen-library/releases/ios-1.0.0-build-9/SCREEN_MAP.md)
-- Release procedure: [`RELEASE_RUNBOOK.md`](RELEASE_RUNBOOK.md)
-- Canonical design-system entry: [`product/design system/README.md`](product/design%20system/README.md)
-- Current design acceptance: [`product/DESIGN_QA.md`](product/DESIGN_QA.md)
-- Required contributor architecture: [`APP_ARCHITECTURE.md`](APP_ARCHITECTURE.md)
-- Workspace/archive classification: [`WORKSPACE_MAP.md`](WORKSPACE_MAP.md)
+- Begin from updated `origin/main` after PR #28 merges; do not resume PR #25,
+  #26, or #27.
+- Treat the last known TestFlight checkpoint above as historical until App
+  Store Connect confirms the new build number produced by the merge.
+- Remaining release confidence is primarily physical-device work: push token
+  registration and delivery, Apple Sign-In/account-deletion revocation,
+  Mapbox/location, session restoration, and the multi-user matrix.
+- Small visual follow-ups must improve the shared owner named in
+  `docs/product/DESIGN.md`, include browser and iPhone evidence, and avoid
+  introducing a parallel component or token.

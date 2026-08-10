@@ -1,71 +1,99 @@
-# LocalCheck visual QA — 2026-07-29
+# Design QA — MVP visual consolidation
 
-## Comparison target
+Date: 2026-08-09
+Branch: `codex/mvp-visual-polish`
+Status: **AUTOMATION PASS; RENDER COMPARISON BLOCKED — owner appshot required**
 
-- Source visual truth:
-  - `/Users/JesseH/Downloads/IMG_4869.jpg` — Home (`957 × 1948`)
-  - `/Users/JesseH/Downloads/IMG_4870.jpg` — Explore List (`950 × 1980`)
-  - `/Users/JesseH/Downloads/IMG_4871.jpg` — Explore Map (`935 × 1932`)
-  - `/Users/JesseH/Downloads/IMG_4873.jpg` — Me (`954 × 1951`)
-  - `/Users/JesseH/Downloads/IMG_4874.jpg` — Schedule (`888 × 1806`)
-- Rendered implementation: signed-in Expo web export at `http://127.0.0.1:8081/`.
-- Implementation captures: `docs/product/design-qa/2026-07-29/after-*-pass2.png` (`430 × 932`).
-- CSS viewport: `430 × 932`; density: `1`.
-- Normalization: each framed source image was scaled to fit and padded to `430 × 932`. The implementation remained at its native capture size. Each pair was joined into an `860 × 932` comparison.
-- State: signed-in user with Jaycee Park Pickleball Courts as the local court; real preview data was retained.
+## Reference set
 
-## Full-view comparison evidence
+- LocalCheck Brand Asset Sheet: canonical mark, `#FF5500` accent, graphite surfaces, Oswald display and Inter body typography.
+- Court-card reference: 16 px card radius, quiet sport tint over `#202027` → `#19191E`, centered metrics, library icons.
+- Profile reference: identity and QR at the top, prominent white ELO, semantic win/loss color, separated recent activity.
+- Speed-dial reference: one reachable floating action expanding to labeled library-icon actions.
+- Owner browser annotations from the 2026-08-09 walkthrough are the acceptance authority where they are more specific than an older document.
 
-- `docs/product/design-qa/2026-07-29/compare-home-pass2.png`
-- `docs/product/design-qa/2026-07-29/compare-explore-pass2.png`
-- `docs/product/design-qa/2026-07-29/compare-schedule-pass2.png`
-- `docs/product/design-qa/2026-07-29/compare-me-pass2.png`
+## Build checks
 
-## Focused comparison evidence
+| Check | Result |
+| --- | --- |
+| TypeScript | PASS |
+| Realtime tests | PASS — 5/5 |
+| Home presentation tests | PASS — 8/8 |
+| Player identity tests | PASS — 2/2 |
+| Schedule model tests | PASS — 3/3 |
+| Design consistency guard | PASS |
+| Production-style Expo web export | PASS |
+| Fresh preview at port 8081 | PASS — HTTP 200 |
+| Handcrafted SVG/text-symbol icon scan | PASS — shared library/brand components used in edited surfaces |
+| Supabase email auth smoke | PASS — temporary account create, sign in, profile read, sign out |
+| EAS workflow schema validation | PASS — all four workflows against the current official schema |
 
-- `docs/product/design-qa/2026-07-29/compare-map-selected-pass2.png` compares the selected map-court sheet. The implementation intentionally replaces the mock's player tiles with active, local, and visit metrics, as requested.
-- `docs/product/design-qa/2026-07-29/after-court-pass2.png` verifies the shared court card and readable Feed tab at the same viewport.
-- Separate detail crops were not needed because the `430 × 932` captures keep the affected header, filter, title, metric, and action text readable.
+## Four-pass source and interaction audit
 
-## Findings
+### Pass 1 — hierarchy, geometry, and scrolling
 
-- No actionable P0, P1, or P2 visual defect remains in this scoped pass.
-- Header typography: the shared primary-tab header now uses 22 px Inter and a stable logo/title lockup. Compete no longer uses the oversized condensed heading.
-- Explore spacing: the sport filter is unboxed and placed before Search. Normal court cards are shorter, use a one-line lighter court name, keep real metrics, and retain the required in-card Check In action.
-- Color: orange remains the only primary action/live/ranked color. Sport colors remain restrained metadata and faint court geometry.
-- Image quality: the real LocalCheck logo and icon-library sport marks are used. No camo profile texture, emoji, or replacement illustration was added.
-- Copy: labels describe real product data. The source mock's fake location tile was not copied.
+- Home, Explore, Court, Schedule, Compete, Me, Player, and Run keep their
+  screen shell fixed while the intended content region scrolls.
+- Home Schedule is heatmap-only; Court Schedule is read-only; the primary
+  Schedule tab owns time editing and run creation.
+- Sticky actions clear the tab bar and safe-area inset. Drawers, result cards,
+  selectors, and QR surfaces use bounded widths and consistent gutters.
 
-## Comparison history
+### Pass 2 — typography, color, brand, and component ownership
 
-### Pass 1
+- Oswald is limited to headings/numeric emphasis; Inter owns body, labels,
+  helper copy, timestamps, and rows through `Typography` tokens.
+- `#FF5500` and every translucent orange state resolve through `Colors`.
+- The canonical source mark is rendered only by `LogoMark`; back affordances
+  reuse the extracted brand frame plus the installed Feather chevron.
+- Avatar, player row, profile hero/stats, ELO, activity, court card, selector,
+  speed dial, detail header, and sticky action ownership are centralized.
 
-- P2: primary headers moved between tabs and Compete used a 28 px Oswald heading.
-- P2: Explore's sport filter looked like a separate boxed control and consumed excess space.
-- P2: discovery court cards were too tall and used a heavy two-line title even for short court names.
+### Pass 3 — actions, state, and navigation
 
-### Fixes
+- Selector menus render above rows and consume their own presses; the previous
+  leaderboard touch-through path is removed.
+- Check-in, court details, schedule editing, run creation/joining, friend
+  actions, game result inspection, QR display, and inline inbox routes were
+  traced to their handlers and authoritative service calls.
+- Player/court deep links expose a branded back action and replace into the tab
+  shell when there is no navigation history, preventing a QR-opened profile
+  from trapping the user.
+- A non-functional QR-scan control was removed rather than shipped as a fake
+  action; the working player QR remains available and camera-scannable.
 
-- Reused `ScreenHeader` with a 22 px Inter title across primary tabs.
-- Moved the sport filter into the left side of the search row and removed its box.
-- Reduced card padding, emblem size, button height, shadow, and minimum height.
-- Changed normal card names to lighter Oswald Medium and one line; the featured local court can still use two lines.
+### Pass 4 — fresh senior-design consistency review
 
-### Pass 2
+- Rechecked every edited screen for duplicated primitives, one-off icon glyphs,
+  raw accent values, mismatched number/label alignment, hidden touch targets,
+  accidental military time, and page-level scroll ownership.
+- Fixed the Home active-player check-in lookup discovered during this pass;
+  active rows now receive the same persisted check-in metric as local rows.
+- Removed the obsolete Friends route after confirming that friends, suggestions,
+  search, and requests now live inside the Me tab.
+- Rejected a one-off drawn back icon and derived the frame from the real brand
+  asset instead.
 
-- The combined Home, Explore, Schedule, Me, and selected-map comparisons show a consistent header line, restrained color, readable hierarchy, and no clipped primary control.
-- Deliberate differences are functional: Home keeps four live court metrics and a timeline; Explore cards keep Check In; Schedule keeps the requested 8 AM–11 PM buckets and View/Edit mode; the map sheet uses metrics instead of player tiles.
+## Visual comparison result
 
-## Open product choice
+Automated visual comparison is **blocked**. The Codex in-app browser refused a
+fresh localhost screenshot because its admin-enforced security policy could not
+be verified. The preview itself is serving normally. No alternate browser,
+Playwright process, or policy bypass was used.
 
-- A collapsing Home card and a pinned Schedule heatmap remain optional interaction ideas. They were not treated as required visual fixes because the current screens remain usable and the requested behavior needs a separate motion/scroll decision.
+Because a fresh screenshot is not available, spacing, clipping, density, and
+reference fidelity are not marked as passed. The owner should complete one
+appshot pass at the iPhone-sized PR preview before external TestFlight testing.
 
-## Verification
+## Owner acceptance route
 
-- Direct TypeScript check passed.
-- Fresh Expo web export passed.
-- `git diff --check` passed.
-- Browser-rendered Home, Explore List/Map, selected map sheet, Schedule, Compete, Me, and Court Details were inspected at `430 × 932`.
-- Console review found no uncaught render or navigation failure in this pass. Opening the third-party bottom sheet emits two React 19 `element.ref` deprecation messages; this did not break the selected-court flow and remains a dependency follow-up.
+1. Home — full-width local-court hero, sport emblem, local label, Check In, activity typography.
+2. Explore — compact court cards, centered metrics, filled local star, drawer peek height and actions.
+3. Court — branded back action, shorthand title, metric panel alignment, tabs, non-editable schedule, map preview.
+4. Schedule — fixed root layout, localized times, shared run cards, shared speed dial.
+5. Compete — BB/PB compact selector, consistent leaderboard rows, reachable Log Game speed dial.
+6. Me and Player — shared profile hero/stat components, QR, inline notifications/friends, deep-link escape.
+7. Run — fixed root viewport, compact participant grid, localized time, sticky action.
 
-final result: passed
+Any visible mismatch should be captured as an appshot annotation and fixed
+before App Store submission work begins.

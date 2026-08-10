@@ -1,6 +1,54 @@
 # LocalCheck Design Decisions
 
-Status: Proposed. Nothing in this file is locked until the corresponding roadmap gate is confirmed by the user.
+Status: Current MVP decisions. Newer dated decisions supersede older entries.
+
+## 2026-08-09 — Shared MVP visual system and interaction hierarchy
+
+**Decision confirmed by Jesse:** Keep the working SDK 54 application and make
+material MVP improvements through shared components. The Brand Asset Sheet is
+the authority for the mark, `#FF5500`, graphite surfaces, Oswald display type,
+and Inter body type. Edited surfaces use the real mark or library icons—never
+ASCII, emoji, handcrafted SVG, or one-off icon drawings. Player identity,
+profile heroes, metrics, selectors, run cards, activity, sticky actions, court
+cards, and speed-dial actions each have one shared implementation.
+
+**Why:** The product is close enough to validate. A rewrite would delay user
+learning, while continued spot-editing would preserve inconsistency and make
+every future iteration expensive.
+
+## 2026-08-09 — Explore cards open a contextual court sheet
+
+**Decision confirmed by Jesse:** Explore court cards show concise identity,
+active-now and local counts. They do not contain Check In, View Court, or Set
+Local actions. Tapping a card opens a short bottom sheet with Check In and View
+Court; pulling the sheet up reveals Who's Here and Locals. Only the actual
+local court displays a filled star.
+
+**Why:** The card remains easy to scan, while the contextual sheet provides
+reachable actions without turning every discovery result into a large form.
+
+## 2026-08-09 — Court routes are read-only place dashboards
+
+**Decision confirmed by Jesse:** A court route has a fixed branded header,
+full-width six-metric panel, and Feed, Locals, Schedule, and Details tabs. Feed
+is progressively loaded, Locals shows the full community, Schedule is a clean
+read-only heatmap and run view, and Details owns name, shorthand, status,
+address, date added, and map preview. Check-in and planning edits do not live
+on this route.
+
+**Why:** The route answers what is happening at a place without duplicating
+the local player's action workflow. The primary Schedule tab remains the
+source of truth for editing the player's local-court availability and runs.
+
+## 2026-08-09 — Sport selectors are compact and reflect real sport data
+
+**Decision confirmed by Jesse:** Explore and Compete reuse one compact
+library-icon dropdown pattern. Compete displays `BB` / `PB` only where the
+underlying records are actually scoped by sport; it must not relabel one shared
+rating as two rankings.
+
+**Why:** A rarely changed setting should not consume a full row, and visual
+filters must remain honest about backend data.
 
 ## 2026-07-29 — Home is a fixed court hub, not a discovery card
 
@@ -18,7 +66,9 @@ visible while the longer activity history moves.
 
 ## 2026-07-27 — Explore is local-first, bounded, and sport-identifiable
 
-**Working decision confirmed by Jesse:** Explore uses a full-width `List` / `Map` switch. The list features `My Local Court`, then a small market/city-scoped set of relevant courts with `View All`; it does not download or foreground an unbounded global catalog. Court cards show active and local counts and carry their Check In action inside the card. Basketball blue and pickleball green may appear only as restrained metadata in a monochrome-style sport emblem, faint court geometry, and a smoked background hue. Court cards do not use a colored side stripe or a separate action row. LocalCheck orange remains reserved for live state and primary actions.
+**Superseded interaction detail:** The bounded/local-first query and restrained
+sport identity remain current. The 2026-08-09 decision supersedes the old
+instruction to place Check In inside each card.
 
 **Why:** A player's local court is more personally relevant than a generic nearest result, bounded queries respect Supabase and device resources, and sport-specific geometry/color helps courts read quickly without turning the entire app into competing sport themes.
 
@@ -30,7 +80,9 @@ visible while the longer activity history moves.
 
 ## 2026-07-27 — Do not present fake sport-specific rankings
 
-**Working decision confirmed by Jesse's concern:** Remove `All / BB / PB` from Compete while the backend stores only one overall Elo. Local scope may identify the local court's sport, but the UI must not relabel the same underlying standings as separate rankings. A hidden current user appears once, inline at the would-be position in the owner's view, without changing public row numbering.
+**Superseded presentation detail:** The honesty requirement remains current.
+The 2026-08-09 decision permits a compact BB/PB selector only when the queried
+records are genuinely sport-scoped.
 
 **Why:** Basketball and pickleball ranks should not be combined or cosmetically separated. Real sport toggles require real per-sport match/rating data. Privacy presentation must also avoid the contradictory state where the same player is both public and hidden.
 
@@ -52,9 +104,10 @@ visible while the longer activity history moves.
 
 **Why:** Selecting one square and confirming it before selecting another makes a naturally repetitive planning task slow and annoying. Batch editing preserves context, makes comparison easy, and maps to how players think about a week.
 
-## 2026-07-26 — Court pages use Feed, Locals, and Details tabs
+## 2026-07-26 — Court pages use predictable content tabs
 
-**Working decision confirmed by Jesse:** Keep the court's identity, live summary, and primary action above a court-local tab view. Use three tabs in this order: `Feed`, `Locals`, `Details`. Feed includes live/chronological activity and upcoming runs; Locals owns the community view; Details owns venue facts and access information.
+**Updated by 2026-08-09:** Court routes use `Feed`, `Locals`, `Schedule`, and
+`Details`. The 2026-08-09 read-only court-route decision is authoritative.
 
 **Why:** The current full court page stacks unrelated sections into a long scroll. A stable three-part information architecture makes every court predictable and lets players move directly between activity, people, and place information.
 
@@ -76,21 +129,18 @@ visible while the longer activity history moves.
 
 **Why:** The current brackets feel awkward, the checkmark is not integrated into the surrounding geometry, and the mark is optically unbalanced. The geometric/code-like typographic character is promising, but the current display face feels too heavy and bulky. Logo and typography changes remain a collaborative design decision before implementation.
 
-## 2026-07-26 — Working cross-project authority map
-
-**Working decision confirmed by workspace consolidation:** `LocalCheck_Expo` is the one active product workspace. Product/brand/launch truth lives under `docs/product`, mobile ships from `artifacts/mobile`, and a clean web main is planned for `artifacts/web`. The old web PR and JAWS workspaces are archived. `agents` supplies reusable methods, not product requirements.
-
-**Why:** The previous map named a nonexistent `/Users/JesseH/Projects/LocalCheck_Web` folder and promoted a JAWS specimen whose sport-color and identity rules conflict with the current design contract.
-
 ## 2026-07-26 — One shared planning contract
 
-**Proposed decision:** Web planning should converge on the production `planned_visits` model instead of introducing `court_time_intents` as a second representation of the same user intent.
+**Working decision:** The Expo app uses the production `planned_visits` model
+for every platform target. Do not introduce a second representation of the
+same user intent.
 
-**Why:** Mobile and web share LocalCheckProd. Parallel planning tables create split user state, duplicated privacy/security rules, and two realtime paths for one product job.
+**Why:** Parallel planning models create split user state, duplicated privacy
+rules, and competing Realtime paths for one product job.
 
 ## 2026-07-26 — Release evidence before distribution
 
-**Working decision:** No new TestFlight build or App Store submission is triggered until the release commit, environment target, automated checks, and required runtime test plan are recorded in `LAUNCH_CONTROL.md`. Jesse remains the explicit release authority.
+**Working decision:** No new TestFlight build or App Store submission is triggered until the release commit, environment target, automated checks, and required runtime test evidence are recorded in the pull request. Jesse remains the explicit release authority.
 
 **Why:** The latest mobile source includes a native Mapbox change and new fingerprint, so its OTA cannot reach the existing TestFlight build. A new binary is necessary, but distribution without a verified release candidate would merely move uncertainty onto pilot users.
 
@@ -111,12 +161,6 @@ visible while the longer activity history moves.
 **Proposed decision:** Do not use colored left-edge bars to classify court cards or feed items.
 
 **Why:** Side stripes read as generic dashboard decoration and compete with the live/primary-action meaning of orange.
-
-## 2026-07-23 — Coordinated, not identical, platform expression
-
-**Proposed decision:** Web may use a warm-paper editorial section; mobile remains predominantly graphite. Shared tokens, hierarchy, court identity, voice, and motion make the family coherent.
-
-**Why:** Platform context differs. Consistency is a shared grammar, not a single screen skin.
 
 ## 2026-07-23 — Honest imagery and activity
 

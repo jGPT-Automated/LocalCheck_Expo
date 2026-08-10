@@ -161,6 +161,6 @@ Signed out
 
 ## Marketing-use notes
 
-- These captures are valuable composition and product-story references for the website and App Store screenshots.
+- These captures are valuable composition and product-story references for App Store screenshots.
 - Test usernames, hidden states, zero-data states, location, time, battery level, and system prompts must be reviewed or replaced before public use.
 - Final App Store frames should tell one benefit per image and use current, truthful product behavior.

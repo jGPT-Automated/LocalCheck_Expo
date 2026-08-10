@@ -1,0 +1,53 @@
+project_id = "localcheck"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[realtime]
+enabled = true
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+[inbucket]
+enabled = true
+port = 54324
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:8081"
+additional_redirect_urls = ["localcheck://", "http://localhost:8081"]
+jwt_expiry = 3600
+enable_signup = true
+
+[edge_runtime]
+enabled = true
+policy = "per_worker"
+
+[functions.delete-account]
+verify_jwt = true
+
+[functions.send-notification]
+# This function receives a database webhook and authenticates its private
+# x-localcheck-webhook-secret header in the function body.
+verify_jwt = false
+
+[functions.verify-court]
+# Court submissions must carry an authenticated user JWT. The function also
+# calls getUser before invoking its service-role-only insertion RPC.
+verify_jwt = true

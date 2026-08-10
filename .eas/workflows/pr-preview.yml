@@ -1,0 +1,28 @@
+name: Publish PR preview
+
+defaults:
+  tools:
+    node: '22'
+    pnpm: '10.13.1'
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ workflow.filename }}-${{ github.ref }}
+  cancel_in_progress: true
+
+jobs:
+  preview:
+    name: Check and publish preview update
+    type: update
+    environment: preview
+    params:
+      channel: preview
+      message: PR ${{ github.event.number }} · ${{ github.sha }}
+    hooks:
+      before_update:
+        - name: Typecheck and unit tests
+          run: pnpm check

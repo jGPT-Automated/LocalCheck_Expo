@@ -1,6 +1,6 @@
 # LocalCheck Screen Library
 
-This library preserves the actual product UI by release so future agents can trace user flows, compare regressions, and create accurate website or App Store materials without inventing screens.
+This library preserves the actual product UI by release so future agents can trace user flows, compare regressions, and create accurate App Store materials without inventing screens.
 
 ## Structure
 
@@ -19,7 +19,7 @@ Each release folder contains:
 - Use consistent names: `<flow-order>-<area>-<screen>-<state>.png`.
 - Capture important variants: loading, empty, populated, active, error, modal/sheet, permission, and signed-out states.
 - Record broken actions where they occur, not only in a separate bug list.
-- Keep real test data for internal product evidence. Before website or App Store use, replace personal/test identifiers and verify that every claim and activity state is honest.
+- Keep real test data for internal product evidence. Before App Store use, replace personal/test identifiers and verify that every claim and activity state is honest.
 - Screenshots are source material, not automatically approved marketing assets.
 
 ## Releases
