@@ -14,6 +14,7 @@ product changes that could otherwise be lost during the repository reset.
 | Add Court | Location pin | Changed; never prefilled from the saved home court, device location is required |
 | Court detail | Back logo | Preserved; frame now explicitly sized/clipped |
 | Schedule | Speed-dial FAB | Preserved |
+| Run detail | Roster / invite / manage / RSVP | Preserved; body scrolls above the fixed RSVP footer on compact screens |
 | Compete | Log Game FAB | Preserved temporarily; Release 2 replaces it with `LOG PICKUP` |
 | Player profile | Log Game | Preserved; opponent now fetched directly by ID |
 | Player profile | Friend action | Preserved |

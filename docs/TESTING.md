@@ -36,6 +36,7 @@ in the pull request; never record passwords or tokens.
 | Change active check-in privacy | public → friends → private | active row/feed visibility persists before the selector changes and survives relaunch |
 | Planned visit create/edit/remove | 2 signed-in users | schedule and court views converge |
 | Run create/join/leave/capacity | 2–4 signed-in users | all clients show authoritative membership |
+| Full run detail | compact phone + host controls | roster, invitations, and management actions scroll above the fixed RSVP footer |
 | Friend request/accept/remove | 2 signed-in users | both relationship views agree |
 | Match submit/confirm/reject | 2 signed-in users | pending state then correct ELO/history result |
 | Notification inbox/read state | 2 signed-in users | durable inbox and unread count agree |

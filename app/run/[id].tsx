@@ -81,7 +81,15 @@ export default function RunScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingBottom: (Platform.OS === "web" ? 110 : bottom + 100) },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        style={styles.content}
+      >
         <View style={[styles.header, { paddingTop: topPad + 12 }]}>
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={16}>
             <LogoMark size={30} variant="back" />
@@ -192,7 +200,7 @@ export default function RunScreen() {
             </View>
           </View>
         ) : null}
-      </View>
+      </ScrollView>
 
       <EditRunModal
         visible={showEdit}
@@ -309,7 +317,8 @@ function EditRunModal({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  content: { flex: 1, minHeight: 0, paddingBottom: 98 },
+  content: { flex: 1, minHeight: 0 },
+  contentContainer: { flexGrow: 1 },
   notFound: { flex: 1, justifyContent: "center", alignItems: "center", gap: 20, padding: 40 },
   notFoundText: { fontFamily: Typography.heading, fontSize: 24, color: Colors.text, letterSpacing: 2 },
   header: {

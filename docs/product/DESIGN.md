@@ -177,7 +177,9 @@ The court detail page keeps the brand/detail header, six-metric court panel, and
 - The reachable `SpeedDialFab` exposes **Add times** and **Create run** using the shared Reanimated component and Feather icons.
 - Add-times mode supports multi-select cells and one save action.
 - Scheduled run cards show localized 12-hour time, attendees, and remaining spots. They do not waste space on `VIEW` copy or a text arrow.
-- Run detail uses a fixed layout and two-column roster so open slots do not create a long scrolling page.
+- Run detail keeps the two-column roster compact; its body scrolls when a full
+  roster plus host controls exceeds the viewport, while the RSVP footer stays
+  fixed and reachable.
 - Game logging is a shared form sheet reached from a player or run context, with opponent/court prefilled when available.
 
 ## Motion
