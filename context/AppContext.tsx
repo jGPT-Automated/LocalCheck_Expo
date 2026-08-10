@@ -28,8 +28,9 @@ import {
 import {
   checkInToCourt,
   checkOutOfCourt,
-  fetchCheckedInCourtId,
+  fetchActiveCheckInState,
   fetchUserCheckInCount,
+  updateActiveCheckInVisibility,
 } from "@/services/checkInService";
 import {
   addFriend,
@@ -39,7 +40,7 @@ import {
   fetchFriendshipStates,
   removeFriend,
 } from "@/services/friendshipService";
-import { fetchFeed } from "@/services/feedService";
+import { fetchFeed, hypePost } from "@/services/feedService";
 import { fetchGamesByPlayer } from "@/services/gameService";
 import { fetchScheduledGames, joinScheduledGame } from "@/services/scheduledGameService";
 import {
@@ -102,7 +103,7 @@ interface AppContextValue {
     visibility?: Visibility
   ) => Promise<boolean>;
   refreshPlannedVisits: () => Promise<void>;
-  hypeItem: (feedId: string) => void;
+  hypeItem: (feedId: string) => Promise<void>;
   setLocalCourt: (courtId: string | null, courtObj?: Court) => Promise<boolean>;
   setVisibility: (v: Visibility) => Promise<void>;
   setPreferredSport: (sport: CourtSport | null) => Promise<void>;
@@ -175,7 +176,7 @@ function profileToPlayer(profile: ReturnType<typeof useAuth>["profile"]): Player
     avatar: initials,
     wins,
     losses,
-    checkIns: profile.total_court_time_minutes ?? 0,
+    checkIns: 0,
     memberSince: profile.created_at,
     courtId: profile.local_court_id ?? undefined,
     sport,
@@ -212,6 +213,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [preferredCourtId, setPreferredCourtIdState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const realtimeTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const hypeInFlightRef = useRef(new Set<string>());
 
   // The presence store (CourtPresenceContext, mounted above this provider) is
   // the ONLY roster/count source. Actions here push a refresh into it so the
@@ -324,8 +326,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // ─── Refresh signed-in user's checked-in court ──────────────────────────────
   const refreshCheckedIn = useCallback(async () => {
     if (!userId) return;
-    const courtId = await fetchCheckedInCourtId(userId);
-    setCheckedInCourtId(courtId);
+    const active = await fetchActiveCheckInState(userId);
+    setCheckedInCourtId(active?.courtId ?? null);
+    if (active) setVisibilityState(active.visibility);
   }, [userId]);
 
   useEffect(() => {
@@ -359,9 +362,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refreshFeed = useCallback(async () => {
-    const items = await fetchFeed(localCourt?.id ?? undefined);
+    const items = await fetchFeed(localCourt?.id ?? undefined, userId);
     setFeed(items);
-  }, [localCourt?.id]);
+  }, [localCourt?.id, userId]);
 
   const refreshMatches = useCallback(async () => {
     if (!userId) {
@@ -622,9 +625,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [userId, localCourtId, localCourt]);
 
   const setVisibility = useCallback(async (v: Visibility) => {
-    // Session-scoped check-in visibility (persisted per check-in row, not device).
+    if (checkedInCourtId && userId) {
+      const persisted = await updateActiveCheckInVisibility(userId, checkedInCourtId, v);
+      if (!persisted) return;
+      refreshPresence(checkedInCourtId);
+      refreshFeed();
+    }
+    // Reflect the selected mode only after any active row and projected feed
+    // event have persisted through the idempotent check_in RPC.
     setVisibilityState(v);
-  }, []);
+  }, [checkedInCourtId, userId, refreshFeed, refreshPresence]);
 
   // NOTE: profiles.is_pro is derived by a DB trigger from the subscriptions
   // table and must never be written from the client. LocalPlus status is
@@ -750,13 +760,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [userId, refreshPlannedVisits]
   );
 
-  const hypeItem = useCallback((feedId: string) => {
-    setFeed((prev) =>
-      prev.map((item) =>
-        item.id === feedId ? { ...item, hypeCount: item.hypeCount + 1 } : item
-      )
-    );
-  }, []);
+  const hypeItem = useCallback(async (feedId: string) => {
+    if (!userId || hypeInFlightRef.current.has(feedId)) return;
+    hypeInFlightRef.current.add(feedId);
+    try {
+      const persisted = await hypePost(feedId, userId);
+      if (persisted) await refreshFeed();
+    } finally {
+      hypeInFlightRef.current.delete(feedId);
+    }
+  }, [userId, refreshFeed]);
 
   return (
     <AppContext.Provider

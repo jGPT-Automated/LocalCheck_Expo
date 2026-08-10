@@ -24,9 +24,12 @@ merges.
   location-driven across market boundaries; Explore narrows market results in
   expanding geographic windows before sorting by distance.
 - Presence: atomic check-in switching and server-driven expiration.
+- Privacy: changing check-in visibility updates the active row and projected
+  activity before the selector changes; relaunch hydrates the persisted mode.
 - Schedule: planned visits and hosted runs.
-- Social: profiles, friendships, feed activity, notifications, and reversible
-  block/report safety controls managed from Settings.
+- Social: profiles, friendships, persisted one-per-user activity hype,
+  notifications, and reversible block/report safety controls managed from
+  Settings.
 - Competition: sport-specific ELO and reviewed match lifecycle.
 - Realtime: private scoped Broadcast invalidation followed by authoritative
   refetch.

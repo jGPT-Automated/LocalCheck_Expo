@@ -110,7 +110,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from("profiles")
         .insert({
           id: authUser.id,
-          email: authUser.email,
           display_name: displayName,
           username,
         });

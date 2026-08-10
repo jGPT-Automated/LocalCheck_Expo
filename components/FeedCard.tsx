@@ -39,7 +39,7 @@ export function FeedCard({ item }: FeedCardProps) {
   const { hypeItem } = useApp();
 
   const handleHype = () => {
-    hypeItem(item.id);
+    void hypeItem(item.id);
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
@@ -121,8 +121,15 @@ export function FeedCard({ item }: FeedCardProps) {
 
       <View style={styles.footer}>
         <Text style={styles.timestamp}>{item.timestamp}</Text>
-        <Pressable onPress={handleHype} style={styles.hypeBtn} testID={`hype-${item.id}`}>
-          <Feather color={item.huped ? Colors.accent : Colors.textSecondary} name="zap" size={14} />
+        <Pressable
+          accessibilityLabel={item.hypedByCurrentUser ? "Already hyped" : "Hype this activity"}
+          accessibilityRole="button"
+          disabled={item.hypedByCurrentUser}
+          onPress={handleHype}
+          style={styles.hypeBtn}
+          testID={`hype-${item.id}`}
+        >
+          <Feather color={item.hypedByCurrentUser ? Colors.accent : Colors.textSecondary} name="zap" size={14} />
           <Text style={styles.hypeCount}>{item.hypeCount}</Text>
         </Pressable>
       </View>

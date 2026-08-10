@@ -11,6 +11,7 @@ product changes that could otherwise be lost during the repository reset.
 | Explore | Court card → drawer/detail | Preserved |
 | Explore / map | Geographic court discovery | Preserved; viewport crosses market boundaries and Explore sorts geographically constrained candidates |
 | Explore header | Add Court | Added; authenticated Supabase photo flow |
+| Add Court | Location pin | Changed; never prefilled from the saved home court, device location is required |
 | Court detail | Back logo | Preserved; frame now explicitly sized/clipped |
 | Schedule | Speed-dial FAB | Preserved |
 | Compete | Log Game FAB | Preserved temporarily; Release 2 replaces it with `LOG PICKUP` |
@@ -23,6 +24,8 @@ product changes that could otherwise be lost during the repository reset.
 | Me tabs | Inbox | Preserved; the bell deep-links to the same durable inbox |
 | Me tabs | Friends / QR | Preserved |
 | Match detail | Confirm / reject | Preserved; copy now states the three-day timer |
+| Feed | Hype | Preserved; now persisted once per user with authoritative count/liked state |
+| Player profile stats | Check-ins | Preserved; now sourced from visible check-in rows instead of court-time minutes |
 | QR scanning | iPhone Camera → profile | Preserved; no native camera dependency added |
 | Auth | Email/password, Apple Sign-In | Preserved behind the approved signed-out reveal |
 

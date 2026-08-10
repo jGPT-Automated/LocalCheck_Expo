@@ -51,7 +51,7 @@ export function CourtsScreen() {
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const [showAddCourt, setShowAddCourt] = useState(false);
-  const userLoc = useRef<{ lat: number; lng: number } | null>(null);
+  const discoveryOriginRef = useRef<{ lat: number; lng: number } | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Court[]>([]);
@@ -68,11 +68,9 @@ export function CourtsScreen() {
 
   const resolveDiscoveryOrigin = useCallback(async () => {
     if (localCourt) {
-      const origin = { lat: localCourt.latitude, lng: localCourt.longitude };
-      userLoc.current = origin;
-      return origin;
+      return { lat: localCourt.latitude, lng: localCourt.longitude };
     }
-    if (userLoc.current) return userLoc.current;
+    if (discoveryOriginRef.current) return discoveryOriginRef.current;
 
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -82,7 +80,7 @@ export function CourtsScreen() {
           last ??
           (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
         const origin = { lat: location.coords.latitude, lng: location.coords.longitude };
-        userLoc.current = origin;
+        discoveryOriginRef.current = origin;
         return origin;
       }
     } catch {
@@ -91,7 +89,7 @@ export function CourtsScreen() {
     }
 
     const fallback = { lat: 34.0522, lng: -118.2437 };
-    userLoc.current = fallback;
+    discoveryOriginRef.current = fallback;
     return fallback;
   }, [localCourt]);
 
@@ -330,8 +328,6 @@ export function CourtsScreen() {
       )}
 
       <AddCourtModal
-        initialLatitude={userLoc.current?.lat}
-        initialLongitude={userLoc.current?.lng}
         onAdded={() => loadDiscovery()}
         onClose={() => setShowAddCourt(false)}
         visible={showAddCourt}

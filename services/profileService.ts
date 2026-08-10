@@ -57,7 +57,7 @@ export function mapProfileToPlayer(row: Partial<SupabaseProfile>, sport?: CourtS
     avatar: initials,
     wins,
     losses,
-    checkIns: row.total_court_time_minutes ?? 0,
+    checkIns: 0,
     memberSince: row.created_at ?? new Date().toISOString(),
     courtId: row.local_court_id ?? undefined,
     sport: sport ?? undefined,
@@ -72,13 +72,19 @@ export function mapProfileToPlayer(row: Partial<SupabaseProfile>, sport?: CourtS
 /** Fetch a single profile by user id. */
 export async function fetchProfile(userId: string): Promise<Player | null> {
   try {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+    const [{ data, error }, { count, error: countError }] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", userId).single(),
+      supabase
+        .from("check_ins")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId),
+    ]);
     if (error || !data) return null;
-    return mapProfileToPlayer(data as SupabaseProfile);
+    if (countError) console.warn("fetchProfile check-in count failed:", countError.message);
+    return {
+      ...mapProfileToPlayer(data as SupabaseProfile),
+      checkIns: count ?? 0,
+    };
   } catch {
     return null;
   }

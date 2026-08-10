@@ -39,6 +39,29 @@ export async function checkInToCourt(
 }
 
 /**
+ * Change an active check-in's visibility through the idempotent check_in RPC.
+ * Read the existing note first so a privacy change cannot erase it.
+ */
+export async function updateActiveCheckInVisibility(
+  userId: string,
+  courtId: string,
+  visibility: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("check_ins")
+    .select("note")
+    .eq("user_id", userId)
+    .eq("court_id", courtId)
+    .is("checked_out_at", null)
+    .maybeSingle();
+  if (error || !data) {
+    if (error) console.warn("active check-in lookup failed:", error.message);
+    return false;
+  }
+  return checkInToCourt(courtId, data.note ?? undefined, visibility);
+}
+
+/**
  * Check the current user out via the check_out RPC (closes their open check-in
  * server-side by auth.uid() and emits the check_out activity_event). The
  * userId param is kept for call-site compatibility but the RPC derives the
@@ -128,12 +151,19 @@ export async function fetchWeeklyActiveCount(courtId: string): Promise<number> {
   }
 }
 
-/** Get the court the user is currently checked in to, if any. */
-export async function fetchCheckedInCourtId(userId: string): Promise<string | null> {
+export interface ActiveCheckInState {
+  courtId: string;
+  visibility: "public" | "friends" | "private";
+}
+
+/** Get the user's fresh active check-in and its persisted privacy mode. */
+export async function fetchActiveCheckInState(
+  userId: string,
+): Promise<ActiveCheckInState | null> {
   try {
     const { data, error } = await supabase
       .from("check_ins")
-      .select("court_id")
+      .select("court_id,visibility")
       .eq("user_id", userId)
       .is("checked_out_at", null)
       .gte("checked_in_at", freshCutoffIso())
@@ -141,8 +171,14 @@ export async function fetchCheckedInCourtId(userId: string): Promise<string | nu
       .limit(1)
       .maybeSingle();
     if (error || !data) return null;
-    return (data as { court_id: string }).court_id ?? null;
+    const row = data as { court_id: string; visibility: ActiveCheckInState["visibility"] };
+    return { courtId: row.court_id, visibility: row.visibility };
   } catch {
     return null;
   }
+}
+
+/** Get only the active court id for callers that do not need privacy state. */
+export async function fetchCheckedInCourtId(userId: string): Promise<string | null> {
+  return (await fetchActiveCheckInState(userId))?.courtId ?? null;
 }

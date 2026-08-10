@@ -45,6 +45,7 @@ export default function CourtProfileScreen() {
     runs,
     localCourtId,
     localCourt: contextLocalCourt,
+    currentUser,
     setLocalCourt,
     isFriend,
   } = useApp();
@@ -100,8 +101,8 @@ export default function CourtProfileScreen() {
 
   const refreshCourtFeed = React.useCallback(async () => {
     if (!courtId) return setCourtFeed([]);
-    setCourtFeed((await fetchFeed(courtId)).slice(0, 50));
-  }, [courtId]);
+    setCourtFeed((await fetchFeed(courtId, currentUser.id)).slice(0, 50));
+  }, [courtId, currentUser.id]);
 
   React.useEffect(() => {
     setFeedVisible(FEED_PAGE);

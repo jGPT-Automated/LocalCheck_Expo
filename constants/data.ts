@@ -116,8 +116,8 @@ export interface FeedItem {
   match?: FeedMatchSummary;
   timestamp: string;
   hypeCount: number;
+  hypedByCurrentUser?: boolean;
   imageUri?: string;
-  huped?: boolean;
 }
 
 export interface FeedMatchParticipant {

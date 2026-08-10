@@ -165,6 +165,9 @@ The court detail page keeps the brand/detail header, six-metric court panel, and
 - Team results join every player on each side with `+`.
 - Player names/profile targets remain interactive; game events open the shared result modal.
 - Timestamps remain smaller and quieter than the event sentence.
+- Hype is a persisted one-per-user reaction. The count and highlighted state
+  always hydrate from authoritative like rows; a tap never inflates local-only
+  state.
 
 ## Schedule and run flow
 

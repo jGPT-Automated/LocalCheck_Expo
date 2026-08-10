@@ -33,6 +33,7 @@ in the pull request; never record passwords or tokens.
 | --- | ---: | --- |
 | Sign in/out and session restore | browser + iPhone | both return to correct auth state |
 | Check in, switch court, check out | 2 signed-in users | roster and state converge without refresh |
+| Change active check-in privacy | public → friends → private | active row/feed visibility persists before the selector changes and survives relaunch |
 | Planned visit create/edit/remove | 2 signed-in users | schedule and court views converge |
 | Run create/join/leave/capacity | 2–4 signed-in users | all clients show authoritative membership |
 | Friend request/accept/remove | 2 signed-in users | both relationship views agree |
@@ -42,6 +43,9 @@ in the pull request; never record passwords or tokens.
 | Privacy/RLS | allowed + denied user | permitted row works; unauthorized read/write is denied |
 | Add Court | 2 users + 2 photos | accepted insert, rejected photo, quota and duplicate denial |
 | Block/report/unblock | blocker + blocked user | filtered reads and denied social writes agree; Settings lists and unblocks only the caller's blocked players |
+| Feed hype | 2 signed-in users | first tap persists once, count converges across clients, repeated taps do not inflate it, refresh retains liked state |
+| Add Court location | user with a saved home court while at another venue | form starts without the home pin and only device location enables submission |
+| Other-player profile stats | player with long visits | CHECK-INS is an actual visible row count, never total court minutes |
 | QR profile → Log Game | cold + warm app | profile resolves by ID and opponent is prefilled |
 | Push delivery | 2 iPhones | foreground, background, cold start, retry, invalid token cleanup |
 
@@ -87,7 +91,7 @@ accounts before the client release is activated.
 
 ## PR #28 evidence checkpoint — 2026-08-10
 
-- `pnpm check:release` passed for app version `1.0.2`, including 41 focused
+- `pnpm check:release` passed for app version `1.0.2`, including 43 focused
   tests, design consistency, TypeScript, and a connected web export.
 - Expo CLI validated all four `.eas/workflows/*.yml` files against the current
   workflow contract; `expo install --check` reported dependencies up to date.

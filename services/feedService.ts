@@ -2,6 +2,7 @@ import { CourtSport, FeedItem } from "@/constants/data";
 import { supabase } from "@/lib/supabase";
 
 import { mapProfileToPlayer, SupabaseProfile } from "./profileService";
+import { summarizeActivityHype } from "./feedModel";
 
 // ─── Backend ──────────────────────────────────────────────────────────────
 // Reads LocalCheckProd's `activity_events` table in ONE query. This replaces
@@ -17,6 +18,7 @@ interface SupabaseActivityEvent {
   court_id: string | null;
   visibility: string | null;
   payload: Record<string, unknown> | null;
+  activity_event_likes: Array<{ user_id: string }> | null;
   actor: SupabaseProfile | null;
   courts: { id: string; name: string; sport_type: string } | null;
   matches: {
@@ -37,6 +39,7 @@ interface SupabaseActivityEvent {
 
 const EVENT_SELECT =
   "id, event_type, occurred_at, court_id, visibility, payload," +
+  " activity_event_likes(user_id)," +
   " actor:profiles!activity_events_actor_id_fkey(*)," +
   " courts(id, name, sport_type)," +
   " matches(id, played_at, score_a, score_b, winner_side, status," +
@@ -73,7 +76,10 @@ function formatTimestamp(iso: string): string {
 }
 
 /** Map one activity_event → FeedItem. Returns null for event types the feed UI doesn't render. */
-function mapEvent(row: SupabaseActivityEvent): FeedItem | null {
+function mapEvent(
+  row: SupabaseActivityEvent,
+  currentUserId?: string | null,
+): FeedItem | null {
   const actorName = row.actor?.display_name ?? "Someone";
   const courtName = row.courts?.name ?? "a court";
   const sport = normalizeSport(row.courts?.sport_type);
@@ -85,7 +91,7 @@ function mapEvent(row: SupabaseActivityEvent): FeedItem | null {
     courtId: row.courts?.id,
     sport,
     timestamp: formatTimestamp(row.occurred_at),
-    hypeCount: 0,
+    ...summarizeActivityHype(row.activity_event_likes, currentUserId),
   };
 
   switch (row.event_type) {
@@ -157,7 +163,10 @@ function mapEvent(row: SupabaseActivityEvent): FeedItem | null {
 
 // ─── Public API ─────────────────────────────────────────────────────────────
 
-export async function fetchFeed(courtId?: string): Promise<FeedItem[]> {
+export async function fetchFeed(
+  courtId?: string,
+  currentUserId?: string | null,
+): Promise<FeedItem[]> {
   try {
     let q = supabase
       .from("activity_events")
@@ -172,7 +181,7 @@ export async function fetchFeed(courtId?: string): Promise<FeedItem[]> {
       return [];
     }
     return (data as unknown as SupabaseActivityEvent[])
-      .map(mapEvent)
+      .map((row) => mapEvent(row, currentUserId))
       .filter((i): i is FeedItem => i !== null);
   } catch (err) {
     console.warn("fetchFeed exception:", err);
@@ -180,15 +189,20 @@ export async function fetchFeed(courtId?: string): Promise<FeedItem[]> {
   }
 }
 
-/** Like an activity event (best-effort; UI updates optimistically). */
-export async function hypePost(postId: string, userId: string): Promise<void> {
+/** Persist one hype per user. Duplicate taps converge to the existing row. */
+export async function hypePost(postId: string, userId: string): Promise<boolean> {
   const eventId = Number(postId.replace(/^ae-/, ""));
-  if (!Number.isFinite(eventId)) return;
+  if (!Number.isFinite(eventId)) return false;
   try {
-    await supabase
+    const { error } = await supabase
       .from("activity_event_likes")
       .insert({ activity_event_id: eventId, user_id: userId });
+    if (error && error.code !== "23505") {
+      console.warn("hypePost failed:", error.message);
+      return false;
+    }
+    return true;
   } catch {
-    // Best-effort; UI already optimistically updates
+    return false;
   }
 }
