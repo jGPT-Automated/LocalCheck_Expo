@@ -1,7 +1,8 @@
 # Current state
 
-Last reconciled: 2026-08-08 against `origin/main` at `81ff0a4` and the live
-LocalCheckProd migration ledger.
+Last reconciled: 2026-08-09 against the MVP visual-consolidation branch and the
+live LocalCheckProd migration ledger. Reconfirm the exact `main` SHA after the
+pull request merges.
 
 ## Production checkpoint
 
@@ -47,9 +48,10 @@ and verifying it independently.
 
 ## Immediate gates
 
-1. Merge this lifecycle reset after CI, preview, and review succeed.
+1. Merge the MVP visual-consolidation pull request after CI, preview, and review
+   succeed.
 2. Set the EAS project GitHub base directory to the repository root before
    running repository-triggered EAS workflows.
-3. Produce a fresh development/TestFlight binary because the app root and
-   release configuration changed.
+3. The approved merge to `main` automatically produces and submits a fresh
+   TestFlight binary through `.eas/workflows/release-ios.yml`.
 4. Verify the high-risk multi-user and native matrix in `docs/TESTING.md`.

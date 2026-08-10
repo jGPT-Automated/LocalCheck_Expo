@@ -1,5 +1,4 @@
 import { BlurView } from "expo-blur";
-import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Tabs } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
@@ -9,6 +8,9 @@ import { Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors } from "@/constants/colors";
+import { Layout } from "@/constants/layout";
+import { Typography } from "@/constants/typography";
+import { useNotifications } from "@/context/NotificationContext";
 
 function NativeTabLayout() {
   return (
@@ -41,9 +43,10 @@ function ClassicTabLayout() {
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
   const { bottom } = useSafeAreaInsets();
+  const { unreadCount } = useNotifications();
 
   const TAB_ICON_AREA = 52;
-  const tabBarHeight = isWeb ? 84 : TAB_ICON_AREA + bottom;
+  const tabBarHeight = isWeb ? Layout.tabBarClearance : TAB_ICON_AREA + bottom;
 
   return (
     <Tabs
@@ -62,7 +65,7 @@ function ClassicTabLayout() {
           paddingTop: 8,
         },
         tabBarLabelStyle: {
-          fontFamily: "Inter_600SemiBold",
+          fontFamily: Typography.bodySemiBold,
           fontSize: 9,
           letterSpacing: 0.5,
           textTransform: "uppercase",
@@ -130,6 +133,18 @@ function ClassicTabLayout() {
         name="elo"
         options={{
           title: "Me",
+          tabBarAccessibilityLabel: unreadCount > 0 ? `Me, ${unreadCount} unread notifications` : "Me",
+          tabBarBadge: unreadCount > 0 ? Math.min(unreadCount, 99) : undefined,
+          tabBarBadgeStyle: {
+            minWidth: 13,
+            height: 13,
+            borderRadius: 7,
+            paddingHorizontal: 2,
+            fontSize: 6,
+            lineHeight: 11,
+            color: Colors.black,
+            backgroundColor: Colors.accent,
+          },
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView name="person" tintColor={color} size={22} />

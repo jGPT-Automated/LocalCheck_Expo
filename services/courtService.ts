@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 interface SupabaseCourtRow {
   id: string;
   name: string;
+  short_name?: string | null;
   address: string;
   latitude: number;
   longitude: number;
@@ -24,7 +25,7 @@ interface SupabaseCourtRow {
   is_confirmed?: boolean | null;
 }
 
-const BASE_COLS = "id,name,address,latitude,longitude,sport_type,image_url,is_archived,location,state,market,added_by,created_at";
+const BASE_COLS = "id,name,short_name,address,latitude,longitude,sport_type,image_url,is_archived,location,state,market,added_by,created_at";
 const STATS_COLS = BASE_COLS + ",active_check_in_count,total_check_ins,local_player_count,is_confirmed";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -39,6 +40,7 @@ function mapRow(row: SupabaseCourtRow): Court {
   return {
     id: String(row.id),
     name: row.name ?? "Unknown Court",
+    shortName: row.short_name ?? undefined,
     sport: normalizeSport(row.sport_type),
     neighborhood: row.location ?? "",
     city: row.state ?? "",
@@ -97,6 +99,86 @@ export async function fetchCourtById(id: string): Promise<Court | null> {
   } catch {
     return null;
   }
+}
+
+export interface CourtActivityMetrics {
+  checkInsThisWeek: number;
+  checkInTrend: number | null;
+  gamesThisWeek: number;
+  activeLocals: number;
+  activeLocalTrend: number | null;
+}
+
+/**
+ * Read-only dashboard metrics derived from existing authoritative rows. The
+ * three-month "active local" state is deliberately calculated, not persisted,
+ * so stale profiles recover automatically after their next check-in.
+ */
+export async function fetchCourtActivityMetrics(courtId: string): Promise<CourtActivityMetrics> {
+  const now = Date.now();
+  const day = 86_400_000;
+  const weekAgo = new Date(now - 7 * day).toISOString();
+  const twoWeeksAgo = new Date(now - 14 * day).toISOString();
+  const ninetyDaysAgo = new Date(now - 90 * day).toISOString();
+  const oneEightyDaysAgo = new Date(now - 180 * day).toISOString();
+
+  try {
+    const [{ data: checkIns, error: checkInError }, { data: matches, error: matchError }] =
+      await Promise.all([
+        supabase
+          .from("check_ins")
+          .select("user_id,checked_in_at")
+          .eq("court_id", courtId)
+          .gte("checked_in_at", oneEightyDaysAgo)
+          .order("checked_in_at", { ascending: false })
+          .limit(5000),
+        supabase
+          .from("matches")
+          .select("id,played_at")
+          .eq("court_id", courtId)
+          .eq("status", "confirmed")
+          .gte("played_at", weekAgo)
+          .limit(1000),
+      ]);
+    if (checkInError || matchError) throw checkInError ?? matchError;
+
+    const rows = (checkIns ?? []) as Array<{ user_id: string; checked_in_at: string }>;
+    const currentWeek = rows.filter((row) => row.checked_in_at >= weekAgo).length;
+    const previousWeek = rows.filter(
+      (row) => row.checked_in_at >= twoWeeksAgo && row.checked_in_at < weekAgo,
+    ).length;
+    const currentActive = new Set(
+      rows.filter((row) => row.checked_in_at >= ninetyDaysAgo).map((row) => row.user_id),
+    ).size;
+    const priorActive = new Set(
+      rows
+        .filter((row) => row.checked_in_at >= oneEightyDaysAgo && row.checked_in_at < ninetyDaysAgo)
+        .map((row) => row.user_id),
+    ).size;
+
+    return {
+      checkInsThisWeek: currentWeek,
+      checkInTrend: percentChange(currentWeek, previousWeek),
+      gamesThisWeek: matches?.length ?? 0,
+      activeLocals: currentActive,
+      activeLocalTrend: percentChange(currentActive, priorActive),
+    };
+  } catch (error) {
+    console.warn("fetchCourtActivityMetrics failed", error);
+    return {
+      checkInsThisWeek: 0,
+      checkInTrend: null,
+      gamesThisWeek: 0,
+      activeLocals: 0,
+      activeLocalTrend: null,
+    };
+  }
+}
+
+function percentChange(current: number, previous: number): number | null {
+  if (current === 0 && previous === 0) return null;
+  if (previous === 0) return 100;
+  return Math.round(((current - previous) / previous) * 100);
 }
 
 /**

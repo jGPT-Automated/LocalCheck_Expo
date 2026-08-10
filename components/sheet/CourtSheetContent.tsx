@@ -1,4 +1,5 @@
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -10,6 +11,7 @@ import { BrutalistButton } from "@/components/BrutalistButton";
 import { LivePulse } from "@/components/LivePulse";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { StatBlock } from "@/components/StatBlock";
+import { SportEmblem } from "@/components/ui/SportEmblem";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
@@ -23,7 +25,7 @@ import {
 
 /**
  * Court drawer content, rendered inside the root BottomSheetModal
- * (see CourtSheetHost). Peek layer (46% snap): name, distance, live stats,
+ * (see CourtSheetHost). Peek layer (40% snap): name, distance, live stats,
  * CHECK IN. Full (92%): WHO'S HERE roster, LOCALS list, pulling-up, runs.
  *
  * `onNavigate` dismisses the sheet before any router.push so the pushed
@@ -42,7 +44,7 @@ export function CourtSheetContent({
 }) {
   const {
     courts, localCourt, checkIn, checkOut, checkedInCourtId,
-    setLocalCourt, localCourtId, runs, plannedVisits, isFriend,
+    localCourtId, runs, plannedVisits, isFriend,
   } = useApp();
   const { bottom } = useSafeAreaInsets();
 
@@ -114,14 +116,19 @@ export function CourtSheetContent({
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: bottom + 32 }}
     >
-      {/* ── Peek layer: visible at the 46% snap point ── */}
+      {/* ── Peek layer: visible at the 40% snap point ── */}
       <View style={styles.peekHeader}>
         <View style={{ flex: 1, paddingRight: 12 }}>
           <View style={styles.sportTag}>
-            <View style={[styles.sportDot, { backgroundColor: sportColor }]} />
+            <SportEmblem glow={false} size={13} sport={court.sport} />
             <Text style={[styles.sportText, { color: sportColor }]}>{court.sport}</Text>
             {distLabel && <Text style={styles.metaDim}> · {distLabel}</Text>}
-            {isMyLocal && <Text style={styles.myLocalInline}> · ★ MY LOCAL</Text>}
+            {isMyLocal ? (
+              <View style={styles.myLocalTag}>
+                <Feather color={Colors.accent} fill={Colors.accent} name="star" size={9} />
+                <Text style={styles.myLocalInline}>MY LOCAL</Text>
+              </View>
+            ) : null}
           </View>
           <Text style={styles.courtName} numberOfLines={2}>{court.name.toUpperCase()}</Text>
           <Text style={styles.courtAddress}>
@@ -146,16 +153,16 @@ export function CourtSheetContent({
 
       <View style={styles.actionsRow}>
         <BrutalistButton
-          label={isCheckedIn ? "CHECKED IN ✓" : "CHECK IN"}
+          label={isCheckedIn ? "CHECKED IN" : "CHECK IN"}
           onPress={handleCheckIn}
           variant={isCheckedIn ? "outline" : "accent"}
           style={{ flex: 2 }}
           testID="check-in-btn"
         />
         <BrutalistButton
-          label={isMyLocal ? "MY LOCAL ★" : "SET LOCAL"}
-          onPress={() => setLocalCourt(isMyLocal ? null : court.id, isMyLocal ? undefined : court)}
-          variant={isMyLocal ? "accent" : "dark"}
+          label="VIEW COURT"
+          onPress={() => go(`/court/${court.id}`)}
+          variant="dark"
           style={{ flex: 1.5 }}
         />
       </View>
@@ -166,14 +173,14 @@ export function CourtSheetContent({
         accessibilityLabel="Expand for who's here and locals"
       >
         <Text style={styles.swipeHintText}>SWIPE UP FOR WHO'S HERE + LOCALS</Text>
-        <Text style={styles.swipeHintArrow}>↑</Text>
+        <Feather color={Colors.accent} name="arrow-up" size={13} />
       </Pressable>
 
       {/* ── Full layer ── */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>WHO'S HERE</Text>
-          {activeCount > 0 && <Text style={styles.sectionAccent}>{activeCount} ACTIVE</Text>}
+          <Text style={styles.sectionAccent}>{activeCount}</Text>
         </View>
         {activeCount === 0 ? (
           <Text style={styles.emptyText}>NO PLAYERS CHECKED IN YET</Text>
@@ -186,8 +193,7 @@ export function CourtSheetContent({
                   onPress={() => go(`/player/${p.id}`)}
                 >
                   <View>
-                    <PlayerAvatar initials={p.avatar} size={40} />
-                    {isFriend(p.id) && <View style={styles.friendDot} />}
+                    <PlayerAvatar friend={isFriend(p.id)} initials={p.avatar} name={p.name} playerId={p.id} size={40} />
                   </View>
                   <Text style={styles.rosterName}>{p.name.split(" ")[0].toUpperCase()}</Text>
                   <Text style={styles.rosterElo}>{p.elo}</Text>
@@ -213,7 +219,7 @@ export function CourtSheetContent({
               style={({ pressed }) => [styles.localRow, pressed && styles.pressed]}
               onPress={() => go(`/player/${player.id}`)}
             >
-              <PlayerAvatar initials={player.avatar} size={30} />
+              <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={30} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.localName}>{player.name.toUpperCase()}</Text>
                 <Text style={styles.localMeta}>
@@ -241,7 +247,7 @@ export function CourtSheetContent({
               onPress={() => go(`/player/${visit.userId}`)}
             >
               <Text style={styles.visitTime}>{visit.time}</Text>
-              <PlayerAvatar initials={visit.player.avatar} size={26} />
+              <PlayerAvatar initials={visit.player.avatar} name={visit.player.name} playerId={visit.player.id} size={26} />
               <Text style={styles.visitName}>{visit.player.name.split(" ")[0].toUpperCase()}</Text>
               {visit.note != null && (
                 <Text style={styles.visitNote} numberOfLines={1}>{visit.note}</Text>
@@ -275,13 +281,6 @@ export function CourtSheetContent({
         </View>
       )}
 
-      <Pressable
-        style={({ pressed }) => [styles.profileLink, pressed && styles.pressed]}
-        onPress={() => go(`/court/${court.id}`)}
-      >
-        <Text style={styles.profileLinkText}>FULL COURT PROFILE</Text>
-        <Text style={styles.profileLinkArrow}>→</Text>
-      </Pressable>
     </BottomSheetScrollView>
   );
 }
@@ -316,6 +315,7 @@ const styles = StyleSheet.create({
     color: Colors.accent,
     letterSpacing: 1,
   },
+  myLocalTag: { marginLeft: 4, flexDirection: "row", alignItems: "center", gap: 4 },
   courtName: {
     fontFamily: Typography.heading,
     fontSize: 26,

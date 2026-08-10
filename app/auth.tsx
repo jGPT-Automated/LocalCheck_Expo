@@ -4,10 +4,10 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -29,16 +29,19 @@ const AUTH_GRAPHIC = require("@/assets/brand/auth-graphic.png");
  * (a Supabase 522 once printed a full response object on this screen).
  */
 function humanizeAuthError(raw: string): string {
-  if (!raw) return "SOMETHING WENT WRONG. TRY AGAIN.";
+  if (!raw) return "Something went wrong. Try again.";
   if (raw.length > 140 || raw.trim().startsWith("{") || raw.includes('"status"')) {
-    return "CAN'T REACH LOCALCHECK. CHECK YOUR CONNECTION AND TRY AGAIN.";
+    return "Can't reach LocalCheck. Check your connection and try again.";
   }
-  if (/invalid login credentials/i.test(raw)) return "WRONG EMAIL OR PASSWORD.";
+  if (/failed to fetch|network request failed|fetch failed/i.test(raw)) {
+    return "Can't reach LocalCheck. Check your connection and try again.";
+  }
+  if (/invalid login credentials/i.test(raw)) return "Wrong email or password.";
   if (/already registered|already exists/i.test(raw)) {
-    return "THAT EMAIL ALREADY HAS AN ACCOUNT — SIGN IN INSTEAD.";
+    return "That email already has an account — sign in instead.";
   }
-  if (/at least 6 characters/i.test(raw)) return "PASSWORD NEEDS AT LEAST 6 CHARACTERS.";
-  return raw.toUpperCase();
+  if (/at least 6 characters/i.test(raw)) return "Password needs at least 6 characters.";
+  return raw;
 }
 
 export default function AuthScreen() {
@@ -101,19 +104,31 @@ export default function AuthScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScrollView
-        contentContainerStyle={[styles.container, { paddingTop: topPad + 20, paddingBottom: bottom + 40 }]}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Auth is the app's front door — no back button, nothing to go back to. */}
-        <LogoMark size={72} style={styles.logo} />
-        <Text style={styles.title}>LOCALCHECK</Text>
-        <Text style={styles.subtitle}>
-          {user ? "ACCOUNT" : "KNOW WHO'S RUNNING. SHOW UP. RANK UP."}
-        </Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <View style={[styles.hero, { paddingTop: topPad + 12 }]}>
+        <View style={styles.brandRow}>
+          <LogoMark size={40} />
+          <Text style={styles.brandName}>LOCALCHECK</Text>
+        </View>
+        <Image
+          source={AUTH_GRAPHIC}
+          style={styles.heroGraphic}
+          resizeMode="contain"
+          accessibilityLabel="An illuminated overhead sports court"
+        />
+        <View style={styles.heroCopy}>
+          <Text style={styles.title}>{user ? "WELCOME BACK" : "KNOW BEFORE YOU GO."}</Text>
+          <Text style={styles.subtitle}>
+            {user ? "YOUR LOCAL GAME IS WAITING." : "SEE WHO'S PLAYING. SHOW UP READY."}
+          </Text>
+        </View>
+      </View>
 
-        {/* Signed-in state */}
+      <View style={[styles.formPanel, { paddingBottom: Math.max(bottom, 20) }]}>
+
         {user && (
           <View style={styles.statusBanner}>
             <Text style={styles.statusLabel}>SIGNED IN AS</Text>
@@ -133,7 +148,6 @@ export default function AuthScreen() {
           </View>
         )}
 
-        {/* Sign-in / sign-up form */}
         {!user && (
           <>
             {errorMsg && (
@@ -169,62 +183,97 @@ export default function AuthScreen() {
               />
             </View>
 
-            <Pressable style={[styles.btn, busy && styles.btnDisabled]} onPress={handleSignIn} disabled={busy}>
-              {busy ? <ActivityIndicator color={Colors.black} size="small" /> : <Text style={styles.btnText}>SIGN IN</Text>}
-            </Pressable>
+            <View style={styles.actions}>
+              <Pressable style={[styles.btn, busy && styles.btnDisabled]} onPress={handleSignIn} disabled={busy}>
+                {busy ? <ActivityIndicator color={Colors.black} size="small" /> : <Text style={styles.btnText}>SIGN IN</Text>}
+              </Pressable>
 
-            <Pressable style={[styles.btn, styles.btnOutline, busy && styles.btnDisabled]} onPress={handleSignUp} disabled={busy}>
-              <Text style={styles.btnTextOutline}>CREATE ACCOUNT</Text>
-            </Pressable>
+              <Pressable style={[styles.btn, styles.btnOutline, busy && styles.btnDisabled]} onPress={handleSignUp} disabled={busy}>
+                <Text style={styles.btnTextOutline}>CREATE ACCOUNT</Text>
+              </Pressable>
 
-            {Platform.OS === "ios" && (
-              <AppleAuthentication.AppleAuthenticationButton
-                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                cornerRadius={0}
-                style={styles.appleBtn}
-                onPress={handleAppleSignIn}
-              />
-            )}
+              {Platform.OS === "ios" && (
+                <AppleAuthentication.AppleAuthenticationButton
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                  cornerRadius={0}
+                  style={styles.appleBtn}
+                  onPress={handleAppleSignIn}
+                />
+              )}
+            </View>
           </>
         )}
 
-        <View style={styles.divider} />
-        <Text style={styles.note}>
-          Your session persists across launches. Courts, ELO, and check-ins sync to the cloud when signed in.
-        </Text>
-      </ScrollView>
+        <Text style={styles.note}>Your account stays signed in on this device.</Text>
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
+    flex: 1,
     backgroundColor: Colors.background,
-    paddingHorizontal: 24,
   },
-  logo: { marginTop: 24, marginBottom: 20 },
+  hero: {
+    flex: 1,
+    paddingHorizontal: 24,
+    overflow: "hidden",
+  },
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    zIndex: 2,
+  },
+  brandName: {
+    fontFamily: Typography.heading,
+    fontSize: 18,
+    color: Colors.text,
+    letterSpacing: 1.8,
+  },
+  heroGraphic: {
+    position: "absolute",
+    width: "95%",
+    height: "86%",
+    right: -30,
+    top: 44,
+    opacity: 0.9,
+  },
+  heroCopy: {
+    marginTop: "auto",
+    paddingBottom: 18,
+    maxWidth: 320,
+    zIndex: 2,
+  },
+  formPanel: {
+    flexShrink: 0,
+    paddingHorizontal: 24,
+    paddingTop: 18,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    backgroundColor: Colors.background,
+  },
   title: {
     fontFamily: Typography.heading,
-    fontSize: 32,
+    fontSize: 28,
     color: Colors.text,
-    letterSpacing: 2,
-    lineHeight: 36,
+    letterSpacing: 1.4,
+    lineHeight: 32,
   },
   subtitle: {
     fontFamily: Typography.bodyMedium,
-    fontSize: 11,
+    fontSize: 10,
     color: Colors.muted,
-    letterSpacing: 4,
-    marginTop: 4,
-    marginBottom: 32,
+    letterSpacing: 2.4,
+    marginTop: 5,
   },
   statusBanner: {
     borderWidth: 1,
     borderColor: Colors.accent,
     padding: 16,
-    marginBottom: 24,
+    marginBottom: 12,
   },
   statusLabel: {
     fontFamily: Typography.bodyMedium,
@@ -243,17 +292,17 @@ const styles = StyleSheet.create({
   errorBox: {
     backgroundColor: "rgba(255,80,80,0.1)",
     borderWidth: 1,
-    borderColor: "#FF5050",
+    borderColor: Colors.loss,
     padding: 12,
     marginBottom: 16,
   },
   errorText: {
     fontFamily: Typography.bodyMedium,
     fontSize: 12,
-    color: "#FF5050",
+    color: Colors.loss,
     letterSpacing: 0.5,
   },
-  field: { marginBottom: 16 },
+  field: { marginBottom: 12 },
   label: {
     fontFamily: Typography.bodyMedium,
     fontSize: 10,
@@ -271,12 +320,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
+  actions: { marginTop: 2 },
   btn: {
     backgroundColor: Colors.accent,
-    paddingVertical: 14,
+    minHeight: 48,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   btnDisabled: { opacity: 0.6 },
   btnText: {
@@ -296,17 +346,14 @@ const styles = StyleSheet.create({
     color: Colors.text,
     letterSpacing: 2,
   },
-  appleBtn: { height: 48, marginBottom: 12 },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginVertical: 24,
-  },
+  appleBtn: { height: 48, marginBottom: 10 },
   note: {
     fontFamily: Typography.body,
-    fontSize: 11,
+    fontSize: 10,
     color: Colors.mutedDark,
     letterSpacing: 0.3,
-    lineHeight: 18,
+    lineHeight: 14,
+    textAlign: "center",
+    marginTop: 2,
   },
 });

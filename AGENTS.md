@@ -45,6 +45,28 @@ force-push shared branches, or include unrelated user changes.
 
 ## Required implementation rules
 
+- Remove obsolete client paths instead of adding UI compatibility layers,
+  fallbacks, or parallel implementations. Remote contracts used by an
+  installed binary remain backward compatible until that binary is retired.
+- Choose the simplest implementation that fully meets current requirements.
+  Avoid speculative abstractions, configuration, and indirection.
+- Grow the product in complete end-to-end layers. Never trade the working app
+  for unfinished complexity.
+- Keep components modular and concerns separated.
+- Prefer established, maintained libraries when they reduce total complexity
+  or improve reliability. Check installed dependencies, documentation, and
+  types before adding a package or rebuilding common behavior.
+- Make decisions that can last. Do not introduce a stopgap whose intended
+  replacement is already known.
+- Study proven product patterns before inventing a new interaction, then adapt
+  the pattern to LocalCheck's actual users, data, and accessibility needs.
+- Reuse the canonical UI components listed in `docs/product/DESIGN.md`. Before
+  adding a page-local avatar, selector, metric, activity row, court card, or
+  floating action, search for its shared component and improve that source.
+- Render the LocalCheck mark only through `components/brand/LogoMark.tsx` and
+  functional icons only through installed icon libraries. Do not create icons
+  from Unicode, emoji, inline drawings, or one-off SVG/CSS shapes.
+
 - All durable product data comes from Supabase through `services/`.
 - Approved database RPCs own atomic behavior. Do not replace them with client
   write sequences.
@@ -90,6 +112,11 @@ Every change ends in a pull request or a clear handoff containing:
 Do not merge with failing required checks or unresolved review conversations.
 Do not deploy a migration, OTA, TestFlight build, or production change unless
 the task explicitly authorizes that external action.
+
+An approved merge to `main` automatically starts the EAS production iOS build
+and TestFlight submission. Treat the merge itself as the release authorization:
+the PR must state device coverage, native risk, and any App Store Connect step
+still required. Production OTA remains manual.
 
 ## Documentation discipline
 

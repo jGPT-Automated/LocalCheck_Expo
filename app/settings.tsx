@@ -121,7 +121,7 @@ export default function SettingsScreen() {
         contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 90 : bottom + 80 }}
       >
         <View style={styles.profileRow}>
-          <PlayerAvatar initials={currentUser.avatar || "LC"} size={52} />
+          <PlayerAvatar initials={currentUser.avatar || "LC"} name={currentUser.name} playerId={currentUser.id} size={52} />
           <View style={{ flex: 1 }}>
             <Text style={styles.profileName}>{currentUser.name.toUpperCase()}</Text>
             <Text style={styles.profileMeta}>@{profile?.username || "player"} · {currentUser.elo} ELO</Text>

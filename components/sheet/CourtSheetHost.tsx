@@ -27,7 +27,7 @@ import { CourtSheetContent } from "./CourtSheetContent";
  * @gorhom/bottom-sheet runs on reanimated + gesture-handler (both already in
  * the shipped binary → OTA-safe) and gives the DESIGN.md sheet contract on
  * every platform: draggable both directions, interruptible mid-gesture,
- * velocity handoff, snap points at peek (46%) / full (92%), swipe-down or
+ * velocity handoff, snap points at peek (40%) / full (92%), swipe-down or
  * backdrop-tap to dismiss.
  */
 
@@ -71,7 +71,7 @@ export function CourtSheetProvider({ children }: { children: React.ReactNode }) 
     [openCourtSheet, closeCourtSheet]
   );
 
-  const snapPoints = useMemo(() => ["46%", "92%"], []);
+  const snapPoints = useMemo(() => ["40%", "92%"], []);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (

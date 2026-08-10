@@ -16,8 +16,11 @@ import { Feather } from "@expo/vector-icons";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, PlannedVisit, getSportColor } from "@/constants/data";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { RunCard } from "@/components/RunCard";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { FormSheet } from "@/components/sheet/FormSheet";
+import { SpeedDialFab } from "@/components/ui/SpeedDialFab";
+import { scheduleSlotIndex, scheduleSlotLabel, SLOT_HOURS } from "@/components/schedule/scheduleModel";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { createScheduledGame } from "@/services/scheduledGameService";
@@ -532,20 +535,11 @@ function PlanVisitModal({
 }
 
 /**
- * Schedule — weekly heatmap for one court. Rows are 2-hour
+ * Schedule — weekly heatmap for one court. Rows are 1-hour
  * local-time slots, columns the 7 days of the shown week; cell intensity is
  * how many people are planned there (planned visits + run RSVPs). Tapping a
  * slot shows WHO right underneath — smart avatars, not just a number.
  */
-
-// Dense enough for mobile while covering the actual pickup-sports window.
-// The final bucket starts at 10 PM and includes activity through 11:59 PM.
-const SLOT_HOURS = [8, 10, 12, 14, 16, 18, 20, 22];
-
-function slotLabel(h: number): string {
-  const twelve = h % 12 === 0 ? 12 : h % 12;
-  return `${twelve} ${h < 12 ? "AM" : "PM"}`;
-}
 
 interface SlotAttendee {
   id: string;
@@ -561,6 +555,7 @@ interface SlotEntry {
   count: number;
   /** Distinct visible planned-visit users in this slot (for hidden-count math). */
   plannedVisible: number;
+  runCount: number;
 }
 
 function CourtPickerModal({
@@ -705,8 +700,8 @@ export default function ScheduleScreen() {
       const dayIdx = Math.floor((t.getTime() - weekStart.getTime()) / 86_400_000);
       if (dayIdx < 0 || dayIdx > 6) return null;
       const h = t.getHours();
-      if (h < SLOT_HOURS[0] || h >= SLOT_HOURS[SLOT_HOURS.length - 1] + 2) return null;
-      return `${dayIdx}:${Math.floor((h - SLOT_HOURS[0]) / 2)}`;
+      if (h < SLOT_HOURS[0] || h >= SLOT_HOURS[SLOT_HOURS.length - 1] + 1) return null;
+      return `${dayIdx}:${h - SLOT_HOURS[0]}`;
     },
     [weekStart]
   );
@@ -742,7 +737,7 @@ export default function ScheduleScreen() {
     const add = (iso: string, a: SlotAttendee, isPlanned: boolean) => {
       const key = bucketKey(iso);
       if (!key) return;
-      const entry = map.get(key) ?? { attendees: [], count: 0, plannedVisible: 0 };
+      const entry = map.get(key) ?? { attendees: [], count: 0, plannedVisible: 0, runCount: 0 };
       const existing = entry.attendees.find((x) => x.id === a.id);
       if (!existing) {
         entry.attendees.push(a);
@@ -769,6 +764,12 @@ export default function ScheduleScreen() {
     }
     for (const r of runs) {
       if (r.courtId !== court.id) continue;
+      const runKey = bucketKey(r.startTimeIso);
+      if (runKey) {
+        const entry = map.get(runKey) ?? { attendees: [], count: 0, plannedVisible: 0, runCount: 0 };
+        entry.runCount += 1;
+        map.set(runKey, entry);
+      }
       for (const p of r.participants) {
         add(
           r.startTimeIso,
@@ -834,7 +835,7 @@ export default function ScheduleScreen() {
 
   const currentSlotIndex = Math.max(
     0,
-    Math.min(SLOT_HOURS.length - 1, Math.floor((new Date().getHours() - SLOT_HOURS[0]) / 2))
+    scheduleSlotIndex(new Date().getHours())
   );
   const currentKey = `0:${currentSlotIndex}`;
 
@@ -849,6 +850,10 @@ export default function ScheduleScreen() {
   );
 
   const beginEditingTimes = () => {
+    if (!court || court.id !== localCourt?.id) {
+      setSaveNotice("TIMES CAN ONLY BE EDITED AT YOUR LOCAL COURT.");
+      return;
+    }
     setPendingKeys(new Set(myVisitsByKey.keys()));
     setSelectedSlot(null);
     setSaveNotice(null);
@@ -878,6 +883,10 @@ export default function ScheduleScreen() {
     if (!court) {
       setSaveNotice("PICK A COURT BEFORE SAVING YOUR TIMES.");
       setShowPicker(true);
+      return;
+    }
+    if (court.id !== localCourt?.id) {
+      setSaveNotice("TIMES CAN ONLY BE SAVED AT YOUR LOCAL COURT.");
       return;
     }
     const additions = Array.from(pendingKeys)
@@ -925,10 +934,7 @@ export default function ScheduleScreen() {
     <View style={styles.container}>
       <ScreenHeader title="SCHEDULE" />
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: (Platform.OS === "web" ? 84 : bottom + 96) + 68 }}
-      >
+      <View style={styles.scheduleBody}>
         {/* ── Court selector ── */}
         <Pressable style={styles.courtSelector} onPress={() => setShowPicker(true)} testID="schedule-court-selector">
           <Feather name="map-pin" size={13} color={Colors.accent} />
@@ -944,20 +950,7 @@ export default function ScheduleScreen() {
             <Text style={styles.weekLabel}>{weekLabel}</Text>
             <Text style={styles.weekTag}>NEXT 7 DAYS</Text>
           </View>
-          <View style={styles.modeToggle} accessibilityRole="tablist">
-            {(["VIEW", "EDIT"] as const).map((mode) => (
-              <Pressable
-                key={mode}
-                onPress={() => mode === "EDIT" ? beginEditingTimes() : cancelEditingTimes()}
-                style={[styles.modeToggleButton, scheduleMode === mode && styles.modeToggleButtonActive]}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: scheduleMode === mode }}
-                testID={mode === "EDIT" ? "schedule-edit-toggle" : "schedule-view-toggle"}
-              >
-                <Text style={[styles.modeToggleText, scheduleMode === mode && styles.modeToggleTextActive]}>{mode}</Text>
-              </Pressable>
-            ))}
-          </View>
+          {scheduleMode === "EDIT" ? <Text style={styles.editingLabel}>EDITING TIMES</Text> : null}
         </View>
 
         {/* Mode lives in the header action (EDIT / CANCEL) — this row only
@@ -991,7 +984,7 @@ export default function ScheduleScreen() {
           </View>
         ) : null}
 
-        {/* ── Heatmap ── */}
+        {/* ── Heatmap: the time axis scrolls; the rest of the page stays fixed. ── */}
         <View style={styles.heatmap}>
           {/* Day header row */}
           <View style={styles.heatRow}>
@@ -1010,10 +1003,21 @@ export default function ScheduleScreen() {
               );
             })}
           </View>
+          <View style={styles.timeScrollCue} pointerEvents="none">
+            <Text style={styles.timeScrollCueText}>SWIPE TIMES</Text>
+            <Feather color={Colors.muted} name="chevrons-up" size={11} />
+          </View>
+          <ScrollView
+            contentContainerStyle={styles.timeRows}
+            contentOffset={{ x: 0, y: Math.max(0, (currentSlotIndex - 2) * 28) }}
+            nestedScrollEnabled
+            showsVerticalScrollIndicator={false}
+            style={styles.timeScroller}
+          >
           {SLOT_HOURS.map((h, slotIdx) => (
             <View key={h} style={styles.heatRow}>
               <View style={styles.heatTimeCol}>
-                <Text style={[styles.heatTimeText, slotIdx === currentSlotIndex && styles.heatAxisActive]}>{slotLabel(h)}</Text>
+                <Text style={[styles.heatTimeText, slotIdx === currentSlotIndex && styles.heatAxisActive]}>{scheduleSlotLabel(h)}</Text>
               </View>
               {weekDays.map((_, dayIdx) => {
                 const key = `${dayIdx}:${slotIdx}`;
@@ -1028,7 +1032,7 @@ export default function ScheduleScreen() {
                   : count;
                 const slotDate = new Date(weekDays[dayIdx]);
                 slotDate.setHours(SLOT_HOURS[slotIdx], 0, 0, 0);
-                slotDate.setHours(SLOT_HOURS[slotIdx] + 2, 0, 0, 0);
+                slotDate.setHours(SLOT_HOURS[slotIdx] + 1, 0, 0, 0);
                 const isPast = slotDate.getTime() <= Date.now();
                 return (
                   <Pressable
@@ -1047,7 +1051,7 @@ export default function ScheduleScreen() {
                     }
                     disabled={scheduleMode === "EDIT" && isPast && !isMinePending}
                     accessibilityRole="button"
-                    accessibilityLabel={`${DAYS[weekDays[dayIdx].getDay()]} ${weekDays[dayIdx].getDate()}, ${slotLabel(SLOT_HOURS[slotIdx])}, ${previewCount} going${isMinePending ? ", selected as my time" : ""}`}
+                    accessibilityLabel={`${DAYS[weekDays[dayIdx].getDay()]} ${weekDays[dayIdx].getDate()}, ${scheduleSlotLabel(SLOT_HOURS[slotIdx])}, ${previewCount} going${isMinePending ? ", selected as my time" : ""}`}
                     accessibilityState={{ selected: scheduleMode === "EDIT" ? isMinePending : isSelected, disabled: scheduleMode === "EDIT" && isPast && !isMinePending }}
                     testID={`heat-${dayIdx}-${slotIdx}`}
                   >
@@ -1056,11 +1060,13 @@ export default function ScheduleScreen() {
                     ) : (isSelected || previewCount >= 5) && previewCount > 0 ? (
                       <Text style={styles.heatCellCount}>{previewCount}</Text>
                     ) : null}
+                    {(slotMap.get(key)?.runCount ?? 0) > 0 ? <View style={styles.runDot} /> : null}
                   </Pressable>
                 );
               })}
             </View>
           ))}
+          </ScrollView>
           {/* Legend */}
           <View style={styles.legendRow}>
             <View style={styles.legendScale}>
@@ -1071,7 +1077,7 @@ export default function ScheduleScreen() {
               <View style={[styles.legendSwatch, { backgroundColor: Colors.accent }]} />
               <Text style={styles.legendText}>Busy</Text>
             </View>
-            <Text style={styles.legendText}>Local time · 2-hr slots</Text>
+            <Text style={styles.legendText}>Local time · 1-hr slots</Text>
           </View>
         </View>
 
@@ -1083,7 +1089,7 @@ export default function ScheduleScreen() {
           return (
           <View style={styles.slotCard}>
             <Text style={styles.slotCardTitle}>
-              {DAYS[selectedDate.getDay()]} {selectedDate.getDate()} · {slotLabel(SLOT_HOURS[selectedSlot.slot])}
+              {DAYS[selectedDate.getDay()]} {selectedDate.getDate()} · {scheduleSlotLabel(SLOT_HOURS[selectedSlot.slot])}
               {"  "}
               <Text style={styles.slotCardGoing}>— {total} GOING</Text>
             </Text>
@@ -1095,7 +1101,7 @@ export default function ScheduleScreen() {
                     style={styles.slotAvatarItem}
                     onPress={() => router.push(`/player/${a.id}`)}
                   >
-                    <PlayerAvatar initials={a.initials} size={36} accent={a.isMine} />
+                    <PlayerAvatar initials={a.initials} name={a.name} playerId={a.id} size={36} accent={a.isMine} />
                     <Text style={styles.slotAvatarName} numberOfLines={1}>
                       {a.isMine ? "You" : a.name.split(" ")[0]}
                     </Text>
@@ -1150,51 +1156,20 @@ export default function ScheduleScreen() {
                 No runs at this court this week. Put one on the board.
               </Text>
             </View>
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              snapToInterval={292}
-              snapToAlignment="start"
-              decelerationRate="fast"
-              contentContainerStyle={styles.runCarousel}
-            >
-              {courtRuns.map((run) => (
-                <Pressable
-                  key={run.id}
-                  style={({ pressed }) => [styles.runCard, pressed && styles.pressed]}
-                  onPress={() => router.push(`/run/${run.id}`)}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.runEyebrow}>
-                      {run.date === "TODAY" ? "TONIGHT" : run.date} · {run.time}
-                    </Text>
-                    <Text style={styles.runTitle} numberOfLines={1}>{run.title}</Text>
-                    <View style={styles.runAvatarRow}>
-                      {run.participants.slice(0, 4).map((p) => (
-                        <PlayerAvatar key={p.id} initials={p.avatar} size={22} />
-                      ))}
-                      {run.participants.length > 4 && (
-                        <Text style={styles.runAvatarMore}>+{run.participants.length - 4}</Text>
-                      )}
-                      {run.participants.length === 0 && (
-                        <Text style={styles.runAvatarMore}>0/{run.maxPlayers}</Text>
-                      )}
-                    </View>
-                  </View>
-                  <Text style={styles.runViewLink}>VIEW ›</Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          )}
-          {scheduleMode === "VIEW" ? (
-            <Pressable style={styles.createRunButton} onPress={() => setShowHost(true)} testID="host-run-add-btn">
-              <Feather name="plus" size={13} color={Colors.text} />
-              <Text style={styles.createRunButtonText}>CREATE RUN</Text>
-            </Pressable>
-          ) : null}
+          ) : courtRuns.slice(0, 2).map((run) => <RunCard key={run.id} run={run} />)}
         </View>
-      </ScrollView>
+      </View>
+
+      {scheduleMode === "VIEW" && court?.id === localCourt?.id ? (
+        <SpeedDialFab
+          accessibilityLabel="Open schedule actions"
+          actions={[
+            { label: "Add times", icon: "clock", onPress: beginEditingTimes },
+            { label: "Create run", icon: "users", onPress: () => setShowHost(true) },
+          ]}
+          bottom={Platform.OS === "web" ? 102 : bottom + 78}
+        />
+      ) : null}
 
       {/* ── Bottom actions ── */}
       {scheduleMode === "EDIT" ? (
@@ -1248,6 +1223,7 @@ export default function ScheduleScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  scheduleBody: { flex: 1, minHeight: 0, paddingBottom: 88 },
   pressed: { backgroundColor: Colors.surfaceHigh },
 
   // ── Court selector + week nav ──
@@ -1272,8 +1248,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 10,
+    paddingTop: 10,
+    paddingBottom: 6,
   },
   weekLabel: {
     fontFamily: Typography.heading,
@@ -1290,9 +1266,10 @@ const styles = StyleSheet.create({
   },
   scheduleModeRow: {
     paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingBottom: 6,
     gap: 8,
   },
+  editingLabel: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.accent, letterSpacing: 1.2 },
   modeToggle: { flexDirection: "row", minHeight: 34, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.sm, overflow: "hidden", backgroundColor: Colors.surface },
   modeToggleButton: { minWidth: 50, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 },
   modeToggleButtonActive: { backgroundColor: Colors.surfaceHigh },
@@ -1300,9 +1277,9 @@ const styles = StyleSheet.create({
   modeToggleTextActive: { color: Colors.accent },
   scheduleModeStatus: {
     fontFamily: Typography.bodySemiBold,
-    fontSize: 9,
+    fontSize: 7,
     color: Colors.textSecondary,
-    letterSpacing: 1,
+    letterSpacing: 0.85,
   },
   editOptions: {
     marginHorizontal: 20,
@@ -1362,7 +1339,11 @@ const styles = StyleSheet.create({
 
   // ── Heatmap ──
   heatmap: { paddingHorizontal: 20 },
-  heatRow: { flexDirection: "row", gap: 4, marginBottom: 4, alignItems: "center" },
+  timeScroller: { maxHeight: 228 },
+  timeRows: { paddingBottom: 2 },
+  timeScrollCue: { height: 15, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 4 },
+  timeScrollCueText: { fontFamily: Typography.bodyMedium, fontSize: 6, color: Colors.muted, letterSpacing: 0.8 },
+  heatRow: { flexDirection: "row", gap: 3, marginBottom: 3, alignItems: "center" },
   heatTimeCol: { width: 40 },
   heatTimeText: {
     fontFamily: Typography.bodyMedium,
@@ -1387,12 +1368,13 @@ const styles = StyleSheet.create({
   heatDayDateToday: { color: Colors.text },
   heatAxisActive: {
     color: Colors.accent,
-    textShadowColor: "rgba(255,85,0,0.45)",
+    textShadowColor: Colors.accentTextShadow,
     textShadowRadius: 7,
   },
   heatCell: {
+    position: "relative",
     flex: 1,
-    height: 28,
+    height: 25,
     borderRadius: Radius.sm,
     backgroundColor: Colors.surface,
     borderWidth: 1,
@@ -1419,6 +1401,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.text,
   },
+  runDot: { position: "absolute", right: 3, top: 3, width: 4, height: 4, borderRadius: 2, backgroundColor: Colors.accent },
   legendRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1505,13 +1488,13 @@ const styles = StyleSheet.create({
   },
 
   // ── Scheduled runs ──
-  runsSection: { paddingHorizontal: 20, paddingTop: 24 },
+  runsSection: { paddingHorizontal: 20, paddingTop: 12 },
   runsTitle: {
     fontFamily: Typography.heading,
     fontSize: 17,
     color: Colors.text,
     letterSpacing: 0.5,
-    marginBottom: 12,
+    marginBottom: 6,
   },
   runsEmpty: { paddingVertical: 8 },
   runsEmptyText: {

@@ -1,6 +1,54 @@
 # LocalCheck Design Decisions
 
-Status: Proposed. Nothing in this file is locked until the corresponding roadmap gate is confirmed by the user.
+Status: Current MVP decisions. Newer dated decisions supersede older entries.
+
+## 2026-08-09 — Shared MVP visual system and interaction hierarchy
+
+**Decision confirmed by Jesse:** Keep the working SDK 54 application and make
+material MVP improvements through shared components. The Brand Asset Sheet is
+the authority for the mark, `#FF5500`, graphite surfaces, Oswald display type,
+and Inter body type. Edited surfaces use the real mark or library icons—never
+ASCII, emoji, handcrafted SVG, or one-off icon drawings. Player identity,
+profile heroes, metrics, selectors, run cards, activity, sticky actions, court
+cards, and speed-dial actions each have one shared implementation.
+
+**Why:** The product is close enough to validate. A rewrite would delay user
+learning, while continued spot-editing would preserve inconsistency and make
+every future iteration expensive.
+
+## 2026-08-09 — Explore cards open a contextual court sheet
+
+**Decision confirmed by Jesse:** Explore court cards show concise identity,
+active-now and local counts. They do not contain Check In, View Court, or Set
+Local actions. Tapping a card opens a short bottom sheet with Check In and View
+Court; pulling the sheet up reveals Who's Here and Locals. Only the actual
+local court displays a filled star.
+
+**Why:** The card remains easy to scan, while the contextual sheet provides
+reachable actions without turning every discovery result into a large form.
+
+## 2026-08-09 — Court routes are read-only place dashboards
+
+**Decision confirmed by Jesse:** A court route has a fixed branded header,
+full-width six-metric panel, and Feed, Locals, Schedule, and Details tabs. Feed
+is progressively loaded, Locals shows the full community, Schedule is a clean
+read-only heatmap and run view, and Details owns name, shorthand, status,
+address, date added, and map preview. Check-in and planning edits do not live
+on this route.
+
+**Why:** The route answers what is happening at a place without duplicating
+the local player's action workflow. The primary Schedule tab remains the
+source of truth for editing the player's local-court availability and runs.
+
+## 2026-08-09 — Sport selectors are compact and reflect real sport data
+
+**Decision confirmed by Jesse:** Explore and Compete reuse one compact
+library-icon dropdown pattern. Compete displays `BB` / `PB` only where the
+underlying records are actually scoped by sport; it must not relabel one shared
+rating as two rankings.
+
+**Why:** A rarely changed setting should not consume a full row, and visual
+filters must remain honest about backend data.
 
 ## 2026-07-29 — Home is a fixed court hub, not a discovery card
 
@@ -18,7 +66,9 @@ visible while the longer activity history moves.
 
 ## 2026-07-27 — Explore is local-first, bounded, and sport-identifiable
 
-**Working decision confirmed by Jesse:** Explore uses a full-width `List` / `Map` switch. The list features `My Local Court`, then a small market/city-scoped set of relevant courts with `View All`; it does not download or foreground an unbounded global catalog. Court cards show active and local counts and carry their Check In action inside the card. Basketball blue and pickleball green may appear only as restrained metadata in a monochrome-style sport emblem, faint court geometry, and a smoked background hue. Court cards do not use a colored side stripe or a separate action row. LocalCheck orange remains reserved for live state and primary actions.
+**Superseded interaction detail:** The bounded/local-first query and restrained
+sport identity remain current. The 2026-08-09 decision supersedes the old
+instruction to place Check In inside each card.
 
 **Why:** A player's local court is more personally relevant than a generic nearest result, bounded queries respect Supabase and device resources, and sport-specific geometry/color helps courts read quickly without turning the entire app into competing sport themes.
 
@@ -30,7 +80,9 @@ visible while the longer activity history moves.
 
 ## 2026-07-27 — Do not present fake sport-specific rankings
 
-**Working decision confirmed by Jesse's concern:** Remove `All / BB / PB` from Compete while the backend stores only one overall Elo. Local scope may identify the local court's sport, but the UI must not relabel the same underlying standings as separate rankings. A hidden current user appears once, inline at the would-be position in the owner's view, without changing public row numbering.
+**Superseded presentation detail:** The honesty requirement remains current.
+The 2026-08-09 decision permits a compact BB/PB selector only when the queried
+records are genuinely sport-scoped.
 
 **Why:** Basketball and pickleball ranks should not be combined or cosmetically separated. Real sport toggles require real per-sport match/rating data. Privacy presentation must also avoid the contradictory state where the same player is both public and hidden.
 
@@ -52,9 +104,10 @@ visible while the longer activity history moves.
 
 **Why:** Selecting one square and confirming it before selecting another makes a naturally repetitive planning task slow and annoying. Batch editing preserves context, makes comparison easy, and maps to how players think about a week.
 
-## 2026-07-26 — Court pages use Feed, Locals, and Details tabs
+## 2026-07-26 — Court pages use predictable content tabs
 
-**Working decision confirmed by Jesse:** Keep the court's identity, live summary, and primary action above a court-local tab view. Use three tabs in this order: `Feed`, `Locals`, `Details`. Feed includes live/chronological activity and upcoming runs; Locals owns the community view; Details owns venue facts and access information.
+**Updated by 2026-08-09:** Court routes use `Feed`, `Locals`, `Schedule`, and
+`Details`. The 2026-08-09 read-only court-route decision is authoritative.
 
 **Why:** The current full court page stacks unrelated sections into a long scroll. A stable three-part information architecture makes every court predictable and lets players move directly between activity, people, and place information.
 

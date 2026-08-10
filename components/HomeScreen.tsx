@@ -1,7 +1,7 @@
+import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -11,39 +11,30 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { AnimatedEntry } from "@/components/AnimatedEntry";
-import { LogoMark } from "@/components/brand/LogoMark";
+import { CourtSchedulePanel } from "@/components/CourtSchedulePanel";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { ScreenHeader } from "@/components/ScreenHeader";
+import { ScreenHeader, SectionHeader } from "@/components/ScreenHeader";
+import { ActivityRow } from "@/components/ui/ActivityRow";
+import { GameResultModal } from "@/components/ui/GameResultModal";
+import { HomeCourtHero } from "@/components/ui/HomeCourtHero";
+import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
+import { PersonTile } from "@/components/ui/PersonTile";
+import { ScreenViewport } from "@/components/ui/ScreenViewport";
 import { Colors, Radius } from "@/constants/colors";
-import { Court, FeedItem, getCourtIdentityColor } from "@/constants/data";
+import type { FeedItem, FeedMatchSummary } from "@/constants/data";
+import { Layout, Space } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
-import { fetchWeeklyActiveCount } from "@/services/checkInService";
+import {
+  fetchLocalsWithLastCheckIn,
+  type LocalWithLastCheckIn,
+} from "@/services/profileService";
+import { openCourtInMaps } from "@/lib/openMaps";
 
-/**
- * Home — the local court, live (logo top-left, one accent
- * throughout, elevated smart avatars, flat uncolored activity markers).
- * Roster + counts come exclusively from the shared presence store, so
- * everything on this screen moves together when someone checks in.
- */
-
-const KM_TO_MI = 0.621371;
-const PICKLEBALL_HOLES = [
-  { top: 3, left: 5 },
-  { top: 6, left: 2 },
-  { top: 7, right: 2 },
-  { bottom: 3, left: 5 },
-] as const;
-
-function feedDotAccent(item: FeedItem): boolean {
-  // Accent marks *results*; presence events stay flat — one accent rule.
-  return item.type === "game_result" || item.type === "run_result";
-}
+type HomeTab = "feed" | "locals" | "schedule";
 
 export function HomeScreen() {
   const {
@@ -53,933 +44,568 @@ export function HomeScreen() {
     checkIn,
     checkOut,
     feed,
-    runs,
     isFriend,
     refreshCheckedIn,
     refreshFeed,
   } = useApp();
-  // Live who's-here + locals for the local court from the shared presence
-  // store — realtime events from other users update this without any refresh.
   const { roster, localCount } = usePresence(localCourtId);
   const liveCounts = useCourtCounts(localCourt ? [localCourt] : []);
   const { user } = useAuth();
-  const { top, bottom } = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : top;
+  const { bottom } = useSafeAreaInsets();
+  const [activeTab, setActiveTab] = useState<HomeTab>("feed");
+  const [locals, setLocals] = useState<LocalWithLastCheckIn[]>([]);
+  const [isChecking, setIsChecking] = useState(false);
+  const [selectedResult, setSelectedResult] = useState<{
+    match: FeedMatchSummary;
+    sport: FeedItem["sport"];
+    courtName?: string;
+  } | null>(null);
 
-  const [weeklyActive, setWeeklyActive] = useState<number | null>(null);
+  const refreshLocals = useCallback(() => {
+    if (!localCourtId) {
+      setLocals([]);
+      return;
+    }
+    let active = true;
+    void fetchLocalsWithLastCheckIn(localCourtId).then((result) => {
+      if (active) setLocals(result);
+    });
+    return () => {
+      active = false;
+    };
+  }, [localCourtId]);
 
-  // Re-sync check-in state + feed + weekly stat every time Home gains focus,
-  // so actions taken on other screens show immediately.
   useFocusEffect(
     useCallback(() => {
-      refreshCheckedIn();
-      refreshFeed();
-      if (localCourtId) {
-        fetchWeeklyActiveCount(localCourtId).then(setWeeklyActive);
-      }
-    }, [refreshCheckedIn, refreshFeed, localCourtId])
+      void refreshCheckedIn();
+      void refreshFeed();
+      return refreshLocals();
+    }, [refreshCheckedIn, refreshFeed, refreshLocals]),
   );
 
-  const isCheckedIn = !!localCourt && checkedInCourtId === localCourt.id;
+  useEffect(() => {
+    setActiveTab("feed");
+    setSelectedResult(null);
+  }, [localCourtId]);
+
+  const sortedPlayers = useMemo(
+    () =>
+      [...roster].sort((a, b) => {
+        const friendshipDifference =
+          Number(isFriend(b.id)) - Number(isFriend(a.id));
+        return friendshipDifference || b.elo - a.elo;
+      }),
+    [isFriend, roster],
+  );
 
   if (!localCourt) {
-    return <NoCourtState topPad={topPad} isSignedIn={!!user} />;
+    return <NoCourtState isSignedIn={Boolean(user)} />;
   }
 
-  // The stats view counts check-ins the RLS-filtered roster can't see
-  // (friends-only / private) — surface those as "hidden" instead of letting
-  // the number and the avatars disagree.
+  const isCheckedIn = checkedInCourtId === localCourt.id;
   const statsActive = liveCounts[localCourt.id]?.activeCount ?? 0;
   const activeTotal = Math.max(roster.length, statsActive);
   const hiddenCount = Math.max(0, activeTotal - roster.length);
-  const approx = hiddenCount > 0 ? "~" : "";
+  const activeLabel = `${hiddenCount > 0 ? "~" : ""}${activeTotal}`;
+  const hereNowIds = new Set(roster.map((player) => player.id));
+  const visibleLocals = locals.filter(
+    ({ player }) => !hereNowIds.has(player.id),
+  );
+  const privateLocalCount = Math.max(0, localCount - locals.length);
 
-  // Friends first, then by elo — copy before sorting (shared store array).
-  const sortedPlayers = [...roster]
-    .sort((a, b) => {
-      const aFriend = isFriend(a.id) ? 1 : 0;
-      const bFriend = isFriend(b.id) ? 1 : 0;
-      if (aFriend !== bFriend) return bFriend - aFriend;
-      return b.elo - a.elo;
-    })
-    .slice(0, 6);
-
-  const courtRuns = runs
-    .filter((r) => r.courtId === localCourt.id)
-    .sort((a, b) => a.startTimeIso.localeCompare(b.startTimeIso));
-  const nextRun = courtRuns.find((r) => new Date(r.startTimeIso).getTime() > Date.now() - 60 * 60_000);
-  const courtFeed = feed.filter((f) => f.courtId === localCourt.id).slice(0, 6);
-
-  const distanceMi =
-    localCourt.distanceKm != null ? `${(localCourt.distanceKm * KM_TO_MI).toFixed(1)} mi` : null;
-  const courtMeta = [
-    distanceMi,
-    localCourt.address || [localCourt.neighborhood, localCourt.city].filter(Boolean).join(", "),
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const courtFeed = feed.filter((item) => item.courtId === localCourt.id);
 
   const handleCheckIn = async () => {
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }
-    if (isCheckedIn) {
-      await checkOut();
-    } else {
-      await checkIn(localCourt.id);
+    if (isChecking) return;
+    setIsChecking(true);
+    try {
       if (Platform.OS !== "web") {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       }
+      if (isCheckedIn) await checkOut();
+      else await checkIn(localCourt.id);
+    } finally {
+      setIsChecking(false);
     }
   };
 
-  return (
-    <View style={styles.container}>
-      {/* ── Brand header: logo lockup left, live pulse right ── */}
-      <ScreenHeader
-        title="LOCALCHECK"
-        wordmark
-        right={activeTotal > 0 ? (
-          <View style={styles.headerLive}>
-            <Text style={styles.headerLiveText}>
-              {approx}
-              {activeTotal} ACTIVE
-            </Text>
-          </View>
-        ) : undefined}
-      />
+  const openActivity = (item: FeedItem) => {
+    if (item.type === "game_result" && item.match) {
+      setSelectedResult({
+        match: item.match,
+        sport: item.sport,
+        courtName: item.courtName,
+      });
+      return;
+    }
+    if (item.runId) {
+      router.push(`/run/${item.runId}`);
+      return;
+    }
+    if (item.playerId) router.push(`/player/${item.playerId}`);
+  };
 
-      {/* Home uses a full-width court section. Compact cards stay in Explore and Map. */}
-      <HomeCourtSection
-        court={{ ...localCourt, neighborhood: courtMeta }}
-        activeTotal={activeTotal}
-        activeApprox={approx}
-        localCount={localCount}
-        runCount={courtRuns.length}
-        weeklyActive={weeklyActive}
+  const scrollBottom =
+    Platform.OS === "web" ? Layout.tabBarClearance + 24 : bottom + 92;
+
+  return (
+    <ScreenViewport>
+      <ScreenHeader title="LOCALCHECK" wordmark />
+
+      <HomeCourtHero
+        activeCount={activeLabel}
+        court={localCourt}
         isCheckedIn={isCheckedIn}
+        isChecking={isChecking}
+        localCount={localCount}
         onCheckIn={() => void handleCheckIn()}
-        onView={() => router.push(`/court/${localCourt.id}`)}
+        onOpenMap={() => void openCourtInMaps(localCourt)}
+        onViewCourt={() => router.push(`/court/${localCourt.id}`)}
+        visitCount={localCourt.ratingCount ?? 0}
       />
 
-      {/* The local-court summary and planning context stay fixed. Only the feed scrolls. */}
-      <View style={styles.fixedContext}>
-        {/* ── Who's here ── */}
-        <View style={styles.peopleSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>WHO'S HERE</Text>
-            <Pressable
-              style={styles.viewAllInline}
-              onPress={() => router.push(`/court/${localCourt.id}`)}
-              accessibilityRole="button"
-              accessibilityLabel={`View all ${localCount} locals at ${localCourt.name}`}
-            >
-              <Text style={styles.viewAllInlineText}>VIEW ALL</Text>
-              <Text style={styles.viewAllInlineCount}>{localCount}</Text>
-              <Feather name="chevron-right" size={13} color={Colors.muted} />
-            </Pressable>
-          </View>
+      <HomeTabs active={activeTab} onChange={setActiveTab} />
+
+      <View style={styles.tabBody}>
+        {activeTab === "feed" ? (
           <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.rosterRow}
+            contentContainerStyle={{ paddingBottom: scrollBottom }}
+            showsVerticalScrollIndicator={false}
           >
-            {sortedPlayers.map((p) => {
-              const friend = isFriend(p.id);
-              return (
-                <AnimatedEntry key={p.id}>
-                  <Pressable
-                    style={styles.rosterItem}
-                    onPress={() => router.push(`/player/${p.id}`)}
-                    accessibilityRole="button"
-                    accessibilityLabel={p.name}
-                  >
-                    <View>
-                      <PlayerAvatar initials={p.avatar} size={44} />
-                      {friend && (
-                        <View style={styles.friendBadge}>
-                          <Feather name="star" size={7} color={Colors.black} />
-                        </View>
-                      )}
-                    </View>
-                    <Text style={styles.rosterName} numberOfLines={1}>
-                      {p.name}
-                    </Text>
-                  </Pressable>
-                </AnimatedEntry>
-              );
-            })}
-            {hiddenCount > 0 && (
-              <View style={styles.rosterItem}>
-                <View style={styles.hiddenSquare}>
-                  <Text style={styles.hiddenPlus}>+{hiddenCount}</Text>
+            <View style={styles.peopleSection}>
+              <SectionHeader count={activeLabel} title="Who's here" />
+              {activeTotal === 0 ? (
+                <View style={styles.emptyPeople}>
+                  <Text style={styles.emptyText}>
+                    Nobody here yet.
+                  </Text>
                 </View>
-                <Text style={styles.hiddenLabel}>hidden</Text>
-              </View>
-            )}
-            {activeTotal === 0 && (
-              <Text style={styles.emptyText}>Nobody here yet — be the first.</Text>
-            )}
-          </ScrollView>
-        </View>
-
-        {/* ── Next run ── */}
-        {nextRun && (
-          <View style={styles.nextRunSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>NEXT RUN</Text>
+              ) : (
+                <ScrollView
+                  contentContainerStyle={styles.roster}
+                  horizontal
+                  nestedScrollEnabled
+                  showsHorizontalScrollIndicator={false}
+                >
+                  {sortedPlayers.map((player) => (
+                    <PersonTile
+                      friend={isFriend(player.id)}
+                      key={player.id}
+                      onPress={() => router.push(`/player/${player.id}`)}
+                      player={player}
+                    />
+                  ))}
+                  {hiddenCount > 0 ? (
+                    <HiddenPeopleTile count={hiddenCount} />
+                  ) : null}
+                </ScrollView>
+              )}
             </View>
-            <Pressable
-              style={({ pressed }) => [styles.runStrip, pressed && styles.pressed]}
-              onPress={() => router.push(`/run/${nextRun.id}`)}
-            >
-              <View style={styles.runAccentBar} />
-              <View style={styles.runStripBody}>
-                <Text style={styles.runTitle}>{nextRun.title}</Text>
-                <Text style={styles.runMeta}>
-                  {nextRun.date === "TODAY" ? "Today" : nextRun.date} · {nextRun.time} ·{" "}
-                  {nextRun.courtName}
-                </Text>
-              </View>
-              <Text style={styles.runCount}>
-                <Text style={styles.runCountFilled}>{nextRun.participants.length}</Text>
-                <Text style={styles.runCountMax}>/{nextRun.maxPlayers}</Text>
-              </Text>
-            </Pressable>
-          </View>
-        )}
-      </View>
 
-      {/* ── Activity feed: this is the only vertically scrolling Home section. ── */}
-      <View style={styles.feedSection}>
-        <View style={styles.feedSectionHeader}>
-          <Text style={styles.sectionTitle}>ACTIVITY FEED</Text>
-        </View>
-        <ScrollView
-          style={styles.feedScroll}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 88 : bottom + 96 }}
-        >
-          {courtFeed.length === 0 ? (
-            <Text style={styles.emptyText}>No activity yet. Be the first.</Text>
-          ) : (
-            courtFeed.map((item, i) => (
-              <View key={item.id} style={styles.feedItem}>
-                <View style={styles.feedDotCol}>
-                  <View
-                    style={[
-                      styles.feedDot,
-                      feedDotAccent(item) ? styles.feedDotAccent : styles.feedDotFlat,
-                    ]}
+            <View style={styles.activitySection}>
+              <SectionHeader
+                count={courtFeed.length || undefined}
+                title="Court activity"
+              />
+              {courtFeed.length > 0 ? (
+                courtFeed.map((item, index) => (
+                  <ActivityRow
+                    isFirst={index === 0}
+                    isLast={index === courtFeed.length - 1}
+                    item={item}
+                    key={item.id}
+                    onActorPress={
+                      item.playerId
+                        ? () => router.push(`/player/${item.playerId}`)
+                        : undefined
+                    }
+                    onPress={
+                      item.type === "game_result" && !item.match
+                        ? undefined
+                        : () => openActivity(item)
+                    }
                   />
-                  {i < courtFeed.length - 1 && <View style={styles.feedLine} />}
+                ))
+              ) : (
+                <View style={styles.activityEmpty}>
+                  <Text style={styles.emptyText}>
+                    No activity yet. Check in to start the court story.
+                  </Text>
                 </View>
-                <View style={styles.feedContent}>
-                  <Text style={styles.feedMessage}>{item.message}</Text>
-                  <Text style={styles.feedTime}>{item.timestamp}</Text>
-                </View>
-              </View>
-            ))
-          )}
-        </ScrollView>
-      </View>
-    </View>
-  );
-}
-
-function SportBallMark({ sport, color }: { sport: Court["sport"]; color: string }) {
-  if (sport === "PICKLEBALL") {
-    return (
-      <View style={[styles.pickleballMark, { borderColor: color }]}>
-        {PICKLEBALL_HOLES.map((hole, index) => (
-          <View key={index} style={[styles.pickleballHole, hole, { backgroundColor: color }]} />
-        ))}
-      </View>
-    );
-  }
-
-  return (
-    <MaterialCommunityIcons
-      name={sport === "BASKETBALL" ? "basketball" : "tennis-ball"}
-      size={16}
-      color={color}
-    />
-  );
-}
-
-function HomeCourtSection({
-  court,
-  activeTotal,
-  activeApprox,
-  localCount,
-  runCount,
-  weeklyActive,
-  isCheckedIn,
-  onCheckIn,
-  onView,
-}: {
-  court: Court;
-  activeTotal: number;
-  activeApprox: string;
-  localCount: number;
-  runCount: number;
-  weeklyActive: number | null;
-  isCheckedIn: boolean;
-  onCheckIn: () => void;
-  onView: () => void;
-}) {
-  const identityColor = getCourtIdentityColor(court.sport);
-  const stats = [
-    { label: "ACTIVE NOW", value: `${activeApprox}${activeTotal}`, live: activeTotal > 0 },
-    { label: "LOCALS", value: localCount },
-    { label: "RUNS", value: runCount },
-    { label: "THIS WEEK", value: weeklyActive ?? "–" },
-  ];
-
-  return (
-    <LinearGradient
-      colors={[Colors.surface, "#121216", Colors.surfaceDark]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.homeCourtSection}
-    >
-      <View
-        pointerEvents="none"
-        style={[styles.homeCourtShader, { backgroundColor: `${identityColor}0A` }]}
-      />
-      <View style={styles.homeCourtTopline}>
-        <View style={styles.homeSportIdentity}>
-          <SportBallMark sport={court.sport} color={identityColor} />
-          <Text style={styles.homeSportLabel}>{court.sport}</Text>
-        </View>
-        <View style={styles.homeLocalBadge}>
-          <Text style={styles.homeLocalBadgeText}>MY LOCAL COURT</Text>
-        </View>
-      </View>
-
-      <Pressable onPress={onView} accessibilityRole="button" accessibilityLabel={`Open ${court.name}`}>
-        <Text style={styles.homeCourtName} numberOfLines={2}>{court.name}</Text>
-        <Text style={styles.homeCourtMeta} numberOfLines={1}>
-          {court.neighborhood || court.address || court.market || "Court details"}
-        </Text>
-      </Pressable>
-
-      <View style={styles.homeStatsRow}>
-        {stats.map((stat, index) => (
-          <React.Fragment key={stat.label}>
-            {index > 0 ? <View style={styles.homeStatDivider} /> : null}
-            <View style={styles.homeStatBlock}>
-              <Text style={[styles.homeStatValue, stat.live && styles.homeStatValueLive]}>
-                {stat.value}
-              </Text>
-              <Text style={styles.homeStatLabel}>{stat.label}</Text>
+              )}
             </View>
-          </React.Fragment>
-        ))}
+          </ScrollView>
+        ) : null}
+
+        {activeTab === "locals" ? (
+          <ScrollView
+            contentContainerStyle={{ paddingBottom: scrollBottom }}
+            showsVerticalScrollIndicator={false}
+          >
+            <SectionHeader count={activeLabel} title="Here now" />
+            <View style={styles.peopleList}>
+              {sortedPlayers.length > 0 ? (
+                sortedPlayers.map((player) => {
+                  const localHistory = locals.find((entry) => entry.player.id === player.id);
+                  return (
+                    <PlayerSummaryRow
+                      checkInCount={localHistory?.checkInCount}
+                      detail="ACTIVE NOW"
+                      friend={isFriend(player.id)}
+                      key={player.id}
+                      onPress={() => router.push(`/player/${player.id}`)}
+                      player={player}
+                    />
+                  );
+                })
+              ) : (
+                <Text style={styles.listEmpty}>
+                  No visible players checked in.
+                </Text>
+              )}
+              {hiddenCount > 0 ? (
+                <Text style={styles.privateNote}>
+                  +{hiddenCount} PRIVATE{" "}
+                  {hiddenCount === 1 ? "PLAYER" : "PLAYERS"} INCLUDED IN THE
+                  LIVE COUNT
+                </Text>
+              ) : null}
+            </View>
+
+            <SectionHeader count={localCount} title="Locals" />
+            <View style={styles.peopleList}>
+              {visibleLocals.length > 0 ? (
+                visibleLocals.map(({ player, lastCheckInAt, checkInCount }) => (
+                  <PlayerSummaryRow
+                    checkInCount={checkInCount}
+                    detail={
+                      lastCheckInAt
+                        ? `LAST HERE ${relativeTime(lastCheckInAt)}`
+                        : "LOCAL PLAYER"
+                    }
+                    friend={isFriend(player.id)}
+                    inactive={isInactive(lastCheckInAt)}
+                    key={player.id}
+                    onPress={() => router.push(`/player/${player.id}`)}
+                    player={player}
+                  />
+                ))
+              ) : (
+                <Text style={styles.listEmpty}>
+                  No other visible local profiles yet.
+                </Text>
+              )}
+              {privateLocalCount > 0 ? (
+                <Text style={styles.privateNote}>
+                  +{privateLocalCount} PRIVATE{" "}
+                  {privateLocalCount === 1 ? "LOCAL" : "LOCALS"} INCLUDED IN THE
+                  COUNT
+                </Text>
+              ) : null}
+            </View>
+          </ScrollView>
+        ) : null}
+
+        {activeTab === "schedule" ? (
+          <View style={styles.scheduleTab}>
+            <CourtSchedulePanel court={localCourt} interactive={false} />
+          </View>
+        ) : null}
       </View>
 
-      <View style={styles.homeActionRow}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.homeCheckInButton,
-            isCheckedIn && styles.homeCheckInButtonActive,
-            pressed && styles.homeActionPressed,
-          ]}
-          onPress={onCheckIn}
-          accessibilityRole="button"
-          accessibilityLabel={isCheckedIn ? `Check out of ${court.name}` : `Check in to ${court.name}`}
-        >
-          <Text style={[styles.homeCheckInText, isCheckedIn && styles.homeCheckInTextActive]}>
-            {isCheckedIn ? "CHECKED IN ✓" : "CHECK IN"}
-          </Text>
-        </Pressable>
-        <Pressable
-          style={({ pressed }) => [styles.homeViewButton, pressed && styles.homeActionPressed]}
-          onPress={onView}
-          accessibilityRole="button"
-          accessibilityLabel={`View ${court.name}`}
-        >
-          <Feather name="chevron-right" size={19} color={Colors.textSecondary} />
-        </Pressable>
-      </View>
-    </LinearGradient>
+      <GameResultModal
+        courtName={selectedResult?.courtName}
+        match={selectedResult?.match ?? null}
+        onClose={() => setSelectedResult(null)}
+        sport={selectedResult?.sport}
+        visible={Boolean(selectedResult)}
+      />
+    </ScreenViewport>
   );
 }
 
-function NoCourtState({ topPad, isSignedIn }: { topPad: number; isSignedIn: boolean }) {
-  if (isSignedIn) {
-    // Signed in but no local court set yet → focused CTA
-    return (
-      <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: topPad + 12 }]}>
-          <View style={styles.brandLockup}>
-            <LogoMark size={26} />
-            <Text style={styles.brandWordmark}>LOCALCHECK</Text>
-          </View>
-        </View>
-        <View style={styles.noCourtContainer}>
-          <Feather name="map-pin" size={28} color={Colors.accent} style={styles.noCourtIcon} />
-          <Text style={styles.noCourtTitle}>FIND A COURT</Text>
-          <Text style={styles.noCourtSub}>
-            Pick a court as your home base.{"\n"}Get live check-ins and run updates.
-          </Text>
-          <Pressable style={styles.findCourtBtn} onPress={() => router.push("/(tabs)/explore")}>
-            <Text style={styles.findCourtBtnText}>EXPLORE COURTS →</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
-
-  // Not signed in → welcome / landing page
+function HomeTabs({
+  active,
+  onChange,
+}: {
+  active: HomeTab;
+  onChange: (tab: HomeTab) => void;
+}) {
   return (
-    <View style={[styles.container, { justifyContent: "space-between" }]}>
-      {/* Logo area */}
-      <View style={[styles.welcomeTop, { paddingTop: topPad + 40 }]}>
-        <Text style={styles.welcomeBrand}>LOCALCHECK</Text>
-        <View style={[styles.welcomeAccentBar, { backgroundColor: Colors.accent }]} />
-        <Text style={styles.welcomeTagline}>STREET SPORTS.{"\n"}YOUR LOCAL COURT.</Text>
-      </View>
-
-      {/* CTAs */}
-      <View style={styles.welcomeCtas}>
-        <Pressable style={styles.welcomeBtnPrimary} onPress={() => router.push("/auth")}>
-          <Text style={styles.welcomeBtnPrimaryText}>SIGN IN</Text>
+    <View accessibilityRole="tablist" style={styles.tabs}>
+      {(["feed", "locals", "schedule"] as const).map((tab) => (
+        <Pressable
+          accessibilityRole="tab"
+          accessibilityState={{ selected: active === tab }}
+          key={tab}
+          onPress={() => onChange(tab)}
+          style={[styles.tab, active === tab && styles.tabActive]}
+        >
+          <Text
+            style={[styles.tabText, active === tab && styles.tabTextActive]}
+          >
+            {tab.toUpperCase()}
+          </Text>
         </Pressable>
-        <Pressable style={styles.welcomeBtnSecondary} onPress={() => router.push("/auth")}>
-          <Text style={styles.welcomeBtnSecondaryText}>CREATE ACCOUNT</Text>
-        </Pressable>
-        <Pressable style={styles.welcomeBtnGhost} onPress={() => router.push("/(tabs)/explore")}>
-          <Feather name="map" size={13} color={Colors.muted} />
-          <Text style={styles.welcomeBtnGhostText}>EXPLORE COURTS</Text>
-        </Pressable>
-      </View>
-
-      {/* Footer */}
-      <View style={styles.welcomeFooter}>
-        <Text style={styles.welcomeFooterText}>
-          BASKETBALL · PICKLEBALL · TENNIS
-        </Text>
-      </View>
+      ))}
     </View>
   );
+}
+
+function HiddenPeopleTile({ count }: { count: number }) {
+  return (
+    <View
+      accessibilityLabel={`${count} more people with private visibility`}
+      style={styles.hiddenTile}
+    >
+      <View style={styles.hiddenAvatar}>
+        <Text style={styles.hiddenCount}>+{count}</Text>
+      </View>
+      <Text style={styles.hiddenLabel}>Private</Text>
+    </View>
+  );
+}
+
+function NoCourtState({ isSignedIn }: { isSignedIn: boolean }) {
+  return (
+    <ScreenViewport>
+      <ScreenHeader title="LOCALCHECK" wordmark />
+      <View style={styles.noCourt}>
+        <View style={styles.noCourtIcon}>
+          <Feather color={Colors.accent} name="map-pin" size={24} />
+        </View>
+        <Text style={styles.noCourtTitle}>
+          {isSignedIn ? "FIND YOUR LOCAL COURT" : "YOUR LOCAL COURT, LIVE"}
+        </Text>
+        <Text style={styles.noCourtCopy}>
+          {isSignedIn
+            ? "Choose a home court to see who's there, upcoming runs, and live activity."
+            : "Sign in to check in, find runs, and see who is playing nearby."}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push(isSignedIn ? "/(tabs)/explore" : "/auth")}
+          style={({ pressed }) => [
+            styles.noCourtButton,
+            pressed && styles.buttonPressed,
+          ]}
+        >
+          <Text style={styles.noCourtButtonText}>
+            {isSignedIn ? "EXPLORE COURTS" : "SIGN IN"}
+          </Text>
+          <Feather color={Colors.black} name="arrow-right" size={15} />
+        </Pressable>
+      </View>
+    </ScreenViewport>
+  );
+}
+
+function relativeTime(value: string): string {
+  const elapsed = Date.now() - new Date(value).getTime();
+  if (!Number.isFinite(elapsed) || elapsed < 0) return "RECENTLY";
+  const minutes = Math.floor(elapsed / 60_000);
+  if (minutes < 60) return minutes <= 1 ? "JUST NOW" : `${minutes} MIN AGO`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} HR${hours === 1 ? "" : "S"} AGO`;
+  const days = Math.floor(hours / 24);
+  return `${days} DAY${days === 1 ? "" : "S"} AGO`;
+}
+
+function isInactive(value: string | null): boolean {
+  if (!value) return true;
+  return Date.now() - new Date(value).getTime() > 90 * 86_400_000;
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-
-  // ── Brand header ──
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  tabBody: {
+    flex: 1,
+    minHeight: 0,
+  },
+  scheduleTab: { flex: 1, minHeight: 0 },
+  tabs: {
+    minHeight: 45,
     paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  brandLockup: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  brandWordmark: {
-    fontFamily: Typography.heading,
-    fontSize: 17,
-    color: Colors.text,
-    letterSpacing: 2,
-  },
-  headerLive: {},
-  headerLiveText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 10,
-    color: Colors.accent,
-    letterSpacing: 1.5,
-  },
-
-  // ── Full-width Home court summary ──
-  homeCourtSection: {
-    minHeight: 184,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 11,
-    borderBottomWidth: 1,
+    backgroundColor: Colors.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
-    overflow: "hidden",
   },
-  homeCourtShader: {
-    position: "absolute",
-    width: 210,
-    height: 210,
-    borderRadius: 105,
-    right: -72,
-    top: -92,
-  },
-  homeCourtTopline: {
-    minHeight: 22,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  homeSportIdentity: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-  },
-  pickleballMark: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    opacity: 0.82,
-  },
-  pickleballHole: {
-    position: "absolute",
-    width: 2,
-    height: 2,
-    borderRadius: 1,
-    opacity: 0.82,
-  },
-  homeSportLabel: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 8,
-    color: Colors.textSecondary,
-    letterSpacing: 1.7,
-  },
-  homeLocalBadge: {
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: "rgba(9,9,11,0.58)",
-  },
-  homeLocalBadgeText: {
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 7,
-    color: Colors.textSecondary,
-    letterSpacing: 1.2,
-  },
-  homeCourtName: {
-    maxWidth: "88%",
-    marginTop: 6,
-    fontFamily: Typography.headingRegular,
-    fontSize: 20,
-    lineHeight: 22,
-    color: Colors.text,
-    letterSpacing: 0.15,
-    textTransform: "uppercase" as const,
-  },
-  homeCourtMeta: {
-    maxWidth: "80%",
-    marginTop: 2,
-    fontFamily: Typography.body,
-    fontSize: 10,
-    color: Colors.muted,
-  },
-  homeStatsRow: {
-    minHeight: 38,
-    marginTop: 7,
-    flexDirection: "row",
-    alignItems: "stretch",
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderSubtle,
-  },
-  homeStatBlock: {
-    minWidth: 0,
+  tab: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 3,
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
   },
-  homeStatValue: {
-    fontFamily: Typography.headingRegular,
-    fontSize: 19,
-    lineHeight: 20,
-    color: Colors.text,
-    textAlign: "center",
-    fontVariant: ["tabular-nums"],
+  tabActive: {
+    borderBottomColor: Colors.accent,
   },
-  homeStatValueLive: { color: Colors.accent },
-  homeStatLabel: {
-    marginTop: 2,
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 7,
-    color: Colors.muted,
-    letterSpacing: 1,
-    textAlign: "center",
-  },
-  homeStatDivider: {
-    width: 1,
-    height: 28,
-    alignSelf: "center",
-    backgroundColor: Colors.borderSubtle,
-  },
-  homeActionRow: {
-    minHeight: 38,
-    marginTop: 7,
-    marginHorizontal: 12,
-    flexDirection: "row",
-    gap: 8,
-  },
-  homeCheckInButton: {
-    flex: 1,
-    minHeight: 38,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.accent,
-    shadowColor: Colors.accent,
-    shadowOpacity: 0.28,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  homeCheckInButtonActive: {
-    backgroundColor: Colors.surfaceHigh,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  homeCheckInText: {
+  tabText: {
     fontFamily: Typography.bodyBold,
-    fontSize: 10,
-    color: Colors.black,
-    letterSpacing: 1.7,
+    fontSize: 8,
+    color: Colors.muted,
+    letterSpacing: 1.6,
   },
-  homeCheckInTextActive: { color: Colors.text },
-  homeViewButton: {
-    width: 42,
-    minHeight: 38,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surfaceHigh,
+  tabTextActive: {
+    color: Colors.text,
   },
-  homeActionPressed: { opacity: 0.8 },
-
-  // ── Section ──
-  fixedContext: { backgroundColor: Colors.background },
   peopleSection: {
-    minHeight: 94,
-    paddingHorizontal: 20,
-    paddingTop: 13,
-    paddingBottom: 10,
-    backgroundColor: Colors.surfaceDark,
-    borderBottomWidth: 1,
+    minHeight: 112,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.borderSubtle,
   },
-  nextRunSection: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderSubtle,
+  roster: {
+    minHeight: 70,
+    paddingHorizontal: Layout.screenGutter,
+    paddingBottom: Space.sm,
+    gap: Space.md,
   },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    minHeight: 18,
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 11,
-    color: Colors.textSecondary,
-    letterSpacing: 2,
-  },
-  sectionAccent: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.accent,
-    letterSpacing: 1.5,
-  },
-  viewAllInline: {
-    minHeight: 28,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingLeft: 8,
-  },
-  viewAllInlineText: {
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 8,
-    color: Colors.muted,
-    letterSpacing: 1.1,
-  },
-  viewAllInlineCount: {
-    fontFamily: Typography.headingRegular,
-    fontSize: 13,
-    color: Colors.textSecondary,
-    fontVariant: ["tabular-nums"],
-  },
-
-  // ── Who's here ──
-  rosterRow: { gap: 14, paddingVertical: 2, alignItems: "flex-start" },
-  rosterItem: { alignItems: "center", width: 52 },
-  rosterName: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 10,
-    color: Colors.textSecondary,
-    marginTop: 6,
-  },
-  friendBadge: {
-    position: "absolute",
-    bottom: -3,
-    right: -3,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: Colors.accent,
-    borderWidth: 1.5,
-    borderColor: Colors.background,
+  emptyPeople: {
+    minHeight: 46,
+    paddingHorizontal: Layout.screenGutter,
     alignItems: "center",
     justifyContent: "center",
   },
-  hiddenSquare: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
+  activitySection: {
+    minHeight: 150,
+  },
+  activityEmpty: {
+    minHeight: 120,
+    paddingHorizontal: Layout.screenGutter,
+    justifyContent: "center",
+  },
+  emptyText: {
+    fontFamily: Typography.body,
+    fontSize: 12,
+    lineHeight: 18,
+    color: Colors.muted,
+    textAlign: "center",
+  },
+  hiddenTile: {
+    width: 62,
+    alignItems: "center",
+    gap: Space.sm,
+    paddingTop: Space.xs,
+  },
+  hiddenAvatar: {
+    width: 42,
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: Colors.border,
+    borderRadius: Radius.lg,
     borderStyle: "dashed",
-    alignItems: "center",
-    justifyContent: "center",
     backgroundColor: Colors.surface,
   },
-  hiddenPlus: {
+  hiddenCount: {
     fontFamily: Typography.heading,
-    fontSize: 13,
-    color: Colors.muted,
+    fontSize: 14,
+    color: Colors.textSecondary,
   },
   hiddenLabel: {
     fontFamily: Typography.bodyMedium,
-    fontSize: 10,
+    fontSize: 9,
     color: Colors.muted,
-    marginTop: 6,
   },
-  // ── Next run ──
-  runStrip: {
+  peopleList: {
+    paddingHorizontal: Layout.screenGutter,
+    paddingBottom: Space.lg,
+  },
+  privateNote: {
+    marginTop: Space.md,
+    fontFamily: Typography.bodyBold,
+    fontSize: 8,
+    lineHeight: 13,
+    color: Colors.muted,
+    letterSpacing: 1,
+  },
+  listEmpty: {
+    paddingVertical: Space.xl,
+    fontFamily: Typography.body,
+    fontSize: 11,
+    lineHeight: 17,
+    color: Colors.muted,
+  },
+  scheduleDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.border,
+  },
+  scheduleRuns: {
+    paddingHorizontal: Layout.screenGutter,
+    paddingBottom: Space.xl,
+    gap: Space.sm,
+  },
+  openSchedule: {
+    minHeight: 48,
+    marginTop: Space.sm,
+    paddingHorizontal: Space.lg,
+    borderRadius: Radius.sm,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: Space.sm,
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: Radius.sm,
-    overflow: "hidden",
   },
-  pressed: { backgroundColor: Colors.surfaceHigh },
-  runAccentBar: {
-    width: 3,
-    alignSelf: "stretch",
-    backgroundColor: Colors.accent,
-  },
-  runStripBody: { flex: 1, paddingHorizontal: 14, paddingVertical: 12 },
-  runTitle: {
+  openScheduleText: {
     fontFamily: Typography.heading,
-    fontSize: 15,
-    color: Colors.text,
-    letterSpacing: 0.5,
-    marginBottom: 3,
-  },
-  runMeta: {
-    fontFamily: Typography.body,
     fontSize: 11,
-    color: Colors.muted,
-  },
-  runCount: { paddingRight: 14 },
-  runCountFilled: {
-    fontFamily: Typography.heading,
-    fontSize: 20,
-    color: Colors.accent,
-  },
-  runCountMax: {
-    fontFamily: Typography.heading,
-    fontSize: 13,
-    color: Colors.muted,
-  },
-
-  // ── Activity feed ──
-  feedSection: {
-    flex: 1,
-    minHeight: 0,
-    paddingTop: 12,
-    backgroundColor: Colors.background,
-  },
-  feedSectionHeader: {
-    minHeight: 24,
-    justifyContent: "center",
-    paddingHorizontal: 20,
-    paddingBottom: 8,
-  },
-  feedScroll: {
-    flex: 1,
-    minHeight: 0,
-    paddingHorizontal: 20,
-  },
-  feedItem: {
-    flexDirection: "row",
-    paddingBottom: 16,
-  },
-  feedDotCol: {
-    width: 20,
-    alignItems: "center",
-  },
-  feedDot: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    marginTop: 3,
-  },
-  feedDotAccent: { backgroundColor: Colors.accent },
-  feedDotFlat: {
-    backgroundColor: "transparent",
-    borderWidth: 1.5,
-    borderColor: Colors.mutedDark,
-  },
-  feedLine: {
-    flex: 1,
-    width: 1,
-    backgroundColor: Colors.borderSubtle,
-    marginTop: 4,
-  },
-  feedContent: { flex: 1, paddingLeft: 8 },
-  feedMessage: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 12,
     color: Colors.text,
-    letterSpacing: 0.2,
-    lineHeight: 17,
-    marginBottom: 3,
+    letterSpacing: 1.2,
   },
-  feedTime: {
-    fontFamily: Typography.body,
-    fontSize: 10,
-    color: Colors.muted,
-    letterSpacing: 0.5,
-  },
-  emptyText: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 12,
-    color: Colors.muted,
-    letterSpacing: 0.5,
-  },
-
-  // ── No Court / Find Court ──
-  noCourtContainer: {
+  noCourt: {
     flex: 1,
+    paddingHorizontal: Layout.screenGutter,
+    paddingBottom: Layout.tabBarClearance,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 40,
   },
-  noCourtIcon: { marginBottom: 16 },
+  noCourtIcon: {
+    width: 54,
+    height: 54,
+    marginBottom: Space.xl,
+    borderRadius: Radius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.liveQuiet,
+    borderWidth: 1,
+    borderColor: Colors.accentDim,
+  },
   noCourtTitle: {
     fontFamily: Typography.heading,
-    fontSize: 18,
+    fontSize: 25,
     color: Colors.text,
-    letterSpacing: 3,
-    marginBottom: 10,
+    letterSpacing: 0.8,
     textAlign: "center",
   },
-  noCourtSub: {
+  noCourtCopy: {
+    maxWidth: 320,
+    marginTop: Space.sm,
     fontFamily: Typography.body,
     fontSize: 13,
-    color: Colors.muted,
-    textAlign: "center",
     lineHeight: 20,
-    marginBottom: 24,
+    color: Colors.textSecondary,
+    textAlign: "center",
   },
-  findCourtBtn: {
-    borderWidth: 1,
-    borderColor: Colors.accent,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-  },
-  findCourtBtnText: {
-    fontFamily: Typography.heading,
-    fontSize: 13,
-    color: Colors.accent,
-    letterSpacing: 2,
-  },
-
-  // ── Welcome / Landing ──
-  welcomeTop: {
-    paddingHorizontal: 28,
-    paddingBottom: 24,
-  },
-  welcomeBrand: {
-    fontFamily: Typography.heading,
-    fontSize: 42,
-    color: Colors.text,
-    letterSpacing: 3,
-    lineHeight: 46,
-    marginBottom: 16,
-  },
-  welcomeAccentBar: {
-    width: 40,
-    height: 3,
-    marginBottom: 20,
-  },
-  welcomeTagline: {
-    fontFamily: Typography.heading,
-    fontSize: 22,
-    color: Colors.muted,
-    letterSpacing: 1,
-    lineHeight: 28,
-  },
-  welcomeCtas: {
-    paddingHorizontal: 28,
-    gap: 12,
-    paddingBottom: 40,
-  },
-  welcomeBtnPrimary: {
-    backgroundColor: Colors.accent,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  welcomeBtnPrimaryText: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.black,
-    letterSpacing: 3,
-  },
-  welcomeBtnSecondary: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  welcomeBtnSecondaryText: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.text,
-    letterSpacing: 3,
-  },
-  welcomeBtnGhost: {
+  noCourtButton: {
+    minHeight: 48,
+    marginTop: Space.xxl,
+    paddingHorizontal: Space.xl,
+    borderRadius: 24,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 14,
+    gap: Space.sm,
+    backgroundColor: Colors.accent,
   },
-  welcomeBtnGhostText: {
-    fontFamily: Typography.bodyMedium,
+  noCourtButtonText: {
+    fontFamily: Typography.headingBold,
     fontSize: 12,
-    color: Colors.muted,
-    letterSpacing: 2,
+    color: Colors.black,
+    letterSpacing: 1.35,
   },
-  welcomeFooter: {
-    paddingBottom: 40,
-    alignItems: "center",
-  },
-  welcomeFooterText: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 9,
-    color: Colors.mutedDark,
-    letterSpacing: 3,
-    textTransform: "uppercase" as const,
+  buttonPressed: {
+    opacity: 0.72,
   },
 });

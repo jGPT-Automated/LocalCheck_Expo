@@ -1,19 +1,19 @@
+import { Colors } from "@/constants/colors";
+
 // Shared UI/domain types. Supabase mapping stays in services/ so components do
 // not depend on database row shapes.
 
-export type CourtSport = "BASKETBALL" | "PICKLEBALL" | "TENNIS" | "SOCCER" | "VOLLEYBALL";
-
-export const SPORT_ICONS: Record<CourtSport, string> = {
-  BASKETBALL: "🏀",
-  PICKLEBALL: "🏓",
-  TENNIS: "🎾",
-  SOCCER: "⚽",
-  VOLLEYBALL: "🏐",
-};
+export type CourtSport =
+  | "BASKETBALL"
+  | "PICKLEBALL"
+  | "TENNIS"
+  | "SOCCER"
+  | "VOLLEYBALL";
 
 export interface Player {
   id: string;
   name: string;
+  username?: string;
   elo: number;
   tier: EloTier;
   avatar: string;
@@ -38,6 +38,7 @@ export type RimType = "SINGLE" | "DOUBLE";
 export interface Court {
   id: string;
   name: string;
+  shortName?: string;
   sport: CourtSport;
   neighborhood: string;
   city: string;
@@ -66,12 +67,12 @@ export interface Court {
   addedBy?: string;
   verificationPhoto?: string;
   // Physical court details
-  courtCount?: number;      // number of courts / playing surfaces
-  hoopCount?: number;       // hoops (basketball/pickleball specific)
-  netType?: NetType;        // net material
-  rimType?: RimType;        // rim type (basketball)
-  waterFountain?: boolean;  // water fountain on site
-  addedDate?: string;       // display string e.g. "JAN 2024"
+  courtCount?: number; // number of courts / playing surfaces
+  hoopCount?: number; // hoops (basketball/pickleball specific)
+  netType?: NetType; // net material
+  rimType?: RimType; // rim type (basketball)
+  waterFountain?: boolean; // water fountain on site
+  addedDate?: string; // display string e.g. "JAN 2024"
 }
 
 // The DB models RSVP only (going/waitlist/declined) — there is no persisted
@@ -95,7 +96,13 @@ export interface GameRun {
 
 export interface FeedItem {
   id: string;
-  type: "checkin" | "checkout" | "game_result" | "run_result" | "new_court" | "run_started";
+  type:
+    | "checkin"
+    | "checkout"
+    | "game_result"
+    | "run_result"
+    | "new_court"
+    | "run_started";
   playerId: string;
   playerName: string;
   courtName?: string;
@@ -105,10 +112,30 @@ export interface FeedItem {
   message: string;
   /** Winner display name for game_result items — used to tint the name with Colors.win. */
   winnerName?: string;
+  /** Structured, authoritative result data for confirmed match events. */
+  match?: FeedMatchSummary;
   timestamp: string;
   hypeCount: number;
   imageUri?: string;
   huped?: boolean;
+}
+
+export interface FeedMatchParticipant {
+  playerId: string;
+  name: string;
+  side: "a" | "b";
+  displayOrder: number;
+}
+
+export interface FeedMatchSummary {
+  id: string;
+  playedAt: string;
+  scoreA: number;
+  scoreB: number;
+  winnerSide: "a" | "b";
+  status: "confirmed";
+  sideA: FeedMatchParticipant[];
+  sideB: FeedMatchParticipant[];
 }
 
 // BACKEND NOTE: public.planned_visits — planned presence ("pulling up").
@@ -164,21 +191,31 @@ export function getEloTier(elo: number): EloTier {
 
 export function getTierColor(tier: EloTier | string): string {
   switch (tier) {
-    case "PLATINUM": return "#E8E8FF";
-    case "GOLD": return "#FFD53D";
-    case "SILVER": return "#C8C8D0";
-    case "BRONZE": return "#CF8558";
-    default: return "#555566";
+    case "PLATINUM":
+      return Colors.tier.platinum;
+    case "GOLD":
+      return Colors.tier.gold;
+    case "SILVER":
+      return Colors.tier.silver;
+    case "BRONZE":
+      return Colors.tier.bronze;
+    default:
+      return Colors.mutedDark;
   }
 }
 
 export function getSportColor(sport: CourtSport): string {
   switch (sport) {
-    case "BASKETBALL": return "#FF6B35";
-    case "PICKLEBALL": return "#00E87A";
-    case "TENNIS": return "#FFE135";
-    case "SOCCER": return "#4ECDC4";
-    case "VOLLEYBALL": return "#A855F7";
+    case "BASKETBALL":
+      return Colors.basketballMeta;
+    case "PICKLEBALL":
+      return Colors.pickleballMeta;
+    case "TENNIS":
+      return "#FFE135";
+    case "SOCCER":
+      return "#4ECDC4";
+    case "VOLLEYBALL":
+      return "#A855F7";
   }
 }
 
@@ -188,10 +225,15 @@ export function getSportColor(sport: CourtSport): string {
  */
 export function getCourtIdentityColor(sport: CourtSport): string {
   switch (sport) {
-    case "BASKETBALL": return "#6F8FEA";
-    case "PICKLEBALL": return "#58C9A3";
-    case "TENNIS": return "#D4C75A";
-    case "SOCCER": return "#57B8B2";
-    case "VOLLEYBALL": return "#A477D3";
+    case "BASKETBALL":
+      return Colors.basketballMeta;
+    case "PICKLEBALL":
+      return Colors.pickleballMeta;
+    case "TENNIS":
+      return "#D4C75A";
+    case "SOCCER":
+      return "#57B8B2";
+    case "VOLLEYBALL":
+      return "#A477D3";
   }
 }

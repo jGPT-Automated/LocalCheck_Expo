@@ -2,12 +2,13 @@ import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
 
 import { BrutalistButton } from "@/components/BrutalistButton";
+import { LogoMark } from "@/components/brand/LogoMark";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { FormSheet } from "@/components/sheet/FormSheet";
 import { Colors, Radius } from "@/constants/colors";
+import { formatClockTime } from "@/components/home/homePresentation";
 import { getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
@@ -80,13 +81,10 @@ export default function RunScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: (Platform.OS === "web" ? 34 : bottom) + 120 }}
-      >
+      <View style={styles.content}>
         <View style={[styles.header, { paddingTop: topPad + 12 }]}>
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={16}>
-            <Text style={styles.backText}>‹</Text>
+            <LogoMark size={30} variant="back" />
           </Pressable>
           <View style={styles.headerMain}>
             <View style={styles.headerMeta}>
@@ -99,7 +97,7 @@ export default function RunScreen() {
               </View>
             </View>
             <Text style={styles.runTitle}>{run.title}</Text>
-            <Text style={styles.runInfo}>{run.time} · {run.date} · {run.courtName.toUpperCase()}</Text>
+            <Text style={styles.runInfo}>{formatClockTime(run.time)} · {run.date} · {run.courtName.toUpperCase()}</Text>
           </View>
         </View>
 
@@ -122,7 +120,7 @@ export default function RunScreen() {
           </View>
           {run.participants.map((player) => (
             <View key={player.id} style={styles.playerSlot}>
-              <PlayerAvatar initials={player.avatar} size={34} />
+              <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={34} />
               <View>
                 <Text style={styles.slotName}>
                   {player.name.split(" ")[0]}
@@ -144,11 +142,11 @@ export default function RunScreen() {
         {isHost && !hasStarted && inviteableFriends.length > 0 ? (
           <View style={styles.inviteSection}>
             <Text style={styles.resultLabel}>INVITE FRIENDS</Text>
-            {inviteableFriends.map((friend) => {
+            {inviteableFriends.slice(0, 2).map((friend) => {
               const invited = invitedIds.includes(friend.id);
               return (
                 <View key={friend.id} style={styles.inviteRow}>
-                  <PlayerAvatar initials={friend.avatar} size={32} />
+                  <PlayerAvatar initials={friend.avatar} name={friend.name} playerId={friend.id} size={32} />
                   <Text style={styles.inviteName} numberOfLines={1}>{friend.name.toUpperCase()}</Text>
                   <Pressable
                     style={[styles.inviteButton, invited && styles.inviteButtonDone]}
@@ -194,7 +192,7 @@ export default function RunScreen() {
             </View>
           </View>
         ) : null}
-      </ScrollView>
+      </View>
 
       <EditRunModal
         visible={showEdit}
@@ -209,7 +207,7 @@ export default function RunScreen() {
       <View style={[styles.footer, { paddingBottom: (Platform.OS === "web" ? 34 : bottom) + 12 }]}>
         {joinError && <Text style={styles.joinError}>COULD NOT JOIN — TRY AGAIN</Text>}
         <BrutalistButton
-          label={isJoined ? "YOU'RE GOING ✓" : isFull ? "RUN FULL" : joining ? "JOINING…" : "JOIN RUN"}
+          label={isJoined ? "YOU'RE GOING" : isFull ? "RUN FULL" : joining ? "JOINING…" : "JOIN RUN"}
           onPress={handleJoin}
           variant={isJoined ? "outline" : "accent"}
           style={{ flex: 1, opacity: isFull && !isJoined ? 0.5 : 1 }}
@@ -311,6 +309,7 @@ function EditRunModal({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  content: { flex: 1, minHeight: 0, paddingBottom: 98 },
   notFound: { flex: 1, justifyContent: "center", alignItems: "center", gap: 20, padding: 40 },
   notFoundText: { fontFamily: Typography.heading, fontSize: 24, color: Colors.text, letterSpacing: 2 },
   header: {
@@ -320,7 +319,6 @@ const styles = StyleSheet.create({
     flexDirection: "row", gap: 16,
   },
   backBtn: {},
-  backText: { fontFamily: Typography.heading, fontSize: 26, color: Colors.white, lineHeight: 28 },
   headerMain: { flex: 1 },
   headerMeta: { flexDirection: "row", gap: 8, marginBottom: 8 },
   sportTag: { flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3 },
@@ -335,19 +333,19 @@ const styles = StyleSheet.create({
   controlBorder: { borderLeftWidth: 1, borderColor: Colors.border },
   controlLabel: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.muted, letterSpacing: 2, textTransform: "uppercase" as const },
   controlValue: { fontFamily: Typography.heading, fontSize: 18, color: Colors.text },
-  rosterArea: {},
-  teamHeader: { borderBottomWidth: 3, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: Colors.surface },
+  rosterArea: { flexDirection: "row", flexWrap: "wrap" },
+  teamHeader: { width: "100%", borderBottomWidth: 3, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: Colors.surface },
   teamLabel: { fontFamily: Typography.heading, fontSize: 13, color: Colors.text, letterSpacing: 3 },
-  playerSlot: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderColor: Colors.border },
+  playerSlot: { width: "50%", minHeight: 54, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderRightWidth: StyleSheet.hairlineWidth, borderColor: Colors.border },
   slotName: { fontFamily: Typography.bodyBold, fontSize: 12, color: Colors.text },
   slotElo: { fontFamily: Typography.heading, fontSize: 11, color: Colors.muted, marginTop: 1 },
   emptySlot: { flex: 1, paddingVertical: 6, borderWidth: 1, borderColor: Colors.border, borderStyle: "dashed", alignItems: "center" },
   emptySlotText: { fontFamily: Typography.bodyMedium, fontSize: 10, color: Colors.muted, letterSpacing: 1.5 },
-  resultSection: { paddingHorizontal: 20, paddingTop: 24 },
+  resultSection: { paddingHorizontal: 20, paddingTop: 14 },
   resultLabel: { fontFamily: Typography.heading, fontSize: 13, color: Colors.text, letterSpacing: 3, borderBottomWidth: 1, borderColor: Colors.border, paddingBottom: 10, marginBottom: 12, textTransform: "uppercase" as const },
   resultButtons: { flexDirection: "row", gap: 10 },
   resultBtn: { flex: 1 },
-  inviteSection: { paddingHorizontal: 20, paddingTop: 24 },
+  inviteSection: { paddingHorizontal: 20, paddingTop: 12 },
   inviteRow: { minHeight: 52, flexDirection: "row", alignItems: "center", gap: 10, borderBottomWidth: 1, borderBottomColor: Colors.borderSubtle },
   inviteName: { flex: 1, fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.text, letterSpacing: 0.4 },
   inviteButton: { minWidth: 70, minHeight: 30, paddingHorizontal: 10, alignItems: "center", justifyContent: "center", borderRadius: Radius.xs, borderWidth: 1, borderColor: Colors.accent },

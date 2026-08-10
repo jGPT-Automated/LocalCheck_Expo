@@ -9,14 +9,14 @@ browser, a LocalCheck development build, and TestFlight.
 Every pull request runs:
 
 ```bash
-pnpm check
-pnpm export:web
+pnpm check:release
 ```
 
-`pnpm check` currently covers TypeScript and the Realtime hub unit suite. Add a
-focused regression test with every bug fix when the behavior can be exercised
-without a device. CI is a merge gate, not proof of native or multi-user
-behavior.
+`pnpm check:release` covers TypeScript; focused Realtime, home-presentation,
+player-identity, and schedule-model tests; the design-system consistency guard;
+and a clean production-style web export. Add a focused regression test with
+every bug fix when the behavior can be exercised without a device. CI is a
+merge gate, not proof of native or multi-user behavior.
 
 ## High-risk manual matrix
 

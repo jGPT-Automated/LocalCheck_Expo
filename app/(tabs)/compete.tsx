@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import * as Crypto from "expo-crypto";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
@@ -16,6 +16,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { FormSheet } from "@/components/sheet/FormSheet";
+import { CompactSelect } from "@/components/ui/CompactSelect";
+import { EloStat } from "@/components/ui/EloStat";
+import { SpeedDialFab } from "@/components/ui/SpeedDialFab";
 import { Colors, Radius } from "@/constants/colors";
 import { CourtSport, getSportColor, Player } from "@/constants/data";
 import { Typography } from "@/constants/typography";
@@ -26,7 +30,6 @@ import { searchPlayers } from "@/services/profileService";
 
 // BACKEND NOTE:
 
-type Tab = "LEADERBOARD" | "LOG GAME";
 type Scope = "GLOBAL" | "REGIONAL" | "LOCAL";
 
 export default function CompeteScreen() {
@@ -48,7 +51,7 @@ export default function CompeteScreen() {
   // player profile's LOG GAME button).
   const params = useLocalSearchParams<{ tab?: string; courtId?: string; opponentId?: string }>();
 
-  const [tab, setTab] = useState<Tab>(params.tab === "log" ? "LOG GAME" : "LEADERBOARD");
+  const [logGameOpen, setLogGameOpen] = useState(params.tab === "log");
   const [scope, setScope] = useState<Scope>("LOCAL");
   const [rankingSport, setRankingSport] = useState<CourtSport>(
     preferredSport ?? localCourt?.sport ?? "BASKETBALL"
@@ -57,7 +60,7 @@ export default function CompeteScreen() {
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
 
   useEffect(() => {
-    if (params.tab === "log") setTab("LOG GAME");
+    if (params.tab === "log") setLogGameOpen(true);
   }, [params.tab]);
 
   useEffect(() => {
@@ -102,68 +105,51 @@ export default function CompeteScreen() {
     <View style={styles.container}>
       <ScreenHeader
         title="COMPETE"
-        right={
-          myRank > 0 ? (
+        right={<View style={styles.headerTools}>
+          {myRank > 0 ? (
             <View style={styles.myRankBadge}>
               <Text style={[styles.myRankNum, !showMyRank && styles.myRankNumDim]}>#{myRank}</Text>
-              <Text style={styles.myRankLabel}>
-                {showMyRank
-                  ? "YOUR RANK"
-                  : visibility === "public"
-                  ? "HIDDEN — LOCALPLUS"
-                  : "HIDDEN — PRIVATE"}
-              </Text>
+              <Text style={styles.myRankLabel}>{showMyRank ? "YOUR RANK" : "HIDDEN"}</Text>
             </View>
-          ) : undefined
-        }
+          ) : null}
+        </View>}
       />
 
-      {/* ── Tab Row ── */}
-      <View style={styles.tabRow}>
-        {(["LEADERBOARD", "LOG GAME"] as Tab[]).map((t) => (
-          <Pressable
-            key={t}
-            style={[styles.tabBtn, tab === t && styles.tabBtnActive]}
-            onPress={() => setTab(t)}
-          >
-            <Text style={[styles.tabBtnText, tab === t && styles.tabBtnTextActive]}>
-              {t}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+      <SpeedDialFab
+        accessibilityLabel="Log a game"
+        actions={[{ label: "Log game", icon: "edit-3", onPress: () => setLogGameOpen(true) }]}
+        bottom={Platform.OS === "web" ? 102 : bottom + 78}
+        icon="edit-3"
+      />
 
-      {tab === "LEADERBOARD" ? (
-        <LeaderboardView
-          players={leaderboardPlayers}
-          myRank={myRank}
-          showMyRank={showMyRank}
-          currentUserId={currentUser.id}
-          currentUser={rankedCurrentUser}
-          hiddenReason={
-            visibility === "public"
-              ? "LOCALPLUS REQUIRED TO APPEAR"
-              : "PRIVATE · EXCLUDED FROM PUBLIC LIST"
-          }
-          scope={scope}
-          setScope={setScope}
-          sport={rankingSport}
-          setSport={setRankingSport}
-          localCourt={localCourt}
-          bottom={bottom}
-          loading={leaderboardLoading}
-        />
-      ) : (
+      <LeaderboardView
+        players={leaderboardPlayers}
+        myRank={myRank}
+        showMyRank={showMyRank}
+        currentUserId={currentUser.id}
+        currentUser={rankedCurrentUser}
+        hiddenReason={visibility === "public" ? "LOCALPLUS REQUIRED TO APPEAR" : "PRIVATE · EXCLUDED FROM PUBLIC LIST"}
+        scope={scope}
+        setScope={setScope}
+        sport={rankingSport}
+        setSport={setRankingSport}
+        localCourt={localCourt}
+        bottom={bottom}
+        loading={leaderboardLoading}
+      />
+
+      <FormSheet onClose={() => setLogGameOpen(false)} title="Log game" visible={logGameOpen}>
         <LogGameView
           currentUser={currentUser}
           courts={courts}
-          bottom={bottom}
+          bottom={0}
+          inSheet
           preferredSport={localCourt?.sport ?? preferredSport}
           preferredCourtId={(typeof params.courtId === "string" ? params.courtId : null) ?? preferredCourtId}
           preselectedOpponent={preselectedOpponent}
           localCourtId={localCourtId}
         />
-      )}
+      </FormSheet>
     </View>
   );
 }
@@ -195,7 +181,7 @@ function LeaderboardView({
   setScope: (s: Scope) => void;
   sport: CourtSport;
   setSport: (sport: CourtSport) => void;
-  localCourt: { id: string; name: string; sport: CourtSport } | null;
+  localCourt: { id: string; name: string; shortName?: string; sport: CourtSport } | null;
   bottom: number;
   loading?: boolean;
 }) {
@@ -238,21 +224,15 @@ function LeaderboardView({
             </Pressable>
           ))}
         </View>
-        <View style={styles.sportToggle}>
-          {(["BASKETBALL", "PICKLEBALL"] as CourtSport[]).map((value) => (
-            <Pressable
-              key={value}
-              style={[styles.sportFilterBtn, sport === value && styles.sportFilterBtnActive]}
-              onPress={() => setSport(value)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: sport === value }}
-            >
-              <Text style={[styles.sportFilterText, sport === value && styles.sportFilterTextActive]}>
-                {value === "BASKETBALL" ? "BB" : "PB"}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <CompactSelect
+          accessibilityLabel="Switch leaderboard sport"
+          onChange={setSport}
+          options={[
+            { label: "BB", value: "BASKETBALL" },
+            { label: "PB", value: "PICKLEBALL" },
+          ]}
+          value={sport}
+        />
       </View>
 
       {/* Scope label */}
@@ -266,7 +246,7 @@ function LeaderboardView({
             ]}
           />
             <Text style={styles.scopeLabelText} numberOfLines={1}>
-              {localCourt.name.toUpperCase()} · {sport}
+              {(localCourt.shortName || localCourt.name).toUpperCase()} · {sport}
             </Text>
           </>
         ) : (
@@ -288,16 +268,15 @@ function LeaderboardView({
               return (
                 <View key="current-user-hidden" style={[styles.leaderRow, styles.hiddenLeaderRow]}>
                   <Text style={styles.rank}>{row.rank}</Text>
-                  <PlayerAvatar initials={currentUser.avatar} size={36} />
+                  <PlayerAvatar initials={currentUser.avatar} name={currentUser.name} playerId={currentUser.id} size={36} />
                   <View style={styles.playerInfo}>
-                    <Text style={styles.yourPositionText}>YOU — HIDDEN</Text>
-                    <Text style={styles.wlText}>{currentUser.wins}W · {currentUser.losses}L</Text>
-                    <Text style={styles.yourPositionSub}>{hiddenReason}</Text>
+                    <Text style={styles.playerName}>YOU — HIDDEN</Text>
+                    <View style={styles.playerBadges}>
+                      <Text style={styles.wlText}>{currentUser.wins}W · {currentUser.losses}L</Text>
+                      <Text style={styles.yourPositionSub}>{hiddenReason}</Text>
+                    </View>
                   </View>
-                  <View style={styles.eloBlock}>
-                    <Text style={[styles.eloVal, styles.eloValHidden]}>{currentUser.elo}</Text>
-                    <Text style={styles.eloLbl}>ELO</Text>
-                  </View>
+                  <EloStat value={currentUser.elo} />
                 </View>
               );
             }
@@ -314,13 +293,15 @@ function LeaderboardView({
                 <Text style={[styles.rank, isTop10 && styles.rankTop]}>{rank}</Text>
                 <PlayerAvatar
                   initials={player.avatar}
+                  name={player.name}
+                  playerId={player.id}
                   size={36}
                   ranked={isTop10}
                   friend={isFriend(player.id)}
                 />
                 <View style={styles.playerInfo}>
                   <View style={styles.playerNameRow}>
-                    <Text style={styles.playerName} numberOfLines={1}>{player.name.toUpperCase()}</Text>
+                    <Text style={styles.playerName} numberOfLines={1}>{player.name}</Text>
                   </View>
                   <View style={styles.playerBadges}>
                     {player.sport && (
@@ -334,10 +315,7 @@ function LeaderboardView({
                     </Text>
                   </View>
                 </View>
-                <View style={styles.eloBlock}>
-                  <Text style={styles.eloVal}>{player.elo}</Text>
-                  <Text style={styles.eloLbl}>ELO</Text>
-                </View>
+                <EloStat value={player.elo} />
               </Pressable>
             );
           })
@@ -366,6 +344,7 @@ function LogGameView({
   preferredCourtId,
   preselectedOpponent,
   localCourtId,
+  inSheet = false,
 }: {
   currentUser: ReturnType<typeof useApp>["currentUser"];
   courts: ReturnType<typeof useApp>["courts"];
@@ -374,6 +353,7 @@ function LogGameView({
   preferredCourtId: string | null;
   preselectedOpponent: Player | null;
   localCourtId: string | null;
+  inSheet?: boolean;
 }) {
   const { isFriend, getFriendsList } = useApp();
 
@@ -398,6 +378,7 @@ function LogGameView({
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showOpponentPicker, setShowOpponentPicker] = useState(false);
+  const [showCourtPicker, setShowCourtPicker] = useState(false);
   const [opponentQuery, setOpponentQuery] = useState("");
   const [opponentSuggestions, setOpponentSuggestions] = useState<Player[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -448,6 +429,7 @@ function LogGameView({
     form.opponentId !== "" &&
     form.courtId !== "" &&
     !submitting;
+  const selectedCourt = supportedCourts.find((court) => court.id === form.courtId);
 
   const handleSubmit = async () => {
     if (!canSubmit || !form.opponentId || !form.courtId) return;
@@ -528,7 +510,9 @@ function LogGameView({
   if (submitted) {
     return (
       <View style={styles.successState}>
-        <Text style={styles.successIcon}>✓</Text>
+        <View style={styles.successIcon}>
+          <Feather color={Colors.black} name="check" size={28} />
+        </View>
         <Text style={styles.successTitle}>SCORE SENT FOR REVIEW</Text>
         <Text style={styles.successSub}>Your opponent can confirm or object. No rating changes yet.</Text>
       </View>
@@ -544,26 +528,39 @@ function LogGameView({
         // Must come AFTER `padding` (shorthand would reset it to 20) so the
         // submit button clears the bottom tab bar: 84px fixed bar on web
         // (50 + 34), safe-area inset + bar height on native. +20 breathing room.
-        paddingBottom: 20 + (Platform.OS === "web" ? 84 : bottom + 80),
+        paddingBottom: inSheet ? 32 : 20 + (Platform.OS === "web" ? 84 : bottom + 80),
       }}
       keyboardShouldPersistTaps="handled"
     >
       {/* Court */}
       <View style={styles.fieldGroup}>
         <Text style={styles.fieldLabel}>COURT</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.courtPills}>
+        <Pressable
+          onPress={() => setShowCourtPicker((shown) => !shown)}
+          style={styles.opponentTrigger}
+        >
+          <Text numberOfLines={1} style={selectedCourt ? styles.opponentSelectedText : styles.opponentPlaceholder}>
+            {selectedCourt?.name ?? "Select a court"}
+          </Text>
+          <Ionicons name={showCourtPicker ? "chevron-up" : "chevron-down"} size={16} color={Colors.muted} />
+        </Pressable>
+        {showCourtPicker ? (
+          <View style={styles.opponentDropdown}>
           {supportedCourts.map((c) => (
             <Pressable
               key={c.id}
-              style={[styles.courtPill, form.courtId === c.id && styles.courtPillActive]}
-              onPress={() => setForm((f) => ({ ...f, courtId: c.id, sport: c.sport }))}
+              style={styles.opponentOption}
+              onPress={() => {
+                setForm((f) => ({ ...f, courtId: c.id, sport: c.sport }));
+                setShowCourtPicker(false);
+              }}
             >
-              <Text style={[styles.courtPillText, form.courtId === c.id && styles.courtPillTextActive]}>
-                {c.name}
-              </Text>
+              <Text numberOfLines={1} style={styles.opponentOptionName}>{c.name}</Text>
+              {form.courtId === c.id ? <Ionicons name="checkmark" size={16} color={Colors.accent} /> : null}
             </Pressable>
           ))}
-        </ScrollView>
+          </View>
+        ) : null}
       </View>
 
       {/* The selected court controls the sport used for ranking. */}
@@ -636,7 +633,7 @@ function LogGameView({
                 style={styles.opponentOption}
                 onPress={() => handleSelectOpponent(p)}
               >
-                <PlayerAvatar initials={p.avatar} size={28} />
+                <PlayerAvatar initials={p.avatar} name={p.name} playerId={p.id} size={28} />
                 <View style={styles.opponentOptionInfo}>
                   <Text style={styles.opponentOptionName}>{p.name.toUpperCase()}</Text>
                   <Text style={styles.opponentOptionMeta}>
@@ -739,6 +736,24 @@ function LogGameView({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  headerTools: { flexDirection: "row", alignItems: "center", gap: 8 },
+  logGameAction: {
+    minHeight: 36,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.accent,
+  },
+  logGameActionText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 8,
+    color: Colors.black,
+    letterSpacing: 1,
+  },
+  pressed: { opacity: 0.72 },
 
   // ── Header ──
   header: {
@@ -865,6 +880,9 @@ const styles = StyleSheet.create({
 
   // ── Filters ──
   filtersRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 0.5,
@@ -872,10 +890,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
   },
   scopeToggle: {
+    flex: 1,
     flexDirection: "row",
     borderWidth: 0.5,
     borderColor: Colors.border,
-    alignSelf: "stretch",
+    alignSelf: "center",
     borderRadius: Radius.xs,
     overflow: "hidden",
   },
@@ -892,7 +911,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
   scopeBtnTextActive: { color: Colors.text },
-  sportToggle: { flexDirection: "row", alignSelf: "flex-end", gap: 6, marginTop: 8 },
+  sportToggle: { flexDirection: "row", alignSelf: "center", gap: 6 },
   sportFilterBtn: { minWidth: 42, minHeight: 28, alignItems: "center", justifyContent: "center", borderRadius: Radius.xs, borderWidth: 1, borderColor: Colors.border },
   sportFilterBtnActive: { borderColor: Colors.accent, backgroundColor: Colors.accentDim },
   sportFilterText: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.muted, letterSpacing: 1 },
@@ -942,8 +961,8 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   playerName: {
-    fontFamily: Typography.headingRegular,
-    fontSize: 14,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 12,
     color: Colors.text,
     letterSpacing: 0.3,
     flex: 1,
@@ -1152,9 +1171,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   successIcon: {
-    fontFamily: Typography.heading,
-    fontSize: 48,
-    color: Colors.win,
+    width: 56,
+    height: 56,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 28,
+    backgroundColor: Colors.accent,
   },
   successTitle: {
     fontFamily: Typography.heading,

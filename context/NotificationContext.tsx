@@ -25,6 +25,7 @@ interface NotificationContextValue {
   pushEnabled: boolean;
   refreshNotifications: () => Promise<void>;
   openNotification: (notification: AppNotification) => Promise<void>;
+  readNotification: (notification: AppNotification) => Promise<void>;
   readAll: () => Promise<void>;
   enablePush: () => Promise<PushSetupResult>;
   disablePush: () => Promise<boolean>;
@@ -93,7 +94,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     };
   }, [router]);
 
-  const openNotification = useCallback(async (notification: AppNotification) => {
+  const readNotification = useCallback(async (notification: AppNotification) => {
     if (!notification.readAt) {
       const ok = await markNotificationRead(notification.id);
       if (ok) {
@@ -102,8 +103,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         ));
       }
     }
+  }, []);
+
+  const openNotification = useCallback(async (notification: AppNotification) => {
+    await readNotification(notification);
     if (notification.path?.startsWith("/")) router.push(notification.path as Href);
-  }, [router]);
+  }, [readNotification, router]);
 
   const readAll = useCallback(async () => {
     const ok = await markAllNotificationsRead();
@@ -138,6 +143,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       pushEnabled: profile?.push_notifications_enabled === true,
       refreshNotifications,
       openNotification,
+      readNotification,
       readAll,
       enablePush,
       disablePush,

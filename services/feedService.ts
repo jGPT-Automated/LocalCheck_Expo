@@ -20,10 +20,18 @@ interface SupabaseActivityEvent {
   actor: SupabaseProfile | null;
   courts: { id: string; name: string; sport_type: string } | null;
   matches: {
+    id: string;
+    played_at: string;
     score_a: number;
     score_b: number;
     winner_side: "a" | "b" | null;
-    match_participants: Array<{ user_id: string; side: "a" | "b"; profiles: SupabaseProfile | null }>;
+    status: "pending" | "confirmed" | "rejected";
+    match_participants: Array<{
+      user_id: string;
+      side: "a" | "b";
+      display_order: number;
+      profiles: SupabaseProfile | null;
+    }>;
   } | null;
 }
 
@@ -31,12 +39,23 @@ const EVENT_SELECT =
   "id, event_type, occurred_at, court_id, visibility, payload," +
   " actor:profiles!activity_events_actor_id_fkey(*)," +
   " courts(id, name, sport_type)," +
-  " matches(score_a, score_b, winner_side, match_participants(user_id, side, profiles(*)))";
+  " matches(id, played_at, score_a, score_b, winner_side, status," +
+  " match_participants(user_id, side, display_order, profiles(*)))";
 
-function normalizeSport(raw: string | null | undefined): CourtSport | undefined {
+function normalizeSport(
+  raw: string | null | undefined,
+): CourtSport | undefined {
   const upper = (raw ?? "").toUpperCase();
-  const valid: CourtSport[] = ["BASKETBALL", "PICKLEBALL", "TENNIS", "SOCCER", "VOLLEYBALL"];
-  return valid.includes(upper as CourtSport) ? (upper as CourtSport) : undefined;
+  const valid: CourtSport[] = [
+    "BASKETBALL",
+    "PICKLEBALL",
+    "TENNIS",
+    "SOCCER",
+    "VOLLEYBALL",
+  ];
+  return valid.includes(upper as CourtSport)
+    ? (upper as CourtSport)
+    : undefined;
 }
 
 function formatTimestamp(iso: string): string {
@@ -48,19 +67,21 @@ function formatTimestamp(iso: string): string {
   if (diffHrs < 24) return `${diffHrs} HR${diffHrs === 1 ? "" : "S"} AGO`;
   const diffDays = Math.floor(diffHrs / 24);
   if (diffDays < 7) return `${diffDays} DAY${diffDays === 1 ? "" : "S"} AGO`;
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
+  return d
+    .toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    .toUpperCase();
 }
 
 /** Map one activity_event → FeedItem. Returns null for event types the feed UI doesn't render. */
 function mapEvent(row: SupabaseActivityEvent): FeedItem | null {
-  const actorName = row.actor?.display_name?.toUpperCase() ?? "SOMEONE";
-  const courtName = row.courts?.name?.toUpperCase() ?? "A COURT";
+  const actorName = row.actor?.display_name ?? "Someone";
+  const courtName = row.courts?.name ?? "a court";
   const sport = normalizeSport(row.courts?.sport_type);
   const base = {
     id: `ae-${row.id}`,
     playerId: row.actor?.id ?? "",
     playerName: actorName,
-    courtName: row.courts?.name?.toUpperCase(),
+    courtName: row.courts?.name,
     courtId: row.courts?.id,
     sport,
     timestamp: formatTimestamp(row.occurred_at),
@@ -69,22 +90,46 @@ function mapEvent(row: SupabaseActivityEvent): FeedItem | null {
 
   switch (row.event_type) {
     case "check_in":
-      return { ...base, type: "checkin", message: `${actorName} CHECKED INTO ${courtName}` };
+      return {
+        ...base,
+        type: "checkin",
+        message: `${actorName} CHECKED INTO ${courtName}`,
+      };
     case "check_out":
-      return { ...base, type: "checkout", message: `${actorName} CHECKED OUT OF ${courtName}` };
+      return {
+        ...base,
+        type: "checkout",
+        message: `${actorName} CHECKED OUT OF ${courtName}`,
+      };
     case "run_created":
-      return { ...base, type: "run_started", message: `${actorName} STARTED A RUN AT ${courtName}` };
+      return {
+        ...base,
+        type: "run_started",
+        message: `${actorName} STARTED A RUN AT ${courtName}`,
+      };
     case "match_result": {
       const m = row.matches;
-      if (!m || !m.winner_side) return null;
-      const winner = m.match_participants?.find((p) => p.side === m.winner_side);
+      if (!m || !m.winner_side || m.status !== "confirmed") return null;
+      const participants = (m.match_participants ?? [])
+        .map((participant) => ({
+          playerId: participant.user_id,
+          name: participant.profiles
+            ? mapProfileToPlayer(participant.profiles).name
+            : "Player",
+          side: participant.side,
+          displayOrder: participant.display_order,
+        }))
+        .sort((a, b) => a.displayOrder - b.displayOrder);
+      const winner = m.match_participants?.find(
+        (p) => p.side === m.winner_side,
+      );
       const loser = m.match_participants?.find((p) => p.side !== m.winner_side);
       const winnerName = winner?.profiles
-        ? mapProfileToPlayer(winner.profiles).name.toUpperCase()
+        ? mapProfileToPlayer(winner.profiles).name
         : actorName;
       const loserName = loser?.profiles
-        ? mapProfileToPlayer(loser.profiles).name.toUpperCase()
-        : "OPPONENT";
+        ? mapProfileToPlayer(loser.profiles).name
+        : "Opponent";
       const winnerScore = m.winner_side === "b" ? m.score_b : m.score_a;
       const loserScore = m.winner_side === "b" ? m.score_a : m.score_b;
       return {
@@ -92,6 +137,16 @@ function mapEvent(row: SupabaseActivityEvent): FeedItem | null {
         type: "game_result",
         message: `${winnerName} DEF. ${loserName} ${winnerScore}–${loserScore}`,
         winnerName,
+        match: {
+          id: m.id,
+          playedAt: m.played_at,
+          scoreA: m.score_a,
+          scoreB: m.score_b,
+          winnerSide: m.winner_side,
+          status: "confirmed",
+          sideA: participants.filter((participant) => participant.side === "a"),
+          sideB: participants.filter((participant) => participant.side === "b"),
+        },
       };
     }
     default:

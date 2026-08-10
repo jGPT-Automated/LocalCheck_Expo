@@ -36,8 +36,26 @@ if [[ ! -f "$PROJECT_ROOT/package.json" ]] || [[ ! -f "$PROJECT_ROOT/app.json" ]
   exit 1
 fi
 
-if [[ ! -f "$PROJECT_ROOT/.env" ]]; then
-  printf 'Missing %s/.env. Copy .env.example and add the public development values.\n' "$PROJECT_ROOT" >&2
+ENV_FILE=""
+if [[ -f "$PROJECT_ROOT/.env.local" ]]; then
+  ENV_FILE="$PROJECT_ROOT/.env.local"
+elif [[ -f "$PROJECT_ROOT/.env" ]]; then
+  ENV_FILE="$PROJECT_ROOT/.env"
+fi
+
+if [[ -z "$ENV_FILE" ]]; then
+  printf 'Missing %s/.env.local. Copy .env.example and add the public development values.\n' "$PROJECT_ROOT" >&2
+  exit 1
+fi
+
+SUPABASE_URL="$(sed -n 's/^EXPO_PUBLIC_SUPABASE_URL=//p' "$ENV_FILE" | tail -1)"
+SUPABASE_KEY="$(sed -n 's/^EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=//p' "$ENV_FILE" | tail -1)"
+if [[ -z "$SUPABASE_URL" ]] || [[ "$SUPABASE_URL" == *example.supabase.co* ]] || [[ "$SUPABASE_URL" == *your-project.supabase.co* ]]; then
+  printf 'Invalid Supabase URL in %s; refusing to serve a disconnected preview.\n' "$ENV_FILE" >&2
+  exit 1
+fi
+if [[ -z "$SUPABASE_KEY" ]] || [[ "$SUPABASE_KEY" == *your-key-here* ]]; then
+  printf 'Missing Supabase publishable key in %s; refusing to serve a disconnected preview.\n' "$ENV_FILE" >&2
   exit 1
 fi
 

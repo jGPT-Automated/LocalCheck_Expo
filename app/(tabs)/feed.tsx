@@ -23,11 +23,11 @@ type Section = "ACTIVITY" | "LEADERS";
 const SPORT_FILTERS: (CourtSport | "ALL")[] = ["ALL", "BASKETBALL", "PICKLEBALL"];
 
 const TIER_COLORS: Record<string, string> = {
-  PLATINUM: "#E8E8FF",
-  GOLD: "#FFD53D",
-  SILVER: "#9A9AAA",
-  BRONZE: "#CF8558",
-  UNRANKED: "#3A3A50",
+  PLATINUM: Colors.tier.platinum,
+  GOLD: Colors.tier.gold,
+  SILVER: Colors.tier.silver,
+  BRONZE: Colors.tier.bronze,
+  UNRANKED: Colors.mutedDark,
 };
 
 export default function FeedScreen() {
@@ -176,7 +176,7 @@ export default function FeedScreen() {
                     </Text>
                   </View>
 
-                  <PlayerAvatar initials={player.avatar} size={40} />
+                  <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={40} />
 
                   <View style={styles.leaderInfo}>
                     <Text style={styles.leaderName}>{player.name}</Text>

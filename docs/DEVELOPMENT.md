@@ -65,11 +65,14 @@ multi-account interaction.
 ## Before handoff
 
 ```bash
-pnpm check
-pnpm export:web
+pnpm check:release
 git diff --check
 git status --short
 ```
+
+`pnpm check:release` runs TypeScript, focused Realtime/presentation/identity/
+schedule regression tests, the design-system consistency guard, and a clean
+production-style web export.
 
 The pull request template captures the outcome, risk category, evidence,
 migration/release needs, and next action. Resolve every review conversation or

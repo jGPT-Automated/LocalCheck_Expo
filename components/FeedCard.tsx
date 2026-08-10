@@ -1,4 +1,5 @@
 import * as Haptics from "expo-haptics";
+import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { ImageBackground, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -42,7 +43,6 @@ export function FeedCard({ item }: FeedCardProps) {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const initials = item.playerName.replace(/[^A-Z]/g, "").slice(0, 2);
   const sportColor = item.sport ? getSportColor(item.sport) : Colors.accent;
   const typeLabel = FEED_TYPE_LABELS[item.type] || item.type;
   const typeColor = FEED_TYPE_COLORS[item.type] || FEED_TYPE_FALLBACK;
@@ -84,7 +84,7 @@ export function FeedCard({ item }: FeedCardProps) {
               </View>
             </View>
             <View style={styles.bottomMeta}>
-              <PlayerAvatar initials={initials} size={30} invert />
+              <PlayerAvatar name={item.playerName} playerId={item.playerId} size={30} invert />
               <Text style={styles.messageOnImage}>{item.message}</Text>
             </View>
           </View>
@@ -92,7 +92,7 @@ export function FeedCard({ item }: FeedCardProps) {
       ) : (
         <View style={styles.textArea}>
           <View style={styles.topRow}>
-            <PlayerAvatar initials={initials} size={40} />
+            <PlayerAvatar name={item.playerName} playerId={item.playerId} size={40} />
             <View style={styles.topRowText}>
               <View style={styles.typeRow}>
                 <View style={[styles.typeChip, { backgroundColor: typeColor.bg }]}>
@@ -122,7 +122,7 @@ export function FeedCard({ item }: FeedCardProps) {
       <View style={styles.footer}>
         <Text style={styles.timestamp}>{item.timestamp}</Text>
         <Pressable onPress={handleHype} style={styles.hypeBtn} testID={`hype-${item.id}`}>
-          <Text style={styles.hypeIcon}>🔥</Text>
+          <Feather color={item.huped ? Colors.accent : Colors.textSecondary} name="zap" size={14} />
           <Text style={styles.hypeCount}>{item.hypeCount}</Text>
         </Pressable>
       </View>

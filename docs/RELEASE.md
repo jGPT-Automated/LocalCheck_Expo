@@ -1,8 +1,8 @@
 # Release and rollback
 
 LocalCheck keeps the MVP release path intentionally small: required PR checks,
-an easy phone preview, a one-click production OTA for compatible changes, and
-one TestFlight workflow for native changes.
+an easy phone preview, a manual production OTA for compatible changes, and one
+automatic TestFlight workflow after an approved merge to `main`.
 
 ## Before merge
 
@@ -30,11 +30,16 @@ production channel. Record the incident and fix in the pull request or issue.
 
 ## TestFlight/native release
 
-Use `Release iOS (build + TestFlight)` when a change touches a native package,
-Expo plugin, permission, entitlement, `app.json`, `app.config.js`, `eas.json`,
-runtime policy, or Expo/React Native version. Trigger it manually or with a
+Every approved merge to `main` triggers `Release iOS (build + TestFlight)`.
+That workflow builds the production iOS profile and submits the resulting
+binary to App Store Connect. It can also be retriggered manually or with a
 `v*` tag. EAS owns signing and App Store Connect submission; build numbers
 increment remotely.
+
+This is intentionally the fast MVP path: GitHub review and required checks are
+the release gate. A merge does not publish an App Store version to external or
+production users by itself; TestFlight processing and tester/review controls
+remain in App Store Connect.
 
 Before the first workflow after this repository reset, set the EAS GitHub base
 directory to the repository root.

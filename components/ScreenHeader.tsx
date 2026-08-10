@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LogoMark } from "@/components/brand/LogoMark";
 import { Colors } from "@/constants/colors";
+import { Layout, Space } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 
 /**
@@ -25,17 +26,25 @@ export function ScreenHeader({
   wordmark?: boolean;
 }) {
   const { top } = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : top;
+  const topPad = Platform.OS === "web" ? 44 : top;
   return (
-    <View style={[styles.header, { paddingTop: topPad + 12 }]}>
-      <View style={{ flex: 1 }}>
-        <View style={[styles.lockup, wordmark && styles.wordmarkLockup]}>
-          <LogoMark size={wordmark ? 28 : 26} />
-          <Text style={[styles.title, wordmark && styles.wordmarkTitle]}>{title}</Text>
+    <View style={[styles.header, { paddingTop: topPad }]}>
+      <View style={styles.contentRow}>
+        <View style={styles.titleSlot}>
+          <View style={[styles.lockup, wordmark && styles.wordmarkLockup]}>
+            <LogoMark size={24} />
+            <Text numberOfLines={1} style={[styles.title, wordmark && styles.wordmarkTitle]}>
+              {title}
+            </Text>
+          </View>
+          {subtitle ? (
+            <Text numberOfLines={1} style={styles.subtitle}>
+              {subtitle}
+            </Text>
+          ) : null}
         </View>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        {right ? <View style={styles.rightSlot}>{right}</View> : null}
       </View>
-      {right}
     </View>
   );
 }
@@ -46,17 +55,36 @@ export function ScreenHeader({
  */
 export function SectionHeader({
   title,
+  count,
+  actionLabel,
+  onActionPress,
   right,
   style,
 }: {
   title: string;
+  count?: number | string;
+  actionLabel?: string;
+  onActionPress?: () => void;
   right?: React.ReactNode;
   style?: object;
 }) {
   return (
     <View style={[styles.sectionRow, style]}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {typeof right === "string" ? (
+      <View style={styles.sectionIdentity}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {count !== undefined ? (
+          <Text style={styles.sectionCount}>{count}</Text>
+        ) : null}
+      </View>
+      {actionLabel && onActionPress ? (
+        <Text
+          accessibilityRole="button"
+          onPress={onActionPress}
+          style={styles.sectionAction}
+        >
+          {actionLabel}
+        </Text>
+      ) : typeof right === "string" ? (
         <Text style={styles.sectionAccent}>{right}</Text>
       ) : (
         right
@@ -67,49 +95,71 @@ export function SectionHeader({
 
 const styles = StyleSheet.create({
   header: {
-    minHeight: 104,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    paddingHorizontal: 20,
-    paddingBottom: 14,
     backgroundColor: Colors.surface,
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,
   },
+  contentRow: {
+    height: Layout.headerContentHeight,
+    paddingHorizontal: Layout.screenGutter,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  titleSlot: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: "center",
+  },
+  rightSlot: {
+    minWidth: Layout.minTouchTarget,
+    minHeight: Layout.minTouchTarget,
+    marginLeft: Space.md,
+    alignItems: "flex-end",
+    justifyContent: "center",
+  },
   lockup: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: Space.sm,
   },
-  wordmarkLockup: { gap: 5 },
+  wordmarkLockup: { gap: 6 },
   title: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 22,
+    flexShrink: 1,
+    fontFamily: Typography.headingRegular,
+    fontSize: 21,
     color: Colors.text,
-    letterSpacing: 1.2,
-    lineHeight: 27,
+    letterSpacing: 1.4,
+    lineHeight: 25,
     textTransform: "uppercase" as const,
   },
   wordmarkTitle: {
-    fontFamily: Typography.headingRegular,
-    fontSize: 17,
-    lineHeight: 21,
+    fontFamily: Typography.headingBold,
+    fontSize: 20,
+    lineHeight: 24,
     letterSpacing: 1.5,
   },
   subtitle: {
     fontFamily: Typography.bodyMedium,
-    fontSize: 9,
+    fontSize: 8,
     color: Colors.muted,
-    letterSpacing: 2,
-    marginTop: 4,
+    letterSpacing: 1.7,
+    marginTop: 1,
+    marginLeft: 32,
+    textTransform: "uppercase" as const,
   },
   sectionRow: {
+    minHeight: Layout.minTouchTarget,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    marginBottom: 10,
+    paddingHorizontal: Layout.screenGutter,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.borderSubtle,
+  },
+  sectionIdentity: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: Space.sm,
   },
   sectionTitle: {
     fontFamily: Typography.bodySemiBold,
@@ -123,5 +173,21 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: Colors.accent,
     letterSpacing: 1.5,
+  },
+  sectionCount: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    color: Colors.text,
+  },
+  sectionAction: {
+    minHeight: Layout.minTouchTarget,
+    paddingLeft: Space.lg,
+    textAlignVertical: "center",
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    lineHeight: Layout.minTouchTarget,
+    color: Colors.textSecondary,
+    letterSpacing: 1.3,
+    textTransform: "uppercase" as const,
   },
 });

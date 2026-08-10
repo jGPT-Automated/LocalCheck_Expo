@@ -1,5 +1,8 @@
+import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Image, ImageStyle, StyleProp } from "react-native";
+import { Image, ImageStyle, StyleProp, StyleSheet, View } from "react-native";
+
+import { Colors } from "@/constants/colors";
 
 /**
  * THE LocalCheck logo mark — the single place the in-app logo comes from.
@@ -12,14 +15,30 @@ import { Image, ImageStyle, StyleProp } from "react-native";
  * tagged full build (not OTA) to change — see DESIGN.md §Brand assets.
  */
 const MARK = require("@/assets/brand/logo-mark.png");
+const FRAME = require("@/assets/brand/logo-frame.png");
 
 export function LogoMark({
   size = 64,
   style,
+  variant = "mark",
 }: {
   size?: number;
   style?: StyleProp<ImageStyle>;
+  variant?: "mark" | "back";
 }) {
+  if (variant === "back") {
+    return (
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no"
+        style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}
+      >
+        <Image resizeMode="contain" source={FRAME} style={StyleSheet.absoluteFill} />
+        <Feather color={Colors.text} name="chevron-left" size={Math.round(size * 0.56)} />
+      </View>
+    );
+  }
+
   return (
     <Image
       source={MARK}

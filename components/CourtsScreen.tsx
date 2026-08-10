@@ -1,5 +1,4 @@
 import { Feather } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -17,6 +16,7 @@ import { CourtListItem } from "@/components/CourtListItem";
 import { MapScreen } from "@/components/MapScreen";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useCourtSheet } from "@/components/sheet/CourtSheetHost";
+import { CompactSelect } from "@/components/ui/CompactSelect";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, CourtSport } from "@/constants/data";
 import { Typography } from "@/constants/typography";
@@ -37,19 +37,15 @@ const COLLAPSED_LIMIT = 5;
 export function CourtsScreen() {
   const {
     checkedInCourtId,
-    checkIn,
-    checkOut,
     visitCourt,
     preferredSport,
     localCourt,
     localCourtId,
-    setLocalCourt,
   } = useApp();
   const { openCourtSheet: presentCourtSheet } = useCourtSheet();
 
   const [mode, setMode] = useState<ExploreMode>("LIST");
   const [sportFilter, setSportFilter] = useState<SportFilter>(preferredSport ?? "ALL");
-  const [sportMenuOpen, setSportMenuOpen] = useState(false);
   const [nearbyCourts, setNearbyCourts] = useState<Court[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
@@ -176,27 +172,6 @@ export function CourtsScreen() {
     ? listSource
     : listSource.slice(0, COLLAPSED_LIMIT);
 
-  const handleCourtCheckIn = async (court: Court) => {
-    if (Platform.OS !== "web") {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }
-    if (checkedInCourtId === court.id) {
-      await checkOut();
-    } else {
-      await checkIn(court.id);
-      if (Platform.OS !== "web") {
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-    }
-  };
-
-  const handleSetLocalCourt = async (court: Court) => {
-    if (Platform.OS !== "web") {
-      void Haptics.selectionAsync();
-    }
-    await setLocalCourt(court.id, court);
-  };
-
   return (
     <View style={styles.container}>
       <ScreenHeader
@@ -205,18 +180,18 @@ export function CourtsScreen() {
 
       <View style={styles.searchArea}>
         <View style={styles.searchRow}>
-          <Pressable
-            style={styles.sportMenuButton}
-            onPress={() => setSportMenuOpen((open) => !open)}
-            accessibilityRole="button"
+          <CompactSelect
             accessibilityLabel="Filter courts by sport"
-            accessibilityState={{ expanded: sportMenuOpen }}
-          >
-            <Text style={styles.sportMenuButtonText}>
-              {sportFilter === "ALL" ? "ALL" : sportFilter === "BASKETBALL" ? "BB" : "PB"}
-            </Text>
-            <Feather name="chevron-down" size={11} color={Colors.muted} />
-          </Pressable>
+            align="start"
+            onChange={setSportFilter}
+            options={[
+              { label: "ALL", value: "ALL" },
+              { label: "BB", value: "BASKETBALL" },
+              { label: "PB", value: "PICKLEBALL" },
+            ]}
+            value={sportFilter}
+            variant="plain"
+          />
           <View style={styles.searchDivider} />
           <Feather name="search" size={15} color={Colors.muted} />
           <TextInput
@@ -235,25 +210,6 @@ export function CourtsScreen() {
           />
           {searchLoading && <ActivityIndicator size="small" color={Colors.muted} />}
         </View>
-        {sportMenuOpen ? (
-          <View style={styles.sportMenu}>
-            {(["ALL", "BASKETBALL", "PICKLEBALL"] as SportFilter[]).map((sport) => (
-              <Pressable
-                key={sport}
-                style={[styles.sportMenuItem, sportFilter === sport && styles.sportMenuItemActive]}
-                onPress={() => {
-                  setSportFilter(sport);
-                  setSportMenuOpen(false);
-                }}
-              >
-                <Text style={[styles.sportMenuItemText, sportFilter === sport && styles.sportMenuItemTextActive]}>
-                  {sport === "ALL" ? "ALL COURTS" : sport}
-                </Text>
-                {sportFilter === sport ? <Feather name="check" size={13} color={Colors.accent} /> : null}
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
       </View>
 
       <View style={styles.modeSwitch} accessibilityRole="tablist">
@@ -297,7 +253,6 @@ export function CourtsScreen() {
                 isCheckedIn={checkedInCourtId === localCourtLive.id}
                 isLocalCourt
                 featured
-                onCheckIn={handleCourtCheckIn}
               />
             </View>
           )}
@@ -334,8 +289,6 @@ export function CourtsScreen() {
                   court={court}
                   onPress={openCourt}
                   isCheckedIn={checkedInCourtId === court.id}
-                  onCheckIn={handleCourtCheckIn}
-                  onSetLocalCourt={handleSetLocalCourt}
                 />
               ))
             )}

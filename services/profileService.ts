@@ -51,6 +51,7 @@ export function mapProfileToPlayer(row: Partial<SupabaseProfile>, sport?: CourtS
   return {
     id: row.id ?? "",
     name,
+    username: row.username ?? undefined,
     elo,
     tier: getEloTier(elo),
     avatar: initials,
@@ -101,6 +102,8 @@ export interface LocalWithLastCheckIn {
   player: Player;
   /** ISO timestamp of this player's most recent check-in at THIS court; null if never. */
   lastCheckInAt: string | null;
+  /** Visible check-ins at this court. Kept presentation-only; RLS still owns visibility. */
+  checkInCount: number;
 }
 
 /**
@@ -110,19 +113,34 @@ export interface LocalWithLastCheckIn {
  */
 export async function fetchLocalsWithLastCheckIn(courtId: string): Promise<LocalWithLastCheckIn[]> {
   try {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*, check_ins!user_id(checked_in_at)")
-      .eq("local_court_id", courtId)
-      .eq("check_ins.court_id", courtId)
-      .order("checked_in_at", { referencedTable: "check_ins", ascending: false })
-      .limit(1, { referencedTable: "check_ins" });
-    if (error || !data) return [];
-    return (data as (SupabaseProfile & { check_ins?: { checked_in_at: string }[] })[])
-      .map((row) => ({
-        player: mapProfileToPlayer(row),
-        lastCheckInAt: row.check_ins?.[0]?.checked_in_at ?? null,
-      }))
+    const [{ data: profiles, error: profileError }, { data: checkIns, error: checkInError }] =
+      await Promise.all([
+        supabase.from("profiles").select("*").eq("local_court_id", courtId),
+        supabase
+          .from("check_ins")
+          .select("user_id,checked_in_at")
+          .eq("court_id", courtId)
+          .order("checked_in_at", { ascending: false })
+          .limit(5000),
+      ]);
+    if (profileError || checkInError || !profiles) return [];
+    const byPlayer = new Map<string, { latest: string; count: number }>();
+    for (const row of (checkIns ?? []) as Array<{ user_id: string; checked_in_at: string }>) {
+      const current = byPlayer.get(row.user_id);
+      byPlayer.set(row.user_id, {
+        latest: current?.latest ?? row.checked_in_at,
+        count: (current?.count ?? 0) + 1,
+      });
+    }
+    return (profiles as SupabaseProfile[])
+      .map((row) => {
+        const activity = byPlayer.get(row.id);
+        return {
+          player: mapProfileToPlayer(row),
+          lastCheckInAt: activity?.latest ?? null,
+          checkInCount: activity?.count ?? 0,
+        };
+      })
       // Most recently active first; never-checked-in at the end.
       .sort((a, b) => (b.lastCheckInAt ?? "").localeCompare(a.lastCheckInAt ?? ""));
   } catch {
@@ -200,6 +218,49 @@ export async function searchPlayers(query: string): Promise<Player[]> {
   } catch {
     return [];
   }
+}
+
+/**
+ * Suggested friends prioritize people the viewer has shared a persisted match
+ * with, then fill remaining slots with locals from their home court.
+ */
+export async function fetchSuggestedPlayers(
+  userId: string,
+  courtId: string | null,
+  limit = 5,
+): Promise<Player[]> {
+  const suggestions = new Map<string, Player>();
+  try {
+    const { data: memberships } = await supabase
+      .from("match_participants")
+      .select("match_id")
+      .eq("user_id", userId)
+      .limit(50);
+    const matchIds = (memberships as Array<{ match_id: string }> | null)?.map((row) => row.match_id) ?? [];
+    if (matchIds.length > 0) {
+      const { data: opponents } = await supabase
+        .from("match_participants")
+        .select("user_id,profiles(*)")
+        .in("match_id", matchIds)
+        .neq("user_id", userId)
+        .limit(30);
+      for (const row of (opponents ?? []) as unknown as Array<{ user_id: string; profiles: SupabaseProfile | null }>) {
+        if (row.profiles && !suggestions.has(row.user_id)) suggestions.set(row.user_id, mapProfileToPlayer(row.profiles));
+        if (suggestions.size >= limit) break;
+      }
+    }
+    if (courtId && suggestions.size < limit) {
+      const locals = await fetchLocals(courtId);
+      for (const player of locals) {
+        if (player.id !== userId && !suggestions.has(player.id)) suggestions.set(player.id, player);
+        if (suggestions.size >= limit) break;
+      }
+    }
+  } catch {
+    // Suggestions are an enhancement; the Friends tab remains usable when an
+    // older backend or a restrictive policy omits match participant embeds.
+  }
+  return Array.from(suggestions.values()).slice(0, limit);
 }
 
 /** Leaderboard: LOCAL = profiles with same local_court_id, GLOBAL = all profiles. */

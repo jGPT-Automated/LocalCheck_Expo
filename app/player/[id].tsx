@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -11,11 +10,14 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { BrutalistButton } from "@/components/BrutalistButton";
-import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { DetailHeader } from "@/components/ui/DetailHeader";
+import { PlayerQrModal } from "@/components/ui/PlayerQrModal";
+import { ProfileHero } from "@/components/ui/ProfileHero";
+import { ProfileStats } from "@/components/ui/ProfileStats";
+import { StickyActionBar } from "@/components/ui/StickyActionBar";
+import { HeadToHeadSummary } from "@/components/ui/HeadToHeadSummary";
 import { Colors } from "@/constants/colors";
 import {
-  getTierColor,
   MatchResult,
   Player,
 } from "@/constants/data";
@@ -33,10 +35,17 @@ function getHeadToHeadStats(sharedMatches: MatchResult[]) {
   return { wins, losses, total, winRate, matches: sharedMatches };
 }
 
+function shortDate(value: string): string {
+  return new Date(value).toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+  }).toUpperCase();
+}
+
 export default function PlayerProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { currentUser, isFriend, isFriendPending, incomingFriendRequests, acceptFriendRequest, addFriend, removeFriend } =
+  const { courts, currentUser, isFriend, isFriendPending, incomingFriendRequests, acceptFriendRequest, addFriend, removeFriend } =
     useApp();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
@@ -45,6 +54,7 @@ export default function PlayerProfileScreen() {
   const [playerMatches, setPlayerMatches] = useState<MatchResult[]>([]);
   const [sharedMatches, setSharedMatches] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const [qrVisible, setQrVisible] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -87,9 +97,8 @@ export default function PlayerProfileScreen() {
   // successful request is what made this button read as broken.
   const isRequestPending = isFriendPending(player.id);
   const isIncomingRequest = incomingFriendRequests.some((requester) => requester.id === player.id);
-  const tierColor = getTierColor(player.tier);
   const total = player.wins + player.losses;
-  const winRate = total > 0 ? Math.round((player.wins / total) * 100) : 0;
+  const playerCourt = courts.find((court) => court.id === player.courtId);
 
   // Head-to-head stats from persisted shared games
   const h2h = getHeadToHeadStats(sharedMatches);
@@ -109,180 +118,95 @@ export default function PlayerProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: topPad + 12 }]}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
-          <Ionicons name="arrow-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>PROFILE</Text>
-        <Pressable onPress={handleToggleFriend} hitSlop={12}>
-          <Ionicons
-            name={isFriendStatus ? "person-remove" : isIncomingRequest ? "person-add" : "person-add"}
-            size={20}
-            color={isFriendStatus ? Colors.loss : Colors.win}
-          />
-        </Pressable>
-      </View>
+      <DetailHeader
+        onBack={() => router.canGoBack() ? router.back() : router.replace("/(tabs)")}
+        title="PROFILE"
+      />
 
       <ScrollView
+        style={styles.scroll}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 84 : bottom + 100 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
       >
-        {/* Profile Hero */}
-        <View style={styles.hero}>
-          <PlayerAvatar initials={player.avatar} size={72} />
-          <Text style={styles.playerName}>{player.name.toUpperCase()}</Text>
-          <View style={styles.tierPill}>
-            <View style={[styles.tierDot, { backgroundColor: tierColor }]} />
-            <Text style={[styles.tierLabel, { color: tierColor }]}>{player.tier}</Text>
-          </View>
-          <Text style={styles.eloText}>{player.elo} ELO</Text>
-          {isFriendStatus && (
-            <View style={styles.friendBadge}>
-              <Ionicons name="people" size={12} color={Colors.win} />
-              <Text style={styles.friendBadgeText}>FRIEND</Text>
-            </View>
-          )}
-        </View>
+        <ProfileHero
+          courtLabel={playerCourt?.shortName || playerCourt?.name || "No local court"}
+          elo={player.elo}
+          friend={isFriendStatus}
+          initials={player.avatar}
+          memberSince={shortDate(player.memberSince)}
+          name={player.name}
+          onOpenQr={() => setQrVisible(true)}
+          playerId={player.id}
+          username={player.username}
+        />
+        <ProfileStats metrics={[
+          { value: player.wins, label: "WINS", tone: "win" },
+          { value: player.losses, label: "LOSSES", tone: "loss" },
+          { value: player.checkIns, label: "CHECK-INS" },
+          { value: total, label: "GAMES" },
+        ]} />
 
-        {/* Stats Grid */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statCell}>
-            <Text style={[styles.statVal, { color: Colors.win }]}>{player.wins}</Text>
-            <Text style={styles.statLbl}>WINS</Text>
-          </View>
-          <View style={[styles.statCell, styles.statCellBorder]}>
-            <Text style={[styles.statVal, { color: Colors.loss }]}>{player.losses}</Text>
-            <Text style={styles.statLbl}>LOSSES</Text>
-          </View>
-          <View style={styles.statCell}>
-            <Text style={styles.statVal}>{winRate}%</Text>
-            <Text style={styles.statLbl}>WIN RATE</Text>
-          </View>
-        </View>
+        <HeadToHeadSummary
+          losses={h2h.losses}
+          matched={h2h.total}
+          opponentName={player.name}
+          winRate={h2h.winRate}
+          wins={h2h.wins}
+        />
 
-        <View style={styles.statsGrid}>
-          <View style={styles.statCell}>
-            <Text style={styles.statVal}>{player.checkIns}</Text>
-            <Text style={styles.statLbl}>CHECK-INS</Text>
-          </View>
-          <View style={[styles.statCell, styles.statCellBorder]}>
-            <Text style={styles.statVal}>{total}</Text>
-            <Text style={styles.statLbl}>GAMES</Text>
-          </View>
-          <View style={styles.statCell}>
-            <Text style={[styles.statVal, { color: tierColor }]}>{player.tier}</Text>
-            <Text style={styles.statLbl}>TIER</Text>
-          </View>
-        </View>
-
-        {/* Head-to-Head Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>HEAD TO HEAD</Text>
-          </View>
-
-          <>
-              <View style={styles.h2hGrid}>
-                <View style={styles.h2hCell}>
-                  <Text style={[styles.h2hVal, { color: Colors.win }]}>{h2h.wins}</Text>
-                  <Text style={styles.h2hLbl}>WINS</Text>
+        {h2h.matches.length > 0 ? (
+          <View style={styles.section}>
+            <Text style={styles.subSectionTitle}>GAMES TOGETHER</Text>
+            {h2h.matches.slice(0, 5).map((m) => (
+              <View key={m.id} style={styles.h2hMatchRow}>
+                <View style={[styles.h2hMatchBar, { backgroundColor: m.result === "WIN" ? Colors.win : Colors.loss }]} />
+                <View style={styles.h2hMatchContent}>
+                  <Text style={styles.h2hMatchCourt}>{m.courtName}</Text>
+                  <Text style={styles.h2hMatchMeta}>{m.date} · {m.sport}</Text>
                 </View>
-                <View style={styles.h2hCell}>
-                  <Text style={[styles.h2hVal, { color: Colors.loss }]}>{h2h.losses}</Text>
-                  <Text style={styles.h2hLbl}>LOSSES</Text>
-                </View>
-                <View style={styles.h2hCell}>
-                  <Text style={styles.h2hVal}>{h2h.winRate}%</Text>
-                  <Text style={styles.h2hLbl}>WIN RATE</Text>
-                </View>
-                <View style={styles.h2hCell}>
-                  <Text style={styles.h2hVal}>{h2h.total}</Text>
-                  <Text style={styles.h2hLbl}>MATCHED</Text>
+                <View style={styles.h2hMatchResult}>
+                  <Text style={[styles.h2hMatchResultText, { color: m.result === "WIN" ? Colors.win : Colors.loss }]}>{m.result}</Text>
+                  <Text style={styles.h2hMatchScore}>{m.teamScore} — {m.opposingScore}</Text>
                 </View>
               </View>
+            ))}
+          </View>
+        ) : null}
 
-              {h2h.matches.length === 0 && (
-                <Text style={styles.h2hEmpty}>
-                  No logged games between you and {player.name.toUpperCase()} yet.
-                </Text>
-              )}
-
-              {h2h.matches.length > 0 && (
-                <>
-                  <View style={styles.divider} />
-                  <Text style={styles.subSectionTitle}>GAMES TOGETHER</Text>
-                  {h2h.matches.slice(0, 5).map((m) => (
-                    <View key={m.id} style={styles.h2hMatchRow}>
-                      <View
-                        style={[
-                          styles.h2hMatchBar,
-                          { backgroundColor: m.result === "WIN" ? Colors.win : Colors.loss },
-                        ]}
-                      />
-                      <View style={styles.h2hMatchContent}>
-                        <Text style={styles.h2hMatchCourt}>{m.courtName}</Text>
-                        <Text style={styles.h2hMatchMeta}>
-                          {m.date} · {m.sport}
-                        </Text>
-                      </View>
-                      <View style={styles.h2hMatchResult}>
-                        <Text
-                          style={[
-                            styles.h2hMatchResultText,
-                            { color: m.result === "WIN" ? Colors.win : Colors.loss },
-                          ]}
-                        >
-                          {m.result}
-                        </Text>
-                        <Text style={styles.h2hMatchScore}>
-                          {m.teamScore} — {m.opposingScore}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
-                </>
-              )}
-          </>
-        </View>
-
-        {/* Action Buttons */}
-        <View style={styles.actionRow}>
-          <Pressable
-            style={[styles.actionBtn, isFriendStatus && styles.actionBtnDanger]}
-            onPress={handleToggleFriend}
-          >
-            <Ionicons
-              name={isFriendStatus ? "person-remove" : "person-add"}
-              size={16}
-              color={isFriendStatus ? Colors.loss : Colors.text}
-            />
-            <Text style={[styles.actionBtnText, isFriendStatus && styles.actionBtnTextDanger]}>
-              {isFriendStatus
-                ? "REMOVE FRIEND"
-                : isIncomingRequest
-                  ? "ACCEPT REQUEST"
-                : isRequestPending
-                  ? "REQUESTED"
-                  : "ADD FRIEND"}
-            </Text>
-          </Pressable>
-          <BrutalistButton
-            label="LOG GAME"
-            variant="accent"
-            onPress={() =>
-              router.push(`/(tabs)/compete?tab=log&opponentId=${player.id}`)
-            }
-            style={styles.logGameBtn}
-            testID="log-game-btn"
-          />
-        </View>
       </ScrollView>
+      <StickyActionBar
+        bottomInset={bottom}
+        primary={{
+          label: "LOG GAME",
+          icon: "edit-3",
+          onPress: () => router.push(`/(tabs)/compete?tab=log&opponentId=${player.id}`),
+        }}
+        secondary={{
+          label: isFriendStatus
+            ? "REMOVE FRIEND"
+            : isIncomingRequest
+              ? "ACCEPT REQUEST"
+              : isRequestPending
+                ? "REQUESTED"
+                : "ADD FRIEND",
+          icon: isFriendStatus ? "user-minus" : "user-plus",
+          onPress: handleToggleFriend,
+          disabled: isRequestPending,
+        }}
+      />
+      <PlayerQrModal
+        onClose={() => setQrVisible(false)}
+        playerId={player.id}
+        playerName={player.name}
+        visible={qrVisible}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  scroll: { flex: 1 },
 
   // Header
   header: {
@@ -311,19 +235,33 @@ const styles = StyleSheet.create({
 
   // Hero
   hero: {
+    flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 28,
+    gap: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 22,
     backgroundColor: Colors.black,
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,
   },
+  avatarColumn: { alignItems: "center" },
+  heroCopy: { flex: 1, minWidth: 0 },
+  qrHint: { marginTop: 7, flexDirection: "row", alignItems: "center", gap: 4 },
+  qrHintText: { fontFamily: Typography.bodyBold, fontSize: 7, color: Colors.accent, letterSpacing: 1 },
   playerName: {
     fontFamily: Typography.heading,
     fontSize: 24,
     color: Colors.white,
     letterSpacing: 1,
-    marginTop: 14,
   },
+  playerHandle: {
+    marginTop: 3,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 8,
+    color: Colors.muted,
+    letterSpacing: 1.2,
+  },
+  heroMeta: { marginTop: 8, flexDirection: "row", alignItems: "center", gap: 7 },
   tierPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -332,22 +270,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderColor: Colors.border,
-    marginTop: 8,
   },
   tierDot: { width: 7, height: 7, borderRadius: 3.5 },
   tierLabel: { fontFamily: Typography.heading, fontSize: 12, letterSpacing: 2 },
-  eloText: {
-    fontFamily: Typography.heading,
-    fontSize: 16,
-    color: Colors.muted,
-    marginTop: 6,
-    letterSpacing: 0.5,
-  },
   friendBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    marginTop: 10,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderWidth: 1,

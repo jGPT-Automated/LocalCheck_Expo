@@ -34,6 +34,15 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
+const detailScreenOptions = {
+  headerShown: false,
+  presentation: "card" as const,
+  animation: "slide_from_right" as const,
+  gestureEnabled: true,
+  fullScreenGestureEnabled: true,
+  animationMatchesGesture: true,
+};
+
 /**
  * Gates the app behind authentication. Every Supabase RLS policy requires an
  * authenticated role, so a signed-out user can't load any data — we send them
@@ -60,7 +69,15 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const onAuthScreen = segments[0] === "auth";
   if (isLoading || (!session && !onAuthScreen)) {
     return (
-      <View style={{ flex: 1, backgroundColor: Colors.background, alignItems: "center", justifyContent: "center", gap: 24 }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: Colors.background,
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 24,
+        }}
+      >
         <LogoMark size={88} />
         <ActivityIndicator color={Colors.accent} />
       </View>
@@ -105,13 +122,12 @@ function RootLayoutNav() {
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="court/[id]" options={{ headerShown: false, presentation: "card" }} />
-        <Stack.Screen name="run/[id]" options={{ headerShown: false, presentation: "card" }} />
-        <Stack.Screen name="player/[id]" options={{ headerShown: false, presentation: "card" }} />
-        <Stack.Screen name="friends" options={{ headerShown: false, presentation: "card" }} />
-        <Stack.Screen name="notifications" options={{ headerShown: false, presentation: "card" }} />
-        <Stack.Screen name="match/[id]" options={{ headerShown: false, presentation: "card" }} />
-        <Stack.Screen name="settings" options={{ headerShown: false, presentation: "card" }} />
+        <Stack.Screen name="court/[id]" options={detailScreenOptions} />
+        <Stack.Screen name="run/[id]" options={detailScreenOptions} />
+        <Stack.Screen name="player/[id]" options={detailScreenOptions} />
+        <Stack.Screen name="notifications" options={detailScreenOptions} />
+        <Stack.Screen name="match/[id]" options={detailScreenOptions} />
+        <Stack.Screen name="settings" options={detailScreenOptions} />
         <Stack.Screen name="auth" options={{ headerShown: false }} />
       </Stack>
     </AuthGate>
@@ -144,7 +160,9 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           {/* Paints the root native view dark so nothing light is ever exposed
               behind a card mid-gesture or between screen transitions. */}
-          <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.background }}>
+          <GestureHandlerRootView
+            style={{ flex: 1, backgroundColor: Colors.background }}
+          >
             <KeyboardProvider>
               <AuthProvider>
                 <DataProviders>

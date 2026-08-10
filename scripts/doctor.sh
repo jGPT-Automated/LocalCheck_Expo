@@ -24,7 +24,11 @@ else
 fi
 
 [[ -d node_modules ]] && pass 'dependencies installed' || fail 'dependencies missing; run: pnpm install --frozen-lockfile'
-[[ -f .env ]] && pass '.env present' || fail '.env missing; run: cp .env.example .env'
+if [[ -f .env.local ]] || [[ -f .env ]]; then
+  pass 'local environment present'
+else
+  fail '.env.local missing; run: cp .env.example .env.local'
+fi
 
 if command -v watchman >/dev/null 2>&1; then
   pass "Watchman $(watchman --version)"
