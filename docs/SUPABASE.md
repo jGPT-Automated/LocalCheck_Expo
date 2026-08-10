@@ -68,7 +68,8 @@ temporary delivery failure does not strand inbox rows.
 - `20260810200103_add_verified_court_creation.sql`: daily quota, market bounds,
   150m duplicate rejection, advisory locking, and atomic court creation.
 - `20260810200110_add_user_safety_controls.sql`: block/report storage,
-  filtering, RLS, grants, and write guards.
+  filtering, RLS, grants, write guards, and caller-scoped blocked-user listing
+  for the in-app unblock path.
 - `20260810200118_complete_sport_elo_review.sql`: basketball/pickleball ratings,
   pending review, confirm/reject, and three-day automatic confirmation.
 - `20260810200126_complete_push_delivery.sql`: durable claims, delivery

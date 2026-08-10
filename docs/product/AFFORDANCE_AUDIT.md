@@ -17,6 +17,7 @@ product changes that could otherwise be lost during the repository reset.
 | Player profile | Log Game | Preserved; opponent now fetched directly by ID |
 | Player profile | Friend action | Preserved |
 | Player profile | Report / block | Added without replacing primary actions |
+| Settings → Safety | Blocked players / unblock | Added; makes every block reversible in app |
 | Me header | Settings | Preserved |
 | Me header | Notification bell | Restored as a compact action with unread badge |
 | Me tabs | Inbox | Preserved; the bell deep-links to the same durable inbox |

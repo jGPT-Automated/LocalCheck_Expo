@@ -102,6 +102,34 @@ begin
 end;
 $$;
 
+-- Profile RLS intentionally hides blocked identities from ordinary reads. This
+-- caller-scoped function returns only identities the current user blocked so
+-- the app can present a reversible safety-management screen.
+create or replace function public.list_blocked_users()
+returns table (
+  blocked_id uuid,
+  display_name text,
+  username text,
+  avatar_url text,
+  blocked_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select
+    profile.id,
+    profile.display_name,
+    profile.username,
+    profile.avatar_url,
+    block.created_at
+  from public.user_blocks block
+  join public.profiles profile on profile.id = block.blocked_id
+  where block.blocker_id = (select auth.uid())
+  order by block.created_at desc, profile.id;
+$$;
+
 create or replace function public.report_user(
   p_reported_id uuid,
   p_reason text,
@@ -134,9 +162,11 @@ $$;
 
 revoke execute on function public.block_user(uuid) from public, anon;
 revoke execute on function public.unblock_user(uuid) from public, anon;
+revoke execute on function public.list_blocked_users() from public, anon;
 revoke execute on function public.report_user(uuid, text, text) from public, anon;
 grant execute on function public.block_user(uuid) to authenticated;
 grant execute on function public.unblock_user(uuid) to authenticated;
+grant execute on function public.list_blocked_users() to authenticated;
 grant execute on function public.report_user(uuid, text, text) to authenticated;
 
 -- Blocked users do not appear in profile search/embedded profile results.

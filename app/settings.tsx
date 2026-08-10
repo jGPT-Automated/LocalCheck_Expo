@@ -191,6 +191,15 @@ export default function SettingsScreen() {
           />
         </Section>
 
+        <Section title="SAFETY">
+          <SettingsRow
+            icon="slash"
+            label="BLOCKED PLAYERS"
+            detail="Review or unblock players"
+            onPress={() => router.push("/blocked-users" as Href)}
+          />
+        </Section>
+
         <Section title="LEGAL & SUPPORT">
           <SettingsRow icon="shield" label="PRIVACY POLICY" onPress={() => openWebsitePath("/privacy")} />
           <SettingsRow icon="file-text" label="TERMS OF SERVICE" onPress={() => openWebsitePath("/terms")} />

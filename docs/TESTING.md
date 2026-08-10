@@ -41,7 +41,7 @@ in the pull request; never record passwords or tokens.
 | Realtime lifecycle | browser + iPhone | background/foreground catches up once; no duplicate updates |
 | Privacy/RLS | allowed + denied user | permitted row works; unauthorized read/write is denied |
 | Add Court | 2 users + 2 photos | accepted insert, rejected photo, quota and duplicate denial |
-| Block/report | blocker + blocked user | filtered reads and denied social writes agree |
+| Block/report/unblock | blocker + blocked user | filtered reads and denied social writes agree; Settings lists and unblocks only the caller's blocked players |
 | QR profile → Log Game | cold + warm app | profile resolves by ID and opponent is prefilled |
 | Push delivery | 2 iPhones | foreground, background, cold start, retry, invalid token cleanup |
 

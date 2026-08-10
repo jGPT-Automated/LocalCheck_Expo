@@ -151,7 +151,9 @@ The court detail page keeps the brand/detail header, six-metric court panel, and
 - Player QR codes deep-link to profiles. A cold-start profile always offers a visible branded back action that returns to the tab app.
 - A player profile keeps **Log Game** reachable even when the player was not
   loaded through the leaderboard. Report and block actions live in the same
-  profile context and never replace the primary game/friend actions.
+  profile context and never replace the primary game/friend actions. Settings
+  exposes **Blocked players** so an accidental block is reversible without
+  making blocked identities visible in ordinary profile search.
 
 ## Activity timeline
 

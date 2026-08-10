@@ -28,6 +28,8 @@ test("safety controls enforce blocking across reads and social writes", async ()
     "public.user_reports",
     "private.users_are_blocked",
     "public.block_user",
+    "public.unblock_user",
+    "public.list_blocked_users",
     "public.report_user",
     "prevent_blocked_run_participation",
     "public.request_friend",
@@ -36,6 +38,7 @@ test("safety controls enforce blocking across reads and social writes", async ()
   }
   assert.match(sql, /alter table public\.user_blocks enable row level security/i);
   assert.match(sql, /alter table public\.user_reports enable row level security/i);
+  assert.match(sql, /list_blocked_users[\s\S]*where block\.blocker_id = \(select auth\.uid\(\)\)/i);
 });
 
 test("sport ratings use a three-day review window and scheduled auto-confirmation", async () => {

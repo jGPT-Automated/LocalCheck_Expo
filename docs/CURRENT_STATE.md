@@ -25,7 +25,8 @@ merges.
   expanding geographic windows before sorting by distance.
 - Presence: atomic check-in switching and server-driven expiration.
 - Schedule: planned visits and hosted runs.
-- Social: profiles, friendships, feed activity, notifications.
+- Social: profiles, friendships, feed activity, notifications, and reversible
+  block/report safety controls managed from Settings.
 - Competition: sport-specific ELO and reviewed match lifecycle.
 - Realtime: private scoped Broadcast invalidation followed by authoritative
   refetch.
