@@ -87,7 +87,7 @@ accounts before the client release is activated.
 
 ## PR #28 evidence checkpoint — 2026-08-10
 
-- `pnpm check:release` passed for app version `1.0.2`, including 38 focused
+- `pnpm check:release` passed for app version `1.0.2`, including 41 focused
   tests, design consistency, TypeScript, and a connected web export.
 - Expo CLI validated all four `.eas/workflows/*.yml` files against the current
   workflow contract; `expo install --check` reported dependencies up to date.

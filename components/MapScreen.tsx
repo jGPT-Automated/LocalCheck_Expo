@@ -112,12 +112,11 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
         neLng + lngPad,
         sportFilter,
         250,
-        localCourt?.market
       );
       if (seq !== fetchSeq.current) return;
       setViewportCourts(courts);
     }, 400);
-  }, [sportFilter, localCourt?.market]);
+  }, [sportFilter]);
 
   // ── Merge context courts (authoritative for local court) + live counts ──
   const mergedCourts = useMemo(() => {

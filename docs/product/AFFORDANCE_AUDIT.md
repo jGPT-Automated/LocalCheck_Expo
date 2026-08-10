@@ -9,6 +9,7 @@ product changes that could otherwise be lost during the repository reset.
 | Surface | Control | Release 1 disposition |
 | --- | --- | --- |
 | Explore | Court card → drawer/detail | Preserved |
+| Explore / map | Geographic court discovery | Preserved; viewport crosses market boundaries and Explore sorts geographically constrained candidates |
 | Explore header | Add Court | Added; authenticated Supabase photo flow |
 | Court detail | Back logo | Preserved; frame now explicitly sized/clipped |
 | Schedule | Speed-dial FAB | Preserved |

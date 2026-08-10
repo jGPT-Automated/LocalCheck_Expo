@@ -20,7 +20,9 @@ merges.
 ## Current product contract
 
 - Authentication: email/password and Apple Sign-In.
-- Discovery: court list/search plus native Mapbox map.
+- Discovery: court list/search plus native Mapbox map. Map viewport queries are
+  location-driven across market boundaries; Explore narrows market results in
+  expanding geographic windows before sorting by distance.
 - Presence: atomic check-in switching and server-driven expiration.
 - Schedule: planned visits and hosted runs.
 - Social: profiles, friendships, feed activity, notifications.

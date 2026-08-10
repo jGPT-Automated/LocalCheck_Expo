@@ -389,13 +389,12 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
           ne.lng + lngPad,
           sportFilter,
           250,
-          localCourt?.market
         );
         if (seq !== boundsSeq.current) return;
         setViewportCourts(found);
       }, 400);
     },
-    [sportFilter, localCourt?.market]
+    [sportFilter]
   );
 
   const rawCourts = React.useMemo(() => {

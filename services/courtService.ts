@@ -1,5 +1,9 @@
 import { Court, CourtSport } from "@/constants/data";
 import { supabase } from "@/lib/supabase";
+import {
+  courtDiscoveryBounds,
+  MARKET_DISCOVERY_RADII_DEG,
+} from "@/services/courtDiscoveryModel";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -275,12 +279,43 @@ export async function fetchCourtsByMarket(
 ): Promise<Court[]> {
   const safeLimit = Math.max(1, Math.min(limit, 25));
   try {
+    if (origin) {
+      const candidateLimit = Math.max(100, safeLimit * 20);
+      for (const [index, radiusDeg] of MARKET_DISCOVERY_RADII_DEG.entries()) {
+        const bounds = courtDiscoveryBounds(origin, radiusDeg);
+        const courts = await fetchCourtsInBounds(
+          bounds.swLat,
+          bounds.swLng,
+          bounds.neLat,
+          bounds.neLng,
+          sport,
+          candidateLimit,
+          market,
+        );
+        const isFinalRadius = index === MARKET_DISCOVERY_RADII_DEG.length - 1;
+        if (courts.length >= safeLimit || isFinalRadius) {
+          return courts
+            .map((court) => ({
+              ...court,
+              distanceKm: haversineKm(
+                origin.lat,
+                origin.lng,
+                court.latitude,
+                court.longitude,
+              ),
+            }))
+            .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
+            .slice(0, safeLimit);
+        }
+      }
+    }
+
     let query = supabase
       .from("courts_with_stats")
       .select(STATS_COLS)
       .eq("market", market)
       .eq("is_archived", false)
-      .limit(Math.min(50, safeLimit * 2));
+      .limit(safeLimit);
 
     if (sport && sport !== "ALL") {
       query = query.eq("sport_type", sport.toLowerCase());
@@ -288,20 +323,7 @@ export async function fetchCourtsByMarket(
 
     const { data, error } = await query;
     if (error || !data) return [];
-    const courts = (data as unknown as SupabaseCourtRow[]).map(mapRow);
-    if (!origin) return courts.slice(0, safeLimit);
-    return courts
-      .map((court) => ({
-        ...court,
-        distanceKm: haversineKm(
-          origin.lat,
-          origin.lng,
-          court.latitude,
-          court.longitude
-        ),
-      }))
-      .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
-      .slice(0, safeLimit);
+    return (data as unknown as SupabaseCourtRow[]).map(mapRow);
   } catch {
     return [];
   }
