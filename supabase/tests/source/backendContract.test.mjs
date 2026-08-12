@@ -21,6 +21,23 @@ test("verified court creation is atomic, quota-bound, and duplicate-safe", async
   assert.doesNotMatch(sql, /grant execute[\s\S]*?to authenticated/i);
 });
 
+test("new verified courts do not require a paid, free, or private access classification", async () => {
+  const sql = await migrationEndingWith("_make_court_access_optional.sql");
+  assert.match(sql, /alter column access_type drop not null/i);
+  assert.match(sql, /create or replace function public\.create_verified_court/i);
+  assert.doesNotMatch(sql, /p_access_type/i);
+
+  const verification = await readFile(new URL("../../functions/verify-court/courtVerification.ts", import.meta.url), "utf8");
+  const edgeFunction = await readFile(new URL("../../functions/verify-court/index.ts", import.meta.url), "utf8");
+  const courtService = await readFile(new URL("../../../services/courtService.ts", import.meta.url), "utf8");
+  const modal = await readFile(new URL("../../../components/AddCourtModal.tsx", import.meta.url), "utf8");
+  for (const source of [verification, edgeFunction, courtService, modal]) {
+    assert.doesNotMatch(source, /accessType|ACCESS_OPTIONS|p_access_type/);
+  }
+  assert.doesNotMatch(modal, />ACCESS</);
+  assert.match(edgeFunction, /store:\s*false/);
+});
+
 test("safety controls enforce blocking across reads and social writes", async () => {
   const sql = await migrationEndingWith("_add_user_safety_controls.sql");
   for (const contract of [

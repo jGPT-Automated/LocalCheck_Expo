@@ -59,6 +59,7 @@ async function analyzeCourtPhoto(
     },
     body: JSON.stringify({
       model,
+      store: false,
       input: [
         {
           type: "text",
@@ -66,7 +67,6 @@ async function analyzeCourtPhoto(
             "Classify this LocalCheck community court submission using only visible evidence in the image.",
             "Set verified=true only when a real, playable basketball or pickleball court is clearly visible and the sport is unambiguous.",
             "Reject screenshots, maps, renderings, selfies, streets, empty fields, other sports, damaged/non-playable surfaces, and unclear photos.",
-            "Do not infer whether access is public or private; the user reports that separately.",
             "For setting, choose outdoor, indoor, outdoor_covered, mixed, or unclear.",
             "Give a short user-facing reason that describes the visible evidence without claiming legal ownership or public access.",
           ].join(" "),
@@ -135,7 +135,6 @@ Deno.serve(async (request) => {
     state,
     latitude,
     longitude,
-    accessType,
     imageBase64,
     imageMimeType,
   } = submission.value;
@@ -165,7 +164,7 @@ Deno.serve(async (request) => {
   // The database RPC owns market resolution, quota enforcement, duplicate
   // detection, and insertion in one transaction. Keeping those decisions out
   // of the Edge Function prevents concurrent requests from racing the guards.
-  const { data: court, error: insertError } = await admin.rpc("create_verified_court", {
+  const { data: court, error: insertError } = await admin.rpc("create_verified_court_v2", {
     p_added_by: userData.user.id,
     p_slug: slugify(courtName),
     p_name: courtName,
@@ -175,7 +174,6 @@ Deno.serve(async (request) => {
     p_latitude: latitude,
     p_longitude: longitude,
     p_sport_type: analysis.sport,
-    p_access_type: accessType,
     p_setting: analysis.setting,
     p_source_url: sourceUrl,
   });

@@ -33,15 +33,19 @@ project settings unless the task explicitly authorizes that external action.
 
 ## Create a change
 
-```bash
-npx supabase migration new <short_description>
-```
+Create one new UTC-timestamped SQL file directly under `supabase/migrations/`;
+the filename is `<YYYYMMDDHHMMSS>_<short_description>.sql`. A local Supabase
+runtime or CLI is not a prerequisite for authoring or deploying a cloud
+migration in this repository.
 
 Write one forward migration. Include RLS, grants, indexes, Realtime/publication
 effects, and recovery notes as part of the same pull request. Compare it with
-the verified live contract, run focused source/unit checks, and document the
-intended-user and denied-user acceptance cases. Migration apply, function
-deploy, and production-secret changes require explicit release authorization.
+the verified live contract and migration ledger, run focused source/unit
+checks, and document the intended-user and denied-user acceptance cases. After
+explicit authorization, apply the reviewed file to `LocalCheckProd` through the
+connected Supabase migration tool, then verify the resulting cloud schema with
+read-only queries. Function deployment and production-secret changes remain
+separate explicitly authorized actions.
 
 ## Edge Functions
 
@@ -54,20 +58,22 @@ PR #28 added two function sources:
 
 - `verify-court` requires the caller's user JWT, validates a submitted court
   photo with Gemini, and delegates the write to the service-role-only
-  `create_verified_court` database function.
+  `create_verified_court_v2` database function.
 - `send-notification` accepts only the private database webhook secret. It
   atomically claims queued inbox rows, stores Expo tickets, checks receipts,
   retries bounded transient failures, and removes tokens Expo marks invalid.
 
-Production status on 2026-08-11:
+Production status on 2026-08-12:
 
 - `send-notification` version 1 is active. An unauthenticated request returned
   401, while `private.dispatch_push_webhook(null)` reached it through the Vault
   secret and returned HTTP 200 with an empty work claim.
 - A real friend-request insert subsequently produced a physical iPhone push,
   proving the registration → database → Edge Function → Expo → APNs path.
-- `verify-court` is not production-proven. A physical Add Court attempt returned
-  a non-2xx Edge Function response and remains a separate diagnosis.
+- `verify-court` version 2 is active with platform JWT enforcement. Its deployed
+  source matches the repository, calls `create_verified_court_v2`, and rejects
+  unauthenticated requests with HTTP 401. A signed-in accepted and rejected
+  live-photo test remains required to prove the Gemini provider path.
 
 The client fix that unlocked push delivery lives in
 `services/pushNotificationService.ts` and `context/NotificationContext.tsx`.
@@ -85,7 +91,7 @@ temporary delivery failure does not strand inbox rows.
 
 - `20260810200103_add_verified_court_creation.sql`: daily quota, market bounds,
   150m duplicate rejection, advisory locking, and atomic court creation.
-- `20260810200110_add_user_safety_controls.sql`: block/report storage,
+- `20260812111224_add_user_safety_controls.sql`: block/report storage,
   filtering, RLS, grants, write guards, and caller-scoped blocked-user listing
   for the in-app unblock path.
 - `20260810200118_complete_sport_elo_review.sql`: basketball/pickleball ratings,
@@ -97,11 +103,15 @@ temporary delivery failure does not strand inbox rows.
   migration for retaining pre-push inbox rows while marking them push-skipped,
   preventing a burst of stale alerts after first device registration. It is not
   deployed by this pull request.
+- `20260812111025_make_court_access_optional.sql`: preserves every historical
+  access value, makes the field optional for new rows, and adds the
+  service-role-only `create_verified_court_v2` RPC without an access argument.
 
-Source presence never proves deployment. `complete_push_delivery` is the one
-item in this list explicitly applied and physically exercised on 2026-08-11;
-recheck the live ledger and function list before asserting the status of the
-other items.
+Source presence never proves deployment. `complete_push_delivery`,
+`add_user_safety_controls`, and `make_court_access_optional` are present in the
+live migration ledger. Push delivery has physical evidence; the safety schema
+and new court contract have read-only live-schema evidence. Recheck the live
+ledger and function list before asserting future status.
 
 ## Realtime and API safety
 
