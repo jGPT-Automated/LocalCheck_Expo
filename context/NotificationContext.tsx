@@ -17,6 +17,7 @@ import {
   configureForegroundNotifications,
   PushSetupResult,
   registerPushNotifications,
+  syncPushRegistration,
 } from "@/services/pushNotificationService";
 
 interface NotificationContextValue {
@@ -72,11 +73,16 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [refreshNotifications]);
 
   useEffect(() => {
-    if (!user || profile?.push_notifications_enabled !== true) return;
-    // Never show the permission prompt here. This only repairs a token after a
-    // user has already granted notification access.
-    void registerPushNotifications(false);
-  }, [profile?.push_notifications_enabled, user]);
+    if (!user || !profile) return;
+    const preferenceEnabled = profile.push_notifications_enabled;
+    let cancelled = false;
+    void syncPushRegistration(preferenceEnabled).then((result) => {
+      if (!cancelled && !preferenceEnabled && result?.ok) void refreshProfile();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.push_notifications_enabled, refreshProfile, user]);
 
   useEffect(() => {
     if (Platform.OS !== "ios" && Platform.OS !== "android") return;

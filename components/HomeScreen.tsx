@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
     marginTop: Space.xxl,
     paddingHorizontal: Space.xl,
-    borderRadius: 24,
+    borderRadius: Radius.sm,
     flexDirection: "row",
     alignItems: "center",
     gap: Space.sm,

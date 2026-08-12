@@ -3,6 +3,10 @@ import * as Device from "expo-device";
 import { Platform } from "react-native";
 
 import { savePushToken } from "./notificationService";
+import {
+  getPushRegistrationAction,
+  PushPermissionStatus,
+} from "./pushRegistrationPolicy";
 
 export interface PushSetupResult {
   ok: boolean;
@@ -59,6 +63,41 @@ export async function registerPushNotifications(ask: boolean): Promise<PushSetup
     return saved
       ? { ok: true, status: "enabled" }
       : { ok: false, status: "error", message: "The phone could not be registered." };
+  } catch (error) {
+    return {
+      ok: false,
+      status: "error",
+      message: error instanceof Error ? error.message : "Push setup failed.",
+    };
+  }
+}
+
+/**
+ * Prompts once when iOS/Android has never received a decision, repairs an
+ * existing enabled registration, and respects both system denial and the
+ * user's LocalCheck opt-out.
+ */
+export async function syncPushRegistration(
+  preferenceEnabled: boolean,
+): Promise<PushSetupResult | null> {
+  if (Platform.OS !== "ios" && Platform.OS !== "android") return null;
+  if (!Device.isDevice) return null;
+
+  try {
+    const Notifications = await import("expo-notifications");
+    const permission = await Notifications.getPermissionsAsync();
+    const permissionStatus: PushPermissionStatus =
+      permission.status === "granted"
+        ? "granted"
+        : permission.status === "denied"
+          ? "denied"
+          : "undetermined";
+    const action = getPushRegistrationAction({
+      preferenceEnabled,
+      permissionStatus,
+    });
+    if (action === "none") return null;
+    return registerPushNotifications(action === "prompt");
   } catch (error) {
     return {
       ok: false,

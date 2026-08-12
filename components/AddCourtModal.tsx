@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { courtDetailsReady, normalizeState } from "@/components/addCourtModel";
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { FormSheet } from "@/components/sheet/FormSheet";
+import { SportEmblem } from "@/components/ui/SportEmblem";
 import { Colors, Radius } from "@/constants/colors";
 import type { Court } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
@@ -148,23 +149,11 @@ export function AddCourtModal({
     setPhotoMimeType(asset.mimeType ?? "image/jpeg");
   }, []);
 
-  const pickPhoto = useCallback(async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permission.status !== "granted") {
-      Alert.alert("Photo access needed", "Allow photo access to choose a current court photo.");
+  const takePhoto = useCallback(async () => {
+    if (Platform.OS === "web") {
+      Alert.alert("Live photo required", "Open LocalCheck on your iPhone to take the verification photo.");
       return;
     }
-    const picked = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.65,
-      base64: true,
-      allowsEditing: true,
-      aspect: [4, 3],
-    });
-    if (!picked.canceled && picked.assets[0]) savePhoto(picked.assets[0]);
-  }, [savePhoto]);
-
-  const takePhoto = useCallback(async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (permission.status !== "granted") {
       Alert.alert("Camera access needed", "Allow camera access to photograph the court.");
@@ -238,9 +227,36 @@ export function AddCourtModal({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.intro}>
-            Pin the court where you are standing. A current photo verifies basketball or pickleball before anything is added.
-          </Text>
+          <View style={styles.requirements}>
+            <View style={styles.requirementRow}>
+              <View style={styles.requirementIcon}>
+                <Feather color={Colors.accent} name="map-pin" size={18} />
+              </View>
+              <View style={styles.requirementCopy}>
+                <Text style={styles.requirementTitle}>LIVE LOCATION PIN</Text>
+                <Text style={styles.requirementMeta}>Drop it while standing at the court.</Text>
+              </View>
+            </View>
+            <View style={styles.requirementRow}>
+              <View style={styles.sportIcons}>
+                <SportEmblem size={15} sport="BASKETBALL" />
+                <SportEmblem size={15} sport="PICKLEBALL" />
+              </View>
+              <View style={styles.requirementCopy}>
+                <Text style={styles.requirementTitle}>BASKETBALL OR PICKLEBALL</Text>
+                <Text style={styles.requirementMeta}>The live photo confirms the sport.</Text>
+              </View>
+            </View>
+            <View style={styles.requirementRow}>
+              <View style={styles.requirementIcon}>
+                <Feather color={Colors.accent} name="camera" size={18} />
+              </View>
+              <View style={styles.requirementCopy}>
+                <Text style={styles.requirementTitle}>LIVE PHOTO</Text>
+                <Text style={styles.requirementMeta}>Camera only. Existing uploads are not accepted.</Text>
+              </View>
+            </View>
+          </View>
 
           <Text style={styles.fieldLabel}>COURT NAME · OPTIONAL</Text>
           <TextInput
@@ -359,17 +375,12 @@ export function AddCourtModal({
             </View>
           ) : (
             <View style={styles.photoOptions}>
-              {Platform.OS !== "web" ? (
-                <Pressable onPress={takePhoto} style={({ pressed }) => [styles.photoButton, pressed && styles.pressed]}>
-                  <Feather color={Colors.accent} name="camera" size={26} />
-                  <Text style={styles.photoButtonTitle}>TAKE PHOTO</Text>
-                  <Text style={styles.photoButtonMeta}>Best verification</Text>
-                </Pressable>
-              ) : null}
-              <Pressable onPress={pickPhoto} style={({ pressed }) => [styles.photoButton, pressed && styles.pressed]}>
-                <Feather color={Colors.textSecondary} name="image" size={26} />
-                <Text style={styles.photoButtonTitle}>PHOTO LIBRARY</Text>
-                <Text style={styles.photoButtonMeta}>Choose a clear photo</Text>
+              <Pressable onPress={takePhoto} style={({ pressed }) => [styles.photoButton, pressed && styles.pressed]}>
+                <Feather color={Colors.accent} name="camera" size={26} />
+                <Text style={styles.photoButtonTitle}>TAKE LIVE PHOTO</Text>
+                <Text style={styles.photoButtonMeta}>
+                  {Platform.OS === "web" ? "Available in the iPhone app" : "Camera only · uploads disabled"}
+                </Text>
               </Pressable>
             </View>
           )}
@@ -430,6 +441,47 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: Colors.textSecondary,
     marginBottom: Space.sm,
+  },
+  requirements: {
+    gap: Space.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surface,
+    padding: Space.md,
+  },
+  requirementRow: { flexDirection: "row", alignItems: "center", gap: Space.md },
+  requirementIcon: {
+    width: 38,
+    height: 38,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.accentDim,
+  },
+  sportIcons: {
+    width: 38,
+    height: 38,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 0,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surfaceHigh,
+  },
+  requirementCopy: { flex: 1 },
+  requirementTitle: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 10,
+    color: Colors.text,
+    letterSpacing: 1.1,
+  },
+  requirementMeta: {
+    fontFamily: Typography.body,
+    fontSize: 11,
+    lineHeight: 16,
+    color: Colors.muted,
+    marginTop: 2,
   },
   fieldLabel: {
     fontFamily: Typography.bodyBold,

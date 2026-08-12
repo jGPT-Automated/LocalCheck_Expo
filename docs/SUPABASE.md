@@ -12,9 +12,10 @@ supabase/
 ```
 
 The migration files through `20260804125610` were reconciled from the live
-production `supabase_migrations.schema_migrations` ledger. Files dated
-`20260810200103` and later are PR #28 release-candidate source and are not yet
-applied. Never rename, edit, or replay an applied file as a new change.
+production `supabase_migrations.schema_migrations` ledger. On 2026-08-11 the
+durable push migration `complete_push_delivery` was applied to LocalCheckProd.
+Never rename, edit, or replay an applied file as a new change; inspect the live
+ledger before describing any other release-candidate migration as deployed.
 
 ## Ground every backend change
 
@@ -49,7 +50,7 @@ contain them. Test pure request/delivery logic from source. After explicit
 release approval, deploy one named function at a time and verify its
 authenticated and unauthorized paths.
 
-PR #28 adds two functions:
+PR #28 added two function sources:
 
 - `verify-court` requires the caller's user JWT, validates a submitted court
   photo with Gemini, and delegates the write to the service-role-only
@@ -57,6 +58,23 @@ PR #28 adds two functions:
 - `send-notification` accepts only the private database webhook secret. It
   atomically claims queued inbox rows, stores Expo tickets, checks receipts,
   retries bounded transient failures, and removes tokens Expo marks invalid.
+
+Production status on 2026-08-11:
+
+- `send-notification` version 1 is active. An unauthenticated request returned
+  401, while `private.dispatch_push_webhook(null)` reached it through the Vault
+  secret and returned HTTP 200 with an empty work claim.
+- A real friend-request insert subsequently produced a physical iPhone push,
+  proving the registration → database → Edge Function → Expo → APNs path.
+- `verify-court` is not production-proven. A physical Add Court attempt returned
+  a non-2xx Edge Function response and remains a separate diagnosis.
+
+The client fix that unlocked push delivery lives in
+`services/pushNotificationService.ts` and `context/NotificationContext.tsx`.
+Startup now prompts only when system permission is undetermined, repairs token
+registration when an opted-in account already has permission, and does nothing
+after LocalCheck opt-out or iOS denial. `getExpoPushTokenAsync` uses the explicit
+EAS project id from app configuration.
 
 The notification webhook URL and shared secret live in Supabase Vault. Public
 Expo variables and migration source never contain the secret. A recurring
@@ -73,10 +91,17 @@ temporary delivery failure does not strand inbox rows.
 - `20260810200118_complete_sport_elo_review.sql`: basketball/pickleball ratings,
   pending review, confirm/reject, and three-day automatic confirmation.
 - `20260810200126_complete_push_delivery.sql`: durable claims, delivery
-  attempts, webhook dispatch, and recurring recovery.
+  attempts, webhook dispatch, and recurring recovery. This applied file stays
+  byte-for-byte immutable.
+- `20260812032141_skip_stale_pending_push_notifications.sql`: idempotent source
+  migration for retaining pre-push inbox rows while marking them push-skipped,
+  preventing a burst of stale alerts after first device registration. It is not
+  deployed by this pull request.
 
-These files are source-only until the release approval gate. Their presence in
-Git does not mean they are deployed or production-proven.
+Source presence never proves deployment. `complete_push_delivery` is the one
+item in this list explicitly applied and physically exercised on 2026-08-11;
+recheck the live ledger and function list before asserting the status of the
+other items.
 
 ## Realtime and API safety
 

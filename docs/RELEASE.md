@@ -38,6 +38,21 @@ reaching every installed client without adding a release bureaucracy.
 If an OTA is bad, use EAS Update to republish the last known-good update to the
 production channel. Record the incident and fix in the pull request or issue.
 
+### Latest verified production OTA
+
+- Message: `Enable first-time push notification registration`
+- Runtime/platform: `1.0.2` / iOS
+- Update: `019ff2db-faca-700f-82be-9e0b1b0c249e`
+- Group: `e7ed1d7d-0d91-458c-adf1-941d807ce84d`
+- Source: `bc1507f6cff43b0d6af67e6dd34016b3079ff7bb`
+- Published: 2026-08-11
+- Acceptance: TestFlight build 14 registered a physical iPhone and received a
+  real background friend-request notification.
+
+This OTA was safe because build 14 already contained the production APNs
+entitlement, the `expo-notifications` native module, and runtime `1.0.2`. Only
+the JavaScript registration gate changed.
+
 ## TestFlight/native release
 
 Every approved merge to `main` triggers `Release iOS (build + TestFlight)`.

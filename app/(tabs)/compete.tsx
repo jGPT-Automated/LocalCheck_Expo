@@ -19,7 +19,6 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { FormSheet } from "@/components/sheet/FormSheet";
 import { CompactSelect } from "@/components/ui/CompactSelect";
 import { EloStat } from "@/components/ui/EloStat";
-import { SpeedDialFab } from "@/components/ui/SpeedDialFab";
 import { Colors, Radius } from "@/constants/colors";
 import { CourtSport, getSportColor, Player } from "@/constants/data";
 import { Typography } from "@/constants/typography";
@@ -124,13 +123,6 @@ export default function CompeteScreen() {
         </View>}
       />
 
-      <SpeedDialFab
-        accessibilityLabel="Log a game"
-        actions={[{ label: "Log game", icon: "edit-3", onPress: () => setLogGameOpen(true) }]}
-        bottom={Platform.OS === "web" ? 102 : bottom + 78}
-        icon="edit-3"
-      />
-
       <LeaderboardView
         players={leaderboardPlayers}
         myRank={myRank}
@@ -145,6 +137,7 @@ export default function CompeteScreen() {
         localCourt={localCourt}
         bottom={bottom}
         loading={leaderboardLoading}
+        onLogGame={() => setLogGameOpen(true)}
       />
 
       <FormSheet onClose={() => setLogGameOpen(false)} title="Log game" visible={logGameOpen}>
@@ -179,6 +172,7 @@ function LeaderboardView({
   localCourt,
   bottom,
   loading,
+  onLogGame,
 }: {
   players: Player[];
   myRank: number;
@@ -193,6 +187,7 @@ function LeaderboardView({
   localCourt: { id: string; name: string; shortName?: string; sport: CourtSport } | null;
   bottom: number;
   loading?: boolean;
+  onLogGame: () => void;
 }) {
   const router = useRouter();
   const { isFriend } = useApp();
@@ -242,6 +237,15 @@ function LeaderboardView({
           ]}
           value={sport}
         />
+        <Pressable
+          accessibilityLabel="Log a game"
+          accessibilityRole="button"
+          onPress={onLogGame}
+          style={({ pressed }) => [styles.logGameAction, pressed && styles.pressed]}
+        >
+          <Feather color={Colors.black} name="plus" size={13} />
+          <Text style={styles.logGameActionText}>LOG GAME</Text>
+        </Pressable>
       </View>
 
       {/* Scope label */}
@@ -747,13 +751,13 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   headerTools: { flexDirection: "row", alignItems: "center", gap: 8 },
   logGameAction: {
-    minHeight: 36,
-    paddingHorizontal: 10,
+    minHeight: 30,
+    paddingHorizontal: 9,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 3,
-    borderRadius: Radius.sm,
+    borderRadius: Radius.xs,
     backgroundColor: Colors.accent,
   },
   logGameActionText: {

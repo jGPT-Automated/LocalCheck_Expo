@@ -122,8 +122,8 @@ export function SplashReveal({
 
     const animations = [
       Animated.timing(stage, {
-        duration: 1_080,
-        easing: Easing.inOut(Easing.cubic),
+        duration: 680,
+        easing: Easing.out(Easing.cubic),
         toValue: 2,
         useNativeDriver: true,
       }),
@@ -132,16 +132,16 @@ export function SplashReveal({
     if (mode === "signed-out") {
       animations.push(
         Animated.timing(artwork, {
-          duration: 2_000,
+          duration: 900,
           easing: Easing.out(Easing.cubic),
           toValue: 1,
           useNativeDriver: true,
         }),
       );
       Animated.sequence([
-        Animated.delay(2_050),
+        Animated.delay(880),
         Animated.timing(lift, {
-          duration: 600,
+          duration: 220,
           easing: Easing.out(Easing.cubic),
           toValue: 1,
           useNativeDriver: true,
@@ -151,9 +151,9 @@ export function SplashReveal({
 
     Animated.parallel(animations).start();
     Animated.sequence([
-      Animated.delay(total - 280),
+      Animated.delay(total - 180),
       Animated.timing(veil, {
-        duration: 260,
+        duration: 160,
         toValue: 0,
         useNativeDriver: true,
       }),
@@ -192,7 +192,7 @@ export function SplashReveal({
                 {
                   scale: artwork.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [1.055, 1],
+                    outputRange: [1.025, 1],
                   }),
                 },
               ],

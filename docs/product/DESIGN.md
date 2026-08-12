@@ -2,8 +2,8 @@
 
 Status: Authoritative MVP contract
 
-Version: 3.0.1
-Last verified: 2026-08-10
+Version: 3.0.2
+Last verified: 2026-08-11
 
 This document describes the current product. It replaces earlier competing design notes. The reproducible source artwork and specs live in the LocalCheck Brand Asset Sheet; app tokens live in `constants/` and shared components live in `components/ui/`.
 
@@ -23,9 +23,11 @@ The product should feel premium, athletic, editorial, local, and direct. It shou
   second in-product implementation. The cold-start `SplashReveal` is the one
   approved motion exception: it reuses PR25's source paths to move from pin to
   W to the canonical check, then hands off to `LogoMark`.
-- `assets/brand/splash-artwork.png` is the approved signed-out reveal artwork.
-  It is composited at its natural portrait aspect ratio and is not stretched
-  into a landscape hero.
+- `assets/brand/splash-artwork.png` is the current blue/blue basketball and
+  pickleball preview candidate for the signed-out reveal. It is composited at
+  its natural portrait aspect ratio, shifted above the auth tagline, and is not
+  stretched into a landscape hero. The signed-out reveal completes in 1.65
+  seconds; the pin-to-W-to-check morph completes in 0.68 seconds.
 - Primary tab headers use `ScreenHeader`. Detail pages use `DetailHeader`, whose bracketed `LogoMark` back variant combines canonical brand geometry with the icon library's chevron.
 - All functional icons come from the installed icon libraries. Do not draw icons, use emoji, or use Unicode arrows/checkmarks as substitutes.
 
