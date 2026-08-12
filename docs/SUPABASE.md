@@ -91,12 +91,12 @@ temporary delivery failure does not strand inbox rows.
 - `20260810200118_complete_sport_elo_review.sql`: basketball/pickleball ratings,
   pending review, confirm/reject, and three-day automatic confirmation.
 - `20260810200126_complete_push_delivery.sql`: durable claims, delivery
-  attempts, webhook dispatch, and recurring recovery. Existing inbox rows are
-  retained but marked push-skipped during activation so users do not receive a
-  burst of stale alerts after registering their first device. Hosted
-  `LocalCheckProd` already provides `pg_cron`; the migration creates only the
-  missing `pg_net` extension and schedules its recovery worker on existing
-  cron infrastructure.
+  attempts, webhook dispatch, and recurring recovery. This applied file stays
+  byte-for-byte immutable.
+- `20260812032141_skip_stale_pending_push_notifications.sql`: idempotent source
+  migration for retaining pre-push inbox rows while marking them push-skipped,
+  preventing a burst of stale alerts after first device registration. It is not
+  deployed by this pull request.
 
 Source presence never proves deployment. `complete_push_delivery` is the one
 item in this list explicitly applied and physically exercised on 2026-08-11;

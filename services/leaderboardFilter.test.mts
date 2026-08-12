@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   buildLeaderboardMembershipFilter,
   canLoadLeaderboardScope,
+  chunkLeaderboardIds,
 } from "./leaderboardFilter.ts";
 
 test("local and regional rankings require the viewer's home court", () => {
@@ -30,4 +31,11 @@ test("players without a preferred sport need an eligible home court", () => {
     buildLeaderboardMembershipFilter("BASKETBALL", []),
     "preferred_sport.eq.basketball",
   );
+});
+
+test("court membership ids are queried in bounded chunks without dropping overflow", () => {
+  const ids = Array.from({ length: 205 }, (_, index) => `court-${index}`);
+  const chunks = chunkLeaderboardIds(ids, 100);
+  assert.deepEqual(chunks.map((chunk) => chunk.length), [100, 100, 5]);
+  assert.deepEqual(chunks.flat(), ids);
 });

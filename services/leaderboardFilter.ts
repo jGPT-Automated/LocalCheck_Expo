@@ -1,6 +1,9 @@
 export type LeaderboardScope = "LOCAL" | "REGIONAL" | "GLOBAL";
 export type LeaderboardSport = "BASKETBALL" | "PICKLEBALL";
 
+export const LEADERBOARD_COURT_PAGE_SIZE = 500;
+export const LEADERBOARD_ID_CHUNK_SIZE = 100;
+
 export function canLoadLeaderboardScope(
   scope: LeaderboardScope,
   homeCourtId: string | null,
@@ -27,4 +30,16 @@ export function buildLeaderboardMembershipFilter(
   }
 
   return clauses.join(",");
+}
+
+export function chunkLeaderboardIds(
+  ids: string[],
+  size = LEADERBOARD_ID_CHUNK_SIZE,
+): string[][] {
+  if (size < 1) throw new Error("Leaderboard chunk size must be positive");
+  const chunks: string[][] = [];
+  for (let index = 0; index < ids.length; index += size) {
+    chunks.push(ids.slice(index, index + size));
+  }
+  return chunks;
 }

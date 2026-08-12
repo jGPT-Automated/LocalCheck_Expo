@@ -68,6 +68,15 @@ test("push delivery uses Vault, durable tickets, cron retry, and receipt reconci
     assert.ok(sql.includes(contract), `missing push contract ${contract}`);
   }
   assert.match(sql, /create extension if not exists pg_net/i);
-  assert.doesNotMatch(sql, /create extension if not exists pg_cron/i);
+  assert.match(sql, /create extension if not exists pg_cron/i);
   assert.match(sql, /cron\.schedule/i);
+});
+
+test("stale push backfill is isolated from the applied delivery migration", async () => {
+  const deliverySql = await migrationEndingWith("_complete_push_delivery.sql");
+  const backfillSql = await migrationEndingWith("_skip_stale_pending_push_notifications.sql");
+  assert.doesNotMatch(deliverySql, /set push_status = 'skipped'/i);
+  assert.match(backfillSql, /set push_status = 'skipped'/i);
+  assert.match(backfillSql, /push_attempts = 0/i);
+  assert.match(backfillSql, /push_sent_at is null/i);
 });

@@ -1,8 +1,9 @@
 import { CourtSport, getEloTier, Player } from "@/constants/data";
 import { supabase } from "@/lib/supabase";
 import {
-  buildLeaderboardMembershipFilter,
   canLoadLeaderboardScope,
+  chunkLeaderboardIds,
+  LEADERBOARD_COURT_PAGE_SIZE,
 } from "@/services/leaderboardFilter";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -274,6 +275,86 @@ export async function fetchSuggestedPlayers(
   return Array.from(suggestions.values()).slice(0, limit);
 }
 
+type LeaderboardCourtRow = { id: string; sport_type: string | null };
+
+async function fetchAllLeaderboardCourts(filters: {
+  market?: string;
+  sport?: string;
+}): Promise<LeaderboardCourtRow[]> {
+  const rows: LeaderboardCourtRow[] = [];
+
+  for (let from = 0; ; from += LEADERBOARD_COURT_PAGE_SIZE) {
+    let query = supabase
+      .from("courts")
+      .select("id,sport_type")
+      .eq("is_archived", false)
+      .order("id", { ascending: true })
+      .range(from, from + LEADERBOARD_COURT_PAGE_SIZE - 1);
+    if (filters.market) query = query.eq("market", filters.market);
+    if (filters.sport) query = query.eq("sport_type", filters.sport);
+
+    const { data, error } = await query;
+    if (error) throw error;
+    const page = (data ?? []) as LeaderboardCourtRow[];
+    rows.push(...page);
+    if (page.length < LEADERBOARD_COURT_PAGE_SIZE) return rows;
+  }
+}
+
+async function fetchRankedProfileRows(
+  orderColumn: string,
+  sport: "BASKETBALL" | "PICKLEBALL",
+  scopeCourtIds: string[] | null,
+  fallbackSportCourtIds: string[],
+): Promise<{ data: SupabaseProfile[]; error: { code?: string } | null }> {
+  const selectedSport = sport.toLowerCase();
+  const queries: PromiseLike<{
+    data: unknown[] | null;
+    error: { code?: string } | null;
+  }>[] = [];
+
+  const preferredChunks = scopeCourtIds === null
+    ? [null]
+    : chunkLeaderboardIds(scopeCourtIds);
+  for (const courtIds of preferredChunks) {
+    let query = supabase
+      .from("profiles")
+      .select("*")
+      .eq("preferred_sport", selectedSport);
+    if (courtIds) query = query.in("local_court_id", courtIds);
+    queries.push(query.order(orderColumn, { ascending: false }).limit(100));
+  }
+
+  for (const courtIds of chunkLeaderboardIds(fallbackSportCourtIds)) {
+    queries.push(
+      supabase
+        .from("profiles")
+        .select("*")
+        .is("preferred_sport", null)
+        .in("local_court_id", courtIds)
+        .order(orderColumn, { ascending: false })
+        .limit(100),
+    );
+  }
+
+  const results = await Promise.all(queries);
+  const error = results.find((result) => result.error)?.error ?? null;
+  if (error) return { data: [], error };
+
+  const byId = new Map<string, SupabaseProfile>();
+  for (const result of results) {
+    for (const row of (result.data ?? []) as SupabaseProfile[]) byId.set(row.id, row);
+  }
+  const data = Array.from(byId.values())
+    .sort((left, right) => {
+      const ratingDifference = Number(right[orderColumn as keyof SupabaseProfile] ?? 0)
+        - Number(left[orderColumn as keyof SupabaseProfile] ?? 0);
+      return ratingDifference || left.id.localeCompare(right.id);
+    })
+    .slice(0, 100);
+  return { data, error: null };
+}
+
 /**
  * Leaderboard scope stays anchored to the viewer's saved home court. Sport
  * membership uses preferred_sport when set, then falls back to the saved home
@@ -310,44 +391,53 @@ export async function fetchLeaderboard(
         .maybeSingle();
       const market = (anchor as { market?: string | null } | null)?.market;
       if (!market) return [];
-      const { data: marketCourts } = await supabase
-        .from("courts")
-        .select("id,sport_type")
-        .eq("market", market)
-        .eq("is_archived", false)
-        .limit(500);
-      const regionalCourts = marketCourts as Array<{ id: string; sport_type: string | null }> | null;
-      regionalCourtIds = regionalCourts?.map((court) => court.id) ?? [];
+      const regionalCourts = await fetchAllLeaderboardCourts({ market });
+      regionalCourtIds = regionalCourts.map((court) => court.id);
       if (regionalCourtIds.length === 0) return [];
       if (sport) {
         fallbackSportCourtIds = regionalCourts
-          ?.filter((court) => court.sport_type === sport.toLowerCase())
-          .map((court) => court.id) ?? [];
+          .filter((court) => court.sport_type === sport.toLowerCase())
+          .map((court) => court.id);
       }
     }
 
     if (scope === "GLOBAL" && sport) {
-      const { data: sportCourts } = await supabase
-        .from("courts")
-        .select("id")
-        .eq("sport_type", sport.toLowerCase())
-        .eq("is_archived", false)
-        .limit(1000);
-      fallbackSportCourtIds = (sportCourts as Array<{ id: string }> | null)
-        ?.map((court) => court.id) ?? [];
+      const sportCourts = await fetchAllLeaderboardCourts({ sport: sport.toLowerCase() });
+      fallbackSportCourtIds = sportCourts.map((court) => court.id);
+    }
+
+    const ratingColumn = sport === "PICKLEBALL" ? "elo_pickleball" : "elo_basketball";
+    if (sport === "BASKETBALL" || sport === "PICKLEBALL") {
+      const scopeCourtIds = scope === "GLOBAL"
+        ? null
+        : scope === "LOCAL" && courtId
+        ? [courtId]
+        : regionalCourtIds ?? [];
+      let result = await fetchRankedProfileRows(
+        ratingColumn,
+        sport,
+        scopeCourtIds,
+        fallbackSportCourtIds,
+      );
+      if (result.error?.code === "42703") {
+        result = await fetchRankedProfileRows(
+          "elo_rating",
+          sport,
+          scopeCourtIds,
+          fallbackSportCourtIds,
+        );
+      }
+      if (result.error) return [];
+      return result.data.map((row) => mapProfileToPlayer(row, sport));
     }
 
     const buildQuery = (orderColumn: string) => {
       let query = supabase.from("profiles").select("*");
       if (scope === "LOCAL" && courtId) query = query.eq("local_court_id", courtId);
       if (scope === "REGIONAL" && regionalCourtIds) query = query.in("local_court_id", regionalCourtIds);
-      if (sport === "BASKETBALL" || sport === "PICKLEBALL") {
-        query = query.or(buildLeaderboardMembershipFilter(sport, fallbackSportCourtIds));
-      }
       return query.order(orderColumn, { ascending: false }).limit(100);
     };
 
-    const ratingColumn = sport === "PICKLEBALL" ? "elo_pickleball" : "elo_basketball";
     let result = await buildQuery(ratingColumn);
     // Rollout safety: an older backend can still show its combined rating
     // until the additive sport-rating migration is applied.

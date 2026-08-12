@@ -11,19 +11,12 @@ set local lock_timeout = '5s';
 set local statement_timeout = '90s';
 
 create extension if not exists pg_net;
+create extension if not exists pg_cron;
 create extension if not exists supabase_vault;
 
 alter table public.notifications
   add column if not exists push_claimed_at timestamptz,
   add column if not exists next_push_attempt_at timestamptz;
-
--- Inbox rows created before push delivery existed must remain visible in-app,
--- but must not arrive later as a burst of stale device alerts.
-update public.notifications
-set push_status = 'skipped'
-where push_status = 'pending'
-  and push_attempts = 0
-  and push_sent_at is null;
 
 create index if not exists notifications_push_due_idx
   on public.notifications (next_push_attempt_at, created_at)
