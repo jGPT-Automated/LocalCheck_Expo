@@ -1,8 +1,8 @@
 export type SplashMode = "signed-in" | "signed-out";
 export type SplashGlyph = "pin" | "win" | "check";
 
-export const SIGNED_IN_TOTAL_MS = 1_600;
-export const SIGNED_OUT_TOTAL_MS = 3_000;
+export const SIGNED_IN_TOTAL_MS = 1_100;
+export const SIGNED_OUT_TOTAL_MS = 1_650;
 
 export interface SplashTimelineState {
   artworkProgress: number;
@@ -29,12 +29,12 @@ export function splashStateAt(
   }
 
   const elapsed = Math.max(0, elapsedMs);
-  const glyph = elapsed < 440 ? "pin" : elapsed < 880 ? "win" : "check";
+  const glyph = elapsed < 260 ? "pin" : elapsed < 520 ? "win" : "check";
   const total = mode === "signed-in" ? SIGNED_IN_TOTAL_MS : SIGNED_OUT_TOTAL_MS;
 
   return {
     artworkProgress:
-      mode === "signed-out" ? clamp01(elapsed / 2_000) : 1,
+      mode === "signed-out" ? clamp01(elapsed / 900) : 1,
     complete: elapsed >= total,
     glyph,
   };

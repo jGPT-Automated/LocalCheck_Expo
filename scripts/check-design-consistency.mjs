@@ -45,7 +45,7 @@ const ownership = [
   ["components/CourtsScreen.tsx", ["CourtListItem", "CompactSelect"]],
   ["app/(tabs)/elo.tsx", ["ProfileHero", "ProfileStats", "PlayerSummaryRow"]],
   ["app/player/[id].tsx", ["ProfileHero", "ProfileStats", "HeadToHeadSummary"]],
-  ["app/(tabs)/compete.tsx", ["CompactSelect", "SpeedDialFab", "EloStat"]],
+  ["app/(tabs)/compete.tsx", ["CompactSelect", "EloStat"]],
   ["app/(tabs)/schedule.tsx", ["SpeedDialFab", "scheduleSlotIndex"]],
 ];
 
@@ -54,6 +54,14 @@ for (const [file, components] of ownership) {
   for (const component of components) {
     if (!source.includes(component)) failures.push(`${file}: missing canonical ${component}`);
   }
+}
+
+const competeSource = await readFile("app/(tabs)/compete.tsx", "utf8");
+if (competeSource.includes("SpeedDialFab")) {
+  failures.push("app/(tabs)/compete.tsx: use the explicit Log Game action instead of a floating speed dial");
+}
+if (!competeSource.includes('accessibilityLabel="Log a game"') || !competeSource.includes(">LOG GAME</Text>")) {
+  failures.push("app/(tabs)/compete.tsx: missing the explicit accessible Log Game action");
 }
 
 if (failures.length > 0) {

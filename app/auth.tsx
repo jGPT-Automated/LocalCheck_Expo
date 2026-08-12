@@ -249,6 +249,7 @@ const styles = StyleSheet.create({
   backgroundArtworkImage: {
     width: "100%",
     height: "100%",
+    transform: [{ translateY: -56 }],
   },
   hero: {
     flex: 1,

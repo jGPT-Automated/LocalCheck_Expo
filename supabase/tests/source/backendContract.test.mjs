@@ -68,5 +68,6 @@ test("push delivery uses Vault, durable tickets, cron retry, and receipt reconci
     assert.ok(sql.includes(contract), `missing push contract ${contract}`);
   }
   assert.match(sql, /create extension if not exists pg_net/i);
-  assert.match(sql, /create extension if not exists pg_cron/i);
+  assert.doesNotMatch(sql, /create extension if not exists pg_cron/i);
+  assert.match(sql, /cron\.schedule/i);
 });

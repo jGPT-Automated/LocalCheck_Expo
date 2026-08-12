@@ -103,3 +103,15 @@ accounts before the client release is activated.
 - Signed-in detail surfaces, Add Court permissions/photo outcomes, Realtime,
   push delivery, and the two-account/device matrix remain release-approval
   evidence; they are not represented as completed by the browser export.
+
+## Production push checkpoint — 2026-08-11
+
+- TestFlight app `1.0.2` build `14` had `aps-environment=production`, the
+  `expo-notifications` native module, and runtime `1.0.2` before the client fix.
+- Production OTA `019ff2db-faca-700f-82be-9e0b1b0c249e` corrected first-time
+  registration without a new native build.
+- The database webhook authenticated to `send-notification` and returned HTTP
+  200 in a no-work probe.
+- A real friend request generated a visible background iPhone notification.
+- Still open: foreground presentation, cold-start destination routing, Expo
+  receipt/retry observation, and invalid-token cleanup evidence.

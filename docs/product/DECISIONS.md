@@ -2,6 +2,39 @@
 
 Status: Current MVP decisions. Newer dated decisions supersede older entries.
 
+## 2026-08-11 — Ranking membership follows saved player identity
+
+**Decision confirmed by Jesse:** Preserve the existing Compete scopes: Local is
+the player's saved home court, Regional is that court's market/city, and Global
+is nationwide. Within every scope, the saved preferred sport is authoritative;
+when it is empty, the saved home court's sport is the fallback. A player with
+neither a preferred sport nor a home court does not appear in sport rankings.
+
+**Why:** Basketball and pickleball must not filter the same shared list, and a
+missing home court must never make Local or Regional silently behave as Global.
+
+## 2026-08-11 — Compete uses an explicit Log Game action
+
+**Decision confirmed by Jesse:** Compete places a compact rectangular
+`+ LOG GAME` action beside the ranking filters. It opens the existing game form
+directly; it is not a floating pencil button or an expandable speed dial.
+Player-profile and QR routes continue to open the same form with the opponent
+prefilled.
+
+**Why:** Logging a game is a named Compete action, not a generic edit. Keeping
+it in the ranking controls makes it discoverable without repeating the
+Schedule tab's floating creation pattern.
+
+## 2026-08-11 — Court verification requires an on-site camera capture
+
+**Decision confirmed by Jesse:** Add Court communicates three requirements:
+a live location pin, a basketball or pickleball court, and a live photo. The
+verification photo must come from the device camera; selecting an existing
+image from the photo library is not offered.
+
+**Why:** Pairing an on-site pin with a live capture keeps unrelated or saved
+court images from populating the map and makes the verification promise clear.
+
 ## 2026-08-09 — Shared MVP visual system and interaction hierarchy
 
 **Decision confirmed by Jesse:** Keep the working SDK 54 application and make

@@ -1,5 +1,9 @@
 import { CourtSport, getEloTier, Player } from "@/constants/data";
 import { supabase } from "@/lib/supabase";
+import {
+  buildLeaderboardMembershipFilter,
+  canLoadLeaderboardScope,
+} from "@/services/leaderboardFilter";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -20,6 +24,7 @@ export interface SupabaseProfile {
   pickleball_losses: number;
   total_court_time_minutes: number;
   local_court_id: string | null;
+  preferred_sport: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -269,14 +274,33 @@ export async function fetchSuggestedPlayers(
   return Array.from(suggestions.values()).slice(0, limit);
 }
 
-/** Leaderboard: LOCAL = profiles with same local_court_id, GLOBAL = all profiles. */
+/**
+ * Leaderboard scope stays anchored to the viewer's saved home court. Sport
+ * membership uses preferred_sport when set, then falls back to the saved home
+ * court's sport. Accounts with neither value are not ranked.
+ */
 export async function fetchLeaderboard(
   scope: "LOCAL" | "GLOBAL" | "REGIONAL",
   courtId: string | null,
   sport?: CourtSport | null
 ): Promise<Player[]> {
   try {
+    if (!canLoadLeaderboardScope(scope, courtId)) return [];
+
     let regionalCourtIds: string[] | null = null;
+    let fallbackSportCourtIds: string[] = [];
+
+    if (scope === "LOCAL" && courtId && sport) {
+      const { data: homeCourt } = await supabase
+        .from("courts")
+        .select("sport_type")
+        .eq("id", courtId)
+        .eq("is_archived", false)
+        .maybeSingle();
+      if ((homeCourt as { sport_type?: string | null } | null)?.sport_type === sport.toLowerCase()) {
+        fallbackSportCourtIds = [courtId];
+      }
+    }
 
     if (scope === "REGIONAL" && courtId) {
       const { data: anchor } = await supabase
@@ -288,18 +312,38 @@ export async function fetchLeaderboard(
       if (!market) return [];
       const { data: marketCourts } = await supabase
         .from("courts")
-        .select("id")
+        .select("id,sport_type")
         .eq("market", market)
         .eq("is_archived", false)
         .limit(500);
-      regionalCourtIds = (marketCourts as Array<{ id: string }> | null)?.map((court) => court.id) ?? [];
+      const regionalCourts = marketCourts as Array<{ id: string; sport_type: string | null }> | null;
+      regionalCourtIds = regionalCourts?.map((court) => court.id) ?? [];
       if (regionalCourtIds.length === 0) return [];
+      if (sport) {
+        fallbackSportCourtIds = regionalCourts
+          ?.filter((court) => court.sport_type === sport.toLowerCase())
+          .map((court) => court.id) ?? [];
+      }
+    }
+
+    if (scope === "GLOBAL" && sport) {
+      const { data: sportCourts } = await supabase
+        .from("courts")
+        .select("id")
+        .eq("sport_type", sport.toLowerCase())
+        .eq("is_archived", false)
+        .limit(1000);
+      fallbackSportCourtIds = (sportCourts as Array<{ id: string }> | null)
+        ?.map((court) => court.id) ?? [];
     }
 
     const buildQuery = (orderColumn: string) => {
       let query = supabase.from("profiles").select("*");
       if (scope === "LOCAL" && courtId) query = query.eq("local_court_id", courtId);
       if (scope === "REGIONAL" && regionalCourtIds) query = query.in("local_court_id", regionalCourtIds);
+      if (sport === "BASKETBALL" || sport === "PICKLEBALL") {
+        query = query.or(buildLeaderboardMembershipFilter(sport, fallbackSportCourtIds));
+      }
       return query.order(orderColumn, { ascending: false }).limit(100);
     };
 

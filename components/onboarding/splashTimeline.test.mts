@@ -10,8 +10,8 @@ import {
 test("signed-in launch completes in under two seconds", () => {
   assert.ok(SIGNED_IN_TOTAL_MS < 2_000);
   assert.deepEqual(splashStateAt(0, "signed-in", false).glyph, "pin");
-  assert.deepEqual(splashStateAt(600, "signed-in", false).glyph, "win");
-  assert.deepEqual(splashStateAt(1_100, "signed-in", false).glyph, "check");
+  assert.deepEqual(splashStateAt(300, "signed-in", false).glyph, "win");
+  assert.deepEqual(splashStateAt(600, "signed-in", false).glyph, "check");
   assert.equal(
     splashStateAt(SIGNED_IN_TOTAL_MS, "signed-in", false).complete,
     true,
@@ -20,7 +20,7 @@ test("signed-in launch completes in under two seconds", () => {
 
 test("signed-out launch gives the approved artwork a full reveal", () => {
   const opening = splashStateAt(0, "signed-out", false);
-  const revealed = splashStateAt(2_000, "signed-out", false);
+  const revealed = splashStateAt(900, "signed-out", false);
   assert.equal(opening.artworkProgress, 0);
   assert.equal(revealed.artworkProgress, 1);
   assert.equal(

@@ -43,6 +43,25 @@ pnpm doctor
 Use a worktree when another task is active. Do not work directly on `main`,
 force-push shared branches, or include unrelated user changes.
 
+## Collaboration contract
+
+- Restate the exact bounded scope before acting. If a requested correction
+  exposes an adjacent problem, report it without silently adding it to the
+  implementation.
+- Answer direct questions and status requests before continuing tool work.
+- Work one independently verifiable outcome at a time: implement, test, show
+  the connected preview or device evidence, then move to the next surface.
+- Treat prior agent summaries, plans, and comments as leads rather than facts.
+  Verify current Git, deployed-service, and runtime state directly.
+- Explain external actions before taking them. Production database changes,
+  Edge Function deployment, EAS Update, TestFlight work, GitHub merge, and
+  branch deletion require explicit authorization for that exact action.
+- Use the in-app Browser for connected preview work when requested. Do not
+  substitute an external browser or computer-control workflow.
+- Keep updates concrete: name what changed, what was proven, what remains
+  unproven, and the next check. Do not represent source presence or a passing
+  static check as deployed runtime behavior.
+
 ## Required implementation rules
 
 - Remove obsolete client paths instead of adding UI compatibility layers,
@@ -79,8 +98,10 @@ force-push shared branches, or include unrelated user changes.
 - Never claim success until Supabase confirms the write.
 - Client persistence is limited to Supabase's authentication-session adapter.
   Product data, counts, ELO, and feature state are never device/browser state.
-- Mapbox, notifications, Apple Sign-In, permissions, Expo plugins, entitlements,
-  and native dependencies require a new development/TestFlight binary.
+- Changes to Mapbox, notification native plugins/entitlements, Apple Sign-In,
+  permissions, Expo plugins, and other native dependencies require a new
+  development/TestFlight binary. JavaScript notification logic may ship by OTA
+  only after the installed binary's native entitlement has been verified.
 - Secrets belong in ignored `.env.local`, EAS, Supabase, or the relevant provider.
   Never commit them or paste them into logs.
 - Interactive browser QA must start with `pnpm preview:web`. Never serve a CI

@@ -1,16 +1,15 @@
 # Current state
 
-Last reconciled: 2026-08-10 against the isolated PR #28 stabilization worktree
-and the live LocalCheckProd migration ledger. The items under "Release 1 branch
-state" are not production state. Reconfirm the exact `main` SHA after PR #28
-merges.
+Last reconciled: 2026-08-11 against `origin/main` at `bc1507f`, TestFlight app
+`1.0.2` build `14`, the production EAS Update channel, and LocalCheckProd.
 
 ## Production checkpoint
 
-- iOS/TestFlight checkpoint: app `1.0.1`, build `13`, release tag `v1.0.5`.
-- PR #28 release candidate: app `1.0.2`; the native version is bumped because
-  Add Court introduces the `expo-image-picker` config plugin. Its build number
-  will be assigned remotely by EAS after the approved merge.
+- iOS/TestFlight checkpoint: app `1.0.2`, build `14`, runtime `1.0.2`, source
+  commit `bc1507f6cff43b0d6af67e6dd34016b3079ff7bb`.
+- Latest production OTA: `Enable first-time push notification registration`,
+  update `019ff2db-faca-700f-82be-9e0b1b0c249e`, group
+  `e7ed1d7d-0d91-458c-adf1-941d807ce84d`, published 2026-08-11.
 - EAS project: `agenticjess-os/localcheck`
   (`9c906173-0258-45a9-a3fe-786cda373c66`).
 - Supabase production project: `qkrnmyexzvaxiqfxwwfb`.
@@ -27,9 +26,9 @@ merges.
 - Privacy: changing check-in visibility updates the active row and projected
   activity before the selector changes; relaunch hydrates the persisted mode.
 - Schedule: planned visits and hosted runs.
-- Social: profiles, friendships, persisted one-per-user activity hype,
-  notifications, and reversible block/report safety controls managed from
-  Settings.
+- Social: profiles, friendships, persisted one-per-user activity hype, durable
+  inbox notifications, production push delivery, and reversible block/report
+  safety controls managed from Settings.
 - Competition: sport-specific ELO and reviewed match lifecycle.
 - Realtime: private scoped Broadcast invalidation followed by authoritative
   refetch.
@@ -43,12 +42,13 @@ development and testing.
 - Mapbox, push notifications, Apple Sign-In, and SecureStore require physical
   iOS verification; browser success does not prove them.
 - The old Add Court modal that called a dead `/api` route remains retired. The
-  PR #28 branch now has an authenticated Supabase flow, but it is not production
-  proven until its backward-compatible cloud changes are approved, deployed,
-  and accepted/rejected physical photo tests pass.
-- Push registration was reported broken on build 13. Treat it as open until a
-  newer physical build proves registration, foreground/background/cold-start
-  routing, tickets/receipts, retries, and invalid-token cleanup.
+  current TestFlight UI invokes the Supabase path, but a 2026-08-11 physical
+  photo attempt returned a non-2xx Edge Function response. Diagnose that path
+  separately before calling Add Court production-ready.
+- Push registration and background delivery are proven on build 14: a physical
+  iPhone registered after the production OTA and received a real friend-request
+  alert. Foreground routing, cold-start navigation, retry/receipt handling, and
+  invalid-token cleanup still need explicit device/provider evidence.
 - Account deletion needs physical Apple-token revocation verification before
   App Store release confidence.
 
@@ -59,13 +59,11 @@ runtime risk. Do not merge either wholesale. Recover an individual change only
 after restating its current product contract, rebasing it onto current `main`,
 and verifying it independently.
 
-PR #28 (`codex/mvp-visual-polish`) is the single final roll-up. Its ancestry
-contains the complete lifecycle reset from PR #27 plus every subsequent MVP UI,
-design-system, testing, and handoff commit. Merge #28 only; close #27 as
-superseded. Closing a pull request or deleting its task branch does not remove
-the commits incorporated into #28 or the review history retained by GitHub.
+PR #28 was consolidated into `main` and produced TestFlight build 14. PRs #25–27
+remain historical/superseded inputs and must not be merged wholesale. Recover a
+specific missing behavior only after verifying it against current `main`.
 
-## Release 1 branch state
+## Release 1 production state
 
 - Add Court, block/report, sport-specific ELO review, three-day automatic
   confirmation, and durable push delivery have been recovered into the clean
@@ -83,38 +81,43 @@ the commits incorporated into #28 or the review history retained by GitHub.
 - `main` is not currently protected. PR #28 therefore treats explicit approval,
   a clean `quality` check, and a clean Codex review as mandatory operational
   gates before merge.
-- The production project was inspected read-only before release: its current
-  migration ledger ends at `20260804125610`, its existing tables/RPCs remain
-  live, and only `delete-account` is currently deployed as an Edge Function.
-  The four PR #28 migrations and two new functions are source-only. Connected
-  signed-out auth/splash QA passed at 390×844 and 1280×900 with no overflow;
-  signed-in connected surfaces and physical-device QA remain open.
+- Push delivery is active in LocalCheckProd. The durable delivery migration is
+  applied, `send-notification` version 1 is deployed, the webhook secret is held
+  in Supabase/Vault, and a direct database-to-function dispatch returned HTTP
+  200 before the physical friend-request alert succeeded.
+- The registration fix prompts only when iOS permission is undetermined,
+  repairs an enabled account with an existing grant, and respects both LocalCheck
+  opt-out and iOS denial. It requests the Expo token with EAS project id
+  `9c906173-0258-45a9-a3fe-786cda373c66`.
+- Connected signed-out auth/splash QA passed at 390×844 and 1280×900 with no
+  overflow. Signed-in browser QA remains the fast surface for focused follow-up
+  changes; native-only acceptance remains on TestFlight.
+
+## Current focused follow-up
+
+- Compete retains the `main` Local/Regional/Global behavior. The current task
+  adds the missing honest sport membership rule: a saved preferred sport wins;
+  otherwise the saved home court's sport is used; accounts with neither are
+  excluded. Local and Regional return no rows when the viewer has no home court.
+- Home's no-court `EXPLORE COURTS` action returns to rectangular button geometry.
+- These follow-up source changes are not production behavior until reviewed and
+  released through the documented PR/OTA path.
 
 ## Immediate gates
 
-1. Complete source/release checks, connected preview, and the two-device matrix.
-2. Push the verified snapshot, reply to and resolve PR #28's three review
-   conversations with concrete evidence, and obtain explicit release approval.
-3. Deploy the backward-compatible Supabase changes/functions and verify them.
-4. Keep GitHub's `eas-build-ios:production` label on PR #28 so the Expo GitHub
-   integration
-   produces the pull-request build requested for review. This label does not
-   submit to TestFlight.
-5. The approved merge to `main` automatically produces and submits a fresh
-   TestFlight binary through `.eas/workflows/release-ios.yml`.
-6. In App Store Connect, wait for processing, verify the new build internally,
-   then deliberately add it to the external tester group or App Review. A merge
-   does not perform those App Store Connect approvals.
+1. Verify the focused Compete/Home follow-up in the connected two-account
+   preview, then publish it through a reviewed PR and compatible production OTA.
+2. Diagnose the Add Court non-2xx response as a separate bounded task.
+3. Complete foreground/cold-start push routing plus receipt/retry/invalid-token
+   evidence without reopening the already-proven registration path.
 
 ## Next-agent starting point
 
-- Begin from updated `origin/main` after PR #28 merges; do not resume PR #25,
-  #26, or #27.
-- Treat the last known TestFlight checkpoint above as historical until App
-  Store Connect confirms the new build number produced by the merge.
-- Remaining release confidence is primarily physical-device work: push token
-  registration and delivery, Apple Sign-In/account-deletion revocation,
-  Mapbox/location, session restoration, and the multi-user matrix.
+- Begin from updated `origin/main`; do not resume PR #25, #26, or #27.
+- Treat TestFlight build 14 and the production OTA identifiers above as the
+  current installed baseline until Expo/App Store Connect proves a later one.
+- Push token registration and one background friend-request delivery are
+  verified. Preserve that path while completing the remaining native matrix.
 - Small visual follow-ups must improve the shared owner named in
   `docs/product/DESIGN.md`, include browser and iPhone evidence, and avoid
   introducing a parallel component or token.
