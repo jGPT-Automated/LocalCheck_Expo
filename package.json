@@ -22,6 +22,7 @@
     "test:schedule": "node --no-warnings --experimental-strip-types --test components/schedule/scheduleModel.test.mts",
     "test:realtime": "node --no-warnings --experimental-strip-types --test lib/realtimeHub.test.mts",
     "check:design": "node scripts/check-design-consistency.mjs",
+    "check:design:extended": "node scripts/check-design-consistency-extended.mjs",
     "check": "pnpm run typecheck && pnpm run test && pnpm run check:design",
     "check:release": "pnpm run check && ./scripts/start-web-preview.sh --export-only",
     "doctor": "./scripts/doctor.sh"
