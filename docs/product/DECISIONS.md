@@ -2,6 +2,19 @@
 
 Status: Current MVP decisions. Newer dated decisions supersede older entries.
 
+## 2026-08-12 — Final logo geometry owns every brand lockup
+
+**Decision confirmed by Jesse:** `localcheck-logo-final.svg` is the source of
+truth wherever the product spells LocalCheck. Its extracted mark and supplied
+chevron are used for icon-only contexts. The W/L variants remain reserved for a
+future head-to-head treatment and are not placed in activity or navigation.
+Court detail matches the source lockup's icon/title spacing and uses an
+edge-aligned `LOCALCOURT` / `SET LOCALCOURT` label instead of the star.
+
+**Why:** One source asset prevents the wordmark, header icon, and detail-back
+treatment from drifting while leaving result-specific W/L placement available
+for deliberate review later.
+
 ## 2026-08-11 — Ranking membership follows saved player identity
 
 **Decision confirmed by Jesse:** Preserve the existing Compete scopes: Local is

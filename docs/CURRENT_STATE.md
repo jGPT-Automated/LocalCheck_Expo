@@ -104,6 +104,11 @@ specific missing behavior only after verifying it against current `main`.
 
 ## Current focused follow-up
 
+- PR #35 uses the final supplied LocalCheck vector lockup through the shared
+  brand component. Icon-only contexts use the extracted final mark or supplied
+  chevron; W/L variants remain intentionally unused. Court detail uses the
+  source lockup's icon/title spacing and an edge-aligned LocalCourt label.
+
 - Compete retains the `main` Local/Regional/Global behavior. The current task
   adds the missing honest sport membership rule: a saved preferred sport wins;
   otherwise the saved home court's sport is used; accounts with neither are

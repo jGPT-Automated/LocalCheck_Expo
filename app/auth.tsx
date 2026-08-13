@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { LogoMark } from "@/components/brand/LogoMark";
+import { LogoLockup } from "@/components/brand/LogoMark";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { SplashReveal } from "@/components/onboarding/SplashReveal";
 import { Colors } from "@/constants/colors";
@@ -130,8 +130,7 @@ export default function AuthScreen() {
     >
       <View style={[styles.hero, { paddingTop: topPad + 12 }]}>
         <View style={styles.brandRow}>
-          <LogoMark size={40} />
-          <Text style={styles.brandName}>LOCALCHECK</Text>
+          <LogoLockup width={184} />
         </View>
         <View style={styles.heroCopy}>
           <Text style={styles.title}>{user ? "WELCOME BACK" : "KNOW BEFORE YOU GO."}</Text>
@@ -259,16 +258,8 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   brandRow: {
-    flexDirection: "row",
     alignItems: "center",
-    gap: 10,
     zIndex: 2,
-  },
-  brandName: {
-    fontFamily: Typography.heading,
-    fontSize: 18,
-    color: Colors.text,
-    letterSpacing: 1.8,
   },
   heroCopy: {
     marginTop: "auto",

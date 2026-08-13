@@ -4,14 +4,13 @@ import {
   Easing,
   Image,
   StyleSheet,
-  Text,
   useWindowDimensions,
   View,
 } from "react-native";
 import Svg, { G, Path } from "react-native-svg";
 
+import { LogoWordmark } from "@/components/brand/LogoMark";
 import { Colors } from "@/constants/colors";
-import { Typography } from "@/constants/typography";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 import {
@@ -220,9 +219,9 @@ export function SplashReveal({
         ]}
       >
         <LaunchMark size={markSize} stage={stage} />
-        {mode === "signed-out" && <Text style={styles.wordmark}>LOCALCHECK</Text>}
+        {mode === "signed-out" && <LogoWordmark width={164} />}
       </Animated.View>
-      {mode === "signed-in" && <Text style={styles.signedInLabel}>LOCALCHECK</Text>}
+      {mode === "signed-in" && <View style={styles.signedInLabel}><LogoWordmark width={112} /></View>}
     </Animated.View>
   );
 }
@@ -250,17 +249,7 @@ const styles = StyleSheet.create({
     gap: 12,
     position: "absolute",
   },
-  wordmark: {
-    color: Colors.text,
-    fontFamily: Typography.heading,
-    fontSize: 32,
-    letterSpacing: 1.8,
-  },
   signedInLabel: {
-    color: Colors.muted,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 10,
-    letterSpacing: 3.2,
     marginTop: 116,
   },
 });

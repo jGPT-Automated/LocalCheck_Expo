@@ -2,8 +2,8 @@
 
 Status: Authoritative MVP contract
 
-Version: 3.0.2
-Last verified: 2026-08-11
+Version: 3.0.3
+Last verified: 2026-08-12
 
 This document describes the current product. It replaces earlier competing design notes. The reproducible source artwork and specs live in the LocalCheck Brand Asset Sheet; app tokens live in `constants/` and shared components live in `components/ui/`.
 
@@ -17,8 +17,11 @@ The product should feel premium, athletic, editorial, local, and direct. It shou
 
 ## Identity
 
-- The bracketed check mark in `assets/brand/logo-mark.png` is the canonical in-app mark.
-- Render it only through `components/brand/LogoMark.tsx`. Replacing that asset updates every in-app lockup.
+- `assets/brand/localcheck-logo-final.svg` is the canonical LocalCheck lockup.
+  `assets/brand/localcheck-chevron-icon.svg` is its icon-only back variant.
+- Render them only through `components/brand/LogoMark.tsx`: `LogoLockup` owns
+  every surface that spells LocalCheck, `LogoMark` owns icon-only brand
+  contexts, and `LogoWordmark` owns the animated-launch handoff.
 - The mark is icon-only; do not recreate it with text glyphs, CSS art, or a
   second in-product implementation. The cold-start `SplashReveal` is the one
   approved motion exception: it reuses PR25's source paths to move from pin to
@@ -28,7 +31,9 @@ The product should feel premium, athletic, editorial, local, and direct. It shou
   its natural portrait aspect ratio, shifted above the auth tagline, and is not
   stretched into a landscape hero. The signed-out reveal completes in 1.65
   seconds; the pin-to-W-to-check morph completes in 0.68 seconds.
-- Primary tab headers use `ScreenHeader`. Detail pages use `DetailHeader`, whose bracketed `LogoMark` back variant combines canonical brand geometry with the icon library's chevron.
+- Primary tab headers use `ScreenHeader`. Detail pages use `DetailHeader`, whose
+  icon and title gap follows the source lockup geometry. Court detail replaces
+  the star with an edge-aligned `LOCALCOURT` / `SET LOCALCOURT` label.
 - All functional icons come from the installed icon libraries. Do not draw icons, use emoji, or use Unicode arrows/checkmarks as substitutes.
 
 ## Color tokens
@@ -46,7 +51,9 @@ The product should feel premium, athletic, editorial, local, and direct. It shou
 | Win | `#00E87A` | Positive result semantics only |
 | Loss | `#FF3B5C` | Negative/destructive semantics only |
 
-`#FF5500` is the only identity orange. Never introduce a logo orange, button orange, or screen-specific orange.
+`#FF5500` remains the product action accent. The final supplied logo artwork
+uses `#FD6A03` through the dedicated `Colors.brandMark` token; that value is
+reserved for the canonical logo geometry and is never a screen action color.
 
 Sport color is restrained metadata, not a theme:
 

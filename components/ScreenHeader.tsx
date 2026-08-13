@@ -2,7 +2,7 @@ import React from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { LogoMark } from "@/components/brand/LogoMark";
+import { LogoLockup, LogoMark } from "@/components/brand/LogoMark";
 import { Colors } from "@/constants/colors";
 import { Layout, Space } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
@@ -31,12 +31,14 @@ export function ScreenHeader({
     <View style={[styles.header, { paddingTop: topPad }]}>
       <View style={styles.contentRow}>
         <View style={styles.titleSlot}>
-          <View style={[styles.lockup, wordmark && styles.wordmarkLockup]}>
-            <LogoMark size={24} />
-            <Text numberOfLines={1} style={[styles.title, wordmark && styles.wordmarkTitle]}>
-              {title}
-            </Text>
-          </View>
+          {wordmark ? (
+            <LogoLockup width={154} />
+          ) : (
+            <View style={styles.lockup}>
+              <LogoMark size={24} />
+              <Text numberOfLines={1} style={styles.title}>{title}</Text>
+            </View>
+          )}
           {subtitle ? (
             <Text numberOfLines={1} style={styles.subtitle}>
               {subtitle}
@@ -122,7 +124,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Space.sm,
   },
-  wordmarkLockup: { gap: 6 },
   title: {
     flexShrink: 1,
     fontFamily: Typography.headingRegular,
@@ -131,12 +132,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
     lineHeight: 25,
     textTransform: "uppercase" as const,
-  },
-  wordmarkTitle: {
-    fontFamily: Typography.headingBold,
-    fontSize: 20,
-    lineHeight: 24,
-    letterSpacing: 1.5,
   },
   subtitle: {
     fontFamily: Typography.bodyMedium,

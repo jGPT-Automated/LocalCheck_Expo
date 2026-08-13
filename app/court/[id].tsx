@@ -16,7 +16,7 @@ import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
 import { Colors, Radius } from "@/constants/colors";
 import type { Court, FeedItem, FeedMatchSummary } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
-import { Typography } from "@/constants/typography";
+import { FontSizes, LetterSpacings, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
 import { useRealtimeHub } from "@/context/RealtimeHubContext";
@@ -176,9 +176,11 @@ export default function CourtProfileScreen() {
           accessibilityRole="button"
           hitSlop={8}
           onPress={() => void setLocalCourt(isMyLocal ? null : court.id, court)}
-          style={({ pressed }) => [styles.localButton, pressed && styles.pressed]}
+          style={({ pressed }) => [styles.localButton, isMyLocal && styles.localButtonActive, pressed && styles.pressed]}
         >
-          <Feather color={isMyLocal ? Colors.accent : Colors.textSecondary} fill={isMyLocal ? Colors.accent : "transparent"} name="star" size={17} />
+          <Text style={[styles.localButtonText, isMyLocal && styles.localButtonTextActive]}>
+            {isMyLocal ? "LOCALCOURT" : "SET LOCALCOURT"}
+          </Text>
         </Pressable>}
       />
       <MetricDashboard metrics={dashboard} />
@@ -362,7 +364,10 @@ const styles = StyleSheet.create({
   notFoundText: { fontFamily: Typography.heading, fontSize: 22, color: Colors.text },
   retryButton: { minHeight: 44, paddingHorizontal: Space.xl, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
   retryText: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.text, letterSpacing: 1.2 },
-  localButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+  localButton: { minHeight: Layout.minTouchTarget, marginRight: -Layout.screenGutter, paddingLeft: Space.md, paddingRight: Layout.screenGutter, alignItems: "center", justifyContent: "center", backgroundColor: Colors.surfaceHigh, borderLeftWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderLight },
+  localButtonActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  localButtonText: { fontFamily: Typography.bodyBold, fontSize: FontSizes.xs, color: Colors.textSecondary, letterSpacing: LetterSpacings.wide },
+  localButtonTextActive: { color: Colors.black },
   tabs: { minHeight: 44, paddingHorizontal: Layout.screenGutter, flexDirection: "row", borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Colors.border },
   tab: { flex: 1, alignItems: "center", justifyContent: "center", borderBottomWidth: 2, borderBottomColor: "transparent" },
   tabActive: { borderBottomColor: Colors.accent },

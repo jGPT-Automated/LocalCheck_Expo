@@ -4,8 +4,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors } from "@/constants/colors";
 import { LogoMark } from "@/components/brand/LogoMark";
+import { brandHeaderGap } from "@/components/brand/logoPresentation";
 import { Layout, Space } from "@/constants/layout";
-import { Typography } from "@/constants/typography";
+import { FontSizes, LetterSpacings, Typography } from "@/constants/typography";
 
 export function DetailHeader({
   title,
@@ -19,7 +20,7 @@ export function DetailHeader({
   const { top } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 44 : top;
   return (
-    <View style={[styles.header, { paddingTop: topPad }]}>
+    <View style={[styles.header, { gap: brandHeaderGap(30), paddingTop: topPad }]}>
       <Pressable
         accessibilityHint="Returns to the previous screen"
         accessibilityLabel="Back"
@@ -37,9 +38,9 @@ export function DetailHeader({
 }
 
 const styles = StyleSheet.create({
-  header: { minHeight: 100, paddingHorizontal: Layout.screenGutter, paddingBottom: Space.md, flexDirection: "row", alignItems: "center", gap: Space.sm, backgroundColor: Colors.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border },
-  brandBack: { width: 32, height: 32, alignItems: "flex-start", justifyContent: "center" },
-  title: { flex: 1, fontFamily: Typography.headingRegular, fontSize: 21, lineHeight: 25, color: Colors.text, letterSpacing: 1.1, textTransform: "uppercase" },
-  right: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+  header: { minHeight: 100, paddingHorizontal: Layout.screenGutter, paddingBottom: Space.md, flexDirection: "row", alignItems: "center", backgroundColor: Colors.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border },
+  brandBack: { width: 32, height: Layout.minTouchTarget, alignItems: "flex-start", justifyContent: "center" },
+  title: { flex: 1, minWidth: 0, fontFamily: Typography.bodySemiBold, fontSize: FontSizes.lg, lineHeight: FontSizes.xl, color: Colors.text, letterSpacing: LetterSpacings.normal, textTransform: "uppercase" },
+  right: { minWidth: 32, minHeight: Layout.minTouchTarget, alignItems: "center", justifyContent: "center" },
   pressed: { opacity: 0.68, transform: [{ scale: 0.96 }] },
 });
