@@ -29,12 +29,18 @@ export const FontSizes = {
   stat: 64,
 };
 
-export const LineHeights = {
+// Unitless multipliers: lineHeight = fontSize * LineHeightRatios.<role>.
+export const LineHeightRatios = {
   tight: 1.2,
   normal: 1.5,
   relaxed: 1.625,
-  body: 22,
   heading: 1.1,
+};
+
+// Fixed pixel line-heights, kept out of LineHeightRatios so `fontSize *
+// LineHeights.<role>` can never silently resolve to the wrong unit.
+export const LineHeightsPx = {
+  body: 22,
 };
 
 export const LetterSpacings = {

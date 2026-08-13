@@ -17,8 +17,11 @@ The product should feel premium, athletic, editorial, local, and direct. It shou
 
 ## Identity
 
-- The bracketed check mark in `assets/brand/logo-mark.png` is the canonical in-app mark.
-- Render it only through `components/brand/LogoMark.tsx`. Replacing that asset updates every in-app lockup.
+- The bracketed check mark defined in `assets/brand/logo-mark.svg` (viewBox
+  `0 0 1024 1024`) is the canonical in-app mark. `LogoMark.tsx` renders that
+  same path data as inline `react-native-svg`, not a raster image, so the
+  mark and the back-button frame stay crisp at every size.
+- Render it only through `components/brand/LogoMark.tsx`. Editing the paths there and in `assets/brand/logo-mark.svg` together updates every in-app lockup.
 - The mark is icon-only; do not recreate it with text glyphs, CSS art, or a
   second in-product implementation. The cold-start `SplashReveal` is the one
   approved motion exception: it reuses PR25's source paths to move from pin to
