@@ -112,6 +112,13 @@ specific missing behavior only after verifying it against current `main`.
 - Home's horizontal player roster now uses equal tokenized spacing above and
   below each tile, matching the section-header rhythm at compact and expanded
   widths.
+- Player profiles now use the same 24px mark and 8px lockup gap as shared app
+  headers. The compact hero omits the long username and member-since line,
+  keeping the player name, local court, and ELO on one clear axis.
+- Player profile content is split into `VS YOU`, `ACTIVITY`, and `DETAILS`.
+  The first tab uses a visually distinct series card; Details owns member
+  since, local court, global sport rank, real trailing-90-day check-in activity,
+  and the existing report/block controls.
 
 - Compete retains the `main` Local/Regional/Global behavior. The current task
   adds the missing honest sport membership rule: a saved preferred sport wins;

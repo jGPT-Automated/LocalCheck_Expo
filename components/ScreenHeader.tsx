@@ -1,5 +1,5 @@
 import React from "react";
-import { Platform, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LogoLockup, LogoMark } from "@/components/brand/LogoMark";
@@ -19,11 +19,13 @@ export function ScreenHeader({
   subtitle,
   right,
   wordmark = false,
+  onBack,
 }: {
   title: string;
   subtitle?: string;
   right?: React.ReactNode;
   wordmark?: boolean;
+  onBack?: () => void;
 }) {
   const { top } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 44 : top;
@@ -35,7 +37,18 @@ export function ScreenHeader({
             <LogoLockup width={154} />
           ) : (
             <View style={styles.lockup}>
-              <LogoMark size={24} />
+              {onBack ? (
+                <Pressable
+                  accessibilityHint="Returns to the previous screen"
+                  accessibilityLabel="Back"
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={onBack}
+                  style={({ pressed }) => pressed && styles.pressed}
+                >
+                  <LogoMark size={24} variant="back" />
+                </Pressable>
+              ) : <LogoMark size={24} />}
               <Text numberOfLines={1} style={styles.title}>{title}</Text>
             </View>
           )}
@@ -124,6 +137,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Space.sm,
   },
+  pressed: { opacity: 0.68 },
   title: {
     flexShrink: 1,
     fontFamily: Typography.headingRegular,

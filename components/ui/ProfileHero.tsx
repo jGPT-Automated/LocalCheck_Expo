@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   avatarColumn: { alignItems: "center" },
   qrHint: { marginTop: 6, flexDirection: "row", alignItems: "center", gap: 4 },
   qrHintText: { fontFamily: Typography.bodyBold, fontSize: 7, color: Colors.accent, letterSpacing: 1 },
-  identity: { flex: 1, minWidth: 0 },
+  identity: { flex: 1, minWidth: 0, minHeight: 54, justifyContent: "center" },
   name: { fontFamily: Typography.headingBold, fontSize: 23, lineHeight: 27, color: Colors.text, letterSpacing: 0.4, textTransform: "uppercase" },
   username: { marginTop: 2, fontFamily: Typography.body, fontSize: 11, color: Colors.textSecondary },
   member: { marginTop: 5, fontFamily: Typography.bodyMedium, fontSize: 7, color: Colors.muted, letterSpacing: 1.15 },

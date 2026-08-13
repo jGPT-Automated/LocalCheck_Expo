@@ -220,3 +220,14 @@ rules, and competing Realtime paths for one product job.
 ## 2026-07-23 — Honest imagery and activity
 
 **Proposed decision:** Generated court media is atmospheric only. Venue identity uses verified photography or map geometry. Zero activity uses `Quiet now` and a useful action instead of fabricated counts.
+## 2026-08-13 — Peer profiles separate comparison, activity, and details
+
+**Working decision confirmed by Jesse:** Other-player profiles use `VS YOU`,
+`ACTIVITY`, and `DETAILS` tabs. The hero shows the player name, local court, and
+ELO without a long username or member-since line. Member date, global sport
+rank, local court, real recent activity, report, and block live in Details.
+
+**Why:** Comparison, timeline, and account metadata are different jobs. A
+segmented peer profile keeps each one scannable, prevents safety controls from
+competing with Log Game, and lets the head-to-head treatment feel distinct from
+the primary player identity row.

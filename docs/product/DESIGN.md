@@ -167,6 +167,14 @@ The court detail page keeps the brand/detail header, six-metric court panel, and
   profile context and never replace the primary game/friend actions. Settings
   exposes **Blocked players** so an accidental block is reversible without
   making blocked identities visible in ordinary profile search.
+- Other-player profiles use three mutually exclusive tabs: **VS YOU**,
+  **ACTIVITY**, and **DETAILS**. The external profile hero omits the long
+  username and moves member-since metadata into Details. Name/local-court copy
+  and ELO remain vertically aligned in the hero.
+- **VS YOU** uses its own contained series card instead of repeating the player
+  row's win/loss colors and geometry. **Activity** lists persisted games.
+  **Details** owns the local-court link, member date, global sport rank, a real
+  90-day weekday check-in heatmap, and report/block controls.
 
 ## Activity timeline
 
