@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
   roster: {
     minHeight: 70,
     paddingHorizontal: Layout.screenGutter,
-    paddingBottom: Space.sm,
+    paddingVertical: Space.lg,
     gap: Space.md,
   },
   emptyPeople: {

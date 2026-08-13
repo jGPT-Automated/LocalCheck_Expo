@@ -35,6 +35,9 @@ The product should feel premium, athletic, editorial, local, and direct. It shou
   `LogoMark` + title treatment. Detail pages use `DetailHeader`, whose
   icon and title gap follows the source lockup geometry. Court detail replaces
   the star with an edge-aligned `LOCALCOURT` / `SET LOCALCOURT` label.
+- Home section content uses symmetrical vertical spacing beneath section
+  dividers. Horizontal player tiles use `Space.lg` above and below so their
+  visual boxes never touch either boundary.
 - All functional icons come from the installed icon libraries. Do not draw icons, use emoji, or use Unicode arrows/checkmarks as substitutes.
 
 ## Color tokens

@@ -109,6 +109,9 @@ specific missing behavior only after verifying it against current `main`.
   every other primary tab. The supplied chevron remains the detail back icon;
   W/L variants remain intentionally unused. Court detail uses the source
   lockup's spacing and an edge-aligned LocalCourt label.
+- Home's horizontal player roster now uses equal tokenized spacing above and
+  below each tile, matching the section-header rhythm at compact and expanded
+  widths.
 
 - Compete retains the `main` Local/Regional/Global behavior. The current task
   adds the missing honest sport membership rule: a saved preferred sport wins;
