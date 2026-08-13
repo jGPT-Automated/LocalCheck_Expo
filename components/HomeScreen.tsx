@@ -150,7 +150,7 @@ export function HomeScreen() {
 
   return (
     <ScreenViewport>
-      <ScreenHeader title="LOCALCHECK" wordmark />
+      <ScreenHeader title="LOCALCHECK" />
 
       <HomeCourtHero
         activeCount={activeLabel}
@@ -369,7 +369,7 @@ function HiddenPeopleTile({ count }: { count: number }) {
 function NoCourtState({ isSignedIn }: { isSignedIn: boolean }) {
   return (
     <ScreenViewport>
-      <ScreenHeader title="LOCALCHECK" wordmark />
+      <ScreenHeader title="LOCALCHECK" />
       <View style={styles.noCourt}>
         <View style={styles.noCourtIcon}>
           <Feather color={Colors.accent} name="map-pin" size={24} />

@@ -20,7 +20,7 @@ The product should feel premium, athletic, editorial, local, and direct. It shou
 - `assets/brand/localcheck-logo-final.svg` is the canonical LocalCheck lockup.
   `assets/brand/localcheck-chevron-icon.svg` is its icon-only back variant.
 - Render them only through `components/brand/LogoMark.tsx`: `LogoLockup` owns
-  every surface that spells LocalCheck, `LogoMark` owns icon-only brand
+  dedicated brand moments, `LogoMark` owns tab-header and icon-only brand
   contexts, and `LogoWordmark` owns the animated-launch handoff.
 - The mark is icon-only; do not recreate it with text glyphs, CSS art, or a
   second in-product implementation. The cold-start `SplashReveal` is the one
@@ -31,7 +31,8 @@ The product should feel premium, athletic, editorial, local, and direct. It shou
   its natural portrait aspect ratio, shifted above the auth tagline, and is not
   stretched into a landscape hero. The signed-out reveal completes in 1.65
   seconds; the pin-to-W-to-check morph completes in 0.68 seconds.
-- Primary tab headers use `ScreenHeader`. Detail pages use `DetailHeader`, whose
+- Every primary tab header, including Home, uses `ScreenHeader`'s same
+  `LogoMark` + title treatment. Detail pages use `DetailHeader`, whose
   icon and title gap follows the source lockup geometry. Court detail replaces
   the star with an edge-aligned `LOCALCOURT` / `SET LOCALCOURT` label.
 - All functional icons come from the installed icon libraries. Do not draw icons, use emoji, or use Unicode arrows/checkmarks as substitutes.

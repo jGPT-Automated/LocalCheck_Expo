@@ -2,6 +2,15 @@
 
 Status: Current MVP decisions. Newer dated decisions supersede older entries.
 
+## 2026-08-13 — Home matches the established tab-header treatment
+
+**Decision confirmed by Jesse:** Home uses the same mark, title typography,
+height, and spacing as Schedule, Compete, Explore, and Me. The thin full lockup
+remains available for dedicated brand moments, but not primary tab headers.
+
+**Why:** The established tab headers read better in the product context, and a
+single shared treatment prevents Home from looking like a separate system.
+
 ## 2026-08-12 — Final logo geometry owns every brand lockup
 
 **Decision confirmed by Jesse:** `localcheck-logo-final.svg` is the source of
