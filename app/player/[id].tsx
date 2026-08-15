@@ -25,7 +25,7 @@ import {
   Player,
 } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
-import { Typography } from "@/constants/typography";
+import { TextStyles, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { fetchGamesByPlayer, fetchHeadToHeadGames } from "@/services/gameService";
 import { fetchCourtById } from "@/services/courtService";
@@ -453,14 +453,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
   },
   detailGroupTitle: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.textSecondary,
-    letterSpacing: 1.7,
+    ...TextStyles.label,
+    color: Colors.text,
+    letterSpacing: 1.2,
   },
-  detailGroupHeading: { minHeight: 48, paddingHorizontal: Space.lg, justifyContent: "center" },
+  detailGroupHeading: { minHeight: 52, paddingHorizontal: Space.lg, justifyContent: "center", backgroundColor: Colors.surfaceHigh },
   detailRow: {
-    minHeight: 64,
+    minHeight: 62,
     paddingHorizontal: Space.lg,
     flexDirection: "row",
     alignItems: "center",
@@ -478,15 +477,13 @@ const styles = StyleSheet.create({
   },
   detailCopy: { flex: 1, minWidth: 0 },
   detailLabel: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 7,
+    ...TextStyles.labelSmall,
     color: Colors.muted,
-    letterSpacing: 1.4,
+    letterSpacing: 0.6,
   },
   detailValue: {
     marginTop: 3,
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 12,
+    ...TextStyles.listName,
     color: Colors.text,
   },
   heatmapHeader: {
@@ -497,10 +494,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   heatmapPeriod: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 7,
+    ...TextStyles.labelSmall,
     color: Colors.muted,
-    letterSpacing: 1,
+    letterSpacing: 0.4,
   },
   heatmap: {
     paddingHorizontal: Space.lg,
@@ -514,8 +510,8 @@ const styles = StyleSheet.create({
   heatLevel1: { backgroundColor: Colors.liveQuiet, borderWidth: 1, borderColor: Colors.accentBorder },
   heatLevel2: { backgroundColor: Colors.accentDim, borderWidth: 1, borderColor: Colors.accentBorderStrong },
   heatLevel3: { backgroundColor: Colors.accent },
-  heatDay: { fontFamily: Typography.bodyBold, fontSize: 7, color: Colors.textSecondary },
-  heatCount: { fontFamily: Typography.bodyMedium, fontSize: 7, color: Colors.muted },
+  heatDay: { ...TextStyles.labelSmall, color: Colors.textSecondary },
+  heatCount: { ...TextStyles.caption, color: Colors.muted },
   emptyState: { paddingVertical: Space.xxxl, alignItems: "center" },
   emptyTitle: {
     marginTop: Space.md,
@@ -544,11 +540,11 @@ const styles = StyleSheet.create({
   matchResultWin: { backgroundColor: Colors.win },
   matchResultLoss: { backgroundColor: Colors.loss },
   matchCopy: { flex: 1, minWidth: 0 },
-  matchCourt: { fontFamily: Typography.bodySemiBold, fontSize: 12, color: Colors.text },
-  matchMeta: { marginTop: 4, fontFamily: Typography.bodyMedium, fontSize: 8, color: Colors.muted, letterSpacing: 0.7 },
+  matchCourt: { ...TextStyles.listName, color: Colors.text },
+  matchMeta: { marginTop: 4, ...TextStyles.caption, color: Colors.muted, letterSpacing: 0 },
   matchScoreBlock: { alignItems: "flex-end" },
   matchScore: { fontFamily: Typography.headingBold, fontSize: 17, color: Colors.text },
-  matchResult: { marginTop: 2, fontFamily: Typography.bodyBold, fontSize: 7, letterSpacing: 1 },
+  matchResult: { marginTop: 2, ...TextStyles.labelSmall, letterSpacing: 0.6 },
   matchWin: { color: Colors.win },
   matchLoss: { color: Colors.loss },
 

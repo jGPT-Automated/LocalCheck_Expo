@@ -50,6 +50,7 @@ export function useCourtSheet() {
 export function CourtSheetProvider({ children }: { children: React.ReactNode }) {
   const modalRef = useRef<BottomSheetModal>(null);
   const [args, setArgs] = useState<OpenArgs | null>(null);
+  const [peekHeight, setPeekHeight] = useState(332);
 
   const openCourtSheet = useCallback((next: OpenArgs) => {
     setArgs(next);
@@ -71,7 +72,10 @@ export function CourtSheetProvider({ children }: { children: React.ReactNode }) 
     [openCourtSheet, closeCourtSheet]
   );
 
-  const snapPoints = useMemo(() => ["40%", "92%"], []);
+  // The collapsed drawer ends at the disclosure rail rather than exposing the
+  // beginning of the expanded content. CourtSheetContent reports its actual
+  // compact height so long names and platform font metrics remain supported.
+  const snapPoints = useMemo(() => [peekHeight, "92%"], [peekHeight]);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -107,6 +111,7 @@ export function CourtSheetProvider({ children }: { children: React.ReactNode }) 
               distanceKm={args.distanceKm}
               onNavigate={closeCourtSheet}
               onExpand={expandCourtSheet}
+              onPeekHeight={(height) => setPeekHeight(Math.ceil(height + 24))}
             />
           )}
         </BottomSheetModal>

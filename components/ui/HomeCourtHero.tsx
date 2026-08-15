@@ -14,7 +14,7 @@ import {
 import { Colors, Radius } from "@/constants/colors";
 import type { Court } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
-import { Typography } from "@/constants/typography";
+import { TextStyles, Typography } from "@/constants/typography";
 import { SportEmblem } from "@/components/ui/SportEmblem";
 
 export function HomeCourtHero({
@@ -26,7 +26,6 @@ export function HomeCourtHero({
   isChecking,
   onCheckIn,
   onViewCourt,
-  onOpenMap,
 }: {
   court: Court;
   activeCount: string;
@@ -36,7 +35,6 @@ export function HomeCourtHero({
   isChecking: boolean;
   onCheckIn: () => void;
   onViewCourt: () => void;
-  onOpenMap: () => void;
 }) {
   const confirmationScale = React.useRef(new Animated.Value(1)).current;
   const mounted = React.useRef(false);
@@ -81,28 +79,28 @@ export function HomeCourtHero({
         style={StyleSheet.absoluteFill}
       />
       <View style={styles.metaRow}>
-        <SportEmblem sport={court.sport} size={17} />
-        <View style={styles.localLabel}>
-          <Feather color={Colors.textSecondary} name="star" size={15} />
+        <View style={styles.sportLabel}>
+          <SportEmblem sport={court.sport} size={17} />
+          <Text
+            style={[
+              styles.sportText,
+              { color: court.sport === "PICKLEBALL" ? Colors.pickleballMeta : Colors.basketballMeta },
+            ]}
+          >
+            {court.sport}
+          </Text>
         </View>
+        <Text numberOfLines={1} style={styles.cityText}>
+          {court.city || court.market || court.neighborhood || ""}
+        </Text>
       </View>
 
       <View style={styles.titleRow}>
         <Text numberOfLines={2} style={styles.name}>{court.name}</Text>
-        <Pressable
-          accessibilityHint="Opens this court in your maps app"
-          accessibilityLabel={`Open ${court.name} in maps`}
-          accessibilityRole="button"
-          hitSlop={8}
-          onPress={onOpenMap}
-          style={({ pressed }) => [styles.mapAction, pressed && styles.pressed]}
-        >
-          <Feather color={Colors.textSecondary} name="map-pin" size={14} />
-        </Pressable>
       </View>
 
       <View style={styles.stats}>
-        <HeroStat label="On court" value={activeCount} />
+        <HeroStat label="Active" value={activeCount} />
         <View style={styles.divider} />
         <HeroStat label="Locals" value={localCount} />
         <View style={styles.divider} />
@@ -196,18 +194,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 5,
   },
-  localLabel: { width: 24, height: 24, alignItems: "center", justifyContent: "center" },
+  sportLabel: { flexDirection: "row", alignItems: "center", gap: 5 },
+  sportText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.5 },
+  cityText: { minWidth: 0, flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.2, textTransform: "uppercase", textAlign: "right" },
   titleRow: {
     minHeight: 70,
     paddingHorizontal: Layout.screenGutter,
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: Space.xs,
   },
   name: {
-    flexShrink: 1,
-    maxWidth: "84%",
+    width: "100%",
     fontFamily: Typography.headingBold,
     fontSize: 25,
     lineHeight: 28,
@@ -215,13 +212,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     textAlign: "center",
     textTransform: "uppercase",
-  },
-  mapAction: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: Radius.md,
   },
   stats: {
     minHeight: 62,
@@ -245,10 +235,11 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     marginTop: 2,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 7,
+    fontFamily: Typography.headingRegular,
+    fontSize: 11,
+    lineHeight: 13,
     color: Colors.muted,
-    letterSpacing: 1.3,
+    letterSpacing: 0.45,
     textTransform: "uppercase",
   },
   divider: {
@@ -297,18 +288,16 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.985 }],
   },
   actionText: {
-    fontFamily: Typography.headingBold,
-    fontSize: 12,
+    ...TextStyles.label,
     color: Colors.black,
-    letterSpacing: 1.4,
+    letterSpacing: 0.7,
   },
   checkedActionText: {
     color: Colors.text,
   },
   secondaryActionText: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
+    ...TextStyles.label,
     color: Colors.text,
-    letterSpacing: 1.25,
+    letterSpacing: 0.7,
   },
 });

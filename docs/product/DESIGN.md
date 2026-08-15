@@ -34,7 +34,8 @@ The product should feel premium, athletic, editorial, local, and direct. It shou
 - Every primary tab header, including Home, uses `ScreenHeader`'s same
   `LogoMark` + title treatment. Detail pages use `DetailHeader`, whose
   icon and title gap follows the source lockup geometry. Court detail replaces
-  the star with an edge-aligned `LOCALCOURT` / `SET LOCALCOURT` label.
+  the star with a compact outlined `LOCAL` / `SET LOCAL` control whose selected
+  state uses the action accent without becoming a second primary button.
 - Home section content uses symmetrical vertical spacing beneath section
   dividers. Horizontal player tiles use `Space.lg` above and below so their
   visual boxes never touch either boundary.
@@ -80,7 +81,27 @@ Rules:
 - Activity sentences use normal Inter weight. Player names may differ by color or interaction, not by making the entire sentence bold.
 - Uppercase is reserved for display names, navigation, compact labels, and controls. Human sentences use sentence case.
 - A timestamp is visually quieter than the event it describes.
-- Use `constants/typography.ts`; do not reference font names inside feature screens.
+- Use the semantic `TextStyles` roles from `constants/typography.ts`; do not
+  reference font names or invent a component-local type scale in feature screens.
+- Essential iOS text never renders below 11 points. Use color, weight, and
+  spacing—not microscopic text—to make metadata quieter.
+
+| Semantic role | Family and size | Product use |
+| --- | --- | --- |
+| `displayLarge` | Oswald 700, 36/40 | Major hero moments |
+| `display` | Oswald 600, 28/32 | Screen and profile display titles |
+| `title` | Oswald 600, 22/26 | Card and section display titles |
+| `metric` | Oswald 600, 24/28 | Court and hero metric values |
+| `stat` | Oswald 600, 22/26 | Standard statistics |
+| `statSmall` | Oswald 600, 18/22 | Dense row statistics and ELO |
+| `compactStat` | Oswald 600, 14/18 | Secondary row counts |
+| `body` | Inter 400, 16/22 | Primary readable copy |
+| `bodySmall` | Inter 400, 14/20 | Compact readable copy |
+| `listName` | Inter 600, 14/18 | Player and entity names in rows |
+| `metadata` | Inter 400, 12/16 | Supporting information |
+| `caption` | Inter 400, 11/13 | Dense supporting information |
+| `label` | Inter 600, 12/16 | Controls and important labels |
+| `labelSmall` | Inter 500, 11/13 | Compact captions and stat labels |
 
 ## Layout and component ownership
 
@@ -113,6 +134,7 @@ Canonical component ownership:
 | Court metric panel | `MetricDashboard` |
 | Run summary | `RunCard` |
 | Compact menu | `CompactSelect` |
+| Primary two-mode switch | `ModeTabs` |
 | Reachable multi-action control | `SpeedDialFab` |
 
 If one of these elements changes, update the canonical component and search the codebase for competing local implementations before finishing.
@@ -125,8 +147,9 @@ Explore court cards use the supplied reference treatment:
 - Subtle top-right sport tint fading to transparent.
 - Border: `rgba(242,242,246,0.09)`.
 - Radius: 16.
-- Quiet elevation: inset highlight and a low-opacity black shadow.
-- Sport icon and label at top, shorthand court name, neighborhood, centered live/locals metrics, and one library arrow affordance.
+- Quiet elevation: an inset gloss highlight and a low-opacity black shadow.
+- A low-contrast court-geometry watermark sits behind content, using the current sport's muted metadata tint; it is decorative and never carries state.
+- Cards remain compact (128 px minimum): sport icon and label at top, shorthand court name, neighborhood, two optically centered live/locals metric columns, and one library chevron affordance.
 - Only the current local court shows the neutral outline star. Other cards do not show an empty star; setting a local court lives on its detail page.
 - Cards do not contain check-in or local-court buttons. Tapping opens the court drawer.
 
@@ -135,7 +158,7 @@ Home uses the same material language as a full-width hero, not a floating card. 
 ## Court flow
 
 1. Explore shows concise court cards.
-2. Tapping a card opens a 40% court drawer with identity, live metrics, **Check in**, and **View court**.
+2. Tapping a card opens a content-sized court drawer ending exactly at its disclosure rail, with identity, live metrics, equal **Check in** / **View court** actions, and no exposed expanded content.
 3. Pulling the drawer to 92% reveals who is there, locals, planned visits, and upcoming runs.
 4. Setting or removing a local court happens on the court detail page—not on Explore cards or the preview drawer.
 
@@ -145,7 +168,14 @@ and requires a camera or library photo before verification. A successful
 server response is inserted into the current court list and invalidates only
 court discovery queries.
 
-The court detail page keeps the brand/detail header, six-metric court panel, and tabs fixed. Only the selected tab's content scrolls when needed:
+Explore map pins include quiet courts as well as courts with active check-ins.
+The map status therefore says **No active check-ins in view** when pins are
+present but nobody is checked in. **Find nearest court** uses device location,
+the canonical geographic court service, and an animated camera move before the
+same court drawer opens; it never substitutes a fabricated location after a
+permission denial.
+
+The court detail page keeps the brand/detail header, six-metric court panel, and tabs fixed. Metric values remain optically centered. A metric with comparison data uses a consistent top-right trend corner; tapping the full 44-point-or-larger tile reveals the percentage and comparison period, with an accessible expanded state and a reduced-motion crossfade. Only the selected tab's content scrolls when needed:
 
 - Feed: paginated activity timeline and game-result modal.
 - Locals: public presence, active locals, stale/inactive treatment, check-ins, and ELO.
@@ -172,7 +202,8 @@ The court detail page keeps the brand/detail header, six-metric court panel, and
   username and moves member-since metadata into Details. Name/local-court copy
   and ELO remain vertically aligned in the hero.
 - **VS YOU** uses its own contained series card instead of repeating the player
-  row's win/loss colors and geometry. **Activity** lists persisted games.
+  row's win/loss colors and geometry. Its three-part scoreboard compares the
+  viewer, win rate, and opponent at a glance. **Activity** lists persisted games.
   **Details** owns the local-court link, member date, global sport rank, a real
   90-day weekday check-in heatmap, and report/block controls.
 
@@ -193,20 +224,27 @@ The court detail page keeps the brand/detail header, six-metric court panel, and
 ## Schedule and run flow
 
 - Schedule keeps a stable weekly heatmap footprint in view mode. Its one-hour
-  time axis scrolls independently, and compact screens may scroll the body so
+  time axis scrolls independently and snaps to the 28-point row pitch, and compact screens may scroll the body so
   selected-slot details and upcoming runs remain reachable.
 - The reachable `SpeedDialFab` exposes **Add times** and **Create run** using the shared Reanimated component and Feather icons.
 - Add-times mode supports multi-select cells and one save action.
 - Scheduled run cards show localized 12-hour time, attendees, and remaining spots. They do not waste space on `VIEW` copy or a text arrow.
 - Run detail keeps the two-column roster compact; its body scrolls when a full
   roster plus host controls exceeds the viewport, while the RSVP footer stays
-  fixed and reachable.
+  fixed and reachable. The header separates the game identity from three key
+  facts—when, location, and creator. Going count belongs to the roster header,
+  and every configured roster slot renders individually, including open slots.
+- Compete uses the same `ModeTabs` interaction as Explore for **Rankings** and
+  **Log Game**. The logging form is a first-class tab rather than a nested
+  drawer, while profile and run deep links still prefill its existing context.
 - Game logging is a shared form sheet reached from a player or run context, with opponent/court prefilled when available.
 
 ## Motion
 
 - Motion communicates hierarchy and confirmation; it is not decoration.
 - Standard transition: 180–320ms, ease-out.
+- Court metric detail tiles use the standard 220ms transition; Reduce Motion
+  replaces the 3D flip with a crossfade.
 - Check-in state may use a restrained spring confirmation.
 - Bottom sheets and speed dials use their established gesture/animation libraries.
 - Honor reduced-motion settings.

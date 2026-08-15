@@ -19,7 +19,7 @@
     "test:notification-routes": "node --no-warnings --experimental-strip-types --test lib/notificationRoutes.test.mts services/pushRegistrationPolicy.test.mts",
     "test:home-presentation": "node --no-warnings --experimental-strip-types --test components/home/homePresentation.test.mts",
     "test:player-identity": "node --no-warnings --experimental-strip-types --test components/ui/playerIdentity.test.mts",
-    "test:schedule": "node --no-warnings --experimental-strip-types --test components/schedule/scheduleModel.test.mts",
+    "test:schedule": "node --no-warnings --experimental-strip-types --test components/schedule/scheduleModel.test.mts components/schedule/scheduledGameModel.test.mts",
     "test:realtime": "node --no-warnings --experimental-strip-types --test lib/realtimeHub.test.mts",
     "check:design": "node scripts/check-design-consistency.mjs",
     "check": "pnpm run typecheck && pnpm run test && pnpm run check:design",

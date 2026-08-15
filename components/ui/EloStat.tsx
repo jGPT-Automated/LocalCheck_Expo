@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Colors } from "@/constants/colors";
-import { Typography } from "@/constants/typography";
+import { TextStyles } from "@/constants/typography";
 
 export function EloStat({
   value,
@@ -29,23 +29,20 @@ export function EloStat({
 }
 
 const styles = StyleSheet.create({
-  wrap: { minWidth: 52, alignItems: "center", justifyContent: "center" },
+  wrap: { minWidth: 56, alignItems: "center", justifyContent: "center" },
   value: {
-    fontFamily: Typography.heading,
-    fontSize: 20,
-    lineHeight: 21,
+    ...TextStyles.statSmall,
     color: Colors.text,
   },
   label: {
     marginTop: 1,
-    fontFamily: Typography.bodyBold,
-    fontSize: 6,
+    ...TextStyles.labelSmall,
     color: Colors.muted,
-    letterSpacing: 1.2,
+    letterSpacing: 0.5,
   },
-  hero: { fontSize: 38, lineHeight: 40, color: Colors.text },
-  heroLabel: { marginTop: 2, fontSize: 8, letterSpacing: 1.5 },
+  hero: { ...TextStyles.displayLarge, color: Colors.text },
+  heroLabel: { marginTop: 2, letterSpacing: 0.7 },
   emphasized: { color: Colors.text },
-  delta: { marginTop: 4, fontFamily: Typography.bodyBold, fontSize: 7, color: Colors.accent, letterSpacing: 0.8 },
+  delta: { ...TextStyles.labelSmall, marginTop: 4, color: Colors.accent, letterSpacing: 0.4 },
   negative: { color: Colors.loss },
 });

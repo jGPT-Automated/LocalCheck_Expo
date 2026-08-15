@@ -83,7 +83,7 @@ export function ActivityRow({
 function sentenceAction(type: FeedItem["type"], fallback: string): string {
   if (type === "checkin") return "checked in";
   if (type === "checkout") return "checked out";
-  if (type === "run_started") return "started a run";
+  if (type === "run_started") return "scheduled a game";
   if (type === "new_court") return "added a court";
   return fallback.toLocaleLowerCase();
 }

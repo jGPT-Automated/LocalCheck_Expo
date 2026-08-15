@@ -18,6 +18,7 @@ import { MapScreen } from "@/components/MapScreen";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useCourtSheet } from "@/components/sheet/CourtSheetHost";
 import { CompactSelect } from "@/components/ui/CompactSelect";
+import { ModeTabs } from "@/components/ui/ModeTabs";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, CourtSport } from "@/constants/data";
 import { Typography } from "@/constants/typography";
@@ -224,26 +225,14 @@ export function CourtsScreen() {
         </View>
       </View>
 
-      <View style={styles.modeSwitch} accessibilityRole="tablist">
-        {(["LIST", "MAP"] as ExploreMode[]).map((item) => (
-          <Pressable
-            key={item}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: mode === item }}
-            onPress={() => setMode(item)}
-            style={[styles.modeTab, mode === item && styles.modeTabActive]}
-          >
-            <Feather
-              name={item === "LIST" ? "list" : "map"}
-              size={14}
-              color={mode === item ? Colors.text : Colors.muted}
-            />
-            <Text style={[styles.modeTabText, mode === item && styles.modeTabTextActive]}>
-              {item}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+      <ModeTabs
+        items={[
+          { label: "LIST", value: "LIST", icon: "list" },
+          { label: "MAP", value: "MAP", icon: "map" },
+        ]}
+        onChange={setMode}
+        value={mode}
+      />
 
       {mode === "MAP" ? (
         <View style={styles.mapStage}>
@@ -401,29 +390,6 @@ const styles = StyleSheet.create({
   sportMenuItemActive: { backgroundColor: Colors.surface },
   sportMenuItemText: { fontFamily: Typography.bodySemiBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.2 },
   sportMenuItemTextActive: { color: Colors.text },
-  modeSwitch: {
-    minHeight: 40,
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderColor: Colors.border,
-    overflow: "hidden",
-    backgroundColor: Colors.surface,
-  },
-  modeTab: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  modeTabActive: { backgroundColor: Colors.surfaceHigh },
-  modeTabText: {
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 10,
-    color: Colors.muted,
-    letterSpacing: 1.5,
-  },
-  modeTabTextActive: { color: Colors.text },
   list: { flex: 1 },
   localSection: { paddingTop: 16, paddingBottom: 6 },
   discoverySection: { paddingTop: 14 },

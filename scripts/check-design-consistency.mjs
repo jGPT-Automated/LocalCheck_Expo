@@ -42,10 +42,10 @@ for (const root of ROOTS) {
 
 const ownership = [
   ["components/HomeScreen.tsx", ["HomeCourtHero", "PlayerSummaryRow", "ActivityRow"]],
-  ["components/CourtsScreen.tsx", ["CourtListItem", "CompactSelect"]],
+  ["components/CourtsScreen.tsx", ["CourtListItem", "CompactSelect", "ModeTabs"]],
   ["app/(tabs)/elo.tsx", ["ProfileHero", "ProfileStats", "PlayerSummaryRow"]],
   ["app/player/[id].tsx", ["ProfileHero", "ProfileStats", "HeadToHeadSummary"]],
-  ["app/(tabs)/compete.tsx", ["CompactSelect", "EloStat"]],
+  ["app/(tabs)/compete.tsx", ["CompactSelect", "EloStat", "ModeTabs"]],
   ["app/(tabs)/schedule.tsx", ["SpeedDialFab", "scheduleSlotIndex"]],
 ];
 
@@ -60,7 +60,7 @@ const competeSource = await readFile("app/(tabs)/compete.tsx", "utf8");
 if (competeSource.includes("SpeedDialFab")) {
   failures.push("app/(tabs)/compete.tsx: use the explicit Log Game action instead of a floating speed dial");
 }
-if (!competeSource.includes('accessibilityLabel="Log a game"') || !competeSource.includes(">LOG GAME</Text>")) {
+if (!competeSource.includes('accessibilityLabel: "Log a game"') || !competeSource.includes('label: "LOG GAME"')) {
   failures.push("app/(tabs)/compete.tsx: missing the explicit accessible Log Game action");
 }
 

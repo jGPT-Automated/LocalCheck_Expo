@@ -74,6 +74,27 @@ test("sport ratings use a three-day review window and scheduled auto-confirmatio
   assert.match(sql, /log_match[\s\S]*private\.users_are_blocked/i);
 });
 
+test("scheduled games produce one team result with participant review", async () => {
+  const sql = await migrationEndingWith("_add_scheduled_team_results.sql");
+  for (const contract of [
+    "matches_one_result_per_run_idx",
+    "match_participant_reviews",
+    "public.log_run_match",
+    "public.review_run_match",
+    "private.apply_scheduled_match_elo",
+  ]) {
+    assert.ok(sql.includes(contract), `missing scheduled-result contract ${contract}`);
+  }
+  assert.match(sql, /avg\(case when mp\.side = 'a'/i);
+  assert.match(sql, /interval '3 days'/i);
+  assert.match(sql, /decision = 'disputed'/i);
+  assert.match(sql, /v_roster_count <> v_run\.max_players/i);
+  assert.match(sql, /GAME DISPUTED/i);
+  assert.match(sql, /DISPUTE WITHDRAWN/i);
+  assert.match(sql, /GAME INVITATION/i);
+  assert.doesNotMatch(sql, /captain/i);
+});
+
 test("push delivery uses Vault, durable tickets, cron retry, and receipt reconciliation", async () => {
   const sql = await migrationEndingWith("_complete_push_delivery.sql");
   for (const contract of [

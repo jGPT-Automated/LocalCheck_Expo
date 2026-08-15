@@ -19,8 +19,17 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { RunCard } from "@/components/RunCard";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { FormSheet } from "@/components/sheet/FormSheet";
+import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
 import { SpeedDialFab } from "@/components/ui/SpeedDialFab";
 import { scheduleSlotIndex, scheduleSlotLabel, SLOT_HOURS } from "@/components/schedule/scheduleModel";
+import {
+  formatScheduledGameTime,
+  generatedScheduledGameTitle,
+  maxPlayersForFormat,
+  scheduledFormatsForSport,
+  shiftScheduledGameTime,
+  type ScheduledGameFormat,
+} from "@/components/schedule/scheduledGameModel";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { createScheduledGame } from "@/services/scheduledGameService";
@@ -33,7 +42,6 @@ const RUN_TIMES = [
   "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00",
   "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00",
 ];
-const RUN_SIZES = [4, 6, 8, 10];
 
 // Rolling next-7-days window (today first) — matches the product model of
 // "who's going this week" and the [today, +7d] data fetch window. A calendar
@@ -64,7 +72,7 @@ const TIME_COLS = 4;
  */
 // Runs can be scheduled further out than the rolling week (they live on the
 // upcoming list, not the heatmap); planned "My Times" stay a rolling 7 days.
-const RUN_PICKER_DAYS = 21;
+const RUN_PICKER_DAYS = 7;
 const VISIT_PICKER_DAYS = 7;
 function getNextDays(count: number): { initial: string; date: number; offset: number }[] {
   const today = new Date();
@@ -288,23 +296,26 @@ function HostRunModal({
   onClose,
   defaultCourt,
   organizerId,
+  organizerName,
   onCreated,
 }: {
   visible: boolean;
   onClose: () => void;
   defaultCourt: Court | null;
   organizerId: string;
+  organizerName: string;
   onCreated: () => Promise<void>;
 }) {
-
-  const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
   const [court, setCourt] = useState<Court | null>(defaultCourt);
   const [dayOffset, setDayOffset] = useState(0);
   const [time, setTime] = useState("18:00");
-  const [maxPlayers, setMaxPlayers] = useState(10);
+  const [format, setFormat] = useState<ScheduledGameFormat>("5V5");
   const [submitting, setSubmitting] = useState(false);
   const [failed, setFailed] = useState(false);
+
+  const formats = scheduledFormatsForSport(court?.sport ?? "BASKETBALL");
+  const generatedTitle = generatedScheduledGameTitle(organizerName, format);
 
   // Re-default the court each time the sheet opens (ref so the 30s context
   // poll can't reset a court the user picked mid-edit).
@@ -313,10 +324,16 @@ function HostRunModal({
   useEffect(() => {
     if (visible) {
       setCourt(defaultCourtRef.current);
-      setDayOffset(0);
+      const nextHour = new Date().getHours() + 1;
+      setDayOffset(nextHour > 23 ? 1 : 0);
+      setTime(`${String(nextHour > 23 ? 18 : Math.max(8, nextHour)).padStart(2, "0")}:00`);
       setFailed(false);
     }
   }, [visible]);
+
+  useEffect(() => {
+    if (!formats.includes(format)) setFormat(formats[0]);
+  }, [format, formats]);
 
   // Past times are disabled in the picker — never silently reschedule a past
   // slot to a different date than the one the user tapped.
@@ -330,9 +347,9 @@ function HostRunModal({
     const created = await createScheduledGame({
       courtId: court.id,
       organizerId,
-      title: title.trim() || "PICKUP RUN",
+      title: generatedTitle,
       startTime: startTime.toISOString(),
-      maxPlayers,
+      maxPlayers: maxPlayersForFormat(format),
       note: note.trim() || undefined,
     });
     setSubmitting(false);
@@ -341,49 +358,73 @@ function HostRunModal({
       return;
     }
     await onCreated();
-    setTitle("");
     setNote("");
     onClose();
   };
 
   return (
-    <FormSheet visible={visible} onClose={onClose} title="Host a run">
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.sheetContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text style={styles.fieldLabel}>TITLE</Text>
-          <TextInput
-            style={styles.fieldInput}
-            value={title}
-            onChangeText={setTitle}
-            placeholder="PICKUP RUN"
-            placeholderTextColor={Colors.mutedDark}
-          />
+    <RunFlowSheet
+      visible={visible}
+      onClose={onClose}
+      eyebrow="SCHEDULED GAME"
+      title="Create game"
+    >
+          <View style={styles.gamePreview}>
+            <View style={styles.gamePreviewTop}>
+              <Text style={styles.gamePreviewTitle}>{generatedTitle}</Text>
+              <Text style={styles.gamePreviewTime}>{formatScheduledGameTime(time)}</Text>
+            </View>
+            <Text style={styles.gamePreviewCourt} numberOfLines={1}>
+              {court?.name.toUpperCase() ?? "SELECT A COURT"}
+            </Text>
+            <Text style={styles.gamePreviewMeta}>
+              ONE GAME · TWO TEAMS · OFFICIAL RESULT
+            </Text>
+          </View>
+
+          <Text style={styles.fieldLabel}>FORMAT</Text>
+          <View style={styles.formatRow}>
+            {formats.map((option) => (
+              <Pressable
+                key={option}
+                accessibilityRole="button"
+                accessibilityState={{ selected: option === format }}
+                onPress={() => setFormat(option)}
+                style={[styles.formatOption, option === format && styles.formatOptionActive]}
+              >
+                <Text style={[styles.formatOptionText, option === format && styles.formatOptionTextActive]}>
+                  {option}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
 
           <Text style={styles.fieldLabel}>COURT</Text>
           <CourtField selected={court} onSelect={setCourt} onClear={() => setCourt(null)} />
 
-          <Text style={styles.fieldLabel}>DAY</Text>
-          <DayGrid selected={dayOffset} onSelect={setDayOffset} />
+          <Text style={styles.fieldLabel}>DAY · NEXT 7 DAYS</Text>
+          <DayGrid selected={dayOffset} onSelect={setDayOffset} days={RUN_PICKER_DAYS} />
 
           <Text style={styles.fieldLabel}>START TIME</Text>
-          <TimeGrid selected={time} dayOffset={dayOffset} onSelect={setTime} />
-
-          <Text style={styles.fieldLabel}>MAX PLAYERS</Text>
-          <View style={styles.gridRow}>
-            {RUN_SIZES.map((n) => (
-              <Pressable
-                key={n}
-                style={[styles.gridCell, maxPlayers === n && styles.gridCellActive]}
-                onPress={() => setMaxPlayers(n)}
-              >
-                <Text style={[styles.gridCellText, maxPlayers === n && styles.gridCellTextActive]}>
-                  {n}
-                </Text>
-              </Pressable>
-            ))}
+          <View style={styles.timeStepper}>
+            <Pressable
+              accessibilityLabel="One hour earlier"
+              onPress={() => setTime((value) => shiftScheduledGameTime(value, -1))}
+              style={styles.timeStepButton}
+            >
+              <Feather name="minus" size={20} color={Colors.textSecondary} />
+            </Pressable>
+            <View style={styles.timeStepValue}>
+              <Text style={styles.timeStepText}>{formatScheduledGameTime(time)}</Text>
+              <Text style={styles.timeStepHint}>ONE-HOUR START TIMES</Text>
+            </View>
+            <Pressable
+              accessibilityLabel="One hour later"
+              onPress={() => setTime((value) => shiftScheduledGameTime(value, 1))}
+              style={styles.timeStepButton}
+            >
+              <Feather name="plus" size={20} color={Colors.textSecondary} />
+            </Pressable>
           </View>
 
           <Text style={styles.fieldLabel}>NOTE (OPTIONAL)</Text>
@@ -396,7 +437,7 @@ function HostRunModal({
           />
 
           {failed && (
-            <Text style={styles.createError}>COULD NOT CREATE RUN — TRY AGAIN</Text>
+            <Text style={styles.createError}>COULD NOT SCHEDULE GAME — TRY AGAIN</Text>
           )}
 
           <Pressable
@@ -405,11 +446,10 @@ function HostRunModal({
             disabled={!canSubmit}
           >
             <Text style={styles.createBtnText}>
-              {submitting ? "CREATING…" : "CREATE RUN"}
+              {submitting ? "CREATING…" : "SCHEDULE GAME"}
             </Text>
           </Pressable>
-        </ScrollView>
-    </FormSheet>
+    </RunFlowSheet>
   );
 }
 
@@ -952,10 +992,13 @@ export default function ScheduleScreen() {
         {/* ── Rolling-week label (no paging — see weekStart comment) ── */}
         <View style={styles.weekNav}>
           <View>
+            <Text style={styles.weekEyebrow}>ROLLING WEEK</Text>
             <Text style={styles.weekLabel}>{weekLabel}</Text>
-            <Text style={styles.weekTag}>NEXT 7 DAYS</Text>
           </View>
-          {scheduleMode === "EDIT" ? <Text style={styles.editingLabel}>EDITING TIMES</Text> : null}
+          <View style={styles.weekStatus}>
+            <Text style={styles.weekTag}>NEXT 7 DAYS</Text>
+            {scheduleMode === "EDIT" ? <Text style={styles.editingLabel}>EDITING TIMES</Text> : null}
+          </View>
         </View>
 
         {/* Mode lives in the header action (EDIT / CANCEL) — this row only
@@ -1015,7 +1058,11 @@ export default function ScheduleScreen() {
           <ScrollView
             contentContainerStyle={styles.timeRows}
             contentOffset={{ x: 0, y: Math.max(0, (currentSlotIndex - 2) * 28) }}
+            decelerationRate="fast"
+            disableIntervalMomentum
             nestedScrollEnabled
+            snapToAlignment="start"
+            snapToInterval={28}
             showsVerticalScrollIndicator={false}
             style={styles.timeScroller}
           >
@@ -1152,13 +1199,13 @@ export default function ScheduleScreen() {
           );
         })()}
 
-        {/* ── Scheduled runs ── */}
+        {/* ── Scheduled games ── */}
         <View style={styles.runsSection}>
-          <Text style={styles.runsTitle}>Scheduled Runs</Text>
+          <Text style={styles.runsTitle}>Scheduled Games</Text>
           {courtRuns.length === 0 ? (
             <View style={styles.runsEmpty}>
               <Text style={styles.runsEmptyText}>
-                No runs at this court this week. Put one on the board.
+                No games scheduled at this court this week.
               </Text>
             </View>
           ) : courtRuns.slice(0, 2).map((run) => <RunCard key={run.id} run={run} />)}
@@ -1170,7 +1217,7 @@ export default function ScheduleScreen() {
           accessibilityLabel="Open schedule actions"
           actions={[
             { label: "Add times", icon: "clock", onPress: beginEditingTimes },
-            { label: "Create run", icon: "users", onPress: () => setShowHost(true) },
+            { label: "Schedule game", icon: "users", onPress: () => setShowHost(true) },
           ]}
           bottom={Platform.OS === "web" ? 102 : bottom + 78}
         />
@@ -1213,6 +1260,7 @@ export default function ScheduleScreen() {
         onClose={() => setShowHost(false)}
         defaultCourt={court}
         organizerId={currentUser.id}
+        organizerName={currentUser.name}
         onCreated={refreshRuns}
       />
 
@@ -1254,21 +1302,24 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 6,
+    paddingTop: 14,
+    paddingBottom: 10,
   },
+  weekEyebrow: { fontFamily: Typography.bodyMedium, fontSize: 11, lineHeight: 13, color: Colors.muted, letterSpacing: 1.4 },
   weekLabel: {
     fontFamily: Typography.heading,
-    fontSize: 18,
+    fontSize: 26,
+    lineHeight: 30,
     color: Colors.text,
     letterSpacing: 0.5,
   },
+  weekStatus: { alignItems: "flex-end", justifyContent: "center", gap: 5 },
   weekTag: {
     fontFamily: Typography.bodySemiBold,
-    fontSize: 9,
+    fontSize: 11,
+    lineHeight: 13,
     color: Colors.accent,
-    letterSpacing: 1.5,
-    marginTop: 2,
+    letterSpacing: 1.2,
   },
   scheduleModeRow: {
     paddingHorizontal: 20,
@@ -1283,9 +1334,10 @@ const styles = StyleSheet.create({
   modeToggleTextActive: { color: Colors.accent },
   scheduleModeStatus: {
     fontFamily: Typography.bodySemiBold,
-    fontSize: 7,
+    fontSize: 11,
+    lineHeight: 13,
     color: Colors.textSecondary,
-    letterSpacing: 0.85,
+    letterSpacing: 0.25,
   },
   editOptions: {
     marginHorizontal: 20,
@@ -1347,8 +1399,8 @@ const styles = StyleSheet.create({
   heatmap: { paddingHorizontal: 20 },
   timeScroller: { maxHeight: 228 },
   timeRows: { paddingBottom: 2 },
-  timeScrollCue: { height: 15, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 4 },
-  timeScrollCueText: { fontFamily: Typography.bodyMedium, fontSize: 6, color: Colors.muted, letterSpacing: 0.8 },
+  timeScrollCue: { width: 80, minHeight: 20, flexDirection: "row", alignItems: "center", justifyContent: "flex-start", gap: 4 },
+  timeScrollCueText: { fontFamily: Typography.bodyMedium, fontSize: 11, lineHeight: 13, color: Colors.muted, letterSpacing: 0.25 },
   heatRow: { flexDirection: "row", gap: 3, marginBottom: 3, alignItems: "center" },
   heatTimeCol: { width: 40 },
   heatTimeText: {
@@ -1654,6 +1706,100 @@ const styles = StyleSheet.create({
   sheetContent: {
     paddingHorizontal: 20,
     paddingBottom: 40,
+  },
+  gamePreview: {
+    padding: 16,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  gamePreviewTop: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  gamePreviewTitle: {
+    flex: 1,
+    fontFamily: Typography.heading,
+    fontSize: 18,
+    lineHeight: 22,
+    color: Colors.text,
+    letterSpacing: 0.8,
+  },
+  gamePreviewTime: {
+    fontFamily: Typography.heading,
+    fontSize: 16,
+    lineHeight: 20,
+    color: Colors.accent,
+  },
+  gamePreviewCourt: {
+    marginTop: 7,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Colors.textSecondary,
+  },
+  gamePreviewMeta: {
+    marginTop: 5,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    lineHeight: 14,
+    color: Colors.muted,
+    letterSpacing: 0.6,
+  },
+  formatRow: { flexDirection: "row", gap: 8 },
+  formatOption: {
+    flex: 1,
+    minHeight: 46,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  formatOptionActive: {
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accentDim,
+  },
+  formatOptionText: {
+    fontFamily: Typography.heading,
+    fontSize: 15,
+    color: Colors.textSecondary,
+    letterSpacing: 0.5,
+  },
+  formatOptionTextActive: { color: Colors.accent },
+  timeStepper: {
+    minHeight: 66,
+    flexDirection: "row",
+    alignItems: "stretch",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    overflow: "hidden",
+    backgroundColor: Colors.surface,
+  },
+  timeStepButton: {
+    width: 58,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.surfaceHigh,
+  },
+  timeStepValue: { flex: 1, alignItems: "center", justifyContent: "center", gap: 2 },
+  timeStepText: {
+    fontFamily: Typography.heading,
+    fontSize: 21,
+    lineHeight: 26,
+    color: Colors.text,
+  },
+  timeStepHint: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    lineHeight: 13,
+    color: Colors.muted,
+    letterSpacing: 0.7,
   },
   fieldLabel: {
     fontFamily: Typography.bodyBold,

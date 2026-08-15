@@ -25,7 +25,7 @@ import { Court, CourtSport, getCourtIdentityColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts } from "@/context/CourtPresenceContext";
-import { fetchCourtsInBounds } from "@/services/courtService";
+import { fetchCourtsInBounds, fetchNearbyCourts } from "@/services/courtService";
 
 /**
  * Native map — @rnmapbox/maps with the dark style applied at the SDK level
@@ -64,6 +64,7 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
   const [viewportCourts, setViewportCourts] = useState<Court[]>([]);
   const [userCoord, setUserCoord] = useState<[number, number] | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [locationNotice, setLocationNotice] = useState<string | null>(null);
   const fetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Locate the user once; the saved local court remains the Explore anchor ──
@@ -216,6 +217,47 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
       });
     }
   }, [userCoord]);
+
+  const findNearestCourt = useCallback(async () => {
+    setLocationNotice("FINDING NEAREST COURT…");
+    let coord = userCoord;
+    try {
+      if (!coord) {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          setLocationNotice("LOCATION NEEDED TO FIND THE NEAREST COURT");
+          return;
+        }
+        const last = await Location.getLastKnownPositionAsync();
+        const location = last ?? await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        coord = [location.coords.longitude, location.coords.latitude];
+        setUserCoord(coord);
+      }
+      const [nearest] = await fetchNearbyCourts(
+        coord[1],
+        coord[0],
+        sportFilter === "ALL" ? null : sportFilter,
+        1,
+      );
+      if (!nearest) {
+        setLocationNotice("NO COURT FOUND NEAR THIS LOCATION");
+        return;
+      }
+      cameraRef.current?.setCamera({
+        centerCoordinate: [nearest.longitude, nearest.latitude],
+        zoomLevel: 14,
+        animationDuration: 700,
+      });
+      setLocationNotice(null);
+      setTimeout(() => {
+        openCourtSheet({ courtId: nearest.id, distanceKm: nearest.distanceKm });
+      }, 720);
+    } catch {
+      setLocationNotice("LOCATION UNAVAILABLE — TRY AGAIN");
+    }
+  }, [openCourtSheet, sportFilter, userCoord]);
 
   // The map can finish mounting before profile/location hydration. Reapply the
   // scoped camera only after the SDK is ready; otherwise setCamera is dropped
@@ -374,13 +416,13 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
         <View style={[styles.liveBadge, liveCourtCount === 0 && styles.liveBadgeQuiet]}>
           <View style={styles.liveDot} />
           <Text style={styles.liveBadgeText}>
-            {liveCourtCount > 0 ? `${liveCourtCount} LIVE NOW` : "NO LIVE COURTS IN VIEW"}
+            {liveCourtCount > 0 ? `${liveCourtCount} LIVE NOW` : "NO ACTIVE CHECK-INS IN VIEW"}
           </Text>
         </View>
       </View>
 
       {/* ── Legend ── */}
-      <View style={[styles.legend, { bottom: 16 }]}>
+      <View style={[styles.legend, { bottom: bottom + 82 }]}>
         <View style={styles.legendRow}>
           <View style={[styles.legendDot, { backgroundColor: Colors.accent }]} />
           <Text style={styles.legendText}>ACTIVE NOW</Text>
@@ -397,12 +439,27 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
 
       {/* ── Right-side control: center the map on the current device ── */}
       <Pressable
-        style={[styles.roundBtn, { bottom: bottom + 96 }]}
+        style={[styles.roundBtn, { bottom: bottom + 82 }]}
         onPress={flyToUser}
         accessibilityLabel="Center on my location"
       >
         <Feather name="navigation" size={18} color={Colors.text} />
       </Pressable>
+
+      <Pressable
+        accessibilityLabel="Find nearest court"
+        accessibilityRole="button"
+        onPress={findNearestCourt}
+        style={({ pressed }) => [styles.nearestButton, { bottom: bottom + 18 }, pressed && styles.nearestButtonPressed]}
+      >
+        <Feather color={Colors.black} name="navigation" size={15} />
+        <Text style={styles.nearestButtonText}>FIND NEAREST COURT</Text>
+      </Pressable>
+      {locationNotice ? (
+        <View style={[styles.locationNotice, { bottom: bottom + 68 }]}>
+          <Text style={styles.locationNoticeText}>{locationNotice}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -501,4 +558,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  nearestButton: {
+    position: "absolute",
+    alignSelf: "center",
+    minWidth: 208,
+    minHeight: 44,
+    paddingHorizontal: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: Colors.accent,
+    borderRadius: Radius.sm,
+  },
+  nearestButtonPressed: { opacity: 0.78 },
+  nearestButtonText: { fontFamily: Typography.heading, fontSize: 12, color: Colors.black, letterSpacing: 1.4 },
+  locationNotice: {
+    position: "absolute",
+    alignSelf: "center",
+    maxWidth: "82%",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "rgba(13,13,16,0.9)",
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  locationNoticeText: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.text, textAlign: "center" },
 });
