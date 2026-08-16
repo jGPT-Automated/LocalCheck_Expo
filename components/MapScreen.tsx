@@ -7,7 +7,6 @@ import Mapbox, {
   ShapeSource,
   SymbolLayer,
 } from "@rnmapbox/maps";
-import * as Location from "expo-location";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Pressable,
@@ -25,6 +24,7 @@ import { Court, CourtSport, getCourtIdentityColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts } from "@/context/CourtPresenceContext";
+import { useDeviceLocation } from "@/context/DeviceLocationContext";
 import { fetchCourtsInBounds, fetchNearbyCourts } from "@/services/courtService";
 
 /**
@@ -62,30 +62,16 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
   const sourceRef = useRef<ShapeSource>(null);
 
   const [viewportCourts, setViewportCourts] = useState<Court[]>([]);
-  const [userCoord, setUserCoord] = useState<[number, number] | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [locationNotice, setLocationNotice] = useState<string | null>(null);
   const fetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Locate the user once; the saved local court remains the Explore anchor ──
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") return;
-        const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-        if (mounted) setUserCoord([loc.coords.longitude, loc.coords.latitude]);
-      } catch {
-        /* stays on fallback center */
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  // ── Shared device location — same resolved coordinate as Explore's list and
+  // AppContext's nearby-court fetch, so all three surfaces agree. ──
+  const { coord: deviceCoord, refresh: refreshDeviceLocation } = useDeviceLocation();
+  const userCoord: [number, number] | null = deviceCoord
+    ? [deviceCoord.lng, deviceCoord.lat]
+    : null;
 
   const initialCenter: [number, number] =
     (localCourt ? [localCourt.longitude, localCourt.latitude] : null) ??
@@ -196,18 +182,8 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
   const flyToUser = useCallback(async () => {
     let coord = userCoord;
     if (!coord) {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === "granted") {
-          const loc = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-          });
-          coord = [loc.coords.longitude, loc.coords.latitude];
-          setUserCoord(coord);
-        }
-      } catch {
-        /* no-op */
-      }
+      const fresh = await refreshDeviceLocation();
+      if (fresh) coord = [fresh.lng, fresh.lat];
     }
     if (coord) {
       cameraRef.current?.setCamera({
@@ -216,24 +192,19 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
         animationDuration: 700,
       });
     }
-  }, [userCoord]);
+  }, [userCoord, refreshDeviceLocation]);
 
   const findNearestCourt = useCallback(async () => {
     setLocationNotice("FINDING NEAREST COURT…");
     let coord = userCoord;
     try {
       if (!coord) {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
+        const fresh = await refreshDeviceLocation();
+        if (fresh) coord = [fresh.lng, fresh.lat];
+        if (!coord) {
           setLocationNotice("LOCATION NEEDED TO FIND THE NEAREST COURT");
           return;
         }
-        const last = await Location.getLastKnownPositionAsync();
-        const location = last ?? await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-        coord = [location.coords.longitude, location.coords.latitude];
-        setUserCoord(coord);
       }
       const [nearest] = await fetchNearbyCourts(
         coord[1],

@@ -28,6 +28,7 @@ import { Colors } from "@/constants/colors";
 import { AppProvider } from "@/context/AppContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { CourtPresenceProvider } from "@/context/CourtPresenceContext";
+import { DeviceLocationProvider } from "@/context/DeviceLocationContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { RealtimeHubProvider } from "@/context/RealtimeHubContext";
 
@@ -117,9 +118,11 @@ function DataProviders({ children }: { children: React.ReactNode }) {
     <RealtimeHubProvider>
       <NotificationProvider>
         <CourtPresenceProvider>
-          <AppProvider>
-            <CourtSheetProvider>{children}</CourtSheetProvider>
-          </AppProvider>
+          <DeviceLocationProvider>
+            <AppProvider>
+              <CourtSheetProvider>{children}</CourtSheetProvider>
+            </AppProvider>
+          </DeviceLocationProvider>
         </CourtPresenceProvider>
       </NotificationProvider>
     </RealtimeHubProvider>

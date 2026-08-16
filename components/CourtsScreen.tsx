@@ -1,5 +1,4 @@
 import { Feather } from "@expo/vector-icons";
-import * as Location from "expo-location";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -24,6 +23,7 @@ import { Court, CourtSport } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts } from "@/context/CourtPresenceContext";
+import { useDeviceLocation } from "@/context/DeviceLocationContext";
 import {
   fetchCourtsByMarket,
   fetchNearbyCourts,
@@ -45,6 +45,7 @@ export function CourtsScreen() {
     localCourtId,
   } = useApp();
   const { openCourtSheet: presentCourtSheet } = useCourtSheet();
+  const { coord: deviceCoord } = useDeviceLocation();
 
   const [mode, setMode] = useState<ExploreMode>("LIST");
   const [sportFilter, setSportFilter] = useState<SportFilter>(preferredSport ?? "ALL");
@@ -52,7 +53,6 @@ export function CourtsScreen() {
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const [showAddCourt, setShowAddCourt] = useState(false);
-  const discoveryOriginRef = useRef<{ lat: number; lng: number } | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Court[]>([]);
@@ -67,37 +67,25 @@ export function CourtsScreen() {
     [presentCourtSheet, visitCourt]
   );
 
-  const resolveDiscoveryOrigin = useCallback(async () => {
-    if (localCourt) {
-      return { lat: localCourt.latitude, lng: localCourt.longitude };
+  // Local court (if set) is always the discovery anchor. Otherwise this reads
+  // the one shared device coordinate — no local caching here, so a real GPS
+  // fix that lands after mount is picked up instead of frozen at whatever
+  // resolved first (or the LA fallback). Memoized on primitives so identity
+  // is stable across renders that don't actually change the origin.
+  const localCourtLat = localCourt?.latitude;
+  const localCourtLng = localCourt?.longitude;
+  const discoveryOrigin = useMemo(() => {
+    if (localCourtLat != null && localCourtLng != null) {
+      return { lat: localCourtLat, lng: localCourtLng };
     }
-    if (discoveryOriginRef.current) return discoveryOriginRef.current;
-
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
-        const last = await Location.getLastKnownPositionAsync();
-        const location =
-          last ??
-          (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
-        const origin = { lat: location.coords.latitude, lng: location.coords.longitude };
-        discoveryOriginRef.current = origin;
-        return origin;
-      }
-    } catch {
-      // Fall through to the existing LA pilot fallback only when neither a
-      // local court nor a device location is available.
-    }
-
-    const fallback = { lat: 34.0522, lng: -118.2437 };
-    discoveryOriginRef.current = fallback;
-    return fallback;
-  }, [localCourt]);
+    return deviceCoord;
+  }, [localCourtLat, localCourtLng, deviceCoord]);
 
   const loadDiscovery = useCallback(async () => {
+    if (!discoveryOrigin) return;
     setLoading(true);
     try {
-      const origin = await resolveDiscoveryOrigin();
+      const origin = discoveryOrigin;
       const courts = localCourt?.market
         ? await fetchCourtsByMarket(
             localCourt.market,
@@ -117,7 +105,7 @@ export function CourtsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [localCourt?.id, localCourt?.market, resolveDiscoveryOrigin, sportFilter]);
+  }, [discoveryOrigin, localCourt?.id, localCourt?.market, sportFilter]);
 
   useEffect(() => {
     setShowAll(false);
