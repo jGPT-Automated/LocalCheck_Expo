@@ -81,8 +81,12 @@ const styles = StyleSheet.create({
     pointerEvents: "none",
     zIndex: 100,
   },
+  // Matches assets/brand/splash-artwork.png's native 1024x1536 (2:3) so
+  // "contain" isn't forced into a square and letterboxed — width-driven and
+  // capped so it reads as a moderate mark, not a full-bleed hero image.
   mark: {
-    width: 220,
-    height: 220,
+    width: "56%",
+    maxWidth: 260,
+    aspectRatio: 1024 / 1536,
   },
 });

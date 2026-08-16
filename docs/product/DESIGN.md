@@ -23,14 +23,14 @@ The product should feel premium, athletic, editorial, local, and direct. It shou
   dedicated brand moments, `LogoMark` owns tab-header and icon-only brand
   contexts, and `LogoWordmark` owns the animated-launch handoff.
 - The mark is icon-only; do not recreate it with text glyphs, CSS art, or a
-  second in-product implementation. The cold-start `SplashReveal` is the one
-  approved motion exception: it reuses PR25's source paths to move from pin to
-  W to the canonical check, then hands off to `LogoMark`.
-- `assets/brand/splash-artwork.png` is the current blue/blue basketball and
-  pickleball preview candidate for the signed-out reveal. It is composited at
-  its natural portrait aspect ratio, shifted above the auth tagline, and is not
-  stretched into a landscape hero. The signed-out reveal completes in 1.65
-  seconds; the pin-to-W-to-check morph completes in 0.68 seconds.
+  second in-product implementation.
+- `assets/brand/splash-artwork.png` is the signed-out/signed-in `SplashReveal`
+  image (currently the orange/black basketball + pickleball illustration). It
+  is a single cinematic fade-in, centered, sized at 56% of screen width capped
+  at 260px, at its native aspect ratio (currently 1024x1536, ~2:3) — never
+  stretched to a square or a full-bleed landscape hero. There is no morph or
+  lift stage; that was removed as unnecessary complexity. Signed-in completes
+  in 1.1 seconds, signed-out in 1.65 seconds.
 - Every primary tab header, including Home, uses `ScreenHeader`'s same
   `LogoMark` + title treatment. Detail pages use `DetailHeader`, whose
   icon and title gap follows the source lockup geometry. Court detail replaces
