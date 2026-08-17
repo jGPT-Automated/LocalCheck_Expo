@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Easing, Image, StyleSheet } from "react-native";
 
+import { LogoMark } from "@/components/brand/LogoMark";
 import { Colors } from "@/constants/colors";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -12,9 +13,12 @@ import {
 
 const ARTWORK = require("@/assets/brand/splash-artwork.png");
 
-// A single cinematic fade of the mark, centered — no morph stages, no lift,
-// no separate wordmark choreography. Signed-in is a quicker beat than
-// signed-out; both are otherwise the same treatment.
+// Standard splash composition: a static brand backdrop with one mark
+// animating on top of it — not a sequence of separate full-screen moments.
+// Signed-out shows the artwork as an immediate, unanimated background (it
+// never appears without the mark); signed-in has no artwork, matching the
+// quicker returning-user beat. Either way, the LogoMark fade-in is the only
+// thing that animates — no morph stages, no lift, no separate wordmark.
 export function SplashReveal({
   mode,
   onDone,
@@ -23,20 +27,20 @@ export function SplashReveal({
   onDone: () => void;
 }) {
   const reducedMotion = useReducedMotion();
-  const artwork = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
+  const mark = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
   const veil = useRef(new Animated.Value(1)).current;
   const total = mode === "signed-in" ? SIGNED_IN_TOTAL_MS : SIGNED_OUT_TOTAL_MS;
 
   useEffect(() => {
     if (reducedMotion === null) return;
     if (reducedMotion) {
-      artwork.setValue(1);
+      mark.setValue(1);
       const timer = setTimeout(onDone, 80);
       return () => clearTimeout(timer);
     }
 
-    Animated.timing(artwork, {
-      duration: 620,
+    Animated.timing(mark, {
+      duration: 480,
       easing: Easing.out(Easing.cubic),
       toValue: 1,
       useNativeDriver: true,
@@ -54,10 +58,10 @@ export function SplashReveal({
     const timer = setTimeout(onDone, total);
     return () => {
       clearTimeout(timer);
-      artwork.stopAnimation();
+      mark.stopAnimation();
       veil.stopAnimation();
     };
-  }, [artwork, mode, onDone, reducedMotion, total, veil]);
+  }, [mark, onDone, reducedMotion, total, veil]);
 
   return (
     <Animated.View
@@ -65,8 +69,11 @@ export function SplashReveal({
       importantForAccessibility="no-hide-descendants"
       style={[styles.overlay, { opacity: veil }]}
     >
-      <Animated.View style={{ opacity: artwork }}>
-        <Image resizeMode="contain" source={ARTWORK} style={styles.mark} />
+      {mode === "signed-out" && (
+        <Image resizeMode="contain" source={ARTWORK} style={styles.artwork} />
+      )}
+      <Animated.View style={{ opacity: mark }}>
+        <LogoMark size={mode === "signed-in" ? 84 : 64} />
       </Animated.View>
     </Animated.View>
   );
@@ -81,12 +88,12 @@ const styles = StyleSheet.create({
     pointerEvents: "none",
     zIndex: 100,
   },
-  // Matches assets/brand/splash-artwork.png's native 1024x1536 (2:3) so
-  // "contain" isn't forced into a square and letterboxed — width-driven and
-  // capped so it reads as a moderate mark, not a full-bleed hero image.
-  mark: {
-    width: "56%",
-    maxWidth: 260,
-    aspectRatio: 1024 / 1536,
+  // Present from the first frame, never separately animated — the mark is
+  // the only thing that fades. "contain" so the full illustration shows,
+  // never cropped, at its native 1024x1536 aspect ratio.
+  artwork: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
   },
 });

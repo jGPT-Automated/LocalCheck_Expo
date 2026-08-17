@@ -102,125 +102,130 @@ export default function AuthScreen() {
     setBusy(false);
   }
 
-  if (isLoading) {
-    return (
-      <View style={[styles.root, { justifyContent: "center", alignItems: "center" }]}>
-        <ActivityIndicator color={Colors.accent} />
-        {!revealDone && <SplashReveal mode="signed-out" onDone={finishReveal} />}
-      </View>
-    );
-  }
-
+  // SplashReveal renders once, at a single stable position in this tree, on
+  // every render regardless of isLoading — it used to sit at the end of two
+  // separate early-return branches, which are different element trees to
+  // React, so flipping isLoading mid-reveal unmounted and remounted it,
+  // restarting the fade. It never sits alone: whatever isLoading resolves to
+  // renders underneath it in the same frame.
   return (
     <View style={styles.root}>
-      <View style={styles.backgroundArtwork}>
-        <Image
-          accessibilityLabel="An abstract basketball player rising toward the rim"
-          resizeMode="contain"
-          source={AUTH_GRAPHIC}
-          style={styles.backgroundArtworkImage}
-        />
-      </View>
-    <KeyboardAwareScrollViewCompat
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      bounces={false}
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={[styles.hero, { paddingTop: topPad + 12 }]}>
-        <View style={styles.brandRow}>
-          <LogoLockup width={184} />
+      {isLoading ? (
+        <View style={styles.loadingCenter}>
+          <ActivityIndicator color={Colors.accent} />
         </View>
-        <View style={styles.heroCopy}>
-          <Text style={styles.title}>{user ? "WELCOME BACK" : "KNOW BEFORE YOU GO."}</Text>
-          <Text style={styles.subtitle}>
-            {user ? "YOUR LOCAL GAME IS WAITING." : "SEE WHO'S PLAYING. SHOW UP READY."}
-          </Text>
-        </View>
-      </View>
-
-      <View style={[styles.formPanel, { paddingBottom: Math.max(bottom, 20) }]}>
-
-        {user && (
-          <View style={styles.statusBanner}>
-            <Text style={styles.statusLabel}>SIGNED IN AS</Text>
-            <Text style={styles.statusValue}>{user.email}</Text>
-            {profile && (
-              <Text style={styles.statusValue}>
-                {profile.display_name ?? "—"} · {profile.elo_rating} ELO
-              </Text>
-            )}
-            <Pressable
-              style={[styles.btn, styles.btnOutline, { marginTop: 12 }]}
-              onPress={handleSignOut}
-              disabled={busy}
-            >
-              <Text style={styles.btnTextOutline}>SIGN OUT</Text>
-            </Pressable>
+      ) : (
+        <>
+          <View style={styles.backgroundArtwork}>
+            <Image
+              accessibilityLabel="An abstract basketball player rising toward the rim"
+              resizeMode="contain"
+              source={AUTH_GRAPHIC}
+              style={styles.backgroundArtworkImage}
+            />
           </View>
-        )}
-
-        {!user && (
-          <>
-            {errorMsg && (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{errorMsg}</Text>
+          <KeyboardAwareScrollViewCompat
+            style={styles.container}
+            contentContainerStyle={styles.content}
+            bounces={false}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={[styles.hero, { paddingTop: topPad + 12 }]}>
+              <View style={styles.brandRow}>
+                <LogoLockup width={184} />
               </View>
-            )}
-
-            <View style={styles.field}>
-              <Text style={styles.label}>EMAIL</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-                placeholder="you@example.com"
-                placeholderTextColor={Colors.mutedDark}
-              />
+              <View style={styles.heroCopy}>
+                <Text style={styles.title}>{user ? "WELCOME BACK" : "KNOW BEFORE YOU GO."}</Text>
+                <Text style={styles.subtitle}>
+                  {user ? "YOUR LOCAL GAME IS WAITING." : "SEE WHO'S PLAYING. SHOW UP READY."}
+                </Text>
+              </View>
             </View>
 
-            <View style={styles.field}>
-              <Text style={styles.label}>PASSWORD</Text>
-              <TextInput
-                style={styles.input}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoCapitalize="none"
-                placeholder="••••••••"
-                placeholderTextColor={Colors.mutedDark}
-              />
-            </View>
+            <View style={[styles.formPanel, { paddingBottom: Math.max(bottom, 20) }]}>
 
-            <View style={styles.actions}>
-              <Pressable style={[styles.btn, busy && styles.btnDisabled]} onPress={handleSignIn} disabled={busy}>
-                {busy ? <ActivityIndicator color={Colors.black} size="small" /> : <Text style={styles.btnText}>SIGN IN</Text>}
-              </Pressable>
-
-              <Pressable style={[styles.btn, styles.btnOutline, busy && styles.btnDisabled]} onPress={handleSignUp} disabled={busy}>
-                <Text style={styles.btnTextOutline}>CREATE ACCOUNT</Text>
-              </Pressable>
-
-              {Platform.OS === "ios" && (
-                <AppleAuthentication.AppleAuthenticationButton
-                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                  cornerRadius={0}
-                  style={styles.appleBtn}
-                  onPress={handleAppleSignIn}
-                />
+              {user && (
+                <View style={styles.statusBanner}>
+                  <Text style={styles.statusLabel}>SIGNED IN AS</Text>
+                  <Text style={styles.statusValue}>{user.email}</Text>
+                  {profile && (
+                    <Text style={styles.statusValue}>
+                      {profile.display_name ?? "—"} · {profile.elo_rating} ELO
+                    </Text>
+                  )}
+                  <Pressable
+                    style={[styles.btn, styles.btnOutline, { marginTop: 12 }]}
+                    onPress={handleSignOut}
+                    disabled={busy}
+                  >
+                    <Text style={styles.btnTextOutline}>SIGN OUT</Text>
+                  </Pressable>
+                </View>
               )}
-            </View>
-          </>
-        )}
 
-        <Text style={styles.note}>Your account stays signed in on this device.</Text>
-      </View>
-    </KeyboardAwareScrollViewCompat>
+              {!user && (
+                <>
+                  {errorMsg && (
+                    <View style={styles.errorBox}>
+                      <Text style={styles.errorText}>{errorMsg}</Text>
+                    </View>
+                  )}
+
+                  <View style={styles.field}>
+                    <Text style={styles.label}>EMAIL</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={email}
+                      onChangeText={setEmail}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      keyboardType="email-address"
+                      placeholder="you@example.com"
+                      placeholderTextColor={Colors.mutedDark}
+                    />
+                  </View>
+
+                  <View style={styles.field}>
+                    <Text style={styles.label}>PASSWORD</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry
+                      autoCapitalize="none"
+                      placeholder="••••••••"
+                      placeholderTextColor={Colors.mutedDark}
+                    />
+                  </View>
+
+                  <View style={styles.actions}>
+                    <Pressable style={[styles.btn, busy && styles.btnDisabled]} onPress={handleSignIn} disabled={busy}>
+                      {busy ? <ActivityIndicator color={Colors.black} size="small" /> : <Text style={styles.btnText}>SIGN IN</Text>}
+                    </Pressable>
+
+                    <Pressable style={[styles.btn, styles.btnOutline, busy && styles.btnDisabled]} onPress={handleSignUp} disabled={busy}>
+                      <Text style={styles.btnTextOutline}>CREATE ACCOUNT</Text>
+                    </Pressable>
+
+                    {Platform.OS === "ios" && (
+                      <AppleAuthentication.AppleAuthenticationButton
+                        buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                        buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                        cornerRadius={0}
+                        style={styles.appleBtn}
+                        onPress={handleAppleSignIn}
+                      />
+                    )}
+                  </View>
+                </>
+              )}
+
+              <Text style={styles.note}>Your account stays signed in on this device.</Text>
+            </View>
+          </KeyboardAwareScrollViewCompat>
+        </>
+      )}
       {!revealDone && <SplashReveal mode="signed-out" onDone={finishReveal} />}
     </View>
   );
@@ -230,6 +235,11 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  loadingCenter: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   container: {
     flex: 1,
