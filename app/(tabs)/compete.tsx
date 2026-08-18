@@ -971,6 +971,7 @@ const styles = StyleSheet.create({
     ...TextStyles.listName,
     color: Colors.text,
     letterSpacing: 0,
+    textTransform: "uppercase",
     flex: 1,
   },
   playerBadges: { flexDirection: "row", gap: 8, alignItems: "center", flexWrap: "wrap" },

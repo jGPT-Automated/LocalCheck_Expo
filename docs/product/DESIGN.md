@@ -20,17 +20,24 @@ The product should feel premium, athletic, editorial, local, and direct. It shou
 - `assets/brand/localcheck-logo-final.svg` is the canonical LocalCheck lockup.
   `assets/brand/localcheck-chevron-icon.svg` is its icon-only back variant.
 - Render them only through `components/brand/LogoMark.tsx`: `LogoLockup` owns
-  dedicated brand moments, `LogoMark` owns tab-header and icon-only brand
-  contexts, and `LogoWordmark` owns the animated-launch handoff.
+  dedicated brand moments, `LogoMark` owns tab-header, icon-only, and static
+  loading-placeholder contexts.
 - The mark is icon-only; do not recreate it with text glyphs, CSS art, or a
   second in-product implementation.
-- `assets/brand/splash-artwork.png` is the signed-out/signed-in `SplashReveal`
-  image (currently the orange/black basketball + pickleball illustration). It
-  is a single cinematic fade-in, centered, sized at 56% of screen width capped
-  at 260px, at its native aspect ratio (currently 1024x1536, ~2:3) — never
-  stretched to a square or a full-bleed landscape hero. There is no morph or
-  lift stage; that was removed as unnecessary complexity. Signed-in completes
-  in 1.1 seconds, signed-out in 1.65 seconds.
+- `assets/brand/splash-artwork.png` is the auth screen's persistent
+  background image only (`app/auth.tsx`'s `AUTH_GRAPHIC`) — it is not part of
+  any launch animation.
+- `components/onboarding/LaunchTransition.tsx` is the one loading/launch
+  indicator for the whole auth journey: a static, always-solid checkmark with
+  the four corner brackets sweeping clockwise (one bright with a fading trail
+  into the next) for exactly as long as its `loading` prop is true — tied to
+  real async work, never a cosmetic timer. When loading resolves, the sweep
+  stops, all four corners snap solid together, a brief breathing pulse plays,
+  then it hands off. It appears once per journey: after a successful
+  sign-in/sign-up/Apple submit in `app/auth.tsx`, or once on cold open for an
+  already-signed-in session in `app/_layout.tsx`'s `AuthGate` — never both,
+  never as a separate pre-form splash, and never a bare `ActivityIndicator`
+  anywhere in this flow.
 - Every primary tab header, including Home, uses `ScreenHeader`'s same
   `LogoMark` + title treatment. Detail pages use `DetailHeader`, whose
   icon and title gap follows the source lockup geometry. Court detail replaces

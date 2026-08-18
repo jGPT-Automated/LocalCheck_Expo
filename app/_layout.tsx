@@ -15,14 +15,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { LogoMark } from "@/components/brand/LogoMark";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { SplashReveal } from "@/components/onboarding/SplashReveal";
+import { LaunchTransition } from "@/components/onboarding/LaunchTransition";
 import { CourtSheetProvider } from "@/components/sheet/CourtSheetHost";
 import { Colors } from "@/constants/colors";
 import { AppProvider } from "@/context/AppContext";
@@ -33,6 +33,19 @@ import { NotificationProvider } from "@/context/NotificationContext";
 import { RealtimeHubProvider } from "@/context/RealtimeHubContext";
 
 SplashScreen.preventAutoHideAsync();
+
+// Already-signed-in cold open has no real async work to tie the spinner to
+// — there's nothing to await — so this starts loading, flips it off on the
+// next tick, and LaunchTransition's own minimum-rotation floor takes it
+// from there. Same component, same ~2s floor, as the post-sign-in path.
+function SignedInLaunch({ onDone }: { onDone: () => void }) {
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 0);
+    return () => clearTimeout(t);
+  }, []);
+  return <LaunchTransition loading={loading} onDone={onDone} />;
+}
 
 const queryClient = new QueryClient();
 let hasPlayedSignedInLaunch = false;
@@ -75,7 +88,11 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
   // Boot screen shown while loading AND while redirecting a signed-out user —
   // tab routes must never render without a session: the data providers aren't
-  // mounted then, so useApp() would throw on the one pre-redirect frame.
+  // mounted then, so useApp() would throw on the one pre-redirect frame. No
+  // spinner and no launch ceremony here — this is not "entering the app,"
+  // just the brief, usually sub-frame gap before we know where to send the
+  // user. The LaunchTransition plays exactly once, only for an
+  // already-signed-in session below.
   const onAuthScreen = segments[0] === "auth";
   if (isLoading || (!session && !onAuthScreen)) {
     return (
@@ -85,11 +102,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
           backgroundColor: Colors.background,
           alignItems: "center",
           justifyContent: "center",
-          gap: 24,
         }}
       >
         <LogoMark size={88} />
-        <ActivityIndicator color={Colors.accent} />
       </View>
     );
   }
@@ -97,7 +112,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   if (session && !signedInLaunchDone) {
     return (
       <View style={{ flex: 1, backgroundColor: Colors.background }}>
-        <SplashReveal mode="signed-in" onDone={finishSignedInLaunch} />
+        <SignedInLaunch onDone={finishSignedInLaunch} />
       </View>
     );
   }

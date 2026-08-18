@@ -269,10 +269,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent,
     borderWidth: 1,
     borderColor: Colors.accent,
-    shadowColor: Colors.accent,
-    shadowOpacity: 0.28,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
   },
   checkedAction: {
     backgroundColor: Colors.surfaceHigh,

@@ -75,6 +75,7 @@ const styles = StyleSheet.create({
   name: {
     ...TextStyles.listName,
     color: Colors.text,
+    textTransform: "uppercase",
   },
   quiet: { color: Colors.textSecondary },
   detail: {

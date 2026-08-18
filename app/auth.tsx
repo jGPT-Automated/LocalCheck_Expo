@@ -1,6 +1,6 @@
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,9 +14,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { LogoLockup } from "@/components/brand/LogoMark";
+import { LogoLockup, LogoMark } from "@/components/brand/LogoMark";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
-import { SplashReveal } from "@/components/onboarding/SplashReveal";
+import { LaunchTransition } from "@/components/onboarding/LaunchTransition";
 import { Colors } from "@/constants/colors";
 import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
@@ -24,7 +24,6 @@ import { useAuth } from "@/context/AuthContext";
 // Swap the sign-in artwork by replacing assets/brand/auth-graphic.png —
 // same modular contract as the logo (see DESIGN.md §Brand assets).
 const AUTH_GRAPHIC = require("@/assets/brand/splash-artwork.png");
-let hasPlayedSignedOutReveal = false;
 
 /**
  * Auth errors surface to real users — never show raw fetch/JSON dumps
@@ -51,16 +50,16 @@ export default function AuthScreen() {
   const { user, profile, signInWithEmail, signUpWithEmail, signInWithApple, signOut, isLoading } = useAuth();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
-  const [revealDone, setRevealDone] = useState(hasPlayedSignedOutReveal);
-  const finishReveal = useCallback(() => {
-    hasPlayedSignedOutReveal = true;
-    setRevealDone(true);
-  }, []);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // The LaunchTransition overlay only mounts once a sign-in/sign-up actually
+  // succeeds — it's the "you're in" moment, never a pre-form ceremony. `busy`
+  // doubles as its `loading` prop: the corner sweep runs for exactly as long
+  // as the real request is in flight, then resolves once busy flips false.
+  const [showTransition, setShowTransition] = useState(false);
 
   function goHome() {
     router.replace("/(tabs)");
@@ -68,32 +67,31 @@ export default function AuthScreen() {
 
   async function handleSignIn() {
     if (!email || !password) { setErrorMsg("Enter email and password."); return; }
-    setBusy(true); setErrorMsg(null);
+    setBusy(true); setErrorMsg(null); setShowTransition(true);
     const { error } = await signInWithEmail(email.trim(), password);
-    setBusy(false);
-    if (error) { setErrorMsg(humanizeAuthError(error)); }
-    else { goHome(); }
+    if (error) { setBusy(false); setShowTransition(false); setErrorMsg(humanizeAuthError(error)); }
+    else { setBusy(false); }
   }
 
   async function handleSignUp() {
     if (!email || !password) { setErrorMsg("Enter email and password."); return; }
-    setBusy(true); setErrorMsg(null);
+    setBusy(true); setErrorMsg(null); setShowTransition(true);
     const { error, needsEmailConfirmation } = await signUpWithEmail(email.trim(), password);
-    setBusy(false);
-    if (error) { setErrorMsg(humanizeAuthError(error)); }
-    else if (needsEmailConfirmation) {
+    if (error) {
+      setBusy(false); setShowTransition(false); setErrorMsg(humanizeAuthError(error));
+    } else if (needsEmailConfirmation) {
+      setBusy(false); setShowTransition(false);
       Alert.alert("Account created", "Check your email to confirm, then sign in.", [{ text: "OK" }]);
     } else {
-      goHome();
+      setBusy(false);
     }
   }
 
   async function handleAppleSignIn() {
-    setBusy(true); setErrorMsg(null);
+    setBusy(true); setErrorMsg(null); setShowTransition(true);
     const { error } = await signInWithApple();
-    setBusy(false);
-    if (error) { setErrorMsg(humanizeAuthError(error)); }
-    else { goHome(); }
+    if (error) { setBusy(false); setShowTransition(false); setErrorMsg(humanizeAuthError(error)); }
+    else { setBusy(false); }
   }
 
   async function handleSignOut() {
@@ -102,17 +100,17 @@ export default function AuthScreen() {
     setBusy(false);
   }
 
-  // SplashReveal renders once, at a single stable position in this tree, on
-  // every render regardless of isLoading — it used to sit at the end of two
-  // separate early-return branches, which are different element trees to
-  // React, so flipping isLoading mid-reveal unmounted and remounted it,
-  // restarting the fade. It never sits alone: whatever isLoading resolves to
-  // renders underneath it in the same frame.
+  // LaunchTransition renders once, at a single stable position in this tree,
+  // regardless of what else is happening — no separate early-return branch
+  // for it, so nothing can unmount/remount it mid-animation. It only mounts
+  // after a real sign-in/sign-up/Apple submit (showTransition), never as a
+  // pre-form ceremony, and it's the only thing "loading" ever looks like on
+  // this screen — no bare spinner anywhere.
   return (
     <View style={styles.root}>
       {isLoading ? (
         <View style={styles.loadingCenter}>
-          <ActivityIndicator color={Colors.accent} />
+          <LogoMark size={88} />
         </View>
       ) : (
         <>
@@ -226,7 +224,15 @@ export default function AuthScreen() {
           </KeyboardAwareScrollViewCompat>
         </>
       )}
-      {!revealDone && <SplashReveal mode="signed-out" onDone={finishReveal} />}
+      {showTransition && (
+        <LaunchTransition
+          loading={busy}
+          onDone={() => {
+            setShowTransition(false);
+            goHome();
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -284,7 +290,11 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
-    backgroundColor: Colors.background,
+    // Was solid Colors.background — the panel sits as its own layer on top
+    // of the artwork and blocked it outright with a hard edge. Slightly
+    // transparent instead of fully opaque, so the image and dark backdrop
+    // color both still read faintly through, softening that cutoff.
+    backgroundColor: "rgba(13,13,16,0.92)",
     width: "100%",
   },
   title: {

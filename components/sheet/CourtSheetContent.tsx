@@ -125,7 +125,7 @@ export function CourtSheetContent({
           <View style={styles.sportTag}>
             <SportEmblem glow={false} size={13} sport={court.sport} />
             <Text style={[styles.sportText, { color: sportColor }]}>{court.sport}</Text>
-            {distLabel && <Text style={styles.metaDim}> · {distLabel}</Text>}
+            {distLabel && <Text style={styles.metaDim}>· {distLabel}</Text>}
           </View>
         </View>
         <View style={styles.headerCornerRight}>

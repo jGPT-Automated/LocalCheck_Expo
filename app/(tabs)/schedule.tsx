@@ -651,7 +651,7 @@ export default function ScheduleScreen() {
     savePlannedVisitBatch,
   } = useApp();
   const params = useLocalSearchParams<{ courtId?: string; openCreate?: string }>();
-  const { bottom } = useSafeAreaInsets();
+  const { top, bottom } = useSafeAreaInsets();
 
   const [showHost, setShowHost] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -670,6 +670,12 @@ export default function ScheduleScreen() {
   const [plannedBuckets, setPlannedBuckets] = useState<Record<string, number>>({});
   const consumedCourtParamRef = useRef<string | null>(null);
   const consumedCreateParamRef = useRef<string | null>(null);
+  const saveNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (saveNoticeTimeoutRef.current) clearTimeout(saveNoticeTimeoutRef.current);
+    };
+  }, []);
 
   // Default to the local court once it hydrates; an explicit pick wins.
   const court = pickedCourt ?? localCourt;
@@ -891,7 +897,9 @@ export default function ScheduleScreen() {
 
   const beginEditingTimes = () => {
     if (!court || court.id !== localCourt?.id) {
+      if (saveNoticeTimeoutRef.current) clearTimeout(saveNoticeTimeoutRef.current);
       setSaveNotice("TIMES CAN ONLY BE EDITED AT YOUR LOCAL COURT.");
+      saveNoticeTimeoutRef.current = setTimeout(() => setSaveNotice(null), 3200);
       return;
     }
     setPendingKeys(new Set(myVisitsByKey.keys()));
@@ -1250,7 +1258,7 @@ export default function ScheduleScreen() {
       ) : null}
 
       {saveNotice ? (
-        <View style={[styles.saveTimesError, { bottom: (Platform.OS === "web" ? 148 : bottom + 148) }]}>
+        <View style={[styles.saveTimesError, { top: top + 12 }]}>
           <Text style={styles.saveTimesErrorText}>{saveNotice}</Text>
         </View>
       ) : null}

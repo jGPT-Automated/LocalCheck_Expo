@@ -82,6 +82,14 @@ export function SpeedDialFab({
     transform: [{ rotate: `${interpolate(progress.value, [0, 1], [0, 45])}deg` }],
   }));
 
+  const triggerFillStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      progress.value,
+      [0, 1],
+      [Colors.accent, Colors.surfaceHigh]
+    ),
+  }));
+
   return (
     <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
       {open ? (
@@ -121,8 +129,9 @@ export function SpeedDialFab({
           onPress={() => setExpanded(!open)}
           style={({ pressed }) => [styles.mainButton, pressed && styles.mainButtonPressed]}
         >
+          <Animated.View style={[styles.mainButtonFill, triggerFillStyle]} />
           <Animated.View style={triggerIconStyle}>
-            <Feather color={Colors.black} name={icon} size={23} />
+            <Feather color={open ? Colors.textSecondary : Colors.black} name={icon} size={23} />
           </Animated.View>
         </Pressable>
       </Animated.View>
@@ -176,9 +185,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: CLOSED_SIZE / 2,
-    backgroundColor: Colors.accent,
     minWidth: Layout.minTouchTarget,
     minHeight: Layout.minTouchTarget,
+  },
+  mainButtonFill: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: CLOSED_SIZE / 2,
   },
   mainButtonPressed: { opacity: 0.82, transform: [{ scale: 0.97 }] },
 });

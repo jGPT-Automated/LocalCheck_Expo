@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   identity: { flex: 1, minWidth: 0, justifyContent: "center" },
   headlineRow: { minHeight: 54, flexDirection: "row", alignItems: "center", gap: Space.md },
   name: { flex: 1, ...TextStyles.display, color: Colors.text, letterSpacing: 0.4, textTransform: "uppercase" },
-  username: { marginTop: 2, fontFamily: Typography.body, fontSize: 11, color: Colors.textSecondary },
+  username: { alignSelf: "stretch", marginTop: 2, fontFamily: Typography.body, fontSize: 11, color: Colors.textSecondary },
   member: { marginTop: 5, ...TextStyles.caption, color: Colors.muted, letterSpacing: 0.4 },
   courtLabel: { alignSelf: "flex-start", maxWidth: "100%", marginTop: Space.sm, paddingHorizontal: 8, minHeight: 28, flexDirection: "row", alignItems: "center", gap: 5, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderLight, borderRadius: 14, backgroundColor: Colors.surfaceHigh },
   courtText: { flexShrink: 1, ...TextStyles.labelSmall, color: Colors.textSecondary, letterSpacing: 0 },

@@ -15,7 +15,7 @@
     "test:court-discovery": "node --no-warnings --experimental-strip-types --test services/courtDiscoveryModel.test.mts",
     "test:leaderboard": "node --no-warnings --experimental-strip-types --test services/leaderboardFilter.test.mts",
     "test:feed": "node --no-warnings --experimental-strip-types --test services/feedModel.test.mts",
-    "test:brand": "node --no-warnings --experimental-strip-types --test components/brand/logoPresentation.test.mts components/onboarding/splashTimeline.test.mts",
+    "test:brand": "node --no-warnings --experimental-strip-types --test components/brand/logoPresentation.test.mts",
     "test:notification-routes": "node --no-warnings --experimental-strip-types --test lib/notificationRoutes.test.mts services/pushRegistrationPolicy.test.mts",
     "test:home-presentation": "node --no-warnings --experimental-strip-types --test components/home/homePresentation.test.mts",
     "test:player-identity": "node --no-warnings --experimental-strip-types --test components/ui/playerIdentity.test.mts",

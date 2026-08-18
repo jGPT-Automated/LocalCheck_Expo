@@ -21,6 +21,7 @@ import { CourtListItem } from "@/components/CourtListItem";
 import { useCourtSheet } from "@/components/sheet/CourtSheetHost";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, CourtSport, getCourtIdentityColor } from "@/constants/data";
+import { Layout } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts } from "@/context/CourtPresenceContext";
@@ -393,7 +394,7 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
       </View>
 
       {/* ── Legend ── */}
-      <View style={[styles.legend, { bottom: bottom + 82 }]}>
+      <View style={[styles.legend, { bottom: bottom + Layout.tabBarClearance }]}>
         <View style={styles.legendRow}>
           <View style={[styles.legendDot, { backgroundColor: Colors.accent }]} />
           <Text style={styles.legendText}>ACTIVE NOW</Text>
