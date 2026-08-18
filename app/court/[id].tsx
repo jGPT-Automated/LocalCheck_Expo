@@ -16,7 +16,7 @@ import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
 import { Colors, Radius } from "@/constants/colors";
 import type { Court, FeedItem, FeedMatchSummary } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
-import { Typography } from "@/constants/typography";
+import { TextStyles, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
 import { useRealtimeHub } from "@/context/RealtimeHubContext";
@@ -173,12 +173,25 @@ export default function CourtProfileScreen() {
         title={court.shortName || court.name}
         right={<Pressable
           accessibilityLabel={isMyLocal ? "Remove my local court" : "Set as my local court"}
+          accessibilityHint={isMyLocal ? "Removes this as your local court" : "Sets this as your local court"}
           accessibilityRole="button"
+          accessibilityState={{ selected: isMyLocal }}
           hitSlop={8}
           onPress={() => void setLocalCourt(isMyLocal ? null : court.id, court)}
-          style={({ pressed }) => [styles.localButton, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.localButton,
+            isMyLocal && styles.localButtonActive,
+            pressed && styles.pressed,
+          ]}
         >
-          <Feather color={isMyLocal ? Colors.accent : Colors.textSecondary} fill={isMyLocal ? Colors.accent : "transparent"} name="star" size={17} />
+          <Feather
+            color={isMyLocal ? Colors.accent : Colors.textSecondary}
+            name={isMyLocal ? "check-circle" : "map-pin"}
+            size={12}
+          />
+          <Text style={[styles.localButtonText, isMyLocal && styles.localButtonTextActive]}>
+            {isMyLocal ? "LOCAL" : "SET LOCAL"}
+          </Text>
         </Pressable>}
       />
       <MetricDashboard metrics={dashboard} />
@@ -218,7 +231,7 @@ export default function CourtProfileScreen() {
               return (
                 <PlayerSummaryRow
                   checkInCount={history?.checkInCount}
-                  detail={rankedIds.has(player.id) ? "ACTIVE NOW · TOP 10" : "ACTIVE NOW"}
+                  detail={rankedIds.has(player.id) ? "Active now · Top 10" : "Active now"}
                   friend={isFriend(player.id)}
                   key={player.id}
                   onPress={() => router.push(`/player/${player.id}`)}
@@ -233,7 +246,7 @@ export default function CourtProfileScreen() {
             {visibleLocals.length > 0 ? visibleLocals.map(({ player, lastCheckInAt, checkInCount }) => (
               <PlayerSummaryRow
                 checkInCount={checkInCount}
-                detail={lastCheckInAt ? `LAST HERE ${relativeTime(lastCheckInAt)}` : "NO CHECK-INS YET"}
+                detail={lastCheckInAt ? `Last here · ${relativeTime(lastCheckInAt)}` : "No check-ins yet"}
                 friend={isFriend(player.id)}
                 inactive={isInactive(lastCheckInAt)}
                 key={player.id}
@@ -252,7 +265,7 @@ export default function CourtProfileScreen() {
             <SectionHeader count={courtRuns.length || undefined} title="Upcoming runs" />
             <View style={styles.runSection}>
               {courtRuns.length > 0 ? courtRuns.slice(0, 1).map((run) => <RunCard key={run.id} run={run} />) : (
-                <EmptyState title="No runs scheduled" body="Open Schedule to set a time or host the first run." />
+                <EmptyState title="No games scheduled" body="Open Schedule to set a time or schedule the first game." />
               )}
             </View>
           </View>
@@ -331,13 +344,13 @@ function EmptyState({ title, body }: { title: string; body: string }) {
 
 function relativeTime(value: string): string {
   const elapsed = Date.now() - new Date(value).getTime();
-  if (!Number.isFinite(elapsed) || elapsed < 0) return "RECENTLY";
+  if (!Number.isFinite(elapsed) || elapsed < 0) return "recently";
   const minutes = Math.floor(elapsed / 60_000);
-  if (minutes < 60) return minutes <= 1 ? "JUST NOW" : `${minutes} MIN AGO`;
+  if (minutes < 60) return minutes <= 1 ? "just now" : `${minutes} min ago`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} HR${hours === 1 ? "" : "S"} AGO`;
+  if (hours < 24) return `${hours} hr${hours === 1 ? "" : "s"} ago`;
   const days = Math.floor(hours / 24);
-  return `${days} DAY${days === 1 ? "" : "S"} AGO`;
+  return `${days} day${days === 1 ? "" : "s"} ago`;
 }
 
 function isInactive(value: string | null): boolean {
@@ -362,7 +375,10 @@ const styles = StyleSheet.create({
   notFoundText: { fontFamily: Typography.heading, fontSize: 22, color: Colors.text },
   retryButton: { minHeight: 44, paddingHorizontal: Space.xl, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
   retryText: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.text, letterSpacing: 1.2 },
-  localButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+  localButton: { minHeight: Layout.minTouchTarget, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Space.xs, borderWidth: 1, borderColor: Colors.borderLight, borderRadius: 5, backgroundColor: Colors.surfaceHigh },
+  localButtonActive: { borderColor: Colors.accentBorder, backgroundColor: Colors.accentDim },
+  localButtonText: { ...TextStyles.labelSmall, color: Colors.textSecondary, letterSpacing: 0.25 },
+  localButtonTextActive: { color: Colors.accent },
   tabs: { minHeight: 44, paddingHorizontal: Layout.screenGutter, flexDirection: "row", borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Colors.border },
   tab: { flex: 1, alignItems: "center", justifyContent: "center", borderBottomWidth: 2, borderBottomColor: "transparent" },
   tabActive: { borderBottomColor: Colors.accent },

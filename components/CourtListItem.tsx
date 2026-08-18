@@ -36,9 +36,6 @@ export function CourtListItem({
     { label: "ACTIVE NOW", value: court.activeCount ?? 0, live: (court.activeCount ?? 0) > 0 },
     { label: "LOCALS", value: court.localCount ?? 0 },
   ];
-  const sportTint = court.sport === "PICKLEBALL"
-    ? Colors.pickleballTint
-    : Colors.basketballTint;
   const sportMeta = court.sport === "PICKLEBALL"
     ? Colors.pickleballMeta
     : Colors.basketballMeta;
@@ -57,15 +54,9 @@ export function CourtListItem({
       testID={`court-${court.id}`}
     >
       <LinearGradient
-        colors={[Colors.courtCardStart, Colors.courtCardEnd]}
-        end={{ x: 1, y: 1 }}
+        colors={["#202027", "#211E20"]}
+        end={{ x: 1, y: 0.75 }}
         start={{ x: 0, y: 0 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <LinearGradient
-        colors={[sportTint, "transparent"]}
-        end={{ x: 0.25, y: 0.8 }}
-        start={{ x: 1, y: 0 }}
         style={StyleSheet.absoluteFill}
       />
 
@@ -74,19 +65,16 @@ export function CourtListItem({
           <SportEmblem glow={false} size={15} sport={court.sport} />
           <Text style={[styles.sportText, { color: sportMeta }]}>{court.sport}</Text>
         </View>
-        {isLocalCourt ? (
-          <View accessibilityLabel="My local court" style={styles.localMark}>
-            <Feather color={Colors.textSecondary} name="star" size={14} />
-          </View>
-        ) : null}
       </View>
 
-      <Text numberOfLines={1} style={[styles.name, featured && styles.nameFeatured]}>
+      <Text numberOfLines={1} style={styles.name}>
         {court.shortName || court.name}
       </Text>
       <Text numberOfLines={1} style={styles.meta}>
-        {court.neighborhood || court.market || court.city || "Court details"}
+        {court.city || court.market || court.neighborhood || "Court details"}
       </Text>
+
+      <View style={styles.separator} />
 
       <View style={styles.bottomRow}>
         <View style={styles.statsRow}>
@@ -109,8 +97,8 @@ export function CourtListItem({
             </View>
           ) : null}
         </View>
-        <View style={styles.openButton}>
-          <Feather color={Colors.textSecondary} name="arrow-right" size={20} />
+        <View style={styles.arrowButton}>
+          <Feather color={Colors.textSecondary} name="arrow-right" size={21} />
         </View>
       </View>
     </Pressable>
@@ -119,38 +107,37 @@ export function CourtListItem({
 
 const styles = StyleSheet.create({
   container: {
-    minHeight: 172,
+    minHeight: 146,
     marginHorizontal: Layout.screenGutter,
-    marginVertical: Space.sm,
-    paddingHorizontal: Space.lg,
-    paddingVertical: Space.md,
+    marginVertical: 6,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "rgba(242,242,246,0.09)",
     borderRadius: Radius.card,
     shadowColor: Colors.black,
-    shadowOpacity: 0.13,
-    shadowRadius: 19,
-    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 9 },
   },
-  featured: { minHeight: 184 },
+  featured: { minHeight: 146 },
   pressed: { opacity: 0.78, transform: [{ scale: 0.992 }] },
-  topline: { minHeight: 26, flexDirection: "row", alignItems: "center" },
+  topline: { minHeight: 20, flexDirection: "row", alignItems: "center" },
   sportMeta: { flexDirection: "row", alignItems: "center", gap: 5 },
-  sportText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.5 },
-  localMark: { marginLeft: "auto", width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-  name: { marginTop: Space.sm, fontFamily: Typography.headingBold, fontSize: 23, lineHeight: 27, color: Colors.text, textTransform: "uppercase" },
-  nameFeatured: { fontSize: 27, lineHeight: 31 },
-  meta: { marginTop: 2, fontFamily: Typography.body, fontSize: 11, color: Colors.muted },
-  bottomRow: { marginTop: "auto", paddingTop: Space.md, flexDirection: "row", alignItems: "center", borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.borderLight },
-  statsRow: { minWidth: 0, flex: 1, flexDirection: "row", alignItems: "center" },
-  statBlock: { minWidth: 78, alignItems: "center", justifyContent: "center" },
-  statValueRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  sportText: { fontFamily: Typography.bodyMedium, fontSize: 9, letterSpacing: 1.5 },
+  name: { marginTop: 12, fontFamily: Typography.headingBold, fontSize: 21, lineHeight: 24, color: Colors.text, textTransform: "uppercase" },
+  meta: { marginTop: 4, fontFamily: Typography.bodyExtraLight, fontSize: 12, lineHeight: 16, color: Colors.muted },
+  separator: { marginTop: 12, height: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
+  bottomRow: { marginTop: "auto", paddingTop: 12, flexDirection: "row", alignItems: "center" },
+  statsRow: { minWidth: 0, maxWidth: "68%", flex: 1, flexDirection: "row", alignItems: "center" },
+  statBlock: { flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center" },
+  statValueRow: { minHeight: 19, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5 },
   statValue: { fontFamily: Typography.headingBold, fontSize: 24, lineHeight: 27, color: Colors.text },
   liveValue: { color: Colors.accent },
-  statLabel: { marginTop: 1, fontFamily: Typography.bodyMedium, fontSize: 7, color: Colors.muted, letterSpacing: 1.1 },
-  statDivider: { width: StyleSheet.hairlineWidth, height: 30, backgroundColor: Colors.borderLight },
-  hereBadge: { marginLeft: Space.sm, paddingHorizontal: 7, paddingVertical: 5, flexDirection: "row", alignItems: "center", gap: 3, borderRadius: Radius.sm, backgroundColor: Colors.accent },
+  statLabel: { marginTop: 2, fontFamily: Typography.bodyMedium, fontSize: 11, lineHeight: 13, color: Colors.muted, letterSpacing: 1.1, textAlign: "center" },
+  statDivider: { width: StyleSheet.hairlineWidth, height: 29, marginHorizontal: 5, backgroundColor: Colors.borderLight },
+  arrowButton: { marginLeft: "auto", width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: Colors.borderLight, alignItems: "center", justifyContent: "center" },
+  hereBadge: { marginLeft: Space.sm, paddingHorizontal: 7, paddingVertical: 4, flexDirection: "row", alignItems: "center", gap: 3, borderRadius: Radius.sm, backgroundColor: Colors.accent },
   hereText: { fontFamily: Typography.bodyBold, fontSize: 7, color: Colors.black, letterSpacing: 0.9 },
-  openButton: { width: 46, height: 46, marginLeft: Space.md, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.borderLight, borderRadius: 23, backgroundColor: "rgba(30,30,38,0.78)" },
 });

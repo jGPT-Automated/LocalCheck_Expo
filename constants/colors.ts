@@ -17,6 +17,7 @@ export const Colors = {
   muted: "#72728A",
   mutedDark: "#4B4B5C",
   accent: "#FF5500",
+  brandMark: "#FD6A03",
   accentDim: "rgba(255,85,0,0.12)",
   liveQuiet: "rgba(255,85,0,0.08)",
   accentGlow: "rgba(255,85,0,0.35)",

@@ -1,7 +1,7 @@
 # Current state
 
-Last reconciled: 2026-08-11 against `origin/main` at `bc1507f`, TestFlight app
-`1.0.2` build `14`, the production EAS Update channel, and LocalCheckProd.
+Last reconciled: 2026-08-12 against `origin/main` at `3ca9c6f`, the production
+EAS Update channel, and LocalCheckProd.
 
 ## Production checkpoint
 
@@ -42,9 +42,10 @@ development and testing.
 - Mapbox, push notifications, Apple Sign-In, and SecureStore require physical
   iOS verification; browser success does not prove them.
 - The old Add Court modal that called a dead `/api` route remains retired. The
-  current TestFlight UI invokes the Supabase path, but a 2026-08-11 physical
-  photo attempt returned a non-2xx Edge Function response. Diagnose that path
-  separately before calling Add Court production-ready.
+  2026-08-11 physical attempt failed because `verify-court` was absent from
+  LocalCheckProd and returned HTTP 404. The authenticated function and its
+  database contract were deployed on 2026-08-12; a signed-in accepted and
+  rejected live-photo test still gates production proof of the Gemini path.
 - Push registration and background delivery are proven on build 14: a physical
   iPhone registered after the production OTA and received a real friend-request
   alert. Foreground routing, cold-start navigation, retry/receipt handling, and
@@ -89,11 +90,35 @@ specific missing behavior only after verifying it against current `main`.
   repairs an enabled account with an existing grant, and respects both LocalCheck
   opt-out and iOS denial. It requests the Expo token with EAS project id
   `9c906173-0258-45a9-a3fe-786cda373c66`.
+- Add Court no longer asks new submissions to classify a court as free, paid,
+  or private. Existing values on all 56 courts are unchanged; new verified
+  rows use a nullable field through the service-role-only
+  `create_verified_court_v2` RPC. `verify-court` version 2 is active with JWT
+  enforcement and rejects unauthenticated requests with HTTP 401.
+- Block/report is active in LocalCheckProd: both RLS tables, the caller-scoped
+  RPCs, blocked-relationship read filters, and social/run write guards are
+  deployed.
 - Connected signed-out auth/splash QA passed at 390×844 and 1280×900 with no
   overflow. Signed-in browser QA remains the fast surface for focused follow-up
   changes; native-only acceptance remains on TestFlight.
 
 ## Current focused follow-up
+
+- PR #35 uses the final supplied LocalCheck vector assets through the shared
+  brand component. Home now matches the established mark + title treatment on
+  every other primary tab. The supplied chevron remains the detail back icon;
+  W/L variants remain intentionally unused. Court detail uses the source
+  lockup's spacing and an edge-aligned LocalCourt label.
+- Home's horizontal player roster now uses equal tokenized spacing above and
+  below each tile, matching the section-header rhythm at compact and expanded
+  widths.
+- Player profiles now use the same 24px mark and 8px lockup gap as shared app
+  headers. The compact hero omits the long username and member-since line,
+  keeping the player name, local court, and ELO on one clear axis.
+- Player profile content is split into `VS YOU`, `ACTIVITY`, and `DETAILS`.
+  The first tab uses a visually distinct series card; Details owns member
+  since, local court, global sport rank, real trailing-90-day check-in activity,
+  and the existing report/block controls.
 
 - Compete retains the `main` Local/Regional/Global behavior. The current task
   adds the missing honest sport membership rule: a saved preferred sport wins;
@@ -107,7 +132,8 @@ specific missing behavior only after verifying it against current `main`.
 
 1. Verify the focused Compete/Home follow-up in the connected two-account
    preview, then publish it through a reviewed PR and compatible production OTA.
-2. Diagnose the Add Court non-2xx response as a separate bounded task.
+2. Exercise one accepted and one rejected Add Court live photo on a signed-in
+   iPhone; verify the accepted court appears and the rejection inserts nothing.
 3. Complete foreground/cold-start push routing plus receipt/retry/invalid-token
    evidence without reopening the already-proven registration path.
 

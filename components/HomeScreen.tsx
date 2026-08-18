@@ -32,7 +32,6 @@ import {
   fetchLocalsWithLastCheckIn,
   type LocalWithLastCheckIn,
 } from "@/services/profileService";
-import { openCourtInMaps } from "@/lib/openMaps";
 
 type HomeTab = "feed" | "locals" | "schedule";
 
@@ -150,7 +149,7 @@ export function HomeScreen() {
 
   return (
     <ScreenViewport>
-      <ScreenHeader title="LOCALCHECK" wordmark />
+      <ScreenHeader title="LOCALCHECK" />
 
       <HomeCourtHero
         activeCount={activeLabel}
@@ -159,7 +158,6 @@ export function HomeScreen() {
         isChecking={isChecking}
         localCount={localCount}
         onCheckIn={() => void handleCheckIn()}
-        onOpenMap={() => void openCourtInMaps(localCourt)}
         onViewCourt={() => router.push(`/court/${localCourt.id}`)}
         visitCount={localCourt.ratingCount ?? 0}
       />
@@ -172,8 +170,8 @@ export function HomeScreen() {
             contentContainerStyle={{ paddingBottom: scrollBottom }}
             showsVerticalScrollIndicator={false}
           >
-            <View style={styles.peopleSection}>
-              <SectionHeader count={activeLabel} title="Who's here" />
+            <View style={[styles.peopleSection, activeTotal === 0 && styles.peopleSectionEmpty]}>
+              <SectionHeader count={activeLabel} title="Checked in" />
               {activeTotal === 0 ? (
                 <View style={styles.emptyPeople}>
                   <Text style={styles.emptyText}>
@@ -250,7 +248,7 @@ export function HomeScreen() {
                   return (
                     <PlayerSummaryRow
                       checkInCount={localHistory?.checkInCount}
-                      detail="ACTIVE NOW"
+                      detail="Active now"
                       friend={isFriend(player.id)}
                       key={player.id}
                       onPress={() => router.push(`/player/${player.id}`)}
@@ -280,8 +278,8 @@ export function HomeScreen() {
                     checkInCount={checkInCount}
                     detail={
                       lastCheckInAt
-                        ? `LAST HERE ${relativeTime(lastCheckInAt)}`
-                        : "LOCAL PLAYER"
+                        ? `Last here · ${relativeTime(lastCheckInAt)}`
+                        : "Local player"
                     }
                     friend={isFriend(player.id)}
                     inactive={isInactive(lastCheckInAt)}
@@ -369,7 +367,7 @@ function HiddenPeopleTile({ count }: { count: number }) {
 function NoCourtState({ isSignedIn }: { isSignedIn: boolean }) {
   return (
     <ScreenViewport>
-      <ScreenHeader title="LOCALCHECK" wordmark />
+      <ScreenHeader title="LOCALCHECK" />
       <View style={styles.noCourt}>
         <View style={styles.noCourtIcon}>
           <Feather color={Colors.accent} name="map-pin" size={24} />
@@ -402,13 +400,13 @@ function NoCourtState({ isSignedIn }: { isSignedIn: boolean }) {
 
 function relativeTime(value: string): string {
   const elapsed = Date.now() - new Date(value).getTime();
-  if (!Number.isFinite(elapsed) || elapsed < 0) return "RECENTLY";
+  if (!Number.isFinite(elapsed) || elapsed < 0) return "recently";
   const minutes = Math.floor(elapsed / 60_000);
-  if (minutes < 60) return minutes <= 1 ? "JUST NOW" : `${minutes} MIN AGO`;
+  if (minutes < 60) return minutes <= 1 ? "just now" : `${minutes} min ago`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} HR${hours === 1 ? "" : "S"} AGO`;
+  if (hours < 24) return `${hours} hr${hours === 1 ? "" : "s"} ago`;
   const days = Math.floor(hours / 24);
-  return `${days} DAY${days === 1 ? "" : "S"} AGO`;
+  return `${days} day${days === 1 ? "" : "s"} ago`;
 }
 
 function isInactive(value: string | null): boolean {
@@ -454,14 +452,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.borderSubtle,
   },
+  peopleSectionEmpty: { minHeight: 0 },
   roster: {
     minHeight: 70,
     paddingHorizontal: Layout.screenGutter,
-    paddingBottom: Space.sm,
+    paddingVertical: Space.lg,
     gap: Space.md,
   },
   emptyPeople: {
-    minHeight: 46,
+    minHeight: Layout.minTouchTarget,
     paddingHorizontal: Layout.screenGutter,
     alignItems: "center",
     justifyContent: "center",

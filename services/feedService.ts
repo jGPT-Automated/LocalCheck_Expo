@@ -111,7 +111,7 @@ function mapEvent(
       return {
         ...base,
         type: "run_started",
-        message: `${actorName} STARTED A RUN AT ${courtName}`,
+        message: `${actorName} SCHEDULED A GAME AT ${courtName}`,
       };
     case "match_result": {
       const m = row.matches;

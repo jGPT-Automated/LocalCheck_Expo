@@ -1,23 +1,32 @@
 import { router, useLocalSearchParams } from "expo-router";
+import { Feather } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { LogoMark } from "@/components/brand/LogoMark";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { FormSheet } from "@/components/sheet/FormSheet";
+import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
+import {
+  formatForMaxPlayers,
+  generatedScheduledGameTitle,
+  maxPlayersForFormat,
+  scheduledFormatsForSport,
+  validateTeamAssignments,
+  type ScheduledGameFormat,
+  type TeamAssignment,
+} from "@/components/schedule/scheduledGameModel";
 import { Colors, Radius } from "@/constants/colors";
 import { formatClockTime } from "@/components/home/homePresentation";
-import { getSportColor } from "@/constants/data";
-import { Typography } from "@/constants/typography";
+import { getSportColor, type CourtSport, type Player } from "@/constants/data";
+import { TextStyles, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useRealtimeHub } from "@/context/RealtimeHubContext";
 import { batchHasResource, type RealtimeTopic } from "@/lib/realtimeHub";
 import { inviteFriendToRun } from "@/services/notificationService";
+import { logScheduledGameResult } from "@/services/gameService";
 import { updateScheduledGame } from "@/services/scheduledGameService";
-
-const RUN_SIZES = [4, 6, 8, 10];
 
 export default function RunScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -28,6 +37,7 @@ export default function RunScreen() {
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showResult, setShowResult] = useState(false);
   const [invitedIds, setInvitedIds] = useState<string[]>([]);
   const [invitingId, setInvitingId] = useState<string | null>(null);
 
@@ -42,7 +52,7 @@ export default function RunScreen() {
   if (!run) {
     return (
       <View style={styles.notFound}>
-        <Text style={styles.notFoundText}>RUN NOT FOUND</Text>
+        <Text style={styles.notFoundText}>GAME NOT FOUND</Text>
         <BrutalistButton label="GO BACK" onPress={() => router.back()} variant="outline" />
       </View>
     );
@@ -55,6 +65,7 @@ export default function RunScreen() {
   const isJoined = run.participants.some((p) => p.id === currentUser.id);
   const isFull = spotsLeft === 0;
   const isHost = run.hostId === currentUser.id;
+  const format = formatForMaxPlayers(run.maxPlayers) ?? "5V5";
   // Before the start time the run can be edited; after it, it's a played game to log.
   const hasStarted = new Date(run.startTimeIso).getTime() <= Date.now();
   const participantIds = new Set(run.participants.map((player) => player.id));
@@ -95,36 +106,36 @@ export default function RunScreen() {
             <LogoMark size={30} variant="back" />
           </Pressable>
           <View style={styles.headerMain}>
-            <View style={styles.headerMeta}>
-              <View style={[styles.sportTag, { borderColor: sportColor }]}>
-                <View style={[styles.sportDot, { backgroundColor: sportColor }]} />
-                <Text style={[styles.sportTagText, { color: sportColor }]}>{run.sport}</Text>
-              </View>
-              <View style={styles.levelTag}>
-                <Text style={styles.levelText}>{run.skillLevel}</Text>
-              </View>
-            </View>
-            <Text style={styles.runTitle}>{run.title}</Text>
-            <Text style={styles.runInfo}>{formatClockTime(run.time)} · {run.date} · {run.courtName.toUpperCase()}</Text>
+            <Text style={[styles.headerEyebrow, { color: sportColor }]}>{run.sport}</Text>
+            <Text style={styles.runTitle}>{format} GAME</Text>
           </View>
         </View>
 
-        <View style={styles.controlRow}>
-          <View style={styles.controlItem}>
-            <Text style={styles.controlLabel}>GOING</Text>
-            <Text style={styles.controlValue}>{total}/{max}</Text>
+        <View style={styles.factsRow}>
+          <View style={styles.factItem}>
+            <Feather color={Colors.accent} name="clock" size={14} />
+            <Text style={styles.factLabel}>WHEN</Text>
+            <Text numberOfLines={2} style={styles.factValue}>{run.date}{"\n"}{formatClockTime(run.time)}</Text>
           </View>
-          <View style={[styles.controlItem, styles.controlBorder]}>
-            <Text style={styles.controlLabel}>SPOTS LEFT</Text>
-            <Text style={styles.controlValue}>{spotsLeft}</Text>
+          <View style={[styles.factItem, styles.factBorder]}>
+            <Feather color={Colors.accent} name="map-pin" size={14} />
+            <Text style={styles.factLabel}>LOCATION</Text>
+            <Text numberOfLines={2} style={styles.factValue}>{run.courtName}</Text>
+          </View>
+          <View style={[styles.factItem, styles.factBorder]}>
+            <Feather color={Colors.accent} name="user" size={14} />
+            <Text style={styles.factLabel}>CREATED BY</Text>
+            <Text numberOfLines={2} style={styles.factValue}>{run.hostName?.split(" ")[0] ?? "Local player"}</Text>
           </View>
         </View>
 
-        {/* Single RSVP roster — the DB models who's going, not team sides.
-            Teams get sorted out on the court. */}
+        {/* Team assignment is finalized by the creator when the official result
+            is submitted. Upcoming rosters stay neutral so the UI never invents
+            authoritative teams before that choice exists. */}
         <View style={styles.rosterArea}>
           <View style={[styles.teamHeader, { borderBottomColor: sportColor }]}>
-            <Text style={styles.teamLabel}>WHO'S GOING</Text>
+            <Text style={styles.teamLabel}>GAME ROSTER</Text>
+            <Text style={styles.goingCount}>GOING {total}/{max}</Text>
           </View>
           {run.participants.map((player) => (
             <View key={player.id} style={styles.playerSlot}>
@@ -132,16 +143,18 @@ export default function RunScreen() {
               <View>
                 <Text style={styles.slotName}>
                   {player.name.split(" ")[0]}
-                  {player.id === run.hostId ? "  · HOST" : ""}
+                  {player.id === run.hostId ? "  · CREATOR" : ""}
                 </Text>
                 <Text style={styles.slotElo}>{player.elo} ELO</Text>
               </View>
             </View>
           ))}
-          {Array.from({ length: spotsLeft }).map((_, i) => (
-            <View key={`open-${i}`} style={styles.playerSlot}>
-              <View style={styles.emptySlot}>
-                <Text style={styles.emptySlotText}>OPEN</Text>
+          {Array.from({ length: spotsLeft }).map((_, index) => (
+            <View key={`open-${index}`} style={[styles.playerSlot, styles.openSlot]}>
+              <View style={styles.openAvatar}><Feather color={Colors.mutedDark} name="plus" size={16} /></View>
+              <View>
+                <Text style={styles.openSlotName}>OPEN SPOT</Text>
+                <Text style={styles.slotElo}>JOIN TO CLAIM</Text>
               </View>
             </View>
           ))}
@@ -171,27 +184,34 @@ export default function RunScreen() {
           </View>
         ) : null}
 
-        {/* Before start: host can edit the run. After start: it's a played
-            game anyone here can log (routes to the Compete log flow). */}
+        {/* The scheduled game owns its result. Only its creator enters teams and
+            score; every participant then receives the shared review state. */}
         {hasStarted ? (
           <View style={styles.resultSection}>
-            <Text style={styles.resultLabel}>GAME DONE? LOG THE RESULT</Text>
+            <Text style={styles.resultLabel}>{isHost ? "GAME DONE? SUBMIT THE RESULT" : "RESULT STATUS"}</Text>
             <View style={styles.resultButtons}>
-              <BrutalistButton
-                label="LOG A GAME"
-                onPress={() => router.push(`/(tabs)/compete?tab=log&courtId=${run.courtId}`)}
-                variant="accent"
-                style={styles.resultBtn}
-                testID="log-game-btn"
-              />
+              {isHost ? (
+                <BrutalistButton
+                  label="SUBMIT RESULT"
+                  onPress={() => setShowResult(true)}
+                  variant="accent"
+                  style={styles.resultBtn}
+                  testID="log-game-btn"
+                />
+              ) : (
+                <View style={styles.awaitingResult}>
+                  <Text style={styles.awaitingResultTitle}>WAITING ON THE CREATOR</Text>
+                  <Text style={styles.awaitingResultCopy}>You’ll be notified when the score is ready to review.</Text>
+                </View>
+              )}
             </View>
           </View>
         ) : isHost ? (
           <View style={styles.resultSection}>
-            <Text style={styles.resultLabel}>MANAGE THIS RUN</Text>
+            <Text style={styles.resultLabel}>MANAGE THIS GAME</Text>
             <View style={styles.resultButtons}>
               <BrutalistButton
-                label="EDIT RUN"
+                label="EDIT GAME"
                 onPress={() => setShowEdit(true)}
                 variant="outline"
                 style={styles.resultBtn}
@@ -206,16 +226,25 @@ export default function RunScreen() {
         visible={showEdit}
         onClose={() => setShowEdit(false)}
         runId={run.id}
-        initialTitle={run.title}
+        creatorName={run.hostName}
+        sport={run.sport}
         initialMax={run.maxPlayers}
         goingCount={total}
         onSaved={refreshRuns}
       />
 
+      <SubmitRunResultSheet
+        visible={showResult}
+        onClose={() => setShowResult(false)}
+        runId={run.id}
+        format={format}
+        players={run.participants}
+      />
+
       <View style={[styles.footer, { paddingBottom: (Platform.OS === "web" ? 34 : bottom) + 12 }]}>
         {joinError && <Text style={styles.joinError}>COULD NOT JOIN — TRY AGAIN</Text>}
         <BrutalistButton
-          label={isJoined ? "YOU'RE GOING" : isFull ? "RUN FULL" : joining ? "JOINING…" : "JOIN RUN"}
+          label={isJoined ? "YOU'RE GOING" : isFull ? "GAME FULL" : joining ? "JOINING…" : "JOIN GAME"}
           onPress={handleJoin}
           variant={isJoined ? "outline" : "accent"}
           style={{ flex: 1, opacity: isFull && !isJoined ? 0.5 : 1 }}
@@ -226,17 +255,12 @@ export default function RunScreen() {
   );
 }
 
-/**
- * Compact host-only run editor: title, capacity (never below who's already
- * going), and note. Time editing is intentionally out of scope here — recreate
- * the run for a different slot. Persists via updateScheduledGame (organizer-only
- * RLS); zero returned rows surfaces as an error.
- */
 function EditRunModal({
   visible,
   onClose,
   runId,
-  initialTitle,
+  creatorName,
+  sport,
   initialMax,
   goingCount,
   onSaved,
@@ -244,32 +268,32 @@ function EditRunModal({
   visible: boolean;
   onClose: () => void;
   runId: string;
-  initialTitle: string;
+  creatorName?: string;
+  sport: CourtSport;
   initialMax: number;
   goingCount: number;
   onSaved: () => Promise<void> | void;
 }) {
-  const { top } = useSafeAreaInsets();
-  const [title, setTitle] = useState(initialTitle);
-  const [maxPlayers, setMaxPlayers] = useState(initialMax);
+  const [format, setFormat] = useState<ScheduledGameFormat>(formatForMaxPlayers(initialMax) ?? "5V5");
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (visible) {
-      setTitle(initialTitle);
-      setMaxPlayers(initialMax);
+      setFormat(formatForMaxPlayers(initialMax) ?? "5V5");
       setFailed(false);
     }
-  }, [visible, initialTitle, initialMax]);
+  }, [visible, initialMax]);
 
-  const sizes = RUN_SIZES.filter((n) => n >= Math.max(2, goingCount));
+  const formats = scheduledFormatsForSport(sport).filter(
+    (option) => maxPlayersForFormat(option) >= goingCount,
+  );
   const handleSave = async () => {
     setSaving(true);
     setFailed(false);
     const ok = await updateScheduledGame(runId, {
-      title: title.trim() || "PICKUP RUN",
-      maxPlayers,
+      title: generatedScheduledGameTitle(creatorName, format),
+      maxPlayers: maxPlayersForFormat(format),
     });
     setSaving(false);
     if (!ok) {
@@ -281,26 +305,17 @@ function EditRunModal({
   };
 
   return (
-    <FormSheet visible={visible} onClose={onClose} title="Edit run">
-        <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
-          <Text style={styles.editLabel}>TITLE</Text>
-          <TextInput
-            style={styles.editInput}
-            value={title}
-            onChangeText={setTitle}
-            placeholder="PICKUP RUN"
-            placeholderTextColor={Colors.mutedDark}
-          />
-
-          <Text style={styles.editLabel}>MAX PLAYERS</Text>
+    <RunFlowSheet visible={visible} onClose={onClose} eyebrow="UPCOMING GAME" title="Edit format">
+          <Text style={styles.editHelper}>The title stays generated from the creator and format.</Text>
+          <Text style={styles.editLabel}>FORMAT</Text>
           <View style={styles.editSizeRow}>
-            {sizes.map((n) => (
+            {formats.map((option) => (
               <Pressable
-                key={n}
-                style={[styles.editSizeCell, maxPlayers === n && styles.editSizeCellActive]}
-                onPress={() => setMaxPlayers(n)}
+                key={option}
+                style={[styles.editSizeCell, format === option && styles.editSizeCellActive]}
+                onPress={() => setFormat(option)}
               >
-                <Text style={[styles.editSizeText, maxPlayers === n && styles.editSizeTextActive]}>{n}</Text>
+                <Text style={[styles.editSizeText, format === option && styles.editSizeTextActive]}>{option}</Text>
               </Pressable>
             ))}
           </View>
@@ -310,8 +325,120 @@ function EditRunModal({
           <Pressable style={[styles.editSaveBtn, saving && { opacity: 0.5 }]} onPress={handleSave} disabled={saving}>
             <Text style={styles.editSaveText}>{saving ? "SAVING…" : "SAVE CHANGES"}</Text>
           </Pressable>
-        </ScrollView>
-    </FormSheet>
+    </RunFlowSheet>
+  );
+}
+
+function SubmitRunResultSheet({
+  visible,
+  onClose,
+  runId,
+  format,
+  players,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  runId: string;
+  format: ScheduledGameFormat;
+  players: Player[];
+}) {
+  const [assignments, setAssignments] = useState<TeamAssignment[]>([]);
+  const [scoreA, setScoreA] = useState("");
+  const [scoreB, setScoreB] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const teamSize = Number(format[0]);
+
+  useEffect(() => {
+    if (!visible) return;
+    setAssignments([]);
+    setScoreA("");
+    setScoreB("");
+    setError(null);
+  }, [visible]);
+
+  const teamA = assignments.filter((entry) => entry.side === "a");
+  const teamB = assignments.filter((entry) => entry.side === "b");
+
+  const assign = (playerId: string, side: "a" | "b") => {
+    setAssignments((current) => {
+      const existing = current.find((entry) => entry.playerId === playerId);
+      if (existing?.side === side) return current.filter((entry) => entry.playerId !== playerId);
+      const sideCount = current.filter((entry) => entry.side === side && entry.playerId !== playerId).length;
+      if (sideCount >= teamSize) return current;
+      return [...current.filter((entry) => entry.playerId !== playerId), { playerId, side }];
+    });
+  };
+
+  const validation = validateTeamAssignments(players.map((player) => player.id), assignments, format);
+  const parsedA = Number(scoreA);
+  const parsedB = Number(scoreB);
+  const validScore = scoreA !== "" && scoreB !== "" && Number.isInteger(parsedA) && Number.isInteger(parsedB) && parsedA !== parsedB;
+  const canSubmit = validation.valid && validScore && !submitting;
+
+  const submit = async () => {
+    if (!canSubmit) return;
+    setSubmitting(true);
+    setError(null);
+    const result = await logScheduledGameResult({
+      runId,
+      teamAIds: teamA.map((entry) => entry.playerId),
+      teamBIds: teamB.map((entry) => entry.playerId),
+      scoreA: parsedA,
+      scoreB: parsedB,
+    });
+    setSubmitting(false);
+    if (!result.ok) {
+      setError(result.error ?? "Could not submit this result.");
+      return;
+    }
+    onClose();
+    if (result.matchId) router.push(`/match/${result.matchId}`);
+  };
+
+  return (
+    <RunFlowSheet visible={visible} onClose={onClose} eyebrow={`${format} · OFFICIAL RESULT`} title="Set teams & score">
+      <Text style={styles.resultHelp}>Put every rostered player on one team. Everyone gets three days to dispute the submitted score.</Text>
+      <View style={styles.teamCountRow}>
+        <View style={styles.teamCount}><Text style={styles.teamCountLabel}>TEAM A</Text><Text style={styles.teamCountValue}>{teamA.length}/{teamSize}</Text></View>
+        <View style={styles.teamCount}><Text style={styles.teamCountLabel}>TEAM B</Text><Text style={styles.teamCountValue}>{teamB.length}/{teamSize}</Text></View>
+      </View>
+
+      <Text style={styles.editLabel}>ROSTER</Text>
+      {players.map((player) => {
+        const side = assignments.find((entry) => entry.playerId === player.id)?.side;
+        return (
+          <View key={player.id} style={styles.assignmentRow}>
+            <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={34} />
+            <View style={styles.assignmentIdentity}>
+              <Text style={styles.assignmentName} numberOfLines={1}>{player.name}</Text>
+              <Text style={styles.assignmentElo}>{player.elo} ELO</Text>
+            </View>
+            <View style={styles.sideControl}>
+              {(["a", "b"] as const).map((option) => (
+                <Pressable key={option} onPress={() => assign(player.id, option)} style={[styles.sideButton, side === option && styles.sideButtonActive]}>
+                  <Text style={[styles.sideButtonText, side === option && styles.sideButtonTextActive]}>{option.toUpperCase()}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        );
+      })}
+
+      <Text style={styles.editLabel}>FINAL SCORE</Text>
+      <View style={styles.scoreRow}>
+        <View style={styles.scoreField}><Text style={styles.scoreLabel}>TEAM A</Text><TextInput value={scoreA} onChangeText={setScoreA} keyboardType="number-pad" placeholder="0" placeholderTextColor={Colors.mutedDark} style={styles.scoreInput} /></View>
+        <Text style={styles.scoreDash}>–</Text>
+        <View style={styles.scoreField}><Text style={styles.scoreLabel}>TEAM B</Text><TextInput value={scoreB} onChangeText={setScoreB} keyboardType="number-pad" placeholder="0" placeholderTextColor={Colors.mutedDark} style={styles.scoreInput} /></View>
+      </View>
+
+      {!validation.valid ? <Text style={styles.resultValidation}>{validation.reason}</Text> : null}
+      {error ? <Text style={styles.editError}>{error.toUpperCase()}</Text> : null}
+      <Pressable disabled={!canSubmit} onPress={submit} style={[styles.editSaveBtn, !canSubmit && styles.submitDisabled]}>
+        <Text style={styles.editSaveText}>{submitting ? "SUBMITTING…" : "SUBMIT FOR REVIEW"}</Text>
+      </Pressable>
+      <Text style={styles.reviewFootnote}>No dispute: confirms after 3 days · Everyone approves: confirms early · Active dispute at deadline: dropped</Text>
+    </RunFlowSheet>
   );
 }
 
@@ -322,38 +449,37 @@ const styles = StyleSheet.create({
   notFound: { flex: 1, justifyContent: "center", alignItems: "center", gap: 20, padding: 40 },
   notFoundText: { fontFamily: Typography.heading, fontSize: 24, color: Colors.text, letterSpacing: 2 },
   header: {
-    paddingHorizontal: 20, paddingBottom: 20,
+    paddingHorizontal: 20, paddingBottom: 16,
     borderBottomWidth: 1, borderColor: Colors.border,
     backgroundColor: Colors.black,
-    flexDirection: "row", gap: 16,
+    flexDirection: "row", gap: 12, alignItems: "center",
   },
-  backBtn: {},
+  backBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   headerMain: { flex: 1 },
-  headerMeta: { flexDirection: "row", gap: 8, marginBottom: 8 },
-  sportTag: { flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3 },
-  sportDot: { width: 6, height: 6, borderRadius: 3 },
-  sportTagText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 2, textTransform: "uppercase" as const },
-  levelTag: { borderWidth: 1, borderColor: Colors.border, paddingHorizontal: 8, paddingVertical: 3 },
-  levelText: { fontFamily: Typography.bodyBold, fontSize: 9, color: Colors.mutedDark, letterSpacing: 2, textTransform: "uppercase" as const },
-  runTitle: { fontFamily: Typography.heading, fontSize: 32, color: Colors.white, letterSpacing: 1, lineHeight: 34 },
-  runInfo: { fontFamily: Typography.body, fontSize: 12, color: Colors.mutedDark, marginTop: 4 },
-  controlRow: { flexDirection: "row", borderBottomWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface },
-  controlItem: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 14 },
-  controlBorder: { borderLeftWidth: 1, borderColor: Colors.border },
-  controlLabel: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.muted, letterSpacing: 2, textTransform: "uppercase" as const },
-  controlValue: { fontFamily: Typography.heading, fontSize: 18, color: Colors.text },
+  headerEyebrow: { ...TextStyles.labelSmall, letterSpacing: 1.4 },
+  runTitle: { ...TextStyles.display, color: Colors.white, letterSpacing: 0.5 },
+  factsRow: { flexDirection: "row", borderBottomWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface },
+  factItem: { flex: 1, minHeight: 102, alignItems: "center", justifyContent: "flex-start", paddingHorizontal: 8, paddingVertical: 12, gap: 4 },
+  factBorder: { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: Colors.border },
+  factLabel: { ...TextStyles.labelSmall, color: Colors.muted, letterSpacing: 0.8 },
+  factValue: { ...TextStyles.caption, color: Colors.text, textAlign: "center" },
   rosterArea: { flexDirection: "row", flexWrap: "wrap" },
-  teamHeader: { width: "100%", borderBottomWidth: 3, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: Colors.surface },
+  teamHeader: { width: "100%", minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: 3, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: Colors.surface },
   teamLabel: { fontFamily: Typography.heading, fontSize: 13, color: Colors.text, letterSpacing: 3 },
-  playerSlot: { width: "50%", minHeight: 54, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderRightWidth: StyleSheet.hairlineWidth, borderColor: Colors.border },
-  slotName: { fontFamily: Typography.bodyBold, fontSize: 12, color: Colors.text },
-  slotElo: { fontFamily: Typography.heading, fontSize: 11, color: Colors.muted, marginTop: 1 },
-  emptySlot: { flex: 1, paddingVertical: 6, borderWidth: 1, borderColor: Colors.border, borderStyle: "dashed", alignItems: "center" },
-  emptySlotText: { fontFamily: Typography.bodyMedium, fontSize: 10, color: Colors.muted, letterSpacing: 1.5 },
+  goingCount: { ...TextStyles.label, color: Colors.accent, letterSpacing: 0.6 },
+  playerSlot: { width: "50%", minHeight: 62, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderRightWidth: StyleSheet.hairlineWidth, borderColor: Colors.border },
+  slotName: { ...TextStyles.listName, color: Colors.text },
+  slotElo: { ...TextStyles.caption, color: Colors.muted, marginTop: 1 },
+  openSlot: { borderStyle: "dashed", opacity: 0.72 },
+  openAvatar: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderWidth: 1, borderStyle: "dashed", borderColor: Colors.border, borderRadius: Radius.sm },
+  openSlotName: { ...TextStyles.labelSmall, color: Colors.textSecondary },
   resultSection: { paddingHorizontal: 20, paddingTop: 14 },
   resultLabel: { fontFamily: Typography.heading, fontSize: 13, color: Colors.text, letterSpacing: 3, borderBottomWidth: 1, borderColor: Colors.border, paddingBottom: 10, marginBottom: 12, textTransform: "uppercase" as const },
   resultButtons: { flexDirection: "row", gap: 10 },
   resultBtn: { flex: 1 },
+  awaitingResult: { flex: 1, padding: 16, borderRadius: Radius.md, backgroundColor: Colors.surface, alignItems: "center" },
+  awaitingResultTitle: { fontFamily: Typography.heading, fontSize: 15, color: Colors.text, letterSpacing: 1 },
+  awaitingResultCopy: { marginTop: 4, fontFamily: Typography.body, fontSize: 12, lineHeight: 17, color: Colors.muted, textAlign: "center" },
   inviteSection: { paddingHorizontal: 20, paddingTop: 12 },
   inviteRow: { minHeight: 52, flexDirection: "row", alignItems: "center", gap: 10, borderBottomWidth: 1, borderBottomColor: Colors.borderSubtle },
   inviteName: { flex: 1, fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.text, letterSpacing: 0.4 },
@@ -364,21 +490,10 @@ const styles = StyleSheet.create({
   footer: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingTop: 12, backgroundColor: Colors.surface, borderTopWidth: 1, borderColor: Colors.border },
   joinError: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.loss, letterSpacing: 1.5, textAlign: "center", marginBottom: 8 },
 
-  // ── Edit run modal ──
-  editSheet: { flex: 1, backgroundColor: Colors.background },
-  editHeader: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: 1, borderColor: Colors.border,
-  },
-  editTitle: { fontFamily: Typography.heading, fontSize: 16, color: Colors.text, letterSpacing: 3 },
+  editHelper: { fontFamily: Typography.body, fontSize: 13, lineHeight: 19, color: Colors.textSecondary },
   editLabel: {
     fontFamily: Typography.bodyBold, fontSize: 11, color: Colors.muted, letterSpacing: 2,
     textTransform: "uppercase" as const, marginTop: 20, marginBottom: 8,
-  },
-  editInput: {
-    borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface, color: Colors.text,
-    fontFamily: Typography.bodyMedium, fontSize: 13, paddingHorizontal: 12, minHeight: 44,
-    paddingVertical: 10, borderRadius: Radius.xs,
   },
   editSizeRow: { flexDirection: "row", gap: 8 },
   editSizeCell: {
@@ -393,8 +508,30 @@ const styles = StyleSheet.create({
     marginTop: 14, textAlign: "center",
   },
   editSaveBtn: {
-    backgroundColor: Colors.accent, alignItems: "center", paddingVertical: 14,
+    minHeight: 48, backgroundColor: Colors.accent, alignItems: "center", justifyContent: "center", paddingVertical: 14,
     borderRadius: Radius.xs, marginTop: 20,
   },
   editSaveText: { fontFamily: Typography.heading, fontSize: 12, color: Colors.black, letterSpacing: 2 },
+  resultHelp: { fontFamily: Typography.body, fontSize: 13, lineHeight: 19, color: Colors.textSecondary },
+  teamCountRow: { flexDirection: "row", gap: 10, marginTop: 16 },
+  teamCount: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 12, borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface },
+  teamCountLabel: { fontFamily: Typography.bodySemiBold, fontSize: 12, color: Colors.textSecondary, letterSpacing: 1 },
+  teamCountValue: { fontFamily: Typography.heading, fontSize: 20, color: Colors.text },
+  assignmentRow: { minHeight: 58, flexDirection: "row", alignItems: "center", gap: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border },
+  assignmentIdentity: { flex: 1, minWidth: 0 },
+  assignmentName: { fontFamily: Typography.bodySemiBold, fontSize: 14, lineHeight: 18, color: Colors.text },
+  assignmentElo: { marginTop: 2, fontFamily: Typography.body, fontSize: 11, lineHeight: 14, color: Colors.muted },
+  sideControl: { flexDirection: "row", borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.sm, overflow: "hidden" },
+  sideButton: { width: 40, minHeight: 36, alignItems: "center", justifyContent: "center", backgroundColor: Colors.surface },
+  sideButtonActive: { backgroundColor: Colors.accent },
+  sideButtonText: { fontFamily: Typography.bodySemiBold, fontSize: 12, color: Colors.textSecondary },
+  sideButtonTextActive: { color: Colors.black },
+  scoreRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  scoreField: { flex: 1, alignItems: "center", gap: 6 },
+  scoreLabel: { fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.textSecondary, letterSpacing: 1 },
+  scoreInput: { width: "100%", minHeight: 64, borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface, color: Colors.text, fontFamily: Typography.heading, fontSize: 30, textAlign: "center" },
+  scoreDash: { fontFamily: Typography.heading, fontSize: 24, color: Colors.muted },
+  resultValidation: { marginTop: 12, fontFamily: Typography.body, fontSize: 12, lineHeight: 17, color: Colors.textSecondary, textAlign: "center" },
+  submitDisabled: { opacity: 0.45 },
+  reviewFootnote: { marginTop: 12, fontFamily: Typography.body, fontSize: 11, lineHeight: 16, color: Colors.muted, textAlign: "center" },
 });

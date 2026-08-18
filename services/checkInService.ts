@@ -130,6 +130,28 @@ export async function fetchUserCheckInCount(userId: string): Promise<number | nu
   }
 }
 
+/** Visible trailing-90-day check-ins grouped Monday through Sunday. */
+export async function fetchPlayerActivityByWeekday(userId: string): Promise<number[]> {
+  try {
+    const since = new Date(Date.now() - 90 * 24 * 60 * 60_000).toISOString();
+    const { data, error } = await supabase
+      .from("check_ins")
+      .select("checked_in_at")
+      .eq("user_id", userId)
+      .gte("checked_in_at", since)
+      .order("checked_in_at", { ascending: true });
+    if (error || !data) return Array(7).fill(0);
+    const counts = Array(7).fill(0) as number[];
+    for (const row of data as Array<{ checked_in_at: string }>) {
+      const day = new Date(row.checked_in_at).getDay();
+      counts[(day + 6) % 7] += 1;
+    }
+    return counts;
+  } catch {
+    return Array(7).fill(0);
+  }
+}
+
 /**
  * Distinct players who checked in at a court in the trailing 7 days — the
  * "ACTIVE THIS WK" stat on the home hero. One indexed read; distinct is

@@ -15,7 +15,7 @@ const FEED_TYPE_LABELS: Record<FeedItem["type"], string> = {
   game_result: "GAME",
   run_result: "RESULT",
   new_court: "NEW COURT",
-  run_started: "RUN",
+  run_started: "GAME",
 };
 
 // Event-type color coding — tokens from constants/colors.ts only.

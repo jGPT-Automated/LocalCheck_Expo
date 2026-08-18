@@ -329,8 +329,6 @@ export async function fetchCourtsByMarket(
   }
 }
 
-export type CourtAccessType = "public_free" | "public_paid" | "private_paid";
-
 export interface VerifiedCourtSubmission {
   name?: string;
   address: string;
@@ -338,7 +336,6 @@ export interface VerifiedCourtSubmission {
   state: string;
   latitude: number;
   longitude: number;
-  accessType: CourtAccessType;
   imageBase64: string;
   imageMimeType: string;
 }

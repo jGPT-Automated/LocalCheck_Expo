@@ -107,8 +107,8 @@ export function GameResultModal({
         >
           <View style={styles.handle} />
           <View style={styles.header}>
-            <View style={styles.headerCopy}>
-              <View style={styles.eyebrow}>
+            <View style={styles.eyebrowRow}>
+              <View style={styles.eyebrowLeft}>
                 {sport ? (
                   <MaterialCommunityIcons
                     color={Colors.accent}
@@ -116,24 +116,18 @@ export function GameResultModal({
                     size={12}
                   />
                 ) : null}
-                <Text style={styles.eyebrowText}>
-                  {sport ? `${sport} · ` : ""}FINAL
-                </Text>
+                <Text style={styles.eyebrowText}>{sport ? `${sport}` : ""}</Text>
               </View>
-              <Text numberOfLines={1} style={styles.court}>
-                {courtName || "GAME RESULT"}
-              </Text>
-              <Text style={styles.date}>{dateLabel}</Text>
+              {/* Only "confirmed" exists on this summary today, but the badge
+                  is built to take pending/disputed variants without a
+                  restyle once those states reach this modal. Kept on the
+                  opposite edge from the sport tag — match state and sport
+                  type are different categories of metadata and shouldn't
+                  read as one grouped label. */}
+              <StatusBadge status="confirmed" />
             </View>
-            <Pressable
-              accessibilityLabel="Close"
-              accessibilityRole="button"
-              hitSlop={12}
-              onPress={onClose}
-              style={({ pressed }) => [styles.close, pressed && styles.pressed]}
-            >
-              <Feather color={Colors.text} name="x" size={18} />
-            </Pressable>
+            <Text style={styles.court}>{courtName || "GAME RESULT"}</Text>
+            <Text style={styles.date}>{dateLabel}</Text>
           </View>
 
           <View style={styles.scoreboard}>
@@ -143,11 +137,8 @@ export function GameResultModal({
               score={match.scoreA}
               winner={match.winnerSide === "a"}
             />
-            <View style={styles.scoreDivider}>
-              <Text style={styles.finalLabel}>FINAL</Text>
-            </View>
+            <View style={styles.scoreDivider} />
             <ResultSide
-              align="right"
               label="SIDE B"
               names={formatMatchSide(match.sideB)}
               score={match.scoreB}
@@ -168,44 +159,53 @@ export function GameResultModal({
   );
 }
 
+const STATUS_BADGE: Record<
+  "confirmed" | "pending" | "disputed",
+  { label: string; background: string; color: string }
+> = {
+  confirmed: { label: "FINAL", background: Colors.accent, color: Colors.black },
+  pending: { label: "PENDING", background: Colors.surfaceHigh, color: Colors.textSecondary },
+  disputed: { label: "OBJECTED", background: Colors.loss, color: Colors.white },
+};
+
+function StatusBadge({ status }: { status: "confirmed" | "pending" | "disputed" }) {
+  const { label, background, color } = STATUS_BADGE[status];
+  return (
+    <View style={[styles.statusBadge, { backgroundColor: background }]}>
+      <Text style={[styles.statusBadgeText, { color }]}>{label}</Text>
+    </View>
+  );
+}
+
 function ResultSide({
   label,
   names,
   score,
   winner,
-  align = "left",
 }: {
   label: string;
   names: string;
   score: number;
   winner: boolean;
-  align?: "left" | "right";
 }) {
   return (
     <View style={styles.side}>
-      <View
-        style={[styles.sideMeta, align === "right" && styles.sideMetaRight]}
-      >
-        <Text style={[styles.sideLabel, align === "right" && styles.textRight]}>
-          {label}
-        </Text>
-        {winner ? (
-          <View style={styles.winnerChip}>
-            <Feather color={Colors.black} name="check" size={9} />
-            <Text style={styles.winnerChipText}>WIN</Text>
-          </View>
-        ) : null}
-      </View>
-      <Text style={[styles.sideNames, align === "right" && styles.textRight]}>
-        {names}
-      </Text>
-      <Text
-        style={[
-          styles.sideScore,
-          winner && styles.winnerScore,
-          align === "right" && styles.textRight,
-        ]}
-      >
+      <Text style={styles.sideLabel}>{label}</Text>
+      <Text style={styles.sideNames}>{names}</Text>
+      {/* WIN is an annotation on this side's score, not a match-state badge
+          — it must not share the status pill's visual language (that's what
+          made WIN and FINAL read as the same kind of thing). Text-only,
+          tied to the number it explains, with a matching-height spacer on
+          the other side so both scores still land on the same baseline. */}
+      {winner ? (
+        <View style={styles.winRow}>
+          <Feather color={Colors.accent} name="check" size={10} />
+          <Text style={styles.winText}>WIN</Text>
+        </View>
+      ) : (
+        <View style={styles.winRowSpacer} />
+      )}
+      <Text style={[styles.sideScore, winner && styles.winnerScore]}>
         {score}
       </Text>
     </View>
@@ -240,17 +240,19 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.mutedDark,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: Space.lg,
+    // No close button here anymore — the backdrop tap and DONE both close
+    // this modal already, so a redundant X was competing with the court
+    // name for the same row's width and forcing it to truncate.
   },
-  headerCopy: {
-    flex: 1,
-  },
-  eyebrow: {
+  eyebrowRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    justifyContent: "space-between",
+  },
+  eyebrowLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
   },
   eyebrowText: {
     fontFamily: Typography.bodyBold,
@@ -258,8 +260,18 @@ const styles = StyleSheet.create({
     color: Colors.accent,
     letterSpacing: 1.5,
   },
+  statusBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: Radius.xs,
+  },
+  statusBadgeText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 8,
+    letterSpacing: 1,
+  },
   court: {
-    marginTop: 6,
+    marginTop: 8,
     fontFamily: Typography.headingBold,
     fontSize: 22,
     lineHeight: 27,
@@ -273,16 +285,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: Colors.muted,
     letterSpacing: 1,
-  },
-  close: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.surfaceHigh,
-    borderWidth: 1,
-    borderColor: Colors.border,
   },
   scoreboard: {
     minHeight: 176,
@@ -298,15 +300,6 @@ const styles = StyleSheet.create({
   side: {
     flex: 1,
     paddingHorizontal: Space.md,
-  },
-  sideMeta: {
-    minHeight: 19,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Space.xs,
-  },
-  sideMetaRight: {
-    justifyContent: "flex-end",
   },
   sideLabel: {
     fontFamily: Typography.bodyBold,
@@ -325,6 +318,7 @@ const styles = StyleSheet.create({
   },
   sideScore: {
     marginTop: Space.md,
+    textAlign: "center",
     fontFamily: Typography.headingBold,
     fontSize: 45,
     lineHeight: 49,
@@ -333,23 +327,22 @@ const styles = StyleSheet.create({
   winnerScore: {
     color: Colors.accent,
   },
-  textRight: {
-    textAlign: "right",
-  },
-  winnerChip: {
-    minHeight: 17,
-    paddingHorizontal: 5,
-    borderRadius: Radius.xs,
+  winRow: {
+    marginTop: Space.md,
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
-    backgroundColor: Colors.accent,
+    justifyContent: "center",
+    gap: 3,
   },
-  winnerChipText: {
+  winRowSpacer: {
+    marginTop: Space.md,
+    height: 12,
+  },
+  winText: {
     fontFamily: Typography.bodyBold,
-    fontSize: 7,
-    color: Colors.black,
-    letterSpacing: 0.6,
+    fontSize: 9,
+    color: Colors.accent,
+    letterSpacing: 1.5,
   },
   scoreDivider: {
     width: 36,
@@ -358,13 +351,6 @@ const styles = StyleSheet.create({
     borderLeftWidth: StyleSheet.hairlineWidth,
     borderRightWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
-  },
-  finalLabel: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 7,
-    color: Colors.muted,
-    letterSpacing: 1.1,
-    transform: [{ rotate: "-90deg" }],
   },
   done: {
     minHeight: 48,

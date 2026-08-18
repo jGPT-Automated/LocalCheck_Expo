@@ -10,7 +10,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/brand/auth-graphic.png",
+      "image": "./assets/brand/logo-mark.png",
       "resizeMode": "contain",
       "backgroundColor": "#101010"
     },

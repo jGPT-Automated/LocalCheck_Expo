@@ -5,7 +5,6 @@ export const supportedMimeTypes = new Set([
   "image/heic",
   "image/heif",
 ]);
-export const supportedAccessTypes = new Set(["public_free", "public_paid", "private_paid"]);
 export const supportedSettings = new Set(["outdoor", "indoor", "mixed", "outdoor_covered"]);
 export const supportedSports = new Set(["basketball", "pickleball"]);
 
@@ -24,7 +23,6 @@ export interface ValidCourtSubmission {
   state: string;
   latitude: number;
   longitude: number;
-  accessType: string;
   imageBase64: string;
   imageMimeType: string;
 }
@@ -82,7 +80,6 @@ export function validateCourtSubmission(body: Record<string, unknown>): Validati
   const address = cleanText(body.address, 250);
   const city = cleanText(body.city, 80);
   const state = cleanText(body.state, 2).toUpperCase();
-  const accessType = cleanText(body.accessType, 32);
   const imageBase64 = typeof body.imageBase64 === "string" ? body.imageBase64 : "";
   const imageMimeType = cleanText(body.imageMimeType, 32).toLowerCase();
   const latitude = typeof body.latitude === "number" ? body.latitude : Number.NaN;
@@ -94,9 +91,6 @@ export function validateCourtSubmission(body: Record<string, unknown>): Validati
   if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90
     || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
     return { ok: false, error: "The court location is invalid." };
-  }
-  if (!supportedAccessTypes.has(accessType)) {
-    return { ok: false, error: "Choose a valid access type." };
   }
   if (!supportedMimeTypes.has(imageMimeType) || imageBase64.length < 200 || imageBase64.length > 8_000_000) {
     return { ok: false, error: "Use a clear JPEG, PNG, WebP, HEIC, or HEIF photo under 6 MB." };
@@ -111,7 +105,6 @@ export function validateCourtSubmission(body: Record<string, unknown>): Validati
       state,
       latitude,
       longitude,
-      accessType,
       imageBase64,
       imageMimeType,
     },

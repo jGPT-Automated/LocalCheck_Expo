@@ -25,19 +25,9 @@ import type { Court } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
-import type {
-  CourtAccessType,
-  CourtSubmissionResult,
-  VerifiedCourtSubmission,
-} from "@/services/courtService";
+import type { CourtSubmissionResult, VerifiedCourtSubmission } from "@/services/courtService";
 
 type Step = "details" | "photo" | "verifying" | "result";
-
-const ACCESS_OPTIONS: Array<{ value: CourtAccessType; label: string }> = [
-  { value: "public_free", label: "FREE" },
-  { value: "public_paid", label: "PAID" },
-  { value: "private_paid", label: "PRIVATE" },
-];
 
 function buildAddress(place: Location.LocationGeocodedAddress): string {
   const street = [place.streetNumber, place.street].filter(Boolean).join(" ").trim();
@@ -64,7 +54,6 @@ export function AddCourtModal({
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [stateCode, setStateCode] = useState("");
-  const [accessType, setAccessType] = useState<CourtAccessType>("public_free");
   const [latitude, setLatitude] = useState<number | null>(initialLatitude ?? null);
   const [longitude, setLongitude] = useState<number | null>(initialLongitude ?? null);
   const [locating, setLocating] = useState(false);
@@ -93,7 +82,6 @@ export function AddCourtModal({
     setAddress("");
     setCity("");
     setStateCode("");
-    setAccessType("public_free");
     setPhotoUri(null);
     setPhotoBase64(null);
     setPhotoMimeType("image/jpeg");
@@ -180,7 +168,6 @@ export function AddCourtModal({
       state: stateCode.trim().toUpperCase(),
       latitude,
       longitude,
-      accessType,
       imageBase64: photoBase64,
       imageMimeType: photoMimeType,
     };
@@ -190,7 +177,6 @@ export function AddCourtModal({
     setResult(nextResult);
     setStep("result");
   }, [
-    accessType,
     addCourt,
     address,
     city,
@@ -327,23 +313,6 @@ export function AddCourtModal({
               style={[styles.input, styles.stateInput]}
               value={stateCode}
             />
-          </View>
-
-          <Text style={styles.fieldLabel}>ACCESS</Text>
-          <View accessibilityRole="radiogroup" style={styles.segmented}>
-            {ACCESS_OPTIONS.map((option) => (
-              <Pressable
-                accessibilityRole="radio"
-                accessibilityState={{ checked: accessType === option.value }}
-                key={option.value}
-                onPress={() => setAccessType(option.value)}
-                style={[styles.segment, accessType === option.value && styles.segmentActive]}
-              >
-                <Text style={[styles.segmentText, accessType === option.value && styles.segmentTextActive]}>
-                  {option.label}
-                </Text>
-              </Pressable>
-            ))}
           </View>
 
           <BrutalistButton
@@ -525,28 +494,6 @@ const styles = StyleSheet.create({
   locationFields: { flexDirection: "row", gap: Space.sm },
   cityInput: { flex: 1 },
   stateInput: { width: 72, textAlign: "center" },
-  segmented: {
-    flexDirection: "row",
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.sm,
-    overflow: "hidden",
-  },
-  segment: {
-    flex: 1,
-    minHeight: Layout.minTouchTarget,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.surface,
-  },
-  segmentActive: { backgroundColor: Colors.surfaceHigh },
-  segmentText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 10,
-    color: Colors.muted,
-    letterSpacing: 1,
-  },
-  segmentTextActive: { color: Colors.accent },
   helper: { fontFamily: Typography.body, fontSize: 11, color: Colors.muted, textAlign: "center" },
   photoPreviewWrap: {
     height: 250,

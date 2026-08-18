@@ -83,7 +83,7 @@ export function ActivityRow({
 function sentenceAction(type: FeedItem["type"], fallback: string): string {
   if (type === "checkin") return "checked in";
   if (type === "checkout") return "checked out";
-  if (type === "run_started") return "started a run";
+  if (type === "run_started") return "scheduled a game";
   if (type === "new_court") return "added a court";
   return fallback.toLocaleLowerCase();
 }
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   pressed: { backgroundColor: Colors.surfacePressed },
   activityLine: { flexDirection: "row", alignItems: "center", gap: Space.sm },
   sentence: { flex: 1, minWidth: 0, fontSize: 12, lineHeight: 17 },
-  actor: { fontFamily: Typography.body, color: Colors.text },
+  actor: { fontFamily: Typography.body, color: Colors.text, textTransform: "uppercase" },
   action: { fontFamily: Typography.body, color: Colors.textSecondary },
   time: {
     flexShrink: 0,
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
   },
-  winner: { color: Colors.win },
-  loser: { color: Colors.loss },
+  winner: { color: Colors.win, textTransform: "uppercase" },
+  loser: { color: Colors.loss, textTransform: "uppercase" },
   score: { color: Colors.text, fontFamily: Typography.heading },
 });

@@ -36,11 +36,13 @@ export function CourtSheetContent({
   distanceKm,
   onNavigate,
   onExpand,
+  onPeekHeight,
 }: {
   courtId: string;
   distanceKm?: number;
   onNavigate: () => void;
   onExpand: () => void;
+  onPeekHeight: (height: number) => void;
 }) {
   const {
     courts, localCourt, checkIn, checkOut, checkedInCourtId,
@@ -116,31 +118,38 @@ export function CourtSheetContent({
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: bottom + 32 }}
     >
-      {/* ── Peek layer: visible at the 40% snap point ── */}
+      {/* ── Peek layer: its measured height owns the first sheet detent ── */}
+      <View onLayout={(event) => onPeekHeight(event.nativeEvent.layout.height)}>
       <View style={styles.peekHeader}>
-        <View style={{ flex: 1, paddingRight: 12 }}>
+        <View style={styles.headerCorner}>
           <View style={styles.sportTag}>
             <SportEmblem glow={false} size={13} sport={court.sport} />
             <Text style={[styles.sportText, { color: sportColor }]}>{court.sport}</Text>
-            {distLabel && <Text style={styles.metaDim}> · {distLabel}</Text>}
-            {isMyLocal ? (
-              <View style={styles.myLocalTag}>
-                <Feather color={Colors.accent} fill={Colors.accent} name="star" size={9} />
-                <Text style={styles.myLocalInline}>MY LOCAL</Text>
-              </View>
-            ) : null}
+            {distLabel && <Text style={styles.metaDim}>· {distLabel}</Text>}
           </View>
-          <Text style={styles.courtName} numberOfLines={2}>{court.name.toUpperCase()}</Text>
-          <Text style={styles.courtAddress}>
-            {court.neighborhood}{court.city ? ` · ${court.city}` : ""}
-          </Text>
         </View>
-        {activeCount > 0 && (
-          <View style={styles.liveChip}>
-            <LivePulse size={4} color={Colors.black} style={{ marginRight: 4 }} />
-            <Text style={styles.liveChipText}>LIVE</Text>
-          </View>
-        )}
+        <View style={styles.headerCornerRight}>
+          <Text numberOfLines={1} style={styles.courtAddress}>
+            {court.city || court.neighborhood}
+          </Text>
+          {activeCount > 0 ? (
+            <View style={styles.liveChip}>
+              <LivePulse size={4} color={Colors.black} style={{ marginRight: 4 }} />
+              <Text style={styles.liveChipText}>LIVE</Text>
+            </View>
+          ) : isMyLocal ? (
+            <View style={styles.myLocalTag}>
+              <Feather color={Colors.accent} fill={Colors.accent} name="star" size={9} />
+              <Text style={styles.myLocalInline}>MY LOCAL</Text>
+            </View>
+          ) : null}
+        </View>
+        <View pointerEvents="none" style={styles.centerTitleWrap}>
+          <Text style={styles.courtName} numberOfLines={2}>{court.name.toUpperCase()}</Text>
+          {court.neighborhood && court.neighborhood !== court.city ? (
+            <Text numberOfLines={1} style={styles.neighborhood}>{court.neighborhood}</Text>
+          ) : null}
+        </View>
       </View>
 
       <View style={styles.statsRow}>
@@ -156,14 +165,14 @@ export function CourtSheetContent({
           label={isCheckedIn ? "CHECKED IN" : "CHECK IN"}
           onPress={handleCheckIn}
           variant={isCheckedIn ? "outline" : "accent"}
-          style={{ flex: 2 }}
+          style={styles.actionButton}
           testID="check-in-btn"
         />
         <BrutalistButton
           label="VIEW COURT"
           onPress={() => go(`/court/${court.id}`)}
           variant="dark"
-          style={{ flex: 1.5 }}
+          style={styles.actionButton}
         />
       </View>
 
@@ -173,8 +182,9 @@ export function CourtSheetContent({
         accessibilityLabel="Expand for who's here and locals"
       >
         <Text style={styles.swipeHintText}>SWIPE UP FOR WHO'S HERE + LOCALS</Text>
-        <Feather color={Colors.accent} name="arrow-up" size={13} />
+        <Feather color={Colors.accent} name="chevron-up" size={15} />
       </Pressable>
+      </View>
 
       {/* ── Full layer ── */}
       <View style={styles.section}>
@@ -289,12 +299,16 @@ const styles = StyleSheet.create({
   loading: { alignItems: "center", justifyContent: "center", paddingVertical: 64 },
 
   peekHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+    minHeight: 94,
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 4,
+    justifyContent: "center",
+    position: "relative",
   },
+  headerCorner: { position: "absolute", left: 20, top: 12, maxWidth: "42%" },
+  headerCornerRight: { position: "absolute", right: 20, top: 12, maxWidth: "36%", alignItems: "flex-end", gap: 6 },
+  centerTitleWrap: { alignSelf: "center", width: "72%", alignItems: "center", paddingTop: 20 },
   sportTag: { flexDirection: "row", alignItems: "center", gap: 5 },
   sportDot: { width: 6, height: 6, borderRadius: 3 },
   sportText: {
@@ -322,13 +336,20 @@ const styles = StyleSheet.create({
     color: Colors.white,
     lineHeight: 30,
     letterSpacing: 0.5,
-    marginTop: 6,
+    textAlign: "center",
   },
   courtAddress: {
     fontFamily: Typography.body,
     fontSize: 12,
     color: Colors.mutedDark,
+    textAlign: "right",
+  },
+  neighborhood: {
+    fontFamily: Typography.body,
+    fontSize: 11,
+    color: Colors.mutedDark,
     marginTop: 2,
+    textAlign: "center",
   },
   liveChip: {
     flexDirection: "row",
@@ -363,12 +384,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 14,
   },
+  actionButton: { flex: 1, minHeight: 48 },
   swipeHint: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 6,
-    paddingVertical: 12,
+    minHeight: 44,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
   },
   swipeHintText: {
     fontFamily: Typography.bodyMedium,

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 240" width="250" height="240">
+  <title>LocalCheck chevron icon</title>
+  <rect x="0" y="0" width="76" height="18" fill="#FFFFFF"/>
+  <rect x="0" y="0" width="18" height="76" fill="#FFFFFF"/>
+  <rect x="174" y="0" width="76" height="18" fill="#FFFFFF"/>
+  <rect x="232" y="0" width="18" height="76" fill="#FFFFFF"/>
+  <rect x="0" y="222" width="76" height="18" fill="#FFFFFF"/>
+  <rect x="0" y="164" width="18" height="76" fill="#FFFFFF"/>
+  <rect x="174" y="222" width="76" height="18" fill="#FFFFFF"/>
+  <rect x="232" y="164" width="18" height="76" fill="#FFFFFF"/>
+  <polygon points="123,59 62,122 125,184 138,170 91,122 138,73" fill="#FE6A03"/>
+</svg>

@@ -68,7 +68,7 @@ export default function NotificationsScreen() {
             <View style={styles.pushIcon}><Feather name="bell" size={16} color={Colors.accent} /></View>
             <View style={{ flex: 1 }}>
               <Text style={styles.pushTitle}>TURN ON PHONE ALERTS</Text>
-              <Text style={styles.pushBody}>Get run invites and score reviews when LocalCheck is closed.</Text>
+              <Text style={styles.pushBody}>Get game invitations and score reviews when LocalCheck is closed.</Text>
             </View>
             <Feather name="chevron-right" size={18} color={Colors.muted} />
           </Pressable>
@@ -80,7 +80,7 @@ export default function NotificationsScreen() {
           <View style={styles.empty}>
             <Feather name="bell" size={24} color={Colors.muted} />
             <Text style={styles.emptyTitle}>NO NOTIFICATIONS YET</Text>
-            <Text style={styles.emptyBody}>Friend requests, run invites, and score reviews will appear here.</Text>
+            <Text style={styles.emptyBody}>Friend requests, game invitations, and score reviews will appear here.</Text>
           </View>
         ) : notifications.map((item) => (
           <Pressable

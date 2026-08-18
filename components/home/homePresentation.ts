@@ -50,7 +50,7 @@ export function formatActivityCopy(item: ActivityCopyInput): {
     checkin: "checked in",
     checkout: "checked out",
     new_court: "added a new court",
-    run_started: "started a run",
+    run_started: "scheduled a game",
   };
 
   const action =

@@ -5,7 +5,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors } from "@/constants/colors";
 import type { Player } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
-import { Typography } from "@/constants/typography";
+import { TextStyles } from "@/constants/typography";
 
 import { EloStat } from "./EloStat";
 
@@ -52,8 +52,7 @@ export function PlayerSummaryRow({
       </View>
       {checkInCount !== undefined ? (
         <View accessibilityLabel={`${checkInCount} check-ins`} style={styles.checkIns}>
-          <Text style={styles.checkInValue}>{checkInCount}</Text>
-          <Text style={styles.checkInLabel}>CHECK-INS</Text>
+          <Text numberOfLines={1} style={styles.checkInLabel}>{checkInCount} CHECK-INS</Text>
         </View>
       ) : null}
       <EloStat value={player.elo} />
@@ -63,43 +62,32 @@ export function PlayerSummaryRow({
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: 68,
+    minHeight: 72,
     paddingHorizontal: Layout.screenGutter,
     flexDirection: "row",
     alignItems: "center",
-    gap: Space.md,
+    gap: Space.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.borderSubtle,
   },
   pressed: { backgroundColor: Colors.surfacePressed },
   copy: { flex: 1, minWidth: 0 },
   name: {
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 12,
-    lineHeight: 16,
+    ...TextStyles.listName,
     color: Colors.text,
+    textTransform: "uppercase",
   },
   quiet: { color: Colors.textSecondary },
   detail: {
     marginTop: 2,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 7,
+    ...TextStyles.caption,
     color: Colors.muted,
-    letterSpacing: 1.1,
-    textTransform: "uppercase",
+    letterSpacing: 0,
   },
-  checkIns: { minWidth: 60, marginRight: Space.sm, alignItems: "center" },
-  checkInValue: {
-    fontFamily: Typography.heading,
-    fontSize: 16,
-    lineHeight: 18,
-    color: Colors.textSecondary,
-  },
+  checkIns: { minWidth: 68, alignItems: "center", justifyContent: "center" },
   checkInLabel: {
-    marginTop: 1,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 7,
-    color: Colors.muted,
-    letterSpacing: 1.1,
+    ...TextStyles.labelSmall,
+    color: Colors.textSecondary,
+    letterSpacing: 0,
   },
 });
