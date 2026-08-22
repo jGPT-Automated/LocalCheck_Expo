@@ -23,6 +23,7 @@ its Supabase source of truth. Read this file before changing anything.
   `qkrnmyexzvaxiqfxwwfb`.
 - Database history: `supabase/migrations/`; functions:
   `supabase/functions/`.
+
 Never implement from an archive, another checkout, an old pull request, a
 generated design artifact, or a machine-specific path. Do not add an
 application API tier, workspace packages, fabricated application data, or
