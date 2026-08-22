@@ -1,19 +1,18 @@
 import React, { useEffect, useRef } from "react";
 import { StyleSheet } from "react-native";
-import Svg, { Polygon, Rect } from "react-native-svg";
 import Animated, {
   Easing,
   cancelAnimation,
-  useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withSequence,
   withTiming,
-  type SharedValue,
 } from "react-native-reanimated";
 
+import { AnimatedLogoMark } from "@/components/brand/LogoMark";
 import { Colors } from "@/constants/colors";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { remainingLaunchFloor } from "./launchTiming";
 
 // The one loading/launch indicator for the auth journey. This is the exact
 // geometry from components/brand/LogoMark.tsx's CornerFrame — the same
@@ -28,7 +27,6 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 // journey: after a sign-in/sign-up/Apple submit, or once on cold open for
 // an already-signed-in session — never as a separate pre-form splash.
 const MARK_SIZE = 88;
-const VIEWBOX = "0 0 210 202";
 const DIM_OPACITY = 0.32;
 const STEP_MS = 130;
 const MIN_ROTATIONS = 3;
@@ -38,48 +36,6 @@ const HOLD_MS = 220;
 // Total floor ~2000ms: three full sweeps, then solid, then in — matching
 // "1.5 to 2 seconds" end to end, on both the post-sign-in path and the
 // already-signed-in cold-open path.
-
-const CORNER_RECTS = [
-  // top-left
-  [
-    { height: 16, width: 65, x: 0, y: 0 },
-    { height: 68, width: 16, x: 0, y: 0 },
-  ],
-  // top-right
-  [
-    { height: 16, width: 65, x: 145, y: 0 },
-    { height: 68, width: 16, x: 194, y: 0 },
-  ],
-  // bottom-right
-  [
-    { height: 17, width: 65, x: 145, y: 185 },
-    { height: 68, width: 16, x: 194, y: 134 },
-  ],
-  // bottom-left
-  [
-    { height: 17, width: 65, x: 0, y: 185 },
-    { height: 68, width: 16, x: 0, y: 134 },
-  ],
-] as const;
-
-function Corner({
-  rects,
-  intensity,
-}: {
-  rects: readonly { height: number; width: number; x: number; y: number }[];
-  intensity: SharedValue<number>;
-}) {
-  const style = useAnimatedStyle(() => ({ opacity: intensity.value }));
-  return (
-    <Animated.View pointerEvents="none" style={[styles.layer, style]}>
-      <Svg fill="none" height={MARK_SIZE} viewBox={VIEWBOX} width={MARK_SIZE}>
-        {rects.map((r) => (
-          <Rect key={`${r.x}-${r.y}`} fill={Colors.white} height={r.height} width={r.width} x={r.x} y={r.y} />
-        ))}
-      </Svg>
-    </Animated.View>
-  );
-}
 
 export function LaunchTransition({
   loading,
@@ -95,7 +51,7 @@ export function LaunchTransition({
   const c3 = useSharedValue(DIM_OPACITY);
   const corners = [c0, c1, c2, c3];
   const settledRef = useRef(false);
-  const cycleStartedAtRef = useRef<number | null>(null);
+  const cycleStartedAtRef = useRef(Date.now());
 
   useEffect(() => {
     // Wait for the real (resolved) value. reducedMotion starts null and
@@ -119,7 +75,6 @@ export function LaunchTransition({
     }
 
     if (loading) {
-      if (cycleStartedAtRef.current === null) cycleStartedAtRef.current = Date.now();
       corners.forEach((c, i) => {
         const sequence = [0, 1, 2, 3].map((slot) =>
           withTiming(slot === i ? 1 : DIM_OPACITY, {
@@ -136,8 +91,7 @@ export function LaunchTransition({
     // already-signed-in cold-open case), resolve immediately. Otherwise
     // finish out the minimum rotation floor before resolving.
     if (settledRef.current) return;
-    const elapsed = cycleStartedAtRef.current === null ? MIN_LOADING_MS : Date.now() - cycleStartedAtRef.current;
-    const remaining = Math.max(0, MIN_LOADING_MS - elapsed);
+    const remaining = remainingLaunchFloor(cycleStartedAtRef.current, Date.now(), MIN_LOADING_MS);
 
     const resolveTimer = setTimeout(() => {
       settledRef.current = true;
@@ -155,14 +109,7 @@ export function LaunchTransition({
   return (
     <Animated.View style={styles.overlay}>
       <Animated.View style={styles.mark}>
-        {CORNER_RECTS.map((rects, i) => (
-          <Corner key={i} rects={rects} intensity={corners[i]} />
-        ))}
-        <Animated.View pointerEvents="none" style={styles.layer}>
-          <Svg fill="none" height={MARK_SIZE} viewBox={VIEWBOX} width={MARK_SIZE}>
-            <Polygon fill={Colors.brandMark} points="45,110 60,96 87,122 155,53 170,67 87,151" />
-          </Svg>
-        </Animated.View>
+        <AnimatedLogoMark cornerIntensities={[c0, c1, c2, c3]} size={MARK_SIZE} />
       </Animated.View>
     </Animated.View>
   );
@@ -177,11 +124,6 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   mark: {
-    width: MARK_SIZE,
-    height: MARK_SIZE,
-  },
-  layer: {
-    position: "absolute",
     width: MARK_SIZE,
     height: MARK_SIZE,
   },

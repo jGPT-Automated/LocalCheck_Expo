@@ -13,6 +13,7 @@ import {
   generatedScheduledGameTitle,
   maxPlayersForFormat,
   scheduledFormatsForSport,
+  scheduledResultAction,
   validateTeamAssignments,
   type ScheduledGameFormat,
   type TeamAssignment,
@@ -68,6 +69,12 @@ export default function RunScreen() {
   const format = formatForMaxPlayers(run.maxPlayers) ?? "5V5";
   // Before the start time the run can be edited; after it, it's a played game to log.
   const hasStarted = new Date(run.startTimeIso).getTime() <= Date.now();
+  const resultAction = scheduledResultAction({
+    hasStarted,
+    isHost,
+    status: run.status,
+    resultMatchId: run.resultMatchId,
+  });
   const participantIds = new Set(run.participants.map((player) => player.id));
   const inviteableFriends = getFriendsList()
     .filter((friend) => !participantIds.has(friend.id))
@@ -186,11 +193,13 @@ export default function RunScreen() {
 
         {/* The scheduled game owns its result. Only its creator enters teams and
             score; every participant then receives the shared review state. */}
-        {hasStarted ? (
+        {resultAction.kind !== "none" ? (
           <View style={styles.resultSection}>
-            <Text style={styles.resultLabel}>{isHost ? "GAME DONE? SUBMIT THE RESULT" : "RESULT STATUS"}</Text>
+            <Text style={styles.resultLabel}>
+              {resultAction.kind === "submit" ? "GAME DONE? SUBMIT THE RESULT" : "RESULT STATUS"}
+            </Text>
             <View style={styles.resultButtons}>
-              {isHost ? (
+              {resultAction.kind === "submit" ? (
                 <BrutalistButton
                   label="SUBMIT RESULT"
                   onPress={() => setShowResult(true)}
@@ -198,10 +207,24 @@ export default function RunScreen() {
                   style={styles.resultBtn}
                   testID="log-game-btn"
                 />
+              ) : resultAction.kind === "review" ? (
+                <BrutalistButton
+                  label="VIEW RESULT"
+                  onPress={() => router.push(`/match/${resultAction.matchId}`)}
+                  variant="accent"
+                  style={styles.resultBtn}
+                  testID="view-result-btn"
+                />
               ) : (
                 <View style={styles.awaitingResult}>
-                  <Text style={styles.awaitingResultTitle}>WAITING ON THE CREATOR</Text>
-                  <Text style={styles.awaitingResultCopy}>You’ll be notified when the score is ready to review.</Text>
+                  <Text style={styles.awaitingResultTitle}>
+                    {resultAction.kind === "submitted" ? "RESULT SUBMITTED" : "WAITING ON THE CREATOR"}
+                  </Text>
+                  <Text style={styles.awaitingResultCopy}>
+                    {resultAction.kind === "submitted"
+                      ? "The score is ready for participant review."
+                      : "You’ll be notified when the score is ready to review."}
+                  </Text>
                 </View>
               )}
             </View>
@@ -234,7 +257,7 @@ export default function RunScreen() {
       />
 
       <SubmitRunResultSheet
-        visible={showResult}
+        visible={showResult && resultAction.kind === "submit"}
         onClose={() => setShowResult(false)}
         runId={run.id}
         format={format}

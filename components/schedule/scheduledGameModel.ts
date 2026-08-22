@@ -12,9 +12,9 @@ export const BASKETBALL_SCHEDULED_FORMATS: ScheduledGameFormat[] = [
 export const PICKLEBALL_SCHEDULED_FORMATS: ScheduledGameFormat[] = ["2V2"];
 
 export function scheduledFormatsForSport(sport: CourtSport): ScheduledGameFormat[] {
-  return sport === "PICKLEBALL"
-    ? PICKLEBALL_SCHEDULED_FORMATS
-    : BASKETBALL_SCHEDULED_FORMATS;
+  if (sport === "BASKETBALL") return BASKETBALL_SCHEDULED_FORMATS;
+  if (sport === "PICKLEBALL") return PICKLEBALL_SCHEDULED_FORMATS;
+  return [];
 }
 
 export function maxPlayersForFormat(format: ScheduledGameFormat): number {
@@ -59,6 +59,30 @@ export function shiftScheduledGameTime(value: string, direction: -1 | 1): string
 }
 
 export type TeamAssignment = { playerId: string; side: "a" | "b" };
+
+export type ScheduledResultAction =
+  | { kind: "none" }
+  | { kind: "submit" }
+  | { kind: "waiting" }
+  | { kind: "submitted" }
+  | { kind: "review"; matchId: string };
+
+export function scheduledResultAction({
+  hasStarted,
+  isHost,
+  status,
+  resultMatchId,
+}: {
+  hasStarted: boolean;
+  isHost: boolean;
+  status: string;
+  resultMatchId?: string;
+}): ScheduledResultAction {
+  if (resultMatchId) return { kind: "review", matchId: resultMatchId };
+  if (status === "completed") return { kind: "submitted" };
+  if (!hasStarted) return { kind: "none" };
+  return isHost ? { kind: "submit" } : { kind: "waiting" };
+}
 
 export function validateTeamAssignments(
   rosterIds: string[],

@@ -1,11 +1,32 @@
 import React from "react";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Svg, { Path, Polygon, Rect } from "react-native-svg";
+import Animated, { type SharedValue, useAnimatedStyle } from "react-native-reanimated";
 
 import { Colors } from "@/constants/colors";
 
 const FULL_LOCKUP_RATIO = 1290 / 202;
 const WORDMARK_RATIO = 1022 / 110;
+const MARK_VIEWBOX = "0 0 210 202";
+const MARK_CHECK_POINTS = "45,110 60,96 87,122 155,53 170,67 87,151";
+const MARK_CORNERS = [
+  [
+    { height: 16, width: 65, x: 0, y: 0 },
+    { height: 68, width: 16, x: 0, y: 0 },
+  ],
+  [
+    { height: 16, width: 65, x: 145, y: 0 },
+    { height: 68, width: 16, x: 194, y: 0 },
+  ],
+  [
+    { height: 17, width: 65, x: 145, y: 185 },
+    { height: 68, width: 16, x: 194, y: 134 },
+  ],
+  [
+    { height: 17, width: 65, x: 0, y: 185 },
+    { height: 68, width: 16, x: 0, y: 134 },
+  ],
+] as const;
 
 function CornerFrame() {
   return (
@@ -18,8 +39,58 @@ function CornerFrame() {
       <Rect fill={Colors.white} height="68" width="16" x="0" y="134" />
       <Rect fill={Colors.white} height="17" width="65" x="145" y="185" />
       <Rect fill={Colors.white} height="68" width="16" x="194" y="134" />
-      <Polygon fill={Colors.brandMark} points="45,110 60,96 87,122 155,53 170,67 87,151" />
+      <Polygon fill={Colors.brandMark} points={MARK_CHECK_POINTS} />
     </>
+  );
+}
+
+function AnimatedCorner({
+  intensity,
+  rects,
+  size,
+}: {
+  intensity: SharedValue<number>;
+  rects: (typeof MARK_CORNERS)[number];
+  size: number;
+}) {
+  const animatedStyle = useAnimatedStyle(() => ({ opacity: intensity.value }));
+  return (
+    <Animated.View pointerEvents="none" style={[styles.animatedLayer, { height: size, width: size }, animatedStyle]}>
+      <Svg fill="none" height={size} viewBox={MARK_VIEWBOX} width={size}>
+        {rects.map((rect) => (
+          <Rect
+            key={`${rect.x}-${rect.y}`}
+            fill={Colors.white}
+            height={rect.height}
+            width={rect.width}
+            x={rect.x}
+            y={rect.y}
+          />
+        ))}
+      </Svg>
+    </Animated.View>
+  );
+}
+
+/** Canonical animated form of the icon mark used by launch/loading motion. */
+export function AnimatedLogoMark({
+  cornerIntensities,
+  size = 88,
+}: {
+  cornerIntensities: readonly [SharedValue<number>, SharedValue<number>, SharedValue<number>, SharedValue<number>];
+  size?: number;
+}) {
+  return (
+    <View style={{ height: size, width: size }}>
+      {MARK_CORNERS.map((rects, index) => (
+        <AnimatedCorner key={index} intensity={cornerIntensities[index]} rects={rects} size={size} />
+      ))}
+      <View pointerEvents="none" style={[styles.animatedLayer, { height: size, width: size }]}>
+        <Svg fill="none" height={size} viewBox={MARK_VIEWBOX} width={size}>
+          <Polygon fill={Colors.brandMark} points={MARK_CHECK_POINTS} />
+        </Svg>
+      </View>
+    </View>
   );
 }
 
@@ -116,3 +187,7 @@ export function LogoWordmark({ width = 160 }: { width?: number }) {
     </Svg>
   );
 }
+
+const styles = StyleSheet.create({
+  animatedLayer: { position: "absolute" },
+});

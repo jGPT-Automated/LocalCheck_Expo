@@ -5,6 +5,7 @@ import {
   chunkLeaderboardIds,
   LEADERBOARD_COURT_PAGE_SIZE,
 } from "@/services/leaderboardFilter";
+import { resolveProfileSport } from "@/services/profileModel";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,7 @@ export interface SupabaseProfile {
 }
 
 export function mapProfileToPlayer(row: Partial<SupabaseProfile>, sport?: CourtSport | null): Player {
+  const resolvedSport = resolveProfileSport(row.preferred_sport, sport);
   const name = row.display_name || row.username || "Player";
   const initials = name
     .split(" ")
@@ -39,19 +41,19 @@ export function mapProfileToPlayer(row: Partial<SupabaseProfile>, sport?: CourtS
     .join("")
     .toUpperCase()
     .slice(0, 2);
-  const elo = sport === "BASKETBALL"
+  const elo = resolvedSport === "BASKETBALL"
     ? row.elo_basketball ?? row.elo_rating ?? 1200
-    : sport === "PICKLEBALL"
+    : resolvedSport === "PICKLEBALL"
     ? row.elo_pickleball ?? row.elo_rating ?? 1200
     : row.elo_rating ?? 1200;
-  const wins = sport === "BASKETBALL"
+  const wins = resolvedSport === "BASKETBALL"
     ? row.basketball_wins ?? row.wins ?? 0
-    : sport === "PICKLEBALL"
+    : resolvedSport === "PICKLEBALL"
     ? row.pickleball_wins ?? row.wins ?? 0
     : row.wins ?? 0;
-  const losses = sport === "BASKETBALL"
+  const losses = resolvedSport === "BASKETBALL"
     ? row.basketball_losses ?? row.losses ?? 0
-    : sport === "PICKLEBALL"
+    : resolvedSport === "PICKLEBALL"
     ? row.pickleball_losses ?? row.losses ?? 0
     : row.losses ?? 0;
   return {
@@ -66,7 +68,7 @@ export function mapProfileToPlayer(row: Partial<SupabaseProfile>, sport?: CourtS
     checkIns: 0,
     memberSince: row.created_at ?? new Date().toISOString(),
     courtId: row.local_court_id ?? undefined,
-    sport: sport ?? undefined,
+    sport: resolvedSport,
     visibility: "public",
     isLocalPlus: false,
     friendIds: [],

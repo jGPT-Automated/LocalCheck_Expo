@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { DetailHeader } from "@/components/ui/DetailHeader";
 import { Colors, Radius } from "@/constants/colors";
@@ -86,7 +86,11 @@ export default function MatchReviewScreen() {
     <View style={styles.screen}>
       <DetailHeader onBack={() => router.back()} title="FINAL SCORE" />
 
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.metaRow}>
           <Text style={styles.sport}>{match.sport}</Text>
           <Text style={styles.status}>{match.status === "pending" ? "REVIEW OPEN" : match.status.toUpperCase()}</Text>
@@ -158,7 +162,7 @@ export default function MatchReviewScreen() {
             <Text style={styles.primaryText}>{working ? "SAVING…" : "REMOVE DISPUTE"}</Text>
           </Pressable>
         ) : null}
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -166,7 +170,7 @@ export default function MatchReviewScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 18, backgroundColor: Colors.background, padding: 24 },
-  content: { padding: 20 },
+  content: { padding: 20, paddingBottom: 44 },
   metaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   sport: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.accent, letterSpacing: 1.5 },
   status: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.textSecondary, letterSpacing: 1.3 },

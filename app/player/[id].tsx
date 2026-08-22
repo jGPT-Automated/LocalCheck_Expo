@@ -76,7 +76,7 @@ function MatchRow({ match }: { match: MatchResult }) {
       <View style={[styles.matchResultMark, won ? styles.matchResultWin : styles.matchResultLoss]} />
       <View style={styles.matchCopy}>
         <Text numberOfLines={1} style={styles.matchCourt}>{match.courtName}</Text>
-        <Text style={styles.matchMeta}>{shortDate(match.date)} · {match.sport.toUpperCase()}</Text>
+        <Text style={styles.matchMeta}>{shortDate(match.playedAtIso)} · {match.sport.toUpperCase()}</Text>
       </View>
       <View style={styles.matchScoreBlock}>
         <Text style={styles.matchScore}>{match.teamScore}–{match.opposingScore}</Text>
@@ -207,7 +207,7 @@ export default function PlayerProfileScreen() {
       setSharedMatches(shared);
       setWeekdayActivity(activityByDay);
       setLoading(false);
-      const rankingSport = resolvedCourt?.sport ?? p?.sport ?? null;
+      const rankingSport = p?.sport ?? resolvedCourt?.sport ?? null;
       if (rankingSport) {
         void fetchLeaderboard("GLOBAL", null, rankingSport).then((rankedPlayers) => {
           if (!mounted) return;

@@ -2,6 +2,7 @@ import { CourtSport, MatchResult } from "@/constants/data";
 import { supabase } from "@/lib/supabase";
 
 import { SupabaseProfile } from "./profileService";
+import { areOpponentsInMatch } from "./gameModel";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 // Backend: LocalCheckProd `matches` + `match_participants` (side a/b), written
@@ -96,6 +97,7 @@ function mapMatchToResult(row: SupabaseMatch, currentUserId?: string): MatchResu
   return {
     id: row.id,
     date: formatDate(row.played_at),
+    playedAtIso: row.played_at,
     courtName: row.courts?.name?.toUpperCase() ?? "UNKNOWN",
     sport,
     result: won ? "WIN" : "LOSS",
@@ -256,7 +258,9 @@ export async function fetchHeadToHeadGames(
       if (error) console.warn("fetchHeadToHeadGames failed", error.message);
       return [];
     }
-    return (data as unknown as SupabaseMatch[]).map((g) => mapMatchToResult(g, currentUserId));
+    return (data as unknown as SupabaseMatch[])
+      .filter((game) => areOpponentsInMatch(game.match_participants, currentUserId, opponentId))
+      .map((game) => mapMatchToResult(game, currentUserId));
   } catch {
     return [];
   }

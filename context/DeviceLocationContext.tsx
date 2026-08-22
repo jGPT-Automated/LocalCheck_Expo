@@ -8,6 +8,14 @@ import React, {
   useState,
 } from "react";
 
+import type {
+  DeviceCoordinate,
+  DeviceLocationResolution,
+  DeviceLocationStatus,
+} from "./deviceLocationModel";
+
+export type { DeviceLocationStatus } from "./deviceLocationModel";
+
 // Single shared GPS source. Explore's list, Explore's map, and AppContext's
 // nearby-court fetch used to each run their own independent
 // requestForegroundPermissionsAsync/getCurrentPositionAsync call, so the
@@ -20,16 +28,13 @@ import React, {
 // is unavailable — never while a real fix is still in flight — so a slow
 // cold-start permission prompt can't get locked into LA for the session.
 
-export type DeviceLocationStatus = "idle" | "loading" | "granted" | "denied" | "unavailable";
-
 export interface DeviceLocationValue {
-  coord: { lat: number; lng: number } | null;
+  coord: DeviceCoordinate | null;
   status: DeviceLocationStatus;
-  // Returns the freshly resolved coordinate directly — callers that need the
-  // result in the same tick (flyToUser, findNearestCourt) can't rely on the
-  // `coord` from their render closure, since state updates don't land until
-  // the next render.
-  refresh: () => Promise<DeviceLocationValue["coord"]>;
+  // Returns the coordinate together with the status from that same attempt.
+  // Callers that require real GPS must not confuse a denied/unavailable
+  // display fallback with a permission-backed device fix.
+  refresh: () => Promise<DeviceLocationResolution>;
 }
 
 const LA_FALLBACK = { lat: 34.0522, lng: -118.2437 };
@@ -39,7 +44,7 @@ const DeviceLocationContext = createContext<DeviceLocationValue | null>(null);
 export function DeviceLocationProvider({ children }: { children: React.ReactNode }) {
   const [coord, setCoord] = useState<DeviceLocationValue["coord"]>(null);
   const [status, setStatus] = useState<DeviceLocationStatus>("idle");
-  const inFlight = useRef<Promise<DeviceLocationValue["coord"]> | null>(null);
+  const inFlight = useRef<Promise<DeviceLocationResolution> | null>(null);
 
   const resolve = useCallback(async () => {
     if (inFlight.current) return inFlight.current;
@@ -50,7 +55,7 @@ export function DeviceLocationProvider({ children }: { children: React.ReactNode
         if (permission !== "granted") {
           setCoord(LA_FALLBACK);
           setStatus("denied");
-          return LA_FALLBACK;
+          return { coord: LA_FALLBACK, status: "denied" as const };
         }
         const last = await Location.getLastKnownPositionAsync();
         const loc =
@@ -58,7 +63,7 @@ export function DeviceLocationProvider({ children }: { children: React.ReactNode
         const resolved = { lat: loc.coords.latitude, lng: loc.coords.longitude };
         setCoord(resolved);
         setStatus("granted");
-        return resolved;
+        return { coord: resolved, status: "granted" as const };
       } catch {
         let fallback: DeviceLocationValue["coord"] = null;
         setCoord((current) => {
@@ -66,7 +71,7 @@ export function DeviceLocationProvider({ children }: { children: React.ReactNode
           return fallback;
         });
         setStatus("unavailable");
-        return fallback;
+        return { coord: fallback, status: "unavailable" as const };
       } finally {
         inFlight.current = null;
       }

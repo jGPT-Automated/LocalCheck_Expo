@@ -26,6 +26,55 @@ create index if not exists match_participant_reviews_user_idx
 
 alter table public.match_participant_reviews enable row level security;
 
+-- Match rows are otherwise visible only to the 1v1 creator/opponent until
+-- confirmation. This security-definer helper avoids a recursive RLS lookup
+-- between matches and match_participants while admitting every team member.
+create or replace function private.is_match_participant(
+  p_match_id uuid,
+  p_user_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select p_user_id is not null and exists (
+    select 1
+    from public.match_participants participant
+    where participant.match_id = p_match_id
+      and participant.user_id = p_user_id
+  );
+$$;
+
+revoke execute on function private.is_match_participant(uuid, uuid) from public, anon;
+grant usage on schema private to authenticated;
+grant execute on function private.is_match_participant(uuid, uuid) to authenticated;
+
+drop policy if exists matches_select_visible on public.matches;
+create policy matches_select_visible
+  on public.matches for select to authenticated
+  using (
+    created_by = (select auth.uid())
+    or opponent_id = (select auth.uid())
+    or private.is_match_participant(matches.id, (select auth.uid()))
+    or (status = 'confirmed' and visibility = 'public')
+    or (
+      status = 'confirmed'
+      and visibility = 'friends'
+      and exists (
+        select 1
+        from public.friendships f
+        where f.status = 'accepted'
+          and (
+            (f.requester_id = (select auth.uid()) and f.addressee_id = matches.created_by)
+            or
+            (f.addressee_id = (select auth.uid()) and f.requester_id = matches.created_by)
+          )
+      )
+    )
+  );
+
 drop policy if exists match_participant_reviews_select_participant
   on public.match_participant_reviews;
 create policy match_participant_reviews_select_participant

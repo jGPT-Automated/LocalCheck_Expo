@@ -95,6 +95,17 @@ test("scheduled games produce one team result with participant review", async ()
   assert.doesNotMatch(sql, /captain/i);
 });
 
+test("every scheduled match participant can read the pending result", async () => {
+  const sql = await migrationEndingWith("_add_scheduled_team_results.sql");
+  assert.match(sql, /create or replace function private\.is_match_participant/i);
+  assert.match(sql, /from public\.match_participants[\s\S]*user_id\s*=\s*p_user_id/i);
+  assert.match(sql, /drop policy if exists matches_select_visible on public\.matches/i);
+  assert.match(
+    sql,
+    /create policy matches_select_visible[\s\S]*private\.is_match_participant\(matches\.id, \(select auth\.uid\(\)\)\)/i,
+  );
+});
+
 test("push delivery uses Vault, durable tickets, cron retry, and receipt reconciliation", async () => {
   const sql = await migrationEndingWith("_complete_push_delivery.sql");
   for (const contract of [

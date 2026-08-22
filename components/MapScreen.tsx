@@ -26,6 +26,7 @@ import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts } from "@/context/CourtPresenceContext";
 import { useDeviceLocation } from "@/context/DeviceLocationContext";
+import { coordinateForLocationAction } from "@/context/deviceLocationModel";
 import { fetchCourtsInBounds, fetchNearbyCourts } from "@/services/courtService";
 
 /**
@@ -69,7 +70,7 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
 
   // ── Shared device location — same resolved coordinate as Explore's list and
   // AppContext's nearby-court fetch, so all three surfaces agree. ──
-  const { coord: deviceCoord, refresh: refreshDeviceLocation } = useDeviceLocation();
+  const { coord: deviceCoord, status: locationStatus, refresh: refreshDeviceLocation } = useDeviceLocation();
   const userCoord: [number, number] | null = deviceCoord
     ? [deviceCoord.lng, deviceCoord.lat]
     : null;
@@ -181,35 +182,33 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
   );
 
   const flyToUser = useCallback(async () => {
-    let coord = userCoord;
-    if (!coord) {
-      const fresh = await refreshDeviceLocation();
-      if (fresh) coord = [fresh.lng, fresh.lat];
-    }
-    if (coord) {
+    const current = coordinateForLocationAction(locationStatus, deviceCoord);
+    const fresh = current ? null : await refreshDeviceLocation();
+    const resolved = current ?? coordinateForLocationAction(fresh!.status, fresh!.coord);
+    if (resolved) {
       cameraRef.current?.setCamera({
-        centerCoordinate: coord,
+        centerCoordinate: [resolved.lng, resolved.lat],
         zoomLevel: 13,
         animationDuration: 700,
       });
+    } else {
+      setLocationNotice("LOCATION PERMISSION NEEDED TO CENTER THE MAP");
     }
-  }, [userCoord, refreshDeviceLocation]);
+  }, [deviceCoord, locationStatus, refreshDeviceLocation]);
 
   const findNearestCourt = useCallback(async () => {
     setLocationNotice("FINDING NEAREST COURT…");
-    let coord = userCoord;
     try {
-      if (!coord) {
-        const fresh = await refreshDeviceLocation();
-        if (fresh) coord = [fresh.lng, fresh.lat];
-        if (!coord) {
-          setLocationNotice("LOCATION NEEDED TO FIND THE NEAREST COURT");
-          return;
-        }
+      const current = coordinateForLocationAction(locationStatus, deviceCoord);
+      const fresh = current ? null : await refreshDeviceLocation();
+      const resolved = current ?? coordinateForLocationAction(fresh!.status, fresh!.coord);
+      if (!resolved) {
+        setLocationNotice("LOCATION NEEDED TO FIND THE NEAREST COURT");
+        return;
       }
       const [nearest] = await fetchNearbyCourts(
-        coord[1],
-        coord[0],
+        resolved.lat,
+        resolved.lng,
         sportFilter === "ALL" ? null : sportFilter,
         1,
       );
@@ -229,7 +228,7 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
     } catch {
       setLocationNotice("LOCATION UNAVAILABLE — TRY AGAIN");
     }
-  }, [openCourtSheet, sportFilter, userCoord]);
+  }, [deviceCoord, locationStatus, openCourtSheet, refreshDeviceLocation, sportFilter]);
 
   // The map can finish mounting before profile/location hydration. Reapply the
   // scoped camera only after the SDK is ready; otherwise setCamera is dropped
