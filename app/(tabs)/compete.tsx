@@ -218,32 +218,23 @@ function LeaderboardView({
       }}
     >
       {/* Scope and sport both map to authoritative database columns. */}
-      <View style={styles.filtersRow}>
-        <View style={styles.scopeToggle}>
-          {(["LOCAL", "REGIONAL", "GLOBAL"] as Scope[]).map((s) => (
-            <Pressable
-              key={s}
-              style={[styles.scopeBtn, scope === s && styles.scopeBtnActive]}
-              onPress={() => setScope(s)}
-            >
-              <Text style={[styles.scopeBtnText, scope === s && styles.scopeBtnTextActive]}>
-                {s}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <CompactSelect
-          accessibilityLabel="Switch leaderboard sport"
-          onChange={setSport}
-          options={[
-            { label: "BB", value: "BASKETBALL" },
-            { label: "PB", value: "PICKLEBALL" },
-          ]}
-          value={sport}
-        />
+      <View accessibilityRole="tablist" style={styles.scopeRow}>
+        {(["LOCAL", "REGIONAL", "GLOBAL"] as Scope[]).map((s) => (
+          <Pressable
+            accessibilityRole="tab"
+            accessibilityState={{ selected: scope === s }}
+            key={s}
+            onPress={() => setScope(s)}
+            style={[styles.scopeSeg, scope === s && styles.scopeSegActive]}
+          >
+            <Text style={[styles.scopeSegText, scope === s && styles.scopeSegTextActive]}>
+              {s}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
-      {/* Scope label */}
+      {/* Scope label + sport switch */}
       <View style={styles.scopeLabel}>
         {scope === "LOCAL" && localCourt ? (
           <>
@@ -254,12 +245,22 @@ function LeaderboardView({
             ]}
           />
             <Text style={styles.scopeLabelText} numberOfLines={1}>
-              {(localCourt.shortName || localCourt.name).toUpperCase()} · {sport}
+              {(localCourt.shortName || localCourt.name).toUpperCase()}
             </Text>
           </>
         ) : (
-          <Text style={styles.scopeLabelText}>{sport} ELO</Text>
+          <Text style={styles.scopeLabelText}>ELO RANKINGS</Text>
         )}
+        <CompactSelect
+          accessibilityLabel="Switch leaderboard sport"
+          onChange={setSport}
+          options={[
+            { label: "BB", value: "BASKETBALL" },
+            { label: "PB", value: "PICKLEBALL" },
+          ]}
+          value={sport}
+          variant="plain"
+        />
       </View>
 
       {loading ? (
@@ -886,49 +887,36 @@ const styles = StyleSheet.create({
   tabBtnTextActive: { color: Colors.text },
 
   // ── Filters ──
-  filtersRow: {
+  scopeRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    height: 32,
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,
     backgroundColor: Colors.surface,
   },
-  scopeToggle: {
-    flex: 1,
-    flexDirection: "row",
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    alignSelf: "center",
-    borderRadius: Radius.xs,
-    overflow: "hidden",
-  },
-  scopeBtn: {
+  scopeSeg: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 7,
+    justifyContent: "center",
   },
-  scopeBtnActive: { backgroundColor: Colors.surfaceHigh },
-  scopeBtnText: {
+  scopeSegActive: {
+    backgroundColor: Colors.surfaceHigh,
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.accent,
+  },
+  scopeSegText: {
     fontFamily: Typography.heading,
     fontSize: 10,
     color: Colors.muted,
     letterSpacing: 1.5,
   },
-  scopeBtnTextActive: { color: Colors.text },
-  sportToggle: { flexDirection: "row", alignSelf: "center", gap: 6 },
-  sportFilterBtn: { minWidth: 42, minHeight: 28, alignItems: "center", justifyContent: "center", borderRadius: Radius.xs, borderWidth: 1, borderColor: Colors.border },
-  sportFilterBtnActive: { borderColor: Colors.accent, backgroundColor: Colors.accentDim },
-  sportFilterText: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.muted, letterSpacing: 1 },
-  sportFilterTextActive: { color: Colors.text },
+  scopeSegTextActive: { color: Colors.text },
   scopeLabel: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: 6,
     paddingHorizontal: 16,
-    paddingVertical: 8,
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,
   },
