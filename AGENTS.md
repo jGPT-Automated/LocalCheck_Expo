@@ -23,13 +23,6 @@ its Supabase source of truth. Read this file before changing anything.
   `qkrnmyexzvaxiqfxwwfb`.
 - Database history: `supabase/migrations/`; functions:
   `supabase/functions/`.
-- New images the user provides (e.g. via chat) land in `assets/images/` — that
-  is the drop zone, not a final destination. Check there before asking the
-  user to place a file. Move/copy each one into its actual home before use:
-  brand marks, logos, and splash art belong in `assets/brand/`; app
-  icon/favicon assets stay in `assets/images/` (see `app.json`). Do not leave
-  a UI-referenced asset sitting only in the drop zone.
-
 Never implement from an archive, another checkout, an old pull request, a
 generated design artifact, or a machine-specific path. Do not add an
 application API tier, workspace packages, fabricated application data, or
