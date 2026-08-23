@@ -1,0 +1,65 @@
+name: Expo PR preview
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: expo-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  preview:
+    name: Publish preview update
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Require Expo authentication
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "EXPO_TOKEN is required for Expo preview publishing."
+            exit 1
+          fi
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.13.1
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Set up EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install exact dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck and unit tests
+        run: pnpm check
+
+      - name: Create preview
+        uses: expo/expo-github-action/preview@v8
+        with:
+          command: >-
+            eas update
+            --channel preview
+            --environment preview
+            --message "PR ${{ github.event.pull_request.number }} · ${{ github.sha }}"
+            --non-interactive

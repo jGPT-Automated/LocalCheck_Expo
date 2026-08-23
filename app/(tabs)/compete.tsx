@@ -16,12 +16,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenHeader } from "@/components/ScreenHeader";
-import { FormSheet } from "@/components/sheet/FormSheet";
 import { CompactSelect } from "@/components/ui/CompactSelect";
 import { EloStat } from "@/components/ui/EloStat";
+import { ModeTabs } from "@/components/ui/ModeTabs";
 import { Colors, Radius } from "@/constants/colors";
 import { CourtSport, getSportColor, Player } from "@/constants/data";
-import { Typography } from "@/constants/typography";
+import { TextStyles, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { fetchLeaderboard, fetchProfile } from "@/services/profileService";
 import { logGame } from "@/services/gameService";
@@ -30,6 +30,7 @@ import { searchPlayers } from "@/services/profileService";
 // BACKEND NOTE:
 
 type Scope = "GLOBAL" | "REGIONAL" | "LOCAL";
+type CompeteMode = "RANKINGS" | "LOG_GAME";
 
 export default function CompeteScreen() {
   const {
@@ -50,7 +51,7 @@ export default function CompeteScreen() {
   // player profile's LOG GAME button).
   const params = useLocalSearchParams<{ tab?: string; courtId?: string; opponentId?: string }>();
 
-  const [logGameOpen, setLogGameOpen] = useState(params.tab === "log");
+  const [mode, setMode] = useState<CompeteMode>(params.tab === "log" ? "LOG_GAME" : "RANKINGS");
   const [scope, setScope] = useState<Scope>("LOCAL");
   const [rankingSport, setRankingSport] = useState<CourtSport>(
     preferredSport ?? localCourt?.sport ?? "BASKETBALL"
@@ -60,7 +61,7 @@ export default function CompeteScreen() {
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
 
   useEffect(() => {
-    if (params.tab === "log") setLogGameOpen(true);
+    if (params.tab === "log") setMode("LOG_GAME");
   }, [params.tab]);
 
   useEffect(() => {
@@ -123,7 +124,16 @@ export default function CompeteScreen() {
         </View>}
       />
 
-      <LeaderboardView
+      <ModeTabs
+        items={[
+          { label: "RANKINGS", value: "RANKINGS", icon: "bar-chart-2" },
+          { label: "LOG GAME", value: "LOG_GAME", icon: "edit-3", accessibilityLabel: "Log a game" },
+        ]}
+        onChange={setMode}
+        value={mode}
+      />
+
+      {mode === "RANKINGS" ? <LeaderboardView
         players={leaderboardPlayers}
         myRank={myRank}
         showMyRank={showMyRank}
@@ -137,21 +147,17 @@ export default function CompeteScreen() {
         localCourt={localCourt}
         bottom={bottom}
         loading={leaderboardLoading}
-        onLogGame={() => setLogGameOpen(true)}
-      />
-
-      <FormSheet onClose={() => setLogGameOpen(false)} title="Log game" visible={logGameOpen}>
+      /> : (
         <LogGameView
           currentUser={currentUser}
           courts={courts}
           bottom={0}
-          inSheet
           preferredSport={localCourt?.sport ?? preferredSport}
           preferredCourtId={(typeof params.courtId === "string" ? params.courtId : null) ?? preferredCourtId}
           preselectedOpponent={deepLinkedOpponent}
           localCourtId={localCourtId}
         />
-      </FormSheet>
+      )}
     </View>
   );
 }
@@ -172,7 +178,6 @@ function LeaderboardView({
   localCourt,
   bottom,
   loading,
-  onLogGame,
 }: {
   players: Player[];
   myRank: number;
@@ -187,7 +192,6 @@ function LeaderboardView({
   localCourt: { id: string; name: string; shortName?: string; sport: CourtSport } | null;
   bottom: number;
   loading?: boolean;
-  onLogGame: () => void;
 }) {
   const router = useRouter();
   const { isFriend } = useApp();
@@ -214,41 +218,23 @@ function LeaderboardView({
       }}
     >
       {/* Scope and sport both map to authoritative database columns. */}
-      <View style={styles.filtersRow}>
-        <View style={styles.scopeToggle}>
-          {(["LOCAL", "REGIONAL", "GLOBAL"] as Scope[]).map((s) => (
-            <Pressable
-              key={s}
-              style={[styles.scopeBtn, scope === s && styles.scopeBtnActive]}
-              onPress={() => setScope(s)}
-            >
-              <Text style={[styles.scopeBtnText, scope === s && styles.scopeBtnTextActive]}>
-                {s}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <CompactSelect
-          accessibilityLabel="Switch leaderboard sport"
-          onChange={setSport}
-          options={[
-            { label: "BB", value: "BASKETBALL" },
-            { label: "PB", value: "PICKLEBALL" },
-          ]}
-          value={sport}
-        />
-        <Pressable
-          accessibilityLabel="Log a game"
-          accessibilityRole="button"
-          onPress={onLogGame}
-          style={({ pressed }) => [styles.logGameAction, pressed && styles.pressed]}
-        >
-          <Feather color={Colors.black} name="plus" size={13} />
-          <Text style={styles.logGameActionText}>LOG GAME</Text>
-        </Pressable>
+      <View accessibilityRole="tablist" style={styles.scopeRow}>
+        {(["LOCAL", "REGIONAL", "GLOBAL"] as Scope[]).map((s) => (
+          <Pressable
+            accessibilityRole="tab"
+            accessibilityState={{ selected: scope === s }}
+            key={s}
+            onPress={() => setScope(s)}
+            style={[styles.scopeSeg, scope === s && styles.scopeSegActive]}
+          >
+            <Text style={[styles.scopeSegText, scope === s && styles.scopeSegTextActive]}>
+              {s}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
-      {/* Scope label */}
+      {/* Scope label + sport switch */}
       <View style={styles.scopeLabel}>
         {scope === "LOCAL" && localCourt ? (
           <>
@@ -259,12 +245,22 @@ function LeaderboardView({
             ]}
           />
             <Text style={styles.scopeLabelText} numberOfLines={1}>
-              {(localCourt.shortName || localCourt.name).toUpperCase()} · {sport}
+              {(localCourt.shortName || localCourt.name).toUpperCase()}
             </Text>
           </>
         ) : (
-          <Text style={styles.scopeLabelText}>{sport} ELO</Text>
+          <Text style={styles.scopeLabelText}>ELO RANKINGS</Text>
         )}
+        <CompactSelect
+          accessibilityLabel="Switch leaderboard sport"
+          onChange={setSport}
+          options={[
+            { label: "BB", value: "BASKETBALL" },
+            { label: "PB", value: "PICKLEBALL" },
+          ]}
+          value={sport}
+          variant="plain"
+        />
       </View>
 
       {loading ? (
@@ -854,10 +850,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   yourPositionSub: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 8,
+    ...TextStyles.caption,
     color: Colors.mutedDark,
-    letterSpacing: 0.8,
+    letterSpacing: 0,
     textTransform: "uppercase" as const,
     marginTop: 3,
   },
@@ -892,49 +887,36 @@ const styles = StyleSheet.create({
   tabBtnTextActive: { color: Colors.text },
 
   // ── Filters ──
-  filtersRow: {
+  scopeRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    height: 32,
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,
     backgroundColor: Colors.surface,
   },
-  scopeToggle: {
-    flex: 1,
-    flexDirection: "row",
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    alignSelf: "center",
-    borderRadius: Radius.xs,
-    overflow: "hidden",
-  },
-  scopeBtn: {
+  scopeSeg: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 7,
+    justifyContent: "center",
   },
-  scopeBtnActive: { backgroundColor: Colors.surfaceHigh },
-  scopeBtnText: {
+  scopeSegActive: {
+    backgroundColor: Colors.surfaceHigh,
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.accent,
+  },
+  scopeSegText: {
     fontFamily: Typography.heading,
     fontSize: 10,
     color: Colors.muted,
     letterSpacing: 1.5,
   },
-  scopeBtnTextActive: { color: Colors.text },
-  sportToggle: { flexDirection: "row", alignSelf: "center", gap: 6 },
-  sportFilterBtn: { minWidth: 42, minHeight: 28, alignItems: "center", justifyContent: "center", borderRadius: Radius.xs, borderWidth: 1, borderColor: Colors.border },
-  sportFilterBtnActive: { borderColor: Colors.accent, backgroundColor: Colors.accentDim },
-  sportFilterText: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.muted, letterSpacing: 1 },
-  sportFilterTextActive: { color: Colors.text },
+  scopeSegTextActive: { color: Colors.text },
   scopeLabel: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: 6,
     paddingHorizontal: 16,
-    paddingVertical: 8,
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,
   },
@@ -974,10 +956,10 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   playerName: {
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 12,
+    ...TextStyles.listName,
     color: Colors.text,
-    letterSpacing: 0.3,
+    letterSpacing: 0,
+    textTransform: "uppercase",
     flex: 1,
   },
   playerBadges: { flexDirection: "row", gap: 8, alignItems: "center", flexWrap: "wrap" },
@@ -988,20 +970,17 @@ const styles = StyleSheet.create({
     textTransform: "uppercase" as const,
   },
   rankedText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 8,
+    ...TextStyles.labelSmall,
     color: Colors.accent,
-    letterSpacing: 1.3,
+    letterSpacing: 0.6,
   },
   sportText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    letterSpacing: 1.5,
+    ...TextStyles.labelSmall,
+    letterSpacing: 0.6,
     textTransform: "uppercase" as const,
   },
   wlText: {
-    fontFamily: Typography.body,
-    fontSize: 10,
+    ...TextStyles.caption,
     color: Colors.muted,
   },
   eloBlock: { alignItems: "flex-end" },

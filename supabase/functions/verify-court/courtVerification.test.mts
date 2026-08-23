@@ -32,7 +32,6 @@ test("validates and normalizes an authenticated court submission", () => {
     state: "tx",
     latitude: 29.75,
     longitude: -95.35,
-    accessType: "public_free",
     imageBase64: "x".repeat(200),
     imageMimeType: "image/jpeg",
   });
@@ -50,7 +49,6 @@ test("rejects invalid image types and oversized base64 payloads", () => {
     state: "TX",
     latitude: 29.75,
     longitude: -95.35,
-    accessType: "public_free",
   };
   assert.equal(validateCourtSubmission({
     ...base,

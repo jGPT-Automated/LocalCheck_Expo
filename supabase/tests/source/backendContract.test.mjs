@@ -21,6 +21,23 @@ test("verified court creation is atomic, quota-bound, and duplicate-safe", async
   assert.doesNotMatch(sql, /grant execute[\s\S]*?to authenticated/i);
 });
 
+test("new verified courts do not require a paid, free, or private access classification", async () => {
+  const sql = await migrationEndingWith("_make_court_access_optional.sql");
+  assert.match(sql, /alter column access_type drop not null/i);
+  assert.match(sql, /create or replace function public\.create_verified_court/i);
+  assert.doesNotMatch(sql, /p_access_type/i);
+
+  const verification = await readFile(new URL("../../functions/verify-court/courtVerification.ts", import.meta.url), "utf8");
+  const edgeFunction = await readFile(new URL("../../functions/verify-court/index.ts", import.meta.url), "utf8");
+  const courtService = await readFile(new URL("../../../services/courtService.ts", import.meta.url), "utf8");
+  const modal = await readFile(new URL("../../../components/AddCourtModal.tsx", import.meta.url), "utf8");
+  for (const source of [verification, edgeFunction, courtService, modal]) {
+    assert.doesNotMatch(source, /accessType|ACCESS_OPTIONS|p_access_type/);
+  }
+  assert.doesNotMatch(modal, />ACCESS</);
+  assert.match(edgeFunction, /store:\s*false/);
+});
+
 test("safety controls enforce blocking across reads and social writes", async () => {
   const sql = await migrationEndingWith("_add_user_safety_controls.sql");
   for (const contract of [
@@ -55,6 +72,53 @@ test("sport ratings use a three-day review window and scheduled auto-confirmatio
   assert.doesNotMatch(sql, /interval '7 days'/i);
   assert.match(sql, /localcheck-auto-confirm-due-matches/i);
   assert.match(sql, /log_match[\s\S]*private\.users_are_blocked/i);
+});
+
+test("scheduled games produce one team result with participant review", async () => {
+  const sql = await migrationEndingWith("_add_scheduled_team_results.sql");
+  for (const contract of [
+    "matches_one_result_per_run_idx",
+    "match_participant_reviews",
+    "public.log_run_match",
+    "public.review_run_match",
+    "private.apply_scheduled_match_elo",
+  ]) {
+    assert.ok(sql.includes(contract), `missing scheduled-result contract ${contract}`);
+  }
+  assert.match(sql, /avg\(case when mp\.side = 'a'/i);
+  assert.match(sql, /interval '3 days'/i);
+  assert.match(sql, /decision = 'disputed'/i);
+  assert.match(sql, /v_roster_count <> v_run\.max_players/i);
+  assert.match(sql, /GAME DISPUTED/i);
+  assert.match(sql, /DISPUTE WITHDRAWN/i);
+  assert.match(sql, /GAME INVITATION/i);
+  assert.doesNotMatch(sql, /captain/i);
+});
+
+test("every scheduled match participant can read the pending result", async () => {
+  const sql = await migrationEndingWith("_add_scheduled_team_results.sql");
+  assert.match(sql, /create or replace function private\.is_match_participant/i);
+  assert.match(sql, /from public\.match_participants[\s\S]*user_id\s*=\s*p_user_id/i);
+  assert.match(sql, /drop policy if exists matches_select_visible on public\.matches/i);
+  assert.match(
+    sql,
+    /create policy matches_select_visible[\s\S]*private\.is_match_participant\(matches\.id, \(select auth\.uid\(\)\)\)/i,
+  );
+});
+
+test("scheduled results preserve privacy and refresh the full roster", async () => {
+  const sql = await migrationEndingWith("_add_scheduled_team_results.sql");
+  assert.match(
+    sql,
+    /case when v_run\.is_open_invite then 'public' else 'private' end/i,
+  );
+  assert.match(
+    sql,
+    /private\.send_invalidation\([\s\S]*?'user:' \|\| v_user_id::text, 'matches', 'UPDATE'/i,
+  );
+  assert.match(sql, /v_transition_id uuid := gen_random_uuid\(\)/i);
+  assert.match(sql, /run-match-disputed:[^\n]+v_transition_id::text/i);
+  assert.match(sql, /run-match-dispute-withdrawn:[^\n]+v_transition_id::text/i);
 });
 
 test("push delivery uses Vault, durable tickets, cron retry, and receipt reconciliation", async () => {

@@ -1,3 +1,4 @@
+import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -17,17 +18,19 @@ import { ProfileHero } from "@/components/ui/ProfileHero";
 import { ProfileStats } from "@/components/ui/ProfileStats";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { HeadToHeadSummary } from "@/components/ui/HeadToHeadSummary";
-import { Colors } from "@/constants/colors";
+import { Colors, Radius } from "@/constants/colors";
 import {
   Court,
   MatchResult,
   Player,
 } from "@/constants/data";
-import { Typography } from "@/constants/typography";
+import { Layout, Space } from "@/constants/layout";
+import { TextStyles, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { fetchGamesByPlayer, fetchHeadToHeadGames } from "@/services/gameService";
 import { fetchCourtById } from "@/services/courtService";
-import { fetchProfile } from "@/services/profileService";
+import { fetchLeaderboard, fetchProfile } from "@/services/profileService";
+import { fetchPlayerActivityByWeekday } from "@/services/checkInService";
 import {
   blockUser,
   type ReportReason,
@@ -51,6 +54,104 @@ function shortDate(value: string): string {
   }).toUpperCase();
 }
 
+type PlayerProfileTab = "versus" | "activity" | "details";
+
+function ProfileTab({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={({ pressed }) => [styles.profileTab, active && styles.profileTabActive, pressed && styles.pressed]}
+    >
+      <Text style={[styles.profileTabText, active && styles.profileTabTextActive]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function MatchRow({ match }: { match: MatchResult }) {
+  const won = match.result === "WIN";
+  return (
+    <View style={styles.matchRow}>
+      <View style={[styles.matchResultMark, won ? styles.matchResultWin : styles.matchResultLoss]} />
+      <View style={styles.matchCopy}>
+        <Text numberOfLines={1} style={styles.matchCourt}>{match.courtName}</Text>
+        <Text style={styles.matchMeta}>{shortDate(match.playedAtIso)} · {match.sport.toUpperCase()}</Text>
+      </View>
+      <View style={styles.matchScoreBlock}>
+        <Text style={styles.matchScore}>{match.teamScore}–{match.opposingScore}</Text>
+        <Text style={[styles.matchResult, won ? styles.matchWin : styles.matchLoss]}>{match.result}</Text>
+      </View>
+    </View>
+  );
+}
+
+function EmptyProfileState({ title, body }: { title: string; body: string }) {
+  return (
+    <View style={styles.emptyState}>
+      <Feather color={Colors.muted} name="activity" size={20} />
+      <Text style={styles.emptyTitle}>{title}</Text>
+      <Text style={styles.emptyBody}>{body}</Text>
+    </View>
+  );
+}
+
+function DetailRow({ icon, label, value, onPress }: {
+  icon: keyof typeof Feather.glyphMap;
+  label: string;
+  value: string;
+  onPress?: () => void;
+}) {
+  const content = (
+    <>
+      <View style={styles.detailIcon}><Feather color={Colors.textSecondary} name={icon} size={15} /></View>
+      <View style={styles.detailCopy}>
+        <Text style={styles.detailLabel}>{label}</Text>
+        <Text numberOfLines={1} style={styles.detailValue}>{value}</Text>
+      </View>
+      {onPress ? <Feather color={Colors.muted} name="chevron-right" size={16} /> : null}
+    </>
+  );
+  return onPress ? (
+    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.detailRow, pressed && styles.pressed]}>
+      {content}
+    </Pressable>
+  ) : <View style={styles.detailRow}>{content}</View>;
+}
+
+const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
+
+function ActivityHeatmap({ counts }: { counts: number[] }) {
+  const max = Math.max(1, ...counts);
+  return (
+    <View style={styles.detailGroup}>
+      <View style={styles.heatmapHeader}>
+        <Text style={styles.detailGroupTitle}>COURT ACTIVITY</Text>
+        <Text style={styles.heatmapPeriod}>LAST 90 DAYS</Text>
+      </View>
+      <View style={styles.heatmap}>
+        {WEEKDAYS.map((day, index) => {
+          const ratio = (counts[index] ?? 0) / max;
+          const levelStyle = ratio === 0
+            ? styles.heatLevel0
+            : ratio < 0.34
+              ? styles.heatLevel1
+              : ratio < 0.67
+                ? styles.heatLevel2
+                : styles.heatLevel3;
+          return (
+            <View key={`${day}-${index}`} style={styles.heatColumn}>
+              <View style={[styles.heatCell, levelStyle]} />
+              <Text style={styles.heatDay}>{day}</Text>
+              <Text style={styles.heatCount}>{counts[index] ?? 0}</Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 export default function PlayerProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -63,7 +164,10 @@ export default function PlayerProfileScreen() {
   const [playerCourt, setPlayerCourt] = useState<Court | null>(null);
   const [playerMatches, setPlayerMatches] = useState<MatchResult[]>([]);
   const [sharedMatches, setSharedMatches] = useState<MatchResult[]>([]);
+  const [weekdayActivity, setWeekdayActivity] = useState<number[]>(Array(7).fill(0));
+  const [playerRank, setPlayerRank] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<PlayerProfileTab>("versus");
   const [qrVisible, setQrVisible] = useState(false);
   const [showSafetyControls, setShowSafetyControls] = useState(false);
 
@@ -83,12 +187,15 @@ export default function PlayerProfileScreen() {
     let mounted = true;
     (async () => {
       setLoading(true);
-      const [p, m, shared] = await Promise.all([
+      setActiveTab("versus");
+      setPlayerRank(null);
+      const [p, m, shared, activityByDay] = await Promise.all([
         fetchProfile(id),
         fetchGamesByPlayer(id),
         currentUser.id && currentUser.id !== id
           ? fetchHeadToHeadGames(currentUser.id, id)
           : Promise.resolve([] as MatchResult[]),
+        fetchPlayerActivityByWeekday(id),
       ]);
       if (!mounted) return;
       const cachedCourt = p?.courtId ? courts.find((court) => court.id === p.courtId) : null;
@@ -98,7 +205,16 @@ export default function PlayerProfileScreen() {
       setPlayerCourt(resolvedCourt ?? null);
       setPlayerMatches(m);
       setSharedMatches(shared);
+      setWeekdayActivity(activityByDay);
       setLoading(false);
+      const rankingSport = p?.sport ?? resolvedCourt?.sport ?? null;
+      if (rankingSport) {
+        void fetchLeaderboard("GLOBAL", null, rankingSport).then((rankedPlayers) => {
+          if (!mounted) return;
+          const rankIndex = rankedPlayers.findIndex((rankedPlayer) => rankedPlayer.id === id);
+          setPlayerRank(rankIndex >= 0 ? rankIndex + 1 : null);
+        });
+      }
     })();
     return () => { mounted = false; };
   }, [id, currentUser.id, courts]);
@@ -185,79 +301,90 @@ export default function PlayerProfileScreen() {
         title="PROFILE"
       />
 
+      <ProfileHero
+        courtLabel={playerCourt?.shortName || playerCourt?.name || "No local court"}
+        elo={player.elo}
+        friend={isFriendStatus}
+        initials={player.avatar}
+        name={player.name}
+        onOpenQr={() => setQrVisible(true)}
+        playerId={player.id}
+      />
+      <ProfileStats metrics={[
+        { value: player.wins, label: "WINS", tone: "win" },
+        { value: player.losses, label: "LOSSES", tone: "loss" },
+        { value: player.checkIns, label: "CHECK-INS" },
+        { value: total, label: "GAMES" },
+      ]} />
+
+      <View accessibilityRole="tablist" style={styles.tabs}>
+        <ProfileTab label="VS YOU" active={activeTab === "versus"} onPress={() => setActiveTab("versus")} />
+        <ProfileTab label="ACTIVITY" active={activeTab === "activity"} onPress={() => setActiveTab("activity")} />
+        <ProfileTab label="DETAILS" active={activeTab === "details"} onPress={() => setActiveTab("details")} />
+      </View>
+
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: 32 }}
       >
-        <ProfileHero
-          courtLabel={playerCourt?.shortName || playerCourt?.name || "No local court"}
-          elo={player.elo}
-          friend={isFriendStatus}
-          initials={player.avatar}
-          memberSince={shortDate(player.memberSince)}
-          name={player.name}
-          onOpenQr={() => setQrVisible(true)}
-          playerId={player.id}
-          username={player.username}
-        />
-        <ProfileStats metrics={[
-          { value: player.wins, label: "WINS", tone: "win" },
-          { value: player.losses, label: "LOSSES", tone: "loss" },
-          { value: player.checkIns, label: "CHECK-INS" },
-          { value: total, label: "GAMES" },
-        ]} />
-
-        <HeadToHeadSummary
-          losses={h2h.losses}
-          matched={h2h.total}
-          opponentName={player.name}
-          winRate={h2h.winRate}
-          wins={h2h.wins}
-        />
-
-        {h2h.matches.length > 0 ? (
-          <View style={styles.section}>
-            <Text style={styles.subSectionTitle}>GAMES TOGETHER</Text>
-            {h2h.matches.slice(0, 5).map((m) => (
-              <View key={m.id} style={styles.h2hMatchRow}>
-                <View style={[styles.h2hMatchBar, { backgroundColor: m.result === "WIN" ? Colors.win : Colors.loss }]} />
-                <View style={styles.h2hMatchContent}>
-                  <Text style={styles.h2hMatchCourt}>{m.courtName}</Text>
-                  <Text style={styles.h2hMatchMeta}>{m.date} · {m.sport}</Text>
-                </View>
-                <View style={styles.h2hMatchResult}>
-                  <Text style={[styles.h2hMatchResultText, { color: m.result === "WIN" ? Colors.win : Colors.loss }]}>{m.result}</Text>
-                  <Text style={styles.h2hMatchScore}>{m.teamScore} — {m.opposingScore}</Text>
+        {activeTab === "versus" ? (
+          <>
+            <HeadToHeadSummary
+              losses={h2h.losses}
+              matched={h2h.total}
+              opponentName={player.name}
+              winRate={h2h.winRate}
+              wins={h2h.wins}
+            />
+            {h2h.matches.length > 0 ? (
+              <View style={styles.section}>
+                <Text style={styles.subSectionTitle}>GAMES TOGETHER</Text>
+                {h2h.matches.slice(0, 5).map((match) => <MatchRow key={match.id} match={match} />)}
+              </View>
+            ) : null}
+          </>
+        ) : activeTab === "activity" ? (
+          <View style={styles.activityContent}>
+            {playerMatches.length > 0 ? (
+              playerMatches.map((match) => <MatchRow key={match.id} match={match} />)
+            ) : (
+              <EmptyProfileState title="NO ACTIVITY YET" body="Games and court activity will appear here." />
+            )}
+          </View>
+        ) : (
+          <View style={styles.detailsContent}>
+            <View style={styles.detailGroup}>
+              <View style={styles.detailGroupHeading}>
+                <Text style={styles.detailGroupTitle}>PLAYER DETAILS</Text>
+              </View>
+              <DetailRow icon="calendar" label="MEMBER SINCE" value={shortDate(player.memberSince)} />
+              <DetailRow
+                icon="map-pin"
+                label="LOCAL COURT"
+                onPress={playerCourt ? () => router.push(`/court/${playerCourt.id}`) : undefined}
+                value={playerCourt?.shortName || playerCourt?.name || "NOT SET"}
+              />
+              <DetailRow icon="award" label="GLOBAL RANK" value={playerRank ? `#${playerRank}` : "UNRANKED"} />
+            </View>
+            <ActivityHeatmap counts={weekdayActivity} />
+            {showSafetyControls ? (
+              <View style={styles.safetySection}>
+                <Text style={styles.detailGroupTitle}>SAFETY</Text>
+                <View style={styles.safetyRow}>
+                  <Pressable accessibilityLabel={`Report ${player.name}`} accessibilityRole="button" onPress={handleReport} style={({ pressed }) => [styles.safetyButton, pressed && styles.safetyButtonPressed]}>
+                    <Feather color={Colors.textSecondary} name="flag" size={14} />
+                    <Text style={styles.safetyText}>REPORT PLAYER</Text>
+                  </Pressable>
+                  <Pressable accessibilityLabel={`Block ${player.name}`} accessibilityRole="button" onPress={handleBlock} style={({ pressed }) => [styles.safetyButton, pressed && styles.safetyButtonPressed]}>
+                    <Feather color={Colors.loss} name="slash" size={14} />
+                    <Text style={[styles.safetyText, styles.safetyDanger]}>BLOCK PLAYER</Text>
+                  </Pressable>
                 </View>
               </View>
-            ))}
+            ) : null}
           </View>
-        ) : null}
-
-        {showSafetyControls ? (
-          <View style={styles.safetySection}>
-            <Text style={styles.safetyIntro}>SAFETY</Text>
-            <View style={styles.safetyRow}>
-              <Pressable
-                accessibilityLabel={`Report ${player.name}`}
-                accessibilityRole="button"
-                onPress={handleReport}
-                style={({ pressed }) => [styles.safetyButton, pressed && styles.safetyButtonPressed]}
-              >
-                <Text style={styles.safetyText}>REPORT</Text>
-              </Pressable>
-              <Pressable
-                accessibilityLabel={`Block ${player.name}`}
-                accessibilityRole="button"
-                onPress={handleBlock}
-                style={({ pressed }) => [styles.safetyButton, pressed && styles.safetyButtonPressed]}
-              >
-                <Text style={[styles.safetyText, styles.safetyDanger]}>BLOCK</Text>
-              </Pressable>
-            </View>
-          </View>
-        ) : null}
+        )}
 
       </ScrollView>
       <StickyActionBar
@@ -292,6 +419,134 @@ export default function PlayerProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   scroll: { flex: 1 },
+  pressed: { opacity: 0.68 },
+  tabs: {
+    minHeight: 48,
+    flexDirection: "row",
+    backgroundColor: Colors.surfaceDark,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  profileTab: {
+    flex: 1,
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.surfaceDark,
+  },
+  profileTabActive: { borderBottomColor: Colors.accent },
+  profileTabText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.muted,
+    letterSpacing: 1.6,
+  },
+  profileTabTextActive: { color: Colors.text },
+  activityContent: { paddingHorizontal: Layout.screenGutter },
+  detailsContent: { padding: Layout.screenGutter, gap: Space.lg },
+  detailGroup: {
+    overflow: "hidden",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderLight,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.surface,
+  },
+  detailGroupTitle: {
+    ...TextStyles.label,
+    color: Colors.text,
+    letterSpacing: 1.2,
+  },
+  detailGroupHeading: { minHeight: 52, paddingHorizontal: Space.lg, justifyContent: "center", backgroundColor: Colors.surfaceHigh },
+  detailRow: {
+    minHeight: 62,
+    paddingHorizontal: Space.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Space.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
+  },
+  detailIcon: {
+    width: 30,
+    height: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surfaceHigh,
+  },
+  detailCopy: { flex: 1, minWidth: 0 },
+  detailLabel: {
+    ...TextStyles.labelSmall,
+    color: Colors.muted,
+    letterSpacing: 0.6,
+  },
+  detailValue: {
+    marginTop: 3,
+    ...TextStyles.listName,
+    color: Colors.text,
+  },
+  heatmapHeader: {
+    minHeight: 48,
+    paddingHorizontal: Space.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  heatmapPeriod: {
+    ...TextStyles.labelSmall,
+    color: Colors.muted,
+    letterSpacing: 0.4,
+  },
+  heatmap: {
+    paddingHorizontal: Space.lg,
+    paddingBottom: Space.lg,
+    flexDirection: "row",
+    gap: Space.sm,
+  },
+  heatColumn: { flex: 1, alignItems: "center", gap: 5 },
+  heatCell: { width: "100%", maxWidth: 34, height: 34, borderRadius: Radius.md },
+  heatLevel0: { backgroundColor: Colors.surfaceHigh },
+  heatLevel1: { backgroundColor: Colors.liveQuiet, borderWidth: 1, borderColor: Colors.accentBorder },
+  heatLevel2: { backgroundColor: Colors.accentDim, borderWidth: 1, borderColor: Colors.accentBorderStrong },
+  heatLevel3: { backgroundColor: Colors.accent },
+  heatDay: { ...TextStyles.labelSmall, color: Colors.textSecondary },
+  heatCount: { ...TextStyles.caption, color: Colors.muted },
+  emptyState: { paddingVertical: Space.xxxl, alignItems: "center" },
+  emptyTitle: {
+    marginTop: Space.md,
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    color: Colors.text,
+    letterSpacing: 1.4,
+  },
+  emptyBody: {
+    maxWidth: 260,
+    marginTop: Space.sm,
+    fontFamily: Typography.body,
+    fontSize: 11,
+    lineHeight: 17,
+    color: Colors.textSecondary,
+    textAlign: "center",
+  },
+  matchRow: {
+    minHeight: 68,
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  matchResultMark: { width: 3, height: 32, marginRight: Space.md, borderRadius: Radius.xs },
+  matchResultWin: { backgroundColor: Colors.win },
+  matchResultLoss: { backgroundColor: Colors.loss },
+  matchCopy: { flex: 1, minWidth: 0 },
+  matchCourt: { ...TextStyles.listName, color: Colors.text },
+  matchMeta: { marginTop: 4, ...TextStyles.caption, color: Colors.muted, letterSpacing: 0 },
+  matchScoreBlock: { alignItems: "flex-end" },
+  matchScore: { fontFamily: Typography.headingBold, fontSize: 17, color: Colors.text },
+  matchResult: { marginTop: 2, ...TextStyles.labelSmall, letterSpacing: 0.6 },
+  matchWin: { color: Colors.win },
+  matchLoss: { color: Colors.loss },
 
   // Header
   header: {
@@ -438,10 +693,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   safetySection: {
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.border,
+    padding: Space.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderLight,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.surface,
   },
   safetyIntro: {
     fontFamily: Typography.bodyBold,
@@ -452,9 +708,16 @@ const styles = StyleSheet.create({
   },
   safetyRow: { flexDirection: "row", gap: 12 },
   safetyButton: {
+    flex: 1,
     minHeight: 44,
+    marginTop: Space.md,
+    flexDirection: "row",
+    alignItems: "center",
     justifyContent: "center",
-    paddingRight: 18,
+    gap: Space.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderLight,
+    borderRadius: Radius.md,
   },
   safetyButtonPressed: { opacity: 0.68 },
   safetyText: {

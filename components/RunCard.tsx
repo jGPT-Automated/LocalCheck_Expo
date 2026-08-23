@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Colors } from "@/constants/colors";
 import { formatClockTime } from "@/components/home/homePresentation";
+import { formatForMaxPlayers } from "@/components/schedule/scheduledGameModel";
 import { GameRun } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { PlayerAvatar } from "./PlayerAvatar";
@@ -17,11 +18,12 @@ export function RunCard({ run }: RunCardProps) {
   const max = run.maxPlayers;
   const isFull = total >= max;
   const spotsLeft = Math.max(0, max - total);
+  const format = formatForMaxPlayers(max) ?? "GAME";
 
   return (
     <Pressable
-      accessibilityHint="Opens run details"
-      accessibilityLabel={`${run.title}, ${formatClockTime(run.time)}, ${spotsLeft} spots open`}
+      accessibilityHint="Opens scheduled game details"
+      accessibilityLabel={`${format} at ${run.courtName}, ${formatClockTime(run.time)}, ${spotsLeft} spots open`}
       accessibilityRole="button"
       onPress={() => router.push(`/run/${run.id}`)}
       style={({ pressed }) => [styles.container, pressed && styles.pressed]}
@@ -33,8 +35,11 @@ export function RunCard({ run }: RunCardProps) {
       </View>
       <View style={styles.divider} />
       <View style={styles.center}>
-        <Text style={styles.title}>{run.title}</Text>
-        <Text style={styles.level}>{run.skillLevel}</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>{format}</Text>
+          <Text style={styles.status}>SCHEDULED</Text>
+        </View>
+        <Text style={styles.court} numberOfLines={1}>{run.courtName.toUpperCase()}</Text>
         <Text style={styles.createdBy}>CREATED BY {run.hostName?.toUpperCase() || "COURT LOCAL"}</Text>
         <View style={styles.meta}>
           <View style={styles.avatarRow}>
@@ -49,7 +54,7 @@ export function RunCard({ run }: RunCardProps) {
               />
             ))}
           </View>
-          <Text style={styles.spots}>{isFull ? "FULL" : `${spotsLeft} SPOTS`}</Text>
+          <Text style={styles.spots}>{isFull ? "ROSTER FULL" : `${total}/${max} JOINED · ${spotsLeft} OPEN`}</Text>
         </View>
       </View>
     </Pressable>
@@ -73,19 +78,18 @@ const styles = StyleSheet.create({
   },
   divider: { width: 1, height: 48, backgroundColor: Colors.border, marginHorizontal: 12 },
   center: { flex: 1, paddingVertical: 14 },
-  title: { fontFamily: Typography.heading, fontSize: 14, color: Colors.text, letterSpacing: 0.5 },
-  level: {
-    fontFamily: Typography.bodyMedium, fontSize: 9, color: Colors.muted,
-    letterSpacing: 1.5, textTransform: "uppercase" as const, marginTop: 2,
-  },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  title: { fontFamily: Typography.heading, fontSize: 17, lineHeight: 21, color: Colors.text, letterSpacing: 0.5 },
+  status: { fontFamily: Typography.bodySemiBold, fontSize: 11, lineHeight: 14, color: Colors.accent, letterSpacing: 0.8 },
+  court: { marginTop: 2, fontFamily: Typography.bodySemiBold, fontSize: 12, lineHeight: 16, color: Colors.textSecondary },
   createdBy: {
-    fontFamily: Typography.bodyMedium, fontSize: 7, color: Colors.mutedDark,
-    letterSpacing: 1, marginTop: 3, marginBottom: 6,
+    fontFamily: Typography.body, fontSize: 11, lineHeight: 14, color: Colors.muted,
+    letterSpacing: 0.5, marginTop: 2, marginBottom: 7,
   },
   meta: { flexDirection: "row", alignItems: "center", gap: 10 },
   avatarRow: { flexDirection: "row" },
   spots: {
-    fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.muted,
-    letterSpacing: 1, textTransform: "uppercase" as const,
+    fontFamily: Typography.bodySemiBold, fontSize: 11, lineHeight: 14, color: Colors.muted,
+    letterSpacing: 0.6, textTransform: "uppercase" as const,
   },
 });

@@ -13,3 +13,10 @@ updates:
           - "react-native*"
       development-tools:
         dependency-type: development
+    # SDK-major bumps here are guaranteed-broken (e.g. Expo 54 -> 57 in one PR)
+    # and every push to them still burns a preview-publish CI run before
+    # failing. Minor/patch keep flowing; majors need a deliberate, reviewed
+    # upgrade, not an automated group bump.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]

@@ -2,7 +2,7 @@ import { CourtSport, FeedItem } from "@/constants/data";
 import { supabase } from "@/lib/supabase";
 
 import { mapProfileToPlayer, SupabaseProfile } from "./profileService";
-import { summarizeActivityHype } from "./feedModel";
+import { formatLegacyFeedResult, summarizeActivityHype } from "./feedModel";
 
 // ─── Backend ──────────────────────────────────────────────────────────────
 // Reads LocalCheckProd's `activity_events` table in ONE query. This replaces
@@ -111,7 +111,7 @@ function mapEvent(
       return {
         ...base,
         type: "run_started",
-        message: `${actorName} STARTED A RUN AT ${courtName}`,
+        message: `${actorName} SCHEDULED A GAME AT ${courtName}`,
       };
     case "match_result": {
       const m = row.matches;
@@ -126,22 +126,21 @@ function mapEvent(
           displayOrder: participant.display_order,
         }))
         .sort((a, b) => a.displayOrder - b.displayOrder);
-      const winner = m.match_participants?.find(
-        (p) => p.side === m.winner_side,
-      );
-      const loser = m.match_participants?.find((p) => p.side !== m.winner_side);
-      const winnerName = winner?.profiles
-        ? mapProfileToPlayer(winner.profiles).name
-        : actorName;
-      const loserName = loser?.profiles
-        ? mapProfileToPlayer(loser.profiles).name
-        : "Opponent";
-      const winnerScore = m.winner_side === "b" ? m.score_b : m.score_a;
-      const loserScore = m.winner_side === "b" ? m.score_a : m.score_b;
+      const sideA = participants.filter((participant) => participant.side === "a");
+      const sideB = participants.filter((participant) => participant.side === "b");
+      const winnerName = (m.winner_side === "a" ? sideA : sideB)
+        .map((participant) => participant.name)
+        .join(" + ");
       return {
         ...base,
         type: "game_result",
-        message: `${winnerName} DEF. ${loserName} ${winnerScore}–${loserScore}`,
+        message: formatLegacyFeedResult({
+          sideA,
+          sideB,
+          scoreA: m.score_a,
+          scoreB: m.score_b,
+          winnerSide: m.winner_side,
+        }),
         winnerName,
         match: {
           id: m.id,
@@ -150,8 +149,8 @@ function mapEvent(
           scoreB: m.score_b,
           winnerSide: m.winner_side,
           status: "confirmed",
-          sideA: participants.filter((participant) => participant.side === "a"),
-          sideB: participants.filter((participant) => participant.side === "b"),
+          sideA,
+          sideB,
         },
       };
     }

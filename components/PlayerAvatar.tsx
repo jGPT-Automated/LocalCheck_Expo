@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   },
   highlightedInitials: { textShadowColor: Colors.accent, textShadowRadius: 7 },
   initials: {
-    fontFamily: Typography.heading,
+    fontFamily: Typography.headingBold,
     letterSpacing: 0.5,
   },
   friendBadge: {

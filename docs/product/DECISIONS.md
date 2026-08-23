@@ -2,6 +2,28 @@
 
 Status: Current MVP decisions. Newer dated decisions supersede older entries.
 
+## 2026-08-13 — Home matches the established tab-header treatment
+
+**Decision confirmed by Jesse:** Home uses the same mark, title typography,
+height, and spacing as Schedule, Compete, Explore, and Me. The thin full lockup
+remains available for dedicated brand moments, but not primary tab headers.
+
+**Why:** The established tab headers read better in the product context, and a
+single shared treatment prevents Home from looking like a separate system.
+
+## 2026-08-12 — Final logo geometry owns every brand lockup
+
+**Decision confirmed by Jesse:** `localcheck-logo-final.svg` is the source of
+truth wherever the product spells LocalCheck. Its extracted mark and supplied
+chevron are used for icon-only contexts. The W/L variants remain reserved for a
+future head-to-head treatment and are not placed in activity or navigation.
+Court detail matches the source lockup's icon/title spacing and uses an
+edge-aligned `LOCALCOURT` / `SET LOCALCOURT` label instead of the star.
+
+**Why:** One source asset prevents the wordmark, header icon, and detail-back
+treatment from drifting while leaving result-specific W/L placement available
+for deliberate review later.
+
 ## 2026-08-11 — Ranking membership follows saved player identity
 
 **Decision confirmed by Jesse:** Preserve the existing Compete scopes: Local is
@@ -198,3 +220,14 @@ rules, and competing Realtime paths for one product job.
 ## 2026-07-23 — Honest imagery and activity
 
 **Proposed decision:** Generated court media is atmospheric only. Venue identity uses verified photography or map geometry. Zero activity uses `Quiet now` and a useful action instead of fabricated counts.
+## 2026-08-13 — Peer profiles separate comparison, activity, and details
+
+**Working decision confirmed by Jesse:** Other-player profiles use `VS YOU`,
+`ACTIVITY`, and `DETAILS` tabs. The hero shows the player name, local court, and
+ELO without a long username or member-since line. Member date, global sport
+rank, local court, real recent activity, report, and block live in Details.
+
+**Why:** Comparison, timeline, and account metadata are different jobs. A
+segmented peer profile keeps each one scannable, prevents safety controls from
+competing with Log Game, and lets the head-to-head treatment feel distinct from
+the primary player identity row.

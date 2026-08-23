@@ -2,6 +2,7 @@ import { CourtSport, MatchResult } from "@/constants/data";
 import { supabase } from "@/lib/supabase";
 
 import { SupabaseProfile } from "./profileService";
+import { areOpponentsInMatch } from "./gameModel";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 // Backend: LocalCheckProd `matches` + `match_participants` (side a/b), written
@@ -19,6 +20,7 @@ interface SupabaseMatch {
   winner_side: "a" | "b" | null;
   sport: "basketball" | "pickleball";
   status: "pending" | "confirmed" | "rejected";
+  run_id?: string | null;
   confirmation_method: "manual" | "automatic" | null;
   review_due_at: string;
   confirmed_at: string | null;
@@ -29,8 +31,24 @@ interface SupabaseMatch {
   match_participants?: Array<{
     user_id: string;
     side: "a" | "b";
+    display_order?: number;
+    elo_before?: number | null;
+    elo_after?: number | null;
     profiles: SupabaseProfile | null;
   }>;
+  match_participant_reviews?: Array<{
+    user_id: string;
+    decision: "pending" | "approved" | "disputed";
+  }>;
+}
+
+export interface MatchReviewParticipant {
+  id: string;
+  name: string;
+  side: "a" | "b";
+  decision: "pending" | "approved" | "disputed";
+  eloBefore?: number;
+  eloAfter?: number;
 }
 
 export interface MatchReview {
@@ -48,6 +66,8 @@ export interface MatchReview {
   reviewDueAt: string;
   scoreA: number;
   scoreB: number;
+  runId?: string;
+  participants: MatchReviewParticipant[];
 }
 
 function normalizeSport(raw: string | null | undefined): CourtSport {
@@ -77,6 +97,7 @@ function mapMatchToResult(row: SupabaseMatch, currentUserId?: string): MatchResu
   return {
     id: row.id,
     date: formatDate(row.played_at),
+    playedAtIso: row.played_at,
     courtName: row.courts?.name?.toUpperCase() ?? "UNKNOWN",
     sport,
     result: won ? "WIN" : "LOSS",
@@ -143,6 +164,39 @@ export async function logGame(payload: {
   return { ok: true, matchId: (data as { id?: string } | null)?.id };
 }
 
+export async function logScheduledGameResult(payload: {
+  runId: string;
+  teamAIds: string[];
+  teamBIds: string[];
+  scoreA: number;
+  scoreB: number;
+}): Promise<{ ok: boolean; matchId?: string; error?: string }> {
+  if (
+    payload.teamAIds.length === 0 ||
+    payload.teamAIds.length !== payload.teamBIds.length ||
+    !Number.isInteger(payload.scoreA) ||
+    !Number.isInteger(payload.scoreB) ||
+    payload.scoreA < 0 ||
+    payload.scoreB < 0 ||
+    payload.scoreA === payload.scoreB
+  ) {
+    return { ok: false, error: "Complete both teams and enter a non-tied score." };
+  }
+
+  const { data, error } = await supabase.rpc("log_run_match", {
+    p_run_id: payload.runId,
+    p_team_a_ids: payload.teamAIds,
+    p_team_b_ids: payload.teamBIds,
+    p_score_a: payload.scoreA,
+    p_score_b: payload.scoreB,
+  });
+  if (error) {
+    console.warn("logScheduledGameResult failed", error.message);
+    return { ok: false, error: "The scheduled-result backend is not available yet." };
+  }
+  return { ok: true, matchId: (data as { id?: string } | null)?.id };
+}
+
 export async function fetchGamesByCourt(courtId: string): Promise<MatchResult[]> {
   try {
     const { data, error } = await supabase
@@ -204,7 +258,9 @@ export async function fetchHeadToHeadGames(
       if (error) console.warn("fetchHeadToHeadGames failed", error.message);
       return [];
     }
-    return (data as unknown as SupabaseMatch[]).map((g) => mapMatchToResult(g, currentUserId));
+    return (data as unknown as SupabaseMatch[])
+      .filter((game) => areOpponentsInMatch(game.match_participants, currentUserId, opponentId))
+      .map((game) => mapMatchToResult(game, currentUserId));
   } catch {
     return [];
   }
@@ -226,11 +282,20 @@ export async function fetchRecentGames(limit = 20): Promise<MatchResult[]> {
 }
 
 export async function fetchMatchReview(matchId: string): Promise<MatchReview | null> {
-  const { data, error } = await supabase
+  const enhanced = await supabase
     .from("matches")
-    .select("*, courts(name,sport_type), creator:profiles!matches_created_by_fkey(display_name,username), opponent:profiles!matches_opponent_id_fkey(display_name,username)")
+    .select("*, courts(name,sport_type), creator:profiles!matches_created_by_fkey(display_name,username), opponent:profiles!matches_opponent_id_fkey(display_name,username), match_participants(user_id,side,display_order,elo_before,elo_after,profiles(*)), match_participant_reviews(user_id,decision)")
     .eq("id", matchId)
     .maybeSingle();
+  const fallback = enhanced.error
+    ? await supabase
+        .from("matches")
+        .select("*, courts(name,sport_type), creator:profiles!matches_created_by_fkey(display_name,username), opponent:profiles!matches_opponent_id_fkey(display_name,username), match_participants(user_id,side,profiles(*))")
+        .eq("id", matchId)
+        .maybeSingle()
+    : null;
+  const data = enhanced.data ?? fallback?.data;
+  const error = enhanced.data ? null : fallback?.error ?? enhanced.error;
   if (error || !data) {
     if (error) console.warn("fetchMatchReview failed", error.message);
     return null;
@@ -239,6 +304,20 @@ export async function fetchMatchReview(matchId: string): Promise<MatchReview | n
     creator?: { display_name: string | null; username: string | null } | null;
     opponent?: { display_name: string | null; username: string | null } | null;
   };
+  const decisions = new Map(
+    (row.match_participant_reviews ?? []).map((review) => [review.user_id, review.decision]),
+  );
+  const participants = (row.match_participants ?? [])
+    .slice()
+    .sort((a, b) => (a.side === b.side ? (a.display_order ?? 0) - (b.display_order ?? 0) : a.side.localeCompare(b.side)))
+    .map((participant) => ({
+      id: participant.user_id,
+      name: participant.profiles?.display_name || participant.profiles?.username || "Player",
+      side: participant.side,
+      decision: decisions.get(participant.user_id) ?? "pending",
+      eloBefore: participant.elo_before ?? undefined,
+      eloAfter: participant.elo_after ?? undefined,
+    }));
   return {
     id: row.id,
     courtId: row.court_id,
@@ -254,7 +333,24 @@ export async function fetchMatchReview(matchId: string): Promise<MatchReview | n
     reviewDueAt: row.review_due_at,
     scoreA: row.score_a,
     scoreB: row.score_b,
+    runId: row.run_id ?? undefined,
+    participants,
   };
+}
+
+export async function reviewScheduledMatch(
+  matchId: string,
+  decision: "pending" | "approved" | "disputed",
+): Promise<boolean> {
+  const { error } = await supabase.rpc("review_run_match", {
+    p_match_id: matchId,
+    p_decision: decision,
+  });
+  if (error) {
+    console.warn("reviewScheduledMatch failed", error.message);
+    return false;
+  }
+  return true;
 }
 
 export async function confirmMatch(matchId: string): Promise<boolean> {

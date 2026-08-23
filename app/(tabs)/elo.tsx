@@ -159,7 +159,7 @@ export default function MeScreen() {
         style={styles.tabContent}
       >
         {activeTab === "activity" ? (
-          <View style={styles.content}>
+          <View style={styles.activityContent}>
             {activity.length > 0 ? (
               activity.map((item, index) => (
                 <ActivityRow
@@ -188,7 +188,7 @@ export default function MeScreen() {
                 </View>
               ))
             ) : (
-              <EmptyState title="NO ACTIVITY YET" body="Check in, join a run, or log a game to build your history." />
+              <EmptyState title="NO ACTIVITY YET" body="Check in, join a scheduled game, or log a game to build your history." />
             )}
           </View>
         ) : activeTab === "friends" ? (
@@ -288,7 +288,7 @@ export default function MeScreen() {
                 </View>
                 <Text style={styles.notificationTime}>{relativeNotificationTime(notification.createdAt)}</Text>
               </Pressable>
-            )) : <EmptyState title="YOU'RE ALL CAUGHT UP" body="Friend requests, game reviews, and run invites will appear here." />}
+            )) : <EmptyState title="YOU'RE ALL CAUGHT UP" body="Friend requests, game reviews, and game invitations will appear here." />}
           </View>
         )}
       </ScrollView>
@@ -389,6 +389,7 @@ const styles = StyleSheet.create({
   tabLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   unreadDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.accent },
   content: { paddingHorizontal: 20, paddingTop: 17 },
+  activityContent: { paddingTop: 17 },
   timelineRow: { flexDirection: "row", minHeight: 60 },
   timelineRail: { width: 20, alignItems: "center" },
   timelineDot: { width: 8, height: 8, borderRadius: 4, marginTop: 5, borderWidth: 1, borderColor: Colors.mutedDark, backgroundColor: Colors.background },

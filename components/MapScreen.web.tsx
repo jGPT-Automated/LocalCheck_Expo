@@ -1,3 +1,5 @@
+import { Feather } from "@expo/vector-icons";
+import * as Location from "expo-location";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -17,7 +19,7 @@ import {
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts } from "@/context/CourtPresenceContext";
-import { fetchCourtsInBounds } from "@/services/courtService";
+import { fetchCourtsInBounds, fetchNearbyCourts } from "@/services/courtService";
 
 declare global {
   interface Window {
@@ -65,12 +67,14 @@ function MapboxMap({
   onBoundsChange,
   initialCenter,
   localCourtId,
+  focusCourt,
 }: {
   courts: Court[];
   onCourtSelect: (c: Court) => void;
   onBoundsChange?: (sw: { lat: number; lng: number }, ne: { lat: number; lng: number }) => void;
   initialCenter: [number, number];
   localCourtId: string | null;
+  focusCourt: Court | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -328,6 +332,16 @@ function MapboxMap({
     source?.setData(buildCourtGeoJSON(courts, localCourtId));
   }, [mapReady, courts, localCourtId]);
 
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !focusCourt) return;
+    mapRef.current.easeTo({
+      center: [focusCourt.longitude, focusCourt.latitude],
+      zoom: 14,
+      duration: 700,
+      essential: true,
+    });
+  }, [focusCourt?.id, mapReady]);
+
   if (!HAS_TOKEN) {
     return (
       <View style={styles.noTokenBox}>
@@ -361,6 +375,8 @@ function MapboxMap({
 export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | "ALL" }) {
   const { courts: contextCourts, localCourt } = useApp();
   const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
+  const [focusedCourt, setFocusedCourt] = useState<Court | null>(null);
+  const [locationNotice, setLocationNotice] = useState<string | null>(null);
   // Selecting a court opens the app-wide court drawer (see CourtSheetHost).
   const { openCourtSheet } = useCourtSheet();
   useEffect(() => {
@@ -441,6 +457,38 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
     [localCourt?.id, localCourt?.latitude, localCourt?.longitude, contextCourts]
   );
 
+  const findNearestCourt = React.useCallback(async () => {
+    setLocationNotice("FINDING NEAREST COURT…");
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setLocationNotice("LOCATION NEEDED TO FIND THE NEAREST COURT");
+        return;
+      }
+      const last = await Location.getLastKnownPositionAsync();
+      const location = last ?? await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      const [nearest] = await fetchNearbyCourts(
+        location.coords.latitude,
+        location.coords.longitude,
+        sportFilter === "ALL" ? null : sportFilter,
+        1,
+      );
+      if (!nearest) {
+        setLocationNotice("NO COURT FOUND NEAR THIS LOCATION");
+        return;
+      }
+      setFocusedCourt(nearest);
+      setLocationNotice(null);
+      window.setTimeout(() => {
+        openCourtSheet({ courtId: nearest.id, distanceKm: nearest.distanceKm });
+      }, 720);
+    } catch {
+      setLocationNotice("LOCATION UNAVAILABLE — TRY AGAIN");
+    }
+  }, [openCourtSheet, sportFilter]);
+
   return (
     <View style={styles.container}>
       <View style={StyleSheet.absoluteFill}>
@@ -450,13 +498,14 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
             onBoundsChange={handleBoundsChange}
             initialCenter={initialCenter}
             localCourtId={localCourt?.id ?? null}
+            focusCourt={focusedCourt}
           />
 
           <View style={[styles.liveBar, activeCourts.length === 0 && styles.liveBarQuiet, { top: 12 }]}>
             <Text style={styles.liveBarText}>
               {activeCourts.length > 0
                 ? `${activeCourts.length} COURT${activeCourts.length === 1 ? "" : "S"} LIVE`
-                : "NO LIVE COURTS IN VIEW"}
+                : "NO ACTIVE CHECK-INS IN VIEW"}
             </Text>
             <View style={styles.liveDot} />
           </View>
@@ -475,6 +524,21 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
               <Text style={styles.legendText}>PICKLEBALL</Text>
             </View>
           </View>
+
+          <Pressable
+            accessibilityLabel="Find nearest court"
+            accessibilityRole="button"
+            onPress={findNearestCourt}
+            style={({ pressed }) => [styles.nearestButton, pressed && styles.nearestButtonPressed]}
+          >
+            <Feather color={Colors.black} name="navigation" size={15} />
+            <Text style={styles.nearestButtonText}>FIND NEAREST COURT</Text>
+          </Pressable>
+          {locationNotice ? (
+            <View style={styles.locationNotice}>
+              <Text style={styles.locationNoticeText}>{locationNotice}</Text>
+            </View>
+          ) : null}
       </View>
 
     </View>
@@ -503,7 +567,7 @@ const styles = StyleSheet.create({
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.accent },
   legend: {
     position: "absolute",
-    bottom: 16,
+    bottom: 72,
     left: 16,
     backgroundColor: "rgba(13,13,16,0.88)",
     borderWidth: 1,
@@ -519,6 +583,36 @@ const styles = StyleSheet.create({
   legendBasketball: { borderColor: Colors.text, backgroundColor: getCourtIdentityColor("BASKETBALL") },
   legendPickleball: { borderColor: Colors.text, backgroundColor: getCourtIdentityColor("PICKLEBALL") },
   legendText: { fontFamily: Typography.bodySemiBold, fontSize: 8, color: Colors.textSecondary, letterSpacing: 1 },
+  nearestButton: {
+    position: "absolute",
+    bottom: 16,
+    alignSelf: "center",
+    minWidth: 208,
+    minHeight: 44,
+    paddingHorizontal: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: Colors.accent,
+    borderRadius: 4,
+    zIndex: 10,
+  },
+  nearestButtonPressed: { opacity: 0.78 },
+  nearestButtonText: { fontFamily: Typography.heading, fontSize: 12, color: Colors.black, letterSpacing: 1.4 },
+  locationNotice: {
+    position: "absolute",
+    bottom: 66,
+    alignSelf: "center",
+    maxWidth: "82%",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "rgba(13,13,16,0.9)",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    zIndex: 11,
+  },
+  locationNoticeText: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.text, textAlign: "center" },
   noTokenBox: {
     flex: 1,
     backgroundColor: Colors.surfaceDark,

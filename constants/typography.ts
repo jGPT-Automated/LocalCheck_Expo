@@ -1,3 +1,5 @@
+import type { TextStyle } from "react-native";
+
 // Oswald is the canonical condensed display face from Design.pdf and Logo.png;
 // Inter carries body copy. Components reference these tokens rather than font
 // names so the brand stays consistent across the MVP.
@@ -46,3 +48,81 @@ export const LetterSpacings = {
   widest: 2.5,
   caps: 2,
 };
+
+/**
+ * Semantic text roles are the public typography API for product UI. Primitive
+ * sizes remain available while legacy screens migrate, but shared components
+ * should consume a role instead of assembling a new font treatment locally.
+ */
+export const TextStyles = {
+  displayLarge: {
+    fontFamily: Typography.headingBold,
+    fontSize: FontSizes["3xl"],
+    lineHeight: 40,
+  },
+  display: {
+    fontFamily: Typography.headingSemiBold,
+    fontSize: FontSizes["2xl"],
+    lineHeight: 32,
+  },
+  title: {
+    fontFamily: Typography.headingSemiBold,
+    fontSize: FontSizes.xl,
+    lineHeight: 26,
+  },
+  metric: {
+    fontFamily: Typography.headingSemiBold,
+    fontSize: 24,
+    lineHeight: 28,
+  },
+  stat: {
+    fontFamily: Typography.headingSemiBold,
+    fontSize: FontSizes.xl,
+    lineHeight: 26,
+  },
+  statSmall: {
+    fontFamily: Typography.headingSemiBold,
+    fontSize: FontSizes.lg,
+    lineHeight: 22,
+  },
+  compactStat: {
+    fontFamily: Typography.headingSemiBold,
+    fontSize: FontSizes.md,
+    lineHeight: 18,
+  },
+  body: {
+    fontFamily: Typography.body,
+    fontSize: FontSizes.base,
+    lineHeight: 22,
+  },
+  bodySmall: {
+    fontFamily: Typography.body,
+    fontSize: FontSizes.md,
+    lineHeight: 20,
+  },
+  listName: {
+    fontFamily: Typography.bodySemiBold,
+    fontSize: FontSizes.md,
+    lineHeight: 18,
+  },
+  metadata: {
+    fontFamily: Typography.body,
+    fontSize: FontSizes.sm,
+    lineHeight: 16,
+  },
+  caption: {
+    fontFamily: Typography.body,
+    fontSize: FontSizes.xs,
+    lineHeight: 13,
+  },
+  label: {
+    fontFamily: Typography.bodySemiBold,
+    fontSize: FontSizes.sm,
+    lineHeight: 16,
+  },
+  labelSmall: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: FontSizes.xs,
+    lineHeight: 13,
+  },
+} as const satisfies Record<string, TextStyle>;

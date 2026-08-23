@@ -19,3 +19,11 @@ export function backLogoFrameStyle(size: number) {
     height: size,
   };
 }
+
+const FINAL_MARK_HEIGHT = 202;
+const FINAL_MARK_TO_WORDMARK_GAP = 58;
+
+/** Optical icon-to-title gap copied from the final full lockup geometry. */
+export function brandHeaderGap(iconSize: number) {
+  return Math.round(iconSize * (FINAL_MARK_TO_WORDMARK_GAP / FINAL_MARK_HEIGHT));
+}

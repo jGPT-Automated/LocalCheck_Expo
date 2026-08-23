@@ -91,6 +91,8 @@ export interface GameRun {
   participants: Player[];
   hostId: string;
   hostName?: string;
+  status: string;
+  resultMatchId?: string;
   skillLevel: "ALL LEVELS" | "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
 }
 
@@ -168,6 +170,8 @@ export const GAME_TYPE_LABELS: Record<GameType, string> = {
 export interface MatchResult {
   id: string;
   date: string;
+  /** Authoritative timestamp used whenever a full date must be rendered. */
+  playedAtIso: string;
   courtName: string;
   sport: CourtSport;
   gameType?: GameType;

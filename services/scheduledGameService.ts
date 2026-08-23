@@ -22,6 +22,7 @@ interface SupabaseRun {
   updated_at: string;
   courts?: { name: string; sport_type: string } | null;
   organizer?: SupabaseProfile | null;
+  result?: Array<{ id: string; status: string }>;
   run_participants?: Array<{
     user_id: string;
     status: string;
@@ -31,7 +32,7 @@ interface SupabaseRun {
 }
 
 const RUN_SELECT =
-  "*, courts(name, sport_type), organizer:profiles!runs_organizer_id_fkey(*), run_participants(user_id, status, joined_at, profiles(*))";
+  "*, courts(name, sport_type), organizer:profiles!runs_organizer_id_fkey(*), run_participants(user_id, status, joined_at, profiles(*)), result:matches(id,status)";
 
 function normalizeSport(raw: string | null | undefined): CourtSport {
   const upper = (raw ?? "").toUpperCase();
@@ -75,6 +76,8 @@ export function mapScheduledGameToRun(row: SupabaseRun): GameRun {
     participants,
     hostId: row.organizer_id,
     hostName: row.organizer?.display_name || row.organizer?.username || undefined,
+    status: row.status,
+    resultMatchId: row.result?.[0]?.id,
     skillLevel: "ALL LEVELS",
   };
 }

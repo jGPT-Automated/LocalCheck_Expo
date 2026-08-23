@@ -1,6 +1,6 @@
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,9 +14,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { LogoMark } from "@/components/brand/LogoMark";
+import { LogoLockup, LogoMark } from "@/components/brand/LogoMark";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
-import { SplashReveal } from "@/components/onboarding/SplashReveal";
+import { LaunchTransition } from "@/components/onboarding/LaunchTransition";
 import { Colors } from "@/constants/colors";
 import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
@@ -24,7 +24,6 @@ import { useAuth } from "@/context/AuthContext";
 // Swap the sign-in artwork by replacing assets/brand/auth-graphic.png —
 // same modular contract as the logo (see DESIGN.md §Brand assets).
 const AUTH_GRAPHIC = require("@/assets/brand/splash-artwork.png");
-let hasPlayedSignedOutReveal = false;
 
 /**
  * Auth errors surface to real users — never show raw fetch/JSON dumps
@@ -51,16 +50,16 @@ export default function AuthScreen() {
   const { user, profile, signInWithEmail, signUpWithEmail, signInWithApple, signOut, isLoading } = useAuth();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
-  const [revealDone, setRevealDone] = useState(hasPlayedSignedOutReveal);
-  const finishReveal = useCallback(() => {
-    hasPlayedSignedOutReveal = true;
-    setRevealDone(true);
-  }, []);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // The LaunchTransition overlay only mounts once a sign-in/sign-up actually
+  // succeeds — it's the "you're in" moment, never a pre-form ceremony. `busy`
+  // doubles as its `loading` prop: the corner sweep runs for exactly as long
+  // as the real request is in flight, then resolves once busy flips false.
+  const [showTransition, setShowTransition] = useState(false);
 
   function goHome() {
     router.replace("/(tabs)");
@@ -68,32 +67,31 @@ export default function AuthScreen() {
 
   async function handleSignIn() {
     if (!email || !password) { setErrorMsg("Enter email and password."); return; }
-    setBusy(true); setErrorMsg(null);
+    setBusy(true); setErrorMsg(null); setShowTransition(true);
     const { error } = await signInWithEmail(email.trim(), password);
-    setBusy(false);
-    if (error) { setErrorMsg(humanizeAuthError(error)); }
-    else { goHome(); }
+    if (error) { setBusy(false); setShowTransition(false); setErrorMsg(humanizeAuthError(error)); }
+    else { setBusy(false); }
   }
 
   async function handleSignUp() {
     if (!email || !password) { setErrorMsg("Enter email and password."); return; }
-    setBusy(true); setErrorMsg(null);
+    setBusy(true); setErrorMsg(null); setShowTransition(true);
     const { error, needsEmailConfirmation } = await signUpWithEmail(email.trim(), password);
-    setBusy(false);
-    if (error) { setErrorMsg(humanizeAuthError(error)); }
-    else if (needsEmailConfirmation) {
+    if (error) {
+      setBusy(false); setShowTransition(false); setErrorMsg(humanizeAuthError(error));
+    } else if (needsEmailConfirmation) {
+      setBusy(false); setShowTransition(false);
       Alert.alert("Account created", "Check your email to confirm, then sign in.", [{ text: "OK" }]);
     } else {
-      goHome();
+      setBusy(false);
     }
   }
 
   async function handleAppleSignIn() {
-    setBusy(true); setErrorMsg(null);
+    setBusy(true); setErrorMsg(null); setShowTransition(true);
     const { error } = await signInWithApple();
-    setBusy(false);
-    if (error) { setErrorMsg(humanizeAuthError(error)); }
-    else { goHome(); }
+    if (error) { setBusy(false); setShowTransition(false); setErrorMsg(humanizeAuthError(error)); }
+    else { setBusy(false); }
   }
 
   async function handleSignOut() {
@@ -102,127 +100,139 @@ export default function AuthScreen() {
     setBusy(false);
   }
 
-  if (isLoading) {
-    return (
-      <View style={[styles.root, { justifyContent: "center", alignItems: "center" }]}>
-        <ActivityIndicator color={Colors.accent} />
-        {!revealDone && <SplashReveal mode="signed-out" onDone={finishReveal} />}
-      </View>
-    );
-  }
-
+  // LaunchTransition renders once, at a single stable position in this tree,
+  // regardless of what else is happening — no separate early-return branch
+  // for it, so nothing can unmount/remount it mid-animation. It only mounts
+  // after a real sign-in/sign-up/Apple submit (showTransition), never as a
+  // pre-form ceremony, and it's the only thing "loading" ever looks like on
+  // this screen — no bare spinner anywhere.
   return (
     <View style={styles.root}>
-      <View style={styles.backgroundArtwork}>
-        <Image
-          accessibilityLabel="An abstract basketball player rising toward the rim"
-          resizeMode="contain"
-          source={AUTH_GRAPHIC}
-          style={styles.backgroundArtworkImage}
-        />
-      </View>
-    <KeyboardAwareScrollViewCompat
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      bounces={false}
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={[styles.hero, { paddingTop: topPad + 12 }]}>
-        <View style={styles.brandRow}>
-          <LogoMark size={40} />
-          <Text style={styles.brandName}>LOCALCHECK</Text>
+      {isLoading ? (
+        <View style={styles.loadingCenter}>
+          <LogoMark size={88} />
         </View>
-        <View style={styles.heroCopy}>
-          <Text style={styles.title}>{user ? "WELCOME BACK" : "KNOW BEFORE YOU GO."}</Text>
-          <Text style={styles.subtitle}>
-            {user ? "YOUR LOCAL GAME IS WAITING." : "SEE WHO'S PLAYING. SHOW UP READY."}
-          </Text>
-        </View>
-      </View>
-
-      <View style={[styles.formPanel, { paddingBottom: Math.max(bottom, 20) }]}>
-
-        {user && (
-          <View style={styles.statusBanner}>
-            <Text style={styles.statusLabel}>SIGNED IN AS</Text>
-            <Text style={styles.statusValue}>{user.email}</Text>
-            {profile && (
-              <Text style={styles.statusValue}>
-                {profile.display_name ?? "—"} · {profile.elo_rating} ELO
-              </Text>
-            )}
-            <Pressable
-              style={[styles.btn, styles.btnOutline, { marginTop: 12 }]}
-              onPress={handleSignOut}
-              disabled={busy}
-            >
-              <Text style={styles.btnTextOutline}>SIGN OUT</Text>
-            </Pressable>
+      ) : (
+        <>
+          <View style={styles.backgroundArtwork}>
+            <Image
+              accessibilityLabel="An abstract basketball player rising toward the rim"
+              resizeMode="contain"
+              source={AUTH_GRAPHIC}
+              style={styles.backgroundArtworkImage}
+            />
           </View>
-        )}
-
-        {!user && (
-          <>
-            {errorMsg && (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{errorMsg}</Text>
+          <KeyboardAwareScrollViewCompat
+            style={styles.container}
+            contentContainerStyle={styles.content}
+            bounces={false}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={[styles.hero, { paddingTop: topPad + 12 }]}>
+              <View style={styles.brandRow}>
+                <LogoLockup width={184} />
               </View>
-            )}
-
-            <View style={styles.field}>
-              <Text style={styles.label}>EMAIL</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-                placeholder="you@example.com"
-                placeholderTextColor={Colors.mutedDark}
-              />
+              <View style={styles.heroCopy}>
+                <Text style={styles.title}>{user ? "WELCOME BACK" : "KNOW BEFORE YOU GO."}</Text>
+                <Text style={styles.subtitle}>
+                  {user ? "YOUR LOCAL GAME IS WAITING." : "SEE WHO'S PLAYING. SHOW UP READY."}
+                </Text>
+              </View>
             </View>
 
-            <View style={styles.field}>
-              <Text style={styles.label}>PASSWORD</Text>
-              <TextInput
-                style={styles.input}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoCapitalize="none"
-                placeholder="••••••••"
-                placeholderTextColor={Colors.mutedDark}
-              />
-            </View>
+            <View style={[styles.formPanel, { paddingBottom: Math.max(bottom, 20) }]}>
 
-            <View style={styles.actions}>
-              <Pressable style={[styles.btn, busy && styles.btnDisabled]} onPress={handleSignIn} disabled={busy}>
-                {busy ? <ActivityIndicator color={Colors.black} size="small" /> : <Text style={styles.btnText}>SIGN IN</Text>}
-              </Pressable>
-
-              <Pressable style={[styles.btn, styles.btnOutline, busy && styles.btnDisabled]} onPress={handleSignUp} disabled={busy}>
-                <Text style={styles.btnTextOutline}>CREATE ACCOUNT</Text>
-              </Pressable>
-
-              {Platform.OS === "ios" && (
-                <AppleAuthentication.AppleAuthenticationButton
-                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                  cornerRadius={0}
-                  style={styles.appleBtn}
-                  onPress={handleAppleSignIn}
-                />
+              {user && (
+                <View style={styles.statusBanner}>
+                  <Text style={styles.statusLabel}>SIGNED IN AS</Text>
+                  <Text style={styles.statusValue}>{user.email}</Text>
+                  {profile && (
+                    <Text style={styles.statusValue}>
+                      {profile.display_name ?? "—"} · {profile.elo_rating} ELO
+                    </Text>
+                  )}
+                  <Pressable
+                    style={[styles.btn, styles.btnOutline, { marginTop: 12 }]}
+                    onPress={handleSignOut}
+                    disabled={busy}
+                  >
+                    <Text style={styles.btnTextOutline}>SIGN OUT</Text>
+                  </Pressable>
+                </View>
               )}
-            </View>
-          </>
-        )}
 
-        <Text style={styles.note}>Your account stays signed in on this device.</Text>
-      </View>
-    </KeyboardAwareScrollViewCompat>
-      {!revealDone && <SplashReveal mode="signed-out" onDone={finishReveal} />}
+              {!user && (
+                <>
+                  {errorMsg && (
+                    <View style={styles.errorBox}>
+                      <Text style={styles.errorText}>{errorMsg}</Text>
+                    </View>
+                  )}
+
+                  <View style={styles.field}>
+                    <Text style={styles.label}>EMAIL</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={email}
+                      onChangeText={setEmail}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      keyboardType="email-address"
+                      placeholder="you@example.com"
+                      placeholderTextColor={Colors.mutedDark}
+                    />
+                  </View>
+
+                  <View style={styles.field}>
+                    <Text style={styles.label}>PASSWORD</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry
+                      autoCapitalize="none"
+                      placeholder="••••••••"
+                      placeholderTextColor={Colors.mutedDark}
+                    />
+                  </View>
+
+                  <View style={styles.actions}>
+                    <Pressable style={[styles.btn, busy && styles.btnDisabled]} onPress={handleSignIn} disabled={busy}>
+                      {busy ? <ActivityIndicator color={Colors.black} size="small" /> : <Text style={styles.btnText}>SIGN IN</Text>}
+                    </Pressable>
+
+                    <Pressable style={[styles.btn, styles.btnOutline, busy && styles.btnDisabled]} onPress={handleSignUp} disabled={busy}>
+                      <Text style={styles.btnTextOutline}>CREATE ACCOUNT</Text>
+                    </Pressable>
+
+                    {Platform.OS === "ios" && (
+                      <AppleAuthentication.AppleAuthenticationButton
+                        buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                        buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                        cornerRadius={0}
+                        style={styles.appleBtn}
+                        onPress={handleAppleSignIn}
+                      />
+                    )}
+                  </View>
+                </>
+              )}
+
+              <Text style={styles.note}>Your account stays signed in on this device.</Text>
+            </View>
+          </KeyboardAwareScrollViewCompat>
+        </>
+      )}
+      {showTransition && (
+        <LaunchTransition
+          loading={busy}
+          onDone={() => {
+            setShowTransition(false);
+            goHome();
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -231,6 +241,11 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  loadingCenter: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   container: {
     flex: 1,
@@ -259,16 +274,8 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   brandRow: {
-    flexDirection: "row",
     alignItems: "center",
-    gap: 10,
     zIndex: 2,
-  },
-  brandName: {
-    fontFamily: Typography.heading,
-    fontSize: 18,
-    color: Colors.text,
-    letterSpacing: 1.8,
   },
   heroCopy: {
     marginTop: "auto",
@@ -283,7 +290,11 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
-    backgroundColor: Colors.background,
+    // Was solid Colors.background — the panel sits as its own layer on top
+    // of the artwork and blocked it outright with a hard edge. Slightly
+    // transparent instead of fully opaque, so the image and dark backdrop
+    // color both still read faintly through, softening that cutoff.
+    backgroundColor: "rgba(13,13,16,0.92)",
     width: "100%",
   },
   title: {

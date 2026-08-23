@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors } from "@/constants/colors";
 import { Space } from "@/constants/layout";
-import { Typography } from "@/constants/typography";
+import { TextStyles, Typography } from "@/constants/typography";
 
 import { EloStat } from "./EloStat";
 
@@ -51,7 +51,10 @@ export function ProfileHero({
       </Pressable>
 
       <View style={styles.identity}>
-        <Text numberOfLines={1} style={styles.name}>{headline || name}</Text>
+        <View style={styles.headlineRow}>
+          <Text numberOfLines={1} style={styles.name}>{headline || name}</Text>
+          <EloStat delta={eloDelta} hero value={elo} />
+        </View>
         {username ? <Text numberOfLines={1} style={styles.username}>@{username}</Text> : null}
         {memberSince ? <Text style={styles.member}>MEMBER SINCE {memberSince}</Text> : null}
         {courtLabel ? (
@@ -61,21 +64,20 @@ export function ProfileHero({
           </View>
         ) : null}
       </View>
-
-      <EloStat delta={eloDelta} hero value={elo} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  hero: { minHeight: 144, paddingHorizontal: 20, paddingVertical: 22, flexDirection: "row", alignItems: "center", gap: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border },
+  hero: { minHeight: 144, paddingHorizontal: 20, paddingVertical: 20, flexDirection: "row", alignItems: "center", gap: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border },
   avatarColumn: { alignItems: "center" },
   qrHint: { marginTop: 6, flexDirection: "row", alignItems: "center", gap: 4 },
   qrHintText: { fontFamily: Typography.bodyBold, fontSize: 7, color: Colors.accent, letterSpacing: 1 },
-  identity: { flex: 1, minWidth: 0 },
-  name: { fontFamily: Typography.headingBold, fontSize: 23, lineHeight: 27, color: Colors.text, letterSpacing: 0.4, textTransform: "uppercase" },
-  username: { marginTop: 2, fontFamily: Typography.body, fontSize: 11, color: Colors.textSecondary },
-  member: { marginTop: 5, fontFamily: Typography.bodyMedium, fontSize: 7, color: Colors.muted, letterSpacing: 1.15 },
-  courtLabel: { maxWidth: 148, marginTop: Space.sm, paddingVertical: 3, flexDirection: "row", alignItems: "center", gap: 5 },
-  courtText: { flexShrink: 1, fontFamily: Typography.bodyMedium, fontSize: 9, color: Colors.textSecondary, letterSpacing: 0.35 },
+  identity: { flex: 1, minWidth: 0, justifyContent: "center" },
+  headlineRow: { minHeight: 54, flexDirection: "row", alignItems: "center", gap: Space.md },
+  name: { flex: 1, ...TextStyles.display, color: Colors.text, letterSpacing: 0.4, textTransform: "uppercase" },
+  username: { alignSelf: "stretch", marginTop: 2, fontFamily: Typography.body, fontSize: 11, color: Colors.textSecondary },
+  member: { marginTop: 5, ...TextStyles.caption, color: Colors.muted, letterSpacing: 0.4 },
+  courtLabel: { alignSelf: "flex-start", maxWidth: "100%", marginTop: Space.sm, paddingHorizontal: 8, minHeight: 28, flexDirection: "row", alignItems: "center", gap: 5, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderLight, borderRadius: 14, backgroundColor: Colors.surfaceHigh },
+  courtText: { flexShrink: 1, ...TextStyles.labelSmall, color: Colors.textSecondary, letterSpacing: 0 },
 });

@@ -80,6 +80,18 @@ test("separates actor and action in court-scoped activity", () => {
   );
 });
 
+test("describes scheduled-game activity with the product language", () => {
+  assert.deepEqual(
+    formatActivityCopy({
+      playerName: "Jesse Harrick",
+      courtName: "Rancho Cienega Sports Complex",
+      message: "JESSE HARRICK SCHEDULED A GAME AT RANCHO CIENEGA SPORTS COMPLEX",
+      type: "run_started",
+    }),
+    { actor: "Jesse Harrick", action: "scheduled a game" },
+  );
+});
+
 test("normalizes an unfamiliar activity message without losing meaning", () => {
   assert.deepEqual(
     formatActivityCopy({

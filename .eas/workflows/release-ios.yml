@@ -2,17 +2,16 @@ name: Release iOS (build + TestFlight)
 
 defaults:
   tools:
-    node: '22'
-    pnpm: '10.13.1'
+    node: "22"
+    pnpm: "10.13.1"
 
 # Release path: build a fresh production iOS binary and submit it to App Store
 # Connect / TestFlight after each approved merge to main. This also covers
 # native changes that cannot ship over the air.
 #
-# Triggered after a reviewed PR lands on main, by a v* version tag, or manually
-# from the EAS dashboard. Main is not currently branch-protected, so explicit
-# approval plus a clean PR check/review record is the operational release gate.
-# This is the single automatic path from that approved merge to TestFlight.
+# Manual fallback for releases launched from the EAS dashboard. The automatic
+# main -> TestFlight path lives in .github/workflows/release-ios.yml so an
+# exhausted EAS Workflows-minute allowance cannot prevent a production build.
 #
 # Signing is handled by the distribution cert + provisioning profile stored on
 # EAS. Submission uses the App Store Connect API key stored on EAS (no local
@@ -20,11 +19,6 @@ defaults:
 # auto-increments server-side.
 
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - 'v*'
   workflow_dispatch: {}
 
 jobs:

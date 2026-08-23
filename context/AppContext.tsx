@@ -1,4 +1,3 @@
-import * as Location from "expo-location";
 import React, {
   createContext,
   useCallback,
@@ -53,6 +52,7 @@ import {
 import { updateLocalCourtId, updateProfileFields } from "@/services/profileService";
 import { useAuth } from "@/context/AuthContext";
 import { usePresenceRefresh } from "@/context/CourtPresenceContext";
+import { useDeviceLocation } from "@/context/DeviceLocationContext";
 import { useRealtimeHub } from "@/context/RealtimeHubContext";
 import {
   batchHasResource,
@@ -61,11 +61,10 @@ import {
   type RealtimeTopic,
 } from "@/lib/realtimeHub";
 
-const LA_FALLBACK = { lat: 34.0522, lng: -118.2437 };
 const USER_CHECKIN_RESOURCES = ["check_ins"] as const;
 const USER_PROFILE_RESOURCES = ["profiles"] as const;
 const USER_FRIEND_RESOURCES = ["friendships", "profiles"] as const;
-const USER_MATCH_RESOURCES = ["matches", "match_participants"] as const;
+const USER_MATCH_RESOURCES = ["matches", "match_participants", "match_participant_reviews"] as const;
 const RUN_RESOURCES = ["runs", "run_participants"] as const;
 const VISIT_RESOURCES = ["planned_visits"] as const;
 const FEED_RESOURCES = ["activity_events", "activity_event_likes"] as const;
@@ -254,28 +253,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [profile]);
 
-  // ─── Load nearby courts from Supabase using device GPS (LA fallback for sort/
-  // discovery only). Nearby courts are discovery data, not a user preference —
-  // this must never write profiles.local_court_id. ────────────────────────────
+  // ─── Load nearby courts from Supabase using the shared device location.
+  // Nearby courts are discovery data, not a user preference — this must never
+  // write profiles.local_court_id. Depends on deviceCoord (not just userId) so
+  // it re-fetches once a real GPS fix lands after the initial permission
+  // prompt, instead of freezing on whatever resolved first. ──────────────────
+  const { coord: deviceCoord } = useDeviceLocation();
   const loadCourts = useCallback(async () => {
-    if (!userId) {
-      setCourts([]);
+    if (!userId || !deviceCoord) {
+      if (!userId) setCourts([]);
       return;
     }
-    let { lat, lng } = LA_FALLBACK;
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        lat = loc.coords.latitude;
-        lng = loc.coords.longitude;
-      }
-    } catch {
-      // Keep fallback coords.
-    }
-    const nearby = await fetchNearbyCourts(lat, lng, preferredSport ?? null, 30);
+    const nearby = await fetchNearbyCourts(deviceCoord.lat, deviceCoord.lng, preferredSport ?? null, 30);
     setCourts(nearby);
-  }, [userId, preferredSport]);
+  }, [userId, deviceCoord, preferredSport]);
 
   useEffect(() => {
     loadCourts();
