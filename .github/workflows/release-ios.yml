@@ -3,6 +3,10 @@ name: Release iOS to TestFlight
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - ".github/**"
+      - "docs/**"
+      - "**/*.md"
   workflow_dispatch:
 
 concurrency:
