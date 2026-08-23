@@ -1,16 +1,12 @@
-import {
-  BottomSheetBackdrop,
-  type BottomSheetBackdropProps,
-  BottomSheetModal,
-  BottomSheetModalProvider,
-  BottomSheetScrollView,
-} from "@gorhom/bottom-sheet";
+import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Colors, Radius } from "@/constants/colors";
+import { Colors } from "@/constants/colors";
 import { TextStyles } from "@/constants/typography";
+
+import { AppBottomSheetModal } from "./AppBottomSheetModal";
 
 /** Run-only task drawer. It deliberately replaces the old custom Modal for
  * this flow so swipe-down, backdrop close, and drag interruption are native to
@@ -30,7 +26,7 @@ export function RunFlowSheet({
 }) {
   const modalRef = useRef<BottomSheetModal>(null);
   const presentedRef = useRef(false);
-  const snapPoints = useMemo(() => ["88%"], []);
+  const snapPoints = useMemo<Array<string | number>>(() => ["88%"], []);
 
   useEffect(() => {
     if (visible && !presentedRef.current) {
@@ -41,69 +37,42 @@ export function RunFlowSheet({
     }
   }, [visible]);
 
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop
-        {...props}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-        opacity={0.72}
-        pressBehavior="close"
-      />
-    ),
-    [],
-  );
-
   return (
-    <BottomSheetModalProvider>
-      <BottomSheetModal
-        ref={modalRef}
-        index={0}
-        snapPoints={snapPoints}
-        enableDynamicSizing={false}
-        enablePanDownToClose
-        backdropComponent={renderBackdrop}
-        backgroundStyle={styles.background}
-        handleIndicatorStyle={styles.handle}
-        onDismiss={() => {
-          presentedRef.current = false;
-          onClose();
-        }}
-      >
-        <View style={styles.header}>
-          <View style={styles.headingCopy}>
-            {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-            <Text style={styles.title}>{title}</Text>
-          </View>
-          <Pressable
-            accessibilityLabel="Close"
-            accessibilityRole="button"
-            hitSlop={10}
-            onPress={() => modalRef.current?.dismiss()}
-            style={styles.close}
-          >
-            <Feather name="x" size={20} color={Colors.textSecondary} />
-          </Pressable>
+    <AppBottomSheetModal
+      ref={modalRef}
+      snapPoints={snapPoints}
+      onDismiss={() => {
+        presentedRef.current = false;
+        onClose();
+      }}
+    >
+      <View style={styles.header}>
+        <View style={styles.headingCopy}>
+          {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
+          <Text style={styles.title}>{title}</Text>
         </View>
-        <BottomSheetScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+        <Pressable
+          accessibilityLabel="Close"
+          accessibilityRole="button"
+          hitSlop={10}
+          onPress={() => modalRef.current?.dismiss()}
+          style={styles.close}
         >
-          {children}
-        </BottomSheetScrollView>
-      </BottomSheetModal>
-    </BottomSheetModalProvider>
+          <Feather name="x" size={20} color={Colors.textSecondary} />
+        </Pressable>
+      </View>
+      <BottomSheetScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {children}
+      </BottomSheetScrollView>
+    </AppBottomSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
-    backgroundColor: Colors.background,
-    borderTopLeftRadius: Radius.card,
-    borderTopRightRadius: Radius.card,
-  },
-  handle: { width: 38, height: 4, backgroundColor: Colors.muted },
   header: {
     flexDirection: "row",
     alignItems: "center",
