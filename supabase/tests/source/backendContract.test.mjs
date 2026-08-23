@@ -106,6 +106,21 @@ test("every scheduled match participant can read the pending result", async () =
   );
 });
 
+test("scheduled results preserve privacy and refresh the full roster", async () => {
+  const sql = await migrationEndingWith("_add_scheduled_team_results.sql");
+  assert.match(
+    sql,
+    /case when v_run\.is_open_invite then 'public' else 'private' end/i,
+  );
+  assert.match(
+    sql,
+    /private\.send_invalidation\([\s\S]*?'user:' \|\| v_user_id::text, 'matches', 'UPDATE'/i,
+  );
+  assert.match(sql, /v_transition_id uuid := gen_random_uuid\(\)/i);
+  assert.match(sql, /run-match-disputed:[^\n]+v_transition_id::text/i);
+  assert.match(sql, /run-match-dispute-withdrawn:[^\n]+v_transition_id::text/i);
+});
+
 test("push delivery uses Vault, durable tickets, cron retry, and receipt reconciliation", async () => {
   const sql = await migrationEndingWith("_complete_push_delivery.sql");
   for (const contract of [

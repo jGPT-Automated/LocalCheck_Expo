@@ -58,8 +58,12 @@ export function DeviceLocationProvider({ children }: { children: React.ReactNode
           return { coord: LA_FALLBACK, status: "denied" as const };
         }
         const last = await Location.getLastKnownPositionAsync();
-        const loc =
-          last ?? (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
+        if (last) {
+          setCoord({ lat: last.coords.latitude, lng: last.coords.longitude });
+        }
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
         const resolved = { lat: loc.coords.latitude, lng: loc.coords.longitude };
         setCoord(resolved);
         setStatus("granted");

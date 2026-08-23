@@ -325,6 +325,9 @@ begin
       jsonb_build_object('path', '/match/' || v_match.id::text),
       'run-match-confirmed:' || v_match.id::text || ':' || v_user_id::text
     );
+    perform private.send_invalidation(
+      'user:' || v_user_id::text, 'matches', 'UPDATE'
+    );
   end loop;
   return v_match;
 end
@@ -399,7 +402,8 @@ begin
   ) values (
     v_run.court_id, v_user_id, v_opponent_id, v_run.id, v_run.start_time,
     p_score_a, p_score_b, case when p_score_a > p_score_b then 'a' else 'b' end,
-    'public', 'pending', v_sport, now() + interval '3 days'
+    case when v_run.is_open_invite then 'public' else 'private' end,
+    'pending', v_sport, now() + interval '3 days'
   ) returning * into v_match;
 
   v_order := 0;
@@ -453,6 +457,7 @@ declare
   v_match public.matches;
   v_previous_decision text;
   v_participant uuid;
+  v_transition_id uuid := gen_random_uuid();
 begin
   if v_user_id is null then raise exception 'not authenticated' using errcode = '42501'; end if;
   if p_decision not in ('pending', 'approved', 'disputed') then raise exception 'invalid review decision' using errcode = '22023'; end if;
@@ -484,7 +489,7 @@ begin
         'GAME DISPUTED',
         'A player disputed the submitted score. The result drops at the deadline unless they withdraw it.',
         jsonb_build_object('path', '/match/' || v_match.id::text),
-        'run-match-disputed:' || v_match.id::text || ':' || v_user_id::text || ':' || v_participant::text
+        'run-match-disputed:' || v_match.id::text || ':' || v_user_id::text || ':' || v_participant::text || ':' || v_transition_id::text
       );
     end loop;
   elsif v_previous_decision = 'disputed' and p_decision <> 'disputed' then
@@ -497,7 +502,7 @@ begin
         'DISPUTE WITHDRAWN',
         'The active dispute was withdrawn. The score remains open for review.',
         jsonb_build_object('path', '/match/' || v_match.id::text),
-        'run-match-dispute-withdrawn:' || v_match.id::text || ':' || v_user_id::text || ':' || v_participant::text
+        'run-match-dispute-withdrawn:' || v_match.id::text || ':' || v_user_id::text || ':' || v_participant::text || ':' || v_transition_id::text
       );
     end loop;
   end if;
@@ -544,6 +549,9 @@ begin
           'GAME DROPPED', 'An active dispute remained at the review deadline. No rating changed.',
           jsonb_build_object('path', '/match/' || v_match.id::text),
           'run-match-dropped:' || v_match.id::text || ':' || v_user_id::text
+        );
+        perform private.send_invalidation(
+          'user:' || v_user_id::text, 'matches', 'UPDATE'
         );
       end loop;
     else
