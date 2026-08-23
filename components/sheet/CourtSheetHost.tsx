@@ -1,9 +1,4 @@
-import {
-  BottomSheetBackdrop,
-  BottomSheetBackdropProps,
-  BottomSheetModal,
-  BottomSheetModalProvider,
-} from "@gorhom/bottom-sheet";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import React, {
   createContext,
   useCallback,
@@ -12,9 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { StyleSheet } from "react-native";
-
-import { Colors } from "@/constants/colors";
+import { AppBottomSheetModal } from "./AppBottomSheetModal";
 import { CourtSheetContent } from "./CourtSheetContent";
 
 /**
@@ -47,7 +40,11 @@ export function useCourtSheet() {
   return useContext(CourtSheetContext);
 }
 
-export function CourtSheetProvider({ children }: { children: React.ReactNode }) {
+export function CourtSheetProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const modalRef = useRef<BottomSheetModal>(null);
   const [args, setArgs] = useState<OpenArgs | null>(null);
   const [peekHeight, setPeekHeight] = useState(332);
@@ -69,68 +66,35 @@ export function CourtSheetProvider({ children }: { children: React.ReactNode }) 
 
   const api = useMemo(
     () => ({ openCourtSheet, closeCourtSheet }),
-    [openCourtSheet, closeCourtSheet]
+    [openCourtSheet, closeCourtSheet],
   );
 
   // The collapsed drawer ends at the disclosure rail rather than exposing the
   // beginning of the expanded content. CourtSheetContent reports its actual
   // compact height so long names and platform font metrics remain supported.
-  const snapPoints = useMemo(() => [peekHeight, "92%"], [peekHeight]);
-
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop
-        {...props}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-        pressBehavior="close"
-        opacity={0.75}
-      />
-    ),
-    []
+  const snapPoints = useMemo<Array<string | number>>(
+    () => [peekHeight, "92%"],
+    [peekHeight],
   );
 
   return (
-    <BottomSheetModalProvider>
-      <CourtSheetContext.Provider value={api}>
-        {children}
-        <BottomSheetModal
-          ref={modalRef}
-          index={0}
-          snapPoints={snapPoints}
-          enableDynamicSizing={false}
-          enablePanDownToClose
-          onDismiss={() => setArgs(null)}
-          backdropComponent={renderBackdrop}
-          backgroundStyle={styles.sheetBackground}
-          handleIndicatorStyle={styles.grabber}
-        >
-          {args && (
-            <CourtSheetContent
-              courtId={args.courtId}
-              distanceKm={args.distanceKm}
-              onNavigate={closeCourtSheet}
-              onExpand={expandCourtSheet}
-              onPeekHeight={(height) => setPeekHeight(Math.ceil(height + 24))}
-            />
-          )}
-        </BottomSheetModal>
-      </CourtSheetContext.Provider>
-    </BottomSheetModalProvider>
+    <CourtSheetContext.Provider value={api}>
+      {children}
+      <AppBottomSheetModal
+        ref={modalRef}
+        snapPoints={snapPoints}
+        onDismiss={() => setArgs(null)}
+      >
+        {args && (
+          <CourtSheetContent
+            courtId={args.courtId}
+            distanceKm={args.distanceKm}
+            onNavigate={closeCourtSheet}
+            onExpand={expandCourtSheet}
+            onPeekHeight={(height) => setPeekHeight(Math.ceil(height + 24))}
+          />
+        )}
+      </AppBottomSheetModal>
+    </CourtSheetContext.Provider>
   );
 }
-
-const styles = StyleSheet.create({
-  sheetBackground: {
-    backgroundColor: Colors.background,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  grabber: {
-    backgroundColor: Colors.muted,
-    width: 36,
-    height: 4,
-  },
-});
