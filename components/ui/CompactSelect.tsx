@@ -29,6 +29,7 @@ export function CompactSelect<T extends string>({
   onChange,
   value,
   variant = "contained",
+  dense = false,
 }: {
   accessibilityLabel: string;
   align?: "start" | "end";
@@ -36,6 +37,7 @@ export function CompactSelect<T extends string>({
   onChange: (value: T) => void;
   value: T;
   variant?: "contained" | "plain";
+  dense?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
   const [anchor, setAnchor] = React.useState<SelectAnchor | null>(null);
@@ -76,10 +78,13 @@ export function CompactSelect<T extends string>({
           style={({ pressed }) => [
             styles.trigger,
             variant === "plain" ? styles.triggerPlain : styles.triggerContained,
+            dense && styles.triggerDense,
             pressed && styles.pressed,
           ]}
         >
-          <Text style={styles.triggerText}>{selected?.label}</Text>
+          <Text style={[styles.triggerText, dense && styles.triggerTextDense]}>
+            {selected?.label}
+          </Text>
           <Feather
             color={Colors.textSecondary}
             name={open ? "chevron-up" : "chevron-down"}
@@ -158,11 +163,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     backgroundColor: "transparent",
   },
+  triggerDense: { minHeight: 40 },
   triggerText: {
     fontFamily: Typography.bodyBold,
     fontSize: 9,
     color: Colors.text,
     letterSpacing: 1,
+  },
+  triggerTextDense: {
+    fontFamily: Typography.heading,
+    fontSize: 14,
+    lineHeight: 18,
   },
   overlay: {
     flex: 1,

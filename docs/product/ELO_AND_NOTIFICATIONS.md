@@ -23,6 +23,17 @@ The durable Supabase inbox is source of truth. Phone push is optional delivery.
 MVP event types are friend request/acceptance, run invite, score review,
 confirmation, and rejection.
 
+Presentation is intentionally split by whether the player still owes an
+action:
+
+- Profile `INBOX` and the Me-tab badge include pending friend requests, score
+  reviews, run invitations, and future game invitations.
+- Informational outcomes such as friend acceptance, game confirmation, and
+  rejection remain in the notification feed; they do not inflate the Profile
+  Inbox badge.
+- This is a presentation split over the same durable notification model, not a
+  second notification store.
+
 - Signed-out clients create no notification traffic.
 - Push permission is requested in context, not on first launch.
 - Users may read only their own inbox and push tokens.

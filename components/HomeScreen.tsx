@@ -170,13 +170,16 @@ export function HomeScreen() {
             contentContainerStyle={{ paddingBottom: scrollBottom }}
             showsVerticalScrollIndicator={false}
           >
-            <View style={[styles.peopleSection, activeTotal === 0 && styles.peopleSectionEmpty]}>
+            <View
+              style={[
+                styles.peopleSection,
+                activeTotal === 0 && styles.peopleSectionEmpty,
+              ]}
+            >
               <SectionHeader count={activeLabel} title="Checked in" />
               {activeTotal === 0 ? (
                 <View style={styles.emptyPeople}>
-                  <Text style={styles.emptyText}>
-                    Nobody here yet.
-                  </Text>
+                  <Text style={styles.emptyText}>Nobody here yet.</Text>
                 </View>
               ) : (
                 <ScrollView
@@ -244,7 +247,9 @@ export function HomeScreen() {
             <View style={styles.peopleList}>
               {sortedPlayers.length > 0 ? (
                 sortedPlayers.map((player) => {
-                  const localHistory = locals.find((entry) => entry.player.id === player.id);
+                  const localHistory = locals.find(
+                    (entry) => entry.player.id === player.id,
+                  );
                   return (
                     <PlayerSummaryRow
                       checkInCount={localHistory?.checkInCount}
@@ -508,11 +513,11 @@ const styles = StyleSheet.create({
     color: Colors.muted,
   },
   peopleList: {
-    paddingHorizontal: Layout.screenGutter,
     paddingBottom: Space.lg,
   },
   privateNote: {
     marginTop: Space.md,
+    marginHorizontal: Layout.screenGutter,
     fontFamily: Typography.bodyBold,
     fontSize: 8,
     lineHeight: 13,
@@ -520,6 +525,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   listEmpty: {
+    paddingHorizontal: Layout.screenGutter,
     paddingVertical: Space.xl,
     fontFamily: Typography.body,
     fontSize: 11,

@@ -20,7 +20,12 @@ import { CompactSelect } from "@/components/ui/CompactSelect";
 import { EloStat } from "@/components/ui/EloStat";
 import { ModeTabs } from "@/components/ui/ModeTabs";
 import { Colors, Radius } from "@/constants/colors";
-import { CourtSport, getSportColor, Player } from "@/constants/data";
+import {
+  CourtSport,
+  getSportColor,
+  getTierColor,
+  Player,
+} from "@/constants/data";
 import { TextStyles, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { fetchLeaderboard, fetchProfile } from "@/services/profileService";
@@ -49,15 +54,23 @@ export default function CompeteScreen() {
   // pre-scoped to a court (used by the run screen's LOG A GAME button).
   // ?opponentId=... additionally preselects the opponent (used by the
   // player profile's LOG GAME button).
-  const params = useLocalSearchParams<{ tab?: string; courtId?: string; opponentId?: string }>();
+  const params = useLocalSearchParams<{
+    tab?: string;
+    courtId?: string;
+    opponentId?: string;
+  }>();
 
-  const [mode, setMode] = useState<CompeteMode>(params.tab === "log" ? "LOG_GAME" : "RANKINGS");
+  const [mode, setMode] = useState<CompeteMode>(
+    params.tab === "log" ? "LOG_GAME" : "RANKINGS",
+  );
   const [scope, setScope] = useState<Scope>("LOCAL");
   const [rankingSport, setRankingSport] = useState<CourtSport>(
-    preferredSport ?? localCourt?.sport ?? "BASKETBALL"
+    preferredSport ?? localCourt?.sport ?? "BASKETBALL",
   );
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
-  const [deepLinkedOpponent, setDeepLinkedOpponent] = useState<Player | null>(null);
+  const [deepLinkedOpponent, setDeepLinkedOpponent] = useState<Player | null>(
+    null,
+  );
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
 
   useEffect(() => {
@@ -66,7 +79,10 @@ export default function CompeteScreen() {
 
   useEffect(() => {
     if (preferredSport) setRankingSport(preferredSport);
-    else if (localCourt?.sport === "BASKETBALL" || localCourt?.sport === "PICKLEBALL") {
+    else if (
+      localCourt?.sport === "BASKETBALL" ||
+      localCourt?.sport === "PICKLEBALL"
+    ) {
       setRankingSport(localCourt.sport);
     }
   }, [localCourt?.sport, preferredSport]);
@@ -74,86 +90,123 @@ export default function CompeteScreen() {
   useEffect(() => {
     let mounted = true;
     setLeaderboardLoading(true);
-    fetchLeaderboard(scope, scope === "GLOBAL" ? null : localCourtId, rankingSport)
+    fetchLeaderboard(
+      scope,
+      scope === "GLOBAL" ? null : localCourtId,
+      rankingSport,
+    )
       .then((players) => {
         if (!mounted) return;
         setAllPlayers(players);
       })
-      .finally(() => { if (mounted) setLeaderboardLoading(false); });
-    return () => { mounted = false; };
+      .finally(() => {
+        if (mounted) setLeaderboardLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
   }, [scope, localCourtId, rankingSport, currentUser.elo]);
 
   // Profile/QR deep links are identity lookups, not leaderboard lookups. A
   // valid opponent can be outside the current local/regional/ranked scope.
   useEffect(() => {
     let mounted = true;
-    const opponentId = typeof params.opponentId === "string" ? params.opponentId : null;
+    const opponentId =
+      typeof params.opponentId === "string" ? params.opponentId : null;
     if (!opponentId || opponentId === currentUser.id) {
       setDeepLinkedOpponent(null);
-      return () => { mounted = false; };
+      return () => {
+        mounted = false;
+      };
     }
     void fetchProfile(opponentId).then((opponent) => {
       if (mounted) setDeepLinkedOpponent(opponent);
     });
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [currentUser.id, params.opponentId]);
 
   const myRank = allPlayers.findIndex((p) => p.id === currentUser.id) + 1;
-  const rankedCurrentUser = allPlayers.find((p) => p.id === currentUser.id) ?? currentUser;
+  const rankedCurrentUser =
+    allPlayers.find((p) => p.id === currentUser.id) ?? currentUser;
   const amIVisible = visibility === "public" && isLocalPlus;
   const showMyRank = myRank > 0 && amIVisible;
+  const rankContext = showMyRank
+    ? "LOCALPLUS"
+    : visibility === "public"
+      ? "HIDDEN — LOCALPLUS"
+      : "HIDDEN — PRIVATE";
   const leaderboardPlayers = useMemo(
     () =>
       showMyRank
         ? allPlayers
         : allPlayers.filter((player) => player.id !== currentUser.id),
-    [allPlayers, currentUser.id, showMyRank]
+    [allPlayers, currentUser.id, showMyRank],
   );
 
   return (
     <View style={styles.container}>
       <ScreenHeader
+        prominent
         title="COMPETE"
-        right={<View style={styles.headerTools}>
-          {myRank > 0 ? (
-            <View style={styles.myRankBadge}>
-              <Text style={[styles.myRankNum, !showMyRank && styles.myRankNumDim]}>#{myRank}</Text>
-              <Text style={styles.myRankLabel}>{showMyRank ? "YOUR RANK" : "HIDDEN"}</Text>
-            </View>
-          ) : null}
-        </View>}
+        right={
+          <View style={styles.headerTools}>
+            {myRank > 0 ? (
+              <View style={styles.myRankBadge}>
+                <Text
+                  style={[styles.myRankNum, !showMyRank && styles.myRankNumDim]}
+                >
+                  #{myRank}
+                </Text>
+                <Text style={styles.myRankLabel}>
+                  {rankContext}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        }
       />
 
       <ModeTabs
+        prominent
         items={[
-          { label: "RANKINGS", value: "RANKINGS", icon: "bar-chart-2" },
-          { label: "LOG GAME", value: "LOG_GAME", icon: "edit-3", accessibilityLabel: "Log a game" },
+          { label: "LEADERBOARD", value: "RANKINGS" },
+          {
+            label: "LOG GAME",
+            value: "LOG_GAME",
+            accessibilityLabel: "Log a game",
+          },
         ]}
         onChange={setMode}
         value={mode}
       />
 
-      {mode === "RANKINGS" ? <LeaderboardView
-        players={leaderboardPlayers}
-        myRank={myRank}
-        showMyRank={showMyRank}
-        currentUserId={currentUser.id}
-        currentUser={rankedCurrentUser}
-        hiddenReason={visibility === "public" ? "LOCALPLUS REQUIRED TO APPEAR" : "PRIVATE · EXCLUDED FROM PUBLIC LIST"}
-        scope={scope}
-        setScope={setScope}
-        sport={rankingSport}
-        setSport={setRankingSport}
-        localCourt={localCourt}
-        bottom={bottom}
-        loading={leaderboardLoading}
-      /> : (
+      {mode === "RANKINGS" ? (
+        <LeaderboardView
+          players={leaderboardPlayers}
+          myRank={myRank}
+          showMyRank={showMyRank}
+          currentUserId={currentUser.id}
+          currentUser={rankedCurrentUser}
+          scope={scope}
+          setScope={setScope}
+          sport={rankingSport}
+          setSport={setRankingSport}
+          localCourt={localCourt}
+          bottom={bottom}
+          loading={leaderboardLoading}
+        />
+      ) : (
         <LogGameView
           currentUser={currentUser}
           courts={courts}
           bottom={0}
           preferredSport={localCourt?.sport ?? preferredSport}
-          preferredCourtId={(typeof params.courtId === "string" ? params.courtId : null) ?? preferredCourtId}
+          preferredCourtId={
+            (typeof params.courtId === "string" ? params.courtId : null) ??
+            preferredCourtId
+          }
           preselectedOpponent={deepLinkedOpponent}
           localCourtId={localCourtId}
         />
@@ -170,7 +223,6 @@ function LeaderboardView({
   showMyRank,
   currentUserId,
   currentUser,
-  hiddenReason,
   scope,
   setScope,
   sport,
@@ -184,12 +236,16 @@ function LeaderboardView({
   showMyRank: boolean;
   currentUserId: string;
   currentUser: Player;
-  hiddenReason: string;
   scope: Scope;
   setScope: (s: Scope) => void;
   sport: CourtSport;
   setSport: (sport: CourtSport) => void;
-  localCourt: { id: string; name: string; shortName?: string; sport: CourtSport } | null;
+  localCourt: {
+    id: string;
+    name: string;
+    shortName?: string;
+    sport: CourtSport;
+  } | null;
   bottom: number;
   loading?: boolean;
 }) {
@@ -199,15 +255,22 @@ function LeaderboardView({
     const rows: Array<
       | { kind: "player"; player: Player; rank: number }
       | { kind: "hidden"; rank: number }
-    > = players.map((player, index) => ({ kind: "player", player, rank: index + 1 }));
+    > = players.map((player, index) => ({
+      kind: "player",
+      player,
+      rank: index + 1,
+    }));
 
     // The owner sees a private placeholder at their would-be position, while
     // the public players keep their own 1..N rank sequence. The placeholder
     // therefore does not push anyone else down the public leaderboard.
     if (!showMyRank && myRank > 0 && currentUserId) {
-      rows.splice(Math.min(myRank - 1, rows.length), 0, { kind: "hidden", rank: myRank });
+      rows.splice(Math.min(myRank - 1, rows.length), 0, {
+        kind: "hidden",
+        rank: myRank,
+      });
     }
-    return rows;
+    return rows.map((row, index) => ({ ...row, rank: index + 1 }));
   }, [currentUserId, myRank, players, showMyRank]);
 
   return (
@@ -217,33 +280,54 @@ function LeaderboardView({
         paddingBottom: Platform.OS === "web" ? 84 : bottom + 100,
       }}
     >
-      {/* Scope and sport both map to authoritative database columns. */}
-      <View accessibilityRole="tablist" style={styles.scopeRow}>
-        {(["LOCAL", "REGIONAL", "GLOBAL"] as Scope[]).map((s) => (
-          <Pressable
-            accessibilityRole="tab"
-            accessibilityState={{ selected: scope === s }}
-            key={s}
-            onPress={() => setScope(s)}
-            style={[styles.scopeSeg, scope === s && styles.scopeSegActive]}
-          >
-            <Text style={[styles.scopeSegText, scope === s && styles.scopeSegTextActive]}>
-              {s}
-            </Text>
-          </Pressable>
-        ))}
+      {/* Sport and scope are one filter decision, presented on one row. */}
+      <View style={styles.filterRow}>
+        <View style={styles.sportFilter}>
+          <CompactSelect
+            accessibilityLabel="Switch leaderboard sport"
+            align="start"
+            dense
+            onChange={setSport}
+            options={[
+              { label: "BB", value: "BASKETBALL" },
+              { label: "PB", value: "PICKLEBALL" },
+            ]}
+            value={sport}
+            variant="plain"
+          />
+        </View>
+        <View accessibilityRole="tablist" style={styles.scopeRow}>
+          {(["LOCAL", "REGIONAL", "GLOBAL"] as Scope[]).map((s) => (
+            <Pressable
+              accessibilityRole="tab"
+              accessibilityState={{ selected: scope === s }}
+              key={s}
+              onPress={() => setScope(s)}
+              style={[styles.scopeSeg, scope === s && styles.scopeSegActive]}
+            >
+              <Text
+                style={[
+                  styles.scopeSegText,
+                  scope === s && styles.scopeSegTextActive,
+                ]}
+              >
+                {s}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
 
-      {/* Scope label + sport switch */}
+      {/* The current place anchors the ranking list below the filters. */}
       <View style={styles.scopeLabel}>
         {scope === "LOCAL" && localCourt ? (
           <>
-          <View
-            style={[
-              styles.scopeDot,
-              { backgroundColor: getSportColor(localCourt.sport) },
-            ]}
-          />
+            <View
+              style={[
+                styles.scopeDot,
+                { backgroundColor: getSportColor(localCourt.sport) },
+              ]}
+            />
             <Text style={styles.scopeLabelText} numberOfLines={1}>
               {(localCourt.shortName || localCourt.name).toUpperCase()}
             </Text>
@@ -251,16 +335,6 @@ function LeaderboardView({
         ) : (
           <Text style={styles.scopeLabelText}>ELO RANKINGS</Text>
         )}
-        <CompactSelect
-          accessibilityLabel="Switch leaderboard sport"
-          onChange={setSport}
-          options={[
-            { label: "BB", value: "BASKETBALL" },
-            { label: "PB", value: "PICKLEBALL" },
-          ]}
-          value={sport}
-          variant="plain"
-        />
       </View>
 
       {loading ? (
@@ -272,62 +346,76 @@ function LeaderboardView({
           <Text style={styles.emptyText}>NO PLAYERS IN THIS SCOPE</Text>
         </View>
       ) : (
-          rankedRows.map((row) => {
-            if (row.kind === "hidden") {
-              return (
-                <View key="current-user-hidden" style={[styles.leaderRow, styles.hiddenLeaderRow]}>
-                  <Text style={styles.rank}>{row.rank}</Text>
-                  <PlayerAvatar initials={currentUser.avatar} name={currentUser.name} playerId={currentUser.id} size={36} />
-                  <View style={styles.playerInfo}>
-                    <Text style={styles.playerName}>YOU — HIDDEN</Text>
-                    <View style={styles.playerBadges}>
-                      <Text style={styles.wlText}>{currentUser.wins}W · {currentUser.losses}L</Text>
-                      <Text style={styles.yourPositionSub}>{hiddenReason}</Text>
-                    </View>
-                  </View>
-                  <EloStat value={currentUser.elo} />
-                </View>
-              );
-            }
-
-            const { player, rank } = row;
-            const isTop10 = rank <= 10;
-            const sportColor = player.sport ? getSportColor(player.sport) : Colors.muted;
+        rankedRows.map((row) => {
+          if (row.kind === "hidden") {
             return (
-              <Pressable
-                key={player.id}
-                style={[styles.leaderRow, rank === 1 && styles.leaderRowFirst]}
-                onPress={() => router.push(`/player/${player.id}`)}
+              <View
+                key="current-user-hidden"
+                style={[styles.leaderRow, styles.hiddenLeaderRow]}
               >
-                <Text style={[styles.rank, isTop10 && styles.rankTop]}>{rank}</Text>
+                <Text style={styles.rank}>{row.rank}</Text>
                 <PlayerAvatar
-                  initials={player.avatar}
-                  name={player.name}
-                  playerId={player.id}
-                  size={36}
-                  ranked={isTop10}
-                  friend={isFriend(player.id)}
+                  initials={currentUser.avatar}
+                  name={currentUser.name}
+                  playerId={currentUser.id}
+                  size={40}
                 />
                 <View style={styles.playerInfo}>
-                  <View style={styles.playerNameRow}>
-                    <Text style={styles.playerName} numberOfLines={1}>{player.name}</Text>
-                  </View>
+                  <Text numberOfLines={1} style={styles.playerName}>
+                    {currentUser.name}
+                  </Text>
                   <View style={styles.playerBadges}>
-                    {player.sport && (
-                      <Text style={[styles.sportText, { color: sportColor }]}>
-                        {player.sport === "BASKETBALL" ? "BB" : "PB"}
-                      </Text>
-                    )}
-                    {isTop10 ? <Text style={styles.rankedText}>RANKED</Text> : null}
                     <Text style={styles.wlText}>
-                      {player.wins}W · {player.losses}L
+                      {currentUser.wins}W · {currentUser.losses}L
                     </Text>
                   </View>
                 </View>
-                <EloStat value={player.elo} />
-              </Pressable>
+                <EloStat leaderboard value={currentUser.elo} />
+              </View>
             );
-          })
+          }
+
+          const { player, rank } = row;
+          return (
+            <Pressable
+              key={player.id}
+              style={[styles.leaderRow, rank === 1 && styles.leaderRowFirst]}
+              onPress={() => router.push(`/player/${player.id}`)}
+            >
+              <Text style={styles.rank}>{rank}</Text>
+              <PlayerAvatar
+                initials={player.avatar}
+                name={player.name}
+                playerId={player.id}
+                size={40}
+                foregroundColor={rank === 1 ? Colors.black : undefined}
+                friend={isFriend(player.id)}
+                style={rank === 1 ? styles.leaderAvatarFirst : undefined}
+              />
+              <View style={styles.playerInfo}>
+                <View style={styles.playerNameRow}>
+                  <Text style={styles.playerName} numberOfLines={1}>
+                    {player.name}
+                  </Text>
+                </View>
+                <View style={styles.playerBadges}>
+                  <Text
+                    style={[
+                      styles.tierText,
+                      { color: getTierColor(player.tier) },
+                    ]}
+                  >
+                    {player.tier}
+                  </Text>
+                  <Text style={styles.wlText}>
+                    {player.wins}W · {player.losses}L
+                  </Text>
+                </View>
+              </View>
+              <EloStat leaderboard value={player.elo} />
+            </Pressable>
+          );
+        })
       )}
     </ScrollView>
   );
@@ -368,11 +456,17 @@ function LogGameView({
 
   // Default court: preferredCourtId > localCourtId > empty
   const supportedCourts = useMemo(
-    () => courts.filter((court) => court.sport === "BASKETBALL" || court.sport === "PICKLEBALL"),
-    [courts]
+    () =>
+      courts.filter(
+        (court) => court.sport === "BASKETBALL" || court.sport === "PICKLEBALL",
+      ),
+    [courts],
   );
-  const defaultCourtId = preferredCourtId ?? localCourtId ?? supportedCourts[0]?.id ?? "";
-  const defaultCourt = supportedCourts.find((court) => court.id === defaultCourtId);
+  const defaultCourtId =
+    preferredCourtId ?? localCourtId ?? supportedCourts[0]?.id ?? "";
+  const defaultCourt = supportedCourts.find(
+    (court) => court.id === defaultCourtId,
+  );
   const defaultSport = defaultCourt?.sport ?? preferredSport ?? "";
 
   const [form, setForm] = useState<GameLog>({
@@ -384,24 +478,30 @@ function LogGameView({
     courtId: defaultCourtId,
     note: "",
   });
-  const [submitted, setSubmitted] = useState(false);
+  const [submittedGame, setSubmittedGame] = useState<GameLog | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showOpponentPicker, setShowOpponentPicker] = useState(false);
   const [showCourtPicker, setShowCourtPicker] = useState(false);
   const [opponentQuery, setOpponentQuery] = useState("");
   const [opponentSuggestions, setOpponentSuggestions] = useState<Player[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [clientRequestId, setClientRequestId] = useState(() => Crypto.randomUUID());
+  const [clientRequestId, setClientRequestId] = useState(() =>
+    Crypto.randomUUID(),
+  );
 
   // A court owns its sport. This keeps the label and the rating update in
   // agreement, including when the court arrives after the screen first opens.
   useEffect(() => {
     const nextCourtId = form.courtId || defaultCourtId;
-    const selectedCourt = supportedCourts.find((court) => court.id === nextCourtId);
+    const selectedCourt = supportedCourts.find(
+      (court) => court.id === nextCourtId,
+    );
     if (!selectedCourt) return;
-    setForm((current) => current.courtId === nextCourtId && current.sport === selectedCourt.sport
-      ? current
-      : { ...current, courtId: nextCourtId, sport: selectedCourt.sport });
+    setForm((current) =>
+      current.courtId === nextCourtId && current.sport === selectedCourt.sport
+        ? current
+        : { ...current, courtId: nextCourtId, sport: selectedCourt.sport },
+    );
   }, [defaultCourtId, form.courtId, supportedCourts]);
 
   // Apply the deep-linked opponent once it resolves from the loaded player
@@ -414,7 +514,11 @@ function LogGameView({
     setForm((f) =>
       f.opponentId
         ? f
-        : { ...f, opponentName: preselectedOpponent.name, opponentId: preselectedOpponent.id }
+        : {
+            ...f,
+            opponentName: preselectedOpponent.name,
+            opponentId: preselectedOpponent.id,
+          },
     );
   }, [preselectedOpponent]);
 
@@ -438,7 +542,9 @@ function LogGameView({
     form.opponentId !== "" &&
     form.courtId !== "" &&
     !submitting;
-  const selectedCourt = supportedCourts.find((court) => court.id === form.courtId);
+  const selectedCourt = supportedCourts.find(
+    (court) => court.id === form.courtId,
+  );
 
   const handleSubmit = async () => {
     if (!canSubmit || !form.opponentId || !form.courtId) return;
@@ -468,9 +574,9 @@ function LogGameView({
     }
     // The score is pending. The opponent receives a review action; ratings and
     // public history remain unchanged until confirmation.
-    setSubmitted(true);
+    setSubmittedGame({ ...form });
     setClientRequestId(Crypto.randomUUID());
-    setTimeout(() => setSubmitted(false), 3000);
+    setTimeout(() => setSubmittedGame(null), 5000);
     setForm({
       sport: defaultSport,
       myScore: "",
@@ -502,11 +608,17 @@ function LogGameView({
       ].slice(0, 10);
       setOpponentSuggestions(sorted);
     });
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [query, friends, currentUser.id]);
 
   const handleSelectOpponent = (player: Player) => {
-    setForm((f) => ({ ...f, opponentName: player.name, opponentId: player.id }));
+    setForm((f) => ({
+      ...f,
+      opponentName: player.name,
+      opponentId: player.id,
+    }));
     setOpponentQuery("");
     setShowOpponentPicker(false);
   };
@@ -516,14 +628,45 @@ function LogGameView({
     setOpponentQuery("");
   };
 
-  if (submitted) {
+  if (submittedGame) {
+    const submittedCourt = supportedCourts.find(
+      (court) => court.id === submittedGame.courtId,
+    );
     return (
       <View style={styles.successState}>
         <View style={styles.successIcon}>
           <Feather color={Colors.black} name="check" size={28} />
         </View>
         <Text style={styles.successTitle}>SCORE SENT FOR REVIEW</Text>
-        <Text style={styles.successSub}>Your opponent can confirm or object. No rating changes yet.</Text>
+        <Text style={styles.successSub}>
+          Your opponent can confirm or object. No rating changes yet.
+        </Text>
+        <View style={styles.successCard}>
+          <View style={styles.successCardHeader}>
+            <Text numberOfLines={1} style={styles.successCourt}>
+              {submittedCourt?.shortName || submittedCourt?.name || "GAME"}
+              {` · ${submittedGame.sport === "BASKETBALL" ? "BB" : "PB"}`}
+            </Text>
+            <View style={styles.pendingBadge}>
+              <Text style={styles.pendingText}>PENDING</Text>
+            </View>
+          </View>
+          <View style={styles.successScoreRow}>
+            <View style={styles.successPlayer}>
+              <Text numberOfLines={1} style={styles.successPlayerName}>
+                {currentUser.name}
+              </Text>
+              <Text style={styles.successScore}>{submittedGame.myScore}</Text>
+            </View>
+            <Text style={styles.successDash}>–</Text>
+            <View style={[styles.successPlayer, styles.successPlayerRight]}>
+              <Text numberOfLines={1} style={styles.successPlayerName}>
+                {submittedGame.opponentName}
+              </Text>
+              <Text style={styles.successScore}>{submittedGame.theirScore}</Text>
+            </View>
+          </View>
+        </View>
       </View>
     );
   }
@@ -537,7 +680,9 @@ function LogGameView({
         // Must come AFTER `padding` (shorthand would reset it to 20) so the
         // submit button clears the bottom tab bar: 84px fixed bar on web
         // (50 + 34), safe-area inset + bar height on native. +20 breathing room.
-        paddingBottom: inSheet ? 32 : 20 + (Platform.OS === "web" ? 84 : bottom + 80),
+        paddingBottom: inSheet
+          ? 32
+          : 20 + (Platform.OS === "web" ? 84 : bottom + 80),
       }}
       keyboardShouldPersistTaps="handled"
     >
@@ -545,29 +690,47 @@ function LogGameView({
       <View style={styles.fieldGroup}>
         <Text style={styles.fieldLabel}>COURT</Text>
         <Pressable
+          accessibilityLabel="Select court"
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showCourtPicker }}
           onPress={() => setShowCourtPicker((shown) => !shown)}
           style={styles.opponentTrigger}
         >
-          <Text numberOfLines={1} style={selectedCourt ? styles.opponentSelectedText : styles.opponentPlaceholder}>
+          <Text
+            numberOfLines={1}
+            style={
+              selectedCourt
+                ? styles.opponentSelectedText
+                : styles.opponentPlaceholder
+            }
+          >
             {selectedCourt?.name ?? "Select a court"}
           </Text>
-          <Ionicons name={showCourtPicker ? "chevron-up" : "chevron-down"} size={16} color={Colors.muted} />
+          <Ionicons
+            name={showCourtPicker ? "chevron-up" : "chevron-down"}
+            size={16}
+            color={Colors.muted}
+          />
         </Pressable>
         {showCourtPicker ? (
           <View style={styles.opponentDropdown}>
-          {supportedCourts.map((c) => (
-            <Pressable
-              key={c.id}
-              style={styles.opponentOption}
-              onPress={() => {
-                setForm((f) => ({ ...f, courtId: c.id, sport: c.sport }));
-                setShowCourtPicker(false);
-              }}
-            >
-              <Text numberOfLines={1} style={styles.opponentOptionName}>{c.name}</Text>
-              {form.courtId === c.id ? <Ionicons name="checkmark" size={16} color={Colors.accent} /> : null}
-            </Pressable>
-          ))}
+            {supportedCourts.map((c) => (
+              <Pressable
+                key={c.id}
+                style={styles.opponentOption}
+                onPress={() => {
+                  setForm((f) => ({ ...f, courtId: c.id, sport: c.sport }));
+                  setShowCourtPicker(false);
+                }}
+              >
+                <Text numberOfLines={1} style={styles.opponentOptionName}>
+                  {c.name}
+                </Text>
+                {form.courtId === c.id ? (
+                  <Ionicons name="checkmark" size={16} color={Colors.accent} />
+                ) : null}
+              </Pressable>
+            ))}
           </View>
         ) : null}
       </View>
@@ -584,7 +747,9 @@ function LogGameView({
                   { backgroundColor: getSportColor(form.sport) },
                 ]}
               />
-              <Text style={[styles.sportOptionText, styles.sportOptionTextActive]}>
+              <Text
+                style={[styles.sportOptionText, styles.sportOptionTextActive]}
+              >
                 {form.sport}
               </Text>
             </View>
@@ -597,26 +762,44 @@ function LogGameView({
       {/* Opponent */}
       <View style={styles.fieldGroup}>
         <Text style={styles.fieldLabel}>OPPONENT</Text>
-        <Pressable
-          style={styles.opponentTrigger}
-          onPress={() => setShowOpponentPicker((s) => !s)}
-        >
+        <View style={styles.opponentTriggerShell}>
+          <Pressable
+            accessibilityLabel={
+              form.opponentName
+                ? `Change opponent, currently ${form.opponentName}`
+                : "Select opponent"
+            }
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showOpponentPicker }}
+            style={styles.opponentTriggerMain}
+            onPress={() => setShowOpponentPicker((s) => !s)}
+          >
+            {form.opponentName ? (
+              <Text numberOfLines={1} style={styles.opponentSelectedText}>
+                {form.opponentName.toUpperCase()}
+              </Text>
+            ) : (
+              <Text numberOfLines={1} style={styles.opponentPlaceholder}>
+                Select or type opponent name
+              </Text>
+            )}
+            <Ionicons
+              name={showOpponentPicker ? "chevron-up" : "chevron-down"}
+              size={16}
+              color={Colors.muted}
+            />
+          </Pressable>
           {form.opponentName ? (
-            <View style={styles.opponentSelected}>
-              <Text style={styles.opponentSelectedText}>{form.opponentName.toUpperCase()}</Text>
-              <Pressable onPress={handleClearOpponent} hitSlop={8}>
-                <Ionicons name="close" size={16} color={Colors.muted} />
-              </Pressable>
-            </View>
-          ) : (
-            <Text style={styles.opponentPlaceholder}>Select or type opponent name</Text>
-          )}
-          <Ionicons
-            name={showOpponentPicker ? "chevron-up" : "chevron-down"}
-            size={16}
-            color={Colors.muted}
-          />
-        </Pressable>
+            <Pressable
+              accessibilityLabel="Clear selected opponent"
+              accessibilityRole="button"
+              onPress={handleClearOpponent}
+              style={styles.clearOpponent}
+            >
+              <Ionicons name="close" size={17} color={Colors.muted} />
+            </Pressable>
+          ) : null}
+        </View>
 
         {showOpponentPicker && (
           <View style={styles.opponentDropdown}>
@@ -642,9 +825,16 @@ function LogGameView({
                 style={styles.opponentOption}
                 onPress={() => handleSelectOpponent(p)}
               >
-                <PlayerAvatar initials={p.avatar} name={p.name} playerId={p.id} size={28} />
+                <PlayerAvatar
+                  initials={p.avatar}
+                  name={p.name}
+                  playerId={p.id}
+                  size={28}
+                />
                 <View style={styles.opponentOptionInfo}>
-                  <Text style={styles.opponentOptionName}>{p.name.toUpperCase()}</Text>
+                  <Text style={styles.opponentOptionName}>
+                    {p.name.toUpperCase()}
+                  </Text>
                   <Text style={styles.opponentOptionMeta}>
                     {p.tier} · {p.elo} ELO
                   </Text>
@@ -669,7 +859,9 @@ function LogGameView({
         <Text style={styles.fieldLabel}>FINAL SCORE</Text>
         <View style={styles.scoreRow}>
           <View style={styles.scoreBlock}>
-            <Text style={styles.scorePlayerLabel}>{currentUser.name.split(" ")[0].toUpperCase()}</Text>
+            <Text style={styles.scorePlayerLabel}>
+              {currentUser.name.split(" ")[0].toUpperCase()}
+            </Text>
             <TextInput
               style={[
                 styles.scoreInput,
@@ -677,7 +869,10 @@ function LogGameView({
                 isLoss && styles.scoreInputLoss,
               ]}
               value={form.myScore}
-              onChangeText={(v) => setForm((f) => ({ ...f, myScore: v.replace(/\D/g, "") }))}
+              accessibilityLabel={`${currentUser.name} final score`}
+              onChangeText={(v) =>
+                setForm((f) => ({ ...f, myScore: v.replace(/\D/g, "") }))
+              }
               keyboardType="number-pad"
               maxLength={3}
               placeholder="—"
@@ -694,7 +889,10 @@ function LogGameView({
                 isWin && styles.scoreInputLoss,
               ]}
               value={form.theirScore}
-              onChangeText={(v) => setForm((f) => ({ ...f, theirScore: v.replace(/\D/g, "") }))}
+              accessibilityLabel="Opponent final score"
+              onChangeText={(v) =>
+                setForm((f) => ({ ...f, theirScore: v.replace(/\D/g, "") }))
+              }
               keyboardType="number-pad"
               maxLength={3}
               placeholder="—"
@@ -703,7 +901,12 @@ function LogGameView({
           </View>
         </View>
         {(isWin || isLoss) && (
-          <Text style={[styles.resultHint, { color: isWin ? Colors.win : Colors.loss }]}>
+          <Text
+            style={[
+              styles.resultHint,
+              { color: isWin ? Colors.win : Colors.loss },
+            ]}
+          >
             {isWin ? "WIN — POSITIVE ELO CHANGE" : "LOSS — NEGATIVE ELO CHANGE"}
           </Text>
         )}
@@ -720,6 +923,7 @@ function LogGameView({
         <TextInput
           style={[styles.textField, styles.textArea]}
           value={form.note}
+          accessibilityLabel="Optional game notes"
           onChangeText={(v) => setForm((f) => ({ ...f, note: v }))}
           placeholder="How was the run?"
           placeholderTextColor={Colors.mutedDark}
@@ -731,11 +935,25 @@ function LogGameView({
       {/* Submit */}
       {submitError && <Text style={styles.submitError}>{submitError}</Text>}
       <Pressable
-        style={[styles.submitBtn, (!canSubmit || submitting) && styles.submitBtnDisabled]}
+        accessibilityLabel="Log game for opponent review"
+        accessibilityRole="button"
+        accessibilityState={{
+          busy: submitting,
+          disabled: !canSubmit || submitting,
+        }}
+        style={[
+          styles.submitBtn,
+          (!canSubmit || submitting) && styles.submitBtnDisabled,
+        ]}
         onPress={handleSubmit}
         disabled={!canSubmit || submitting}
       >
-        <Text style={[styles.submitBtnText, (!canSubmit || submitting) && styles.submitBtnTextDisabled]}>
+        <Text
+          style={[
+            styles.submitBtnText,
+            (!canSubmit || submitting) && styles.submitBtnTextDisabled,
+          ]}
+        >
           {submitting ? "LOGGING..." : "LOG GAME"}
         </Text>
       </Pressable>
@@ -823,8 +1041,7 @@ const styles = StyleSheet.create({
   // ── Inline private position indicator ──
   hiddenLeaderRow: {
     backgroundColor: Colors.surfaceHigh,
-    borderLeftWidth: 2,
-    borderLeftColor: Colors.muted,
+    opacity: 0.48,
   },
   yourPositionRank: {
     fontFamily: Typography.heading,
@@ -887,11 +1104,36 @@ const styles = StyleSheet.create({
   tabBtnTextActive: { color: Colors.text },
 
   // ── Filters ──
-  scopeRow: {
+  filterRow: {
+    // 14px above the controls, then 7px below + 7px inside the court row:
+    // the visible gap to the court name is the same 14px on both sides.
+    minHeight: 61,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 7,
     flexDirection: "row",
-    height: 32,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
+    alignItems: "stretch",
+    gap: 8,
+  },
+  sportFilter: {
+    width: 72,
+    minHeight: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
+    borderRadius: 10,
+    backgroundColor: Colors.accentGhost,
+  },
+  scopeRow: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    minHeight: 40,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
     backgroundColor: Colors.surface,
   },
   scopeSeg: {
@@ -901,22 +1143,21 @@ const styles = StyleSheet.create({
   },
   scopeSegActive: {
     backgroundColor: Colors.surfaceHigh,
-    borderBottomWidth: 2,
-    borderBottomColor: Colors.accent,
   },
   scopeSegText: {
-    fontFamily: Typography.heading,
-    fontSize: 10,
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
     color: Colors.muted,
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
   },
   scopeSegTextActive: { color: Colors.text },
   scopeLabel: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
     gap: 6,
-    paddingHorizontal: 16,
+    minHeight: 28,
+    paddingHorizontal: 20,
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,
   },
@@ -931,42 +1172,54 @@ const styles = StyleSheet.create({
 
   // ── Leaderboard Row ──
   leaderRow: {
+    minHeight: 68,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingVertical: 13,
-    paddingHorizontal: 16,
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,
   },
   leaderRowFirst: { backgroundColor: `${Colors.accent}08` },
-  rank: {
-    fontFamily: Typography.heading,
-    fontSize: 18,
-    color: Colors.muted,
-    width: 28,
-    textAlign: "center" as const,
+  leaderAvatarFirst: {
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
   },
-  rankTop: { color: Colors.text },
-  playerInfo: { flex: 1 },
+  rank: {
+    fontFamily: Typography.headingRegular,
+    fontSize: 14,
+    color: Colors.mutedDark,
+    width: 14,
+    textAlign: "left" as const,
+  },
+  playerInfo: { flex: 1, minWidth: 0, justifyContent: "center" },
   playerNameRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: 3,
+    marginBottom: 1,
   },
   playerName: {
-    ...TextStyles.listName,
+    fontFamily: Typography.headingRegular,
+    fontSize: 15,
+    lineHeight: 19,
     color: Colors.text,
     letterSpacing: 0,
     textTransform: "uppercase",
     flex: 1,
   },
-  playerBadges: { flexDirection: "row", gap: 8, alignItems: "center", flexWrap: "wrap" },
+  playerBadges: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
   tierText: {
     fontFamily: Typography.bodyBold,
     fontSize: 9,
-    letterSpacing: 1.5,
+    lineHeight: 11,
+    letterSpacing: 0.6,
     textTransform: "uppercase" as const,
   },
   rankedText: {
@@ -981,7 +1234,10 @@ const styles = StyleSheet.create({
   },
   wlText: {
     ...TextStyles.caption,
+    fontSize: 9,
+    lineHeight: 11,
     color: Colors.muted,
+    letterSpacing: 0,
   },
   eloBlock: { alignItems: "flex-end" },
   eloVal: {
@@ -1027,7 +1283,7 @@ const styles = StyleSheet.create({
   fieldGroup: { gap: 8 },
   fieldLabel: {
     fontFamily: Typography.heading,
-    fontSize: 10,
+    fontSize: 11,
     color: Colors.muted,
     letterSpacing: 2.5,
     textTransform: "uppercase" as const,
@@ -1035,6 +1291,7 @@ const styles = StyleSheet.create({
   sportGrid: { flexDirection: "row", gap: 10 },
   sportOption: {
     flex: 1,
+    minHeight: 48,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
@@ -1131,8 +1388,9 @@ const styles = StyleSheet.create({
   courtPillTextActive: { color: Colors.text },
 
   submitBtn: {
+    minHeight: 52,
     backgroundColor: Colors.accent,
-    padding: 16,
+    paddingHorizontal: 16,
     alignItems: "center",
     borderRadius: Radius.xs,
     marginTop: 8,
@@ -1159,8 +1417,10 @@ const styles = StyleSheet.create({
   successState: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: 48,
   },
   successIcon: {
     width: 56,
@@ -1180,6 +1440,71 @@ const styles = StyleSheet.create({
     fontFamily: Typography.body,
     fontSize: 13,
     color: Colors.muted,
+    textAlign: "center" as const,
+  },
+  successCard: {
+    width: "100%",
+    marginTop: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    borderRadius: 12,
+    backgroundColor: Colors.surface,
+  },
+  successCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  successCourt: {
+    flex: 1,
+    minWidth: 0,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Colors.textSecondary,
+  },
+  pendingBadge: {
+    minHeight: 24,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 3,
+    backgroundColor: Colors.accentDim,
+  },
+  pendingText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 10,
+    color: Colors.accent,
+    letterSpacing: 1,
+  },
+  successScoreRow: {
+    marginTop: 18,
+    flexDirection: "row",
+    alignItems: "flex-end",
+  },
+  successPlayer: { flex: 1, minWidth: 0, alignItems: "flex-start" },
+  successPlayerRight: { alignItems: "flex-end" },
+  successPlayerName: {
+    maxWidth: "100%",
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Colors.textSecondary,
+    textTransform: "uppercase" as const,
+  },
+  successScore: {
+    marginTop: 4,
+    fontFamily: Typography.headingBold,
+    fontSize: 38,
+    lineHeight: 42,
+    color: Colors.text,
+  },
+  successDash: {
+    paddingBottom: 5,
+    fontFamily: Typography.headingRegular,
+    fontSize: 28,
+    color: Colors.mutedDark,
   },
 
   // Opponent selector
@@ -1193,7 +1518,36 @@ const styles = StyleSheet.create({
     borderRadius: Radius.xs,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    minHeight: 44,
+    minHeight: 48,
+  },
+  opponentTriggerShell: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "stretch",
+    overflow: "hidden",
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.xs,
+  },
+  opponentTriggerMain: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 48,
+    paddingLeft: 14,
+    paddingRight: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  clearOpponent: {
+    width: 44,
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderLeftColor: Colors.border,
   },
   opponentSelected: {
     flexDirection: "row",

@@ -63,3 +63,4 @@ docs/                 current engineering and product guidance
 - [`docs/SUPABASE.md`](docs/SUPABASE.md) — local backend and migrations
 - [`docs/GITHUB.md`](docs/GITHUB.md) — required checks and merge rules
 - [`docs/product/README.md`](docs/product/README.md) — product/design material
+- [`docs/product/ELO_AND_NOTIFICATIONS.md`](docs/product/ELO_AND_NOTIFICATIONS.md) — Compete ranking and actionable-vs-informational notification contract

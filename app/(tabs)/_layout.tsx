@@ -11,6 +11,7 @@ import { Colors } from "@/constants/colors";
 import { Layout } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useNotifications } from "@/context/NotificationContext";
+import { useApp } from "@/context/AppContext";
 
 function NativeTabLayout() {
   return (
@@ -43,7 +44,15 @@ function ClassicTabLayout() {
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
   const { bottom } = useSafeAreaInsets();
-  const { unreadCount } = useNotifications();
+  const { notifications } = useNotifications();
+  const { incomingFriendRequests } = useApp();
+  const actionableCount =
+    incomingFriendRequests.length +
+    notifications.filter(
+      (notification) =>
+        notification.type === "match_review" ||
+        notification.type === "run_invite",
+    ).length;
 
   const TAB_ICON_AREA = 52;
   const tabBarHeight = isWeb ? Layout.tabBarClearance : TAB_ICON_AREA + bottom;
@@ -133,8 +142,12 @@ function ClassicTabLayout() {
         name="elo"
         options={{
           title: "Me",
-          tabBarAccessibilityLabel: unreadCount > 0 ? `Me, ${unreadCount} unread notifications` : "Me",
-          tabBarBadge: unreadCount > 0 ? Math.min(unreadCount, 99) : undefined,
+          tabBarAccessibilityLabel:
+            actionableCount > 0
+              ? `Me, ${actionableCount} items need action`
+              : "Me",
+          tabBarBadge:
+            actionableCount > 0 ? Math.min(actionableCount, 99) : undefined,
           tabBarBadgeStyle: {
             minWidth: 13,
             height: 13,

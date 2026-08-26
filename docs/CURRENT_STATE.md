@@ -104,6 +104,17 @@ specific missing behavior only after verifying it against current `main`.
 
 ## Current focused follow-up
 
+- The current unmerged Profile/Compete branch implements the approved release
+  references at a 402×874 comparison viewport. Profile restores the shared
+  large header, opens QR from the avatar, keeps Settings in the header, and
+  separates actionable Inbox items from informational notifications. Compete
+  uses equal-height sport/scope controls, quieter ranks, compact tier/record
+  metadata, right-aligned ELO, and a same-height dimmed private-rank row.
+- This source state has passed repeated connected visual comparisons,
+  TypeScript, focused leaderboard/notification/player-identity tests, and the
+  design-consistency gate. It is not production behavior until its PR is
+  reviewed and released.
+
 - PR #35 uses the final supplied LocalCheck vector assets through the shared
   brand component. Home now matches the established mark + title treatment on
   every other primary tab. The supplied chevron remains the detail back icon;
