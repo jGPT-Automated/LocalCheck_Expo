@@ -5,6 +5,10 @@ pickleball courts, checking in, planning runs, logging reviewed results, and
 tracking sport-specific ELO. Supabase provides Auth, Postgres, RLS, Realtime,
 and Edge Functions.
 
+Player QR scanning uses the native `expo-camera` scanner. Changes to that
+dependency require a new iOS build; the browser preview intentionally reports
+that scanning is available in the iOS app.
+
 ## Start here
 
 ```bash

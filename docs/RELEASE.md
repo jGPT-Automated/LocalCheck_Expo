@@ -94,6 +94,12 @@ client behavior. Destructive or contract-breaking changes require an explicit
 compatibility and recovery plan. Edge Functions and migrations are separate
 production actions; merging their source does not deploy them.
 
+The current Profile/Compete branch adds `expo-camera` for in-app player QR
+scanning, so it requires a new native iOS build and camera-permission review; it
+is not OTA-only. It also adds the `p_played_on` Log Game RPC contract. Apply
+`20260826120000_add_game_date_to_log_match.sql` before installing that client,
+then verify one QR-selected opponent and one dated two-account score review.
+
 For the PR #28 snapshot, the approved order is:
 
 1. Reconcile every pending migration and function against the read-only live

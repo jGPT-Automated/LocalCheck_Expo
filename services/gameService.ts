@@ -2,7 +2,7 @@ import { CourtSport, MatchResult } from "@/constants/data";
 import { supabase } from "@/lib/supabase";
 
 import { SupabaseProfile } from "./profileService";
-import { areOpponentsInMatch } from "./gameModel";
+import { areOpponentsInMatch, extractRpcMatchId } from "./gameModel";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 // Backend: LocalCheckProd `matches` + `match_participants` (side a/b), written
@@ -131,6 +131,7 @@ export async function logGame(payload: {
   opponentId: string;
   sport: CourtSport;
   note?: string;
+  playedOn?: string;
   clientRequestId?: string;
 }): Promise<{ ok: boolean; matchId?: string }> {
   // log_match validates scores/ties server-side, but reject obviously bad
@@ -154,6 +155,7 @@ export async function logGame(payload: {
     p_my_score: myScore,
     p_opponent_score: theirScore,
     p_notes: payload.note?.trim() ? payload.note.trim() : null,
+    p_played_on: payload.playedOn ?? null,
     p_visibility: "public",
     p_client_request_id: payload.clientRequestId ?? null,
   });
@@ -161,7 +163,12 @@ export async function logGame(payload: {
     console.warn("logGame failed", error.message);
     return { ok: false };
   }
-  return { ok: true, matchId: (data as { id?: string } | null)?.id };
+  const matchId = extractRpcMatchId(data);
+  if (!matchId) {
+    console.warn("logGame returned no match id");
+    return { ok: false };
+  }
+  return { ok: true, matchId };
 }
 
 export async function logScheduledGameResult(payload: {
@@ -194,7 +201,10 @@ export async function logScheduledGameResult(payload: {
     console.warn("logScheduledGameResult failed", error.message);
     return { ok: false, error: "The scheduled-result backend is not available yet." };
   }
-  return { ok: true, matchId: (data as { id?: string } | null)?.id };
+  const matchId = extractRpcMatchId(data);
+  return matchId
+    ? { ok: true, matchId }
+    : { ok: false, error: "The backend did not return the saved score." };
 }
 
 export async function fetchGamesByCourt(courtId: string): Promise<MatchResult[]> {
@@ -282,51 +292,91 @@ export async function fetchRecentGames(limit = 20): Promise<MatchResult[]> {
 }
 
 export async function fetchMatchReview(matchId: string): Promise<MatchReview | null> {
-  const enhanced = await supabase
+  // Fetch the required row first. A missing optional relationship or a stale
+  // PostgREST relationship cache must not turn a real score into SCORE NOT FOUND.
+  const matchResult = await supabase
     .from("matches")
-    .select("*, courts(name,sport_type), creator:profiles!matches_created_by_fkey(display_name,username), opponent:profiles!matches_opponent_id_fkey(display_name,username), match_participants(user_id,side,display_order,elo_before,elo_after,profiles(*)), match_participant_reviews(user_id,decision)")
+    .select("*")
     .eq("id", matchId)
     .maybeSingle();
-  const fallback = enhanced.error
-    ? await supabase
-        .from("matches")
-        .select("*, courts(name,sport_type), creator:profiles!matches_created_by_fkey(display_name,username), opponent:profiles!matches_opponent_id_fkey(display_name,username), match_participants(user_id,side,profiles(*))")
-        .eq("id", matchId)
-        .maybeSingle()
-    : null;
-  const data = enhanced.data ?? fallback?.data;
-  const error = enhanced.data ? null : fallback?.error ?? enhanced.error;
-  if (error || !data) {
-    if (error) console.warn("fetchMatchReview failed", error.message);
+  if (matchResult.error || !matchResult.data) {
+    if (matchResult.error) {
+      console.warn("fetchMatchReview failed", matchResult.error.message);
+    }
     return null;
   }
-  const row = data as unknown as SupabaseMatch & {
-    creator?: { display_name: string | null; username: string | null } | null;
-    opponent?: { display_name: string | null; username: string | null } | null;
-  };
+
+  const row = matchResult.data as unknown as SupabaseMatch;
+  const [courtResult, profilesResult, participantsResult, reviewsResult] =
+    await Promise.all([
+      supabase
+        .from("courts")
+        .select("name,sport_type")
+        .eq("id", row.court_id)
+        .maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("id,display_name,username")
+        .in("id", [row.created_by, row.opponent_id]),
+      supabase
+        .from("match_participants")
+        .select("user_id,side,display_order,elo_before,elo_after")
+        .eq("match_id", row.id),
+      supabase
+        .from("match_participant_reviews")
+        .select("user_id,decision")
+        .eq("match_id", row.id),
+    ]);
+
+  const profileRows = (profilesResult.data ?? []) as Array<{
+    id: string;
+    display_name: string | null;
+    username: string | null;
+  }>;
+  const profiles = new Map(profileRows.map((profile) => [profile.id, profile]));
+  const participantRows = (participantsResult.data ?? []) as Array<{
+    user_id: string;
+    side: "a" | "b";
+    display_order: number | null;
+    elo_before: number | null;
+    elo_after: number | null;
+  }>;
+  const reviewRows = (reviewsResult.data ?? []) as Array<{
+    user_id: string;
+    decision: "pending" | "approved" | "disputed";
+  }>;
   const decisions = new Map(
-    (row.match_participant_reviews ?? []).map((review) => [review.user_id, review.decision]),
+    reviewRows.map((review) => [review.user_id, review.decision]),
   );
-  const participants = (row.match_participants ?? [])
+  const participants = participantRows
     .slice()
     .sort((a, b) => (a.side === b.side ? (a.display_order ?? 0) - (b.display_order ?? 0) : a.side.localeCompare(b.side)))
-    .map((participant) => ({
-      id: participant.user_id,
-      name: participant.profiles?.display_name || participant.profiles?.username || "Player",
-      side: participant.side,
-      decision: decisions.get(participant.user_id) ?? "pending",
-      eloBefore: participant.elo_before ?? undefined,
-      eloAfter: participant.elo_after ?? undefined,
-    }));
+    .map((participant) => {
+      const profile = profiles.get(participant.user_id);
+      return {
+        id: participant.user_id,
+        name: profile?.display_name || profile?.username || "Player",
+        side: participant.side,
+        decision: decisions.get(participant.user_id) ?? "pending",
+        eloBefore: participant.elo_before ?? undefined,
+        eloAfter: participant.elo_after ?? undefined,
+      };
+    });
+  const creator = profiles.get(row.created_by);
+  const opponent = profiles.get(row.opponent_id);
+  const court = courtResult.data as {
+    name: string;
+    sport_type: string;
+  } | null;
   return {
     id: row.id,
     courtId: row.court_id,
-    courtName: row.courts?.name ?? "Unknown Court",
+    courtName: court?.name ?? "Unknown Court",
     createdBy: row.created_by,
     opponentId: row.opponent_id,
-    creatorName: row.creator?.display_name || row.creator?.username || "Player",
-    opponentName: row.opponent?.display_name || row.opponent?.username || "Player",
-    sport: normalizeSport(row.sport ?? row.courts?.sport_type),
+    creatorName: creator?.display_name || creator?.username || "Player",
+    opponentName: opponent?.display_name || opponent?.username || "Player",
+    sport: normalizeSport(row.sport ?? court?.sport_type),
     status: row.status,
     confirmationMethod: row.confirmation_method,
     playedAt: row.played_at,

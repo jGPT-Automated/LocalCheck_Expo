@@ -43,7 +43,7 @@ export function ProfileHero({
   if (compact) {
     const handle = profileHandle(username, name);
     const locationLine = courtLabel
-      ? `${courtLabel}${sportLabel ? ` • ${sportLabel}` : ""}`
+      ? `${sportLabel ? `${sportLabel} · ` : ""}${courtLabel}`
       : `@${handle}`;
 
     return (
@@ -64,7 +64,7 @@ export function ProfileHero({
             initials={initials}
             name={name}
             playerId={playerId}
-          size={72}
+            size={72}
             style={styles.compactAvatar}
           />
         </Pressable>
@@ -78,9 +78,6 @@ export function ProfileHero({
             {headline || name}
           </Text>
           <View style={styles.compactMeta}>
-            {courtLabel ? (
-              <Feather color={Colors.accent} name="crosshair" size={11} />
-            ) : null}
             <Text numberOfLines={1} style={styles.compactHandle}>
               {locationLine}
             </Text>
@@ -173,7 +170,6 @@ const styles = StyleSheet.create({
   },
   compactAvatarAction: {
     borderRadius: 15,
-    transform: [{ translateY: -9 }],
   },
   compactAvatarPressed: { opacity: 0.72, transform: [{ scale: 0.98 }] },
   compactAvatar: {
@@ -184,7 +180,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     justifyContent: "center",
-    transform: [{ translateY: -9 }],
   },
   compactName: {
     ...TextStyles.title,
@@ -199,19 +194,17 @@ const styles = StyleSheet.create({
     marginTop: 5,
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
   },
   compactHandle: {
     minWidth: 0,
     flexShrink: 1,
-    ...TextStyles.bodySmall,
+    ...TextStyles.metadata,
     color: Colors.muted,
   },
   compactActions: {
     flexShrink: 0,
     alignItems: "flex-end",
     justifyContent: "center",
-    transform: [{ translateY: -9 }],
   },
   hero: {
     minHeight: 152,

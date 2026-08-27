@@ -16,6 +16,7 @@ import {
   CourtSport,
   getCourtIdentityColor,
 } from "@/constants/data";
+import { Layout } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts } from "@/context/CourtPresenceContext";
@@ -567,7 +568,7 @@ const styles = StyleSheet.create({
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.accent },
   legend: {
     position: "absolute",
-    bottom: 72,
+    bottom: Layout.tabBarClearance + 60,
     left: 16,
     backgroundColor: "rgba(13,13,16,0.88)",
     borderWidth: 1,
@@ -585,11 +586,11 @@ const styles = StyleSheet.create({
   legendText: { fontFamily: Typography.bodySemiBold, fontSize: 8, color: Colors.textSecondary, letterSpacing: 1 },
   nearestButton: {
     position: "absolute",
-    bottom: 16,
+    bottom: Layout.tabBarClearance + 10,
     alignSelf: "center",
-    minWidth: 208,
+    minWidth: 190,
     minHeight: 44,
-    paddingHorizontal: 18,
+    paddingHorizontal: 15,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -602,7 +603,7 @@ const styles = StyleSheet.create({
   nearestButtonText: { fontFamily: Typography.heading, fontSize: 12, color: Colors.black, letterSpacing: 1.4 },
   locationNotice: {
     position: "absolute",
-    bottom: 66,
+    bottom: Layout.tabBarClearance + 60,
     alignSelf: "center",
     maxWidth: "82%",
     paddingHorizontal: 10,

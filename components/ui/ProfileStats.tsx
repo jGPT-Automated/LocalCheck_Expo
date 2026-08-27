@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     alignItems: "stretch",
     gap: 10,
   },
-  rowCompact: { minHeight: 68, paddingBottom: 0, marginBottom: 8 },
+  rowCompact: { minHeight: 84, paddingVertical: 8 },
   panel: {
     flex: 1,
     minWidth: 0,

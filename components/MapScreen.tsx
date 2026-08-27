@@ -393,7 +393,7 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
       </View>
 
       {/* ── Legend ── */}
-      <View style={[styles.legend, { bottom: bottom + Layout.tabBarClearance }]}>
+      <View style={[styles.legend, { bottom: bottom + Layout.tabBarClearance + 60 }]}>
         <View style={styles.legendRow}>
           <View style={[styles.legendDot, { backgroundColor: Colors.accent }]} />
           <Text style={styles.legendText}>ACTIVE NOW</Text>
@@ -410,7 +410,7 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
 
       {/* ── Right-side control: center the map on the current device ── */}
       <Pressable
-        style={[styles.roundBtn, { bottom: bottom + 82 }]}
+        style={[styles.roundBtn, { bottom: bottom + Layout.tabBarClearance + 60 }]}
         onPress={flyToUser}
         accessibilityLabel="Center on my location"
       >
@@ -421,13 +421,17 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
         accessibilityLabel="Find nearest court"
         accessibilityRole="button"
         onPress={findNearestCourt}
-        style={({ pressed }) => [styles.nearestButton, { bottom: bottom + 18 }, pressed && styles.nearestButtonPressed]}
+        style={({ pressed }) => [
+          styles.nearestButton,
+          { bottom: bottom + Layout.tabBarClearance + 10 },
+          pressed && styles.nearestButtonPressed,
+        ]}
       >
         <Feather color={Colors.black} name="navigation" size={15} />
         <Text style={styles.nearestButtonText}>FIND NEAREST COURT</Text>
       </Pressable>
       {locationNotice ? (
-        <View style={[styles.locationNotice, { bottom: bottom + 68 }]}>
+        <View style={[styles.locationNotice, { bottom: bottom + Layout.tabBarClearance + 60 }]}>
           <Text style={styles.locationNoticeText}>{locationNotice}</Text>
         </View>
       ) : null}
@@ -532,9 +536,9 @@ const styles = StyleSheet.create({
   nearestButton: {
     position: "absolute",
     alignSelf: "center",
-    minWidth: 208,
+    minWidth: 190,
     minHeight: 44,
-    paddingHorizontal: 18,
+    paddingHorizontal: 15,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

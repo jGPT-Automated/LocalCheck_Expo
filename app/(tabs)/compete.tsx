@@ -1,4 +1,5 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Crypto from "expo-crypto";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
@@ -19,6 +20,7 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { CompactSelect } from "@/components/ui/CompactSelect";
 import { EloStat } from "@/components/ui/EloStat";
 import { ModeTabs } from "@/components/ui/ModeTabs";
+import { parsePlayerQrCode } from "@/components/ui/playerIdentity";
 import { Colors, Radius } from "@/constants/colors";
 import {
   CourtSport,
@@ -148,7 +150,6 @@ export default function CompeteScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader
-        prominent
         title="COMPETE"
         right={
           <View style={styles.headerTools}>
@@ -430,8 +431,25 @@ type GameLog = {
   opponentName: string;
   opponentId: string;
   courtId: string;
-  note: string;
+  playedOn: string;
 };
+
+function localDateValue(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function isValidPlayedOn(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T12:00:00Z`);
+  return (
+    !Number.isNaN(parsed.getTime()) &&
+    parsed.toISOString().slice(0, 10) === value &&
+    value <= localDateValue()
+  );
+}
 
 function LogGameView({
   currentUser,
@@ -476,8 +494,10 @@ function LogGameView({
     opponentName: "",
     opponentId: "",
     courtId: defaultCourtId,
-    note: "",
+    playedOn: localDateValue(),
   });
+  const [reviewGame, setReviewGame] = useState<GameLog | null>(null);
+  const [reviewSeconds, setReviewSeconds] = useState(5);
   const [submittedGame, setSubmittedGame] = useState<GameLog | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showOpponentPicker, setShowOpponentPicker] = useState(false);
@@ -485,6 +505,8 @@ function LogGameView({
   const [opponentQuery, setOpponentQuery] = useState("");
   const [opponentSuggestions, setOpponentSuggestions] = useState<Player[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [clientRequestId, setClientRequestId] = useState(() =>
     Crypto.randomUUID(),
   );
@@ -541,25 +563,33 @@ function LogGameView({
     !isTie &&
     form.opponentId !== "" &&
     form.courtId !== "" &&
+    isValidPlayedOn(form.playedOn) &&
     !submitting;
   const selectedCourt = supportedCourts.find(
     (court) => court.id === form.courtId,
   );
 
-  const handleSubmit = async () => {
+  const handleReview = () => {
     if (!canSubmit || !form.opponentId || !form.courtId) return;
+    setSubmitError(null);
+    setReviewSeconds(5);
+    setReviewGame({ ...form });
+  };
+
+  const handleSubmit = async () => {
+    if (!reviewGame || submitting) return;
     setSubmitting(true);
     setSubmitError(null);
     let result: { ok: boolean; matchId?: string } = { ok: false };
     try {
       result = await logGame({
-        courtId: form.courtId,
+        courtId: reviewGame.courtId,
         createdBy: currentUser.id,
-        myScore: myScoreNum,
-        theirScore: theirScoreNum,
-        opponentId: form.opponentId,
-        sport: form.sport as CourtSport,
-        note: form.note,
+        myScore: Number(reviewGame.myScore),
+        theirScore: Number(reviewGame.theirScore),
+        opponentId: reviewGame.opponentId,
+        sport: reviewGame.sport as CourtSport,
+        playedOn: reviewGame.playedOn,
         clientRequestId,
       });
     } catch (e) {
@@ -570,11 +600,13 @@ function LogGameView({
     if (!result.ok) {
       // Keep the form intact so the user can retry.
       setSubmitError("COULD NOT LOG GAME — NOTHING WAS SAVED. TRY AGAIN.");
+      setReviewGame(null);
       return;
     }
     // The score is pending. The opponent receives a review action; ratings and
     // public history remain unchanged until confirmation.
-    setSubmittedGame({ ...form });
+    setSubmittedGame({ ...reviewGame });
+    setReviewGame(null);
     setClientRequestId(Crypto.randomUUID());
     setTimeout(() => setSubmittedGame(null), 5000);
     setForm({
@@ -584,8 +616,71 @@ function LogGameView({
       opponentName: "",
       opponentId: "",
       courtId: defaultCourtId,
-      note: "",
+      playedOn: localDateValue(),
     });
+  };
+
+  useEffect(() => {
+    if (!reviewGame || reviewSeconds <= 0) return;
+    const timer = setTimeout(
+      () => setReviewSeconds((seconds) => Math.max(0, seconds - 1)),
+      1000,
+    );
+    return () => clearTimeout(timer);
+  }, [reviewGame, reviewSeconds]);
+
+  useEffect(() => {
+    if (!scannerOpen) return;
+    let handled = false;
+    const subscription = CameraView.onModernBarcodeScanned(({ data }) => {
+      if (handled) return;
+      const playerId = parsePlayerQrCode(data);
+      handled = true;
+      subscription.remove();
+      void CameraView.dismissScanner();
+      setScannerOpen(false);
+      if (!playerId || playerId === currentUser.id) {
+        setSubmitError("THAT IS NOT ANOTHER LOCALCHECK PLAYER QR CODE.");
+        return;
+      }
+      void fetchProfile(playerId).then((player) => {
+        if (!player) {
+          setSubmitError("PLAYER NOT FOUND. TRY ANOTHER QR CODE.");
+          return;
+        }
+        setForm((current) => ({
+          ...current,
+          opponentName: player.name,
+          opponentId: player.id,
+        }));
+      });
+    });
+    void CameraView.launchScanner({
+      barcodeTypes: ["qr"],
+      isGuidanceEnabled: true,
+      isHighlightingEnabled: true,
+    }).catch(() => {
+      subscription.remove();
+      setScannerOpen(false);
+      setSubmitError("QR SCANNER UNAVAILABLE. SELECT THE PLAYER INSTEAD.");
+    });
+    return () => subscription.remove();
+  }, [currentUser.id, scannerOpen]);
+
+  const handleScanOpponent = async () => {
+    setSubmitError(null);
+    if (Platform.OS === "web" || !CameraView.isModernBarcodeScannerAvailable) {
+      setSubmitError("QR SCANNING IS AVAILABLE IN THE IOS APP.");
+      return;
+    }
+    const permission = cameraPermission?.granted
+      ? cameraPermission
+      : await requestCameraPermission();
+    if (!permission.granted) {
+      setSubmitError("CAMERA ACCESS IS NEEDED TO SCAN A PLAYER QR CODE.");
+      return;
+    }
+    setScannerOpen(true);
   };
 
   // Opponent typeahead: search real players via Supabase
@@ -628,6 +723,70 @@ function LogGameView({
     setOpponentQuery("");
   };
 
+  if (reviewGame) {
+    const reviewCourt = supportedCourts.find(
+      (court) => court.id === reviewGame.courtId,
+    );
+    return (
+      <View style={styles.successState}>
+        <View style={styles.reviewCountdown}>
+          <Text style={styles.reviewCountdownValue}>{reviewSeconds}</Text>
+        </View>
+        <Text style={styles.successTitle}>REVIEW SCORE</Text>
+        <Text style={styles.successSub}>
+          Check the matchup before it is sent to your opponent.
+        </Text>
+        <View style={styles.successCard}>
+          <View style={styles.successCardHeader}>
+            <Text numberOfLines={1} style={styles.successCourt}>
+              {reviewGame.sport === "BASKETBALL" ? "BB" : "PB"}
+              {` · ${reviewCourt?.shortName || reviewCourt?.name || "COURT"}`}
+            </Text>
+            <Text style={styles.reviewDate}>{reviewGame.playedOn}</Text>
+          </View>
+          <View style={styles.successScoreRow}>
+            <View style={styles.reviewPlayer}>
+              <Text numberOfLines={1} style={styles.successPlayerName}>
+                {currentUser.name}
+              </Text>
+              <Text style={styles.successScore}>{reviewGame.myScore}</Text>
+            </View>
+            <Text style={styles.successDash}>–</Text>
+            <View style={styles.reviewPlayer}>
+              <Text numberOfLines={1} style={styles.successPlayerName}>
+                {reviewGame.opponentName}
+              </Text>
+              <Text style={styles.successScore}>{reviewGame.theirScore}</Text>
+            </View>
+          </View>
+        </View>
+        <View style={styles.reviewActions}>
+          <Pressable
+            accessibilityLabel="Edit score"
+            accessibilityRole="button"
+            disabled={submitting}
+            onPress={() => setReviewGame(null)}
+            style={styles.reviewEditButton}
+          >
+            <Text style={styles.reviewEditText}>EDIT</Text>
+          </Pressable>
+          <Pressable
+            accessibilityLabel="Confirm and send score"
+            accessibilityRole="button"
+            accessibilityState={{ busy: submitting }}
+            disabled={submitting}
+            onPress={() => void handleSubmit()}
+            style={styles.reviewConfirmButton}
+          >
+            <Text style={styles.reviewConfirmText}>
+              {submitting ? "SENDING…" : "CONFIRM"}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
   if (submittedGame) {
     const submittedCourt = supportedCourts.find(
       (court) => court.id === submittedGame.courtId,
@@ -644,8 +803,8 @@ function LogGameView({
         <View style={styles.successCard}>
           <View style={styles.successCardHeader}>
             <Text numberOfLines={1} style={styles.successCourt}>
-              {submittedCourt?.shortName || submittedCourt?.name || "GAME"}
-              {` · ${submittedGame.sport === "BASKETBALL" ? "BB" : "PB"}`}
+              {submittedGame.sport === "BASKETBALL" ? "BB" : "PB"}
+              {` · ${submittedCourt?.shortName || submittedCourt?.name || "COURT"}`}
             </Text>
             <View style={styles.pendingBadge}>
               <Text style={styles.pendingText}>PENDING</Text>
@@ -686,83 +845,104 @@ function LogGameView({
       }}
       keyboardShouldPersistTaps="handled"
     >
-      {/* Court */}
-      <View style={styles.fieldGroup}>
-        <Text style={styles.fieldLabel}>COURT</Text>
-        <Pressable
-          accessibilityLabel="Select court"
-          accessibilityRole="button"
-          accessibilityState={{ expanded: showCourtPicker }}
-          onPress={() => setShowCourtPicker((shown) => !shown)}
-          style={styles.opponentTrigger}
-        >
-          <Text
-            numberOfLines={1}
-            style={
-              selectedCourt
-                ? styles.opponentSelectedText
-                : styles.opponentPlaceholder
-            }
+      {/* Court owns the ranked sport, so the two read as one decision. */}
+      <View style={styles.fieldRow}>
+        <View style={[styles.fieldGroup, styles.courtField]}>
+          <Text style={styles.fieldLabel}>COURT</Text>
+          <Pressable
+            accessibilityLabel="Select court"
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showCourtPicker }}
+            onPress={() => setShowCourtPicker((shown) => !shown)}
+            style={styles.opponentTrigger}
           >
-            {selectedCourt?.name ?? "Select a court"}
-          </Text>
-          <Ionicons
-            name={showCourtPicker ? "chevron-up" : "chevron-down"}
-            size={16}
-            color={Colors.muted}
-          />
-        </Pressable>
-        {showCourtPicker ? (
-          <View style={styles.opponentDropdown}>
-            {supportedCourts.map((c) => (
-              <Pressable
-                key={c.id}
-                style={styles.opponentOption}
-                onPress={() => {
-                  setForm((f) => ({ ...f, courtId: c.id, sport: c.sport }));
-                  setShowCourtPicker(false);
-                }}
-              >
-                <Text numberOfLines={1} style={styles.opponentOptionName}>
-                  {c.name}
-                </Text>
-                {form.courtId === c.id ? (
-                  <Ionicons name="checkmark" size={16} color={Colors.accent} />
-                ) : null}
-              </Pressable>
-            ))}
+            <Text
+              numberOfLines={1}
+              style={
+                selectedCourt
+                  ? styles.opponentSelectedText
+                  : styles.opponentPlaceholder
+              }
+            >
+              {selectedCourt?.name ?? "Select a court"}
+            </Text>
+            <Ionicons
+              name={showCourtPicker ? "chevron-up" : "chevron-down"}
+              size={16}
+              color={Colors.muted}
+            />
+          </Pressable>
+          {showCourtPicker ? (
+            <View style={styles.opponentDropdown}>
+              {supportedCourts.map((c) => (
+                <Pressable
+                  key={c.id}
+                  style={styles.opponentOption}
+                  onPress={() => {
+                    setForm((f) => ({ ...f, courtId: c.id, sport: c.sport }));
+                    setShowCourtPicker(false);
+                  }}
+                >
+                  <Text numberOfLines={1} style={styles.opponentOptionName}>
+                    {c.name}
+                  </Text>
+                  {form.courtId === c.id ? (
+                    <Ionicons name="checkmark" size={16} color={Colors.accent} />
+                  ) : null}
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+        </View>
+        <View style={[styles.fieldGroup, styles.sportField]}>
+          <Text style={styles.fieldLabel}>SPORT</Text>
+          <View style={[styles.sportOption, styles.sportOptionActive]}>
+            <View
+              style={[
+                styles.sportOptionDot,
+                { backgroundColor: getSportColor(form.sport || "BASKETBALL") },
+              ]}
+            />
+            <Text style={[styles.sportOptionText, styles.sportOptionTextActive]}>
+              {form.sport === "PICKLEBALL" ? "PB" : "BB"}
+            </Text>
           </View>
-        ) : null}
+        </View>
       </View>
 
-      {/* The selected court controls the sport used for ranking. */}
       <View style={styles.fieldGroup}>
-        <Text style={styles.fieldLabel}>RANKED SPORT</Text>
-        <View style={styles.sportGrid}>
-          {form.sport ? (
-            <View style={[styles.sportOption, styles.sportOptionActive]}>
-              <View
-                style={[
-                  styles.sportOptionDot,
-                  { backgroundColor: getSportColor(form.sport) },
-                ]}
-              />
-              <Text
-                style={[styles.sportOptionText, styles.sportOptionTextActive]}
-              >
-                {form.sport}
-              </Text>
-            </View>
-          ) : (
-            <Text style={styles.opponentPlaceholder}>CHOOSE A COURT FIRST</Text>
-          )}
-        </View>
+        <Text style={styles.fieldLabel}>DATE</Text>
+        <TextInput
+          accessibilityLabel="Game date"
+          autoCapitalize="none"
+          maxLength={10}
+          onChangeText={(playedOn) =>
+            setForm((current) => ({ ...current, playedOn }))
+          }
+          placeholder="YYYY-MM-DD"
+          placeholderTextColor={Colors.mutedDark}
+          style={[
+            styles.dateInput,
+            form.playedOn.length > 0 &&
+              !isValidPlayedOn(form.playedOn) &&
+              styles.dateInputInvalid,
+          ]}
+          value={form.playedOn}
+        />
       </View>
 
       {/* Opponent */}
       <View style={styles.fieldGroup}>
         <Text style={styles.fieldLabel}>OPPONENT</Text>
         <View style={styles.opponentTriggerShell}>
+          <Pressable
+            accessibilityLabel="Scan opponent player QR code"
+            accessibilityRole="button"
+            onPress={() => void handleScanOpponent()}
+            style={styles.scanOpponent}
+          >
+            <Feather color={Colors.accent} name="maximize" size={18} />
+          </Pressable>
           <Pressable
             accessibilityLabel={
               form.opponentName
@@ -917,21 +1097,6 @@ function LogGameView({
         )}
       </View>
 
-      {/* Note */}
-      <View style={styles.fieldGroup}>
-        <Text style={styles.fieldLabel}>NOTES (optional)</Text>
-        <TextInput
-          style={[styles.textField, styles.textArea]}
-          value={form.note}
-          accessibilityLabel="Optional game notes"
-          onChangeText={(v) => setForm((f) => ({ ...f, note: v }))}
-          placeholder="How was the run?"
-          placeholderTextColor={Colors.mutedDark}
-          multiline
-          numberOfLines={3}
-        />
-      </View>
-
       {/* Submit */}
       {submitError && <Text style={styles.submitError}>{submitError}</Text>}
       <Pressable
@@ -945,7 +1110,7 @@ function LogGameView({
           styles.submitBtn,
           (!canSubmit || submitting) && styles.submitBtnDisabled,
         ]}
-        onPress={handleSubmit}
+        onPress={handleReview}
         disabled={!canSubmit || submitting}
       >
         <Text
@@ -1281,6 +1446,14 @@ const styles = StyleSheet.create({
 
   // ── Log Game ──
   fieldGroup: { gap: 8 },
+  fieldRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    zIndex: 2,
+  },
+  courtField: { flex: 1, minWidth: 0 },
+  sportField: { width: 94 },
   fieldLabel: {
     fontFamily: Typography.heading,
     fontSize: 11,
@@ -1288,16 +1461,14 @@ const styles = StyleSheet.create({
     letterSpacing: 2.5,
     textTransform: "uppercase" as const,
   },
-  sportGrid: { flexDirection: "row", gap: 10 },
   sportOption: {
-    flex: 1,
     minHeight: 48,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     borderWidth: 0.5,
     borderColor: Colors.border,
-    padding: 14,
+    paddingHorizontal: 12,
     borderRadius: Radius.xs,
     backgroundColor: Colors.surface,
   },
@@ -1313,8 +1484,24 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   sportOptionTextActive: { color: Colors.text },
+  dateInput: {
+    minHeight: 48,
+    paddingHorizontal: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.surface,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 14,
+    color: Colors.text,
+    letterSpacing: 0.8,
+  },
+  dateInputInvalid: { borderColor: Colors.loss },
 
   scoreRow: {
+    width: "100%",
+    maxWidth: 330,
+    alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -1354,19 +1541,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  textField: {
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xs,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontFamily: Typography.body,
-    fontSize: 14,
-    color: Colors.text,
-  },
-  textArea: { height: 80, textAlignVertical: "top" as const },
-
   courtPills: { gap: 8, paddingVertical: 4 },
   courtPill: {
     paddingHorizontal: 12,
@@ -1388,10 +1562,13 @@ const styles = StyleSheet.create({
   courtPillTextActive: { color: Colors.text },
 
   submitBtn: {
+    width: 220,
+    alignSelf: "center",
     minHeight: 52,
     backgroundColor: Colors.accent,
     paddingHorizontal: 16,
     alignItems: "center",
+    justifyContent: "center",
     borderRadius: Radius.xs,
     marginTop: 8,
   },
@@ -1421,6 +1598,22 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 20,
     paddingTop: 48,
+  },
+  reviewCountdown: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Colors.accentBorderStrong,
+    borderRadius: 22,
+    backgroundColor: Colors.accentGhost,
+  },
+  reviewCountdownValue: {
+    fontFamily: Typography.headingBold,
+    fontSize: 19,
+    lineHeight: 22,
+    color: Colors.accent,
   },
   successIcon: {
     width: 56,
@@ -1485,6 +1678,7 @@ const styles = StyleSheet.create({
   },
   successPlayer: { flex: 1, minWidth: 0, alignItems: "flex-start" },
   successPlayerRight: { alignItems: "flex-end" },
+  reviewPlayer: { flex: 1, minWidth: 0, alignItems: "center" },
   successPlayerName: {
     maxWidth: "100%",
     fontFamily: Typography.bodySemiBold,
@@ -1505,6 +1699,48 @@ const styles = StyleSheet.create({
     fontFamily: Typography.headingRegular,
     fontSize: 28,
     color: Colors.mutedDark,
+  },
+  reviewDate: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 10,
+    color: Colors.muted,
+    letterSpacing: 0.6,
+  },
+  reviewActions: {
+    width: "100%",
+    maxWidth: 330,
+    flexDirection: "row",
+    gap: 10,
+  },
+  reviewEditButton: {
+    flex: 1,
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surface,
+  },
+  reviewEditText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    color: Colors.textSecondary,
+    letterSpacing: 1.4,
+  },
+  reviewConfirmButton: {
+    flex: 1.5,
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.accent,
+  },
+  reviewConfirmText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    color: Colors.black,
+    letterSpacing: 1.4,
   },
 
   // Opponent selector
@@ -1529,6 +1765,14 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     backgroundColor: Colors.surface,
     borderRadius: Radius.xs,
+  },
+  scanOpponent: {
+    width: 48,
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: Colors.border,
   },
   opponentTriggerMain: {
     flex: 1,

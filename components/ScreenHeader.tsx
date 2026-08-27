@@ -20,25 +20,23 @@ export function ScreenHeader({
   right,
   wordmark = false,
   onBack,
-  prominent = false,
 }: {
   title: string;
   subtitle?: string;
   right?: React.ReactNode;
   wordmark?: boolean;
   onBack?: () => void;
-  prominent?: boolean;
 }) {
   const { top } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 44 : top;
   return (
     <View style={[styles.header, { paddingTop: topPad }]}>
-      <View style={[styles.contentRow, prominent && styles.contentRowProminent]}>
+      <View style={styles.contentRow}>
         <View style={styles.titleSlot}>
           {wordmark ? (
             <LogoLockup width={154} />
           ) : (
-            <View style={[styles.lockup, prominent && styles.lockupProminent]}>
+            <View style={styles.lockup}>
               {onBack ? (
                 <Pressable
                   accessibilityHint="Returns to the previous screen"
@@ -54,12 +52,9 @@ export function ScreenHeader({
                   <LogoMark size={24} variant="back" />
                 </Pressable>
               ) : (
-                <LogoMark size={prominent ? 30 : 24} />
+                <LogoMark size={24} />
               )}
-              <Text
-                numberOfLines={1}
-                style={[styles.title, prominent && styles.titleProminent]}
-              >
+              <Text numberOfLines={1} style={styles.title}>
                 {title}
               </Text>
             </View>
@@ -71,9 +66,7 @@ export function ScreenHeader({
           ) : null}
         </View>
         {right ? (
-          <View
-            style={[styles.rightSlot, prominent && styles.rightSlotProminent]}
-          >
+          <View style={styles.rightSlot}>
             {right}
           </View>
         ) : null}
@@ -138,7 +131,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  contentRowProminent: { height: 56 },
   titleSlot: {
     flex: 1,
     minWidth: 0,
@@ -151,13 +143,11 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     justifyContent: "center",
   },
-  rightSlotProminent: { transform: [{ translateY: 5 }] },
   lockup: {
     flexDirection: "row",
     alignItems: "center",
     gap: Space.sm,
   },
-  lockupProminent: { transform: [{ translateY: 5 }] },
   pressed: { opacity: 0.68 },
   backAction: {
     width: Layout.minTouchTarget,
@@ -175,13 +165,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
     lineHeight: 25,
     textTransform: "uppercase" as const,
-    transform: [{ translateY: 1 }],
-  },
-  titleProminent: {
-    fontSize: 38,
-    lineHeight: 42,
-    letterSpacing: 1.2,
-    transform: [{ translateY: 0 }],
   },
   subtitle: {
     fontFamily: Typography.bodyMedium,

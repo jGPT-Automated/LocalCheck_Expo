@@ -105,14 +105,26 @@ specific missing behavior only after verifying it against current `main`.
 ## Current focused follow-up
 
 - The current unmerged Profile/Compete branch implements the approved release
-  references at a 402×874 comparison viewport. Profile restores the shared
-  large header, opens QR from the avatar, keeps Settings in the header, and
+  references at 402×874 and 430×932 comparison viewports. Profile uses the
+  canonical tab header, opens QR from the avatar, keeps Settings in the header, and
   separates actionable Inbox items from informational notifications. Compete
   uses equal-height sport/scope controls, quieter ranks, compact tier/record
   metadata, right-aligned ELO, and a same-height dimmed private-rank row.
-- This source state has passed repeated connected visual comparisons,
-  TypeScript, focused leaderboard/notification/player-identity tests, and the
-  design-consistency gate. It is not production behavior until its PR is
+- The same branch now keeps every primary tab on `ScreenHeader`, aligns its
+  title with the 24px logo mark, orders Profile metadata as `sport · court`,
+  balances Profile stat padding, and keeps Explore map controls above the tab
+  bar on web and native.
+- Log Game now places Court and its authoritative ranked Sport on one row,
+  defaults an editable game date to today, removes freeform notes, adds an iOS
+  player-QR scanner, and uses a centered score review with a five-second
+  countdown plus explicit Edit and Confirm actions before writing.
+- Score review reads no longer depend on a single nested PostgREST relationship
+  query. RPC match IDs normalize both supported composite return shapes so a
+  valid response cannot route to `/match/undefined`.
+- TypeScript and a fresh connected web export pass. Profile and Log Game have
+  current 430×932 visual captures. A second full cross-screen visual pass,
+  native QR scan, live two-account score confirmation, and database migration
+  deployment remain pending; this is not production behavior until the PR is
   reviewed and released.
 
 - PR #35 uses the final supplied LocalCheck vector assets through the shared
@@ -141,8 +153,9 @@ specific missing behavior only after verifying it against current `main`.
 
 ## Immediate gates
 
-1. Verify the focused Compete/Home follow-up in the connected two-account
-   preview, then publish it through a reviewed PR and compatible production OTA.
+1. Complete the second Profile/Compete/Explore cross-screen visual pass and
+   connected two-account score lifecycle. Apply the additive game-date migration
+   before installing the dependent client build.
 2. Exercise one accepted and one rejected Add Court live photo on a signed-in
    iPhone; verify the accepted court appears and the rejection inserts nothing.
 3. Complete foreground/cold-start push routing plus receipt/retry/invalid-token

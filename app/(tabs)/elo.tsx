@@ -128,7 +128,6 @@ export default function MeScreen() {
   return (
     <View style={styles.screen}>
       <ScreenHeader
-        prominent
         title="PROFILE"
         right={
           <Pressable
@@ -144,7 +143,7 @@ export default function MeScreen() {
             <Feather
               color={Colors.textSecondary}
               name="settings"
-              size={20}
+              size={18}
             />
           </Pressable>
         }
