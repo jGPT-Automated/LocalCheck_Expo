@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { areOpponentsInMatch, extractRpcMatchId } from "./gameModel.ts";
+import {
+  areOpponentsInMatch,
+  extractRpcMatchId,
+  isMissingDateAwareLogMatch,
+} from "./gameModel.ts";
 
 const participants = [
   { user_id: "a1", side: "a" as const },
@@ -24,4 +28,27 @@ test("RPC match ids normalize row and one-row array responses", () => {
   assert.equal(extractRpcMatchId([{ id: "match-2" }]), "match-2");
   assert.equal(extractRpcMatchId([]), undefined);
   assert.equal(extractRpcMatchId(null), undefined);
+});
+
+test("only a missing date-aware RPC signature enables the legacy retry", () => {
+  assert.equal(
+    isMissingDateAwareLogMatch({
+      code: "PGRST202",
+      message: "Could not find the function public.log_match",
+    }),
+    true,
+  );
+  assert.equal(
+    isMissingDateAwareLogMatch({
+      message: "Could not find the function public.log_match(p_played_on)",
+    }),
+    true,
+  );
+  assert.equal(
+    isMissingDateAwareLogMatch({
+      code: "42501",
+      message: "interaction is blocked",
+    }),
+    false,
+  );
 });

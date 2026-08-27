@@ -5,9 +5,10 @@ pickleball courts, checking in, planning runs, logging reviewed results, and
 tracking sport-specific ELO. Supabase provides Auth, Postgres, RLS, Realtime,
 and Edge Functions.
 
-Player QR scanning uses the native `expo-camera` scanner. Changes to that
-dependency require a new iOS build; the browser preview intentionally reports
-that scanning is available in the iOS app.
+Player QR scanning uses the native `expo-camera` scanner and Log Game dates use
+`@react-native-community/datetimepicker`. Changes to either dependency require
+a new iOS build; the browser preview uses its native HTML date control and
+intentionally reports that QR scanning is available in the iOS app.
 
 ## Start here
 
@@ -26,16 +27,16 @@ Apple Sign-In, SecureStore, location, and other native behavior.
 
 ## Commands
 
-| Command | Purpose |
-| --- | --- |
-| `pnpm start` | Expo development server |
-| `pnpm preview:web` | Repeatable browser preview on port 8081 |
-| `pnpm typecheck` | TypeScript validation |
-| `pnpm test` | Automated tests |
-| `pnpm check` | Required fast CI suite |
-| `pnpm export:web` | Compile-only web export; not a connected preview |
-| `pnpm check:release` | Full local gate plus verified connected export |
-| `pnpm doctor` | Local development environment check |
+| Command              | Purpose                                          |
+| -------------------- | ------------------------------------------------ |
+| `pnpm start`         | Expo development server                          |
+| `pnpm preview:web`   | Repeatable browser preview on port 8081          |
+| `pnpm typecheck`     | TypeScript validation                            |
+| `pnpm test`          | Automated tests                                  |
+| `pnpm check`         | Required fast CI suite                           |
+| `pnpm export:web`    | Compile-only web export; not a connected preview |
+| `pnpm check:release` | Full local gate plus verified connected export   |
+| `pnpm doctor`        | Local development environment check              |
 
 `pnpm preview:web` always creates a fresh export, loads the ignored local
 development environment, and proves the bundle contains that Supabase project

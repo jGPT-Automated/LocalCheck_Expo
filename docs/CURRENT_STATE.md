@@ -115,17 +115,27 @@ specific missing behavior only after verifying it against current `main`.
   balances Profile stat padding, and keeps Explore map controls above the tab
   bar on web and native.
 - Log Game now places Court and its authoritative ranked Sport on one row,
-  defaults an editable game date to today, removes freeform notes, adds an iOS
-  player-QR scanner, and uses a centered score review with a five-second
-  countdown plus explicit Edit and Confirm actions before writing.
+  replaces free-typed dates with platform date controls, supports 1v1, 2v2,
+  3v3, and 5v5 rosters through the same player search/QR selector, and uses a
+  centered score review with an animated five-second auto-send trail plus
+  equal-width Edit and Confirm actions.
+- The 1v1 client retries the previously deployed `log_match` signature only
+  when PostgREST explicitly reports that the new `p_played_on` signature is
+  missing. A connected 12–4 submission was saved through this compatibility
+  path on 2026-08-27; unrelated database errors are not masked or retried.
+- Ad-hoc team submission/review/rating source is additive in
+  `20260827143000_add_ad_hoc_team_matches.sql`. Team writes are not live until
+  that migration and its prerequisite participant-review migration are applied.
 - Score review reads no longer depend on a single nested PostgREST relationship
   query. RPC match IDs normalize both supported composite return shapes so a
   valid response cannot route to `/match/undefined`.
-- TypeScript and a fresh connected web export pass. Profile and Log Game have
-  current 430×932 visual captures. A second full cross-screen visual pass,
-  native QR scan, live two-account score confirmation, and database migration
-  deployment remain pending; this is not production behavior until the PR is
-  reviewed and released.
+- TypeScript, focused backend/notification/release-model tests, design checks,
+  and a fresh connected web export pass. Log Game has two current 430×932
+  visual passes covering 1v1, 2v2, date-input semantics, countdown progression,
+  Edit cancellation, and a saved 1v1 result. Native QR scan, receiving-account
+  review/notification acceptance, and database migration deployment remain
+  pending; team submission is not production behavior until those migrations
+  are applied and the native client is released.
 
 - PR #35 uses the final supplied LocalCheck vector assets through the shared
   brand component. Home now matches the established mark + title treatment on
@@ -153,9 +163,9 @@ specific missing behavior only after verifying it against current `main`.
 
 ## Immediate gates
 
-1. Complete the second Profile/Compete/Explore cross-screen visual pass and
-   connected two-account score lifecycle. Apply the additive game-date migration
-   before installing the dependent client build.
+1. Apply the participant-review, game-date, and ad-hoc-team migrations in ledger
+   order, then complete the receiving-account score notification/review and one
+   2v2 lifecycle. Install a fresh native build before QR/date-picker acceptance.
 2. Exercise one accepted and one rejected Add Court live photo on a signed-in
    iPhone; verify the accepted court appears and the rejection inserts nothing.
 3. Complete foreground/cold-start push routing plus receipt/retry/invalid-token

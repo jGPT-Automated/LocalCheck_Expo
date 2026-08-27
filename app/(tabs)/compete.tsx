@@ -1,4 +1,5 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Crypto from "expo-crypto";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -13,7 +14,15 @@ import {
   TextInput,
   View,
 } from "react-native";
+import Animated, {
+  Easing,
+  ReduceMotion,
+  useAnimatedProps,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Circle } from "react-native-svg";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenHeader } from "@/components/ScreenHeader";
@@ -31,13 +40,67 @@ import {
 import { TextStyles, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { fetchLeaderboard, fetchProfile } from "@/services/profileService";
-import { logGame } from "@/services/gameService";
+import { logGame, logTeamGame } from "@/services/gameService";
 import { searchPlayers } from "@/services/profileService";
 
 // BACKEND NOTE:
 
 type Scope = "GLOBAL" | "REGIONAL" | "LOCAL";
 type CompeteMode = "RANKINGS" | "LOG_GAME";
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+function CountdownRing({ seconds }: { seconds: number }) {
+  const size = 54;
+  const strokeWidth = 3;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progress = useSharedValue(1);
+
+  useEffect(() => {
+    progress.value = withTiming(0, {
+      duration: 5000,
+      easing: Easing.linear,
+      reduceMotion: ReduceMotion.System,
+    });
+  }, [progress]);
+
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: circumference * (1 - progress.value),
+  }));
+
+  return (
+    <View
+      accessibilityLabel={`Sending in ${seconds} seconds`}
+      style={styles.reviewCountdown}
+    >
+      <Svg height={size} style={StyleSheet.absoluteFill} width={size}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          fill="transparent"
+          r={radius}
+          stroke={Colors.border}
+          strokeWidth={strokeWidth}
+        />
+        <AnimatedCircle
+          animatedProps={animatedProps}
+          cx={size / 2}
+          cy={size / 2}
+          fill="transparent"
+          origin={`${size / 2}, ${size / 2}`}
+          r={radius}
+          rotation="-90"
+          stroke={Colors.accent}
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeLinecap="round"
+          strokeWidth={strokeWidth}
+        />
+      </Svg>
+      <Text style={styles.reviewCountdownValue}>{seconds}</Text>
+    </View>
+  );
+}
 
 export default function CompeteScreen() {
   const {
@@ -160,9 +223,7 @@ export default function CompeteScreen() {
                 >
                   #{myRank}
                 </Text>
-                <Text style={styles.myRankLabel}>
-                  {rankContext}
-                </Text>
+                <Text style={styles.myRankLabel}>{rankContext}</Text>
               </View>
             ) : null}
           </View>
@@ -428,11 +489,14 @@ type GameLog = {
   sport: CourtSport | "";
   myScore: string;
   theirScore: string;
-  opponentName: string;
-  opponentId: string;
   courtId: string;
   playedOn: string;
+  teamSize: 1 | 2 | 3 | 5;
+  teammates: Player[];
+  opponents: Player[];
 };
+
+type PlayerSlot = { side: "mine" | "theirs"; index: number };
 
 function localDateValue(date = new Date()): string {
   const year = date.getFullYear();
@@ -448,6 +512,86 @@ function isValidPlayedOn(value: string): boolean {
     !Number.isNaN(parsed.getTime()) &&
     parsed.toISOString().slice(0, 10) === value &&
     value <= localDateValue()
+  );
+}
+
+function GameDateField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [showPicker, setShowPicker] = useState(false);
+  const selectedDate = new Date(`${value}T12:00:00`);
+  const formattedDate = selectedDate.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  if (Platform.OS === "web") {
+    return React.createElement("input", {
+      "aria-label": "Game date",
+      max: localDateValue(),
+      onChange: (event: React.ChangeEvent<HTMLInputElement>) =>
+        onChange(event.currentTarget.value),
+      style: {
+        width: "100%",
+        height: 48,
+        padding: "0 14px",
+        color: Colors.text,
+        backgroundColor: Colors.surface,
+        border: `1px solid ${Colors.border}`,
+        borderRadius: Radius.xs,
+        fontFamily: Typography.bodySemiBold,
+        fontSize: 14,
+        colorScheme: "dark",
+        cursor: "pointer",
+      },
+      type: "date",
+      value,
+    });
+  }
+
+  return (
+    <>
+      <Pressable
+        accessibilityLabel={`Game date, ${formattedDate}`}
+        accessibilityRole="button"
+        onPress={() => setShowPicker(true)}
+        style={styles.dateTrigger}
+      >
+        <View style={styles.dateTriggerCopy}>
+          <Feather color={Colors.accent} name="calendar" size={16} />
+          <Text style={styles.dateTriggerText}>
+            {formattedDate.toUpperCase()}
+          </Text>
+        </View>
+        <Ionicons color={Colors.muted} name="chevron-down" size={16} />
+      </Pressable>
+      {showPicker ? (
+        <DateTimePicker
+          display={Platform.OS === "ios" ? "inline" : "default"}
+          maximumDate={new Date()}
+          mode="date"
+          onChange={(_, date) => {
+            if (Platform.OS !== "ios") setShowPicker(false);
+            if (date) onChange(localDateValue(date));
+          }}
+          value={selectedDate}
+        />
+      ) : null}
+      {showPicker && Platform.OS === "ios" ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setShowPicker(false)}
+          style={styles.dateDone}
+        >
+          <Text style={styles.dateDoneText}>DONE</Text>
+        </Pressable>
+      ) : null}
+    </>
   );
 }
 
@@ -491,16 +635,21 @@ function LogGameView({
     sport: defaultSport,
     myScore: "",
     theirScore: "",
-    opponentName: "",
-    opponentId: "",
     courtId: defaultCourtId,
     playedOn: localDateValue(),
+    teamSize: 1,
+    teammates: [],
+    opponents: [],
   });
   const [reviewGame, setReviewGame] = useState<GameLog | null>(null);
   const [reviewSeconds, setReviewSeconds] = useState(5);
   const [submittedGame, setSubmittedGame] = useState<GameLog | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showOpponentPicker, setShowOpponentPicker] = useState(false);
+  const [activePlayerSlot, setActivePlayerSlot] = useState<PlayerSlot>({
+    side: "theirs",
+    index: 0,
+  });
   const [showCourtPicker, setShowCourtPicker] = useState(false);
   const [opponentQuery, setOpponentQuery] = useState("");
   const [opponentSuggestions, setOpponentSuggestions] = useState<Player[]>([]);
@@ -534,12 +683,11 @@ function LogGameView({
     if (appliedOpponentIdRef.current === preselectedOpponent.id) return;
     appliedOpponentIdRef.current = preselectedOpponent.id;
     setForm((f) =>
-      f.opponentId
+      f.opponents.length > 0
         ? f
         : {
             ...f,
-            opponentName: preselectedOpponent.name,
-            opponentId: preselectedOpponent.id,
+            opponents: [preselectedOpponent],
           },
     );
   }, [preselectedOpponent]);
@@ -557,11 +705,18 @@ function LogGameView({
   const isWin = scoresValid && myScoreNum > theirScoreNum;
   const isLoss = scoresValid && myScoreNum < theirScoreNum;
 
+  const chosenPlayers = [...form.teammates, ...form.opponents];
+  const chosenIds = chosenPlayers.map((player) => player.id);
+  const rosterComplete =
+    form.teammates.length === form.teamSize - 1 &&
+    form.opponents.length === form.teamSize &&
+    new Set(chosenIds).size === chosenIds.length &&
+    !chosenIds.includes(currentUser.id);
   const canSubmit =
     form.sport !== "" &&
     scoresValid &&
     !isTie &&
-    form.opponentId !== "" &&
+    rosterComplete &&
     form.courtId !== "" &&
     isValidPlayedOn(form.playedOn) &&
     !submitting;
@@ -570,7 +725,7 @@ function LogGameView({
   );
 
   const handleReview = () => {
-    if (!canSubmit || !form.opponentId || !form.courtId) return;
+    if (!canSubmit || !form.opponents[0]?.id || !form.courtId) return;
     setSubmitError(null);
     setReviewSeconds(5);
     setReviewGame({ ...form });
@@ -582,16 +737,30 @@ function LogGameView({
     setSubmitError(null);
     let result: { ok: boolean; matchId?: string } = { ok: false };
     try {
-      result = await logGame({
-        courtId: reviewGame.courtId,
-        createdBy: currentUser.id,
-        myScore: Number(reviewGame.myScore),
-        theirScore: Number(reviewGame.theirScore),
-        opponentId: reviewGame.opponentId,
-        sport: reviewGame.sport as CourtSport,
-        playedOn: reviewGame.playedOn,
-        clientRequestId,
-      });
+      result =
+        reviewGame.teamSize === 1
+          ? await logGame({
+              courtId: reviewGame.courtId,
+              createdBy: currentUser.id,
+              myScore: Number(reviewGame.myScore),
+              theirScore: Number(reviewGame.theirScore),
+              opponentId: reviewGame.opponents[0].id,
+              sport: reviewGame.sport as CourtSport,
+              playedOn: reviewGame.playedOn,
+              clientRequestId,
+            })
+          : await logTeamGame({
+              courtId: reviewGame.courtId,
+              teamAIds: [
+                currentUser.id,
+                ...reviewGame.teammates.map((player) => player.id),
+              ],
+              teamBIds: reviewGame.opponents.map((player) => player.id),
+              scoreA: Number(reviewGame.myScore),
+              scoreB: Number(reviewGame.theirScore),
+              playedOn: reviewGame.playedOn,
+              clientRequestId,
+            });
     } catch (e) {
       console.warn("logGame failed", e);
       result = { ok: false };
@@ -613,21 +782,51 @@ function LogGameView({
       sport: defaultSport,
       myScore: "",
       theirScore: "",
-      opponentName: "",
-      opponentId: "",
       courtId: defaultCourtId,
       playedOn: localDateValue(),
+      teamSize: 1,
+      teammates: [],
+      opponents: [],
     });
   };
 
   useEffect(() => {
-    if (!reviewGame || reviewSeconds <= 0) return;
+    if (!reviewGame) return;
+    if (reviewSeconds <= 0) {
+      if (!submitting) void handleSubmit();
+      return;
+    }
     const timer = setTimeout(
       () => setReviewSeconds((seconds) => Math.max(0, seconds - 1)),
       1000,
     );
     return () => clearTimeout(timer);
-  }, [reviewGame, reviewSeconds]);
+  }, [reviewGame, reviewSeconds, submitting]);
+
+  const placePlayer = (player: Player, slot = activePlayerSlot) => {
+    setForm((current) => {
+      const alreadyChosen = [...current.teammates, ...current.opponents].some(
+        (chosen) => chosen.id === player.id,
+      );
+      if (player.id === currentUser.id || alreadyChosen) return current;
+      const key = slot.side === "mine" ? "teammates" : "opponents";
+      const next = [...current[key]];
+      next[slot.index] = player;
+      return { ...current, [key]: next.filter(Boolean) };
+    });
+    setOpponentQuery("");
+    setShowOpponentPicker(false);
+  };
+
+  const clearPlayer = (slot: PlayerSlot) => {
+    setForm((current) => {
+      const key = slot.side === "mine" ? "teammates" : "opponents";
+      return {
+        ...current,
+        [key]: current[key].filter((_, index) => index !== slot.index),
+      };
+    });
+  };
 
   useEffect(() => {
     if (!scannerOpen) return;
@@ -648,11 +847,7 @@ function LogGameView({
           setSubmitError("PLAYER NOT FOUND. TRY ANOTHER QR CODE.");
           return;
         }
-        setForm((current) => ({
-          ...current,
-          opponentName: player.name,
-          opponentId: player.id,
-        }));
+        placePlayer(player);
       });
     });
     void CameraView.launchScanner({
@@ -665,7 +860,7 @@ function LogGameView({
       setSubmitError("QR SCANNER UNAVAILABLE. SELECT THE PLAYER INSTEAD.");
     });
     return () => subscription.remove();
-  }, [currentUser.id, scannerOpen]);
+  }, [activePlayerSlot, currentUser.id, scannerOpen]);
 
   const handleScanOpponent = async () => {
     setSubmitError(null);
@@ -708,19 +903,72 @@ function LogGameView({
     };
   }, [query, friends, currentUser.id]);
 
-  const handleSelectOpponent = (player: Player) => {
-    setForm((f) => ({
-      ...f,
-      opponentName: player.name,
-      opponentId: player.id,
-    }));
+  const availableSuggestions = opponentSuggestions.filter(
+    (player) => !chosenIds.includes(player.id),
+  );
+
+  const openPlayerPicker = (slot: PlayerSlot) => {
+    setActivePlayerSlot(slot);
+    setSubmitError(null);
     setOpponentQuery("");
-    setShowOpponentPicker(false);
+    setShowOpponentPicker(true);
   };
 
-  const handleClearOpponent = () => {
-    setForm((f) => ({ ...f, opponentName: "", opponentId: "" }));
-    setOpponentQuery("");
+  const renderPlayerSlot = (slot: PlayerSlot, placeholder: string) => {
+    const roster = slot.side === "mine" ? form.teammates : form.opponents;
+    const player = roster[slot.index];
+    return (
+      <View
+        key={`${slot.side}-${slot.index}`}
+        style={styles.opponentTriggerShell}
+      >
+        <Pressable
+          accessibilityLabel={`Scan ${placeholder} player QR code`}
+          accessibilityRole="button"
+          onPress={() => {
+            setActivePlayerSlot(slot);
+            void handleScanOpponent();
+          }}
+          style={styles.scanOpponent}
+        >
+          <Feather color={Colors.accent} name="maximize" size={17} />
+        </Pressable>
+        <Pressable
+          accessibilityLabel={
+            player ? `Change ${player.name}` : `Select ${placeholder}`
+          }
+          accessibilityRole="button"
+          accessibilityState={{
+            expanded:
+              showOpponentPicker &&
+              activePlayerSlot.side === slot.side &&
+              activePlayerSlot.index === slot.index,
+          }}
+          onPress={() => openPlayerPicker(slot)}
+          style={styles.opponentTriggerMain}
+        >
+          <Text
+            numberOfLines={1}
+            style={
+              player ? styles.opponentSelectedText : styles.opponentPlaceholder
+            }
+          >
+            {player?.name.toUpperCase() ?? placeholder}
+          </Text>
+          <Ionicons color={Colors.muted} name="chevron-down" size={16} />
+        </Pressable>
+        {player ? (
+          <Pressable
+            accessibilityLabel={`Remove ${player.name}`}
+            accessibilityRole="button"
+            onPress={() => clearPlayer(slot)}
+            style={styles.clearOpponent}
+          >
+            <Ionicons color={Colors.muted} name="close" size={17} />
+          </Pressable>
+        ) : null}
+      </View>
+    );
   };
 
   if (reviewGame) {
@@ -729,12 +977,10 @@ function LogGameView({
     );
     return (
       <View style={styles.successState}>
-        <View style={styles.reviewCountdown}>
-          <Text style={styles.reviewCountdownValue}>{reviewSeconds}</Text>
-        </View>
+        <CountdownRing seconds={reviewSeconds} />
         <Text style={styles.successTitle}>REVIEW SCORE</Text>
         <Text style={styles.successSub}>
-          Check the matchup before it is sent to your opponent.
+          Check the matchup. It sends automatically when the timer ends.
         </Text>
         <View style={styles.successCard}>
           <View style={styles.successCardHeader}>
@@ -747,14 +993,20 @@ function LogGameView({
           <View style={styles.successScoreRow}>
             <View style={styles.reviewPlayer}>
               <Text numberOfLines={1} style={styles.successPlayerName}>
-                {currentUser.name}
+                {reviewGame.teamSize === 1
+                  ? currentUser.name
+                  : [currentUser, ...reviewGame.teammates]
+                      .map((player) => player.name.split(" ")[0])
+                      .join(" · ")}
               </Text>
               <Text style={styles.successScore}>{reviewGame.myScore}</Text>
             </View>
             <Text style={styles.successDash}>–</Text>
             <View style={styles.reviewPlayer}>
               <Text numberOfLines={1} style={styles.successPlayerName}>
-                {reviewGame.opponentName}
+                {reviewGame.opponents
+                  .map((player) => player.name.split(" ")[0])
+                  .join(" · ")}
               </Text>
               <Text style={styles.successScore}>{reviewGame.theirScore}</Text>
             </View>
@@ -798,7 +1050,9 @@ function LogGameView({
         </View>
         <Text style={styles.successTitle}>SCORE SENT FOR REVIEW</Text>
         <Text style={styles.successSub}>
-          Your opponent can confirm or object. No rating changes yet.
+          {submittedGame.teamSize === 1
+            ? "Your opponent can confirm or object. No rating changes yet."
+            : "Every player can review the result. No rating changes yet."}
         </Text>
         <View style={styles.successCard}>
           <View style={styles.successCardHeader}>
@@ -813,16 +1067,24 @@ function LogGameView({
           <View style={styles.successScoreRow}>
             <View style={styles.successPlayer}>
               <Text numberOfLines={1} style={styles.successPlayerName}>
-                {currentUser.name}
+                {submittedGame.teamSize === 1
+                  ? currentUser.name
+                  : [currentUser, ...submittedGame.teammates]
+                      .map((player) => player.name.split(" ")[0])
+                      .join(" · ")}
               </Text>
               <Text style={styles.successScore}>{submittedGame.myScore}</Text>
             </View>
             <Text style={styles.successDash}>–</Text>
             <View style={[styles.successPlayer, styles.successPlayerRight]}>
               <Text numberOfLines={1} style={styles.successPlayerName}>
-                {submittedGame.opponentName}
+                {submittedGame.opponents
+                  .map((player) => player.name.split(" ")[0])
+                  .join(" · ")}
               </Text>
-              <Text style={styles.successScore}>{submittedGame.theirScore}</Text>
+              <Text style={styles.successScore}>
+                {submittedGame.theirScore}
+              </Text>
             </View>
           </View>
         </View>
@@ -887,7 +1149,11 @@ function LogGameView({
                     {c.name}
                   </Text>
                   {form.courtId === c.id ? (
-                    <Ionicons name="checkmark" size={16} color={Colors.accent} />
+                    <Ionicons
+                      name="checkmark"
+                      size={16}
+                      color={Colors.accent}
+                    />
                   ) : null}
                 </Pressable>
               ))}
@@ -903,83 +1169,99 @@ function LogGameView({
                 { backgroundColor: getSportColor(form.sport || "BASKETBALL") },
               ]}
             />
-            <Text style={[styles.sportOptionText, styles.sportOptionTextActive]}>
+            <Text
+              style={[styles.sportOptionText, styles.sportOptionTextActive]}
+            >
               {form.sport === "PICKLEBALL" ? "PB" : "BB"}
             </Text>
           </View>
         </View>
       </View>
 
-      <View style={styles.fieldGroup}>
-        <Text style={styles.fieldLabel}>DATE</Text>
-        <TextInput
-          accessibilityLabel="Game date"
-          autoCapitalize="none"
-          maxLength={10}
-          onChangeText={(playedOn) =>
-            setForm((current) => ({ ...current, playedOn }))
-          }
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor={Colors.mutedDark}
-          style={[
-            styles.dateInput,
-            form.playedOn.length > 0 &&
-              !isValidPlayedOn(form.playedOn) &&
-              styles.dateInputInvalid,
-          ]}
-          value={form.playedOn}
-        />
+      <View style={styles.fieldRow}>
+        <View style={[styles.fieldGroup, styles.dateField]}>
+          <Text style={styles.fieldLabel}>DATE</Text>
+          <GameDateField
+            onChange={(playedOn) =>
+              setForm((current) => ({ ...current, playedOn }))
+            }
+            value={form.playedOn}
+          />
+        </View>
+        <View style={[styles.fieldGroup, styles.formatField]}>
+          <Text style={styles.fieldLabel}>FORMAT</Text>
+          <View accessibilityRole="tablist" style={styles.formatOptions}>
+            {([1, 2, 3, 5] as const).map((size) => (
+              <Pressable
+                accessibilityRole="tab"
+                accessibilityState={{ selected: form.teamSize === size }}
+                key={size}
+                onPress={() =>
+                  setForm((current) => ({
+                    ...current,
+                    teamSize: size,
+                    teammates: current.teammates.slice(0, size - 1),
+                    opponents: current.opponents.slice(0, size),
+                  }))
+                }
+                style={[
+                  styles.formatOption,
+                  form.teamSize === size && styles.formatOptionActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.formatOptionText,
+                    form.teamSize === size && styles.formatOptionTextActive,
+                  ]}
+                >
+                  {size}V{size}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
       </View>
 
-      {/* Opponent */}
+      {/* Player selection uses one shared typeahead/QR contract for solo and teams. */}
       <View style={styles.fieldGroup}>
-        <Text style={styles.fieldLabel}>OPPONENT</Text>
-        <View style={styles.opponentTriggerShell}>
-          <Pressable
-            accessibilityLabel="Scan opponent player QR code"
-            accessibilityRole="button"
-            onPress={() => void handleScanOpponent()}
-            style={styles.scanOpponent}
-          >
-            <Feather color={Colors.accent} name="maximize" size={18} />
-          </Pressable>
-          <Pressable
-            accessibilityLabel={
-              form.opponentName
-                ? `Change opponent, currently ${form.opponentName}`
-                : "Select opponent"
-            }
-            accessibilityRole="button"
-            accessibilityState={{ expanded: showOpponentPicker }}
-            style={styles.opponentTriggerMain}
-            onPress={() => setShowOpponentPicker((s) => !s)}
-          >
-            {form.opponentName ? (
-              <Text numberOfLines={1} style={styles.opponentSelectedText}>
-                {form.opponentName.toUpperCase()}
+        <Text style={styles.fieldLabel}>
+          {form.teamSize === 1 ? "OPPONENT" : "PLAYERS"}
+        </Text>
+        {form.teamSize > 1 ? (
+          <View style={styles.rosterGroup}>
+            <Text style={styles.rosterLabel}>YOUR TEAM</Text>
+            <View style={styles.lockedPlayer}>
+              <PlayerAvatar
+                initials={currentUser.avatar}
+                name={currentUser.name}
+                playerId={currentUser.id}
+                size={28}
+              />
+              <Text numberOfLines={1} style={styles.lockedPlayerName}>
+                {currentUser.name.toUpperCase()}
               </Text>
-            ) : (
-              <Text numberOfLines={1} style={styles.opponentPlaceholder}>
-                Select or type opponent name
-              </Text>
+              <Text style={styles.youBadge}>YOU</Text>
+            </View>
+            {Array.from({ length: form.teamSize - 1 }, (_, index) =>
+              renderPlayerSlot(
+                { side: "mine", index },
+                `ADD TEAMMATE ${index + 1}`,
+              ),
             )}
-            <Ionicons
-              name={showOpponentPicker ? "chevron-up" : "chevron-down"}
-              size={16}
-              color={Colors.muted}
-            />
-          </Pressable>
-          {form.opponentName ? (
-            <Pressable
-              accessibilityLabel="Clear selected opponent"
-              accessibilityRole="button"
-              onPress={handleClearOpponent}
-              style={styles.clearOpponent}
-            >
-              <Ionicons name="close" size={17} color={Colors.muted} />
-            </Pressable>
-          ) : null}
-        </View>
+            <Text style={[styles.rosterLabel, styles.rosterLabelOpponents]}>
+              OTHER TEAM
+            </Text>
+            {Array.from({ length: form.teamSize }, (_, index) =>
+              renderPlayerSlot(
+                { side: "theirs", index },
+                `ADD OPPONENT ${index + 1}`,
+              ),
+            )}
+          </View>
+        ) : (
+          renderPlayerSlot({ side: "theirs", index: 0 }, "SELECT OPPONENT")
+        )}
 
         {showOpponentPicker && (
           <View style={styles.opponentDropdown}>
@@ -999,11 +1281,11 @@ function LogGameView({
             {friends.length > 0 && !query && (
               <Text style={styles.opponentSection}>YOUR FRIENDS</Text>
             )}
-            {opponentSuggestions.map((p) => (
+            {availableSuggestions.map((p) => (
               <Pressable
                 key={p.id}
                 style={styles.opponentOption}
-                onPress={() => handleSelectOpponent(p)}
+                onPress={() => placePlayer(p)}
               >
                 <PlayerAvatar
                   initials={p.avatar}
@@ -1027,7 +1309,7 @@ function LogGameView({
               </Pressable>
             ))}
 
-            {opponentSuggestions.length === 0 && query.length > 0 && (
+            {availableSuggestions.length === 0 && query.length > 0 && (
               <Text style={styles.opponentEmpty}>No players found</Text>
             )}
           </View>
@@ -1040,7 +1322,9 @@ function LogGameView({
         <View style={styles.scoreRow}>
           <View style={styles.scoreBlock}>
             <Text style={styles.scorePlayerLabel}>
-              {currentUser.name.split(" ")[0].toUpperCase()}
+              {form.teamSize === 1
+                ? currentUser.name.split(" ")[0].toUpperCase()
+                : "YOUR TEAM"}
             </Text>
             <TextInput
               style={[
@@ -1061,7 +1345,9 @@ function LogGameView({
           </View>
           <Text style={styles.scoreDash}>:</Text>
           <View style={styles.scoreBlock}>
-            <Text style={styles.scorePlayerLabel}>OPPONENT</Text>
+            <Text style={styles.scorePlayerLabel}>
+              {form.teamSize === 1 ? "OPPONENT" : "OTHER TEAM"}
+            </Text>
             <TextInput
               style={[
                 styles.scoreInput,
@@ -1454,6 +1740,8 @@ const styles = StyleSheet.create({
   },
   courtField: { flex: 1, minWidth: 0 },
   sportField: { width: 94 },
+  dateField: { flex: 1, minWidth: 0 },
+  formatField: { width: 178 },
   fieldLabel: {
     fontFamily: Typography.heading,
     fontSize: 11,
@@ -1484,19 +1772,98 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   sportOptionTextActive: { color: Colors.text },
-  dateInput: {
+  formatOptions: {
     minHeight: 48,
-    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "stretch",
+    overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
     borderRadius: Radius.xs,
     backgroundColor: Colors.surface,
+  },
+  formatOption: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  formatOptionActive: { backgroundColor: Colors.accentDim },
+  formatOptionText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.muted,
+  },
+  formatOptionTextActive: { color: Colors.accent },
+  dateTrigger: {
+    minHeight: 48,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.surface,
+  },
+  dateTriggerCopy: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  dateTriggerText: {
     fontFamily: Typography.bodySemiBold,
     fontSize: 14,
     color: Colors.text,
     letterSpacing: 0.8,
   },
-  dateInputInvalid: { borderColor: Colors.loss },
+  dateDone: {
+    minHeight: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.surface,
+  },
+  dateDoneText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    color: Colors.accent,
+    letterSpacing: 1.4,
+  },
+  rosterGroup: { gap: 8 },
+  rosterLabel: {
+    marginTop: 2,
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.textSecondary,
+    letterSpacing: 1.4,
+  },
+  rosterLabelOpponents: { marginTop: 8 },
+  lockedPlayer: {
+    minHeight: 48,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.surface,
+  },
+  lockedPlayerName: {
+    flex: 1,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 13,
+    color: Colors.text,
+  },
+  youBadge: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 8,
+    color: Colors.accent,
+    letterSpacing: 1,
+  },
 
   scoreRow: {
     width: "100%",
@@ -1600,14 +1967,11 @@ const styles = StyleSheet.create({
     paddingTop: 48,
   },
   reviewCountdown: {
-    width: 44,
-    height: 44,
+    width: 54,
+    height: 54,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: Colors.accentBorderStrong,
-    borderRadius: 22,
-    backgroundColor: Colors.accentGhost,
+    borderRadius: 27,
   },
   reviewCountdownValue: {
     fontFamily: Typography.headingBold,
@@ -1729,7 +2093,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
   },
   reviewConfirmButton: {
-    flex: 1.5,
+    flex: 1,
     minHeight: 48,
     alignItems: "center",
     justifyContent: "center",

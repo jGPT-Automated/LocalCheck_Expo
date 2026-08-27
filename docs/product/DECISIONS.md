@@ -159,6 +159,18 @@ records are genuinely sport-scoped.
 
 **Why:** These two release-critical screens should read as one intentional product, not independently styled dashboards.
 
+## 2026-08-27 — Log Game uses format-first rosters and native dates
+
+**Decision confirmed by Jesse:** Log Game must support solo and team games,
+must not use a free-typed date, and must show a centered five-second score
+review with a visible progress trail, Edit, and Confirm. Format is selected
+before participants; every player slot reuses the same search and player-QR
+identity contract.
+
+**Why:** Match format determines the roster the user must complete. Platform
+date controls prevent malformed dates, while one participant selector keeps
+solo and team logging predictable instead of layering unrelated controls.
+
 ## 2026-07-26 — Unified primary-tab header
 
 **Working decision confirmed by Jesse:** Use the LocalCheck mark and current tab title as one repeated header lockup across Home, Schedule, Compete, Explore, and Profile. The title must share the wordmark's typographic language. Remove the profile avatar from the top-right of primary tab headers; the `Me` tab is the profile entry point.
@@ -232,6 +244,7 @@ rules, and competing Realtime paths for one product job.
 ## 2026-07-23 — Honest imagery and activity
 
 **Proposed decision:** Generated court media is atmospheric only. Venue identity uses verified photography or map geometry. Zero activity uses `Quiet now` and a useful action instead of fabricated counts.
+
 ## 2026-08-13 — Peer profiles separate comparison, activity, and details
 
 **Working decision confirmed by Jesse:** Other-player profiles use `VS YOU`,

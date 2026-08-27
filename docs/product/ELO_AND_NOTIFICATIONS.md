@@ -6,13 +6,16 @@
 - MVP ELO uses K=32; margin of victory and provisional ratings are later work.
 - The court controls match sport.
 - A submitted score is pending and changes no rating or confirmed history.
-- The named opponent may confirm or reject it.
-- Confirmation updates the match and both player ratings atomically.
+- In 1v1, the named opponent may confirm or reject it.
+- Team games require equal 2v2, 3v3, or 5v5 rosters. The creator begins
+  approved; every other participant may approve or dispute the submitted score.
+- Confirmation updates the match and every participant rating atomically.
 - Rejection keeps an auditable non-public record and changes no rating.
 - A stable request identifier prevents duplicate submissions.
-- Silence automatically confirms a pending score after three days. The same
-  database confirmation function is used by an explicit opponent confirmation
-  and by the recurring automatic-confirmation job.
+- Silence automatically confirms an undisputed pending score after three days.
+  An active team dispute drops the result without changing ratings. Explicit
+  review and the recurring automatic-confirmation job use the same rating path
+  for their match format.
 
 Any automatic-confirmation timing is database policy and must be surfaced to
 both players before it is changed.
@@ -56,6 +59,8 @@ action:
 - Push sender: `supabase/functions/send-notification/index.ts`
 - Database history: `supabase/migrations/`
 
-Acceptance requires two signed-in users completing score submit/confirm/reject,
-friend and run notification flows, duplicate-tap checks, and background return.
-Push registration and delivery require a current physical iOS build.
+Acceptance requires two signed-in users completing 1v1
+submit/confirm/reject, four signed-in users completing one 2v2 review, friend
+and run notification flows, duplicate-tap checks, and background return. Push
+registration, QR scanning, and the native date picker require a current iOS
+build.

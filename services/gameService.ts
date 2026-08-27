@@ -2,7 +2,11 @@ import { CourtSport, MatchResult } from "@/constants/data";
 import { supabase } from "@/lib/supabase";
 
 import { SupabaseProfile } from "./profileService";
-import { areOpponentsInMatch, extractRpcMatchId } from "./gameModel";
+import {
+  areOpponentsInMatch,
+  extractRpcMatchId,
+  isMissingDateAwareLogMatch,
+} from "./gameModel";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 // Backend: LocalCheckProd `matches` + `match_participants` (side a/b), written
@@ -21,6 +25,7 @@ interface SupabaseMatch {
   sport: "basketball" | "pickleball";
   status: "pending" | "confirmed" | "rejected";
   run_id?: string | null;
+  team_size?: number | null;
   confirmation_method: "manual" | "automatic" | null;
   review_due_at: string;
   confirmed_at: string | null;
@@ -67,27 +72,43 @@ export interface MatchReview {
   scoreA: number;
   scoreB: number;
   runId?: string;
+  teamSize: number;
   participants: MatchReviewParticipant[];
 }
 
 function normalizeSport(raw: string | null | undefined): CourtSport {
   const upper = (raw ?? "").toUpperCase();
-  const valid: CourtSport[] = ["BASKETBALL", "PICKLEBALL", "TENNIS", "SOCCER", "VOLLEYBALL"];
-  return valid.includes(upper as CourtSport) ? (upper as CourtSport) : "BASKETBALL";
+  const valid: CourtSport[] = [
+    "BASKETBALL",
+    "PICKLEBALL",
+    "TENNIS",
+    "SOCCER",
+    "VOLLEYBALL",
+  ];
+  return valid.includes(upper as CourtSport)
+    ? (upper as CourtSport)
+    : "BASKETBALL";
 }
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
+  return d
+    .toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    .toUpperCase();
 }
 
-function mapMatchToResult(row: SupabaseMatch, currentUserId?: string): MatchResult {
+function mapMatchToResult(
+  row: SupabaseMatch,
+  currentUserId?: string,
+): MatchResult {
   // Perspective: when we know the viewer, report THEIR side's score first —
   // a side-b player's own score is score_b, not score_a. Without a viewer
   // (court/recent lists), fall back to side a as the reference.
   const viewerSide: "a" | "b" =
     currentUserId != null &&
-    row.match_participants?.some((p) => p.user_id === currentUserId && p.side === "b")
+    row.match_participants?.some(
+      (p) => p.user_id === currentUserId && p.side === "b",
+    )
       ? "b"
       : "a";
   const won = row.winner_side === viewerSide;
@@ -106,7 +127,8 @@ function mapMatchToResult(row: SupabaseMatch, currentUserId?: string): MatchResu
   };
 }
 
-const MATCH_SELECT = "*, courts(name, sport_type), match_participants(user_id, side, profiles(*))";
+const MATCH_SELECT =
+  "*, courts(name, sport_type), match_participants(user_id, side, profiles(*))";
 
 /** Fetch the match ids a user participated in. */
 async function fetchParticipantMatchIds(userId: string): Promise<string[]> {
@@ -149,21 +171,36 @@ export async function logGame(payload: {
   }
   // log_match atomically inserts the pending score and both participants.
   // Elo changes only after the named opponent confirms the score.
-  const { data, error } = await supabase.rpc("log_match", {
+  const request = {
     p_court_id: payload.courtId,
     p_opponent_id: payload.opponentId,
     p_my_score: myScore,
     p_opponent_score: theirScore,
     p_notes: payload.note?.trim() ? payload.note.trim() : null,
-    p_played_on: payload.playedOn ?? null,
     p_visibility: "public",
     p_client_request_id: payload.clientRequestId ?? null,
+  };
+  let result = await supabase.rpc("log_match", {
+    ...request,
+    p_played_on: payload.playedOn ?? null,
   });
-  if (error) {
-    console.warn("logGame failed", error.message);
+
+  // Production can briefly be one migration behind a shipped client. Only
+  // retry the previously deployed signature when PostgREST explicitly says
+  // the newer function signature is absent. Validation, RLS, and other server
+  // errors must still fail visibly instead of being masked by a second call.
+  if (isMissingDateAwareLogMatch(result.error)) {
+    console.info(
+      "logGame: date-aware RPC unavailable; using deployed compatibility signature",
+    );
+    result = await supabase.rpc("log_match", request);
+  }
+
+  if (result.error) {
+    console.warn("logGame failed", result.error.message);
     return { ok: false };
   }
-  const matchId = extractRpcMatchId(data);
+  const matchId = extractRpcMatchId(result.data);
   if (!matchId) {
     console.warn("logGame returned no match id");
     return { ok: false };
@@ -187,7 +224,10 @@ export async function logScheduledGameResult(payload: {
     payload.scoreB < 0 ||
     payload.scoreA === payload.scoreB
   ) {
-    return { ok: false, error: "Complete both teams and enter a non-tied score." };
+    return {
+      ok: false,
+      error: "Complete both teams and enter a non-tied score.",
+    };
   }
 
   const { data, error } = await supabase.rpc("log_run_match", {
@@ -199,7 +239,10 @@ export async function logScheduledGameResult(payload: {
   });
   if (error) {
     console.warn("logScheduledGameResult failed", error.message);
-    return { ok: false, error: "The scheduled-result backend is not available yet." };
+    return {
+      ok: false,
+      error: "The scheduled-result backend is not available yet.",
+    };
   }
   const matchId = extractRpcMatchId(data);
   return matchId
@@ -207,7 +250,52 @@ export async function logScheduledGameResult(payload: {
     : { ok: false, error: "The backend did not return the saved score." };
 }
 
-export async function fetchGamesByCourt(courtId: string): Promise<MatchResult[]> {
+export async function logTeamGame(payload: {
+  courtId: string;
+  teamAIds: string[];
+  teamBIds: string[];
+  scoreA: number;
+  scoreB: number;
+  playedOn: string;
+  clientRequestId?: string;
+}): Promise<{ ok: boolean; matchId?: string }> {
+  const allPlayers = [...payload.teamAIds, ...payload.teamBIds];
+  if (
+    payload.teamAIds.length < 2 ||
+    payload.teamAIds.length > 5 ||
+    payload.teamAIds.length !== payload.teamBIds.length ||
+    new Set(allPlayers).size !== allPlayers.length ||
+    !Number.isInteger(payload.scoreA) ||
+    !Number.isInteger(payload.scoreB) ||
+    payload.scoreA < 0 ||
+    payload.scoreB < 0 ||
+    payload.scoreA === payload.scoreB
+  ) {
+    console.warn("logTeamGame rejected invalid roster or score");
+    return { ok: false };
+  }
+
+  const { data, error } = await supabase.rpc("log_team_match", {
+    p_court_id: payload.courtId,
+    p_team_a_ids: payload.teamAIds,
+    p_team_b_ids: payload.teamBIds,
+    p_score_a: payload.scoreA,
+    p_score_b: payload.scoreB,
+    p_played_on: payload.playedOn,
+    p_visibility: "public",
+    p_client_request_id: payload.clientRequestId ?? null,
+  });
+  if (error) {
+    console.warn("logTeamGame failed", error.message);
+    return { ok: false };
+  }
+  const matchId = extractRpcMatchId(data);
+  return matchId ? { ok: true, matchId } : { ok: false };
+}
+
+export async function fetchGamesByCourt(
+  courtId: string,
+): Promise<MatchResult[]> {
   try {
     const { data, error } = await supabase
       .from("matches")
@@ -223,7 +311,9 @@ export async function fetchGamesByCourt(courtId: string): Promise<MatchResult[]>
   }
 }
 
-export async function fetchGamesByPlayer(userId: string): Promise<MatchResult[]> {
+export async function fetchGamesByPlayer(
+  userId: string,
+): Promise<MatchResult[]> {
   try {
     const matchIds = await fetchParticipantMatchIds(userId);
     if (matchIds.length === 0) return [];
@@ -238,7 +328,9 @@ export async function fetchGamesByPlayer(userId: string): Promise<MatchResult[]>
       if (error) console.warn("fetchGamesByPlayer failed", error.message);
       return [];
     }
-    return (data as unknown as SupabaseMatch[]).map((g) => mapMatchToResult(g, userId));
+    return (data as unknown as SupabaseMatch[]).map((g) =>
+      mapMatchToResult(g, userId),
+    );
   } catch {
     return [];
   }
@@ -247,7 +339,7 @@ export async function fetchGamesByPlayer(userId: string): Promise<MatchResult[]>
 /** Matches where both users participated, mapped from currentUserId's perspective. */
 export async function fetchHeadToHeadGames(
   currentUserId: string,
-  opponentId: string
+  opponentId: string,
 ): Promise<MatchResult[]> {
   try {
     const [myIds, theirIds] = await Promise.all([
@@ -269,7 +361,9 @@ export async function fetchHeadToHeadGames(
       return [];
     }
     return (data as unknown as SupabaseMatch[])
-      .filter((game) => areOpponentsInMatch(game.match_participants, currentUserId, opponentId))
+      .filter((game) =>
+        areOpponentsInMatch(game.match_participants, currentUserId, opponentId),
+      )
       .map((game) => mapMatchToResult(game, currentUserId));
   } catch {
     return [];
@@ -291,7 +385,9 @@ export async function fetchRecentGames(limit = 20): Promise<MatchResult[]> {
   }
 }
 
-export async function fetchMatchReview(matchId: string): Promise<MatchReview | null> {
+export async function fetchMatchReview(
+  matchId: string,
+): Promise<MatchReview | null> {
   // Fetch the required row first. A missing optional relationship or a stale
   // PostgREST relationship cache must not turn a real score into SCORE NOT FOUND.
   const matchResult = await supabase
@@ -307,33 +403,21 @@ export async function fetchMatchReview(matchId: string): Promise<MatchReview | n
   }
 
   const row = matchResult.data as unknown as SupabaseMatch;
-  const [courtResult, profilesResult, participantsResult, reviewsResult] =
-    await Promise.all([
-      supabase
-        .from("courts")
-        .select("name,sport_type")
-        .eq("id", row.court_id)
-        .maybeSingle(),
-      supabase
-        .from("profiles")
-        .select("id,display_name,username")
-        .in("id", [row.created_by, row.opponent_id]),
-      supabase
-        .from("match_participants")
-        .select("user_id,side,display_order,elo_before,elo_after")
-        .eq("match_id", row.id),
-      supabase
-        .from("match_participant_reviews")
-        .select("user_id,decision")
-        .eq("match_id", row.id),
-    ]);
-
-  const profileRows = (profilesResult.data ?? []) as Array<{
-    id: string;
-    display_name: string | null;
-    username: string | null;
-  }>;
-  const profiles = new Map(profileRows.map((profile) => [profile.id, profile]));
+  const [courtResult, participantsResult, reviewsResult] = await Promise.all([
+    supabase
+      .from("courts")
+      .select("name,sport_type")
+      .eq("id", row.court_id)
+      .maybeSingle(),
+    supabase
+      .from("match_participants")
+      .select("user_id,side,display_order,elo_before,elo_after")
+      .eq("match_id", row.id),
+    supabase
+      .from("match_participant_reviews")
+      .select("user_id,decision")
+      .eq("match_id", row.id),
+  ]);
   const participantRows = (participantsResult.data ?? []) as Array<{
     user_id: string;
     side: "a" | "b";
@@ -341,6 +425,23 @@ export async function fetchMatchReview(matchId: string): Promise<MatchReview | n
     elo_before: number | null;
     elo_after: number | null;
   }>;
+  const profileIds = Array.from(
+    new Set([
+      row.created_by,
+      row.opponent_id,
+      ...participantRows.map((participant) => participant.user_id),
+    ]),
+  );
+  const profilesResult = await supabase
+    .from("profiles")
+    .select("id,display_name,username")
+    .in("id", profileIds);
+  const profileRows = (profilesResult.data ?? []) as Array<{
+    id: string;
+    display_name: string | null;
+    username: string | null;
+  }>;
+  const profiles = new Map(profileRows.map((profile) => [profile.id, profile]));
   const reviewRows = (reviewsResult.data ?? []) as Array<{
     user_id: string;
     decision: "pending" | "approved" | "disputed";
@@ -350,7 +451,11 @@ export async function fetchMatchReview(matchId: string): Promise<MatchReview | n
   );
   const participants = participantRows
     .slice()
-    .sort((a, b) => (a.side === b.side ? (a.display_order ?? 0) - (b.display_order ?? 0) : a.side.localeCompare(b.side)))
+    .sort((a, b) =>
+      a.side === b.side
+        ? (a.display_order ?? 0) - (b.display_order ?? 0)
+        : a.side.localeCompare(b.side),
+    )
     .map((participant) => {
       const profile = profiles.get(participant.user_id);
       return {
@@ -384,8 +489,24 @@ export async function fetchMatchReview(matchId: string): Promise<MatchReview | n
     scoreA: row.score_a,
     scoreB: row.score_b,
     runId: row.run_id ?? undefined,
+    teamSize: row.team_size ?? Math.max(1, Math.floor(participants.length / 2)),
     participants,
   };
+}
+
+export async function reviewTeamMatch(
+  matchId: string,
+  decision: "pending" | "approved" | "disputed",
+): Promise<boolean> {
+  const { error } = await supabase.rpc("review_team_match", {
+    p_match_id: matchId,
+    p_decision: decision,
+  });
+  if (error) {
+    console.warn("reviewTeamMatch failed", error.message);
+    return false;
+  }
+  return true;
 }
 
 export async function reviewScheduledMatch(
@@ -404,7 +525,9 @@ export async function reviewScheduledMatch(
 }
 
 export async function confirmMatch(matchId: string): Promise<boolean> {
-  const { error } = await supabase.rpc("confirm_match", { p_match_id: matchId });
+  const { error } = await supabase.rpc("confirm_match", {
+    p_match_id: matchId,
+  });
   if (error) {
     console.warn("confirmMatch failed", error.message);
     return false;
