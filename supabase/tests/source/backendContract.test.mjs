@@ -183,6 +183,29 @@ test("ad-hoc team games keep equal rosters and participant review", async () => 
   assert.match(sql, /decision = 'disputed'/i);
 });
 
+test("match disputes use one bounded hold and revision lifecycle", async () => {
+  const sql = await migrationEndingWith("_match_dispute_resolution.sql");
+  for (const contract of [
+    "dispute_count",
+    "revision_number",
+    "resolution_due_at",
+    "last_submitted_by",
+    "public.respond_to_match",
+    "public.update_held_match",
+  ]) {
+    assert.ok(sql.includes(contract), `missing dispute lifecycle contract ${contract}`);
+  }
+  assert.match(sql, /status in \('pending', 'held', 'confirmed', 'voided'\)/i);
+  assert.match(sql, /now\(\) \+ interval '3 days'/i);
+  assert.match(sql, /now\(\) \+ interval '7 days'/i);
+  assert.match(sql, /v_next_dispute >= 3[\s\S]*status = 'voided'/i);
+  assert.match(sql, /status = 'held'[\s\S]*resolution_due_at <= now\(\)/i);
+  assert.match(sql, /only participants can update this match/i);
+  assert.match(sql, /approval must come from the opposite side/i);
+  assert.match(sql, /GAME UPDATED/i);
+  assert.match(sql, /GAME VOIDED/i);
+});
+
 test("push delivery uses Vault, durable tickets, cron retry, and receipt reconciliation", async () => {
   const sql = await migrationEndingWith("_complete_push_delivery.sql");
   for (const contract of [

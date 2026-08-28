@@ -20,7 +20,7 @@
     "test:home-presentation": "node --no-warnings --experimental-strip-types --test components/home/homePresentation.test.mts",
     "test:player-identity": "node --no-warnings --experimental-strip-types --test components/ui/playerIdentity.test.mts",
     "test:schedule": "node --no-warnings --experimental-strip-types --test components/schedule/scheduleModel.test.mts components/schedule/scheduledGameModel.test.mts",
-    "test:release-models": "node --no-warnings --experimental-strip-types --test services/gameModel.test.mts services/profileModel.test.mts context/deviceLocationModel.test.mts components/onboarding/launchTiming.test.mts",
+    "test:release-models": "node --no-warnings --experimental-strip-types --test services/gameModel.test.mts services/matchReviewModel.test.mts services/profileModel.test.mts context/deviceLocationModel.test.mts components/onboarding/launchTiming.test.mts",
     "test:realtime": "node --no-warnings --experimental-strip-types --test lib/realtimeHub.test.mts",
     "check:design": "node scripts/check-design-consistency.mjs",
     "check": "pnpm run typecheck && pnpm run test && pnpm run check:design",

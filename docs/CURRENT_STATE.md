@@ -127,6 +127,13 @@ specific missing behavior only after verifying it against current `main`.
   when PostgREST explicitly reports that the new `p_played_on` signature is
   missing. A connected 12–4 submission was saved through this compatibility
   path on 2026-08-27; unrelated database errors are not masked or retried.
+- The current source now replaces terminal `rejected` results with the
+  canonical pending → held → pending/voided lifecycle in
+  `20260828120000_match_dispute_resolution.sql`. The score screen has a shared
+  status/countdown card, approve/dispute actions, a held-game correction sheet,
+  and the complete MVP policy. This remains source-only until the prerequisite
+  match/team migrations and this migration are applied in ledger order and the
+  two-account flow is verified.
 - Ad-hoc team submission/review/rating source is additive in
   `20260827143000_add_ad_hoc_team_matches.sql`. Team writes are not live until
   that migration and its prerequisite participant-review migration are applied.

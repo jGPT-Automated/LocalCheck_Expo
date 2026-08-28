@@ -23,11 +23,15 @@ interface SupabaseMatch {
   score_b: number;
   winner_side: "a" | "b" | null;
   sport: "basketball" | "pickleball";
-  status: "pending" | "confirmed" | "rejected";
+  status: "pending" | "held" | "confirmed" | "voided" | "rejected";
   run_id?: string | null;
   team_size?: number | null;
   confirmation_method: "manual" | "automatic" | null;
-  review_due_at: string;
+  review_due_at: string | null;
+  resolution_due_at?: string | null;
+  dispute_count?: number | null;
+  revision_number?: number | null;
+  last_submitted_by?: string | null;
   confirmed_at: string | null;
   notes: string | null;
   created_at: string;
@@ -65,10 +69,14 @@ export interface MatchReview {
   creatorName: string;
   opponentName: string;
   sport: CourtSport;
-  status: "pending" | "confirmed" | "rejected";
+  status: "pending" | "held" | "confirmed" | "voided";
   confirmationMethod: "manual" | "automatic" | null;
   playedAt: string;
-  reviewDueAt: string;
+  reviewDueAt?: string;
+  resolutionDueAt?: string;
+  disputeCount: number;
+  revisionNumber: number;
+  lastSubmittedBy: string;
   scoreA: number;
   scoreB: number;
   runId?: string;
@@ -482,10 +490,14 @@ export async function fetchMatchReview(
     creatorName: creator?.display_name || creator?.username || "Player",
     opponentName: opponent?.display_name || opponent?.username || "Player",
     sport: normalizeSport(row.sport ?? court?.sport_type),
-    status: row.status,
+    status: row.status === "rejected" ? "held" : row.status,
     confirmationMethod: row.confirmation_method,
     playedAt: row.played_at,
-    reviewDueAt: row.review_due_at,
+    reviewDueAt: row.review_due_at ?? undefined,
+    resolutionDueAt: row.resolution_due_at ?? undefined,
+    disputeCount: row.dispute_count ?? (row.status === "rejected" ? 1 : 0),
+    revisionNumber: row.revision_number ?? 0,
+    lastSubmittedBy: row.last_submitted_by ?? row.created_by,
     scoreA: row.score_a,
     scoreB: row.score_b,
     runId: row.run_id ?? undefined,
@@ -539,6 +551,51 @@ export async function rejectMatch(matchId: string): Promise<boolean> {
   const { error } = await supabase.rpc("reject_match", { p_match_id: matchId });
   if (error) {
     console.warn("rejectMatch failed", error.message);
+    return false;
+  }
+  return true;
+}
+
+export async function respondToMatch(
+  matchId: string,
+  decision: "approve" | "dispute",
+): Promise<boolean> {
+  const { error } = await supabase.rpc("respond_to_match", {
+    p_match_id: matchId,
+    p_decision: decision,
+  });
+  if (error) {
+    console.warn("respondToMatch failed", error.message);
+    return false;
+  }
+  return true;
+}
+
+export async function updateHeldMatch(payload: {
+  matchId: string;
+  courtId: string;
+  scoreA: number;
+  scoreB: number;
+  playedOn: string;
+}): Promise<boolean> {
+  if (
+    !Number.isInteger(payload.scoreA) ||
+    !Number.isInteger(payload.scoreB) ||
+    payload.scoreA < 0 ||
+    payload.scoreB < 0 ||
+    payload.scoreA === payload.scoreB
+  ) {
+    return false;
+  }
+  const { error } = await supabase.rpc("update_held_match", {
+    p_match_id: payload.matchId,
+    p_court_id: payload.courtId,
+    p_score_a: payload.scoreA,
+    p_score_b: payload.scoreB,
+    p_played_on: payload.playedOn,
+  });
+  if (error) {
+    console.warn("updateHeldMatch failed", error.message);
     return false;
   }
   return true;

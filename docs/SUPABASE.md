@@ -106,6 +106,13 @@ temporary delivery failure does not strand inbox rows.
 - `20260812111025_make_court_access_optional.sql`: preserves every historical
   access value, makes the field optional for new rows, and adds the
   service-role-only `create_verified_court_v2` RPC without an access argument.
+- `20260828120000_match_dispute_resolution.sql`: source-only canonical score
+  lifecycle. It converts legacy `rejected` rows to a seven-day `held` state,
+  adds bounded dispute/revision metadata, participant-authorized approve,
+  dispute, and held-game update RPCs, full-roster notifications, and cron-owned
+  three-day approval / seven-day void deadlines. It must be applied after the
+  participant-review and ad-hoc-team migrations and is not production behavior
+  until the live ledger and two-account matrix prove it.
 
 Source presence never proves deployment. `complete_push_delivery`,
 `add_user_safety_controls`, and `make_court_access_optional` are present in the

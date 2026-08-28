@@ -38,7 +38,8 @@ in the pull request; never record passwords or tokens.
 | Run create/join/leave/capacity | 2–4 signed-in users | all clients show authoritative membership |
 | Full run detail | compact phone + host controls | roster, invitations, and management actions scroll above the fixed RSVP footer |
 | Friend request/accept/remove | 2 signed-in users | both relationship views agree |
-| Match submit/confirm/reject | 2 signed-in users | pending state then correct ELO/history result |
+| Match review lifecycle | 2 signed-in users; 4 for team | submit → approve and submit → dispute → revise → approve; correct countdowns, notifications, ELO/history only after final approval |
+| Match dispute limits | 2 signed-in users | first/second dispute create 7-day holds; third dispute and expired hold void with no ELO/profile/history mutation |
 | Notification inbox/read state | 2 signed-in users | durable inbox and unread count agree |
 | Realtime lifecycle | browser + iPhone | background/foreground catches up once; no duplicate updates |
 | Privacy/RLS | allowed + denied user | permitted row works; unauthorized read/write is denied |
@@ -89,6 +90,12 @@ record the comparison in the pull request. Do not apply a migration or deploy a
 function during inspection. After the approved backward-compatible deployment,
 prove both the intended user and a user who must be denied with dedicated test
 accounts before the client release is activated.
+
+For score-review migrations, also verify an unrelated signed-in user cannot
+read or mutate the match; a proposer cannot approve their own submission; a
+same-side teammate cannot approve it; any participant can revise a held game;
+and every relevant participant receives exactly one actionable notification
+that routes back to the same `matches.id`.
 
 ## PR #28 evidence checkpoint — 2026-08-10
 

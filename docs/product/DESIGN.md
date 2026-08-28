@@ -246,6 +246,28 @@ The court detail page keeps the brand/detail header, six-metric court panel, and
   drawer, while profile and run deep links still prefill its existing context.
 - Game logging is a shared form sheet reached from a player or run context, with opponent/court prefilled when available.
 
+## Final score review
+
+- A submitted result remains one match through every state; corrections update
+  that row rather than creating a second game.
+- **Review open** shows a visible three-day countdown above the centered score
+  card. An opposite-side player may approve immediately; otherwise the result
+  auto-approves at the deadline and only then changes profiles and ELO.
+- **On hold** follows a dispute and shows a seven-day resolution countdown.
+  Any participant, including any player from either team, can update the score,
+  court, or date. The roster is stable for MVP dispute resolution.
+- A corrected result notifies every participant and starts a fresh three-day
+  review. The first and second disputes create a hold; the third dispute, or an
+  unresolved hold deadline, voids the result permanently without profile or
+  rating changes.
+- `MatchReviewCard` owns the status, countdown, game identity, players, and
+  score hierarchy. `MatchRevisionSheet` owns corrections through the shared
+  `FormSheet`, platform date picker, shared selector, and `StickyActionBar`.
+  Status is communicated with text and structure, never color alone.
+- Actions follow one hierarchy: Approve or Update is the prominent action;
+  Dispute is a clearly labeled secondary action. Every touch target remains at
+  least 44 points and the policy explanation sits below the game card.
+
 ## Motion
 
 - Motion communicates hierarchy and confirmation; it is not decoration.

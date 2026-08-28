@@ -27,7 +27,7 @@ interface SupabaseActivityEvent {
     score_a: number;
     score_b: number;
     winner_side: "a" | "b" | null;
-    status: "pending" | "confirmed" | "rejected";
+    status: "pending" | "held" | "confirmed" | "voided" | "rejected";
     match_participants: Array<{
       user_id: string;
       side: "a" | "b";
