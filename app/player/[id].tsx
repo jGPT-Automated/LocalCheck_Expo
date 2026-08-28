@@ -286,6 +286,7 @@ export default function PlayerProfileScreen() {
       />
 
       <ProfileHero
+        compact
         courtLabel={playerCourt?.shortName || playerCourt?.name || "No local court"}
         elo={player.elo}
         friend={isFriendStatus}
@@ -293,9 +294,16 @@ export default function PlayerProfileScreen() {
         name={player.name}
         onOpenQr={() => setQrVisible(true)}
         playerId={player.id}
+        sportLabel={
+          player.sport === "BASKETBALL"
+            ? "BB"
+            : player.sport === "PICKLEBALL"
+              ? "PB"
+              : player.sport
+        }
         username={player.username}
       />
-      <ProfileStats metrics={[
+      <ProfileStats compact metrics={[
         { value: player.wins, label: "WINS", tone: "win" },
         { value: player.losses, label: "LOSSES", tone: "loss" },
         { value: player.checkIns, label: "CHECK-INS" },

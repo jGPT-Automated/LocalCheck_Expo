@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { ScreenHeader } from "@/components/ScreenHeader";
+import { HeaderIconAction, ScreenHeader } from "@/components/ScreenHeader";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { GameResultModal } from "@/components/ui/GameResultModal";
 import { PlayerQrModal } from "@/components/ui/PlayerQrModal";
@@ -130,39 +130,15 @@ export default function MeScreen() {
       <ScreenHeader
         title="PROFILE"
         right={
-          <Pressable
+          <HeaderIconAction
             accessibilityLabel="Open settings"
-            accessibilityRole="button"
-            hitSlop={4}
+            icon="settings"
             onPress={() => router.push("/settings")}
-            style={({ pressed }) => [
-              styles.settingsAction,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Feather
-              color={Colors.textSecondary}
-              name="settings"
-              size={18}
-            />
-          </Pressable>
+          />
         }
       />
       <View style={styles.profileTop}>
         <ProfileHero
-          actions={
-            <View style={styles.heroElo}>
-              <Text style={styles.heroEloLabel}>ELO</Text>
-              <Text
-                adjustsFontSizeToFit
-                minimumFontScale={0.82}
-                numberOfLines={1}
-                style={styles.heroEloValue}
-              >
-                {currentUser.elo}
-              </Text>
-            </View>
-          }
           compact
           courtLabel={localCourt?.shortName || localCourt?.name}
           elo={currentUser.elo}
@@ -477,32 +453,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
-  },
-  settingsAction: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderLight,
-    borderRadius: Radius.lg,
-    backgroundColor: Colors.surfaceHigh,
-  },
-  heroElo: { minWidth: 72, alignItems: "flex-end" },
-  heroEloLabel: {
-    marginRight: 2,
-    marginBottom: 1,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    lineHeight: 13,
-    color: Colors.muted,
-    letterSpacing: 2,
-  },
-  heroEloValue: {
-    fontFamily: Typography.headingBold,
-    fontSize: 36,
-    lineHeight: 40,
-    color: Colors.text,
   },
   tabContent: { flex: 1, minHeight: 0 },
   header: {

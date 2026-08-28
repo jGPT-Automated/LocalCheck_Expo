@@ -1,3 +1,4 @@
+import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -72,6 +73,36 @@ export function ScreenHeader({
         ) : null}
       </View>
     </View>
+  );
+}
+
+/**
+ * Canonical icon-only header action. The visible control stays restrained while
+ * the press target remains the iOS-recommended 44 points.
+ */
+export function HeaderIconAction({
+  accessibilityLabel,
+  icon,
+  onPress,
+}: {
+  accessibilityLabel: string;
+  icon: keyof typeof Feather.glyphMap;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.iconActionTarget,
+        pressed && styles.pressed,
+      ]}
+    >
+      <View style={styles.iconActionVisual}>
+        <Feather color={Colors.textSecondary} name={icon} size={16} />
+      </View>
+    </Pressable>
   );
 }
 
@@ -156,6 +187,22 @@ const styles = StyleSheet.create({
     marginRight: -10,
     alignItems: "center",
     justifyContent: "center",
+  },
+  iconActionTarget: {
+    width: Layout.minTouchTarget,
+    height: Layout.minTouchTarget,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconActionVisual: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderLight,
+    borderRadius: 8,
+    backgroundColor: Colors.surfaceHigh,
   },
   title: {
     flexShrink: 1,

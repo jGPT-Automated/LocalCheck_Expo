@@ -12,6 +12,7 @@ export function EloStat({
   showLabel = true,
   compactDelta = false,
   leaderboard = false,
+  alignEnd = false,
 }: {
   value: number;
   emphasized?: boolean;
@@ -20,6 +21,7 @@ export function EloStat({
   showLabel?: boolean;
   compactDelta?: boolean;
   leaderboard?: boolean;
+  alignEnd?: boolean;
 }) {
   return (
     <View
@@ -28,6 +30,7 @@ export function EloStat({
         styles.wrap,
         hero && styles.heroWrap,
         leaderboard && styles.leaderboardWrap,
+        alignEnd && styles.alignEnd,
       ]}
     >
       <Text
@@ -68,6 +71,7 @@ export function EloStat({
 const styles = StyleSheet.create({
   wrap: { minWidth: 56, alignItems: "center", justifyContent: "center" },
   leaderboardWrap: { minWidth: 52, alignItems: "flex-end" },
+  alignEnd: { alignItems: "flex-end" },
   heroWrap: { minWidth: 64, flexShrink: 0 },
   value: {
     ...TextStyles.statSmall,

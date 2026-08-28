@@ -3,6 +3,10 @@
 Last reconciled: 2026-08-12 against `origin/main` at `3ca9c6f`, the production
 EAS Update channel, and LocalCheckProd.
 
+Focused branch reconciliation: 2026-08-27 on
+`codex/profile-app-store-polish`. This records source and connected-browser
+evidence only; it does not replace the production checkpoint below.
+
 ## Production checkpoint
 
 - iOS/TestFlight checkpoint: app `1.0.2`, build `14`, runtime `1.0.2`, source
@@ -132,10 +136,13 @@ specific missing behavior only after verifying it against current `main`.
 - TypeScript, focused backend/notification/release-model tests, design checks,
   and a fresh connected web export pass. Log Game has two current 430×932
   visual passes covering 1v1, 2v2, date-input semantics, countdown progression,
-  Edit cancellation, and a saved 1v1 result. Native QR scan, receiving-account
-  review/notification acceptance, and database migration deployment remain
-  pending; team submission is not production behavior until those migrations
-  are applied and the native client is released.
+  Edit cancellation, and a saved 1v1 result. The receiving account's current
+  Inbox notification opened the persisted match by `match_id` and rendered its
+  0–11 review state on 2026-08-27. Native QR scanning was previously confirmed
+  by the product owner and must be regression-checked in the release build;
+  database migration deployment remains pending. Team submission is not
+  production behavior until those migrations are applied and the native client
+  is released.
 
 - PR #35 uses the final supplied LocalCheck vector assets through the shared
   brand component. Home now matches the established mark + title treatment on
@@ -160,6 +167,70 @@ specific missing behavior only after verifying it against current `main`.
 - Home's no-court `EXPLORE COURTS` action returns to rectangular button geometry.
 - These follow-up source changes are not production behavior until reviewed and
   released through the documented PR/OTA path.
+
+## Tracked launch feedback
+
+This is the canonical recovery list for explicit product-owner feedback that is
+not already closed by production evidence. `Source` means it exists only on the
+focused branch; `pending` means no completion claim has been made.
+
+### Profile and shared visual system
+
+- **Current-source verified at 430×932 and 402×874:** Me and public player profiles use the
+  compact shared `ProfileHero`; QR opens from the avatar, ELO is owned by the
+  shared hero, and the public profile no longer uses the old `TAP FOR QR`
+  treatment. Compact stats preserve space above and below the panel.
+- **Current-source verified:** the Settings action uses a 16-point
+  glyph inside a restrained 32-point visual container while retaining a
+  44-point press target. This is owned by `ScreenHeader`, not the Me screen.
+- **Current-source verified at 430×932:** friend and suggested-player rows share
+  `PlayerSummaryRow`; court metadata uses one token and ELO is right-aligned.
+- **Source, cross-screen acceptance pending:** Home, Schedule, Compete, Explore,
+  and Profile use `ScreenHeader` with the same 24-point mark, title size, and
+  optical vertical alignment. Review sibling screens whenever this owner changes.
+- **Pending:** confirm Profile Activity, Friends, and actionable Inbox states at
+  compact and tall iPhone sizes with no clipping or bottom-only scroll trap.
+- **Pending:** informational events such as accepted requests stay in the
+  notification bell; game reviews, pending friend requests, and future game
+  invites stay in the actionable Profile Inbox.
+
+### Home, Explore, Schedule, and sheets
+
+- **Pending:** Home court-card sport/city tags need tighter corner placement;
+  unchecked Check In and View Court actions must have identical geometry.
+- **Pending:** Home Locals rows need smaller side gutters, one typography set,
+  and no clipped identity or metadata text.
+- **Pending:** Settings needs one explicit location source: device-location
+  toggle plus manual city entry with typeahead. Explore list and map must use
+  that same city and must not silently default to Los Angeles.
+- **Pending:** Explore must show all courts for the resolved city, keep the
+  Active Now/sport legend above the bottom tab bar, and restore a low-profile
+  nearest-active-court action centered above that bar.
+- **Pending:** Schedule's canonical `SpeedDialFab` must remain compact and
+  anchored above the tab bar. Its actions are `Add times` and `Create run`; the
+  oversized/disconnected `Schedule game` menu is not the product contract.
+- **Pending:** Court and run drawers must use the shared
+  `AppBottomSheetModal` owners already used by Schedule; no parallel sheet shell.
+
+### Competition, release, and operations
+
+- **Current-source verified:** notification `match_id` maps to
+  `AppNotification.matchId`, routes to `/match/<matches.id>`, and the receiving
+  account rendered the persisted score review. The old one-shot nested
+  PostgREST read could collapse a valid match to `SCORE NOT FOUND`; the current
+  required-row-first read removes that failure coupling.
+- **Source, release-gated:** Log Game includes the platform date control, QR
+  opponent selection, equal review actions, five-second animated review, and
+  team-format source. Team migrations and one complete 2v2 lifecycle remain
+  required before calling team logging live.
+- **Pending:** preserve the already-working 1v1 notification path while testing
+  edit, confirm, object, auto-confirm, and score-history states on two accounts.
+- **Pending:** restore green GitHub/Expo workflow evidence and review open PRs
+  for superseded overlap before merge. Dependabot updates are not launch fixes
+  merely because their timing overlaps a workflow regression.
+- **Release-gated:** none of the focused-branch changes are in TestFlight until
+  the branch is pushed, its PR is approved/merged, migrations are deliberately
+  applied, and the documented iOS build/submission workflow completes.
 
 ## Immediate gates
 

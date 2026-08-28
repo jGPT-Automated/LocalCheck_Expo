@@ -60,7 +60,7 @@ export function PlayerSummaryRow({
           </Text>
         </View>
       ) : null}
-      <EloStat value={player.elo} />
+      <EloStat alignEnd value={player.elo} />
     </Pressable>
   );
 }

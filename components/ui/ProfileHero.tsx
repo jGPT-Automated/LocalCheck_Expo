@@ -83,7 +83,32 @@ export function ProfileHero({
             </Text>
           </View>
         </View>
-        {actions ? <View style={styles.compactActions}>{actions}</View> : null}
+        <View style={styles.compactActions}>
+          {actions || (
+            <View accessibilityLabel={`${elo} ELO`} style={styles.compactElo}>
+              <Text style={styles.compactEloLabel}>ELO</Text>
+              <Text
+                adjustsFontSizeToFit
+                minimumFontScale={0.82}
+                numberOfLines={1}
+                style={styles.compactEloValue}
+              >
+                {elo}
+              </Text>
+              {eloDelta != null ? (
+                <Text
+                  style={[
+                    styles.compactEloDelta,
+                    eloDelta < 0 && styles.compactEloDeltaNegative,
+                  ]}
+                >
+                  {eloDelta > 0 ? "▲ " : "▼ "}
+                  {Math.abs(eloDelta)}
+                </Text>
+              ) : null}
+            </View>
+          )}
+        </View>
       </View>
     );
   }
@@ -206,6 +231,30 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     justifyContent: "center",
   },
+  compactElo: { minWidth: 72, alignItems: "flex-end" },
+  compactEloLabel: {
+    marginRight: 2,
+    marginBottom: 1,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    lineHeight: 13,
+    color: Colors.muted,
+    letterSpacing: 2,
+  },
+  compactEloValue: {
+    fontFamily: Typography.headingBold,
+    fontSize: 36,
+    lineHeight: 40,
+    color: Colors.text,
+    textAlign: "right",
+  },
+  compactEloDelta: {
+    marginTop: 1,
+    ...TextStyles.labelSmall,
+    color: Colors.accent,
+    letterSpacing: 0.4,
+  },
+  compactEloDeltaNegative: { color: Colors.loss },
   hero: {
     minHeight: 152,
     paddingHorizontal: 20,
