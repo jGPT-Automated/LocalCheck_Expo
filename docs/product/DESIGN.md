@@ -2,8 +2,8 @@
 
 Status: Authoritative MVP contract
 
-Version: 3.0.3
-Last verified: 2026-08-12
+Version: 3.0.4
+Last verified source: 2026-08-29
 
 This document describes the current product. It replaces earlier competing design notes. The reproducible source artwork and specs live in the LocalCheck Brand Asset Sheet; app tokens live in `constants/` and shared components live in `components/ui/`.
 
@@ -50,18 +50,18 @@ The product should feel premium, athletic, editorial, local, and direct. It shou
 
 ## Color tokens
 
-| Token | Value | Purpose |
-| --- | --- | --- |
-| Background | `#0D0D10` | App canvas |
-| Surface | `#151519` | Standard surface |
-| Surface high | `#1E1E26` | Selected or elevated surface |
-| Border | `#28282F` | Hairlines and structure |
-| Primary text | `#F2F2F6` | Headlines and primary copy |
-| Secondary text | `#9A9AAA` | Supporting copy |
-| Muted text | `#72728A` | Timestamps and metadata |
+| Token             | Value     | Purpose                                           |
+| ----------------- | --------- | ------------------------------------------------- |
+| Background        | `#0D0D10` | App canvas                                        |
+| Surface           | `#151519` | Standard surface                                  |
+| Surface high      | `#1E1E26` | Selected or elevated surface                      |
+| Border            | `#28282F` | Hairlines and structure                           |
+| Primary text      | `#F2F2F6` | Headlines and primary copy                        |
+| Secondary text    | `#9A9AAA` | Supporting copy                                   |
+| Muted text        | `#72728A` | Timestamps and metadata                           |
 | LocalCheck orange | `#FF5500` | Brand, live state, selected state, primary action |
-| Win | `#00E87A` | Positive result semantics only |
-| Loss | `#FF3B5C` | Negative/destructive semantics only |
+| Win               | `#00E87A` | Positive result semantics only                    |
+| Loss              | `#FF3B5C` | Negative/destructive semantics only               |
 
 `#FF5500` remains the product action accent. The final supplied logo artwork
 uses `#FD6A03` through the dedicated `Colors.brandMark` token; that value is
@@ -93,22 +93,22 @@ Rules:
 - Essential iOS text never renders below 11 points. Use color, weight, and
   spacing—not microscopic text—to make metadata quieter.
 
-| Semantic role | Family and size | Product use |
-| --- | --- | --- |
-| `displayLarge` | Oswald 700, 36/40 | Major hero moments |
-| `display` | Oswald 600, 28/32 | Screen and profile display titles |
-| `title` | Oswald 600, 22/26 | Card and section display titles |
-| `metric` | Oswald 600, 24/28 | Court and hero metric values |
-| `stat` | Oswald 600, 22/26 | Standard statistics |
-| `statSmall` | Oswald 600, 18/22 | Dense row statistics and ELO |
-| `compactStat` | Oswald 600, 14/18 | Secondary row counts |
-| `body` | Inter 400, 16/22 | Primary readable copy |
-| `bodySmall` | Inter 400, 14/20 | Compact readable copy |
-| `listName` | Inter 600, 14/18 | Player and entity names in rows |
-| `metadata` | Inter 400, 12/16 | Supporting information |
-| `caption` | Inter 400, 11/13 | Dense supporting information |
-| `label` | Inter 600, 12/16 | Controls and important labels |
-| `labelSmall` | Inter 500, 11/13 | Compact captions and stat labels |
+| Semantic role  | Family and size   | Product use                       |
+| -------------- | ----------------- | --------------------------------- |
+| `displayLarge` | Oswald 700, 36/40 | Major hero moments                |
+| `display`      | Oswald 600, 28/32 | Screen and profile display titles |
+| `title`        | Oswald 600, 22/26 | Card and section display titles   |
+| `metric`       | Oswald 600, 24/28 | Court and hero metric values      |
+| `stat`         | Oswald 600, 22/26 | Standard statistics               |
+| `statSmall`    | Oswald 600, 18/22 | Dense row statistics and ELO      |
+| `compactStat`  | Oswald 600, 14/18 | Secondary row counts              |
+| `body`         | Inter 400, 16/22  | Primary readable copy             |
+| `bodySmall`    | Inter 400, 14/20  | Compact readable copy             |
+| `listName`     | Inter 600, 14/18  | Player and entity names in rows   |
+| `metadata`     | Inter 400, 12/16  | Supporting information            |
+| `caption`      | Inter 400, 11/13  | Dense supporting information      |
+| `label`        | Inter 600, 12/16  | Controls and important labels     |
+| `labelSmall`   | Inter 500, 11/13  | Compact captions and stat labels  |
 
 ## Layout and component ownership
 
@@ -124,27 +124,45 @@ Rules:
 
 Canonical component ownership:
 
-| Product element | Canonical component |
-| --- | --- |
-| Brand mark | `LogoMark` |
-| Tab header | `ScreenHeader` |
-| Detail/back header | `DetailHeader` |
-| Court discovery card | `CourtListItem` |
-| Home court hero | `HomeCourtHero` |
-| Sport icon | `SportEmblem` |
-| Player avatar | `PlayerAvatar` |
-| Player list row | `PlayerSummaryRow` |
-| Profile identity | `ProfileHero` |
-| Profile metrics | `ProfileStats` |
-| ELO value | `EloStat` |
-| Activity timeline event | `ActivityRow` |
-| Court metric panel | `MetricDashboard` |
-| Run summary | `RunCard` |
-| Compact menu | `CompactSelect` |
-| Primary two-mode switch | `ModeTabs` |
-| Reachable multi-action control | `SpeedDialFab` |
+| Product element                | Canonical component |
+| ------------------------------ | ------------------- |
+| Brand mark                     | `LogoMark`          |
+| Tab header                     | `ScreenHeader`      |
+| Detail/back header             | `DetailHeader`      |
+| Court discovery card           | `CourtListItem`     |
+| Home court hero                | `HomeCourtHero`     |
+| Sport icon                     | `SportEmblem`       |
+| Player avatar                  | `PlayerAvatar`      |
+| Player list row                | `PlayerSummaryRow`  |
+| Profile identity               | `ProfileHero`       |
+| Profile metrics                | `ProfileStats`      |
+| ELO value                      | `EloStat`           |
+| Activity timeline event        | `ActivityRow`       |
+| Court metric panel             | `MetricDashboard`   |
+| Run summary                    | `RunCard`           |
+| Compact menu                   | `CompactSelect`     |
+| Primary two-mode switch        | `ModeTabs`          |
+| Reachable multi-action control | `SpeedDialFab`      |
+| Game/revision date             | `WeekDatePicker`    |
 
 If one of these elements changes, update the canonical component and search the codebase for competing local implementations before finishing.
+
+### Keyboard and typeahead contract
+
+- Search suggestions render in the same surface, immediately beneath the field
+  or active selector that owns them. Do not create a detached search box at the
+  bottom of a form.
+- Searchable screens use `KeyboardAwareScrollViewCompat`, keep result taps
+  active while the keyboard is open, and support interactive iOS dismissal.
+  The focused field and the first useful results must remain above the keyboard.
+- Profile search replaces the ordinary Friends list while a query is active.
+  Log Game opens its player field in place; an empty query prioritizes players
+  actively checked in at the selected court and falls back to friends when the
+  live roster is empty. Typed queries search all visible profiles while
+  retaining court/friend relevance.
+- Large choice sets use typeahead or a contextual list. Date selection uses the
+  compact `WeekDatePicker`: this week is visible as one row, and swiping left
+  reveals prior weeks. Do not expose a free-typed date field on iOS.
 
 ## Court card treatment
 
@@ -167,7 +185,9 @@ Home uses the same material language as a full-width hero, not a floating card. 
 1. Explore shows concise court cards.
 2. Tapping a card opens a content-sized court drawer ending exactly at its disclosure rail, with identity, live metrics, equal **Check in** / **View court** actions, and no exposed expanded content.
 3. Pulling the drawer to 92% reveals who is there, locals, planned visits, and upcoming runs.
-4. Setting or removing a local court happens on the court detail page—not on Explore cards or the preview drawer.
+4. Setting or removing a local court happens on the court detail page or through
+   Settings typeahead—not on Explore cards or the preview drawer. Settings must
+   save directly and must not route through the native Mapbox surface.
 
 Explore also exposes a compact **Add** header action. Add Court uses the shared
 `FormSheet`, requests a location, lets the player correct the derived address,
@@ -262,11 +282,12 @@ The court detail page keeps the brand/detail header, six-metric court panel, and
   rating changes.
 - `MatchReviewCard` owns the status, countdown, game identity, players, and
   score hierarchy. `MatchRevisionSheet` owns corrections through the shared
-  `FormSheet`, platform date picker, shared selector, and `StickyActionBar`.
+  `FormSheet`, `WeekDatePicker`, shared selector, and `StickyActionBar`.
   Status is communicated with text and structure, never color alone.
 - Actions follow one hierarchy: Approve or Update is the prominent action;
   Dispute is a clearly labeled secondary action. Every touch target remains at
-  least 44 points and the policy explanation sits below the game card.
+  least 44 points. The countdown sits above the game card. The policy
+  explanation sits below it, is collapsed by default, and expands in place.
 
 ## Motion
 

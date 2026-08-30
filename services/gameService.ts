@@ -481,6 +481,18 @@ export async function fetchMatchReview(
     name: string;
     sport_type: string;
   } | null;
+  const legacyReviewDue =
+    row.status === "pending" && row.created_at
+      ? new Date(
+          new Date(row.created_at).getTime() + 3 * 86_400_000,
+        ).toISOString()
+      : undefined;
+  const legacyResolutionDue =
+    row.status === "rejected" && row.updated_at
+      ? new Date(
+          new Date(row.updated_at).getTime() + 7 * 86_400_000,
+        ).toISOString()
+      : undefined;
   return {
     id: row.id,
     courtId: row.court_id,
@@ -493,8 +505,8 @@ export async function fetchMatchReview(
     status: row.status === "rejected" ? "held" : row.status,
     confirmationMethod: row.confirmation_method,
     playedAt: row.played_at,
-    reviewDueAt: row.review_due_at ?? undefined,
-    resolutionDueAt: row.resolution_due_at ?? undefined,
+    reviewDueAt: row.review_due_at ?? legacyReviewDue,
+    resolutionDueAt: row.resolution_due_at ?? legacyResolutionDue,
     disputeCount: row.dispute_count ?? (row.status === "rejected" ? 1 : 0),
     revisionNumber: row.revision_number ?? 0,
     lastSubmittedBy: row.last_submitted_by ?? row.created_by,

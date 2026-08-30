@@ -43,6 +43,7 @@ export interface Court {
   neighborhood: string;
   city: string;
   address: string;
+  postalCode?: string;
   /** Canonical Supabase market name (for example, "Houston"). */
   market?: string;
   latitude: number;

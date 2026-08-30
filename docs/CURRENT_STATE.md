@@ -3,7 +3,7 @@
 Last reconciled: 2026-08-12 against `origin/main` at `3ca9c6f`, the production
 EAS Update channel, and LocalCheckProd.
 
-Focused branch reconciliation: 2026-08-27 on
+Focused branch reconciliation: 2026-08-29 on
 `codex/profile-app-store-polish`. This records source and connected-browser
 evidence only; it does not replace the production checkpoint below.
 
@@ -119,10 +119,17 @@ specific missing behavior only after verifying it against current `main`.
   balances Profile stat padding, and keeps Explore map controls above the tab
   bar on web and native.
 - Log Game now places Court and its authoritative ranked Sport on one row,
-  replaces free-typed dates with platform date controls, supports 1v1, 2v2,
-  3v3, and 5v5 rosters through the same player search/QR selector, and uses a
-  centered score review with an animated five-second auto-send trail plus
-  equal-width Edit and Confirm actions.
+  replaces the full native calendar with the shared compact week selector,
+  supports 1v1, 2v2, 3v3, and 5v5 rosters through the same player search/QR
+  selector, and uses a centered score review with an animated five-second
+  auto-send trail plus equal-width Edit and Confirm actions. Player suggestions
+  stay attached to the active slot, prioritize the selected court's live
+  presence roster and friends, and use the shared keyboard-aware scroll owner.
+- Profile Friends search now replaces the ordinary list with results directly
+  beneath the search field while the keyboard is open. Settings accepts a
+  five-digit ZIP and searches/saves a local court in place, without routing
+  through Explore or requiring Mapbox. ZIP persistence is source-only until
+  `20260829120000_add_profile_postal_code.sql` is applied.
 - The 1v1 client retries the previously deployed `log_match` signature only
   when PostgREST explicitly reports that the new `p_played_on` signature is
   missing. A connected 12–4 submission was saved through this compatibility
@@ -134,6 +141,10 @@ specific missing behavior only after verifying it against current `main`.
   and the complete MVP policy. This remains source-only until the prerequisite
   match/team migrations and this migration are applied in ledger order and the
   two-account flow is verified.
+- Legacy pending/held rows without explicit deadline columns derive their
+  three-day/seven-day countdowns from persisted timestamps. The score-review
+  policy is collapsed by default and expands in place; the countdown remains
+  above the canonical score card.
 - Ad-hoc team submission/review/rating source is additive in
   `20260827143000_add_ad_hoc_team_matches.sql`. Team writes are not live until
   that migration and its prerequisite participant-review migration are applied.
@@ -207,9 +218,11 @@ focused branch; `pending` means no completion claim has been made.
   unchecked Check In and View Court actions must have identical geometry.
 - **Pending:** Home Locals rows need smaller side gutters, one typography set,
   and no clipped identity or metadata text.
-- **Pending:** Settings needs one explicit location source: device-location
-  toggle plus manual city entry with typeahead. Explore list and map must use
-  that same city and must not silently default to Los Angeles.
+- **Source, release-gated:** Settings accepts a ZIP and provides direct court
+  typeahead/local-court selection without opening Explore. The profile ZIP
+  migration remains undeployed. **Pending:** add the explicit device-location
+  toggle and make Explore list/map consume the same resolved location instead
+  of silently defaulting to Los Angeles.
 - **Pending:** Explore must show all courts for the resolved city, keep the
   Active Now/sport legend above the bottom tab bar, and restore a low-profile
   nearest-active-court action centered above that bar.
@@ -226,10 +239,11 @@ focused branch; `pending` means no completion claim has been made.
   account rendered the persisted score review. The old one-shot nested
   PostgREST read could collapse a valid match to `SCORE NOT FOUND`; the current
   required-row-first read removes that failure coupling.
-- **Source, release-gated:** Log Game includes the platform date control, QR
-  opponent selection, equal review actions, five-second animated review, and
-  team-format source. Team migrations and one complete 2v2 lifecycle remain
-  required before calling team logging live.
+- **Source, release-gated:** Log Game includes the compact current/previous-week
+  date selector, inline keyboard-aware player typeahead, QR selection, equal
+  review actions, five-second animated review, and team-format source. Team
+  migrations and one complete 2v2 lifecycle remain required before calling
+  team logging live.
 - **Pending:** preserve the already-working 1v1 notification path while testing
   edit, confirm, object, auto-confirm, and score-history states on two accounts.
 - **Pending:** restore green GitHub/Expo workflow evidence and review open PRs

@@ -1,5 +1,4 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Crypto from "expo-crypto";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -25,11 +24,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { CompactSelect } from "@/components/ui/CompactSelect";
 import { EloStat } from "@/components/ui/EloStat";
 import { ModeTabs } from "@/components/ui/ModeTabs";
 import { parsePlayerQrCode } from "@/components/ui/playerIdentity";
+import { WeekDatePicker } from "@/components/ui/WeekDatePicker";
 import { Colors, Radius } from "@/constants/colors";
 import {
   CourtSport,
@@ -39,9 +40,13 @@ import {
 } from "@/constants/data";
 import { TextStyles, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
-import { fetchLeaderboard, fetchProfile } from "@/services/profileService";
+import { usePresence } from "@/context/CourtPresenceContext";
+import {
+  fetchLeaderboard,
+  fetchProfile,
+  searchPlayers,
+} from "@/services/profileService";
 import { logGame, logTeamGame } from "@/services/gameService";
-import { searchPlayers } from "@/services/profileService";
 
 // BACKEND NOTE:
 
@@ -522,77 +527,7 @@ function GameDateField({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const [showPicker, setShowPicker] = useState(false);
-  const selectedDate = new Date(`${value}T12:00:00`);
-  const formattedDate = selectedDate.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-
-  if (Platform.OS === "web") {
-    return React.createElement("input", {
-      "aria-label": "Game date",
-      max: localDateValue(),
-      onChange: (event: React.ChangeEvent<HTMLInputElement>) =>
-        onChange(event.currentTarget.value),
-      style: {
-        width: "100%",
-        height: 48,
-        padding: "0 14px",
-        color: Colors.text,
-        backgroundColor: Colors.surface,
-        border: `1px solid ${Colors.border}`,
-        borderRadius: Radius.xs,
-        fontFamily: Typography.bodySemiBold,
-        fontSize: 14,
-        colorScheme: "dark",
-        cursor: "pointer",
-      },
-      type: "date",
-      value,
-    });
-  }
-
-  return (
-    <>
-      <Pressable
-        accessibilityLabel={`Game date, ${formattedDate}`}
-        accessibilityRole="button"
-        onPress={() => setShowPicker(true)}
-        style={styles.dateTrigger}
-      >
-        <View style={styles.dateTriggerCopy}>
-          <Feather color={Colors.accent} name="calendar" size={16} />
-          <Text style={styles.dateTriggerText}>
-            {formattedDate.toUpperCase()}
-          </Text>
-        </View>
-        <Ionicons color={Colors.muted} name="chevron-down" size={16} />
-      </Pressable>
-      {showPicker ? (
-        <DateTimePicker
-          display={Platform.OS === "ios" ? "inline" : "default"}
-          maximumDate={new Date()}
-          mode="date"
-          onChange={(_, date) => {
-            if (Platform.OS !== "ios") setShowPicker(false);
-            if (date) onChange(localDateValue(date));
-          }}
-          value={selectedDate}
-        />
-      ) : null}
-      {showPicker && Platform.OS === "ios" ? (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => setShowPicker(false)}
-          style={styles.dateDone}
-        >
-          <Text style={styles.dateDoneText}>DONE</Text>
-        </Pressable>
-      ) : null}
-    </>
-  );
+  return <WeekDatePicker onChange={onChange} value={value} />;
 }
 
 function LogGameView({
@@ -722,6 +657,11 @@ function LogGameView({
     !submitting;
   const selectedCourt = supportedCourts.find(
     (court) => court.id === form.courtId,
+  );
+  const { roster: activeCourtPlayers } = usePresence(selectedCourt?.id);
+  const courtPlayers = useMemo(
+    () => activeCourtPlayers.filter((player) => player.id !== currentUser.id),
+    [activeCourtPlayers, currentUser.id],
   );
 
   const handleReview = () => {
@@ -883,25 +823,38 @@ function LogGameView({
   const query = opponentQuery.toLowerCase().trim();
   useEffect(() => {
     let mounted = true;
+    const courtIds = new Set(courtPlayers.map((player) => player.id));
+    const friendIds = new Set(friends.map((friend) => friend.id));
+    const prioritize = (players: Player[]) => {
+      const unique = new Map<string, Player>();
+      players.forEach((player) => {
+        if (player.id !== currentUser.id && !unique.has(player.id)) {
+          unique.set(player.id, player);
+        }
+      });
+      return Array.from(unique.values())
+        .sort((a, b) => {
+          const score = (player: Player) =>
+            (courtIds.has(player.id) ? 2 : 0) +
+            (friendIds.has(player.id) ? 1 : 0);
+          return score(b) - score(a);
+        })
+        .slice(0, 10);
+    };
     if (query.length === 0) {
-      setOpponentSuggestions(friends.slice(0, 10));
+      setOpponentSuggestions(
+        prioritize(courtPlayers.length > 0 ? courtPlayers : friends),
+      );
       return;
     }
     searchPlayers(query).then((results) => {
       if (!mounted) return;
-      const deduped = results.filter((p) => p.id !== currentUser.id);
-      // Friends first, then others
-      const friendIds = new Set(friends.map((f) => f.id));
-      const sorted = [
-        ...deduped.filter((p) => friendIds.has(p.id)),
-        ...deduped.filter((p) => !friendIds.has(p.id)),
-      ].slice(0, 10);
-      setOpponentSuggestions(sorted);
+      setOpponentSuggestions(prioritize(results));
     });
     return () => {
       mounted = false;
     };
-  }, [query, friends, currentUser.id]);
+  }, [query, friends, courtPlayers, currentUser.id]);
 
   const availableSuggestions = opponentSuggestions.filter(
     (player) => !chosenIds.includes(player.id),
@@ -917,55 +870,125 @@ function LogGameView({
   const renderPlayerSlot = (slot: PlayerSlot, placeholder: string) => {
     const roster = slot.side === "mine" ? form.teammates : form.opponents;
     const player = roster[slot.index];
+    const pickerActive =
+      showOpponentPicker &&
+      activePlayerSlot.side === slot.side &&
+      activePlayerSlot.index === slot.index;
     return (
-      <View
-        key={`${slot.side}-${slot.index}`}
-        style={styles.opponentTriggerShell}
-      >
-        <Pressable
-          accessibilityLabel={`Scan ${placeholder} player QR code`}
-          accessibilityRole="button"
-          onPress={() => {
-            setActivePlayerSlot(slot);
-            void handleScanOpponent();
-          }}
-          style={styles.scanOpponent}
-        >
-          <Feather color={Colors.accent} name="maximize" size={17} />
-        </Pressable>
-        <Pressable
-          accessibilityLabel={
-            player ? `Change ${player.name}` : `Select ${placeholder}`
-          }
-          accessibilityRole="button"
-          accessibilityState={{
-            expanded:
-              showOpponentPicker &&
-              activePlayerSlot.side === slot.side &&
-              activePlayerSlot.index === slot.index,
-          }}
-          onPress={() => openPlayerPicker(slot)}
-          style={styles.opponentTriggerMain}
-        >
-          <Text
-            numberOfLines={1}
-            style={
-              player ? styles.opponentSelectedText : styles.opponentPlaceholder
-            }
-          >
-            {player?.name.toUpperCase() ?? placeholder}
-          </Text>
-          <Ionicons color={Colors.muted} name="chevron-down" size={16} />
-        </Pressable>
-        {player ? (
+      <View key={`${slot.side}-${slot.index}`}>
+        <View style={styles.opponentTriggerShell}>
           <Pressable
-            accessibilityLabel={`Remove ${player.name}`}
+            accessibilityLabel={`Scan ${placeholder} player QR code`}
             accessibilityRole="button"
-            onPress={() => clearPlayer(slot)}
-            style={styles.clearOpponent}
+            onPress={() => {
+              setActivePlayerSlot(slot);
+              void handleScanOpponent();
+            }}
+            style={styles.scanOpponent}
           >
-            <Ionicons color={Colors.muted} name="close" size={17} />
+            <Feather color={Colors.accent} name="maximize" size={17} />
           </Pressable>
+          {pickerActive ? (
+            <View style={styles.opponentTriggerMain}>
+              <Ionicons color={Colors.muted} name="search" size={15} />
+              <TextInput
+                accessibilityLabel={`Search ${placeholder.toLowerCase()}`}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus
+                onChangeText={setOpponentQuery}
+                placeholder={`Search ${placeholder.toLowerCase()}`}
+                placeholderTextColor={Colors.mutedDark}
+                style={styles.opponentInlineInput}
+                value={opponentQuery}
+              />
+              <Pressable
+                accessibilityLabel="Close player search"
+                hitSlop={8}
+                onPress={() => setShowOpponentPicker(false)}
+              >
+                <Ionicons color={Colors.muted} name="close" size={17} />
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable
+              accessibilityLabel={
+                player ? `Change ${player.name}` : `Select ${placeholder}`
+              }
+              accessibilityRole="button"
+              accessibilityState={{ expanded: false }}
+              onPress={() => openPlayerPicker(slot)}
+              style={styles.opponentTriggerMain}
+            >
+              <Text
+                numberOfLines={1}
+                style={
+                  player
+                    ? styles.opponentSelectedText
+                    : styles.opponentPlaceholder
+                }
+              >
+                {player?.name.toUpperCase() ?? placeholder}
+              </Text>
+              <Ionicons color={Colors.muted} name="chevron-down" size={16} />
+            </Pressable>
+          )}
+          {player && !pickerActive ? (
+            <Pressable
+              accessibilityLabel={`Remove ${player.name}`}
+              accessibilityRole="button"
+              onPress={() => clearPlayer(slot)}
+              style={styles.clearOpponent}
+            >
+              <Ionicons color={Colors.muted} name="close" size={17} />
+            </Pressable>
+          ) : null}
+        </View>
+
+        {pickerActive ? (
+          <View style={styles.opponentDropdown}>
+            <Text style={styles.opponentSection}>
+              {query
+                ? "BEST MATCHES"
+                : selectedCourt && courtPlayers.length > 0
+                  ? `AT ${selectedCourt.shortName ?? selectedCourt.name}`
+                  : "YOUR FRIENDS"}
+            </Text>
+            {availableSuggestions.map((suggestion) => (
+              <Pressable
+                key={suggestion.id}
+                onPress={() => placePlayer(suggestion, slot)}
+                style={styles.opponentOption}
+              >
+                <PlayerAvatar
+                  initials={suggestion.avatar}
+                  name={suggestion.name}
+                  playerId={suggestion.id}
+                  size={28}
+                />
+                <View style={styles.opponentOptionInfo}>
+                  <Text numberOfLines={1} style={styles.opponentOptionName}>
+                    {suggestion.name.toUpperCase()}
+                  </Text>
+                  <Text style={styles.opponentOptionMeta}>
+                    {suggestion.tier} · {suggestion.elo} ELO
+                  </Text>
+                </View>
+                {isFriend(suggestion.id) ? (
+                  <View style={styles.opponentFriendBadge}>
+                    <Text style={styles.opponentFriendBadgeText}>FRIEND</Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            ))}
+            {availableSuggestions.length === 0 ? (
+              <Text style={styles.opponentEmpty}>
+                {query
+                  ? "No players found"
+                  : "No available players at this court"}
+              </Text>
+            ) : null}
+          </View>
         ) : null}
       </View>
     );
@@ -1093,7 +1116,8 @@ function LogGameView({
   }
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollViewCompat
+      bottomOffset={112}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{
         padding: 20,
@@ -1106,6 +1130,7 @@ function LogGameView({
           : 20 + (Platform.OS === "web" ? 84 : bottom + 80),
       }}
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
     >
       {/* Court owns the ranked sport, so the two read as one decision. */}
       <View style={styles.fieldRow}>
@@ -1262,58 +1287,6 @@ function LogGameView({
         ) : (
           renderPlayerSlot({ side: "theirs", index: 0 }, "SELECT OPPONENT")
         )}
-
-        {showOpponentPicker && (
-          <View style={styles.opponentDropdown}>
-            <View style={styles.opponentSearch}>
-              <Ionicons name="search" size={14} color={Colors.muted} />
-              <TextInput
-                style={styles.opponentSearchInput}
-                value={opponentQuery}
-                onChangeText={setOpponentQuery}
-                placeholder="Type to search..."
-                placeholderTextColor={Colors.mutedDark}
-                autoFocus
-                autoCapitalize="none"
-              />
-            </View>
-
-            {friends.length > 0 && !query && (
-              <Text style={styles.opponentSection}>YOUR FRIENDS</Text>
-            )}
-            {availableSuggestions.map((p) => (
-              <Pressable
-                key={p.id}
-                style={styles.opponentOption}
-                onPress={() => placePlayer(p)}
-              >
-                <PlayerAvatar
-                  initials={p.avatar}
-                  name={p.name}
-                  playerId={p.id}
-                  size={28}
-                />
-                <View style={styles.opponentOptionInfo}>
-                  <Text style={styles.opponentOptionName}>
-                    {p.name.toUpperCase()}
-                  </Text>
-                  <Text style={styles.opponentOptionMeta}>
-                    {p.tier} · {p.elo} ELO
-                  </Text>
-                </View>
-                {isFriend(p.id) && (
-                  <View style={styles.opponentFriendBadge}>
-                    <Text style={styles.opponentFriendBadgeText}>FRIEND</Text>
-                  </View>
-                )}
-              </Pressable>
-            ))}
-
-            {availableSuggestions.length === 0 && query.length > 0 && (
-              <Text style={styles.opponentEmpty}>No players found</Text>
-            )}
-          </View>
-        )}
       </View>
 
       {/* Score */}
@@ -1408,7 +1381,7 @@ function LogGameView({
           {submitting ? "LOGGING..." : "LOG GAME"}
         </Text>
       </Pressable>
-    </ScrollView>
+    </KeyboardAwareScrollViewCompat>
   );
 }
 
@@ -2148,6 +2121,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 8,
+  },
+  opponentInlineInput: {
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: 0,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 13,
+    color: Colors.text,
   },
   clearOpponent: {
     width: 44,

@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -13,6 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { HeaderIconAction, ScreenHeader } from "@/components/ScreenHeader";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { GameResultModal } from "@/components/ui/GameResultModal";
@@ -52,10 +52,7 @@ export default function MeScreen() {
     isFriend,
   } = useApp();
   const { bottom } = useSafeAreaInsets();
-  const {
-    notifications,
-    openNotification,
-  } = useNotifications();
+  const { notifications, openNotification } = useNotifications();
   const [activeTab, setActiveTab] = useState<ProfileTab>("activity");
   const [qrVisible, setQrVisible] = useState(false);
   const [friendQuery, setFriendQuery] = useState("");
@@ -68,6 +65,7 @@ export default function MeScreen() {
   } | null>(null);
 
   const friends = getFriendsList();
+  const searchingFriends = friendQuery.trim().length >= 2;
 
   useEffect(() => {
     if (
@@ -185,10 +183,12 @@ export default function MeScreen() {
         />
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollViewCompat
+        bottomOffset={104}
         contentContainerStyle={{
           paddingBottom: Platform.OS === "web" ? 92 : bottom + 104,
         }}
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         style={styles.tabContent}
@@ -251,51 +251,72 @@ export default function MeScreen() {
                 value={friendQuery}
               />
             </View>
-            {friends.length > 0 ? (
-              friends.map((friend) => (
-                <PlayerSummaryRow
-                  detail={
-                    localCourt?.shortName ||
-                    localCourt?.name ||
-                    "NO LOCAL COURT"
-                  }
-                  friend
-                  key={friend.id}
-                  onPress={() => router.push(`/player/${friend.id}`)}
-                  player={friend}
-                />
-              ))
-            ) : (
-              <EmptyState
-                title="YOUR COURT CREW STARTS HERE"
-                body="Open a player profile to send a friend request."
-              />
-            )}
-            {(searchResults.length > 0 ? searchResults : suggestedFriends)
-              .length > 0 ? (
+            {searchingFriends ? (
               <View style={styles.suggested}>
-                <Text style={styles.suggestedTitle}>
-                  {searchResults.length > 0
-                    ? "SEARCH RESULTS"
-                    : "SUGGESTED FRIENDS"}
-                </Text>
-                {(searchResults.length > 0
-                  ? searchResults
-                  : suggestedFriends
-                ).map((player) => (
-                  <PlayerSummaryRow
-                    detail={
-                      localCourt?.shortName ||
-                      localCourt?.name ||
-                      "NO LOCAL COURT"
-                    }
-                    key={player.id}
-                    onPress={() => router.push(`/player/${player.id}`)}
-                    player={player}
+                <Text style={styles.suggestedTitle}>SEARCH RESULTS</Text>
+                {searchResults.length > 0 ? (
+                  searchResults.map((player) => (
+                    <PlayerSummaryRow
+                      detail={
+                        player.courtId === localCourt?.id
+                          ? localCourt?.shortName ||
+                            localCourt?.name ||
+                            "YOUR COURT"
+                          : "LOCALCHECK PLAYER"
+                      }
+                      key={player.id}
+                      onPress={() => router.push(`/player/${player.id}`)}
+                      player={player}
+                    />
+                  ))
+                ) : (
+                  <EmptyState
+                    title="NO PLAYERS FOUND"
+                    body="Try another name or username."
                   />
-                ))}
+                )}
               </View>
-            ) : null}
+            ) : (
+              <>
+                {friends.length > 0 ? (
+                  friends.map((friend) => (
+                    <PlayerSummaryRow
+                      detail={
+                        localCourt?.shortName ||
+                        localCourt?.name ||
+                        "NO LOCAL COURT"
+                      }
+                      friend
+                      key={friend.id}
+                      onPress={() => router.push(`/player/${friend.id}`)}
+                      player={friend}
+                    />
+                  ))
+                ) : (
+                  <EmptyState
+                    title="YOUR COURT CREW STARTS HERE"
+                    body="Open a player profile to send a friend request."
+                  />
+                )}
+                {suggestedFriends.length > 0 ? (
+                  <View style={styles.suggested}>
+                    <Text style={styles.suggestedTitle}>SUGGESTED FRIENDS</Text>
+                    {suggestedFriends.map((player) => (
+                      <PlayerSummaryRow
+                        detail={
+                          localCourt?.shortName ||
+                          localCourt?.name ||
+                          "NO LOCAL COURT"
+                        }
+                        key={player.id}
+                        onPress={() => router.push(`/player/${player.id}`)}
+                        player={player}
+                      />
+                    ))}
+                  </View>
+                ) : null}
+              </>
+            )}
           </View>
         ) : (
           <View style={styles.content}>
@@ -379,7 +400,7 @@ export default function MeScreen() {
             ) : null}
           </View>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollViewCompat>
       <PlayerQrModal
         onClose={() => setQrVisible(false)}
         playerId={currentUser.id}

@@ -113,6 +113,10 @@ temporary delivery failure does not strand inbox rows.
   three-day approval / seven-day void deadlines. It must be applied after the
   participant-review and ad-hoc-team migrations and is not production behavior
   until the live ledger and two-account matrix prove it.
+- `20260829120000_add_profile_postal_code.sql`: source-only nullable five-digit
+  profile ZIP used to seed the Settings court typeahead when device location is
+  unavailable. It does not alter court coordinates or location permissions and
+  is not production behavior until the live ledger confirms deployment.
 
 Source presence never proves deployment. `complete_push_delivery`,
 `add_user_safety_controls`, and `make_court_access_optional` are present in the
