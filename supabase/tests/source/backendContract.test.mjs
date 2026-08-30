@@ -11,6 +11,20 @@ async function migrationEndingWith(suffix) {
   return readFile(new URL(name, migrationDir), "utf8");
 }
 
+test("signed-in users can persist a validated profile ZIP", async () => {
+  const columnSql = await migrationEndingWith("_add_profile_postal_code.sql");
+  const grantSql = await migrationEndingWith(
+    "_grant_profile_postal_code_update.sql",
+  );
+
+  assert.match(columnSql, /add column if not exists postal_code text/i);
+  assert.match(columnSql, /postal_code ~ '\^\[0-9\]\{5\}\$'/i);
+  assert.match(
+    grantSql,
+    /grant update \(postal_code\)[\s\S]*on table public\.profiles[\s\S]*to authenticated/i,
+  );
+});
+
 test("verified court creation is atomic, quota-bound, and duplicate-safe", async () => {
   const sql = await migrationEndingWith("_add_verified_court_creation.sql");
   assert.match(
@@ -193,7 +207,10 @@ test("match disputes use one bounded hold and revision lifecycle", async () => {
     "public.respond_to_match",
     "public.update_held_match",
   ]) {
-    assert.ok(sql.includes(contract), `missing dispute lifecycle contract ${contract}`);
+    assert.ok(
+      sql.includes(contract),
+      `missing dispute lifecycle contract ${contract}`,
+    );
   }
   assert.match(sql, /status in \('pending', 'held', 'confirmed', 'voided'\)/i);
   assert.match(sql, /now\(\) \+ interval '3 days'/i);

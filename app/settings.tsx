@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, CourtSport } from "@/constants/data";
 import { TextStyles, Typography } from "@/constants/typography";
@@ -65,8 +66,7 @@ export default function SettingsScreen() {
     setLocalCourt,
   } = useApp();
   const { user, profile, refreshProfile, signOut } = useAuth();
-  const { top, bottom } = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : top;
+  const { bottom } = useSafeAreaInsets();
   const [deleting, setDeleting] = useState(false);
   const [postalCode, setPostalCode] = useState(profile?.postal_code ?? "");
   const [postalSaving, setPostalSaving] = useState(false);
@@ -274,17 +274,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.header, { paddingTop: topPad + 10 }]}>
-        <Pressable
-          onPress={() => router.back()}
-          style={styles.backButton}
-          hitSlop={12}
-        >
-          <Feather name="chevron-left" size={20} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>SETTINGS</Text>
-        <View style={{ width: 34 }} />
-      </View>
+      <ScreenHeader title="SETTINGS" onBack={() => router.back()} />
 
       <KeyboardAwareScrollViewCompat
         bottomOffset={104}
@@ -661,32 +651,6 @@ function ToggleSettingsRow({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    minHeight: 94,
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  backButton: {
-    width: 34,
-    height: 34,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 17,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  headerTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 19,
-    color: Colors.text,
-    letterSpacing: 1.2,
-  },
   profileRow: {
     paddingHorizontal: 20,
     paddingVertical: 22,
