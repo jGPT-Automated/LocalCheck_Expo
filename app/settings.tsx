@@ -9,6 +9,7 @@ import {
   Platform,
   Pressable,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -19,7 +20,7 @@ import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollV
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, CourtSport } from "@/constants/data";
-import { Typography } from "@/constants/typography";
+import { TextStyles, Typography } from "@/constants/typography";
 import { useApp, Visibility } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useNotifications } from "@/context/NotificationContext";
@@ -69,16 +70,23 @@ export default function SettingsScreen() {
   const [deleting, setDeleting] = useState(false);
   const [postalCode, setPostalCode] = useState(profile?.postal_code ?? "");
   const [postalSaving, setPostalSaving] = useState(false);
+  const [postalSaved, setPostalSaved] = useState(false);
   const [courtQuery, setCourtQuery] = useState("");
   const [courtFocused, setCourtFocused] = useState(false);
   const [courtResults, setCourtResults] = useState<Court[]>([]);
   const [courtSearching, setCourtSearching] = useState(false);
   const [courtSavingId, setCourtSavingId] = useState<string | null>(null);
+  const [pushSaving, setPushSaving] = useState(false);
   const { pushEnabled, enablePush, disablePush } = useNotifications();
+  const [pushValue, setPushValue] = useState(pushEnabled);
 
   useEffect(() => {
     setPostalCode(profile?.postal_code ?? "");
   }, [profile?.postal_code]);
+
+  useEffect(() => {
+    if (!pushSaving) setPushValue(pushEnabled);
+  }, [pushEnabled, pushSaving]);
 
   useEffect(() => {
     const term =
@@ -91,7 +99,7 @@ export default function SettingsScreen() {
     let active = true;
     setCourtSearching(true);
     const timer = setTimeout(() => {
-      void searchCourts(term, preferredSport, 8).then((results) => {
+      void searchCourts(term, null, 8).then((results) => {
         if (!active) return;
         setCourtResults(results);
         setCourtSearching(false);
@@ -101,7 +109,7 @@ export default function SettingsScreen() {
       active = false;
       clearTimeout(timer);
     };
-  }, [courtQuery, postalCode, preferredSport]);
+  }, [courtQuery, postalCode]);
 
   const openWebsitePath = (path: string) => {
     void Linking.openURL(`${WEBSITE_URL}${path}`);
@@ -184,15 +192,31 @@ export default function SettingsScreen() {
     );
   };
 
-  const togglePush = async () => {
-    if (pushEnabled) {
+  const setPushNotifications = async (nextValue: boolean) => {
+    if (pushSaving || nextValue === pushValue) return;
+    setPushValue(nextValue);
+    setPushSaving(true);
+    if (nextValue) {
+      const result = await enablePush();
+      if (!result.ok) {
+        setPushValue(false);
+        Alert.alert(
+          "Push notifications are off",
+          result.message ??
+            "Open iPhone Settings to allow notifications, then try again.",
+        );
+      }
+    } else {
       const ok = await disablePush();
-      if (!ok) Alert.alert("Could not turn off alerts", "Please try again.");
-      return;
+      if (!ok) {
+        setPushValue(true);
+        Alert.alert(
+          "Push notifications are still on",
+          "We couldn't update this setting. Check your connection and try again.",
+        );
+      }
     }
-    const result = await enablePush();
-    if (!result.ok)
-      Alert.alert("Alerts are not on", result.message ?? "Please try again.");
+    setPushSaving(false);
   };
 
   const savePostalCode = async () => {
@@ -202,16 +226,25 @@ export default function SettingsScreen() {
       Alert.alert("Check ZIP code", "Enter a five-digit ZIP code.");
       return;
     }
-    if ((profile?.postal_code ?? "") === next) return;
+    if ((profile?.postal_code ?? "") === next) {
+      setPostalSaved(true);
+      return;
+    }
     setPostalSaving(true);
+    setPostalSaved(false);
     const ok = await updateProfileFields(user.id, {
       postal_code: next || null,
     });
     if (ok) await refreshProfile();
     setPostalSaving(false);
     if (!ok) {
-      Alert.alert("ZIP code not saved", "Nothing changed. Please try again.");
+      Alert.alert(
+        "ZIP code couldn't be saved",
+        "Check your connection and try again. You can still use this ZIP to search for a local court now.",
+      );
+      return;
     }
+    setPostalSaved(true);
   };
 
   const chooseLocalCourt = async (court: Court) => {
@@ -220,12 +253,24 @@ export default function SettingsScreen() {
     const ok = await setLocalCourt(court.id, court);
     setCourtSavingId(null);
     if (!ok) {
-      Alert.alert("Court not saved", "Nothing changed. Please try again.");
+      Alert.alert(
+        "Local court couldn't be updated",
+        "Check your connection and try selecting the court again.",
+      );
       return;
     }
     setCourtQuery("");
+    setCourtResults([]);
     setCourtFocused(false);
   };
+
+  const normalizedPostalCode = postalCode.trim();
+  const postalChanged = normalizedPostalCode !== (profile?.postal_code ?? "");
+  const postalValid =
+    normalizedPostalCode.length === 0 || /^\d{5}$/.test(normalizedPostalCode);
+  const courtSearchTerm =
+    courtQuery.trim() ||
+    (/^\d{5}$/.test(normalizedPostalCode) ? normalizedPostalCode : "");
 
   return (
     <View style={styles.screen}>
@@ -331,10 +376,10 @@ export default function SettingsScreen() {
                 autoComplete="postal-code"
                 keyboardType="number-pad"
                 maxLength={5}
-                onBlur={() => void savePostalCode()}
-                onChangeText={(value) =>
-                  setPostalCode(value.replace(/\D/g, "").slice(0, 5))
-                }
+                onChangeText={(value) => {
+                  setPostalCode(value.replace(/\D/g, "").slice(0, 5));
+                  setPostalSaved(false);
+                }}
                 onSubmitEditing={() => void savePostalCode()}
                 placeholder="Enter ZIP code"
                 placeholderTextColor={Colors.mutedDark}
@@ -344,10 +389,27 @@ export default function SettingsScreen() {
               />
               {postalSaving ? (
                 <ActivityIndicator color={Colors.accent} size="small" />
+              ) : postalChanged ? (
+                <Pressable
+                  accessibilityLabel="Save home ZIP code"
+                  accessibilityRole="button"
+                  disabled={!postalValid}
+                  hitSlop={8}
+                  onPress={() => void savePostalCode()}
+                  style={({ pressed }) => [
+                    styles.inlineSave,
+                    !postalValid && styles.inlineSaveDisabled,
+                    pressed && postalValid && styles.pressed,
+                  ]}
+                >
+                  <Text style={styles.inlineSaveText}>SAVE</Text>
+                </Pressable>
+              ) : postalSaved || normalizedPostalCode.length === 5 ? (
+                <Feather color={Colors.win} name="check" size={17} />
               ) : null}
             </View>
             <Text style={styles.locationHelp}>
-              Used to narrow court search when device location is unavailable.
+              Enter a ZIP to find courts without sharing your device location.
             </Text>
           </View>
 
@@ -359,12 +421,15 @@ export default function SettingsScreen() {
                 accessibilityLabel="Search for a local court"
                 autoCapitalize="words"
                 autoCorrect={false}
-                onChangeText={setCourtQuery}
+                clearButtonMode="while-editing"
+                onChangeText={(value) => {
+                  setCourtQuery(value);
+                  setCourtFocused(true);
+                }}
                 onFocus={() => setCourtFocused(true)}
-                placeholder={localCourt?.name ?? "Search courts by name or ZIP"}
-                placeholderTextColor={
-                  localCourt ? Colors.textSecondary : Colors.mutedDark
-                }
+                placeholder="Name, city, or ZIP"
+                placeholderTextColor={Colors.mutedDark}
+                returnKeyType="search"
                 style={styles.locationInput}
                 value={courtQuery}
               />
@@ -374,79 +439,80 @@ export default function SettingsScreen() {
             </View>
             {localCourt ? (
               <Text style={styles.currentCourt}>
-                CURRENT · {localCourt.name.toUpperCase()}
+                CURRENT COURT · {localCourt.name.toUpperCase()}
               </Text>
             ) : null}
+            {courtFocused && courtSearchTerm.length >= 2 ? (
+              <View style={styles.courtResults}>
+                {courtResults.length > 0 ? (
+                  courtResults.map((court) => (
+                    <Pressable
+                      accessibilityLabel={`Set ${court.name} as local court`}
+                      accessibilityRole="button"
+                      accessibilityState={{
+                        selected: court.id === localCourt?.id,
+                      }}
+                      disabled={Boolean(courtSavingId)}
+                      key={court.id}
+                      onPress={() => void chooseLocalCourt(court)}
+                      style={({ pressed }) => [
+                        styles.courtResult,
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <View style={styles.courtResultCopy}>
+                        <Text numberOfLines={1} style={styles.courtResultName}>
+                          {court.name}
+                        </Text>
+                        <Text numberOfLines={1} style={styles.courtResultMeta}>
+                          {[
+                            court.city,
+                            court.postalCode,
+                            court.sport === "BASKETBALL" ? "BB" : "PB",
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </Text>
+                      </View>
+                      {courtSavingId === court.id ? (
+                        <ActivityIndicator color={Colors.accent} size="small" />
+                      ) : (
+                        <Feather
+                          color={
+                            court.id === localCourt?.id
+                              ? Colors.accent
+                              : Colors.muted
+                          }
+                          name={
+                            court.id === localCourt?.id
+                              ? "check"
+                              : "chevron-right"
+                          }
+                          size={17}
+                        />
+                      )}
+                    </Pressable>
+                  ))
+                ) : !courtSearching ? (
+                  <Text style={styles.noCourtResults}>
+                    {/^\d{5}$/.test(courtSearchTerm)
+                      ? `No courts found near ${courtSearchTerm}`
+                      : `No courts match “${courtSearchTerm}”`}
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
           </View>
-
-          {courtFocused &&
-          (courtQuery.trim().length >= 2 || postalCode.length === 5) ? (
-            <View style={styles.courtResults}>
-              {courtResults.length > 0 ? (
-                courtResults.map((court) => (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityState={{
-                      selected: court.id === localCourt?.id,
-                    }}
-                    disabled={Boolean(courtSavingId)}
-                    key={court.id}
-                    onPress={() => void chooseLocalCourt(court)}
-                    style={({ pressed }) => [
-                      styles.courtResult,
-                      pressed && styles.pressed,
-                    ]}
-                  >
-                    <View style={styles.courtResultCopy}>
-                      <Text numberOfLines={1} style={styles.courtResultName}>
-                        {court.name}
-                      </Text>
-                      <Text numberOfLines={1} style={styles.courtResultMeta}>
-                        {[
-                          court.city,
-                          court.postalCode,
-                          court.sport === "BASKETBALL" ? "BB" : "PB",
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </Text>
-                    </View>
-                    {courtSavingId === court.id ? (
-                      <ActivityIndicator color={Colors.accent} size="small" />
-                    ) : (
-                      <Feather
-                        color={
-                          court.id === localCourt?.id
-                            ? Colors.accent
-                            : Colors.muted
-                        }
-                        name={
-                          court.id === localCourt?.id
-                            ? "check"
-                            : "chevron-right"
-                        }
-                        size={17}
-                      />
-                    )}
-                  </Pressable>
-                ))
-              ) : !courtSearching ? (
-                <Text style={styles.noCourtResults}>No matching courts</Text>
-              ) : null}
-            </View>
-          ) : null}
         </Section>
 
         <Section title="ALERTS">
-          <SettingsRow
+          <ToggleSettingsRow
             icon="bell"
             label="PUSH NOTIFICATIONS"
-            detail={
-              pushEnabled
-                ? "Run invites, friend updates, and score reviews"
-                : "Off"
-            }
-            onPress={() => void togglePush()}
+            detail="Run invites, friend updates, and score reviews"
+            disabled={pushSaving}
+            onValueChange={(value) => void setPushNotifications(value)}
+            value={pushValue}
           />
           <SettingsRow
             icon="inbox"
@@ -553,6 +619,43 @@ function SettingsRow({
   );
 }
 
+function ToggleSettingsRow({
+  disabled,
+  icon,
+  label,
+  detail,
+  onValueChange,
+  value,
+}: {
+  disabled?: boolean;
+  icon: React.ComponentProps<typeof Feather>["name"];
+  label: string;
+  detail?: string;
+  onValueChange: (value: boolean) => void;
+  value: boolean;
+}) {
+  return (
+    <View style={styles.settingsRow}>
+      <Feather name={icon} size={17} color={Colors.textSecondary} />
+      <View style={{ flex: 1 }}>
+        <Text style={styles.settingsLabel} numberOfLines={1}>
+          {label}
+        </Text>
+        {detail ? <Text style={styles.settingsDetail}>{detail}</Text> : null}
+      </View>
+      <Switch
+        accessibilityLabel={label}
+        accessibilityHint={`Turns ${label.toLowerCase()} on or off`}
+        disabled={disabled}
+        ios_backgroundColor={Colors.borderLight}
+        onValueChange={onValueChange}
+        trackColor={{ false: Colors.borderLight, true: Colors.accent }}
+        value={value}
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
   header: {
@@ -597,7 +700,7 @@ const styles = StyleSheet.create({
   },
   profileMeta: {
     fontFamily: Typography.bodyMedium,
-    fontSize: 9,
+    fontSize: 12,
     color: Colors.muted,
     letterSpacing: 0.8,
     marginTop: 4,
@@ -605,7 +708,7 @@ const styles = StyleSheet.create({
   section: { paddingHorizontal: 20, marginBottom: 21 },
   sectionTitle: {
     fontFamily: Typography.bodyBold,
-    fontSize: 8,
+    fontSize: 11,
     color: Colors.muted,
     letterSpacing: 1.8,
     marginBottom: 8,
@@ -635,16 +738,14 @@ const styles = StyleSheet.create({
   },
   segmentText: {
     fontFamily: Typography.bodyBold,
-    fontSize: 7,
+    fontSize: 11,
     color: Colors.muted,
     letterSpacing: 0.9,
     textAlign: "center",
   },
   segmentTextActive: { color: Colors.text },
   explanation: {
-    fontFamily: Typography.body,
-    fontSize: 11,
-    lineHeight: 16,
+    ...TextStyles.bodySmall,
     color: Colors.muted,
     paddingHorizontal: 13,
     paddingBottom: 13,
@@ -656,8 +757,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.borderSubtle,
   },
   locationLabel: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 8,
+    ...TextStyles.labelSmall,
     color: Colors.muted,
     letterSpacing: 1.3,
   },
@@ -676,23 +776,37 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     paddingVertical: 0,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 13,
+    ...TextStyles.bodySmall,
     color: Colors.text,
   },
   locationHelp: {
-    fontFamily: Typography.body,
-    fontSize: 10,
-    lineHeight: 15,
+    ...TextStyles.caption,
     color: Colors.muted,
   },
   currentCourt: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 9,
+    ...TextStyles.labelSmall,
     color: Colors.accent,
     letterSpacing: 0.7,
   },
-  courtResults: { borderTopWidth: 1, borderTopColor: Colors.borderSubtle },
+  inlineSave: {
+    minHeight: 32,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  inlineSaveDisabled: { opacity: 0.35 },
+  inlineSaveText: {
+    ...TextStyles.labelSmall,
+    color: Colors.accent,
+    letterSpacing: 0.8,
+  },
+  courtResults: {
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.background,
+  },
   courtResult: {
     minHeight: 58,
     paddingHorizontal: 14,
@@ -704,20 +818,17 @@ const styles = StyleSheet.create({
   },
   courtResultCopy: { flex: 1, minWidth: 0 },
   courtResultName: {
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 12,
+    ...TextStyles.listName,
     color: Colors.text,
   },
   courtResultMeta: {
     marginTop: 3,
-    fontFamily: Typography.body,
-    fontSize: 9,
+    ...TextStyles.metadata,
     color: Colors.muted,
   },
   noCourtResults: {
     padding: 18,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
+    ...TextStyles.metadata,
     color: Colors.muted,
     textAlign: "center",
   },
@@ -737,8 +848,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.55,
   },
   settingsDetail: {
-    fontFamily: Typography.body,
-    fontSize: 9,
+    ...TextStyles.caption,
     color: Colors.muted,
     marginTop: 3,
   },
@@ -752,14 +862,14 @@ const styles = StyleSheet.create({
   },
   deleteText: {
     fontFamily: Typography.bodyBold,
-    fontSize: 9,
+    fontSize: 11,
     color: Colors.loss,
     letterSpacing: 1.2,
   },
   pressed: { opacity: 0.65 },
   version: {
     fontFamily: Typography.bodyMedium,
-    fontSize: 7,
+    fontSize: 11,
     color: Colors.mutedDark,
     letterSpacing: 1.3,
     textAlign: "center",
