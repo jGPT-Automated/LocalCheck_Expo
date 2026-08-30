@@ -643,15 +643,18 @@ function ToggleSettingsRow({
         </Text>
         {detail ? <Text style={styles.settingsDetail}>{detail}</Text> : null}
       </View>
-      <Switch
-        accessibilityLabel={label}
-        accessibilityHint={`Turns ${label.toLowerCase()} on or off`}
-        disabled={disabled}
-        ios_backgroundColor={Colors.borderLight}
-        onValueChange={onValueChange}
-        trackColor={{ false: Colors.borderLight, true: Colors.accent }}
-        value={value}
-      />
+      <View style={styles.notificationSwitchFrame}>
+        <Switch
+          accessibilityLabel={label}
+          accessibilityHint={`Turns ${label.toLowerCase()} on or off`}
+          disabled={disabled}
+          ios_backgroundColor={Colors.borderLight}
+          onValueChange={onValueChange}
+          style={styles.notificationSwitch}
+          trackColor={{ false: Colors.borderLight, true: Colors.accent }}
+          value={value}
+        />
+      </View>
     </View>
   );
 }
@@ -851,6 +854,16 @@ const styles = StyleSheet.create({
     ...TextStyles.caption,
     color: Colors.muted,
     marginTop: 3,
+  },
+  notificationSwitchFrame: {
+    width: 52,
+    height: 44,
+    alignSelf: "center",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  notificationSwitch: {
+    transform: [{ scale: Platform.OS === "ios" ? 0.82 : 1 }],
   },
   deleteRow: {
     minHeight: 58,
