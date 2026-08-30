@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    columnGap: Space.xl,
     backgroundColor: Colors.background,
   },
   compactAvatarAction: {
@@ -205,8 +205,11 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     justifyContent: "center",
+    alignSelf: "stretch",
   },
   compactName: {
+    minWidth: 0,
+    flexShrink: 1,
     ...TextStyles.title,
     fontSize: 24,
     lineHeight: 28,
@@ -223,8 +226,11 @@ const styles = StyleSheet.create({
   compactHandle: {
     minWidth: 0,
     flexShrink: 1,
-    ...TextStyles.metadata,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    lineHeight: 13,
     color: Colors.muted,
+    letterSpacing: 0.5,
   },
   compactActions: {
     flexShrink: 0,
