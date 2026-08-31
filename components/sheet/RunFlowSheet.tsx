@@ -17,12 +17,14 @@ export function RunFlowSheet({
   onClose,
   title,
   eyebrow,
+  bottomClearance = 0,
   children,
 }: {
   visible: boolean;
   onClose: () => void;
   title: string;
   eyebrow?: string;
+  bottomClearance?: number;
   children: React.ReactNode;
 }) {
   const modalRef = useRef<BottomSheetModal>(null);
@@ -64,7 +66,7 @@ export function RunFlowSheet({
         </Pressable>
       </View>
       <BottomSheetScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: Math.max(44, bottom + 96) }]}
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(44, bottom + bottomClearance) }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

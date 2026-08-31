@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 
 import { Colors, Radius } from "@/constants/colors";
+import { Layout } from "@/constants/layout";
 import { Court, PlannedVisit, getSportColor } from "@/constants/data";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { RunCard } from "@/components/RunCard";
@@ -368,6 +369,7 @@ function HostRunModal({
       onClose={onClose}
       eyebrow="SCHEDULED GAME"
       title="Create game"
+      bottomClearance={Layout.tabBarClearance}
     >
           <View style={styles.gamePreview}>
             <View style={styles.gamePreviewTop}>
@@ -416,7 +418,6 @@ function HostRunModal({
             </Pressable>
             <View style={styles.timeStepValue}>
               <Text style={styles.timeStepText}>{formatScheduledGameTime(time)}</Text>
-              <Text style={styles.timeStepHint}>ONE-HOUR START TIMES</Text>
             </View>
             <Pressable
               accessibilityLabel="One hour later"
@@ -1804,8 +1805,8 @@ const styles = StyleSheet.create({
   },
   timeStepHint: {
     fontFamily: Typography.bodyMedium,
-    fontSize: 9,
-    lineHeight: 11,
+    fontSize: 11,
+    lineHeight: 13,
     color: Colors.muted,
     letterSpacing: 0.7,
   },
