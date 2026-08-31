@@ -2,6 +2,7 @@ import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors } from "@/constants/colors";
 import { TextStyles } from "@/constants/typography";
@@ -25,6 +26,7 @@ export function RunFlowSheet({
   children: React.ReactNode;
 }) {
   const modalRef = useRef<BottomSheetModal>(null);
+  const { bottom } = useSafeAreaInsets();
   const presentedRef = useRef(false);
   const snapPoints = useMemo<Array<string | number>>(() => ["88%"], []);
 
@@ -62,7 +64,7 @@ export function RunFlowSheet({
         </Pressable>
       </View>
       <BottomSheetScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(44, bottom + 96) }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -100,5 +102,5 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     justifyContent: "center",
   },
-  content: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 44 },
+  content: { paddingHorizontal: 20, paddingTop: 18 },
 });
