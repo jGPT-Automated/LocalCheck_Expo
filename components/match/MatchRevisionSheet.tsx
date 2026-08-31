@@ -1,6 +1,14 @@
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 import { FormSheet } from "@/components/sheet/FormSheet";
 import { CompactSelect } from "@/components/ui/CompactSelect";
@@ -22,6 +30,7 @@ export function MatchRevisionSheet({
   match,
   onClose,
   onSubmit,
+  mode = "update",
   visible,
   working,
 }: {
@@ -33,7 +42,9 @@ export function MatchRevisionSheet({
     scoreA: number;
     scoreB: number;
     playedOn: string;
+    note: string;
   }) => void;
+  mode?: "update" | "dispute";
   visible: boolean;
   working: boolean;
 }) {
@@ -60,6 +71,7 @@ export function MatchRevisionSheet({
   const [playedOn, setPlayedOn] = React.useState(
     localDateValue(new Date(match.playedAt)),
   );
+  const [note, setNote] = React.useState("");
   const a = Number(scoreA);
   const b = Number(scoreB);
   const valid =
@@ -76,62 +88,103 @@ export function MatchRevisionSheet({
     setScoreA(String(match.scoreA));
     setScoreB(String(match.scoreB));
     setPlayedOn(localDateValue(new Date(match.playedAt)));
+    setNote("");
   }, [match, visible]);
+
+  const changed =
+    courtId !== match.courtId ||
+    a !== match.scoreA ||
+    b !== match.scoreB ||
+    playedOn !== localDateValue(new Date(match.playedAt));
+  const canSubmit =
+    valid && (changed || (mode === "dispute" && note.trim().length > 0));
 
   return (
     <FormSheet
       eyebrow="DISPUTE RESOLUTION"
       onClose={onClose}
-      title="UPDATE GAME"
+      title={mode === "dispute" ? "DISPUTE SCORE" : "UPDATE GAME"}
       visible={visible}
     >
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.field}>
-          <Text style={styles.label}>COURT</Text>
-          <CompactSelect
-            accessibilityLabel="Select corrected court"
-            onChange={setCourtId}
-            options={courtOptions}
-            value={courtId}
-            wide
-          />
-        </View>
-
-        <View style={styles.field}>
-          <Text style={styles.label}>DATE</Text>
-          <WeekDatePicker
-            accessibilityLabel="Corrected game date"
-            onChange={setPlayedOn}
-            value={playedOn}
-          />
-        </View>
-
-        <View style={styles.field}>
-          <Text style={styles.label}>CORRECTED FINAL SCORE</Text>
-          <View style={styles.scoreRow}>
-            <ScoreInput label="SIDE A" onChange={setScoreA} value={scoreA} />
-            <Text style={styles.dash}>–</Text>
-            <ScoreInput label="SIDE B" onChange={setScoreB} value={scoreB} />
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.field}>
+            <Text style={styles.label}>COURT</Text>
+            <CompactSelect
+              accessibilityLabel="Select corrected court"
+              onChange={setCourtId}
+              options={courtOptions}
+              value={courtId}
+              wide
+            />
           </View>
-        </View>
 
-        <View style={styles.notice}>
-          <Feather color={Colors.accent} name="refresh-cw" size={16} />
-          <Text style={styles.noticeText}>
-            Submitting this correction notifies every player and starts a new
-            3-day review.
-          </Text>
-        </View>
-      </ScrollView>
+          {mode === "dispute" ? (
+            <View style={styles.field}>
+              <Text style={styles.label}>NOTE (OPTIONAL)</Text>
+              <TextInput
+                accessibilityLabel="Dispute note"
+                multiline
+                maxLength={280}
+                onChangeText={setNote}
+                placeholder="What needs correcting?"
+                placeholderTextColor={Colors.muted}
+                style={styles.noteInput}
+                textAlignVertical="top"
+                value={note}
+              />
+              <Text style={styles.helper}>
+                Add a note or change a game detail to submit.
+              </Text>
+            </View>
+          ) : null}
+
+          <View style={styles.field}>
+            <Text style={styles.label}>DATE</Text>
+            <WeekDatePicker
+              accessibilityLabel="Corrected game date"
+              onChange={setPlayedOn}
+              value={playedOn}
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}>CORRECTED FINAL SCORE</Text>
+            <View style={styles.scoreRow}>
+              <ScoreInput label="SIDE A" onChange={setScoreA} value={scoreA} />
+              <Text style={styles.dash}>–</Text>
+              <ScoreInput label="SIDE B" onChange={setScoreB} value={scoreB} />
+            </View>
+          </View>
+
+          <View style={styles.notice}>
+            <Feather color={Colors.accent} name="refresh-cw" size={16} />
+            <Text style={styles.noticeText}>
+              Submitting this correction notifies every player and starts a new
+              3-day review.
+            </Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
       <StickyActionBar
         primary={{
-          disabled: !valid || working,
+          disabled: !canSubmit || working,
           icon: "send",
           label: working ? "SUBMITTING…" : "SUBMIT UPDATE",
-          onPress: () => onSubmit({ courtId, scoreA: a, scoreB: b, playedOn }),
+          onPress: () =>
+            onSubmit({
+              courtId,
+              scoreA: a,
+              scoreB: b,
+              playedOn,
+              note: note.trim(),
+            }),
         }}
         secondary={{ label: "CANCEL", onPress: onClose }}
       />
@@ -165,6 +218,7 @@ function ScoreInput({
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   content: { padding: Space.xl, paddingBottom: Space.xxl, gap: Space.xl },
   field: { gap: Space.sm },
   label: {
@@ -200,4 +254,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accentDim,
   },
   noticeText: { ...TextStyles.bodySmall, flex: 1, color: Colors.textSecondary },
+  noteInput: {
+    minHeight: 88,
+    padding: Space.md,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surface,
+    ...TextStyles.body,
+    color: Colors.text,
+  },
+  helper: { ...TextStyles.caption, color: Colors.muted },
 });

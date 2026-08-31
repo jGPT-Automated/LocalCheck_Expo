@@ -46,16 +46,21 @@ export function SpeedDialFab({
   const reduceMotion = useReducedMotion();
   const expandedHeight = CLOSED_SIZE + actions.length * ROW_HEIGHT + Space.sm;
 
-  const setExpanded = React.useCallback((next: boolean) => {
-    setOpen(next);
-    progress.value = reduceMotion
-      ? next ? 1 : 0
-      : withSpring(next ? 1 : 0, {
-          damping: 20,
-          stiffness: 280,
-          mass: 0.5,
-        });
-  }, [progress, reduceMotion]);
+  const setExpanded = React.useCallback(
+    (next: boolean) => {
+      setOpen(next);
+      progress.value = reduceMotion
+        ? next
+          ? 1
+          : 0
+        : withSpring(next ? 1 : 0, {
+            damping: 20,
+            stiffness: 280,
+            mass: 0.5,
+          });
+    },
+    [progress, reduceMotion],
+  );
 
   const panelStyle = useAnimatedStyle(() => ({
     width: interpolate(progress.value, [0, 1], [CLOSED_SIZE, OPEN_WIDTH]),
@@ -64,12 +69,12 @@ export function SpeedDialFab({
     backgroundColor: interpolateColor(
       progress.value,
       [0, 1],
-      [Colors.accent, Colors.surfaceHigh]
+      [Colors.accent, Colors.accent],
     ),
     borderColor: interpolateColor(
       progress.value,
       [0, 1],
-      [Colors.accent, Colors.borderLight]
+      [Colors.accent, Colors.accent],
     ),
   }));
 
@@ -79,14 +84,16 @@ export function SpeedDialFab({
   }));
 
   const triggerIconStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${interpolate(progress.value, [0, 1], [0, 45])}deg` }],
+    transform: [
+      { rotate: `${interpolate(progress.value, [0, 1], [0, 45])}deg` },
+    ],
   }));
 
   const triggerFillStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(
       progress.value,
       [0, 1],
-      [Colors.accent, Colors.surfaceHigh]
+      [Colors.accent, Colors.accent],
     ),
   }));
 
@@ -103,7 +110,11 @@ export function SpeedDialFab({
       <Animated.View style={[styles.panel, { bottom }, panelStyle]}>
         <Animated.View
           pointerEvents={open ? "auto" : "none"}
-          style={[styles.menu, { paddingBottom: CLOSED_SIZE + Space.xs }, menuStyle]}
+          style={[
+            styles.menu,
+            { paddingBottom: CLOSED_SIZE + Space.xs },
+            menuStyle,
+          ]}
         >
           {actions.map((action) => (
             <Pressable
@@ -114,10 +125,20 @@ export function SpeedDialFab({
                 setExpanded(false);
                 action.onPress();
               }}
-              style={({ pressed }) => [styles.actionRow, pressed && styles.actionRowPressed]}
+              style={({ pressed }) => [
+                styles.actionRow,
+                pressed && styles.actionRowPressed,
+              ]}
             >
-              <Feather color={Colors.textSecondary} name={action.icon} size={17} />
-              <Text style={styles.actionLabel}>{action.label}</Text>
+              <Feather color={Colors.black} name={action.icon} size={17} />
+              <Text
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+                numberOfLines={1}
+                style={styles.actionLabel}
+              >
+                {action.label.toUpperCase()}
+              </Text>
             </Pressable>
           ))}
         </Animated.View>
@@ -127,11 +148,14 @@ export function SpeedDialFab({
           accessibilityRole="button"
           accessibilityState={{ expanded: open }}
           onPress={() => setExpanded(!open)}
-          style={({ pressed }) => [styles.mainButton, pressed && styles.mainButtonPressed]}
+          style={({ pressed }) => [
+            styles.mainButton,
+            pressed && styles.mainButtonPressed,
+          ]}
         >
           <Animated.View style={[styles.mainButtonFill, triggerFillStyle]} />
           <Animated.View style={triggerIconStyle}>
-            <Feather color={open ? Colors.textSecondary : Colors.black} name={icon} size={23} />
+            <Feather color={Colors.black} name={icon} size={23} />
           </Animated.View>
         </Pressable>
       </Animated.View>
@@ -168,13 +192,13 @@ const styles = StyleSheet.create({
     gap: Space.md,
     borderRadius: 13,
   },
-  actionRowPressed: { backgroundColor: Colors.surfacePressed },
+  actionRowPressed: { backgroundColor: Colors.brandMark },
   actionLabel: {
     flex: 1,
-    fontFamily: Typography.bodySemiBold,
+    fontFamily: Typography.heading,
     fontSize: 12,
-    color: Colors.text,
-    letterSpacing: 0.2,
+    color: Colors.black,
+    letterSpacing: 1.2,
   },
   mainButton: {
     position: "absolute",

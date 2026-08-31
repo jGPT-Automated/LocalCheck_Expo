@@ -30,6 +30,11 @@ import {
   updateHeldMatch,
 } from "@/services/gameService";
 
+function localDateValue(date: Date) {
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}
+
 export default function MatchReviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -41,6 +46,9 @@ export default function MatchReviewScreen() {
   const [loading, setLoading] = React.useState(true);
   const [working, setWorking] = React.useState(false);
   const [editing, setEditing] = React.useState(false);
+  const [revisionMode, setRevisionMode] = React.useState<"update" | "dispute">(
+    "update",
+  );
   const [policyExpanded, setPolicyExpanded] = React.useState(false);
 
   const load = React.useCallback(async () => {
@@ -75,7 +83,8 @@ export default function MatchReviewScreen() {
   const respond = async (decision: "approve" | "dispute") => {
     if (!match || working) return;
     setWorking(true);
-    const ok = await respondToMatch(match.id, decision);
+    const result = await respondToMatch(match.id, decision);
+    const ok = Boolean(result);
     setWorking(false);
     if (!ok) {
       Alert.alert("Score changed", "Refresh the result and try again.");
@@ -90,10 +99,32 @@ export default function MatchReviewScreen() {
     scoreA: number;
     scoreB: number;
     playedOn: string;
+    note: string;
   }) => {
     if (!match || working) return;
     setWorking(true);
-    const ok = await updateHeldMatch({ matchId: match.id, ...change });
+    const changed =
+      change.courtId !== match.courtId ||
+      change.scoreA !== match.scoreA ||
+      change.scoreB !== match.scoreB ||
+      change.playedOn !== localDateValue(new Date(match.playedAt));
+    const result =
+      revisionMode === "dispute"
+        ? await respondToMatch(match.id, "dispute", {
+            explanation: change.note || undefined,
+            ...(changed
+              ? {
+                  courtId: change.courtId,
+                  scoreA: change.scoreA,
+                  scoreB: change.scoreB,
+                  playedOn: change.playedOn,
+                }
+              : {}),
+          })
+        : changed
+          ? await updateHeldMatch({ matchId: match.id, ...change })
+          : false;
+    const ok = Boolean(result);
     setWorking(false);
     if (!ok) {
       Alert.alert(
@@ -207,7 +238,10 @@ export default function MatchReviewScreen() {
           primary={{
             icon: "edit-3",
             label: "UPDATE GAME",
-            onPress: () => setEditing(true),
+            onPress: () => {
+              setRevisionMode("update");
+              setEditing(true);
+            },
             disabled: working,
           }}
         />
@@ -225,7 +259,10 @@ export default function MatchReviewScreen() {
               ? {
                   icon: "flag",
                   label: "DISPUTE",
-                  onPress: () => void respond("dispute"),
+                  onPress: () => {
+                    setRevisionMode("dispute");
+                    setEditing(true);
+                  },
                   disabled: working,
                 }
               : undefined
@@ -240,7 +277,10 @@ export default function MatchReviewScreen() {
         >
           <Pressable
             disabled={working}
-            onPress={() => void respond("dispute")}
+            onPress={() => {
+              setRevisionMode("dispute");
+              setEditing(true);
+            }}
             style={styles.disputeButton}
           >
             <Feather color={Colors.loss} name="flag" size={16} />
@@ -254,6 +294,7 @@ export default function MatchReviewScreen() {
         match={match}
         onClose={() => setEditing(false)}
         onSubmit={(change) => void submitRevision(change)}
+        mode={revisionMode}
         visible={editing}
         working={working}
       />
