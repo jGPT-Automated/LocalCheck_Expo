@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -13,6 +12,7 @@ import {
 
 import { useRouter } from "expo-router";
 import { CourtListItem } from "@/components/CourtListItem";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { MapScreen } from "@/components/MapScreen";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useCourtSheet } from "@/components/sheet/CourtSheetHost";
@@ -227,11 +227,13 @@ export function CourtsScreen() {
           <MapScreen sportFilter={sportFilter} />
         </View>
       ) : (
-        <ScrollView
+        <KeyboardAwareScrollViewCompat
+          bottomOffset={104}
           style={styles.list}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 84 : 110 }}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         >
           {!isSearchMode && localCourtLive && (
             <View style={styles.localSection}>
@@ -301,7 +303,7 @@ export function CourtsScreen() {
               </Pressable>
             )}
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollViewCompat>
       )}
 
     </View>
@@ -311,7 +313,7 @@ export function CourtsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   addCourtAction: {
-    minHeight: 36,
+    minHeight: 44,
     minWidth: 64,
     flexDirection: "row",
     alignItems: "center",

@@ -1712,9 +1712,9 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   courtField: { flex: 1, minWidth: 0 },
-  sportField: { width: 94 },
+  sportField: { width: 88 },
   dateField: { flex: 1, minWidth: 0 },
-  formatField: { width: 178 },
+  formatField: { flex: 1, minWidth: 0 },
   fieldLabel: {
     fontFamily: Typography.heading,
     fontSize: 11,
