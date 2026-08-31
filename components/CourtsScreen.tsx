@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 
-import { AddCourtModal } from "@/components/AddCourtModal";
+import { useRouter } from "expo-router";
 import { CourtListItem } from "@/components/CourtListItem";
 import { MapScreen } from "@/components/MapScreen";
 import { ScreenHeader } from "@/components/ScreenHeader";
@@ -52,7 +52,7 @@ export function CourtsScreen() {
   const [nearbyCourts, setNearbyCourts] = useState<Court[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
-  const [showAddCourt, setShowAddCourt] = useState(false);
+  const router = useRouter();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Court[]>([]);
@@ -169,7 +169,7 @@ export function CourtsScreen() {
           <Pressable
             accessibilityLabel="Add a court"
             accessibilityRole="button"
-            onPress={() => setShowAddCourt(true)}
+            onPress={() => router.push("/add-court")}
             style={({ pressed }) => [styles.addCourtAction, pressed && styles.addCourtActionPressed]}
             testID="add-court-action"
           >
@@ -304,11 +304,6 @@ export function CourtsScreen() {
         </ScrollView>
       )}
 
-      <AddCourtModal
-        onAdded={() => loadDiscovery()}
-        onClose={() => setShowAddCourt(false)}
-        visible={showAddCourt}
-      />
     </View>
   );
 }

@@ -1216,7 +1216,7 @@ export default function ScheduleScreen() {
                 No games scheduled at this court this week.
               </Text>
             </View>
-          ) : courtRuns.slice(0, 2).map((run) => <RunCard key={run.id} run={run} />)}
+          ) : courtRuns.map((run) => <RunCard key={run.id} run={run} />)}
         </View>
       </ScrollView>
 
@@ -1780,17 +1780,17 @@ const styles = StyleSheet.create({
   },
   formatOptionTextActive: { color: Colors.accent },
   timeStepper: {
-    minHeight: 66,
+    minHeight: 52,
     flexDirection: "row",
     alignItems: "stretch",
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: Radius.md,
+    borderRadius: Radius.sm,
     overflow: "hidden",
     backgroundColor: Colors.surface,
   },
   timeStepButton: {
-    width: 58,
+    width: 48,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Colors.surfaceHigh,
@@ -1798,14 +1798,14 @@ const styles = StyleSheet.create({
   timeStepValue: { flex: 1, alignItems: "center", justifyContent: "center", gap: 2 },
   timeStepText: {
     fontFamily: Typography.heading,
-    fontSize: 21,
-    lineHeight: 26,
+    fontSize: 18,
+    lineHeight: 22,
     color: Colors.text,
   },
   timeStepHint: {
     fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    lineHeight: 13,
+    fontSize: 9,
+    lineHeight: 11,
     color: Colors.muted,
     letterSpacing: 0.7,
   },
@@ -1979,9 +1979,9 @@ const styles = StyleSheet.create({
   createBtn: {
     backgroundColor: Colors.accent,
     alignItems: "center",
-    paddingVertical: 13,
+    paddingVertical: 11,
     borderRadius: Radius.xs,
-    marginTop: 16,
+    marginTop: 10,
   },
   createBtnDisabled: { opacity: 0.5 },
   createBtnText: {

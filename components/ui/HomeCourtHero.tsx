@@ -104,7 +104,7 @@ export function HomeCourtHero({
 
       <View style={styles.titleRow}>
         <Text numberOfLines={2} style={styles.name}>
-          {court.name}
+          {court.shortName || court.name}
         </Text>
       </View>
 
@@ -126,8 +126,8 @@ export function HomeCourtHero({
           <Pressable
             accessibilityLabel={
               isCheckedIn
-                ? `Check out of ${court.name}`
-                : `Check in to ${court.name}`
+                ? `Check out of ${court.shortName || court.name}`
+                : `Check in to ${court.shortName || court.name}`
             }
             accessibilityRole="button"
             accessibilityState={{ busy: isChecking, selected: isCheckedIn }}
@@ -165,7 +165,7 @@ export function HomeCourtHero({
         <View style={styles.actionSlot}>
           <Pressable
             accessibilityHint="Opens the full court profile"
-            accessibilityLabel={`View ${court.name}`}
+            accessibilityLabel={`View ${court.shortName || court.name}`}
             accessibilityRole="button"
             onPress={onViewCourt}
             style={({ pressed }) => [
