@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   acceptsVerifiedCourt,
+  courtNamesWereEdited,
   normalizeGeminiResult,
   validateCourtSubmission,
 } from "./courtVerification.ts";
@@ -14,12 +15,16 @@ test("normalizes Gemini output and clamps confidence", () => {
     setting: "OUTDOOR",
     confidence: 140,
     reason: "  Clear regulation court.  ",
+    name_okay: true,
+    name_reason: " Ordinary park name. ",
   }), {
     verified: true,
     sport: "basketball",
     setting: "outdoor",
     confidence: 100,
     reason: "Clear regulation court.",
+    nameOkay: true,
+    nameReason: "Ordinary park name.",
   });
   assert.equal(normalizeGeminiResult({ sport: "tennis", setting: "outdoor" }), null);
 });
@@ -27,6 +32,10 @@ test("normalizes Gemini output and clamps confidence", () => {
 test("validates and normalizes an authenticated court submission", () => {
   const result = validateCourtSubmission({
     name: "  Jaycee   Park ",
+    suggestedOfficialName: "Jaycee Park",
+    suggestedShortName: "Jaycee",
+    officialName: "Jaycee Park",
+    shortName: "Jaycee",
     address: "  123 Court Way ",
     city: " Houston ",
     state: "tx",
@@ -37,9 +46,31 @@ test("validates and normalizes an authenticated court submission", () => {
   });
   assert.equal(result.ok, true);
   if (result.ok) {
-    assert.equal(result.value.name, "Jaycee Park");
+    assert.equal(result.value.officialName, "Jaycee Park");
+    assert.equal(result.value.shortName, "Jaycee");
+    assert.equal(result.value.nameWasEdited, false);
     assert.equal(result.value.state, "TX");
   }
+});
+
+test("falls back to the street and records edited court names", () => {
+  const result = validateCourtSubmission({
+    suggestedOfficialName: "123 Court Way",
+    suggestedShortName: "Court Way",
+    officialName: "Jaycee Community Park",
+    shortName: "Jaycee",
+    address: "123 Court Way",
+    city: "Houston",
+    state: "TX",
+    latitude: 29.75,
+    longitude: -95.35,
+    imageBase64: "x".repeat(200),
+    imageMimeType: "image/jpeg",
+  });
+  assert.equal(result.ok, true);
+  if (result.ok) assert.equal(result.value.nameWasEdited, true);
+
+  assert.equal(courtNamesWereEdited("Jaycee Park", "Jaycee", "jaycee  park", "JAYCEE"), false);
 });
 
 test("rejects invalid image types and oversized base64 payloads", () => {
@@ -69,6 +100,8 @@ test("accepts only high-confidence supported playable courts", () => {
     setting: "indoor",
     confidence: 80,
     reason: "Playable court.",
+    nameOkay: true,
+    nameReason: "Ordinary court name.",
   }), true);
   assert.equal(acceptsVerifiedCourt({
     verified: true,
@@ -76,5 +109,7 @@ test("accepts only high-confidence supported playable courts", () => {
     setting: "indoor",
     confidence: 79,
     reason: "Playable court.",
+    nameOkay: true,
+    nameReason: "Ordinary court name.",
   }), false);
 });

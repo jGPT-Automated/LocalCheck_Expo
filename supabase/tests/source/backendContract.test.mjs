@@ -11,6 +11,20 @@ async function migrationEndingWith(suffix) {
   return readFile(new URL(name, migrationDir), "utf8");
 }
 
+test("signed-in users can persist a validated profile ZIP", async () => {
+  const columnSql = await migrationEndingWith("_add_profile_postal_code.sql");
+  const grantSql = await migrationEndingWith(
+    "_grant_profile_postal_code_update.sql",
+  );
+
+  assert.match(columnSql, /add column if not exists postal_code text/i);
+  assert.match(columnSql, /postal_code ~ '\^\[0-9\]\{5\}\$'/i);
+  assert.match(
+    grantSql,
+    /grant update \(postal_code\)[\s\S]*on table public\.profiles[\s\S]*to authenticated/i,
+  );
+});
+
 test("verified court creation is atomic, quota-bound, and duplicate-safe", async () => {
   const sql = await migrationEndingWith("_add_verified_court_creation.sql");
   assert.match(
@@ -57,6 +71,37 @@ test("new verified courts do not require a paid, free, or private access classif
   }
   assert.doesNotMatch(modal, />ACCESS</);
   assert.match(edgeFunction, /store:\s*false/);
+});
+
+test("community court names stay private and pending manual review", async () => {
+  const sql = await migrationEndingWith(
+    "_add_court_submission_name_review.sql",
+  );
+  for (const contract of [
+    "private.court_submission_reviews",
+    "source_official_name",
+    "source_short_name",
+    "submitted_official_name",
+    "submitted_short_name",
+    "name_was_edited",
+    "gemini_name_ok",
+    "public.create_court_submission_v3",
+    "'needs_review'",
+  ]) {
+    assert.ok(sql.includes(contract), `missing court review contract ${contract}`);
+  }
+  assert.match(
+    sql,
+    /create policy "Submitters can view pending courts"[\s\S]*added_by = \(select auth\.uid\(\)\)/i,
+  );
+  assert.match(
+    sql,
+    /revoke execute on function public\.create_court_submission_v3[\s\S]*from public, anon, authenticated/i,
+  );
+  assert.doesNotMatch(
+    sql,
+    /grant execute on function public\.create_court_submission_v3[^;]*to authenticated/i,
+  );
 });
 
 test("safety controls enforce blocking across reads and social writes", async () => {
@@ -193,7 +238,10 @@ test("match disputes use one bounded hold and revision lifecycle", async () => {
     "public.respond_to_match",
     "public.update_held_match",
   ]) {
-    assert.ok(sql.includes(contract), `missing dispute lifecycle contract ${contract}`);
+    assert.ok(
+      sql.includes(contract),
+      `missing dispute lifecycle contract ${contract}`,
+    );
   }
   assert.match(sql, /status in \('pending', 'held', 'confirmed', 'voided'\)/i);
   assert.match(sql, /now\(\) \+ interval '3 days'/i);

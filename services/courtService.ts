@@ -372,6 +372,10 @@ export async function fetchCourtsByMarket(
 }
 
 export interface VerifiedCourtSubmission {
+  suggestedOfficialName?: string;
+  suggestedShortName?: string;
+  officialName?: string;
+  shortName?: string;
   name?: string;
   address: string;
   city: string;
@@ -388,6 +392,8 @@ export interface CourtSubmissionResult {
   reason: string;
   sport?: CourtSport;
   court?: Court;
+  submissionStatus?: "pending_review";
+  nameReview?: unknown;
 }
 
 interface CourtSubmissionResponse {
@@ -396,6 +402,8 @@ interface CourtSubmissionResponse {
   reason?: unknown;
   sport?: unknown;
   court?: unknown;
+  submissionStatus?: unknown;
+  nameReview?: unknown;
 }
 
 async function functionErrorMessage(error: unknown): Promise<string> {
@@ -463,6 +471,8 @@ export async function createCourt(
       reason,
       sport,
       court,
+      submissionStatus: payload.submissionStatus === "pending_review" ? "pending_review" : undefined,
+      nameReview: payload.nameReview,
     };
   } catch (error) {
     return {

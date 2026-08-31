@@ -163,6 +163,7 @@ function RootLayoutNav() {
         <Stack.Screen name="notifications" options={detailScreenOptions} />
         <Stack.Screen name="match/[id]" options={detailScreenOptions} />
         <Stack.Screen name="settings" options={detailScreenOptions} />
+        <Stack.Screen name="add-court" options={{ ...detailScreenOptions, presentation: "fullScreenModal" }} />
         <Stack.Screen name="auth" options={{ headerShown: false }} />
       </Stack>
     </AuthGate>

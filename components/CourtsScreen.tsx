@@ -4,15 +4,15 @@ import {
   ActivityIndicator,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
 
-import { AddCourtModal } from "@/components/AddCourtModal";
+import { useRouter } from "expo-router";
 import { CourtListItem } from "@/components/CourtListItem";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { MapScreen } from "@/components/MapScreen";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useCourtSheet } from "@/components/sheet/CourtSheetHost";
@@ -52,7 +52,7 @@ export function CourtsScreen() {
   const [nearbyCourts, setNearbyCourts] = useState<Court[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
-  const [showAddCourt, setShowAddCourt] = useState(false);
+  const router = useRouter();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Court[]>([]);
@@ -169,7 +169,7 @@ export function CourtsScreen() {
           <Pressable
             accessibilityLabel="Add a court"
             accessibilityRole="button"
-            onPress={() => setShowAddCourt(true)}
+            onPress={() => router.push("/add-court")}
             style={({ pressed }) => [styles.addCourtAction, pressed && styles.addCourtActionPressed]}
             testID="add-court-action"
           >
@@ -227,11 +227,13 @@ export function CourtsScreen() {
           <MapScreen sportFilter={sportFilter} />
         </View>
       ) : (
-        <ScrollView
+        <KeyboardAwareScrollViewCompat
+          bottomOffset={104}
           style={styles.list}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 84 : 110 }}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         >
           {!isSearchMode && localCourtLive && (
             <View style={styles.localSection}>
@@ -301,14 +303,9 @@ export function CourtsScreen() {
               </Pressable>
             )}
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollViewCompat>
       )}
 
-      <AddCourtModal
-        onAdded={() => loadDiscovery()}
-        onClose={() => setShowAddCourt(false)}
-        visible={showAddCourt}
-      />
     </View>
   );
 }
@@ -316,7 +313,7 @@ export function CourtsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   addCourtAction: {
-    minHeight: 36,
+    minHeight: 44,
     minWidth: 64,
     flexDirection: "row",
     alignItems: "center",

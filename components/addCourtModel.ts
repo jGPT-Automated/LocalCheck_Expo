@@ -44,3 +44,17 @@ export function courtDetailsReady({
     && city.trim().length >= 2
     && /^[A-Za-z]{2}$/.test(stateCode.trim());
 }
+
+/** Keep card labels source-derived, compact, and stable across platforms. */
+export function compactCourtLabel(officialName: string, street: string): string {
+  const source = (officialName.trim() || street.trim()).replace(/\s+/g, " ");
+  if (source.length <= 32) return source;
+  const words = source.split(" ");
+  let result = "";
+  for (const word of words) {
+    const next = result ? `${result} ${word}` : word;
+    if (next.length > 32) break;
+    result = next;
+  }
+  return result || source.slice(0, 32).trim();
+}
