@@ -73,6 +73,37 @@ test("new verified courts do not require a paid, free, or private access classif
   assert.match(edgeFunction, /store:\s*false/);
 });
 
+test("community court names stay private and pending manual review", async () => {
+  const sql = await migrationEndingWith(
+    "_add_court_submission_name_review.sql",
+  );
+  for (const contract of [
+    "private.court_submission_reviews",
+    "source_official_name",
+    "source_short_name",
+    "submitted_official_name",
+    "submitted_short_name",
+    "name_was_edited",
+    "gemini_name_ok",
+    "public.create_court_submission_v3",
+    "'needs_review'",
+  ]) {
+    assert.ok(sql.includes(contract), `missing court review contract ${contract}`);
+  }
+  assert.match(
+    sql,
+    /create policy "Submitters can view pending courts"[\s\S]*added_by = \(select auth\.uid\(\)\)/i,
+  );
+  assert.match(
+    sql,
+    /revoke execute on function public\.create_court_submission_v3[\s\S]*from public, anon, authenticated/i,
+  );
+  assert.doesNotMatch(
+    sql,
+    /grant execute on function public\.create_court_submission_v3[^;]*to authenticated/i,
+  );
+});
+
 test("safety controls enforce blocking across reads and social writes", async () => {
   const sql = await migrationEndingWith("_add_user_safety_controls.sql");
   for (const contract of [
