@@ -549,38 +549,54 @@ export async function reviewScheduledMatch(
 }
 
 export async function confirmMatch(matchId: string): Promise<boolean> {
-  const { error } = await supabase.rpc("confirm_match", {
+  const { data, error } = await supabase.rpc("confirm_match", {
     p_match_id: matchId,
   });
   if (error) {
     console.warn("confirmMatch failed", error.message);
     return false;
   }
-  return true;
+  return Boolean(data && (data as { id?: string }).id === matchId);
 }
 
 export async function rejectMatch(matchId: string): Promise<boolean> {
-  const { error } = await supabase.rpc("reject_match", { p_match_id: matchId });
+  const { data, error } = await supabase.rpc("reject_match", { p_match_id: matchId });
   if (error) {
     console.warn("rejectMatch failed", error.message);
     return false;
   }
-  return true;
+  return Boolean(data && (data as { id?: string }).id === matchId);
 }
 
 export async function respondToMatch(
   matchId: string,
   decision: "approve" | "dispute",
-): Promise<boolean> {
-  const { error } = await supabase.rpc("respond_to_match", {
-    p_match_id: matchId,
-    p_decision: decision,
-  });
+  correction?: {
+    explanation?: string;
+    courtId?: string;
+    scoreA?: number;
+    scoreB?: number;
+    playedOn?: string;
+  },
+): Promise<SupabaseMatch | null> {
+  const request = correction
+    ? {
+        p_match_id: matchId,
+        p_decision: decision,
+        p_explanation: correction.explanation ?? null,
+        p_court_id: correction.courtId ?? null,
+        p_score_a: correction.scoreA ?? null,
+        p_score_b: correction.scoreB ?? null,
+        p_played_on: correction.playedOn ?? null,
+      }
+    : { p_match_id: matchId, p_decision: decision };
+  const { data, error } = await supabase.rpc("respond_to_match", request);
   if (error) {
     console.warn("respondToMatch failed", error.message);
-    return false;
+    return null;
   }
-  return true;
+  const row = data as SupabaseMatch | null;
+  return row?.id === matchId ? row : null;
 }
 
 export async function updateHeldMatch(payload: {

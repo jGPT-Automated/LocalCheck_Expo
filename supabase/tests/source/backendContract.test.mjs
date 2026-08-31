@@ -254,6 +254,22 @@ test("match disputes use one bounded hold and revision lifecycle", async () => {
   assert.match(sql, /GAME VOIDED/i);
 });
 
+test("hardened match responses audit disputes, bound notes, and scope team approvals", async () => {
+  const sql = await migrationEndingWith("_harden_match_review_lifecycle.sql");
+  assert.match(sql, /insert into public\.match_participant_reviews[\s\S]*values \(v_match\.id, v_user_id, 'disputed', now\(\)\)/i);
+  assert.match(sql, /dispute_note text/i);
+  assert.match(sql, /char_length\(v_explanation\) > 280/i);
+  assert.match(sql, /status = 'held'[\s\S]*resolution_due_at = now\(\) \+ interval '7 days'/i);
+  assert.match(sql, /status = 'pending'[\s\S]*review_due_at = now\(\) \+ interval '3 days'/i);
+  assert.match(sql, /v_next_dispute >= 3[\s\S]*status = 'voided'/i);
+  assert.match(sql, /v_match\.team_size > 1 and exists[\s\S]*decision <> 'approved'/i);
+  assert.match(sql, /where match_id = v_match\.id[\s\S]*decision = case when user_id = v_user_id then 'approved' else 'pending' end/i);
+  assert.match(sql, /old\.status is not distinct from new\.status[\s\S]*revision_number[\s\S]*return new/i);
+  assert.match(sql, /new\.status = 'pending'[\s\S]*revision_number[\s\S]*GAME UPDATED/i);
+  assert.match(sql, /match-revised:' \|\| new\.id::text[\s\S]*new\.revision_number::text[\s\S]*v_user_id::text/i);
+  assert.match(sql, /for v_user_id in[\s\S]*private\.create_notification[\s\S]*private\.send_invalidation/i);
+});
+
 test("push delivery uses Vault, durable tickets, cron retry, and receipt reconciliation", async () => {
   const sql = await migrationEndingWith("_complete_push_delivery.sql");
   for (const contract of [

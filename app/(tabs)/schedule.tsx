@@ -1,5 +1,11 @@
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Modal,
   Platform,
@@ -22,7 +28,11 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { FormSheet } from "@/components/sheet/FormSheet";
 import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
 import { SpeedDialFab } from "@/components/ui/SpeedDialFab";
-import { scheduleSlotIndex, scheduleSlotLabel, SLOT_HOURS } from "@/components/schedule/scheduleModel";
+import {
+  scheduleSlotIndex,
+  scheduleSlotLabel,
+  SLOT_HOURS,
+} from "@/components/schedule/scheduleModel";
 import {
   formatScheduledGameTime,
   generatedScheduledGameTitle,
@@ -40,15 +50,34 @@ import { fetchCourtById, searchCourts } from "@/services/courtService";
 const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
 const RUN_TIMES = [
-  "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00",
-  "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00",
+  "08:00",
+  "09:00",
+  "10:00",
+  "11:00",
+  "12:00",
+  "13:00",
+  "14:00",
+  "15:00",
+  "16:00",
+  "17:00",
+  "18:00",
+  "19:00",
+  "20:00",
+  "21:00",
+  "22:00",
+  "23:00",
 ];
 
 // Rolling next-7-days window (today first) — matches the product model of
 // "who's going this week" and the [today, +7d] data fetch window. A calendar
 // Sun–Sat strip showed past days whose runs the fetch window excludes, which
 // made freshly created runs invisible ("NO RUNS SCHEDULED" bug, 2026-07-17).
-function getWeekDays(): { label: string; dayOfWeek: string; isToday: boolean; date: number }[] {
+function getWeekDays(): {
+  label: string;
+  dayOfWeek: string;
+  isToday: boolean;
+  date: number;
+}[] {
   const today = new Date();
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today);
@@ -75,7 +104,9 @@ const TIME_COLS = 4;
 // upcoming list, not the heatmap); planned "My Times" stay a rolling 7 days.
 const RUN_PICKER_DAYS = 7;
 const VISIT_PICKER_DAYS = 7;
-function getNextDays(count: number): { initial: string; date: number; offset: number }[] {
+function getNextDays(
+  count: number,
+): { initial: string; date: number; offset: number }[] {
   const today = new Date();
   return Array.from({ length: count }, (_, i) => {
     const d = new Date(today);
@@ -138,9 +169,11 @@ function CourtField({
           <Text style={styles.courtFieldName} numberOfLines={1}>
             {selected.name.toUpperCase()}
           </Text>
-          {(selected.neighborhood || selected.city) ? (
+          {selected.neighborhood || selected.city ? (
             <Text style={styles.courtFieldSub} numberOfLines={1}>
-              {[selected.neighborhood, selected.city].filter(Boolean).join(" · ")}
+              {[selected.neighborhood, selected.city]
+                .filter(Boolean)
+                .join(" · ")}
             </Text>
           ) : null}
         </View>
@@ -177,7 +210,10 @@ function CourtField({
           {results.map((c) => (
             <Pressable
               key={c.id}
-              style={({ pressed }) => [styles.courtResultRow, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.courtResultRow,
+                pressed && styles.pressed,
+              ]}
               onPress={() => {
                 onSelect(c);
                 setQuery("");
@@ -191,7 +227,9 @@ function CourtField({
                 <Text style={styles.courtFieldSub} numberOfLines={1}>
                   {[
                     c.city,
-                    c.distanceKm != null ? `${c.distanceKm.toFixed(1)} KM` : null,
+                    c.distanceKm != null
+                      ? `${c.distanceKm.toFixed(1)} KM`
+                      : null,
                   ]
                     .filter(Boolean)
                     .join(" · ") || c.neighborhood}
@@ -222,7 +260,7 @@ function DayGrid({
   days?: number;
 }) {
   const days = getNextDays(dayCount);
-  const rows: typeof days[] = [];
+  const rows: (typeof days)[] = [];
   for (let i = 0; i < days.length; i += 7) rows.push(days.slice(i, i + 7));
   return (
     <View>
@@ -236,10 +274,20 @@ function DayGrid({
                 style={[styles.dayGridCell, active && styles.dayGridCellActive]}
                 onPress={() => onSelect(d.offset)}
               >
-                <Text style={[styles.dayGridInitial, active && styles.dayGridInitialActive]}>
+                <Text
+                  style={[
+                    styles.dayGridInitial,
+                    active && styles.dayGridInitialActive,
+                  ]}
+                >
                   {d.initial}
                 </Text>
-                <Text style={[styles.dayGridDate, active && styles.dayGridDateActive]}>
+                <Text
+                  style={[
+                    styles.dayGridDate,
+                    active && styles.dayGridDateActive,
+                  ]}
+                >
                   {d.date}
                 </Text>
               </Pressable>
@@ -275,11 +323,22 @@ function TimeGrid({
             return (
               <Pressable
                 key={t}
-                style={[styles.gridCell, active && styles.gridCellActive, disabled && styles.gridCellDisabled]}
+                style={[
+                  styles.gridCell,
+                  active && styles.gridCellActive,
+                  disabled && styles.gridCellDisabled,
+                ]}
                 onPress={() => onSelect(t)}
                 disabled={disabled}
               >
-                <Text style={[styles.gridCellText, active && styles.gridCellTextActive]}>{t}</Text>
+                <Text
+                  style={[
+                    styles.gridCellText,
+                    active && styles.gridCellTextActive,
+                  ]}
+                >
+                  {t}
+                </Text>
               </Pressable>
             );
           })}
@@ -327,7 +386,9 @@ function HostRunModal({
       setCourt(defaultCourtRef.current);
       const nextHour = new Date().getHours() + 1;
       setDayOffset(nextHour > 23 ? 1 : 0);
-      setTime(`${String(nextHour > 23 ? 18 : Math.max(8, nextHour)).padStart(2, "0")}:00`);
+      setTime(
+        `${String(nextHour > 23 ? 18 : Math.max(8, nextHour)).padStart(2, "0")}:00`,
+      );
       setFailed(false);
     }
   }, [visible]);
@@ -371,95 +432,126 @@ function HostRunModal({
       title="Create game"
       bottomClearance={Layout.tabBarClearance}
     >
-          <View style={styles.gamePreview}>
-            <View style={styles.gamePreviewTop}>
-              <Text style={styles.gamePreviewTitle}>{generatedTitle}</Text>
-              <Text style={styles.gamePreviewTime}>{formatScheduledGameTime(time)}</Text>
-            </View>
-            <Text style={styles.gamePreviewCourt} numberOfLines={1}>
-              {court?.name.toUpperCase() ?? "SELECT A COURT"}
-            </Text>
-            <Text style={styles.gamePreviewMeta}>
-              ONE GAME · TWO TEAMS · OFFICIAL RESULT
-            </Text>
-          </View>
+      <View style={styles.gamePreview}>
+        <View style={styles.gamePreviewTop}>
+          <Text style={styles.gamePreviewTitle}>{generatedTitle}</Text>
+          <Text style={styles.gamePreviewTime}>
+            {formatScheduledGameTime(time)}
+          </Text>
+        </View>
+        <Text style={styles.gamePreviewCourt} numberOfLines={1}>
+          {court?.name.toUpperCase() ?? "SELECT A COURT"}
+        </Text>
+        <Text style={styles.gamePreviewMeta}>
+          ONE GAME · TWO TEAMS · OFFICIAL RESULT
+        </Text>
+      </View>
 
-          <Text style={styles.fieldLabel}>FORMAT</Text>
-          <View style={styles.formatRow}>
-            {formats.map((option) => (
-              <Pressable
-                key={option}
-                accessibilityRole="button"
-                accessibilityState={{ selected: option === format }}
-                onPress={() => setFormat(option)}
-                style={[styles.formatOption, option === format && styles.formatOptionActive]}
-              >
-                <Text style={[styles.formatOptionText, option === format && styles.formatOptionTextActive]}>
-                  {option}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <Text style={styles.fieldLabel}>COURT</Text>
-          <CourtField selected={court} onSelect={setCourt} onClear={() => setCourt(null)} />
-
-          <Text style={styles.fieldLabel}>DAY · NEXT 7 DAYS</Text>
-          <DayGrid selected={dayOffset} onSelect={setDayOffset} days={RUN_PICKER_DAYS} />
-
-          <Text style={styles.fieldLabel}>START TIME</Text>
-          <View style={styles.timeStepper}>
-            <Pressable
-              accessibilityLabel="One hour earlier"
-              onPress={() => setTime((value) => shiftScheduledGameTime(value, -1))}
-              style={styles.timeStepButton}
-            >
-              <Feather name="minus" size={20} color={Colors.textSecondary} />
-            </Pressable>
-            <View style={styles.timeStepValue}>
-              <Text style={styles.timeStepText}>{formatScheduledGameTime(time)}</Text>
-            </View>
-            <Pressable
-              accessibilityLabel="One hour later"
-              onPress={() => setTime((value) => shiftScheduledGameTime(value, 1))}
-              style={styles.timeStepButton}
-            >
-              <Feather name="plus" size={20} color={Colors.textSecondary} />
-            </Pressable>
-          </View>
-
-          <Text style={styles.fieldLabel}>NOTE (OPTIONAL)</Text>
-          <TextInput
-            style={styles.fieldInput}
-            value={note}
-            onChangeText={setNote}
-            placeholder="Bring a dark shirt"
-            placeholderTextColor={Colors.mutedDark}
-          />
-
-          {failed && (
-            <Text style={styles.createError}>COULD NOT SCHEDULE GAME — TRY AGAIN</Text>
-          )}
-
+      <Text style={styles.fieldLabel}>FORMAT</Text>
+      <View style={styles.formatRow}>
+        {formats.map((option) => (
           <Pressable
-            style={[styles.createBtn, !canSubmit && styles.createBtnDisabled]}
-            onPress={handleCreate}
-            disabled={!canSubmit}
+            key={option}
+            accessibilityRole="button"
+            accessibilityState={{ selected: option === format }}
+            onPress={() => setFormat(option)}
+            style={[
+              styles.formatOption,
+              option === format && styles.formatOptionActive,
+            ]}
           >
-            <Text style={styles.createBtnText}>
-              {submitting ? "CREATING…" : "SCHEDULE GAME"}
+            <Text
+              style={[
+                styles.formatOptionText,
+                option === format && styles.formatOptionTextActive,
+              ]}
+            >
+              {option}
             </Text>
           </Pressable>
+        ))}
+      </View>
+
+      <Text style={styles.fieldLabel}>COURT</Text>
+      <CourtField
+        selected={court}
+        onSelect={setCourt}
+        onClear={() => setCourt(null)}
+      />
+
+      <Text style={styles.fieldLabel}>DAY · NEXT 7 DAYS</Text>
+      <DayGrid
+        selected={dayOffset}
+        onSelect={setDayOffset}
+        days={RUN_PICKER_DAYS}
+      />
+
+      <Text style={styles.fieldLabel}>START TIME</Text>
+      <View style={styles.timeStepper}>
+        <Pressable
+          accessibilityLabel="One hour earlier"
+          onPress={() => setTime((value) => shiftScheduledGameTime(value, -1))}
+          style={styles.timeStepButton}
+        >
+          <Feather name="minus" size={20} color={Colors.textSecondary} />
+        </Pressable>
+        <View style={styles.timeStepValue}>
+          <Text style={styles.timeStepText}>
+            {formatScheduledGameTime(time)}
+          </Text>
+        </View>
+        <Pressable
+          accessibilityLabel="One hour later"
+          onPress={() => setTime((value) => shiftScheduledGameTime(value, 1))}
+          style={styles.timeStepButton}
+        >
+          <Feather name="plus" size={20} color={Colors.textSecondary} />
+        </Pressable>
+      </View>
+
+      <Text style={styles.fieldLabel}>NOTE (OPTIONAL)</Text>
+      <TextInput
+        style={styles.fieldInput}
+        value={note}
+        onChangeText={setNote}
+        placeholder="Bring a dark shirt"
+        placeholderTextColor={Colors.mutedDark}
+      />
+
+      {failed && (
+        <Text style={styles.createError}>
+          COULD NOT SCHEDULE GAME — TRY AGAIN
+        </Text>
+      )}
+
+      <Pressable
+        style={[styles.createBtn, !canSubmit && styles.createBtnDisabled]}
+        onPress={handleCreate}
+        disabled={!canSubmit}
+      >
+        <Text style={styles.createBtnText}>
+          {submitting ? "CREATING…" : "SCHEDULE GAME"}
+        </Text>
+      </Pressable>
     </RunFlowSheet>
   );
 }
 
 type Visibility = "public" | "friends" | "private";
-const VISIBILITY_OPTIONS: { value: Visibility; label: string; hint: string }[] = [
-  { value: "public", label: "PUBLIC", hint: "Anyone can see you're pulling up" },
-  { value: "friends", label: "FRIENDS", hint: "Only friends see your name" },
-  { value: "private", label: "PRIVATE", hint: "Just for you — still counts on the heatmap" },
-];
+const VISIBILITY_OPTIONS: { value: Visibility; label: string; hint: string }[] =
+  [
+    {
+      value: "public",
+      label: "PUBLIC",
+      hint: "Anyone can see you're pulling up",
+    },
+    { value: "friends", label: "FRIENDS", hint: "Only friends see your name" },
+    {
+      value: "private",
+      label: "PRIVATE",
+      hint: "Just for you — still counts on the heatmap",
+    },
+  ];
 
 function PlanVisitModal({
   visible,
@@ -472,9 +564,13 @@ function PlanVisitModal({
   onClose: () => void;
   defaultCourt: Court | null;
   defaultDayIndex: number;
-  onSubmit: (courtId: string, plannedAtIso: string, note?: string, visibility?: Visibility) => Promise<boolean>;
+  onSubmit: (
+    courtId: string,
+    plannedAtIso: string,
+    note?: string,
+    visibility?: Visibility,
+  ) => Promise<boolean>;
 }) {
-
   const [note, setNote] = useState("");
   const [court, setCourt] = useState<Court | null>(defaultCourt);
   const [dayOffset, setDayOffset] = useState(0);
@@ -503,7 +599,12 @@ function PlanVisitModal({
     if (!canSubmit || !court) return;
     setSubmitting(true);
     setFailed(false);
-    const ok = await onSubmit(court.id, plannedAt.toISOString(), note.trim() || undefined, visibility);
+    const ok = await onSubmit(
+      court.id,
+      plannedAt.toISOString(),
+      note.trim() || undefined,
+      visibility,
+    );
     setSubmitting(false);
     if (!ok) {
       setFailed(true);
@@ -513,64 +614,84 @@ function PlanVisitModal({
     onClose();
   };
 
-  const activeHint = VISIBILITY_OPTIONS.find((o) => o.value === visibility)?.hint;
+  const activeHint = VISIBILITY_OPTIONS.find(
+    (o) => o.value === visibility,
+  )?.hint;
 
   return (
     <FormSheet visible={visible} onClose={onClose} title="I'll be there">
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.sheetContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text style={styles.fieldLabel}>COURT</Text>
-          <CourtField selected={court} onSelect={setCourt} onClear={() => setCourt(null)} />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.sheetContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.fieldLabel}>COURT</Text>
+        <CourtField
+          selected={court}
+          onSelect={setCourt}
+          onClear={() => setCourt(null)}
+        />
 
-          <Text style={styles.fieldLabel}>DAY</Text>
-          <DayGrid selected={dayOffset} onSelect={setDayOffset} days={VISIT_PICKER_DAYS} />
+        <Text style={styles.fieldLabel}>DAY</Text>
+        <DayGrid
+          selected={dayOffset}
+          onSelect={setDayOffset}
+          days={VISIT_PICKER_DAYS}
+        />
 
-          <Text style={styles.fieldLabel}>AROUND WHAT TIME</Text>
-          <TimeGrid selected={time} dayOffset={dayOffset} onSelect={setTime} />
+        <Text style={styles.fieldLabel}>AROUND WHAT TIME</Text>
+        <TimeGrid selected={time} dayOffset={dayOffset} onSelect={setTime} />
 
-          <Text style={styles.fieldLabel}>WHO CAN SEE THIS</Text>
-          <View style={styles.gridRow}>
-            {VISIBILITY_OPTIONS.map((opt) => (
-              <Pressable
-                key={opt.value}
-                style={[styles.gridCell, visibility === opt.value && styles.gridCellActive]}
-                onPress={() => setVisibility(opt.value)}
-                testID={`visibility-${opt.value}`}
+        <Text style={styles.fieldLabel}>WHO CAN SEE THIS</Text>
+        <View style={styles.gridRow}>
+          {VISIBILITY_OPTIONS.map((opt) => (
+            <Pressable
+              key={opt.value}
+              style={[
+                styles.gridCell,
+                visibility === opt.value && styles.gridCellActive,
+              ]}
+              onPress={() => setVisibility(opt.value)}
+              testID={`visibility-${opt.value}`}
+            >
+              <Text
+                style={[
+                  styles.gridCellText,
+                  visibility === opt.value && styles.gridCellTextActive,
+                ]}
               >
-                <Text style={[styles.gridCellText, visibility === opt.value && styles.gridCellTextActive]}>
-                  {opt.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          {activeHint ? <Text style={styles.visibilityHint}>{activeHint}</Text> : null}
+                {opt.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        {activeHint ? (
+          <Text style={styles.visibilityHint}>{activeHint}</Text>
+        ) : null}
 
-          <Text style={styles.fieldLabel}>NOTE (OPTIONAL)</Text>
-          <TextInput
-            style={styles.fieldInput}
-            value={note}
-            onChangeText={setNote}
-            placeholder="Looking for 2v2"
-            placeholderTextColor={Colors.mutedDark}
-          />
+        <Text style={styles.fieldLabel}>NOTE (OPTIONAL)</Text>
+        <TextInput
+          style={styles.fieldInput}
+          value={note}
+          onChangeText={setNote}
+          placeholder="Looking for 2v2"
+          placeholderTextColor={Colors.mutedDark}
+        />
 
-          {failed && (
-            <Text style={styles.createError}>COULD NOT POST — TRY AGAIN</Text>
-          )}
+        {failed && (
+          <Text style={styles.createError}>COULD NOT POST — TRY AGAIN</Text>
+        )}
 
-          <Pressable
-            style={[styles.createBtn, !canSubmit && styles.createBtnDisabled]}
-            onPress={handleSubmit}
-            disabled={!canSubmit}
-          >
-            <Text style={styles.createBtnText}>
-              {submitting ? "POSTING…" : "POST MY TIME"}
-            </Text>
-          </Pressable>
-        </ScrollView>
+        <Pressable
+          style={[styles.createBtn, !canSubmit && styles.createBtnDisabled]}
+          onPress={handleSubmit}
+          disabled={!canSubmit}
+        >
+          <Text style={styles.createBtnText}>
+            {submitting ? "POSTING…" : "POST MY TIME"}
+          </Text>
+        </Pressable>
+      </ScrollView>
     </FormSheet>
   );
 }
@@ -612,29 +733,34 @@ function CourtPickerModal({
 }) {
   return (
     <FormSheet visible={visible} onClose={onClose} title="Pick a court">
-      <ScrollView contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">
-          {localCourt && (
-            <Pressable
-              style={styles.pickerLocalRow}
-              onPress={() => {
-                onSelect(localCourt);
-                onClose();
-              }}
-            >
-              <Feather name="map-pin" size={14} color={Colors.accent} />
-              <Text style={styles.pickerLocalText}>{localCourt.name.toUpperCase()}</Text>
-              <Text style={styles.pickerLocalTag}>MY COURT</Text>
-            </Pressable>
-          )}
-          <Text style={styles.fieldLabel}>SEARCH</Text>
-          <CourtField
-            selected={null}
-            onSelect={(c) => {
-              onSelect(c);
+      <ScrollView
+        contentContainerStyle={styles.sheetContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        {localCourt && (
+          <Pressable
+            style={styles.pickerLocalRow}
+            onPress={() => {
+              onSelect(localCourt);
               onClose();
             }}
-            onClear={() => {}}
-          />
+          >
+            <Feather name="map-pin" size={14} color={Colors.accent} />
+            <Text style={styles.pickerLocalText}>
+              {localCourt.name.toUpperCase()}
+            </Text>
+            <Text style={styles.pickerLocalTag}>MY COURT</Text>
+          </Pressable>
+        )}
+        <Text style={styles.fieldLabel}>SEARCH</Text>
+        <CourtField
+          selected={null}
+          onSelect={(c) => {
+            onSelect(c);
+            onClose();
+          }}
+          onClear={() => {}}
+        />
       </ScrollView>
     </FormSheet>
   );
@@ -651,14 +777,23 @@ export default function ScheduleScreen() {
     removePlannedVisit,
     savePlannedVisitBatch,
   } = useApp();
-  const params = useLocalSearchParams<{ courtId?: string; openCreate?: string }>();
+  const params = useLocalSearchParams<{
+    courtId?: string;
+    openCreate?: string;
+  }>();
   const { top, bottom } = useSafeAreaInsets();
 
   const [showHost, setShowHost] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [pickedCourt, setPickedCourt] = useState<Court | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<{ day: number; slot: number } | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<{
+    day: number;
+    slot: number;
+  } | null>(null);
   const [scheduleMode, setScheduleMode] = useState<"VIEW" | "EDIT">("VIEW");
+  const [timePeriod, setTimePeriod] = useState<"AM" | "PM">(
+    new Date().getHours() < 12 ? "AM" : "PM",
+  );
   const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
   const [editVisibility, setEditVisibility] = useState<Visibility>("public");
   const [savingTimes, setSavingTimes] = useState(false);
@@ -668,13 +803,18 @@ export default function ScheduleScreen() {
   // Anonymous planned-time counts per slot (from court_planned_times RPC):
   // includes friends-only/private plans so heatmap intensity is honest without
   // exposing who they are.
-  const [plannedBuckets, setPlannedBuckets] = useState<Record<string, number>>({});
+  const [plannedBuckets, setPlannedBuckets] = useState<Record<string, number>>(
+    {},
+  );
   const consumedCourtParamRef = useRef<string | null>(null);
   const consumedCreateParamRef = useRef<string | null>(null);
-  const saveNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   useEffect(() => {
     return () => {
-      if (saveNoticeTimeoutRef.current) clearTimeout(saveNoticeTimeoutRef.current);
+      if (saveNoticeTimeoutRef.current)
+        clearTimeout(saveNoticeTimeoutRef.current);
     };
   }, []);
 
@@ -684,7 +824,8 @@ export default function ScheduleScreen() {
   // Court Details deep-links here with the court already selected. Resolve it
   // from the in-memory discovery set first, then fall back to one direct read.
   useEffect(() => {
-    const requestedId = typeof params.courtId === "string" ? params.courtId : null;
+    const requestedId =
+      typeof params.courtId === "string" ? params.courtId : null;
     if (!requestedId || consumedCourtParamRef.current === requestedId) return;
     consumedCourtParamRef.current = requestedId;
     const known = courts.find((item) => item.id === requestedId);
@@ -704,7 +845,8 @@ export default function ScheduleScreen() {
   // A Court Details "Create a run" handoff opens the form exactly once after
   // the requested court is selected. Later manual court choices stay manual.
   useEffect(() => {
-    const requestedId = typeof params.courtId === "string" ? params.courtId : null;
+    const requestedId =
+      typeof params.courtId === "string" ? params.courtId : null;
     const openCreate = params.openCreate === "1";
     const requestKey = openCreate ? `${requestedId ?? "local"}:create` : null;
     if (!requestKey || consumedCreateParamRef.current === requestKey) return;
@@ -730,27 +872,29 @@ export default function ScheduleScreen() {
         d.setDate(weekStart.getDate() + i);
         return d;
       }),
-    [weekStart]
+    [weekStart],
   );
 
   const weekLabel = useMemo(() => {
-    const fmt = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const fmt = (d: Date) =>
+      d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
     const last = weekDays[6];
-    return weekStart.getMonth() === last.getMonth()
-      ? `${fmt(weekStart)}–${last.getDate()}`
-      : `${fmt(weekStart)} – ${fmt(last)}`;
+    return `${fmt(weekStart)} – ${fmt(last)}`;
   }, [weekStart, weekDays]);
 
   const bucketKey = useCallback(
     (iso: string): string | null => {
       const t = new Date(iso);
-      const dayIdx = Math.floor((t.getTime() - weekStart.getTime()) / 86_400_000);
+      const dayIdx = Math.floor(
+        (t.getTime() - weekStart.getTime()) / 86_400_000,
+      );
       if (dayIdx < 0 || dayIdx > 6) return null;
       const h = t.getHours();
-      if (h < SLOT_HOURS[0] || h >= SLOT_HOURS[SLOT_HOURS.length - 1] + 1) return null;
+      if (h < SLOT_HOURS[0] || h >= SLOT_HOURS[SLOT_HOURS.length - 1] + 1)
+        return null;
       return `${dayIdx}:${h - SLOT_HOURS[0]}`;
     },
-    [weekStart]
+    [weekStart],
   );
 
   // Pull the anonymous planned-time counts for the visible court + week. Re-runs
@@ -784,7 +928,12 @@ export default function ScheduleScreen() {
     const add = (iso: string, a: SlotAttendee, isPlanned: boolean) => {
       const key = bucketKey(iso);
       if (!key) return;
-      const entry = map.get(key) ?? { attendees: [], count: 0, plannedVisible: 0, runCount: 0 };
+      const entry = map.get(key) ?? {
+        attendees: [],
+        count: 0,
+        plannedVisible: 0,
+        runCount: 0,
+      };
       const existing = entry.attendees.find((x) => x.id === a.id);
       if (!existing) {
         entry.attendees.push(a);
@@ -806,22 +955,32 @@ export default function ScheduleScreen() {
           isMine: v.userId === currentUser.id,
           visitId: v.id,
         },
-        true
+        true,
       );
     }
     for (const r of runs) {
       if (r.courtId !== court.id) continue;
       const runKey = bucketKey(r.startTimeIso);
       if (runKey) {
-        const entry = map.get(runKey) ?? { attendees: [], count: 0, plannedVisible: 0, runCount: 0 };
+        const entry = map.get(runKey) ?? {
+          attendees: [],
+          count: 0,
+          plannedVisible: 0,
+          runCount: 0,
+        };
         entry.runCount += 1;
         map.set(runKey, entry);
       }
       for (const p of r.participants) {
         add(
           r.startTimeIso,
-          { id: p.id, name: p.name, initials: p.avatar, isMine: p.id === currentUser.id },
-          false
+          {
+            id: p.id,
+            name: p.name,
+            initials: p.avatar,
+            isMine: p.id === currentUser.id,
+          },
+          false,
         );
       }
     }
@@ -836,18 +995,20 @@ export default function ScheduleScreen() {
       const visiblePlanned = slotMap.get(key)?.plannedVisible ?? 0;
       return Math.max(0, rpc - visiblePlanned);
     },
-    [plannedBuckets, slotMap]
+    [plannedBuckets, slotMap],
   );
   const slotTotal = useCallback(
-    (key: string) => (slotMap.get(key)?.attendees.length ?? 0) + slotHidden(key),
-    [slotMap, slotHidden]
+    (key: string) =>
+      (slotMap.get(key)?.attendees.length ?? 0) + slotHidden(key),
+    [slotMap, slotHidden],
   );
 
   const myVisitsByKey = useMemo(() => {
     const map = new Map<string, PlannedVisit[]>();
     if (!court) return map;
     for (const visit of plannedVisits) {
-      if (visit.courtId !== court.id || visit.userId !== currentUser.id) continue;
+      if (visit.courtId !== court.id || visit.userId !== currentUser.id)
+        continue;
       const key = bucketKey(visit.plannedAtIso);
       if (!key) continue;
       map.set(key, [...(map.get(key) ?? []), visit]);
@@ -865,11 +1026,17 @@ export default function ScheduleScreen() {
   const courtRuns = useMemo(() => {
     if (!court) return [];
     return runs
-      .filter((r) => r.courtId === court.id && new Date(r.startTimeIso).getTime() >= weekStart.getTime())
+      .filter(
+        (r) =>
+          r.courtId === court.id &&
+          new Date(r.startTimeIso).getTime() >= weekStart.getTime(),
+      )
       .sort((a, b) => a.startTimeIso.localeCompare(b.startTimeIso));
   }, [court, runs, weekStart]);
 
-  const selectedKey = selectedSlot ? `${selectedSlot.day}:${selectedSlot.slot}` : null;
+  const selectedKey = selectedSlot
+    ? `${selectedSlot.day}:${selectedSlot.slot}`
+    : null;
   const selectedEntry = selectedKey ? slotMap.get(selectedKey) : undefined;
   const selectedDate = selectedSlot ? weekDays[selectedSlot.day] : null;
 
@@ -882,9 +1049,11 @@ export default function ScheduleScreen() {
 
   const currentSlotIndex = Math.max(
     0,
-    scheduleSlotIndex(new Date().getHours())
+    scheduleSlotIndex(new Date().getHours()),
   );
   const currentKey = `0:${currentSlotIndex}`;
+  const switchTimePeriod = () =>
+    setTimePeriod((period) => (period === "AM" ? "PM" : "AM"));
 
   // Returning to Schedule should always answer "what is happening now?" first.
   // A deliberate tap can still move the detail card to any other slot.
@@ -893,14 +1062,18 @@ export default function ScheduleScreen() {
       if (scheduleMode === "VIEW") {
         setSelectedSlot({ day: 0, slot: currentSlotIndex });
       }
-    }, [currentSlotIndex, scheduleMode])
+    }, [currentSlotIndex, scheduleMode]),
   );
 
   const beginEditingTimes = () => {
     if (!court || court.id !== localCourt?.id) {
-      if (saveNoticeTimeoutRef.current) clearTimeout(saveNoticeTimeoutRef.current);
+      if (saveNoticeTimeoutRef.current)
+        clearTimeout(saveNoticeTimeoutRef.current);
       setSaveNotice("TIMES CAN ONLY BE EDITED AT YOUR LOCAL COURT.");
-      saveNoticeTimeoutRef.current = setTimeout(() => setSaveNotice(null), 3200);
+      saveNoticeTimeoutRef.current = setTimeout(
+        () => setSaveNotice(null),
+        3200,
+      );
       return;
     }
     setPendingKeys(new Set(myVisitsByKey.keys()));
@@ -967,10 +1140,17 @@ export default function ScheduleScreen() {
 
     setSavingTimes(true);
     setSaveNotice(null);
-    const ok = await savePlannedVisitBatch(court.id, additions, removals, editVisibility);
+    const ok = await savePlannedVisitBatch(
+      court.id,
+      additions,
+      removals,
+      editVisibility,
+    );
     setSavingTimes(false);
     if (!ok) {
-      setSaveNotice("SOME TIMES DIDN'T SAVE. YOUR SELECTIONS ARE STILL HERE. TRY AGAIN.");
+      setSaveNotice(
+        "SOME TIMES DIDN'T SAVE. YOUR SELECTIONS ARE STILL HERE. TRY AGAIN.",
+      );
       return;
     }
     setScheduleMode("VIEW");
@@ -990,7 +1170,11 @@ export default function ScheduleScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ── Court selector ── */}
-        <Pressable style={styles.courtSelector} onPress={() => setShowPicker(true)} testID="schedule-court-selector">
+        <Pressable
+          style={styles.courtSelector}
+          onPress={() => setShowPicker(true)}
+          testID="schedule-court-selector"
+        >
           <Feather name="map-pin" size={13} color={Colors.accent} />
           <Text style={styles.courtSelectorText} numberOfLines={1}>
             {court ? court.name : "Pick a court"}
@@ -998,16 +1182,12 @@ export default function ScheduleScreen() {
           <Feather name="chevron-right" size={15} color={Colors.muted} />
         </Pressable>
 
-        {/* ── Rolling-week label (no paging — see weekStart comment) ── */}
+        {/* ── Date range (no paging — see weekStart comment) ── */}
         <View style={styles.weekNav}>
-          <View>
-            <Text style={styles.weekEyebrow}>ROLLING WEEK</Text>
-            <Text style={styles.weekLabel}>{weekLabel}</Text>
-          </View>
-          <View style={styles.weekStatus}>
-            <Text style={styles.weekTag}>NEXT 7 DAYS</Text>
-            {scheduleMode === "EDIT" ? <Text style={styles.editingLabel}>EDITING TIMES</Text> : null}
-          </View>
+          <Text style={styles.weekLabel}>{weekLabel.toUpperCase()}</Text>
+          {scheduleMode === "EDIT" ? (
+            <Text style={styles.editingLabel}>EDITING TIMES</Text>
+          ) : null}
         </View>
 
         {/* Mode lives in the header action (EDIT / CANCEL) — this row only
@@ -1028,11 +1208,23 @@ export default function ScheduleScreen() {
                 <Pressable
                   key={option.value}
                   onPress={() => setEditVisibility(option.value)}
-                  style={[styles.editVisibilityButton, editVisibility === option.value && styles.editVisibilityButtonActive]}
+                  style={[
+                    styles.editVisibilityButton,
+                    editVisibility === option.value &&
+                      styles.editVisibilityButtonActive,
+                  ]}
                   accessibilityRole="button"
-                  accessibilityState={{ selected: editVisibility === option.value }}
+                  accessibilityState={{
+                    selected: editVisibility === option.value,
+                  }}
                 >
-                  <Text style={[styles.editVisibilityText, editVisibility === option.value && styles.editVisibilityTextActive]}>
+                  <Text
+                    style={[
+                      styles.editVisibilityText,
+                      editVisibility === option.value &&
+                        styles.editVisibilityTextActive,
+                    ]}
+                  >
                     {option.label}
                   </Text>
                 </Pressable>
@@ -1041,7 +1233,7 @@ export default function ScheduleScreen() {
           </View>
         ) : null}
 
-        {/* ── Heatmap: the time axis scrolls; the rest of the page stays fixed. ── */}
+        {/* ── Heatmap: the time axis switches between fixed AM and PM states. ── */}
         <View style={styles.heatmap}>
           {/* Day header row */}
           <View style={styles.heatRow}>
@@ -1050,92 +1242,185 @@ export default function ScheduleScreen() {
               const isToday = d.toDateString() === todayKey;
               return (
                 <View key={i} style={styles.heatDayHeader}>
-                  <Text style={[styles.heatDayName, isToday && styles.heatAxisActive]}>
+                  <Text
+                    style={[
+                      styles.heatDayName,
+                      isToday && styles.heatAxisActive,
+                    ]}
+                  >
                     {DAYS[d.getDay()]}
                   </Text>
-                  <Text style={[styles.heatDayDate, isToday && styles.heatAxisActive]}>
+                  <Text
+                    style={[
+                      styles.heatDayDate,
+                      isToday && styles.heatAxisActive,
+                    ]}
+                  >
                     {d.getDate()}
                   </Text>
                 </View>
               );
             })}
           </View>
-          <View style={styles.timeScrollCue} pointerEvents="none">
-            <Text style={styles.timeScrollCueText}>SWIPE TIMES</Text>
-            <Feather color={Colors.muted} name="chevrons-up" size={11} />
-          </View>
-          <ScrollView
-            contentContainerStyle={styles.timeRows}
-            contentOffset={{ x: 0, y: Math.max(0, (currentSlotIndex - 2) * 28) }}
-            decelerationRate="fast"
-            disableIntervalMomentum
-            nestedScrollEnabled
-            snapToAlignment="start"
-            snapToInterval={28}
-            showsVerticalScrollIndicator={false}
-            style={styles.timeScroller}
-          >
-          {SLOT_HOURS.map((h, slotIdx) => (
-            <View key={h} style={styles.heatRow}>
-              <View style={styles.heatTimeCol}>
-                <Text style={[styles.heatTimeText, slotIdx === currentSlotIndex && styles.heatAxisActive]}>{scheduleSlotLabel(h)}</Text>
+          <View>
+            {timePeriod === "PM" ? (
+              <View style={styles.timeArrowRow}>
+                <Pressable
+                  accessibilityLabel="Show AM times"
+                  accessibilityRole="button"
+                  hitSlop={2}
+                  onPress={switchTimePeriod}
+                  style={styles.timeArrow}
+                >
+                  <Feather color={Colors.text} name="chevron-up" size={18} />
+                </Pressable>
               </View>
-              {weekDays.map((_, dayIdx) => {
-                const key = `${dayIdx}:${slotIdx}`;
-                const count = slotTotal(key);
-                const isSelected =
-                  selectedSlot?.day === dayIdx && selectedSlot?.slot === slotIdx;
-                const isCurrent = key === currentKey;
-                const isMinePending = pendingKeys.has(key);
-                const wasMine = myVisitsByKey.has(key);
-                const previewCount = scheduleMode === "EDIT"
-                  ? Math.max(0, count + (isMinePending && !wasMine ? 1 : 0) - (!isMinePending && wasMine ? 1 : 0))
-                  : count;
-                const slotDate = new Date(weekDays[dayIdx]);
-                slotDate.setHours(SLOT_HOURS[slotIdx], 0, 0, 0);
-                slotDate.setHours(SLOT_HOURS[slotIdx] + 1, 0, 0, 0);
-                const isPast = slotDate.getTime() <= Date.now();
+            ) : null}
+            <View style={styles.timeRows}>
+              {SLOT_HOURS.filter((h) =>
+                timePeriod === "AM" ? h < 12 : h >= 12,
+              ).map((h) => {
+                const slotIdx = SLOT_HOURS.indexOf(h);
                 return (
-                  <Pressable
-                    key={dayIdx}
-                    style={[
-                      styles.heatCell,
-                      heatStyle(previewCount),
-                      isCurrent && styles.heatCellCurrent,
-                      isSelected && styles.heatCellSelected,
-                      scheduleMode === "EDIT" && isMinePending && styles.heatCellMine,
-                      scheduleMode === "EDIT" && isPast && !isMinePending && styles.heatCellDisabled,
-                    ]}
-                    onPress={() => scheduleMode === "EDIT"
-                      ? togglePendingKey(key)
-                      : setSelectedSlot(isSelected ? null : { day: dayIdx, slot: slotIdx })
-                    }
-                    disabled={scheduleMode === "EDIT" && isPast && !isMinePending}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${DAYS[weekDays[dayIdx].getDay()]} ${weekDays[dayIdx].getDate()}, ${scheduleSlotLabel(SLOT_HOURS[slotIdx])}, ${previewCount} going${isMinePending ? ", selected as my time" : ""}`}
-                    accessibilityState={{ selected: scheduleMode === "EDIT" ? isMinePending : isSelected, disabled: scheduleMode === "EDIT" && isPast && !isMinePending }}
-                    testID={`heat-${dayIdx}-${slotIdx}`}
-                  >
-                    {scheduleMode === "EDIT" && isMinePending ? (
-                      <Feather name="check" size={13} color={Colors.text} />
-                    ) : (isSelected || previewCount >= 5) && previewCount > 0 ? (
-                      <Text style={styles.heatCellCount}>{previewCount}</Text>
-                    ) : null}
-                    {(slotMap.get(key)?.runCount ?? 0) > 0 ? <View style={styles.runDot} /> : null}
-                  </Pressable>
+                  <View key={h} style={styles.heatRow}>
+                    <View style={styles.heatTimeCol}>
+                      <Text
+                        style={[
+                          styles.heatTimeText,
+                          slotIdx === currentSlotIndex && styles.heatAxisActive,
+                        ]}
+                      >
+                        {scheduleSlotLabel(h)}
+                      </Text>
+                    </View>
+                    {weekDays.map((_, dayIdx) => {
+                      const key = `${dayIdx}:${slotIdx}`;
+                      const count = slotTotal(key);
+                      const isSelected =
+                        selectedSlot?.day === dayIdx &&
+                        selectedSlot?.slot === slotIdx;
+                      const isCurrent = key === currentKey;
+                      const isMinePending = pendingKeys.has(key);
+                      const wasMine = myVisitsByKey.has(key);
+                      const previewCount =
+                        scheduleMode === "EDIT"
+                          ? Math.max(
+                              0,
+                              count +
+                                (isMinePending && !wasMine ? 1 : 0) -
+                                (!isMinePending && wasMine ? 1 : 0),
+                            )
+                          : count;
+                      const slotDate = new Date(weekDays[dayIdx]);
+                      slotDate.setHours(SLOT_HOURS[slotIdx], 0, 0, 0);
+                      slotDate.setHours(SLOT_HOURS[slotIdx] + 1, 0, 0, 0);
+                      const isPast = slotDate.getTime() <= Date.now();
+                      return (
+                        <Pressable
+                          key={dayIdx}
+                          style={[
+                            styles.heatCell,
+                            heatStyle(previewCount),
+                            isCurrent && styles.heatCellCurrent,
+                            isSelected && styles.heatCellSelected,
+                            scheduleMode === "EDIT" &&
+                              isMinePending &&
+                              styles.heatCellMine,
+                            scheduleMode === "EDIT" &&
+                              isPast &&
+                              !isMinePending &&
+                              styles.heatCellDisabled,
+                          ]}
+                          onPress={() =>
+                            scheduleMode === "EDIT"
+                              ? togglePendingKey(key)
+                              : setSelectedSlot(
+                                  isSelected
+                                    ? null
+                                    : { day: dayIdx, slot: slotIdx },
+                                )
+                          }
+                          disabled={
+                            scheduleMode === "EDIT" && isPast && !isMinePending
+                          }
+                          accessibilityRole="button"
+                          accessibilityLabel={`${DAYS[weekDays[dayIdx].getDay()]} ${weekDays[dayIdx].getDate()}, ${scheduleSlotLabel(SLOT_HOURS[slotIdx])}, ${previewCount} going${isMinePending ? ", selected as my time" : ""}`}
+                          accessibilityState={{
+                            selected:
+                              scheduleMode === "EDIT"
+                                ? isMinePending
+                                : isSelected,
+                            disabled:
+                              scheduleMode === "EDIT" &&
+                              isPast &&
+                              !isMinePending,
+                          }}
+                          testID={`heat-${dayIdx}-${slotIdx}`}
+                        >
+                          {scheduleMode === "EDIT" && isMinePending ? (
+                            <Feather
+                              name="check"
+                              size={13}
+                              color={Colors.text}
+                            />
+                          ) : (isSelected || previewCount >= 5) &&
+                            previewCount > 0 ? (
+                            <Text style={styles.heatCellCount}>
+                              {previewCount}
+                            </Text>
+                          ) : null}
+                          {(slotMap.get(key)?.runCount ?? 0) > 0 ? (
+                            <View style={styles.runDot} />
+                          ) : null}
+                        </Pressable>
+                      );
+                    })}
+                  </View>
                 );
               })}
             </View>
-          ))}
-          </ScrollView>
+            {timePeriod === "AM" ? (
+              <View style={styles.timeArrowRow}>
+                <Pressable
+                  accessibilityLabel="Show PM times"
+                  accessibilityRole="button"
+                  hitSlop={2}
+                  onPress={switchTimePeriod}
+                  style={styles.timeArrow}
+                >
+                  <Feather color={Colors.text} name="chevron-down" size={18} />
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
           {/* Legend */}
           <View style={styles.legendRow}>
             <View style={styles.legendScale}>
               <Text style={styles.legendText}>Quiet</Text>
-              <View style={[styles.legendSwatch, { backgroundColor: Colors.surface }]} />
-              <View style={[styles.legendSwatch, { backgroundColor: Colors.accentDim }]} />
-              <View style={[styles.legendSwatch, { backgroundColor: Colors.accentGlow }]} />
-              <View style={[styles.legendSwatch, { backgroundColor: Colors.accent }]} />
+              <View
+                style={[
+                  styles.legendSwatch,
+                  { backgroundColor: Colors.surface },
+                ]}
+              />
+              <View
+                style={[
+                  styles.legendSwatch,
+                  { backgroundColor: Colors.accentDim },
+                ]}
+              />
+              <View
+                style={[
+                  styles.legendSwatch,
+                  { backgroundColor: Colors.accentGlow },
+                ]}
+              />
+              <View
+                style={[
+                  styles.legendSwatch,
+                  { backgroundColor: Colors.accent },
+                ]}
+              />
               <Text style={styles.legendText}>Busy</Text>
             </View>
             <Text style={styles.legendText}>Local time · 1-hr slots</Text>
@@ -1143,70 +1428,87 @@ export default function ScheduleScreen() {
         </View>
 
         {/* ── Selected slot detail ── */}
-        {scheduleMode === "VIEW" && selectedSlot && selectedDate && selectedKey && (() => {
-          const total = slotTotal(selectedKey);
-          const hidden = slotHidden(selectedKey);
-          const visible = selectedEntry?.attendees ?? [];
-          return (
-          <View style={styles.slotCard}>
-            <Text style={styles.slotCardTitle}>
-              {DAYS[selectedDate.getDay()]} {selectedDate.getDate()} · {scheduleSlotLabel(SLOT_HOURS[selectedSlot.slot])}
-              {"  "}
-              <Text style={styles.slotCardGoing}>— {total} GOING</Text>
-            </Text>
-            {total > 0 ? (
-              <View style={styles.slotAvatars}>
-                {visible.slice(0, 8).map((a) => (
-                  <Pressable
-                    key={a.id}
-                    style={styles.slotAvatarItem}
-                    onPress={() => router.push(`/player/${a.id}`)}
-                  >
-                    <PlayerAvatar initials={a.initials} name={a.name} playerId={a.id} size={36} accent={a.isMine} />
-                    <Text style={styles.slotAvatarName} numberOfLines={1}>
-                      {a.isMine ? "You" : a.name.split(" ")[0]}
-                    </Text>
-                  </Pressable>
-                ))}
-                {visible.length > 8 && (
-                  <View style={styles.slotAvatarItem}>
-                    <View style={styles.slotMore}>
-                      <Text style={styles.slotMoreText}>+{visible.length - 8}</Text>
-                    </View>
+        {scheduleMode === "VIEW" &&
+          selectedSlot &&
+          selectedDate &&
+          selectedKey &&
+          (() => {
+            const total = slotTotal(selectedKey);
+            const hidden = slotHidden(selectedKey);
+            const visible = selectedEntry?.attendees ?? [];
+            return (
+              <View style={styles.slotCard}>
+                <Text style={styles.slotCardTitle}>
+                  {DAYS[selectedDate.getDay()]} {selectedDate.getDate()} ·{" "}
+                  {scheduleSlotLabel(SLOT_HOURS[selectedSlot.slot])}
+                  {"  "}
+                  <Text style={styles.slotCardGoing}>— {total} GOING</Text>
+                </Text>
+                {total > 0 ? (
+                  <View style={styles.slotAvatars}>
+                    {visible.slice(0, 8).map((a) => (
+                      <Pressable
+                        key={a.id}
+                        style={styles.slotAvatarItem}
+                        onPress={() => router.push(`/player/${a.id}`)}
+                      >
+                        <PlayerAvatar
+                          initials={a.initials}
+                          name={a.name}
+                          playerId={a.id}
+                          size={36}
+                          accent={a.isMine}
+                        />
+                        <Text style={styles.slotAvatarName} numberOfLines={1}>
+                          {a.isMine ? "You" : a.name.split(" ")[0]}
+                        </Text>
+                      </Pressable>
+                    ))}
+                    {visible.length > 8 && (
+                      <View style={styles.slotAvatarItem}>
+                        <View style={styles.slotMore}>
+                          <Text style={styles.slotMoreText}>
+                            +{visible.length - 8}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+                    {hidden > 0 && (
+                      <View style={styles.slotAvatarItem}>
+                        <View
+                          style={[styles.slotMore, styles.slotHiddenSquare]}
+                        >
+                          <Text style={styles.slotMoreText}>+{hidden}</Text>
+                        </View>
+                        <Text style={styles.slotAvatarName}>hidden</Text>
+                      </View>
+                    )}
                   </View>
+                ) : (
+                  <Text style={styles.slotEmpty}>
+                    Nobody yet — post your time so people know to pull up.
+                  </Text>
                 )}
-                {hidden > 0 && (
-                  <View style={styles.slotAvatarItem}>
-                    <View style={[styles.slotMore, styles.slotHiddenSquare]}>
-                      <Text style={styles.slotMoreText}>+{hidden}</Text>
-                    </View>
-                    <Text style={styles.slotAvatarName}>hidden</Text>
-                  </View>
-                )}
+                {(() => {
+                  const mine = selectedEntry?.attendees.find(
+                    (a) => a.isMine && a.visitId,
+                  );
+                  if (!mine?.visitId) return null;
+                  const visitId = mine.visitId;
+                  return (
+                    <Pressable
+                      style={styles.slotRemoveBtn}
+                      onPress={() => removePlannedVisit(visitId)}
+                      testID={`remove-visit-${visitId}`}
+                    >
+                      <Feather name="x" size={11} color={Colors.loss} />
+                      <Text style={styles.slotRemoveText}>REMOVE MY TIME</Text>
+                    </Pressable>
+                  );
+                })()}
               </View>
-            ) : (
-              <Text style={styles.slotEmpty}>
-                Nobody yet — post your time so people know to pull up.
-              </Text>
-            )}
-            {(() => {
-              const mine = selectedEntry?.attendees.find((a) => a.isMine && a.visitId);
-              if (!mine?.visitId) return null;
-              const visitId = mine.visitId;
-              return (
-                <Pressable
-                  style={styles.slotRemoveBtn}
-                  onPress={() => removePlannedVisit(visitId)}
-                  testID={`remove-visit-${visitId}`}
-                >
-                  <Feather name="x" size={11} color={Colors.loss} />
-                  <Text style={styles.slotRemoveText}>REMOVE MY TIME</Text>
-                </Pressable>
-              );
-            })()}
-          </View>
-          );
-        })()}
+            );
+          })()}
 
         {/* ── Scheduled games ── */}
         <View style={styles.runsSection}>
@@ -1217,7 +1519,9 @@ export default function ScheduleScreen() {
                 No games scheduled at this court this week.
               </Text>
             </View>
-          ) : courtRuns.map((run) => <RunCard key={run.id} run={run} />)}
+          ) : (
+            courtRuns.map((run) => <RunCard key={run.id} run={run} />)
+          )}
         </View>
       </ScrollView>
 
@@ -1226,7 +1530,11 @@ export default function ScheduleScreen() {
           accessibilityLabel="Open schedule actions"
           actions={[
             { label: "Add times", icon: "clock", onPress: beginEditingTimes },
-            { label: "Schedule game", icon: "users", onPress: () => setShowHost(true) },
+            {
+              label: "Schedule game",
+              icon: "users",
+              onPress: () => setShowHost(true),
+            },
           ]}
           bottom={Platform.OS === "web" ? 102 : bottom + 78}
         />
@@ -1234,9 +1542,18 @@ export default function ScheduleScreen() {
 
       {/* ── Bottom actions ── */}
       {scheduleMode === "EDIT" ? (
-        <View style={[styles.bottomBar, { paddingBottom: (Platform.OS === "web" ? 84 : bottom + 84) }]}>
+        <View
+          style={[
+            styles.bottomBar,
+            { paddingBottom: Platform.OS === "web" ? 84 : bottom + 84 },
+          ]}
+        >
           <>
-            <Pressable style={styles.bottomBtn} onPress={cancelEditingTimes} testID="cancel-edit-times-btn">
+            <Pressable
+              style={styles.bottomBtn}
+              onPress={cancelEditingTimes}
+              testID="cancel-edit-times-btn"
+            >
               <Text style={styles.bottomBtnText}>CANCEL</Text>
             </Pressable>
             <Pressable
@@ -1307,39 +1624,55 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   weekNav: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: 20,
     paddingTop: 14,
     paddingBottom: 10,
+    gap: 4,
   },
-  weekEyebrow: { fontFamily: Typography.bodyMedium, fontSize: 11, lineHeight: 13, color: Colors.muted, letterSpacing: 1.4 },
   weekLabel: {
     fontFamily: Typography.heading,
     fontSize: 26,
     lineHeight: 30,
     color: Colors.text,
     letterSpacing: 0.5,
-  },
-  weekStatus: { alignItems: "flex-end", justifyContent: "center", gap: 5 },
-  weekTag: {
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 11,
-    lineHeight: 13,
-    color: Colors.accent,
-    letterSpacing: 1.2,
+    textAlign: "center",
   },
   scheduleModeRow: {
     paddingHorizontal: 20,
     paddingBottom: 6,
     gap: 8,
+    alignItems: "center",
   },
-  editingLabel: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.accent, letterSpacing: 1.2 },
-  modeToggle: { flexDirection: "row", minHeight: 34, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.sm, overflow: "hidden", backgroundColor: Colors.surface },
-  modeToggleButton: { minWidth: 50, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 },
+  editingLabel: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 8,
+    color: Colors.accent,
+    letterSpacing: 1.2,
+  },
+  modeToggle: {
+    flexDirection: "row",
+    minHeight: 34,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    overflow: "hidden",
+    backgroundColor: Colors.surface,
+  },
+  modeToggleButton: {
+    minWidth: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8,
+  },
   modeToggleButtonActive: { backgroundColor: Colors.surfaceHigh },
-  modeToggleText: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.muted, letterSpacing: 1.1 },
+  modeToggleText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 8,
+    color: Colors.muted,
+    letterSpacing: 1.1,
+  },
   modeToggleTextActive: { color: Colors.accent },
   scheduleModeStatus: {
     fontFamily: Typography.bodySemiBold,
@@ -1347,6 +1680,7 @@ const styles = StyleSheet.create({
     lineHeight: 13,
     color: Colors.textSecondary,
     letterSpacing: 0.25,
+    textAlign: "center",
   },
   editOptions: {
     marginHorizontal: 20,
@@ -1373,7 +1707,10 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: Colors.border,
   },
-  editVisibilityButtonActive: { backgroundColor: Colors.surfaceHigh, borderColor: Colors.textSecondary },
+  editVisibilityButtonActive: {
+    backgroundColor: Colors.surfaceHigh,
+    borderColor: Colors.textSecondary,
+  },
   editVisibilityText: {
     fontFamily: Typography.bodyBold,
     fontSize: 8,
@@ -1406,11 +1743,28 @@ const styles = StyleSheet.create({
 
   // ── Heatmap ──
   heatmap: { paddingHorizontal: 20 },
-  timeScroller: { maxHeight: 228 },
   timeRows: { paddingBottom: 2 },
-  timeScrollCue: { width: 80, minHeight: 20, flexDirection: "row", alignItems: "center", justifyContent: "flex-start", gap: 4 },
-  timeScrollCueText: { fontFamily: Typography.bodyMedium, fontSize: 11, lineHeight: 13, color: Colors.muted, letterSpacing: 0.25 },
-  heatRow: { flexDirection: "row", gap: 3, marginBottom: 3, alignItems: "center" },
+  timeArrowRow: {
+    height: Layout.minTouchTarget,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  timeArrow: {
+    width: Layout.minTouchTarget,
+    height: Layout.minTouchTarget,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  heatRow: {
+    flexDirection: "row",
+    gap: 3,
+    marginBottom: 3,
+    alignItems: "center",
+  },
   heatTimeCol: { width: 40 },
   heatTimeText: {
     fontFamily: Typography.bodyMedium,
@@ -1449,8 +1803,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  heatLow: { backgroundColor: Colors.accentDim, borderColor: Colors.borderSubtle },
-  heatMid: { backgroundColor: Colors.accentGlow, borderColor: Colors.borderSubtle },
+  heatLow: {
+    backgroundColor: Colors.accentDim,
+    borderColor: Colors.borderSubtle,
+  },
+  heatMid: {
+    backgroundColor: Colors.accentGlow,
+    borderColor: Colors.borderSubtle,
+  },
   heatHigh: { backgroundColor: Colors.accent, borderColor: Colors.accent },
   heatCellSelected: { borderColor: Colors.white, borderWidth: 1.5 },
   heatCellCurrent: {
@@ -1468,7 +1828,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.text,
   },
-  runDot: { position: "absolute", right: 3, top: 3, width: 4, height: 4, borderRadius: 2, backgroundColor: Colors.accent },
+  runDot: {
+    position: "absolute",
+    right: 3,
+    top: 3,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.accent,
+  },
   legendRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1563,12 +1931,21 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 6,
   },
-  runsEmpty: { paddingVertical: 8 },
+  runsEmpty: {
+    paddingHorizontal: 18,
+    paddingVertical: 22,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surface,
+    alignItems: "center",
+  },
   runsEmptyText: {
     fontFamily: Typography.body,
     fontSize: 12,
     color: Colors.muted,
     lineHeight: 18,
+    textAlign: "center",
   },
   runCard: {
     width: 280,
@@ -1624,7 +2001,12 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
     backgroundColor: Colors.surfaceHigh,
   },
-  createRunButtonText: { fontFamily: Typography.heading, fontSize: 11, color: Colors.text, letterSpacing: 1.4 },
+  createRunButtonText: {
+    fontFamily: Typography.heading,
+    fontSize: 11,
+    color: Colors.text,
+    letterSpacing: 1.4,
+  },
 
   // ── Bottom actions ──
   bottomBar: {
@@ -1658,7 +2040,10 @@ const styles = StyleSheet.create({
     color: Colors.text,
     letterSpacing: 1.5,
   },
-  bottomBtnPrimary: { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  bottomBtnPrimary: {
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
+  },
   bottomBtnDisabled: { opacity: 0.56 },
   bottomBtnPrimaryText: {
     fontFamily: Typography.heading,
@@ -1796,7 +2181,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: Colors.surfaceHigh,
   },
-  timeStepValue: { flex: 1, alignItems: "center", justifyContent: "center", gap: 2 },
+  timeStepValue: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2,
+  },
   timeStepText: {
     fontFamily: Typography.heading,
     fontSize: 18,

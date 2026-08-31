@@ -368,6 +368,7 @@ function LeaderboardView({
             <Pressable
               accessibilityRole="tab"
               accessibilityState={{ selected: scope === s }}
+              hitSlop={{ top: 2, bottom: 2, left: 0, right: 0 }}
               key={s}
               onPress={() => setScope(s)}
               style={[styles.scopeSeg, scope === s && styles.scopeSegActive]}

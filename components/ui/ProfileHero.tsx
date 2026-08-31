@@ -204,8 +204,9 @@ const styles = StyleSheet.create({
   compactIdentity: {
     flex: 1,
     minWidth: 0,
-    justifyContent: "center",
+    justifyContent: "flex-start",
     alignSelf: "stretch",
+    paddingTop: 20,
   },
   compactName: {
     minWidth: 0,
