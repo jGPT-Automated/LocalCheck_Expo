@@ -149,6 +149,14 @@ test("sport ratings use a three-day review window and scheduled auto-confirmatio
   assert.match(sql, /log_match[\s\S]*private\.users_are_blocked/i);
 });
 
+test("sport Elo rollout preserves existing profile ratings and history", async () => {
+  const sql = await migrationEndingWith("_complete_sport_elo_review.sql");
+  assert.doesNotMatch(sql, /Replay confirmed history once/i);
+  assert.doesNotMatch(sql, /update public\.profiles\s+set\s+elo_basketball\s*=\s*1200/i);
+  assert.doesNotMatch(sql, /where status = 'confirmed'[\s\S]*update public\.profiles/i);
+  assert.match(sql, /no historical replay is performed/i);
+});
+
 test("scheduled games produce one team result with participant review", async () => {
   const sql = await migrationEndingWith("_add_scheduled_team_results.sql");
   for (const contract of [
