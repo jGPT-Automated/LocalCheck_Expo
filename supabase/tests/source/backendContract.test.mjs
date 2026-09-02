@@ -104,6 +104,48 @@ test("community court names stay private and pending manual review", async () =>
   );
 });
 
+test("live Add Court submissions enforce two failed photo attempts and a 24-hour cooldown", async () => {
+  const sql = await migrationEndingWith(
+    "_add_court_verification_attempt_cooldown.sql",
+  );
+  for (const contract of [
+    "private.court_verification_attempt_states",
+    "public.reserve_court_verification_attempt",
+    "public.cancel_court_verification_attempt",
+    "public.reject_court_verification_attempt",
+    "public.create_live_court_submission_v4",
+    "reservation_id",
+    "interval '24 hours'",
+    "'source_and_detection'",
+  ]) {
+    assert.ok(sql.includes(contract), `missing Add Court attempt contract ${contract}`);
+  }
+  assert.match(sql, /failed_attempts between 0 and 2/i);
+  assert.match(
+    sql,
+    /revoke execute on function public\.create_live_court_submission_v4[\s\S]*from public, anon, authenticated/i,
+  );
+  assert.match(
+    sql,
+    /grant execute on function public\.create_live_court_submission_v4[\s\S]*to service_role/i,
+  );
+
+  const edgeFunction = await readFile(
+    new URL("../../functions/verify-court/index.ts", import.meta.url),
+    "utf8",
+  );
+  const courtService = await readFile(
+    new URL("../../../services/courtService.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(edgeFunction, /reserve_court_verification_attempt/);
+  assert.match(edgeFunction, /reject_court_verification_attempt/);
+  assert.match(edgeFunction, /create_live_court_submission_v4/);
+  assert.match(edgeFunction, /failureCode:\s*inCooldown \? "cooldown" : "not_a_court"/);
+  assert.match(courtService, /cooldownUntil/);
+  assert.match(courtService, /attemptsUsed/);
+});
+
 test("safety controls enforce blocking across reads and social writes", async () => {
   const sql = await migrationEndingWith("_add_user_safety_controls.sql");
   for (const contract of [

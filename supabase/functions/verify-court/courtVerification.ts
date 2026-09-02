@@ -31,6 +31,7 @@ export interface ValidCourtSubmission {
   longitude: number;
   imageBase64: string;
   imageMimeType: string;
+  requestedSport: "basketball" | "pickleball" | null;
 }
 
 type ValidationResult =
@@ -104,6 +105,10 @@ export function validateCourtSubmission(body: Record<string, unknown>): Validati
   const state = cleanText(body.state, 2).toUpperCase();
   const imageBase64 = typeof body.imageBase64 === "string" ? body.imageBase64 : "";
   const imageMimeType = cleanText(body.imageMimeType, 32).toLowerCase();
+  const requestedSportValue = cleanText(body.sport, 24).toLowerCase();
+  const requestedSport = supportedSports.has(requestedSportValue)
+    ? requestedSportValue as "basketball" | "pickleball"
+    : null;
   const latitude = typeof body.latitude === "number" ? body.latitude : Number.NaN;
   const longitude = typeof body.longitude === "number" ? body.longitude : Number.NaN;
   const legacyName = cleanText(body.name, 120);
@@ -133,6 +138,9 @@ export function validateCourtSubmission(body: Record<string, unknown>): Validati
     || sourceShortName.length < 2 || shortName.length < 2) {
     return { ok: false, error: "Confirm the official court name and short card name." };
   }
+  if (requestedSportValue && !requestedSport) {
+    return { ok: false, error: "Choose basketball or pickleball." };
+  }
 
   return {
     ok: true,
@@ -154,6 +162,7 @@ export function validateCourtSubmission(body: Record<string, unknown>): Validati
       longitude,
       imageBase64,
       imageMimeType,
+      requestedSport,
     },
   };
 }
@@ -163,4 +172,11 @@ export function acceptsVerifiedCourt(analysis: GeminiCourtResult): boolean {
     && analysis.confidence >= 80
     && supportedSports.has(analysis.sport)
     && supportedSettings.has(analysis.setting);
+}
+
+export function matchesRequestedSport(
+  analysis: GeminiCourtResult,
+  requestedSport: ValidCourtSubmission["requestedSport"],
+): boolean {
+  return requestedSport == null || analysis.sport === requestedSport;
 }

@@ -14,13 +14,14 @@ import { Colors, Radius } from "@/constants/colors";
 export const AppBottomSheetModal = forwardRef<
   BottomSheetModal,
   {
+    backdropOpacity?: number;
     children: React.ReactNode;
     index?: number;
     onDismiss?: () => void;
     snapPoints: Array<string | number>;
   }
 >(function AppBottomSheetModal(
-  { children, index = 0, onDismiss, snapPoints },
+  { backdropOpacity = 0.72, children, index = 0, onDismiss, snapPoints },
   ref,
 ) {
   const renderBackdrop = useCallback(
@@ -29,11 +30,11 @@ export const AppBottomSheetModal = forwardRef<
         {...props}
         appearsOnIndex={0}
         disappearsOnIndex={-1}
-        opacity={0.72}
+        opacity={backdropOpacity}
         pressBehavior="close"
       />
     ),
-    [],
+    [backdropOpacity],
   );
 
   return (

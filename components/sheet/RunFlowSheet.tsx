@@ -17,20 +17,32 @@ export function RunFlowSheet({
   onClose,
   title,
   eyebrow,
+  backdropOpacity,
   bottomClearance = 0,
+  contentBottomPadding = 44,
+  snapPoints: providedSnapPoints,
   children,
 }: {
   visible: boolean;
   onClose: () => void;
   title: string;
   eyebrow?: string;
+  /** Keep the underlying surface visible when the drawer is part of it. */
+  backdropOpacity?: number;
   bottomClearance?: number;
+  /** Minimum breathing room below the final action. */
+  contentBottomPadding?: number;
+  /** Compact task drawers may opt into a smaller fixed detent. Schedule keeps 88%. */
+  snapPoints?: Array<string | number>;
   children: React.ReactNode;
 }) {
   const modalRef = useRef<BottomSheetModal>(null);
   const { bottom } = useSafeAreaInsets();
   const presentedRef = useRef(false);
-  const snapPoints = useMemo<Array<string | number>>(() => ["88%"], []);
+  const snapPoints = useMemo<Array<string | number>>(
+    () => providedSnapPoints ?? ["88%"],
+    [providedSnapPoints],
+  );
 
   useEffect(() => {
     if (visible && !presentedRef.current) {
@@ -45,6 +57,7 @@ export function RunFlowSheet({
     <AppBottomSheetModal
       ref={modalRef}
       snapPoints={snapPoints}
+      backdropOpacity={backdropOpacity}
       onDismiss={() => {
         presentedRef.current = false;
         onClose();
@@ -66,7 +79,15 @@ export function RunFlowSheet({
         </Pressable>
       </View>
       <BottomSheetScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: Math.max(44, bottom + bottomClearance) }]}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingBottom: Math.max(
+              contentBottomPadding,
+              bottom + bottomClearance,
+            ),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
