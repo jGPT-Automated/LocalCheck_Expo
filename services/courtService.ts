@@ -20,6 +20,7 @@ interface SupabaseCourtRow {
   location?: string | null;
   city?: string | null;
   state?: string | null;
+  postal_code?: string | null;
   market?: string | null;
   added_by?: string | null;
   created_at?: string | null;
@@ -30,15 +31,26 @@ interface SupabaseCourtRow {
   is_confirmed?: boolean | null;
 }
 
-const BASE_COLS = "id,name,short_name,address,latitude,longitude,sport_type,image_url,is_archived,location,city,state,market,added_by,created_at";
-const STATS_COLS = BASE_COLS + ",active_check_in_count,total_check_ins,local_player_count,is_confirmed";
+const BASE_COLS =
+  "id,name,short_name,address,postal_code,latitude,longitude,sport_type,image_url,is_archived,location,city,state,market,added_by,created_at";
+const STATS_COLS =
+  BASE_COLS +
+  ",active_check_in_count,total_check_ins,local_player_count,is_confirmed";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function normalizeSport(raw: string | null | undefined): CourtSport {
   const upper = (raw ?? "").toUpperCase();
-  const valid: CourtSport[] = ["BASKETBALL", "PICKLEBALL", "TENNIS", "SOCCER", "VOLLEYBALL"];
-  return valid.includes(upper as CourtSport) ? (upper as CourtSport) : "BASKETBALL";
+  const valid: CourtSport[] = [
+    "BASKETBALL",
+    "PICKLEBALL",
+    "TENNIS",
+    "SOCCER",
+    "VOLLEYBALL",
+  ];
+  return valid.includes(upper as CourtSport)
+    ? (upper as CourtSport)
+    : "BASKETBALL";
 }
 
 function mapRow(row: SupabaseCourtRow): Court {
@@ -50,6 +62,7 @@ function mapRow(row: SupabaseCourtRow): Court {
     neighborhood: row.location ?? "",
     city: row.city ?? row.state ?? "",
     address: row.address ?? "",
+    postalCode: row.postal_code ?? undefined,
     market: row.market ?? undefined,
     latitude: Number(row.latitude),
     longitude: Number(row.longitude),
@@ -59,14 +72,24 @@ function mapRow(row: SupabaseCourtRow): Court {
     // rows DO carry real locals + confirmation state; map them when present.
     ratingCount: row.total_check_ins ?? 0,
     localCount: row.local_player_count ?? undefined,
-    status: row.is_confirmed == null ? undefined : row.is_confirmed ? "confirmed" : "community",
+    status:
+      row.is_confirmed == null
+        ? undefined
+        : row.is_confirmed
+          ? "confirmed"
+          : "community",
     imageUri: row.image_url ?? undefined,
     addedBy: row.added_by ?? undefined,
     addedDate: row.created_at ? row.created_at.slice(0, 10) : undefined,
   };
 }
 
-function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+function haversineKm(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+): number {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lng2 - lng1) * Math.PI) / 180;
@@ -119,7 +142,9 @@ export interface CourtActivityMetrics {
  * three-month "active local" state is deliberately calculated, not persisted,
  * so stale profiles recover automatically after their next check-in.
  */
-export async function fetchCourtActivityMetrics(courtId: string): Promise<CourtActivityMetrics> {
+export async function fetchCourtActivityMetrics(
+  courtId: string,
+): Promise<CourtActivityMetrics> {
   const now = Date.now();
   const day = 86_400_000;
   const weekAgo = new Date(now - 7 * day).toISOString();
@@ -128,36 +153,49 @@ export async function fetchCourtActivityMetrics(courtId: string): Promise<CourtA
   const oneEightyDaysAgo = new Date(now - 180 * day).toISOString();
 
   try {
-    const [{ data: checkIns, error: checkInError }, { data: matches, error: matchError }] =
-      await Promise.all([
-        supabase
-          .from("check_ins")
-          .select("user_id,checked_in_at")
-          .eq("court_id", courtId)
-          .gte("checked_in_at", oneEightyDaysAgo)
-          .order("checked_in_at", { ascending: false })
-          .limit(5000),
-        supabase
-          .from("matches")
-          .select("id,played_at")
-          .eq("court_id", courtId)
-          .eq("status", "confirmed")
-          .gte("played_at", weekAgo)
-          .limit(1000),
-      ]);
+    const [
+      { data: checkIns, error: checkInError },
+      { data: matches, error: matchError },
+    ] = await Promise.all([
+      supabase
+        .from("check_ins")
+        .select("user_id,checked_in_at")
+        .eq("court_id", courtId)
+        .gte("checked_in_at", oneEightyDaysAgo)
+        .order("checked_in_at", { ascending: false })
+        .limit(5000),
+      supabase
+        .from("matches")
+        .select("id,played_at")
+        .eq("court_id", courtId)
+        .eq("status", "confirmed")
+        .gte("played_at", weekAgo)
+        .limit(1000),
+    ]);
     if (checkInError || matchError) throw checkInError ?? matchError;
 
-    const rows = (checkIns ?? []) as Array<{ user_id: string; checked_in_at: string }>;
-    const currentWeek = rows.filter((row) => row.checked_in_at >= weekAgo).length;
+    const rows = (checkIns ?? []) as Array<{
+      user_id: string;
+      checked_in_at: string;
+    }>;
+    const currentWeek = rows.filter(
+      (row) => row.checked_in_at >= weekAgo,
+    ).length;
     const previousWeek = rows.filter(
       (row) => row.checked_in_at >= twoWeeksAgo && row.checked_in_at < weekAgo,
     ).length;
     const currentActive = new Set(
-      rows.filter((row) => row.checked_in_at >= ninetyDaysAgo).map((row) => row.user_id),
+      rows
+        .filter((row) => row.checked_in_at >= ninetyDaysAgo)
+        .map((row) => row.user_id),
     ).size;
     const priorActive = new Set(
       rows
-        .filter((row) => row.checked_in_at >= oneEightyDaysAgo && row.checked_in_at < ninetyDaysAgo)
+        .filter(
+          (row) =>
+            row.checked_in_at >= oneEightyDaysAgo &&
+            row.checked_in_at < ninetyDaysAgo,
+        )
         .map((row) => row.user_id),
     ).size;
 
@@ -199,7 +237,7 @@ export async function fetchCourtsInBounds(
   neLng: number,
   sport?: CourtSport | "ALL" | null,
   limit = 250,
-  market?: string | null
+  market?: string | null,
 ): Promise<Court[]> {
   const applyFilters = <T extends ReturnType<typeof supabase.from>>(q: any) => {
     q = q
@@ -215,12 +253,13 @@ export async function fetchCourtsInBounds(
   };
   try {
     const { data, error } = await applyFilters(
-      supabase.from("courts_with_stats").select(STATS_COLS)
+      supabase.from("courts_with_stats").select(STATS_COLS),
     );
-    if (!error && data) return (data as unknown as SupabaseCourtRow[]).map(mapRow);
+    if (!error && data)
+      return (data as unknown as SupabaseCourtRow[]).map(mapRow);
 
     const { data: base, error: baseError } = await applyFilters(
-      supabase.from("courts").select(BASE_COLS)
+      supabase.from("courts").select(BASE_COLS),
     );
     if (baseError || !base) return [];
     return (base as SupabaseCourtRow[]).map(mapRow);
@@ -241,7 +280,7 @@ export async function fetchNearbyCourts(
   lat: number,
   lng: number,
   sport?: CourtSport | "ALL" | null,
-  limit = 20
+  limit = 20,
 ): Promise<Court[]> {
   try {
     for (const radiusDeg of [0.5, 2.5]) {
@@ -251,11 +290,14 @@ export async function fetchNearbyCourts(
         lat + radiusDeg,
         lng + radiusDeg / Math.max(0.2, Math.cos((lat * Math.PI) / 180)),
         sport,
-        400
+        400,
       );
       if (courts.length >= Math.min(limit, 5) || radiusDeg === 2.5) {
         return courts
-          .map((c) => ({ ...c, distanceKm: haversineKm(lat, lng, c.latitude, c.longitude) }))
+          .map((c) => ({
+            ...c,
+            distanceKm: haversineKm(lat, lng, c.latitude, c.longitude),
+          }))
           .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
           .slice(0, limit);
       }
@@ -275,7 +317,7 @@ export async function fetchCourtsByMarket(
   market: string,
   origin: { lat: number; lng: number } | null,
   sport?: CourtSport | "ALL" | null,
-  limit = 10
+  limit = 10,
 ): Promise<Court[]> {
   const safeLimit = Math.max(1, Math.min(limit, 25));
   try {
@@ -330,6 +372,10 @@ export async function fetchCourtsByMarket(
 }
 
 export interface VerifiedCourtSubmission {
+  suggestedOfficialName?: string;
+  suggestedShortName?: string;
+  officialName?: string;
+  shortName?: string;
   name?: string;
   address: string;
   city: string;
@@ -338,7 +384,18 @@ export interface VerifiedCourtSubmission {
   longitude: number;
   imageBase64: string;
   imageMimeType: string;
+  sport?: "BASKETBALL" | "PICKLEBALL";
 }
+
+export type CourtSubmissionFailureCode =
+  | "not_a_court"
+  | "cooldown"
+  | "duplicate"
+  | "quota"
+  | "unauthorized"
+  | "unavailable"
+  | "invalid"
+  | "unknown";
 
 export interface CourtSubmissionResult {
   verified: boolean;
@@ -346,6 +403,12 @@ export interface CourtSubmissionResult {
   reason: string;
   sport?: CourtSport;
   court?: Court;
+  submissionStatus?: "pending_review";
+  nameReview?: unknown;
+  failureCode?: CourtSubmissionFailureCode;
+  attemptsUsed?: number;
+  attemptLimit?: number;
+  cooldownUntil?: string;
 }
 
 interface CourtSubmissionResponse {
@@ -354,18 +417,72 @@ interface CourtSubmissionResponse {
   reason?: unknown;
   sport?: unknown;
   court?: unknown;
+  submissionStatus?: unknown;
+  nameReview?: unknown;
+  error?: unknown;
+  failureCode?: unknown;
+  attemptsUsed?: unknown;
+  attemptLimit?: unknown;
+  cooldownUntil?: unknown;
 }
 
-async function functionErrorMessage(error: unknown): Promise<string> {
+const COURT_FAILURE_CODES = new Set<CourtSubmissionFailureCode>([
+  "not_a_court",
+  "cooldown",
+  "duplicate",
+  "quota",
+  "unauthorized",
+  "unavailable",
+  "invalid",
+  "unknown",
+]);
+
+function failureCode(value: unknown): CourtSubmissionFailureCode | undefined {
+  return typeof value === "string" && COURT_FAILURE_CODES.has(value as CourtSubmissionFailureCode)
+    ? value as CourtSubmissionFailureCode
+    : undefined;
+}
+
+function safeAttemptCount(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(0, Math.floor(value))
+    : undefined;
+}
+
+async function functionErrorResult(error: unknown): Promise<CourtSubmissionResult> {
+  let status: number | undefined;
+  let payload: CourtSubmissionResponse | null = null;
   if (error && typeof error === "object" && "context" in error) {
     const context = (error as { context?: unknown }).context;
     if (context instanceof Response) {
-      const payload = await context.clone().json().catch(() => null) as { error?: unknown } | null;
-      if (typeof payload?.error === "string" && payload.error.trim()) return payload.error;
+      status = context.status;
+      payload = (await context
+        .clone()
+        .json()
+        .catch(() => null)) as CourtSubmissionResponse | null;
     }
   }
-  if (error instanceof Error && error.message) return error.message;
-  return "The court verification service is unavailable. Please try again.";
+  const reason = typeof payload?.error === "string" && payload.error.trim()
+    ? payload.error.trim()
+    : error instanceof Error && error.message
+      ? error.message
+      : "The court verification service is unavailable. Please try again.";
+  const inferredCode: CourtSubmissionFailureCode = status === 401
+    ? "unauthorized"
+    : status === 400
+      ? "invalid"
+      : status === 502 || status === 503
+        ? "unavailable"
+        : "unknown";
+  return {
+    verified: false,
+    confidence: 0,
+    reason,
+    failureCode: failureCode(payload?.failureCode) ?? inferredCode,
+    attemptsUsed: safeAttemptCount(payload?.attemptsUsed),
+    attemptLimit: safeAttemptCount(payload?.attemptLimit),
+    cooldownUntil: typeof payload?.cooldownUntil === "string" ? payload.cooldownUntil : undefined,
+  };
 }
 
 /**
@@ -374,37 +491,38 @@ async function functionErrorMessage(error: unknown): Promise<string> {
  * cannot manufacture a confirmed court row.
  */
 export async function createCourt(
-  input: VerifiedCourtSubmission
+  input: VerifiedCourtSubmission,
 ): Promise<CourtSubmissionResult> {
   try {
     const { data, error } = await supabase.functions.invoke("verify-court", {
       body: input,
     });
     if (error) {
-      return {
-        verified: false,
-        confidence: 0,
-        reason: await functionErrorMessage(error),
-      };
+      return functionErrorResult(error);
     }
 
     const payload = (data ?? {}) as CourtSubmissionResponse;
-    const rawSport = typeof payload.sport === "string" ? payload.sport.toUpperCase() : "";
-    const sport = rawSport === "BASKETBALL" || rawSport === "PICKLEBALL"
-      ? (rawSport as CourtSport)
-      : undefined;
+    const rawSport =
+      typeof payload.sport === "string" ? payload.sport.toUpperCase() : "";
+    const sport =
+      rawSport === "BASKETBALL" || rawSport === "PICKLEBALL"
+        ? (rawSport as CourtSport)
+        : undefined;
     const verified = payload.verified === true;
-    const confidence = typeof payload.confidence === "number"
-      ? Math.max(0, Math.min(100, Math.round(payload.confidence)))
-      : 0;
-    const reason = typeof payload.reason === "string" && payload.reason.trim()
-      ? payload.reason.trim()
-      : verified
-      ? "Court verified."
-      : "This photo could not be verified as a supported court.";
-    const court = verified && payload.court && typeof payload.court === "object"
-      ? mapRow(payload.court as SupabaseCourtRow)
-      : undefined;
+    const confidence =
+      typeof payload.confidence === "number"
+        ? Math.max(0, Math.min(100, Math.round(payload.confidence)))
+        : 0;
+    const reason =
+      typeof payload.reason === "string" && payload.reason.trim()
+        ? payload.reason.trim()
+        : verified
+          ? "Court verified."
+          : "This photo could not be verified as a supported court.";
+    const court =
+      verified && payload.court && typeof payload.court === "object"
+        ? mapRow(payload.court as SupabaseCourtRow)
+        : undefined;
 
     return {
       verified: verified && !!court,
@@ -412,13 +530,15 @@ export async function createCourt(
       reason,
       sport,
       court,
+      submissionStatus: payload.submissionStatus === "pending_review" ? "pending_review" : undefined,
+      nameReview: payload.nameReview,
+      failureCode: failureCode(payload.failureCode),
+      attemptsUsed: safeAttemptCount(payload.attemptsUsed),
+      attemptLimit: safeAttemptCount(payload.attemptLimit),
+      cooldownUntil: typeof payload.cooldownUntil === "string" ? payload.cooldownUntil : undefined,
     };
   } catch (error) {
-    return {
-      verified: false,
-      confidence: 0,
-      reason: await functionErrorMessage(error),
-    };
+    return functionErrorResult(error);
   }
 }
 
@@ -429,9 +549,12 @@ export async function createCourt(
 export async function searchCourts(
   query: string,
   sport?: CourtSport | "ALL" | null,
-  limit = 15
+  limit = 15,
 ): Promise<Court[]> {
-  const trimmed = query.trim();
+  const trimmed = query
+    .trim()
+    .replace(/[,%()]/g, " ")
+    .replace(/\s+/g, " ");
   if (trimmed.length < 2) return [];
   try {
     // Search the stats view, not the base table: base-table rows carry no
@@ -441,7 +564,9 @@ export async function searchCourts(
       .from("courts_with_stats")
       .select(STATS_COLS)
       .eq("is_archived", false)
-      .ilike("name", `%${trimmed}%`)
+      .or(
+        `name.ilike.%${trimmed}%,short_name.ilike.%${trimmed}%,address.ilike.%${trimmed}%,city.ilike.%${trimmed}%,postal_code.ilike.%${trimmed}%`,
+      )
       .limit(limit);
 
     if (sport && sport !== "ALL") {
@@ -449,14 +574,17 @@ export async function searchCourts(
     }
 
     const { data, error } = await q;
-    if (!error && data) return ((data as unknown) as SupabaseCourtRow[]).map(mapRow);
+    if (!error && data)
+      return (data as unknown as SupabaseCourtRow[]).map(mapRow);
 
     // Fallback to the base table only if the view read failed.
     let q2 = supabase
       .from("courts")
       .select(BASE_COLS)
       .eq("is_archived", false)
-      .ilike("name", `%${trimmed}%`)
+      .or(
+        `name.ilike.%${trimmed}%,short_name.ilike.%${trimmed}%,address.ilike.%${trimmed}%,city.ilike.%${trimmed}%,postal_code.ilike.%${trimmed}%`,
+      )
       .limit(limit);
     if (sport && sport !== "ALL") {
       q2 = q2.eq("sport_type", sport.toLowerCase());

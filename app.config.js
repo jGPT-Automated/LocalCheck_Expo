@@ -14,5 +14,13 @@ module.exports = ({ config }) => ({
   plugins: [
     ...appJson.expo.plugins,
     "@rnmapbox/maps",
+    [
+      "expo-camera",
+      {
+        cameraPermission: "Allow LocalCheck to scan player QR codes.",
+        microphonePermission: false,
+        recordAudioAndroid: false,
+      },
+    ],
   ],
 });

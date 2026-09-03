@@ -1,3 +1,4 @@
+import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,12 +21,14 @@ export function ScreenHeader({
   right,
   wordmark = false,
   onBack,
+  onLogoPress,
 }: {
   title: string;
   subtitle?: string;
   right?: React.ReactNode;
   wordmark?: boolean;
   onBack?: () => void;
+  onLogoPress?: () => void;
 }) {
   const { top } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 44 : top;
@@ -44,12 +47,30 @@ export function ScreenHeader({
                   accessibilityRole="button"
                   hitSlop={8}
                   onPress={onBack}
-                  style={({ pressed }) => pressed && styles.pressed}
+                  style={({ pressed }) => [
+                    styles.backAction,
+                    pressed && styles.pressed,
+                  ]}
                 >
                   <LogoMark size={24} variant="back" />
                 </Pressable>
-              ) : <LogoMark size={24} />}
-              <Text numberOfLines={1} style={styles.title}>{title}</Text>
+              ) : onLogoPress ? (
+                <Pressable
+                  accessibilityHint="Returns to Explore"
+                  accessibilityLabel="Back to Explore"
+                  accessibilityRole="button"
+                  hitSlop={10}
+                  onPress={onLogoPress}
+                  style={({ pressed }) => pressed && styles.pressed}
+                >
+                  <LogoMark size={24} />
+                </Pressable>
+              ) : (
+                <LogoMark size={24} />
+              )}
+              <Text numberOfLines={1} style={styles.title}>
+                {title}
+              </Text>
             </View>
           )}
           {subtitle ? (
@@ -61,6 +82,36 @@ export function ScreenHeader({
         {right ? <View style={styles.rightSlot}>{right}</View> : null}
       </View>
     </View>
+  );
+}
+
+/**
+ * Canonical icon-only header action. The visible control stays restrained while
+ * the press target remains the iOS-recommended 44 points.
+ */
+export function HeaderIconAction({
+  accessibilityLabel,
+  icon,
+  onPress,
+}: {
+  accessibilityLabel: string;
+  icon: keyof typeof Feather.glyphMap;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.iconActionTarget,
+        pressed && styles.pressed,
+      ]}
+    >
+      <View style={styles.iconActionVisual}>
+        <Feather color={Colors.textSecondary} name={icon} size={16} />
+      </View>
+    </Pressable>
   );
 }
 
@@ -138,6 +189,30 @@ const styles = StyleSheet.create({
     gap: Space.sm,
   },
   pressed: { opacity: 0.68 },
+  backAction: {
+    width: Layout.minTouchTarget,
+    height: Layout.minTouchTarget,
+    marginLeft: -10,
+    marginRight: -10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconActionTarget: {
+    width: Layout.minTouchTarget,
+    height: Layout.minTouchTarget,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconActionVisual: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderLight,
+    borderRadius: 8,
+    backgroundColor: Colors.surfaceHigh,
+  },
   title: {
     flexShrink: 1,
     fontFamily: Typography.headingRegular,

@@ -44,6 +44,26 @@ product queries or Realtime channels.
 - Backgrounding or losing a socket never means checkout. The server expiration
   policy is independent of connection state.
 
+### Match review state machine
+
+`matches` is the sole game/result record. Postgres RPCs own every transition:
+
+```text
+pending --opposite-side approval / 3-day deadline--> confirmed
+pending --dispute 1 or 2---------------------------> held
+held    --participant correction-------------------> pending
+held    --7-day deadline----------------------------> voided
+pending --dispute 3---------------------------------> voided
+```
+
+`respond_to_match` locks the row and authorizes approval/dispute;
+`update_held_match` updates score, court/sport, and date in place; and
+`private.auto_confirm_due_matches` resolves both deadlines. `dispute_count`,
+`revision_number`, `last_submitted_by`, `review_due_at`, and
+`resolution_due_at` are server-owned. Only `confirmed` enters activity/history
+and ELO application. Notifications carry the same `matches.id` back to the
+shared review screen, and Realtime is only an invalidation to refetch it.
+
 ## Native boundary
 
 The app contains native Mapbox, notification, Apple Sign-In, location,

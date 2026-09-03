@@ -1,195 +1,409 @@
+import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { MatchReviewCard } from "@/components/match/MatchReviewCard";
+import { MatchRevisionSheet } from "@/components/match/MatchRevisionSheet";
 import { DetailHeader } from "@/components/ui/DetailHeader";
+import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { Colors, Radius } from "@/constants/colors";
-import { Typography } from "@/constants/typography";
+import { Layout, Space } from "@/constants/layout";
+import { TextStyles } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useRealtimeHub } from "@/context/RealtimeHubContext";
 import { batchHasResource, type RealtimeTopic } from "@/lib/realtimeHub";
-import { confirmMatch, fetchMatchReview, MatchReview, rejectMatch, reviewScheduledMatch } from "@/services/gameService";
+import {
+  fetchMatchReview,
+  type MatchReview,
+  respondToMatch,
+  updateHeldMatch,
+} from "@/services/gameService";
+
+function localDateValue(date: Date) {
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}
 
 export default function MatchReviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { bottom } = useSafeAreaInsets();
   const { user, refreshProfile } = useAuth();
-  const { refreshMatches, refreshFeed } = useApp();
+  const { courts, refreshMatches, refreshFeed } = useApp();
   const realtimeHub = useRealtimeHub();
-  const [match, setMatch] = useState<MatchReview | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [working, setWorking] = useState(false);
+  const [match, setMatch] = React.useState<MatchReview | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [working, setWorking] = React.useState(false);
+  const [editing, setEditing] = React.useState(false);
+  const [revisionMode, setRevisionMode] = React.useState<"update" | "dispute">(
+    "update",
+  );
+  const [policyExpanded, setPolicyExpanded] = React.useState(false);
 
-  const load = async () => {
+  const load = React.useCallback(async () => {
     if (!id) return;
     setLoading(true);
     setMatch(await fetchMatchReview(id));
     setLoading(false);
+  }, [id]);
+
+  React.useEffect(() => void load(), [load]);
+
+  React.useEffect(() => {
+    if (!user?.id) return;
+    return realtimeHub.subscribe(
+      `user:${user.id}` as RealtimeTopic,
+      (batch) => {
+        if (batchHasResource(batch, ["matches", "match_participant_reviews"]))
+          void load();
+      },
+    );
+  }, [load, realtimeHub, user?.id]);
+
+  const refreshAll = async () => {
+    await Promise.all([
+      load(),
+      refreshProfile(),
+      refreshMatches(),
+      refreshFeed(),
+    ]);
   };
 
-  useEffect(() => { void load(); }, [id]);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    return realtimeHub.subscribe(`user:${user.id}` as RealtimeTopic, (batch) => {
-      if (batchHasResource(batch, ["matches", "match_participant_reviews"])) void load();
-    });
-  }, [id, user?.id, realtimeHub]);
-
-  const resolve = async (action: "confirm" | "reject" | "approve" | "dispute" | "withdraw") => {
+  const respond = async (decision: "approve" | "dispute") => {
     if (!match || working) return;
     setWorking(true);
-    const ok = action === "confirm"
-      ? await confirmMatch(match.id)
-      : action === "reject"
-        ? await rejectMatch(match.id)
-        : await reviewScheduledMatch(
-            match.id,
-            action === "approve" ? "approved" : action === "dispute" ? "disputed" : "pending",
-          );
+    const result = await respondToMatch(match.id, decision);
+    const ok = Boolean(result);
     setWorking(false);
     if (!ok) {
-      Alert.alert("Could not update score", "The score may have already changed. Refresh and try again.");
+      Alert.alert("Score changed", "Refresh the result and try again.");
       await load();
       return;
     }
-    await Promise.all([load(), refreshProfile(), refreshMatches(), refreshFeed()]);
+    await refreshAll();
+  };
+
+  const submitRevision = async (change: {
+    courtId: string;
+    scoreA: number;
+    scoreB: number;
+    playedOn: string;
+    note: string;
+  }) => {
+    if (!match || working) return;
+    setWorking(true);
+    const changed =
+      change.courtId !== match.courtId ||
+      change.scoreA !== match.scoreA ||
+      change.scoreB !== match.scoreB ||
+      change.playedOn !== localDateValue(new Date(match.playedAt));
+    const result =
+      revisionMode === "dispute"
+        ? await respondToMatch(match.id, "dispute", {
+            explanation: change.note || undefined,
+            ...(changed
+              ? {
+                  courtId: change.courtId,
+                  scoreA: change.scoreA,
+                  scoreB: change.scoreB,
+                  playedOn: change.playedOn,
+                }
+              : {}),
+          })
+        : changed
+          ? await updateHeldMatch({ matchId: match.id, ...change })
+          : false;
+    const ok = Boolean(result);
+    setWorking(false);
+    if (!ok) {
+      Alert.alert(
+        "Could not update game",
+        "Nothing was changed. Refresh and try again.",
+      );
+      await load();
+      return;
+    }
+    setEditing(false);
+    await refreshAll();
   };
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator color={Colors.accent} /></View>;
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color={Colors.accent} />
+      </View>
+    );
   }
   if (!match) {
     return (
       <View style={styles.center}>
         <Text style={styles.emptyTitle}>SCORE NOT FOUND</Text>
-        <Pressable style={styles.secondaryButton} onPress={() => router.back()}><Text style={styles.secondaryText}>GO BACK</Text></Pressable>
+        <Pressable onPress={() => router.back()} style={styles.emptyButton}>
+          <Text style={styles.emptyButtonText}>GO BACK</Text>
+        </Pressable>
       </View>
     );
   }
 
-  const isScheduled = !!match.runId;
-  const viewerReview = match.participants.find((participant) => participant.id === user?.id);
-  const canConfirm = !isScheduled && match.status === "pending" && match.opponentId === user?.id;
-  const canObject = !isScheduled && match.status === "pending" && (match.opponentId === user?.id || match.createdBy === user?.id);
-  const mineIsA = match.createdBy === user?.id;
-  const myName = mineIsA ? match.creatorName : match.opponentName;
-  const otherName = mineIsA ? match.opponentName : match.creatorName;
-  const myScore = mineIsA ? match.scoreA : match.scoreB;
-  const otherScore = mineIsA ? match.scoreB : match.scoreA;
-  const teamA = match.participants.filter((participant) => participant.side === "a");
-  const teamB = match.participants.filter((participant) => participant.side === "b");
-  const teamLabel = (team: typeof teamA) => team.map((participant) => participant.id === user?.id ? "YOU" : participant.name.split(" ")[0].toUpperCase()).join(" · ");
+  const viewer = match.participants.find(
+    (participant) => participant.id === user?.id,
+  );
+  const submitter = match.participants.find(
+    (participant) => participant.id === match.lastSubmittedBy,
+  );
+  const canReview =
+    match.status === "pending" &&
+    Boolean(viewer) &&
+    user?.id !== match.lastSubmittedBy;
+  const canApprove = canReview && viewer?.side !== submitter?.side;
+  const canDispute = canReview;
+  const canUpdate = match.status === "held" && Boolean(viewer);
+  const showActions = canApprove || canDispute || canUpdate;
 
   return (
     <View style={styles.screen}>
       <DetailHeader onBack={() => router.back()} title="FINAL SCORE" />
-
       <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[
+          styles.content,
+          showActions && { paddingBottom: 120 + bottom },
+        ]}
+        bounces={policyExpanded}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.metaRow}>
-          <Text style={styles.sport}>{match.sport}</Text>
-          <Text style={styles.status}>{match.status === "pending" ? "REVIEW OPEN" : match.status.toUpperCase()}</Text>
-        </View>
-        <Text style={styles.court}>{match.courtName.toUpperCase()}</Text>
-        <Text style={styles.date}>{new Date(match.playedAt).toLocaleDateString()}</Text>
+        <MatchReviewCard match={match} viewerId={user?.id} />
 
-        <View style={styles.scoreCard}>
-          <View style={styles.scoreSide}>
-            <Text style={styles.playerLabel}>{isScheduled ? `TEAM A · ${teamLabel(teamA)}` : `YOU · ${myName.toUpperCase()}`}</Text>
-            <Text style={styles.score}>{isScheduled ? match.scoreA : myScore}</Text>
-          </View>
-          <Text style={styles.dash}>–</Text>
-          <View style={styles.scoreSide}>
-            <Text style={styles.playerLabel}>{isScheduled ? `TEAM B · ${teamLabel(teamB)}` : otherName.toUpperCase()}</Text>
-            <Text style={styles.score}>{isScheduled ? match.scoreB : otherScore}</Text>
-          </View>
-        </View>
-
-        {isScheduled ? (
-          <View style={styles.reviewGrid}>
-            {match.participants.map((participant) => (
-              <View key={participant.id} style={styles.reviewRow}>
-                <Text style={styles.reviewName}>{participant.id === user?.id ? "YOU" : participant.name.toUpperCase()}</Text>
-                <Text style={[styles.reviewDecision, participant.decision === "disputed" && styles.reviewDisputed]}>{participant.decision.toUpperCase()}</Text>
+        <View style={styles.policy}>
+          <Pressable
+            accessibilityLabel="How score review works"
+            accessibilityRole="button"
+            accessibilityState={{ expanded: policyExpanded }}
+            onPress={() => setPolicyExpanded((expanded) => !expanded)}
+            style={styles.policyHeader}
+          >
+            <View style={styles.policyHeaderCopy}>
+              <Feather color={Colors.accent} name="info" size={17} />
+              <View style={styles.policyTitleCopy}>
+                <Text style={styles.policyTitle}>HOW SCORE REVIEW WORKS</Text>
+                {!policyExpanded ? (
+                  <Text style={styles.policySummary}>
+                    3-DAY REVIEW · 7-DAY DISPUTE HOLD
+                  </Text>
+                ) : null}
               </View>
-            ))}
-          </View>
-        ) : null}
-
-        {match.status === "pending" ? (
-          <Text style={styles.explanation}>
-            {isScheduled
-              ? "If nobody disputes, this result confirms after three days. If everyone approves, it confirms earlier. An active dispute at the deadline drops the result."
-              : canConfirm
-              ? "Confirm the final score, or object if it is wrong. Your rating changes only after confirmation."
-              : "Waiting for your opponent. If they do not respond, this score confirms after three days."}
-          </Text>
-        ) : (
-          <Text style={styles.explanation}>
-            {match.status === "confirmed"
-              ? "This score is final and the sport rating is updated."
-              : "This score is on hold. It did not change either rating."}
-          </Text>
-        )}
-
-        {canConfirm ? (
-          <Pressable style={styles.primaryButton} onPress={() => void resolve("confirm")} disabled={working}>
-            <Text style={styles.primaryText}>{working ? "SAVING…" : "CONFIRM SCORE"}</Text>
+            </View>
+            <Feather
+              color={Colors.textSecondary}
+              name={policyExpanded ? "chevron-up" : "chevron-down"}
+              size={17}
+            />
           </Pressable>
-        ) : null}
-        {canObject ? (
-          <Pressable style={styles.secondaryButton} onPress={() => void resolve("reject")} disabled={working}>
-            <Text style={styles.secondaryText}>OBJECT TO SCORE</Text>
-          </Pressable>
-        ) : null}
-        {isScheduled && match.status === "pending" && viewerReview?.decision === "pending" ? (
-          <Pressable style={styles.primaryButton} onPress={() => void resolve("approve")} disabled={working}>
-            <Text style={styles.primaryText}>{working ? "SAVING…" : "APPROVE SCORE"}</Text>
-          </Pressable>
-        ) : null}
-        {isScheduled && match.status === "pending" && viewerReview?.decision !== "disputed" ? (
-          <Pressable style={styles.secondaryButton} onPress={() => void resolve("dispute")} disabled={working}>
-            <Text style={styles.secondaryText}>DISPUTE SCORE</Text>
-          </Pressable>
-        ) : null}
-        {isScheduled && match.status === "pending" && viewerReview?.decision === "disputed" ? (
-          <Pressable style={styles.primaryButton} onPress={() => void resolve("withdraw")} disabled={working}>
-            <Text style={styles.primaryText}>{working ? "SAVING…" : "REMOVE DISPUTE"}</Text>
-          </Pressable>
-        ) : null}
+          {policyExpanded ? (
+            <View style={styles.policyRows}>
+              <PolicyRow
+                index="1"
+                text="Every submitted score has a 3-day review. Approve it sooner to update ELO immediately; otherwise it auto-approves."
+              />
+              <PolicyRow
+                index="2"
+                text="A dispute puts the game on hold for 7 days. During the hold, any player—or any player from either team—can correct the score, court, or date."
+              />
+              <PolicyRow
+                index="3"
+                text="A corrected game notifies every player and starts a new 3-day review. Players can approve it or dispute it again."
+              />
+              <PolicyRow
+                index="4"
+                text="A game can be disputed twice. A third dispute, or an unresolved 7-day hold, voids the game with no profile or ELO change."
+              />
+            </View>
+          ) : null}
+        </View>
       </ScrollView>
+
+      {canUpdate ? (
+        <StickyActionBar
+          bottomInset={bottom}
+          primary={{
+            icon: "edit-3",
+            label: "UPDATE GAME",
+            onPress: () => {
+              setRevisionMode("update");
+              setEditing(true);
+            },
+            disabled: working,
+          }}
+        />
+      ) : canApprove ? (
+        <StickyActionBar
+          bottomInset={bottom}
+          primary={{
+            icon: "check",
+            label: working ? "SAVING…" : "APPROVE SCORE",
+            onPress: () => void respond("approve"),
+            disabled: working,
+          }}
+          secondary={
+            canDispute
+              ? {
+                  icon: "flag",
+                  label: "DISPUTE",
+                  onPress: () => {
+                    setRevisionMode("dispute");
+                    setEditing(true);
+                  },
+                  disabled: working,
+                }
+              : undefined
+          }
+        />
+      ) : canDispute ? (
+        <View
+          style={[
+            styles.singleAction,
+            { paddingBottom: Math.max(bottom, Space.md) },
+          ]}
+        >
+          <Pressable
+            disabled={working}
+            onPress={() => {
+              setRevisionMode("dispute");
+              setEditing(true);
+            }}
+            style={styles.disputeButton}
+          >
+            <Feather color={Colors.loss} name="flag" size={16} />
+            <Text style={styles.disputeText}>DISPUTE SCORE</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      <MatchRevisionSheet
+        courts={courts}
+        match={match}
+        onClose={() => setEditing(false)}
+        onSubmit={(change) => void submitRevision(change)}
+        mode={revisionMode}
+        visible={editing}
+        working={working}
+      />
+    </View>
+  );
+}
+
+function PolicyRow({ index, text }: { index: string; text: string }) {
+  return (
+    <View style={styles.policyRow}>
+      <View style={styles.policyIndex}>
+        <Text style={styles.policyIndexText}>{index}</Text>
+      </View>
+      <Text style={styles.policyText}>{text}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 18, backgroundColor: Colors.background, padding: 24 },
-  content: { padding: 20, paddingBottom: 44 },
-  metaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  sport: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.accent, letterSpacing: 1.5 },
-  status: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.textSecondary, letterSpacing: 1.3 },
-  court: { fontFamily: Typography.heading, fontSize: 27, lineHeight: 31, color: Colors.text, marginTop: 12 },
-  date: { fontFamily: Typography.body, fontSize: 10, color: Colors.muted, marginTop: 5 },
-  scoreCard: { marginTop: 26, minHeight: 150, flexDirection: "row", alignItems: "center", paddingHorizontal: 18, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg },
-  scoreSide: { flex: 1, alignItems: "center" },
-  playerLabel: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.textSecondary, letterSpacing: 0.8, textAlign: "center" },
-  score: { fontFamily: Typography.heading, fontSize: 48, color: Colors.text, marginTop: 10 },
-  dash: { fontFamily: Typography.heading, fontSize: 26, color: Colors.muted },
-  explanation: { fontFamily: Typography.body, fontSize: 12, lineHeight: 18, color: Colors.textSecondary, marginVertical: 24 },
-  reviewGrid: { marginTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.border },
-  reviewRow: { minHeight: 40, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border },
-  reviewName: { fontFamily: Typography.bodySemiBold, fontSize: 12, color: Colors.textSecondary },
-  reviewDecision: { fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.muted, letterSpacing: 0.6 },
-  reviewDisputed: { color: Colors.loss },
-  primaryButton: { minHeight: 52, alignItems: "center", justifyContent: "center", backgroundColor: Colors.accent, borderRadius: Radius.sm, shadowColor: Colors.accent, shadowOpacity: 0.28, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
-  primaryText: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.black, letterSpacing: 1.2 },
-  secondaryButton: { minHeight: 48, alignItems: "center", justifyContent: "center", marginTop: 10, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.sm, backgroundColor: Colors.surface },
-  secondaryText: { fontFamily: Typography.bodyBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.1 },
-  emptyTitle: { fontFamily: Typography.heading, fontSize: 19, color: Colors.text },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Space.lg,
+    padding: Space.xl,
+    backgroundColor: Colors.background,
+  },
+  content: {
+    width: "100%",
+    maxWidth: Layout.maxContentWidth + Layout.screenGutter * 2,
+    alignSelf: "center",
+    padding: Layout.screenGutter,
+    paddingBottom: Space.xl,
+    gap: Space.lg,
+  },
+  emptyTitle: { ...TextStyles.title, color: Colors.text },
+  emptyButton: {
+    minWidth: 132,
+    minHeight: Layout.minTouchTarget,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surface,
+  },
+  emptyButtonText: {
+    ...TextStyles.label,
+    color: Colors.textSecondary,
+    letterSpacing: 1.2,
+  },
+  policy: {
+    padding: Space.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.card,
+    backgroundColor: Colors.surface,
+  },
+  policyHeader: {
+    minHeight: Layout.minTouchTarget,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Space.md,
+  },
+  policyHeaderCopy: {
+    minWidth: 0,
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Space.sm,
+  },
+  policyTitleCopy: { minWidth: 0, flex: 1, gap: 2 },
+  policyTitle: { ...TextStyles.label, color: Colors.text, letterSpacing: 1.2 },
+  policySummary: {
+    ...TextStyles.caption,
+    color: Colors.textSecondary,
+    letterSpacing: 0.5,
+  },
+  policyRows: { marginTop: Space.lg, gap: Space.lg },
+  policyRow: { flexDirection: "row", alignItems: "flex-start", gap: Space.md },
+  policyIndex: {
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    backgroundColor: Colors.surfaceHigh,
+  },
+  policyIndexText: { ...TextStyles.labelSmall, color: Colors.accent },
+  policyText: { ...TextStyles.bodySmall, flex: 1, color: Colors.textSecondary },
+  singleAction: {
+    paddingTop: Space.md,
+    paddingHorizontal: Layout.screenGutter,
+    backgroundColor: Colors.surfaceDark,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
+  },
+  disputeButton: {
+    minHeight: 50,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Space.sm,
+    borderWidth: 1,
+    borderColor: Colors.loss,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.lossDim,
+  },
+  disputeText: { ...TextStyles.label, color: Colors.loss, letterSpacing: 1.2 },
 });

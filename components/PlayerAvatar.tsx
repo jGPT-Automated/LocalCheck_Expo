@@ -17,6 +17,7 @@ interface PlayerAvatarProps {
   ranked?: boolean;
   friend?: boolean;
   status?: "active" | "quiet" | "inactive";
+  foregroundColor?: string;
 }
 
 export function PlayerAvatar({
@@ -30,6 +31,7 @@ export function PlayerAvatar({
   ranked = false,
   friend = false,
   status = "quiet",
+  foregroundColor,
 }: PlayerAvatarProps) {
   const highlighted = accent || ranked;
   const displayInitials = normalizePlayerInitials(name || initials || playerId);
@@ -68,7 +70,14 @@ export function PlayerAvatar({
         ]}
       >
         <Text
-          style={[styles.initials, highlighted && styles.highlightedInitials, { fontSize: size * 0.33, color: highlighted ? Colors.text : textColor }]}
+          style={[
+            styles.initials,
+            highlighted && styles.highlightedInitials,
+            {
+              fontSize: size * 0.33,
+              color: foregroundColor ?? (highlighted ? Colors.text : textColor),
+            },
+          ]}
         >
           {displayInitials}
         </Text>

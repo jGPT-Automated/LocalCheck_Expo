@@ -21,9 +21,10 @@ product changes that could otherwise be lost during the repository reset.
 | Player profile | Report / block | Added without replacing primary actions |
 | Settings → Safety | Blocked players / unblock | Added; makes every block reversible in app |
 | Me header | Settings | Preserved |
-| Me header | Notification bell | Restored as a compact action with unread badge |
-| Me tabs | Inbox | Preserved; the bell deep-links to the same durable inbox |
-| Me tabs | Friends / QR | Preserved |
+| Notification feed | Informational updates | Preserved separately from Profile Inbox |
+| Me tabs | Inbox | Action queue for pending friend requests, game reviews, and invitations only |
+| Me tabs | Friends | Preserved; accepted friends and discovery stay here |
+| Me profile avatar | QR | Avatar is the QR affordance; no duplicate QR button |
 | Match detail | Confirm / reject | Preserved; copy now states the three-day timer |
 | Feed | Hype | Preserved; now persisted once per user with authoritative count/liked state |
 | Player profile stats | Check-ins | Preserved; now sourced from visible check-in rows instead of court-time minutes |

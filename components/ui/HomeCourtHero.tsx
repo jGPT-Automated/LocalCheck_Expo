@@ -71,7 +71,9 @@ export function HomeCourtHero({
       />
       <LinearGradient
         colors={[
-          court.sport === "PICKLEBALL" ? Colors.pickleballTint : Colors.basketballTint,
+          court.sport === "PICKLEBALL"
+            ? Colors.pickleballTint
+            : Colors.basketballTint,
           "transparent",
         ]}
         end={{ x: 0.25, y: 0.8 }}
@@ -84,7 +86,12 @@ export function HomeCourtHero({
           <Text
             style={[
               styles.sportText,
-              { color: court.sport === "PICKLEBALL" ? Colors.pickleballMeta : Colors.basketballMeta },
+              {
+                color:
+                  court.sport === "PICKLEBALL"
+                    ? Colors.pickleballMeta
+                    : Colors.basketballMeta,
+              },
             ]}
           >
             {court.sport}
@@ -96,7 +103,9 @@ export function HomeCourtHero({
       </View>
 
       <View style={styles.titleRow}>
-        <Text numberOfLines={2} style={styles.name}>{court.name}</Text>
+        <Text numberOfLines={2} style={styles.name}>
+          {court.shortName || court.name}
+        </Text>
       </View>
 
       <View style={styles.stats}>
@@ -117,8 +126,8 @@ export function HomeCourtHero({
           <Pressable
             accessibilityLabel={
               isCheckedIn
-                ? `Check out of ${court.name}`
-                : `Check in to ${court.name}`
+                ? `Check out of ${court.shortName || court.name}`
+                : `Check in to ${court.shortName || court.name}`
             }
             accessibilityRole="button"
             accessibilityState={{ busy: isChecking, selected: isCheckedIn }}
@@ -138,33 +147,37 @@ export function HomeCourtHero({
               />
             ) : (
               <View style={styles.actionCopy}>
-                <Text style={[styles.actionText, isCheckedIn && styles.checkedActionText]}>
+                <Text
+                  style={[
+                    styles.actionText,
+                    isCheckedIn && styles.checkedActionText,
+                  ]}
+                >
                   {isCheckedIn ? "CHECKED IN" : "CHECK IN"}
                 </Text>
-                {isCheckedIn ? <Feather color={Colors.text} name="check" size={14} /> : null}
+                {isCheckedIn ? (
+                  <Feather color={Colors.text} name="check" size={14} />
+                ) : null}
               </View>
             )}
           </Pressable>
         </Animated.View>
-        <Pressable
-          accessibilityHint="Opens the full court profile"
-          accessibilityLabel={`View ${court.name}`}
-          accessibilityRole="button"
-          onPress={onViewCourt}
-          style={({ pressed }) => [
-            styles.actionSlot,
-            styles.action,
-            styles.secondaryAction,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text style={styles.secondaryActionText}>VIEW COURT</Text>
-          <Feather
-            color={Colors.text}
-            name="chevron-right"
-            size={15}
-          />
-        </Pressable>
+        <View style={styles.actionSlot}>
+          <Pressable
+            accessibilityHint="Opens the full court profile"
+            accessibilityLabel={`View ${court.shortName || court.name}`}
+            accessibilityRole="button"
+            onPress={onViewCourt}
+            style={({ pressed }) => [
+              styles.action,
+              styles.secondaryAction,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.secondaryActionText}>VIEW COURT</Text>
+            <Feather color={Colors.text} name="chevron-right" size={15} />
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -188,15 +201,28 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     minHeight: 34,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 5,
   },
   sportLabel: { flexDirection: "row", alignItems: "center", gap: 5 },
-  sportText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.5 },
-  cityText: { minWidth: 0, flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.2, textTransform: "uppercase", textAlign: "right" },
+  sportText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    letterSpacing: 1.2,
+  },
+  cityText: {
+    minWidth: 0,
+    flexShrink: 1,
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    color: Colors.textSecondary,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    textAlign: "right",
+  },
   titleRow: {
     minHeight: 70,
     paddingHorizontal: Layout.screenGutter,
@@ -256,8 +282,14 @@ const styles = StyleSheet.create({
   actionSlot: {
     flex: 1,
   },
-  actionCopy: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  actionCopy: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
   action: {
+    width: "100%",
     minHeight: 48,
     borderRadius: Radius.sm,
     flexDirection: "row",

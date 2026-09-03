@@ -1,25 +1,20 @@
 import { Feather } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Animated,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useCourtSheet } from "@/components/sheet/CourtSheetHost";
 import { Colors } from "@/constants/colors";
-import {
-  Court,
-  CourtSport,
-  getCourtIdentityColor,
-} from "@/constants/data";
+import { Court, CourtSport, getCourtIdentityColor } from "@/constants/data";
+import { Layout } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts } from "@/context/CourtPresenceContext";
-import { fetchCourtsInBounds, fetchNearbyCourts } from "@/services/courtService";
+import type { DeviceCoordinate } from "@/context/deviceLocationModel";
+import {
+  fetchCourtsInBounds,
+  fetchNearbyCourts,
+} from "@/services/courtService";
 
 declare global {
   interface Window {
@@ -68,13 +63,18 @@ function MapboxMap({
   initialCenter,
   localCourtId,
   focusCourt,
+  focusCoordinate,
 }: {
   courts: Court[];
   onCourtSelect: (c: Court) => void;
-  onBoundsChange?: (sw: { lat: number; lng: number }, ne: { lat: number; lng: number }) => void;
+  onBoundsChange?: (
+    sw: { lat: number; lng: number },
+    ne: { lat: number; lng: number },
+  ) => void;
   initialCenter: [number, number];
   localCourtId: string | null;
   focusCourt: Court | null;
+  focusCoordinate: DeviceCoordinate | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -83,6 +83,7 @@ function MapboxMap({
   const courtsRef = useRef(courts);
   const [mapReady, setMapReady] = useState(false);
   const overlayOpacity = useRef(new Animated.Value(1)).current;
+  const addCourtMarkerRef = useRef<any>(null);
 
   onBoundsChangeRef.current = onBoundsChange;
   onCourtSelectRef.current = onCourtSelect;
@@ -135,17 +136,23 @@ function MapboxMap({
 
       // Controls live in a right-side column BELOW the search bar — never
       // bottom-right, where they overlapped the add-court FAB.
-      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
-      map.addControl(new mapboxgl.GeolocateControl({
-        positionOptions: { enableHighAccuracy: true },
-        trackUserLocation: true,
-      }), "top-right");
+      map.addControl(
+        new mapboxgl.NavigationControl({ showCompass: false }),
+        "top-right",
+      );
+      map.addControl(
+        new mapboxgl.GeolocateControl({
+          positionOptions: { enableHighAccuracy: true },
+          trackUserLocation: true,
+        }),
+        "top-right",
+      );
 
       const emitBounds = () => {
         const b = map.getBounds();
         onBoundsChangeRef.current?.(
           { lat: b.getSouth(), lng: b.getWest() },
-          { lat: b.getNorth(), lng: b.getEast() }
+          { lat: b.getNorth(), lng: b.getEast() },
         );
       };
 
@@ -167,7 +174,15 @@ function MapboxMap({
           filter: ["has", "point_count"],
           paint: {
             "circle-color": Colors.surfaceHigh,
-            "circle-radius": ["step", ["get", "point_count"], 15, 25, 19, 100, 24],
+            "circle-radius": [
+              "step",
+              ["get", "point_count"],
+              15,
+              25,
+              19,
+              100,
+              24,
+            ],
             "circle-stroke-width": 1.5,
             "circle-stroke-color": Colors.accent,
             "circle-opacity": 0.94,
@@ -189,7 +204,11 @@ function MapboxMap({
           id: QUIET_GLOW_LAYER_ID,
           type: "circle",
           source: SOURCE_ID,
-          filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "active"], 0]],
+          filter: [
+            "all",
+            ["!", ["has", "point_count"]],
+            ["==", ["get", "active"], 0],
+          ],
           paint: {
             "circle-color": ["get", "sportColor"],
             "circle-radius": 15,
@@ -201,7 +220,11 @@ function MapboxMap({
           id: QUIET_LAYER_ID,
           type: "circle",
           source: SOURCE_ID,
-          filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "active"], 0]],
+          filter: [
+            "all",
+            ["!", ["has", "point_count"]],
+            ["==", ["get", "active"], 0],
+          ],
           paint: {
             "circle-color": ["get", "sportColor"],
             "circle-radius": 7,
@@ -214,7 +237,11 @@ function MapboxMap({
           id: ACTIVE_GLOW_LAYER_ID,
           type: "circle",
           source: SOURCE_ID,
-          filter: ["all", ["!", ["has", "point_count"]], [">", ["get", "active"], 0]],
+          filter: [
+            "all",
+            ["!", ["has", "point_count"]],
+            [">", ["get", "active"], 0],
+          ],
           paint: {
             "circle-color": Colors.accent,
             "circle-radius": 20,
@@ -226,7 +253,11 @@ function MapboxMap({
           id: ACTIVE_LAYER_ID,
           type: "circle",
           source: SOURCE_ID,
-          filter: ["all", ["!", ["has", "point_count"]], [">", ["get", "active"], 0]],
+          filter: [
+            "all",
+            ["!", ["has", "point_count"]],
+            [">", ["get", "active"], 0],
+          ],
           paint: {
             "circle-color": Colors.accent,
             "circle-radius": 12,
@@ -238,7 +269,11 @@ function MapboxMap({
           id: ACTIVE_COUNT_LAYER_ID,
           type: "symbol",
           source: SOURCE_ID,
-          filter: ["all", ["!", ["has", "point_count"]], [">", ["get", "active"], 0]],
+          filter: [
+            "all",
+            ["!", ["has", "point_count"]],
+            [">", ["get", "active"], 0],
+          ],
           layout: {
             "text-field": ["to-string", ["get", "active"]],
             "text-size": 12,
@@ -250,7 +285,11 @@ function MapboxMap({
           id: LOCAL_RING_LAYER_ID,
           type: "circle",
           source: SOURCE_ID,
-          filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "isLocal"], true]],
+          filter: [
+            "all",
+            ["!", ["has", "point_count"]],
+            ["==", ["get", "isLocal"], true],
+          ],
           paint: {
             "circle-color": "rgba(0,0,0,0)",
             "circle-radius": 17,
@@ -260,17 +299,29 @@ function MapboxMap({
         });
 
         map.on("click", CLUSTER_LAYER_ID, (event: any) => {
-          const feature = map.queryRenderedFeatures(event.point, { layers: [CLUSTER_LAYER_ID] })[0];
+          const feature = map.queryRenderedFeatures(event.point, {
+            layers: [CLUSTER_LAYER_ID],
+          })[0];
           if (!feature) return;
           const source = map.getSource(SOURCE_ID);
-          source.getClusterExpansionZoom(feature.properties.cluster_id, (error: Error | null, zoom: number) => {
-            if (error) return;
-            map.easeTo({ center: feature.geometry.coordinates, zoom, duration: 450, essential: true });
-          });
+          source.getClusterExpansionZoom(
+            feature.properties.cluster_id,
+            (error: Error | null, zoom: number) => {
+              if (error) return;
+              map.easeTo({
+                center: feature.geometry.coordinates,
+                zoom,
+                duration: 450,
+                essential: true,
+              });
+            },
+          );
         });
         const selectCourt = (event: any) => {
           const feature = event.features?.[0];
-          const court = courtsRef.current.find((item) => item.id === feature?.properties?.id);
+          const court = courtsRef.current.find(
+            (item) => item.id === feature?.properties?.id,
+          );
           if (!court) return;
           onCourtSelectRef.current(court);
           map.easeTo({
@@ -282,10 +333,16 @@ function MapboxMap({
         };
         map.on("click", QUIET_LAYER_ID, selectCourt);
         map.on("click", ACTIVE_LAYER_ID, selectCourt);
-        [CLUSTER_LAYER_ID, QUIET_LAYER_ID, ACTIVE_LAYER_ID].forEach((layerId) => {
-          map.on("mouseenter", layerId, () => { map.getCanvas().style.cursor = "pointer"; });
-          map.on("mouseleave", layerId, () => { map.getCanvas().style.cursor = ""; });
-        });
+        [CLUSTER_LAYER_ID, QUIET_LAYER_ID, ACTIVE_LAYER_ID].forEach(
+          (layerId) => {
+            map.on("mouseenter", layerId, () => {
+              map.getCanvas().style.cursor = "pointer";
+            });
+            map.on("mouseleave", layerId, () => {
+              map.getCanvas().style.cursor = "";
+            });
+          },
+        );
 
         setMapReady(true);
         emitBounds();
@@ -310,6 +367,8 @@ function MapboxMap({
 
     return () => {
       cancelled = true;
+      addCourtMarkerRef.current?.remove();
+      addCourtMarkerRef.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
       if (script?.parentNode) script.parentNode.removeChild(script);
@@ -342,12 +401,35 @@ function MapboxMap({
     });
   }, [focusCourt?.id, mapReady]);
 
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    addCourtMarkerRef.current?.remove();
+    addCourtMarkerRef.current = null;
+    if (!focusCoordinate) return;
+
+    mapRef.current.flyTo({
+      center: [focusCoordinate.lng, focusCoordinate.lat],
+      zoom: 17,
+      pitch: 58,
+      bearing: -22,
+      padding: { top: 1, right: 1, bottom: 220, left: 1 },
+      duration: 1100,
+      essential: true,
+    });
+    addCourtMarkerRef.current = new window.mapboxgl.Marker({
+      color: Colors.accent,
+    })
+      .setLngLat([focusCoordinate.lng, focusCoordinate.lat])
+      .addTo(mapRef.current);
+  }, [focusCoordinate?.lat, focusCoordinate?.lng, mapReady]);
+
   if (!HAS_TOKEN) {
     return (
       <View style={styles.noTokenBox}>
         <Text style={styles.noTokenTitle}>MAPBOX KEY NEEDED</Text>
         <Text style={styles.noTokenSub}>
-          Add your key to EXPO_PUBLIC_MAPBOX_TOKEN in Secrets to enable the live map.{"\n"}
+          Add your key to EXPO_PUBLIC_MAPBOX_TOKEN in Secrets to enable the live
+          map.{"\n"}
           Get a free key at mapbox.com
         </Text>
       </View>
@@ -358,10 +440,18 @@ function MapboxMap({
     <View style={{ flex: 1 }}>
       <div
         ref={containerRef as any}
-        style={{ position: "absolute", inset: 0, zIndex: 0, background: Colors.surfaceDark }}
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 0,
+          background: Colors.surfaceDark,
+        }}
       />
       <Animated.View
-        style={[styles.mapLoadingOverlay, { opacity: overlayOpacity, pointerEvents: "none" }]}
+        style={[
+          styles.mapLoadingOverlay,
+          { opacity: overlayOpacity, pointerEvents: "none" },
+        ]}
       >
         <View style={styles.mapLoadingSpinner}>
           <View style={styles.spinnerRing} />
@@ -372,7 +462,15 @@ function MapboxMap({
   );
 }
 
-export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | "ALL" }) {
+export function MapScreen({
+  sportFilter = "ALL",
+  addCourtMode = false,
+  focusCoordinate = null,
+}: {
+  sportFilter?: CourtSport | "ALL";
+  addCourtMode?: boolean;
+  focusCoordinate?: DeviceCoordinate | null;
+}) {
   const { courts: contextCourts, localCourt } = useApp();
   const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
   const [focusedCourt, setFocusedCourt] = useState<Court | null>(null);
@@ -381,7 +479,10 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
   const { openCourtSheet } = useCourtSheet();
   useEffect(() => {
     if (!selectedCourt) return;
-    openCourtSheet({ courtId: selectedCourt.id, distanceKm: selectedCourt.distanceKm ?? undefined });
+    openCourtSheet({
+      courtId: selectedCourt.id,
+      distanceKm: selectedCourt.distanceKm ?? undefined,
+    });
     setSelectedCourt(null);
   }, [selectedCourt]);
   // Courts stream from Supabase per viewport (same source as native) —
@@ -410,7 +511,7 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
         setViewportCourts(found);
       }, 400);
     },
-    [sportFilter]
+    [sportFilter],
   );
 
   const rawCourts = React.useMemo(() => {
@@ -426,7 +527,7 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
       }
     });
     return Array.from(merged.values()).filter(
-      (court) => sportFilter === "ALL" || court.sport === sportFilter
+      (court) => sportFilter === "ALL" || court.sport === sportFilter,
     );
   }, [viewportCourts, contextCourts, localCourt, sportFilter]);
 
@@ -442,7 +543,7 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
           ? { ...c, activeCount: live.activeCount, localCount: live.localCount }
           : c;
       }),
-    [rawCourts, liveCounts]
+    [rawCourts, liveCounts],
   );
 
   const activeCourts = courts.filter((c) => c.activeCount > 0);
@@ -452,9 +553,14 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
       localCourt
         ? [localCourt.longitude, localCourt.latitude]
         : contextCourts[0]
-        ? [contextCourts[0].longitude, contextCourts[0].latitude]
-        : [-96, 37.5],
-    [localCourt?.id, localCourt?.latitude, localCourt?.longitude, contextCourts]
+          ? [contextCourts[0].longitude, contextCourts[0].latitude]
+          : [-96, 37.5],
+    [
+      localCourt?.id,
+      localCourt?.latitude,
+      localCourt?.longitude,
+      contextCourts,
+    ],
   );
 
   const findNearestCourt = React.useCallback(async () => {
@@ -466,9 +572,11 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
         return;
       }
       const last = await Location.getLastKnownPositionAsync();
-      const location = last ?? await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
+      const location =
+        last ??
+        (await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        }));
       const [nearest] = await fetchNearbyCourts(
         location.coords.latitude,
         location.coords.longitude,
@@ -492,55 +600,68 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
   return (
     <View style={styles.container}>
       <View style={StyleSheet.absoluteFill}>
-          <MapboxMap
-            courts={courts}
-            onCourtSelect={setSelectedCourt}
-            onBoundsChange={handleBoundsChange}
-            initialCenter={initialCenter}
-            localCourtId={localCourt?.id ?? null}
-            focusCourt={focusedCourt}
-          />
+        <MapboxMap
+          courts={courts}
+          onCourtSelect={setSelectedCourt}
+          onBoundsChange={handleBoundsChange}
+          initialCenter={initialCenter}
+          localCourtId={localCourt?.id ?? null}
+          focusCourt={focusedCourt}
+          focusCoordinate={focusCoordinate}
+        />
 
-          <View style={[styles.liveBar, activeCourts.length === 0 && styles.liveBarQuiet, { top: 12 }]}>
-            <Text style={styles.liveBarText}>
-              {activeCourts.length > 0
-                ? `${activeCourts.length} COURT${activeCourts.length === 1 ? "" : "S"} LIVE`
-                : "NO ACTIVE CHECK-INS IN VIEW"}
-            </Text>
-            <View style={styles.liveDot} />
-          </View>
+        {!addCourtMode ? (
+          <>
+            <View
+              style={[
+                styles.liveBar,
+                activeCourts.length === 0 && styles.liveBarQuiet,
+                { top: 12 },
+              ]}
+            >
+              <Text style={styles.liveBarText}>
+                {activeCourts.length > 0
+                  ? `${activeCourts.length} COURT${activeCourts.length === 1 ? "" : "S"} LIVE`
+                  : "NO ACTIVE CHECK-INS IN VIEW"}
+              </Text>
+              <View style={styles.liveDot} />
+            </View>
 
-          <View style={styles.legend}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendPin, styles.legendActive]} />
-              <Text style={styles.legendText}>ACTIVE NOW</Text>
+            <View style={styles.legend}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendPin, styles.legendActive]} />
+                <Text style={styles.legendText}>ACTIVE NOW</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendPin, styles.legendBasketball]} />
+                <Text style={styles.legendText}>BASKETBALL</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendPin, styles.legendPickleball]} />
+                <Text style={styles.legendText}>PICKLEBALL</Text>
+              </View>
             </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendPin, styles.legendBasketball]} />
-              <Text style={styles.legendText}>BASKETBALL</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendPin, styles.legendPickleball]} />
-              <Text style={styles.legendText}>PICKLEBALL</Text>
-            </View>
-          </View>
 
-          <Pressable
-            accessibilityLabel="Find nearest court"
-            accessibilityRole="button"
-            onPress={findNearestCourt}
-            style={({ pressed }) => [styles.nearestButton, pressed && styles.nearestButtonPressed]}
-          >
-            <Feather color={Colors.black} name="navigation" size={15} />
-            <Text style={styles.nearestButtonText}>FIND NEAREST COURT</Text>
-          </Pressable>
-          {locationNotice ? (
-            <View style={styles.locationNotice}>
-              <Text style={styles.locationNoticeText}>{locationNotice}</Text>
-            </View>
-          ) : null}
+            <Pressable
+              accessibilityLabel="Find nearest court"
+              accessibilityRole="button"
+              onPress={findNearestCourt}
+              style={({ pressed }) => [
+                styles.nearestButton,
+                pressed && styles.nearestButtonPressed,
+              ]}
+            >
+              <Feather color={Colors.black} name="navigation" size={15} />
+              <Text style={styles.nearestButtonText}>FIND NEAREST COURT</Text>
+            </Pressable>
+            {locationNotice ? (
+              <View style={styles.locationNotice}>
+                <Text style={styles.locationNoticeText}>{locationNotice}</Text>
+              </View>
+            ) : null}
+          </>
+        ) : null}
       </View>
-
     </View>
   );
 }
@@ -563,11 +684,21 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   liveBarQuiet: { backgroundColor: "rgba(13,13,16,0.52)", opacity: 0.72 },
-  liveBarText: { fontFamily: Typography.heading, fontSize: 11, color: Colors.white, letterSpacing: 2 },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.accent },
+  liveBarText: {
+    fontFamily: Typography.heading,
+    fontSize: 11,
+    color: Colors.white,
+    letterSpacing: 2,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.accent,
+  },
   legend: {
     position: "absolute",
-    bottom: 72,
+    bottom: Layout.tabBarClearance + 60,
     left: 16,
     backgroundColor: "rgba(13,13,16,0.88)",
     borderWidth: 1,
@@ -580,16 +711,27 @@ const styles = StyleSheet.create({
   legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   legendPin: { width: 9, height: 9, borderRadius: 5, borderWidth: 1 },
   legendActive: { borderColor: Colors.accent, backgroundColor: Colors.accent },
-  legendBasketball: { borderColor: Colors.text, backgroundColor: getCourtIdentityColor("BASKETBALL") },
-  legendPickleball: { borderColor: Colors.text, backgroundColor: getCourtIdentityColor("PICKLEBALL") },
-  legendText: { fontFamily: Typography.bodySemiBold, fontSize: 8, color: Colors.textSecondary, letterSpacing: 1 },
+  legendBasketball: {
+    borderColor: Colors.text,
+    backgroundColor: getCourtIdentityColor("BASKETBALL"),
+  },
+  legendPickleball: {
+    borderColor: Colors.text,
+    backgroundColor: getCourtIdentityColor("PICKLEBALL"),
+  },
+  legendText: {
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 8,
+    color: Colors.textSecondary,
+    letterSpacing: 1,
+  },
   nearestButton: {
     position: "absolute",
-    bottom: 16,
+    bottom: Layout.tabBarClearance + 10,
     alignSelf: "center",
-    minWidth: 208,
+    minWidth: 190,
     minHeight: 44,
-    paddingHorizontal: 18,
+    paddingHorizontal: 15,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -599,10 +741,15 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   nearestButtonPressed: { opacity: 0.78 },
-  nearestButtonText: { fontFamily: Typography.heading, fontSize: 12, color: Colors.black, letterSpacing: 1.4 },
+  nearestButtonText: {
+    fontFamily: Typography.heading,
+    fontSize: 12,
+    color: Colors.black,
+    letterSpacing: 1.4,
+  },
   locationNotice: {
     position: "absolute",
-    bottom: 66,
+    bottom: Layout.tabBarClearance + 60,
     alignSelf: "center",
     maxWidth: "82%",
     paddingHorizontal: 10,
@@ -612,7 +759,12 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     zIndex: 11,
   },
-  locationNoticeText: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.text, textAlign: "center" },
+  locationNoticeText: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    color: Colors.text,
+    textAlign: "center",
+  },
   noTokenBox: {
     flex: 1,
     backgroundColor: Colors.surfaceDark,

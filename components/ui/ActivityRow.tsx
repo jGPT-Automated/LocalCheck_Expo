@@ -1,7 +1,10 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { formatActivityCopy, formatMatchSide } from "@/components/home/homePresentation";
+import {
+  formatActivityCopy,
+  formatMatchSide,
+} from "@/components/home/homePresentation";
 import { Colors } from "@/constants/colors";
 import type { FeedItem } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
@@ -11,39 +14,61 @@ export function ActivityRow({
   item,
   isFirst = false,
   isLast = false,
+  quietRail = false,
   onPress,
   onActorPress,
 }: {
   item: FeedItem;
   isFirst?: boolean;
   isLast?: boolean;
+  quietRail?: boolean;
   onPress?: () => void;
   onActorPress?: () => void;
 }) {
   const copy = formatActivityCopy(item);
   const isGame = item.type === "game_result" && Boolean(item.match);
-  const winningSide = item.match?.winnerSide === "a" ? item.match.sideA : item.match?.sideB ?? [];
-  const losingSide = item.match?.winnerSide === "a" ? item.match.sideB : item.match?.sideA ?? [];
-  const winningScore = item.match?.winnerSide === "a" ? item.match.scoreA : item.match?.scoreB;
-  const losingScore = item.match?.winnerSide === "a" ? item.match.scoreB : item.match?.scoreA;
+  const winningSide =
+    item.match?.winnerSide === "a"
+      ? item.match.sideA
+      : (item.match?.sideB ?? []);
+  const losingSide =
+    item.match?.winnerSide === "a"
+      ? item.match.sideB
+      : (item.match?.sideA ?? []);
+  const winningScore =
+    item.match?.winnerSide === "a" ? item.match.scoreA : item.match?.scoreB;
+  const losingScore =
+    item.match?.winnerSide === "a" ? item.match.scoreB : item.match?.scoreA;
   const nodeStyle = isGame
     ? styles.gameNode
-    : item.type === "checkin"
-      ? styles.checkInNode
-      : item.type === "checkout"
-        ? styles.checkOutNode
-        : styles.neutralNode;
+    : quietRail && (item.type === "checkin" || item.type === "checkout")
+      ? styles.quietNode
+      : item.type === "checkin"
+        ? styles.checkInNode
+        : item.type === "checkout"
+          ? styles.checkOutNode
+          : styles.neutralNode;
 
   return (
     <View style={styles.row}>
       <View style={styles.rail}>
-        {!isFirst ? <View style={styles.lineTop} /> : <View style={styles.lineCap} />}
+        {!isFirst ? (
+          <View style={[styles.lineTop, quietRail && styles.quietLine]} />
+        ) : (
+          <View style={styles.lineCap} />
+        )}
         <View style={[styles.node, nodeStyle]} />
-        {!isLast ? <View style={styles.lineBottom} /> : <View style={styles.lineCap} />}
+        {!isLast ? (
+          <View style={[styles.lineBottom, quietRail && styles.quietLine]} />
+        ) : (
+          <View style={styles.lineCap} />
+        )}
       </View>
 
       <Pressable
-        accessibilityHint={isGame ? "Opens the final game result" : "Opens the related detail"}
+        accessibilityHint={
+          isGame ? "Opens the final game result" : "Opens the related detail"
+        }
         accessibilityLabel={`${item.message}, ${item.timestamp}`}
         accessibilityRole={onPress ? "button" : undefined}
         disabled={!onPress}
@@ -52,17 +77,19 @@ export function ActivityRow({
       >
         {isGame && item.match ? (
           <View style={styles.gameLine}>
-            <Text numberOfLines={1} style={styles.gameTeams}>
+            <Text numberOfLines={2} style={styles.gameTeams}>
               <Text style={styles.winner}>{formatMatchSide(winningSide)}</Text>
               <Text style={styles.action}> beat </Text>
               <Text style={styles.loser}>{formatMatchSide(losingSide)}</Text>
-              <Text style={styles.score}>, {winningScore}–{losingScore}</Text>
+              <Text style={styles.score}>
+                , {winningScore}–{losingScore}
+              </Text>
             </Text>
             <Text style={styles.time}>{item.timestamp}</Text>
           </View>
         ) : (
           <View style={styles.activityLine}>
-            <Text numberOfLines={1} style={styles.sentence}>
+            <Text numberOfLines={2} style={styles.sentence}>
               <Text
                 onPress={onActorPress}
                 suppressHighlighting={false}
@@ -70,7 +97,10 @@ export function ActivityRow({
               >
                 {copy.actor}
               </Text>
-              <Text style={styles.action}> {sentenceAction(item.type, copy.action)}</Text>
+              <Text style={styles.action}>
+                {" "}
+                {sentenceAction(item.type, copy.action)}
+              </Text>
             </Text>
             <Text style={styles.time}>{item.timestamp}</Text>
           </View>
@@ -90,7 +120,7 @@ function sentenceAction(type: FeedItem["type"], fallback: string): string {
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: 56,
+    minHeight: 64,
     paddingLeft: Layout.screenGutter,
     flexDirection: "row",
     alignItems: "stretch",
@@ -102,10 +132,32 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     zIndex: 1,
   },
-  checkInNode: { backgroundColor: Colors.textSecondary, borderWidth: 1, borderColor: Colors.textSecondary },
-  checkOutNode: { backgroundColor: Colors.background, borderWidth: 1, borderColor: Colors.mutedDark },
-  gameNode: { backgroundColor: Colors.accent, borderWidth: 1, borderColor: Colors.accent },
-  neutralNode: { backgroundColor: Colors.surfaceHigh, borderWidth: 1, borderColor: Colors.muted },
+  checkInNode: {
+    backgroundColor: Colors.textSecondary,
+    borderWidth: 1,
+    borderColor: Colors.textSecondary,
+  },
+  checkOutNode: {
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.mutedDark,
+  },
+  quietNode: {
+    width: 6,
+    height: 6,
+    backgroundColor: Colors.muted,
+    borderWidth: 0,
+  },
+  gameNode: {
+    backgroundColor: Colors.accent,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+  },
+  neutralNode: {
+    backgroundColor: Colors.surfaceHigh,
+    borderWidth: 1,
+    borderColor: Colors.muted,
+  },
   lineTop: {
     flex: 1,
     width: StyleSheet.hairlineWidth,
@@ -120,11 +172,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
     backgroundColor: Colors.border,
   },
+  quietLine: { backgroundColor: Colors.mutedDark },
   lineCap: { flex: 1, width: StyleSheet.hairlineWidth },
   copy: {
     flex: 1,
     minWidth: 0,
-    minHeight: 56,
+    minHeight: 64,
     marginLeft: Space.sm,
     paddingRight: Layout.screenGutter,
     justifyContent: "center",
@@ -133,15 +186,15 @@ const styles = StyleSheet.create({
   },
   pressed: { backgroundColor: Colors.surfacePressed },
   activityLine: { flexDirection: "row", alignItems: "center", gap: Space.sm },
-  sentence: { flex: 1, minWidth: 0, fontSize: 12, lineHeight: 17 },
-  actor: { fontFamily: Typography.body, color: Colors.text, textTransform: "uppercase" },
+  sentence: { flex: 1, minWidth: 0, fontSize: 13, lineHeight: 18 },
+  actor: { fontFamily: Typography.bodySemiBold, color: Colors.text },
   action: { fontFamily: Typography.body, color: Colors.textSecondary },
   time: {
     flexShrink: 0,
     fontFamily: Typography.bodyMedium,
-    fontSize: 7,
+    fontSize: 11,
     color: Colors.muted,
-    letterSpacing: 0.45,
+    letterSpacing: 0,
     textTransform: "uppercase",
   },
   gameLine: { flexDirection: "row", alignItems: "center", gap: Space.sm },
@@ -149,8 +202,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    lineHeight: 16,
+    fontSize: 13,
+    lineHeight: 18,
   },
   winner: { color: Colors.win, textTransform: "uppercase" },
   loser: { color: Colors.loss, textTransform: "uppercase" },

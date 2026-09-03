@@ -24,6 +24,15 @@ executable mock apps or exact data contracts.
   distinguishable and honest.
 - Touch targets are at least 44x44, controls have accessible names, and color
   is never the only state signal.
+- Icon-only header controls may look smaller than their hit region: use the
+  shared header action so the visible glyph remains restrained while the
+  pressable area stays at least 44x44.
+- Me and public-player identity surfaces use the same compact `ProfileHero`,
+  ELO placement, stat rhythm, semantic colors, and QR-from-avatar behavior.
+- Player lists use `PlayerSummaryRow`; names, court metadata, and right-aligned
+  ELO must not vary by row or by which collection produced the player.
+- A shared-component visual review includes every sibling screen that consumes
+  the owner, not only the route where the change was requested.
 - Reduced motion preserves understanding and navigation.
 - Court attributes and counts render only when confirmed by a trusted source.
 - Native Mapbox markers remain geographically anchored; selection and camera

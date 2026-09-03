@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DetailHeader } from "@/components/ui/DetailHeader";
 import { PlayerQrModal } from "@/components/ui/PlayerQrModal";
 import { ProfileHero } from "@/components/ui/ProfileHero";
+import { ProfileMatchRow } from "@/components/ui/ProfileMatchRow";
 import { ProfileStats } from "@/components/ui/ProfileStats";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { HeadToHeadSummary } from "@/components/ui/HeadToHeadSummary";
@@ -66,23 +67,6 @@ function ProfileTab({ label, active, onPress }: { label: string; active: boolean
     >
       <Text style={[styles.profileTabText, active && styles.profileTabTextActive]}>{label}</Text>
     </Pressable>
-  );
-}
-
-function MatchRow({ match }: { match: MatchResult }) {
-  const won = match.result === "WIN";
-  return (
-    <View style={styles.matchRow}>
-      <View style={[styles.matchResultMark, won ? styles.matchResultWin : styles.matchResultLoss]} />
-      <View style={styles.matchCopy}>
-        <Text numberOfLines={1} style={styles.matchCourt}>{match.courtName}</Text>
-        <Text style={styles.matchMeta}>{shortDate(match.playedAtIso)} · {match.sport.toUpperCase()}</Text>
-      </View>
-      <View style={styles.matchScoreBlock}>
-        <Text style={styles.matchScore}>{match.teamScore}–{match.opposingScore}</Text>
-        <Text style={[styles.matchResult, won ? styles.matchWin : styles.matchLoss]}>{match.result}</Text>
-      </View>
-    </View>
   );
 }
 
@@ -302,6 +286,7 @@ export default function PlayerProfileScreen() {
       />
 
       <ProfileHero
+        compact
         courtLabel={playerCourt?.shortName || playerCourt?.name || "No local court"}
         elo={player.elo}
         friend={isFriendStatus}
@@ -309,8 +294,16 @@ export default function PlayerProfileScreen() {
         name={player.name}
         onOpenQr={() => setQrVisible(true)}
         playerId={player.id}
+        sportLabel={
+          player.sport === "BASKETBALL"
+            ? "BB"
+            : player.sport === "PICKLEBALL"
+              ? "PB"
+              : player.sport
+        }
+        username={player.username}
       />
-      <ProfileStats metrics={[
+      <ProfileStats compact metrics={[
         { value: player.wins, label: "WINS", tone: "win" },
         { value: player.losses, label: "LOSSES", tone: "loss" },
         { value: player.checkIns, label: "CHECK-INS" },
@@ -340,14 +333,14 @@ export default function PlayerProfileScreen() {
             {h2h.matches.length > 0 ? (
               <View style={styles.section}>
                 <Text style={styles.subSectionTitle}>GAMES TOGETHER</Text>
-                {h2h.matches.slice(0, 5).map((match) => <MatchRow key={match.id} match={match} />)}
+                {h2h.matches.slice(0, 5).map((match) => <ProfileMatchRow key={match.id} match={match} />)}
               </View>
             ) : null}
           </>
         ) : activeTab === "activity" ? (
           <View style={styles.activityContent}>
             {playerMatches.length > 0 ? (
-              playerMatches.map((match) => <MatchRow key={match.id} match={match} />)
+              playerMatches.map((match) => <ProfileMatchRow key={match.id} match={match} />)
             ) : (
               <EmptyProfileState title="NO ACTIVITY YET" body="Games and court activity will appear here." />
             )}
@@ -529,24 +522,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: "center",
   },
-  matchRow: {
-    minHeight: 68,
-    flexDirection: "row",
-    alignItems: "center",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
-  },
-  matchResultMark: { width: 3, height: 32, marginRight: Space.md, borderRadius: Radius.xs },
-  matchResultWin: { backgroundColor: Colors.win },
-  matchResultLoss: { backgroundColor: Colors.loss },
-  matchCopy: { flex: 1, minWidth: 0 },
-  matchCourt: { ...TextStyles.listName, color: Colors.text },
-  matchMeta: { marginTop: 4, ...TextStyles.caption, color: Colors.muted, letterSpacing: 0 },
-  matchScoreBlock: { alignItems: "flex-end" },
-  matchScore: { fontFamily: Typography.headingBold, fontSize: 17, color: Colors.text },
-  matchResult: { marginTop: 2, ...TextStyles.labelSmall, letterSpacing: 0.6 },
-  matchWin: { color: Colors.win },
-  matchLoss: { color: Colors.loss },
 
   // Header
   header: {

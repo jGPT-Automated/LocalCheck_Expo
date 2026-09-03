@@ -94,6 +94,16 @@ client behavior. Destructive or contract-breaking changes require an explicit
 compatibility and recovery plan. Edge Functions and migrations are separate
 production actions; merging their source does not deploy them.
 
+The current Profile/Compete branch adds `expo-camera` for in-app player QR
+scanning and `@react-native-community/datetimepicker` for game dates, so it
+requires a new native iOS build plus camera/date-picker review; it is not
+OTA-only. Apply the pending participant-review migrations, then
+`20260826120000_add_game_date_to_log_match.sql`, then
+`20260827143000_add_ad_hoc_team_matches.sql` before accepting the dependent
+team/date behavior. The client retains a narrowly scoped legacy 1v1 RPC retry
+while production is one migration behind. Verify one QR-selected 1v1 review
+and one complete 2v2 review before TestFlight promotion.
+
 For the PR #28 snapshot, the approved order is:
 
 1. Reconcile every pending migration and function against the read-only live

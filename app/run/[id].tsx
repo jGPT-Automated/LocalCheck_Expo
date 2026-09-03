@@ -5,8 +5,8 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } fr
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrutalistButton } from "@/components/BrutalistButton";
-import { LogoMark } from "@/components/brand/LogoMark";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
 import {
   formatForMaxPlayers,
@@ -33,8 +33,7 @@ export default function RunScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { runs, joinRun, currentUser, refreshRuns, getFriendsList } = useApp();
   const realtimeHub = useRealtimeHub();
-  const { top, bottom } = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : top;
+  const { bottom } = useSafeAreaInsets();
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -80,14 +79,24 @@ export default function RunScreen() {
     .filter((friend) => !participantIds.has(friend.id))
     .slice(0, 8);
 
-  const handleJoin = async () => {
+  const handleJoin = async (teamSide?: "a" | "b") => {
     if (isJoined || isFull || joining) return;
     setJoining(true);
     setJoinError(false);
-    const ok = await joinRun(run.id);
+    const ok = await joinRun(run.id, teamSide);
     setJoining(false);
     if (!ok) setJoinError(true);
   };
+
+  const teamSize = max / 2;
+  const assignedCount = Object.keys(run.participantSides).length;
+  const teamsAreAssigned = isFull && assignedCount === total;
+  const showTeamColumns = run.teamAssignmentMode === "choose_teams" || teamsAreAssigned;
+  const sidePlayers = (side: "a" | "b") =>
+    run.participants.filter((player) => run.participantSides[player.id] === side);
+  const initialAssignments: TeamAssignment[] = Object.entries(run.participantSides).map(
+    ([playerId, side]) => ({ playerId, side }),
+  );
 
   const handleInvite = async (friendId: string) => {
     if (invitingId || invitedIds.includes(friendId)) return;
@@ -99,6 +108,10 @@ export default function RunScreen() {
 
   return (
     <View style={styles.container}>
+      <ScreenHeader
+        title={`${run.courtShortName.toUpperCase()} · ${format}`}
+        onBack={() => router.back()}
+      />
       <ScrollView
         contentContainerStyle={[
           styles.contentContainer,
@@ -108,63 +121,109 @@ export default function RunScreen() {
         showsVerticalScrollIndicator={false}
         style={styles.content}
       >
-        <View style={[styles.header, { paddingTop: topPad + 12 }]}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={16}>
-            <LogoMark size={30} variant="back" />
-          </Pressable>
-          <View style={styles.headerMain}>
-            <Text style={[styles.headerEyebrow, { color: sportColor }]}>{run.sport}</Text>
-            <Text style={styles.runTitle}>{format} GAME</Text>
-          </View>
-        </View>
-
         <View style={styles.factsRow}>
           <View style={styles.factItem}>
             <Feather color={Colors.accent} name="clock" size={14} />
-            <Text style={styles.factLabel}>WHEN</Text>
-            <Text numberOfLines={2} style={styles.factValue}>{run.date}{"\n"}{formatClockTime(run.time)}</Text>
+            <View style={styles.factCopy}>
+              <Text style={styles.factLabel}>WHEN</Text>
+              <Text numberOfLines={1} style={styles.factValue}>{run.date} · {formatClockTime(run.time)}</Text>
+            </View>
           </View>
           <View style={[styles.factItem, styles.factBorder]}>
             <Feather color={Colors.accent} name="map-pin" size={14} />
-            <Text style={styles.factLabel}>LOCATION</Text>
-            <Text numberOfLines={2} style={styles.factValue}>{run.courtName}</Text>
-          </View>
-          <View style={[styles.factItem, styles.factBorder]}>
-            <Feather color={Colors.accent} name="user" size={14} />
-            <Text style={styles.factLabel}>CREATED BY</Text>
-            <Text numberOfLines={2} style={styles.factValue}>{run.hostName?.split(" ")[0] ?? "Local player"}</Text>
+            <View style={styles.factCopy}>
+              <Text style={styles.factLabel}>LOCATION</Text>
+              <Text numberOfLines={1} style={styles.factValue}>{run.courtName}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Team assignment is finalized by the creator when the official result
-            is submitted. Upcoming rosters stay neutral so the UI never invents
-            authoritative teams before that choice exists. */}
         <View style={styles.rosterArea}>
           <View style={[styles.teamHeader, { borderBottomColor: sportColor }]}>
             <Text style={styles.teamLabel}>GAME ROSTER</Text>
             <Text style={styles.goingCount}>GOING {total}/{max}</Text>
           </View>
-          {run.participants.map((player) => (
-            <View key={player.id} style={styles.playerSlot}>
-              <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={34} />
-              <View>
-                <Text style={styles.slotName}>
-                  {player.name.split(" ")[0]}
-                  {player.id === run.hostId ? "  · CREATOR" : ""}
-                </Text>
-                <Text style={styles.slotElo}>{player.elo} ELO</Text>
-              </View>
+          <View style={styles.teamModeBanner}>
+            <Feather
+              name={run.teamAssignmentMode === "elo_balance" ? "shuffle" : "users"}
+              size={15}
+              color={Colors.accent}
+            />
+            <View style={styles.teamModeCopy}>
+              <Text style={styles.teamModeTitle}>
+                {run.teamAssignmentMode === "elo_balance" ? "ELO BALANCE" : "CHOOSE TEAMS"}
+              </Text>
+              <Text style={styles.teamModeDescription}>
+                {run.teamAssignmentMode === "elo_balance"
+                  ? teamsAreAssigned
+                    ? "Teams are balanced and locked for this game."
+                    : "Teams appear when the roster fills."
+                  : "Players claim Side A or Side B when joining."}
+              </Text>
             </View>
-          ))}
-          {Array.from({ length: spotsLeft }).map((_, index) => (
-            <View key={`open-${index}`} style={[styles.playerSlot, styles.openSlot]}>
-              <View style={styles.openAvatar}><Feather color={Colors.mutedDark} name="plus" size={16} /></View>
-              <View>
-                <Text style={styles.openSlotName}>OPEN SPOT</Text>
-                <Text style={styles.slotElo}>JOIN TO CLAIM</Text>
-              </View>
+          </View>
+
+          {showTeamColumns ? (
+            <View style={styles.teamColumns}>
+              {(["a", "b"] as const).map((side) => {
+                const players = sidePlayers(side);
+                const open = Math.max(0, teamSize - players.length);
+                return (
+                  <View key={side} style={styles.teamColumn}>
+                    <View style={styles.sideHeading}>
+                      <Text style={styles.sideHeadingText}>SIDE {side.toUpperCase()}</Text>
+                      <Text style={styles.sideCount}>{players.length}/{teamSize}</Text>
+                    </View>
+                    {players.map((player) => (
+                      <View key={player.id} style={styles.playerSlot}>
+                        <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={34} />
+                        <View style={styles.playerIdentity}>
+                          <View style={styles.playerNameRow}>
+                            <Text numberOfLines={1} style={styles.slotName}>{player.name.split(" ")[0]}</Text>
+                            {player.id === run.hostId ? <Text style={styles.creatorBadge}>CREATOR</Text> : null}
+                          </View>
+                          <Text style={styles.slotElo}>{player.elo} ELO</Text>
+                        </View>
+                      </View>
+                    ))}
+                    {Array.from({ length: open }).map((_, index) => (
+                      <View key={`${side}-open-${index}`} style={[styles.playerSlot, styles.openSlot]}>
+                        <View style={styles.openAvatar}><Feather color={Colors.mutedDark} name="plus" size={16} /></View>
+                        <View>
+                          <Text style={styles.openSlotName}>OPEN SPOT</Text>
+                          <Text style={styles.slotElo}>SIDE {side.toUpperCase()}</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                );
+              })}
             </View>
-          ))}
+          ) : (
+            <View style={styles.neutralRoster}>
+              {run.participants.map((player) => (
+                <View key={player.id} style={[styles.playerSlot, styles.neutralPlayerSlot]}>
+                  <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={34} />
+                  <View style={styles.playerIdentity}>
+                    <View style={styles.playerNameRow}>
+                      <Text numberOfLines={1} style={styles.slotName}>{player.name.split(" ")[0]}</Text>
+                      {player.id === run.hostId ? <Text style={styles.creatorBadge}>CREATOR</Text> : null}
+                    </View>
+                    <Text style={styles.slotElo}>{player.elo} ELO</Text>
+                  </View>
+                </View>
+              ))}
+              {Array.from({ length: spotsLeft }).map((_, index) => (
+                <View key={`open-${index}`} style={[styles.playerSlot, styles.neutralPlayerSlot, styles.openSlot]}>
+                  <View style={styles.openAvatar}><Feather color={Colors.mutedDark} name="plus" size={16} /></View>
+                  <View>
+                    <Text style={styles.openSlotName}>OPEN SPOT</Text>
+                    <Text style={styles.slotElo}>JOIN TO CLAIM</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
         {isHost && !hasStarted && inviteableFriends.length > 0 ? (
@@ -262,17 +321,40 @@ export default function RunScreen() {
         runId={run.id}
         format={format}
         players={run.participants}
+        initialAssignments={initialAssignments}
       />
 
       <View style={[styles.footer, { paddingBottom: (Platform.OS === "web" ? 34 : bottom) + 12 }]}>
         {joinError && <Text style={styles.joinError}>COULD NOT JOIN — TRY AGAIN</Text>}
-        <BrutalistButton
-          label={isJoined ? "YOU'RE GOING" : isFull ? "GAME FULL" : joining ? "JOINING…" : "JOIN GAME"}
-          onPress={handleJoin}
-          variant={isJoined ? "outline" : "accent"}
-          style={{ flex: 1, opacity: isFull && !isJoined ? 0.5 : 1 }}
-          testID="join-run-btn"
-        />
+        {run.teamAssignmentMode === "choose_teams" && !isJoined && !isFull ? (
+          <View style={styles.joinSideRow}>
+            {(["a", "b"] as const).map((side) => {
+              const sideIsFull = sidePlayers(side).length >= teamSize;
+              return (
+                <BrutalistButton
+                  key={side}
+                  label={`JOIN SIDE ${side.toUpperCase()}`}
+                  onPress={() => void handleJoin(side)}
+                  variant={side === "a" ? "accent" : "outline"}
+                  disabled={sideIsFull || joining}
+                  loading={joining}
+                  style={styles.joinSideButton}
+                  testID={`join-run-${side}`}
+                />
+              );
+            })}
+          </View>
+        ) : (
+          <BrutalistButton
+            label={isJoined ? "YOU'RE GOING" : isFull ? "GAME FULL" : joining ? "JOINING…" : "JOIN GAME"}
+            onPress={() => void handleJoin()}
+            variant={isJoined ? "outline" : "accent"}
+            disabled={isFull && !isJoined}
+            loading={joining}
+            style={{ flex: 1 }}
+            testID="join-run-btn"
+          />
+        )}
       </View>
     </View>
   );
@@ -358,12 +440,14 @@ function SubmitRunResultSheet({
   runId,
   format,
   players,
+  initialAssignments,
 }: {
   visible: boolean;
   onClose: () => void;
   runId: string;
   format: ScheduledGameFormat;
   players: Player[];
+  initialAssignments: TeamAssignment[];
 }) {
   const [assignments, setAssignments] = useState<TeamAssignment[]>([]);
   const [scoreA, setScoreA] = useState("");
@@ -374,7 +458,7 @@ function SubmitRunResultSheet({
 
   useEffect(() => {
     if (!visible) return;
-    setAssignments([]);
+    setAssignments(initialAssignments);
     setScoreA("");
     setScoreB("");
     setError(null);
@@ -382,6 +466,8 @@ function SubmitRunResultSheet({
 
   const teamA = assignments.filter((entry) => entry.side === "a");
   const teamB = assignments.filter((entry) => entry.side === "b");
+  const teamsLocked =
+    initialAssignments.length === players.length && players.length === teamSize * 2;
 
   const assign = (playerId: string, side: "a" | "b") => {
     setAssignments((current) => {
@@ -420,8 +506,12 @@ function SubmitRunResultSheet({
   };
 
   return (
-    <RunFlowSheet visible={visible} onClose={onClose} eyebrow={`${format} · OFFICIAL RESULT`} title="Set teams & score">
-      <Text style={styles.resultHelp}>Put every rostered player on one team. Everyone gets three days to dispute the submitted score.</Text>
+    <RunFlowSheet visible={visible} onClose={onClose} eyebrow={`${format} · OFFICIAL RESULT`} title={teamsLocked ? "Enter final score" : "Set teams & score"}>
+      <Text style={styles.resultHelp}>
+        {teamsLocked
+          ? "The scheduled teams are locked. Enter the final score for participant review."
+          : "Put every rostered player on one team. Everyone gets three days to dispute the submitted score."}
+      </Text>
       <View style={styles.teamCountRow}>
         <View style={styles.teamCount}><Text style={styles.teamCountLabel}>TEAM A</Text><Text style={styles.teamCountValue}>{teamA.length}/{teamSize}</Text></View>
         <View style={styles.teamCount}><Text style={styles.teamCountLabel}>TEAM B</Text><Text style={styles.teamCountValue}>{teamB.length}/{teamSize}</Text></View>
@@ -439,7 +529,7 @@ function SubmitRunResultSheet({
             </View>
             <View style={styles.sideControl}>
               {(["a", "b"] as const).map((option) => (
-                <Pressable key={option} onPress={() => assign(player.id, option)} style={[styles.sideButton, side === option && styles.sideButtonActive]}>
+                <Pressable key={option} disabled={teamsLocked} onPress={() => assign(player.id, option)} style={[styles.sideButton, side === option && styles.sideButtonActive, teamsLocked && styles.sideButtonLocked]}>
                   <Text style={[styles.sideButtonText, side === option && styles.sideButtonTextActive]}>{option.toUpperCase()}</Text>
                 </Pressable>
               ))}
@@ -468,30 +558,35 @@ function SubmitRunResultSheet({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   content: { flex: 1, minHeight: 0 },
-  contentContainer: { flexGrow: 1 },
+  contentContainer: {},
   notFound: { flex: 1, justifyContent: "center", alignItems: "center", gap: 20, padding: 40 },
   notFoundText: { fontFamily: Typography.heading, fontSize: 24, color: Colors.text, letterSpacing: 2 },
-  header: {
-    paddingHorizontal: 20, paddingBottom: 16,
-    borderBottomWidth: 1, borderColor: Colors.border,
-    backgroundColor: Colors.black,
-    flexDirection: "row", gap: 12, alignItems: "center",
-  },
-  backBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  headerMain: { flex: 1 },
-  headerEyebrow: { ...TextStyles.labelSmall, letterSpacing: 1.4 },
-  runTitle: { ...TextStyles.display, color: Colors.white, letterSpacing: 0.5 },
   factsRow: { flexDirection: "row", borderBottomWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface },
-  factItem: { flex: 1, minHeight: 102, alignItems: "center", justifyContent: "flex-start", paddingHorizontal: 8, paddingVertical: 12, gap: 4 },
+  factItem: { flex: 1, minHeight: 68, flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 10, gap: 9 },
+  factCopy: { flex: 1, minWidth: 0, gap: 2 },
   factBorder: { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: Colors.border },
   factLabel: { ...TextStyles.labelSmall, color: Colors.muted, letterSpacing: 0.8 },
-  factValue: { ...TextStyles.caption, color: Colors.text, textAlign: "center" },
-  rosterArea: { flexDirection: "row", flexWrap: "wrap" },
+  factValue: { ...TextStyles.caption, color: Colors.text },
+  rosterArea: { backgroundColor: Colors.background },
   teamHeader: { width: "100%", minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: 3, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: Colors.surface },
   teamLabel: { fontFamily: Typography.heading, fontSize: 13, color: Colors.text, letterSpacing: 3 },
   goingCount: { ...TextStyles.label, color: Colors.accent, letterSpacing: 0.6 },
-  playerSlot: { width: "50%", minHeight: 62, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderRightWidth: StyleSheet.hairlineWidth, borderColor: Colors.border },
-  slotName: { ...TextStyles.listName, color: Colors.text },
+  teamModeBanner: { minHeight: 54, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.surfaceHigh },
+  teamModeCopy: { flex: 1, minWidth: 0 },
+  teamModeTitle: { ...TextStyles.labelSmall, color: Colors.text, letterSpacing: 1.1 },
+  teamModeDescription: { marginTop: 2, fontFamily: Typography.body, fontSize: 11, lineHeight: 15, color: Colors.textSecondary },
+  teamColumns: { flexDirection: "row", alignItems: "stretch" },
+  teamColumn: { width: "50%", borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: Colors.border },
+  sideHeading: { minHeight: 34, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.surface },
+  sideHeadingText: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.text, letterSpacing: 1 },
+  sideCount: { fontFamily: Typography.bodySemiBold, fontSize: 10, color: Colors.accent },
+  neutralRoster: { flexDirection: "row", flexWrap: "wrap" },
+  playerSlot: { width: "100%", minHeight: 62, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderColor: Colors.border },
+  neutralPlayerSlot: { width: "50%", borderRightWidth: StyleSheet.hairlineWidth },
+  playerIdentity: { flex: 1, minWidth: 0 },
+  playerNameRow: { flexDirection: "row", alignItems: "center", gap: 5, minWidth: 0 },
+  slotName: { ...TextStyles.listName, color: Colors.text, flexShrink: 1 },
+  creatorBadge: { fontFamily: Typography.bodyBold, fontSize: 7, lineHeight: 14, color: Colors.accent, letterSpacing: 0.6, paddingHorizontal: 5, borderWidth: 1, borderColor: Colors.accentDim, borderRadius: Radius.xs },
   slotElo: { ...TextStyles.caption, color: Colors.muted, marginTop: 1 },
   openSlot: { borderStyle: "dashed", opacity: 0.72 },
   openAvatar: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderWidth: 1, borderStyle: "dashed", borderColor: Colors.border, borderRadius: Radius.sm },
@@ -511,6 +606,8 @@ const styles = StyleSheet.create({
   inviteButtonText: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.accent, letterSpacing: 0.8 },
   inviteButtonTextDone: { color: Colors.muted },
   footer: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingTop: 12, backgroundColor: Colors.surface, borderTopWidth: 1, borderColor: Colors.border },
+  joinSideRow: { flexDirection: "row", gap: 10 },
+  joinSideButton: { flex: 1 },
   joinError: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.loss, letterSpacing: 1.5, textAlign: "center", marginBottom: 8 },
 
   editHelper: { fontFamily: Typography.body, fontSize: 13, lineHeight: 19, color: Colors.textSecondary },
@@ -547,6 +644,7 @@ const styles = StyleSheet.create({
   sideControl: { flexDirection: "row", borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.sm, overflow: "hidden" },
   sideButton: { width: 40, minHeight: 36, alignItems: "center", justifyContent: "center", backgroundColor: Colors.surface },
   sideButtonActive: { backgroundColor: Colors.accent },
+  sideButtonLocked: { opacity: 0.72 },
   sideButtonText: { fontFamily: Typography.bodySemiBold, fontSize: 12, color: Colors.textSecondary },
   sideButtonTextActive: { color: Colors.black },
   scoreRow: { flexDirection: "row", alignItems: "center", gap: 12 },

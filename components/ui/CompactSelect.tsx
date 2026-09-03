@@ -29,6 +29,8 @@ export function CompactSelect<T extends string>({
   onChange,
   value,
   variant = "contained",
+  dense = false,
+  wide = false,
 }: {
   accessibilityLabel: string;
   align?: "start" | "end";
@@ -36,13 +38,18 @@ export function CompactSelect<T extends string>({
   onChange: (value: T) => void;
   value: T;
   variant?: "contained" | "plain";
+  dense?: boolean;
+  /** Full-width form-field treatment; the menu follows the measured trigger. */
+  wide?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
   const [anchor, setAnchor] = React.useState<SelectAnchor | null>(null);
   const triggerRef = React.useRef<View>(null);
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const selected = options.find((option) => option.value === value) ?? options[0];
-  const menuWidth = 132;
+  const menuWidth = wide
+    ? Math.min(anchor?.width ?? 280, viewportWidth - 16)
+    : 132;
   const menuHeight = options.length * 44 + 12;
 
   const openMenu = React.useCallback(() => {
@@ -76,10 +83,17 @@ export function CompactSelect<T extends string>({
           style={({ pressed }) => [
             styles.trigger,
             variant === "plain" ? styles.triggerPlain : styles.triggerContained,
+            dense && styles.triggerDense,
+            wide && styles.triggerWide,
             pressed && styles.pressed,
           ]}
         >
-          <Text style={styles.triggerText}>{selected?.label}</Text>
+          <Text
+            numberOfLines={1}
+            style={[styles.triggerText, dense && styles.triggerTextDense, wide && styles.triggerTextWide]}
+          >
+            {selected?.label}
+          </Text>
           <Feather
             color={Colors.textSecondary}
             name={open ? "chevron-up" : "chevron-down"}
@@ -121,7 +135,7 @@ export function CompactSelect<T extends string>({
                   pressed && styles.pressed,
                 ]}
               >
-                <Text style={[styles.optionText, option.value === value && styles.optionTextSelected]}>
+                <Text numberOfLines={1} style={[styles.optionText, option.value === value && styles.optionTextSelected]}>
                   {option.label}
                 </Text>
                 {option.value === value ? (
@@ -158,11 +172,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     backgroundColor: "transparent",
   },
+  triggerDense: { minHeight: 40 },
+  triggerWide: {
+    width: "100%",
+    minHeight: Layout.minTouchTarget,
+    paddingHorizontal: 14,
+  },
   triggerText: {
     fontFamily: Typography.bodyBold,
     fontSize: 9,
     color: Colors.text,
     letterSpacing: 1,
+  },
+  triggerTextDense: {
+    fontFamily: Typography.heading,
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  triggerTextWide: {
+    flex: 1,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 13,
+    letterSpacing: 0,
   },
   overlay: {
     flex: 1,
@@ -193,6 +224,7 @@ const styles = StyleSheet.create({
   },
   optionSelected: { backgroundColor: Colors.surfaceSelected },
   optionText: {
+    flex: 1,
     fontFamily: Typography.bodyMedium,
     fontSize: 11,
     color: Colors.textSecondary,

@@ -1,4 +1,4 @@
-import { CourtSport, GameRun, Player } from "@/constants/data";
+import { CourtSport, GameRun, Player, TeamAssignmentMode, TeamSide } from "@/constants/data";
 import { supabase } from "@/lib/supabase";
 
 import { mapProfileToPlayer, SupabaseProfile } from "./profileService";
@@ -20,19 +20,21 @@ interface SupabaseRun {
   status: string;
   created_at: string;
   updated_at: string;
-  courts?: { name: string; sport_type: string } | null;
+  team_assignment_mode?: TeamAssignmentMode | null;
+  courts?: { name: string; short_name: string; sport_type: string } | null;
   organizer?: SupabaseProfile | null;
   result?: Array<{ id: string; status: string }>;
   run_participants?: Array<{
     user_id: string;
     status: string;
     joined_at: string;
+    team_side?: TeamSide | null;
     profiles: SupabaseProfile | null;
   }>;
 }
 
 const RUN_SELECT =
-  "*, courts(name, sport_type), organizer:profiles!runs_organizer_id_fkey(*), run_participants(user_id, status, joined_at, profiles(*)), result:matches(id,status)";
+  "*, courts(name, short_name, sport_type), organizer:profiles!runs_organizer_id_fkey(*), run_participants(*, profiles(*)), result:matches(id,status)";
 
 function normalizeSport(raw: string | null | undefined): CourtSport {
   const upper = (raw ?? "").toUpperCase();
@@ -59,14 +61,19 @@ function formatDate(iso: string): string {
 export function mapScheduledGameToRun(row: SupabaseRun): GameRun {
   // Only "going" RSVPs count as participants.
   const participants: Player[] = [];
+  const participantSides: Record<string, TeamSide> = {};
   for (const p of row.run_participants ?? []) {
-    if (p.profiles && p.status === "going") participants.push(mapProfileToPlayer(p.profiles));
+    if (p.profiles && p.status === "going") {
+      participants.push(mapProfileToPlayer(p.profiles));
+      if (p.team_side) participantSides[p.user_id] = p.team_side;
+    }
   }
   const maxPlayers = row.max_players ?? 10;
   return {
     id: row.id,
     courtId: row.court_id,
     courtName: row.courts?.name ?? "Unknown Court",
+    courtShortName: row.courts?.short_name ?? row.courts?.name ?? "Court",
     sport: normalizeSport(row.courts?.sport_type),
     title: row.title.toUpperCase(),
     time: formatTime(row.start_time),
@@ -74,6 +81,8 @@ export function mapScheduledGameToRun(row: SupabaseRun): GameRun {
     startTimeIso: row.start_time,
     maxPlayers,
     participants,
+    participantSides,
+    teamAssignmentMode: row.team_assignment_mode ?? "elo_balance",
     hostId: row.organizer_id,
     hostName: row.organizer?.display_name || row.organizer?.username || undefined,
     status: row.status,
@@ -123,16 +132,18 @@ export async function createScheduledGame(payload: {
   title: string;
   startTime: string;
   maxPlayers: number;
+  teamAssignmentMode: TeamAssignmentMode;
   note?: string;
 }): Promise<GameRun | null> {
   try {
     // create_run inserts the run AND the organizer's "going" RSVP atomically,
     // deriving the organizer from auth.uid().
-    const { data: created, error } = await supabase.rpc("create_run", {
+    const { data: created, error } = await supabase.rpc("create_scheduled_game", {
       p_court_id: payload.courtId,
       p_title: payload.title,
       p_start_time: payload.startTime,
       p_max_players: payload.maxPlayers,
+      p_team_assignment_mode: payload.teamAssignmentMode,
       p_note: payload.note ?? null,
       p_is_open_invite: true,
     });
@@ -189,9 +200,16 @@ export async function updateScheduledGame(
  * against max_players server-side. The userId param is kept for call-site
  * compatibility; the RPC uses auth.uid().
  */
-export async function joinScheduledGame(gameId: string, _userId: string): Promise<boolean> {
+export async function joinScheduledGame(
+  gameId: string,
+  _userId: string,
+  teamSide?: TeamSide,
+): Promise<boolean> {
   try {
-    const { error } = await supabase.rpc("join_run", { p_run_id: gameId });
+    const { error } = await supabase.rpc("join_scheduled_game", {
+      p_run_id: gameId,
+      p_team_side: teamSide ?? null,
+    });
     if (error) {
       console.warn("joinScheduledGame failed", error.message);
       return false;

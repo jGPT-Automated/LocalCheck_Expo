@@ -6,13 +6,23 @@
 - MVP ELO uses K=32; margin of victory and provisional ratings are later work.
 - The court controls match sport.
 - A submitted score is pending and changes no rating or confirmed history.
-- The named opponent may confirm or reject it.
-- Confirmation updates the match and both player ratings atomically.
-- Rejection keeps an auditable non-public record and changes no rating.
+- In 1v1, the named opponent may approve or dispute it. Team games require
+  equal 2v2, 3v3, or 5v5 rosters; every participant other than the submitter may
+  approve or dispute, and all participants must approve before a team result is
+  confirmed.
+- Approval returns the persisted match row; only the transition to `confirmed`
+  updates the match and participant ratings atomically. Repeated approval is
+  idempotent and never applies ELO twice.
+- A dispute may include an explanation and corrected score/court/date. A note-
+  only dispute places the match `held` for seven days; a corrected submission
+  starts a fresh three-day pending review. The third dispute or an unresolved
+  hold voids the match and changes no rating.
 - A stable request identifier prevents duplicate submissions.
-- Silence automatically confirms a pending score after three days. The same
-  database confirmation function is used by an explicit opponent confirmation
-  and by the recurring automatic-confirmation job.
+- Silence automatically confirms an undisputed pending score after three days.
+  A dispute places the result on hold for seven days; a participant correction
+  returns it to pending review, while a third dispute or unresolved hold voids
+  it without changing ratings. Explicit review and the recurring automatic-
+  confirmation job use the same rating path for their match format.
 
 Any automatic-confirmation timing is database policy and must be surfaced to
 both players before it is changed.
@@ -21,7 +31,18 @@ both players before it is changed.
 
 The durable Supabase inbox is source of truth. Phone push is optional delivery.
 MVP event types are friend request/acceptance, run invite, score review,
-confirmation, and rejection.
+confirmation, dispute/hold, revision, and voiding.
+
+Presentation is intentionally split by whether the player still owes an
+action:
+
+- Profile `INBOX` and the Me-tab badge include pending friend requests, score
+  reviews, run invitations, and future game invitations.
+- Informational outcomes such as friend acceptance, game confirmation, and
+  rejection remain in the notification feed; they do not inflate the Profile
+  Inbox badge.
+- This is a presentation split over the same durable notification model, not a
+  second notification store.
 
 - Signed-out clients create no notification traffic.
 - Push permission is requested in context, not on first launch.
@@ -45,6 +66,8 @@ confirmation, and rejection.
 - Push sender: `supabase/functions/send-notification/index.ts`
 - Database history: `supabase/migrations/`
 
-Acceptance requires two signed-in users completing score submit/confirm/reject,
-friend and run notification flows, duplicate-tap checks, and background return.
-Push registration and delivery require a current physical iOS build.
+Acceptance requires two signed-in users completing 1v1
+submit/confirm/reject, four signed-in users completing one 2v2 review, friend
+and run notification flows, duplicate-tap checks, and background return. Push
+registration, QR scanning, and the native date picker require a current iOS
+build.

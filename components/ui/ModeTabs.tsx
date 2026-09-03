@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from "react
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 
 import { Colors } from "@/constants/colors";
-import { TextStyles } from "@/constants/typography";
+import { TextStyles, Typography } from "@/constants/typography";
 
 type FeatherName = ComponentProps<typeof Feather>["name"];
 
@@ -19,10 +19,12 @@ export function ModeTabs<T extends string>({
   items,
   value,
   onChange,
+  prominent = false,
 }: {
   items: ReadonlyArray<{ label: string; value: T; icon?: FeatherName; accessibilityLabel?: string }>;
   value: T;
   onChange: (value: T) => void;
+  prominent?: boolean;
 }) {
   const [layouts, setLayouts] = useState<Partial<Record<string, TabLayout>>>({});
   const indicatorX = useSharedValue(0);
@@ -62,7 +64,10 @@ export function ModeTabs<T extends string>({
   );
 
   return (
-    <View accessibilityRole="tablist" style={styles.container}>
+    <View
+      accessibilityRole="tablist"
+      style={[styles.container, prominent && styles.containerProminent]}
+    >
       <Animated.View style={[styles.indicator, indicatorStyle]} />
       {items.map((item) => {
         const selected = item.value === value;
@@ -74,12 +79,24 @@ export function ModeTabs<T extends string>({
             key={item.value}
             onLayout={handleLayout(item.value)}
             onPress={() => onChange(item.value)}
-            style={[styles.tab, selected && styles.tabActive]}
+            style={[
+              styles.tab,
+              prominent && styles.tabProminent,
+              selected && !prominent && styles.tabActive,
+            ]}
           >
             {item.icon ? (
               <Feather color={selected ? Colors.text : Colors.muted} name={item.icon} size={14} />
             ) : null}
-            <Text style={[styles.label, selected && styles.labelActive]}>{item.label}</Text>
+            <Text
+              style={[
+                styles.label,
+                prominent && styles.labelProminent,
+                selected && styles.labelActive,
+              ]}
+            >
+              {item.label}
+            </Text>
           </Pressable>
         );
       })}
@@ -94,6 +111,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
     backgroundColor: Colors.surface,
+  },
+  containerProminent: {
+    minHeight: 52,
+    backgroundColor: Colors.background,
   },
   indicator: {
     position: "absolute",
@@ -110,6 +131,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tabActive: { backgroundColor: Colors.surfaceHigh },
+  tabProminent: { minHeight: 52 },
   label: { ...TextStyles.labelSmall, color: Colors.muted, letterSpacing: 1.5 },
   labelActive: { color: Colors.text },
+  labelProminent: {
+    fontFamily: Typography.heading,
+    fontSize: 16,
+    lineHeight: 20,
+    letterSpacing: 1.5,
+  },
 });

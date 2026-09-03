@@ -147,6 +147,30 @@ records are genuinely sport-scoped.
 
 **Why:** “Realtime” means two people looking at the same court see a check-in/out converge immediately. It does not mean treating a WebSocket as proof that someone is physically at a court, keeping every court globally subscribed, or polling while nobody is looking. Durable database truth plus scoped delivery gives the intended experience without coupling attendance to phone state or wasting Supabase resources.
 
+## 2026-08-26 — Profile Inbox is an action queue
+
+**Decision confirmed by Jesse:** The Profile `INBOX` tab and Me-tab badge contain only items that still require the player to act: pending friend requests, game/score reviews, run invitations, and future game invitations. Informational events such as an accepted friend request or confirmed game remain in the notification feed and do not badge Profile Inbox.
+
+**Why:** Mixing completed updates with pending decisions hides the work that matters. A bounded action queue makes the badge meaningful while preserving notification history separately.
+
+## 2026-08-26 — Profile and Compete use the supplied release references
+
+**Decision confirmed by Jesse:** Profile and Compete follow the approved 402×874 reference layouts. Profile uses the shared large tab header, avatar-as-QR affordance, right-aligned ELO, a three-stat strip, and Activity/Friends/Inbox tabs. Compete uses the same header, Leaderboard/Log Game tabs, equal-height sport and scope controls, a compact court label, quiet rank numbers, compact identity metadata, and right-aligned ELO.
+
+**Why:** These two release-critical screens should read as one intentional product, not independently styled dashboards.
+
+## 2026-08-27 — Log Game uses format-first rosters and native dates
+
+**Decision confirmed by Jesse:** Log Game must support solo and team games,
+must not use a free-typed date, and must show a centered five-second score
+review with a visible progress trail, Edit, and Confirm. Format is selected
+before participants; every player slot reuses the same search and player-QR
+identity contract.
+
+**Why:** Match format determines the roster the user must complete. Platform
+date controls prevent malformed dates, while one participant selector keeps
+solo and team logging predictable instead of layering unrelated controls.
+
 ## 2026-07-26 — Unified primary-tab header
 
 **Working decision confirmed by Jesse:** Use the LocalCheck mark and current tab title as one repeated header lockup across Home, Schedule, Compete, Explore, and Profile. The title must share the wordmark's typographic language. Remove the profile avatar from the top-right of primary tab headers; the `Me` tab is the profile entry point.
@@ -220,6 +244,7 @@ rules, and competing Realtime paths for one product job.
 ## 2026-07-23 — Honest imagery and activity
 
 **Proposed decision:** Generated court media is atmospheric only. Venue identity uses verified photography or map geometry. Zero activity uses `Quiet now` and a useful action instead of fabricated counts.
+
 ## 2026-08-13 — Peer profiles separate comparison, activity, and details
 
 **Working decision confirmed by Jesse:** Other-player profiles use `VS YOU`,

@@ -27,11 +27,15 @@ export interface SupabaseProfile {
   total_court_time_minutes: number;
   local_court_id: string | null;
   preferred_sport: string | null;
+  postal_code: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export function mapProfileToPlayer(row: Partial<SupabaseProfile>, sport?: CourtSport | null): Player {
+export function mapProfileToPlayer(
+  row: Partial<SupabaseProfile>,
+  sport?: CourtSport | null,
+): Player {
   const resolvedSport = resolveProfileSport(row.preferred_sport, sport);
   const name = row.display_name || row.username || "Player";
   const initials = name
@@ -41,21 +45,24 @@ export function mapProfileToPlayer(row: Partial<SupabaseProfile>, sport?: CourtS
     .join("")
     .toUpperCase()
     .slice(0, 2);
-  const elo = resolvedSport === "BASKETBALL"
-    ? row.elo_basketball ?? row.elo_rating ?? 1200
-    : resolvedSport === "PICKLEBALL"
-    ? row.elo_pickleball ?? row.elo_rating ?? 1200
-    : row.elo_rating ?? 1200;
-  const wins = resolvedSport === "BASKETBALL"
-    ? row.basketball_wins ?? row.wins ?? 0
-    : resolvedSport === "PICKLEBALL"
-    ? row.pickleball_wins ?? row.wins ?? 0
-    : row.wins ?? 0;
-  const losses = resolvedSport === "BASKETBALL"
-    ? row.basketball_losses ?? row.losses ?? 0
-    : resolvedSport === "PICKLEBALL"
-    ? row.pickleball_losses ?? row.losses ?? 0
-    : row.losses ?? 0;
+  const elo =
+    resolvedSport === "BASKETBALL"
+      ? (row.elo_basketball ?? row.elo_rating ?? 1200)
+      : resolvedSport === "PICKLEBALL"
+        ? (row.elo_pickleball ?? row.elo_rating ?? 1200)
+        : (row.elo_rating ?? 1200);
+  const wins =
+    resolvedSport === "BASKETBALL"
+      ? (row.basketball_wins ?? row.wins ?? 0)
+      : resolvedSport === "PICKLEBALL"
+        ? (row.pickleball_wins ?? row.wins ?? 0)
+        : (row.wins ?? 0);
+  const losses =
+    resolvedSport === "BASKETBALL"
+      ? (row.basketball_losses ?? row.losses ?? 0)
+      : resolvedSport === "PICKLEBALL"
+        ? (row.pickleball_losses ?? row.losses ?? 0)
+        : (row.losses ?? 0);
   return {
     id: row.id ?? "",
     name,
@@ -88,7 +95,8 @@ export async function fetchProfile(userId: string): Promise<Player | null> {
         .eq("user_id", userId),
     ]);
     if (error || !data) return null;
-    if (countError) console.warn("fetchProfile check-in count failed:", countError.message);
+    if (countError)
+      console.warn("fetchProfile check-in count failed:", countError.message);
     return {
       ...mapProfileToPlayer(data as SupabaseProfile),
       checkIns: count ?? 0,
@@ -125,38 +133,49 @@ export interface LocalWithLastCheckIn {
  * powers the court view's LOCALS list ("last seen" gives a feel for how
  * active the court is). One query: PostgREST embed, per-parent order+limit.
  */
-export async function fetchLocalsWithLastCheckIn(courtId: string): Promise<LocalWithLastCheckIn[]> {
+export async function fetchLocalsWithLastCheckIn(
+  courtId: string,
+): Promise<LocalWithLastCheckIn[]> {
   try {
-    const [{ data: profiles, error: profileError }, { data: checkIns, error: checkInError }] =
-      await Promise.all([
-        supabase.from("profiles").select("*").eq("local_court_id", courtId),
-        supabase
-          .from("check_ins")
-          .select("user_id,checked_in_at")
-          .eq("court_id", courtId)
-          .order("checked_in_at", { ascending: false })
-          .limit(5000),
-      ]);
+    const [
+      { data: profiles, error: profileError },
+      { data: checkIns, error: checkInError },
+    ] = await Promise.all([
+      supabase.from("profiles").select("*").eq("local_court_id", courtId),
+      supabase
+        .from("check_ins")
+        .select("user_id,checked_in_at")
+        .eq("court_id", courtId)
+        .order("checked_in_at", { ascending: false })
+        .limit(5000),
+    ]);
     if (profileError || checkInError || !profiles) return [];
     const byPlayer = new Map<string, { latest: string; count: number }>();
-    for (const row of (checkIns ?? []) as Array<{ user_id: string; checked_in_at: string }>) {
+    for (const row of (checkIns ?? []) as Array<{
+      user_id: string;
+      checked_in_at: string;
+    }>) {
       const current = byPlayer.get(row.user_id);
       byPlayer.set(row.user_id, {
         latest: current?.latest ?? row.checked_in_at,
         count: (current?.count ?? 0) + 1,
       });
     }
-    return (profiles as SupabaseProfile[])
-      .map((row) => {
-        const activity = byPlayer.get(row.id);
-        return {
-          player: mapProfileToPlayer(row),
-          lastCheckInAt: activity?.latest ?? null,
-          checkInCount: activity?.count ?? 0,
-        };
-      })
-      // Most recently active first; never-checked-in at the end.
-      .sort((a, b) => (b.lastCheckInAt ?? "").localeCompare(a.lastCheckInAt ?? ""));
+    return (
+      (profiles as SupabaseProfile[])
+        .map((row) => {
+          const activity = byPlayer.get(row.id);
+          return {
+            player: mapProfileToPlayer(row),
+            lastCheckInAt: activity?.latest ?? null,
+            checkInCount: activity?.count ?? 0,
+          };
+        })
+        // Most recently active first; never-checked-in at the end.
+        .sort((a, b) =>
+          (b.lastCheckInAt ?? "").localeCompare(a.lastCheckInAt ?? ""),
+        )
+    );
   } catch {
     return [];
   }
@@ -181,7 +200,10 @@ export async function fetchLocalCount(courtId: string): Promise<number> {
  * the row came back with the requested value — callers must roll back their
  * optimistic state on false, or the selection silently reverts on relaunch.
  */
-export async function updateLocalCourtId(userId: string, courtId: string | null): Promise<boolean> {
+export async function updateLocalCourtId(
+  userId: string,
+  courtId: string | null,
+): Promise<boolean> {
   return updateProfileFields(userId, { local_court_id: courtId });
 }
 
@@ -198,7 +220,8 @@ export async function updateProfileFields(
   fields: Partial<{
     local_court_id: string | null;
     preferred_sport: string | null;
-  }>
+    postal_code: string | null;
+  }>,
 ): Promise<boolean> {
   try {
     const { data, error } = await supabase
@@ -250,7 +273,10 @@ export async function fetchSuggestedPlayers(
       .select("match_id")
       .eq("user_id", userId)
       .limit(50);
-    const matchIds = (memberships as Array<{ match_id: string }> | null)?.map((row) => row.match_id) ?? [];
+    const matchIds =
+      (memberships as Array<{ match_id: string }> | null)?.map(
+        (row) => row.match_id,
+      ) ?? [];
     if (matchIds.length > 0) {
       const { data: opponents } = await supabase
         .from("match_participants")
@@ -258,15 +284,20 @@ export async function fetchSuggestedPlayers(
         .in("match_id", matchIds)
         .neq("user_id", userId)
         .limit(30);
-      for (const row of (opponents ?? []) as unknown as Array<{ user_id: string; profiles: SupabaseProfile | null }>) {
-        if (row.profiles && !suggestions.has(row.user_id)) suggestions.set(row.user_id, mapProfileToPlayer(row.profiles));
+      for (const row of (opponents ?? []) as unknown as Array<{
+        user_id: string;
+        profiles: SupabaseProfile | null;
+      }>) {
+        if (row.profiles && !suggestions.has(row.user_id))
+          suggestions.set(row.user_id, mapProfileToPlayer(row.profiles));
         if (suggestions.size >= limit) break;
       }
     }
     if (courtId && suggestions.size < limit) {
       const locals = await fetchLocals(courtId);
       for (const player of locals) {
-        if (player.id !== userId && !suggestions.has(player.id)) suggestions.set(player.id, player);
+        if (player.id !== userId && !suggestions.has(player.id))
+          suggestions.set(player.id, player);
         if (suggestions.size >= limit) break;
       }
     }
@@ -315,9 +346,8 @@ async function fetchRankedProfileRows(
     error: { code?: string } | null;
   }>[] = [];
 
-  const preferredChunks = scopeCourtIds === null
-    ? [null]
-    : chunkLeaderboardIds(scopeCourtIds);
+  const preferredChunks =
+    scopeCourtIds === null ? [null] : chunkLeaderboardIds(scopeCourtIds);
   for (const courtIds of preferredChunks) {
     let query = supabase
       .from("profiles")
@@ -345,12 +375,14 @@ async function fetchRankedProfileRows(
 
   const byId = new Map<string, SupabaseProfile>();
   for (const result of results) {
-    for (const row of (result.data ?? []) as SupabaseProfile[]) byId.set(row.id, row);
+    for (const row of (result.data ?? []) as SupabaseProfile[])
+      byId.set(row.id, row);
   }
   const data = Array.from(byId.values())
     .sort((left, right) => {
-      const ratingDifference = Number(right[orderColumn as keyof SupabaseProfile] ?? 0)
-        - Number(left[orderColumn as keyof SupabaseProfile] ?? 0);
+      const ratingDifference =
+        Number(right[orderColumn as keyof SupabaseProfile] ?? 0) -
+        Number(left[orderColumn as keyof SupabaseProfile] ?? 0);
       return ratingDifference || left.id.localeCompare(right.id);
     })
     .slice(0, 100);
@@ -365,7 +397,7 @@ async function fetchRankedProfileRows(
 export async function fetchLeaderboard(
   scope: "LOCAL" | "GLOBAL" | "REGIONAL",
   courtId: string | null,
-  sport?: CourtSport | null
+  sport?: CourtSport | null,
 ): Promise<Player[]> {
   try {
     if (!canLoadLeaderboardScope(scope, courtId)) return [];
@@ -380,7 +412,10 @@ export async function fetchLeaderboard(
         .eq("id", courtId)
         .eq("is_archived", false)
         .maybeSingle();
-      if ((homeCourt as { sport_type?: string | null } | null)?.sport_type === sport.toLowerCase()) {
+      if (
+        (homeCourt as { sport_type?: string | null } | null)?.sport_type ===
+        sport.toLowerCase()
+      ) {
         fallbackSportCourtIds = [courtId];
       }
     }
@@ -404,17 +439,21 @@ export async function fetchLeaderboard(
     }
 
     if (scope === "GLOBAL" && sport) {
-      const sportCourts = await fetchAllLeaderboardCourts({ sport: sport.toLowerCase() });
+      const sportCourts = await fetchAllLeaderboardCourts({
+        sport: sport.toLowerCase(),
+      });
       fallbackSportCourtIds = sportCourts.map((court) => court.id);
     }
 
-    const ratingColumn = sport === "PICKLEBALL" ? "elo_pickleball" : "elo_basketball";
+    const ratingColumn =
+      sport === "PICKLEBALL" ? "elo_pickleball" : "elo_basketball";
     if (sport === "BASKETBALL" || sport === "PICKLEBALL") {
-      const scopeCourtIds = scope === "GLOBAL"
-        ? null
-        : scope === "LOCAL" && courtId
-        ? [courtId]
-        : regionalCourtIds ?? [];
+      const scopeCourtIds =
+        scope === "GLOBAL"
+          ? null
+          : scope === "LOCAL" && courtId
+            ? [courtId]
+            : (regionalCourtIds ?? []);
       let result = await fetchRankedProfileRows(
         ratingColumn,
         sport,
@@ -435,8 +474,10 @@ export async function fetchLeaderboard(
 
     const buildQuery = (orderColumn: string) => {
       let query = supabase.from("profiles").select("*");
-      if (scope === "LOCAL" && courtId) query = query.eq("local_court_id", courtId);
-      if (scope === "REGIONAL" && regionalCourtIds) query = query.in("local_court_id", regionalCourtIds);
+      if (scope === "LOCAL" && courtId)
+        query = query.eq("local_court_id", courtId);
+      if (scope === "REGIONAL" && regionalCourtIds)
+        query = query.in("local_court_id", regionalCourtIds);
       return query.order(orderColumn, { ascending: false }).limit(100);
     };
 
@@ -445,7 +486,9 @@ export async function fetchLeaderboard(
     // until the additive sport-rating migration is applied.
     if (result.error?.code === "42703") result = await buildQuery("elo_rating");
     if (result.error || !result.data) return [];
-    return (result.data as SupabaseProfile[]).map((row) => mapProfileToPlayer(row, sport));
+    return (result.data as SupabaseProfile[]).map((row) =>
+      mapProfileToPlayer(row, sport),
+    );
   } catch {
     return [];
   }

@@ -5,6 +5,11 @@ pickleball courts, checking in, planning runs, logging reviewed results, and
 tracking sport-specific ELO. Supabase provides Auth, Postgres, RLS, Realtime,
 and Edge Functions.
 
+Player QR scanning uses the native `expo-camera` scanner and Log Game dates use
+`@react-native-community/datetimepicker`. Changes to either dependency require
+a new iOS build; the browser preview uses its native HTML date control and
+intentionally reports that QR scanning is available in the iOS app.
+
 ## Start here
 
 ```bash
@@ -22,16 +27,16 @@ Apple Sign-In, SecureStore, location, and other native behavior.
 
 ## Commands
 
-| Command | Purpose |
-| --- | --- |
-| `pnpm start` | Expo development server |
-| `pnpm preview:web` | Repeatable browser preview on port 8081 |
-| `pnpm typecheck` | TypeScript validation |
-| `pnpm test` | Automated tests |
-| `pnpm check` | Required fast CI suite |
-| `pnpm export:web` | Compile-only web export; not a connected preview |
-| `pnpm check:release` | Full local gate plus verified connected export |
-| `pnpm doctor` | Local development environment check |
+| Command              | Purpose                                          |
+| -------------------- | ------------------------------------------------ |
+| `pnpm start`         | Expo development server                          |
+| `pnpm preview:web`   | Repeatable browser preview on port 8081          |
+| `pnpm typecheck`     | TypeScript validation                            |
+| `pnpm test`          | Automated tests                                  |
+| `pnpm check`         | Required fast CI suite                           |
+| `pnpm export:web`    | Compile-only web export; not a connected preview |
+| `pnpm check:release` | Full local gate plus verified connected export   |
+| `pnpm doctor`        | Local development environment check              |
 
 `pnpm preview:web` always creates a fresh export, loads the ignored local
 development environment, and proves the bundle contains that Supabase project
@@ -63,3 +68,4 @@ docs/                 current engineering and product guidance
 - [`docs/SUPABASE.md`](docs/SUPABASE.md) — local backend and migrations
 - [`docs/GITHUB.md`](docs/GITHUB.md) — required checks and merge rules
 - [`docs/product/README.md`](docs/product/README.md) — product/design material
+- [`docs/product/ELO_AND_NOTIFICATIONS.md`](docs/product/ELO_AND_NOTIFICATIONS.md) — Compete ranking and actionable-vs-informational notification contract

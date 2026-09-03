@@ -1,16 +1,13 @@
-import {
-  BottomSheetBackdrop,
-  type BottomSheetBackdropProps,
-  BottomSheetModal,
-  BottomSheetModalProvider,
-  BottomSheetScrollView,
-} from "@gorhom/bottom-sheet";
+import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors, Radius } from "@/constants/colors";
+import { Colors } from "@/constants/colors";
 import { TextStyles } from "@/constants/typography";
+
+import { AppBottomSheetModal } from "./AppBottomSheetModal";
 
 /** Run-only task drawer. It deliberately replaces the old custom Modal for
  * this flow so swipe-down, backdrop close, and drag interruption are native to
@@ -20,17 +17,32 @@ export function RunFlowSheet({
   onClose,
   title,
   eyebrow,
+  backdropOpacity,
+  bottomClearance = 0,
+  contentBottomPadding = 44,
+  snapPoints: providedSnapPoints,
   children,
 }: {
   visible: boolean;
   onClose: () => void;
   title: string;
   eyebrow?: string;
+  /** Keep the underlying surface visible when the drawer is part of it. */
+  backdropOpacity?: number;
+  bottomClearance?: number;
+  /** Minimum breathing room below the final action. */
+  contentBottomPadding?: number;
+  /** Compact task drawers may opt into a smaller fixed detent. Schedule keeps 88%. */
+  snapPoints?: Array<string | number>;
   children: React.ReactNode;
 }) {
   const modalRef = useRef<BottomSheetModal>(null);
+  const { bottom } = useSafeAreaInsets();
   const presentedRef = useRef(false);
-  const snapPoints = useMemo(() => ["88%"], []);
+  const snapPoints = useMemo<Array<string | number>>(
+    () => providedSnapPoints ?? ["88%"],
+    [providedSnapPoints],
+  );
 
   useEffect(() => {
     if (visible && !presentedRef.current) {
@@ -41,69 +53,51 @@ export function RunFlowSheet({
     }
   }, [visible]);
 
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop
-        {...props}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-        opacity={0.72}
-        pressBehavior="close"
-      />
-    ),
-    [],
-  );
-
   return (
-    <BottomSheetModalProvider>
-      <BottomSheetModal
-        ref={modalRef}
-        index={0}
-        snapPoints={snapPoints}
-        enableDynamicSizing={false}
-        enablePanDownToClose
-        backdropComponent={renderBackdrop}
-        backgroundStyle={styles.background}
-        handleIndicatorStyle={styles.handle}
-        onDismiss={() => {
-          presentedRef.current = false;
-          onClose();
-        }}
-      >
-        <View style={styles.header}>
-          <View style={styles.headingCopy}>
-            {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-            <Text style={styles.title}>{title}</Text>
-          </View>
-          <Pressable
-            accessibilityLabel="Close"
-            accessibilityRole="button"
-            hitSlop={10}
-            onPress={() => modalRef.current?.dismiss()}
-            style={styles.close}
-          >
-            <Feather name="x" size={20} color={Colors.textSecondary} />
-          </Pressable>
+    <AppBottomSheetModal
+      ref={modalRef}
+      snapPoints={snapPoints}
+      backdropOpacity={backdropOpacity}
+      onDismiss={() => {
+        presentedRef.current = false;
+        onClose();
+      }}
+    >
+      <View style={styles.header}>
+        <View style={styles.headingCopy}>
+          {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
+          <Text style={styles.title}>{title}</Text>
         </View>
-        <BottomSheetScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+        <Pressable
+          accessibilityLabel="Close"
+          accessibilityRole="button"
+          hitSlop={10}
+          onPress={() => modalRef.current?.dismiss()}
+          style={styles.close}
         >
-          {children}
-        </BottomSheetScrollView>
-      </BottomSheetModal>
-    </BottomSheetModalProvider>
+          <Feather name="x" size={20} color={Colors.textSecondary} />
+        </Pressable>
+      </View>
+      <BottomSheetScrollView
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingBottom: Math.max(
+              contentBottomPadding,
+              bottom + bottomClearance,
+            ),
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {children}
+      </BottomSheetScrollView>
+    </AppBottomSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
-    backgroundColor: Colors.background,
-    borderTopLeftRadius: Radius.card,
-    borderTopRightRadius: Radius.card,
-  },
-  handle: { width: 38, height: 4, backgroundColor: Colors.muted },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -131,5 +125,5 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     justifyContent: "center",
   },
-  content: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 44 },
+  content: { paddingHorizontal: 20, paddingTop: 18 },
 });

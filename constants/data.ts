@@ -43,6 +43,7 @@ export interface Court {
   neighborhood: string;
   city: string;
   address: string;
+  postalCode?: string;
   /** Canonical Supabase market name (for example, "Houston"). */
   market?: string;
   latitude: number;
@@ -75,13 +76,14 @@ export interface Court {
   addedDate?: string; // display string e.g. "JAN 2024"
 }
 
-// The DB models RSVP only (going/waitlist/declined) — there is no persisted
-// team assignment, so runs expose a single participant list. Do not present
-// client-side team splits as authoritative.
+export type TeamAssignmentMode = "elo_balance" | "choose_teams";
+export type TeamSide = "a" | "b";
+
 export interface GameRun {
   id: string;
   courtId: string;
   courtName: string;
+  courtShortName: string;
   sport: CourtSport;
   title: string;
   time: string;
@@ -89,6 +91,8 @@ export interface GameRun {
   startTimeIso: string;
   maxPlayers: number;
   participants: Player[];
+  participantSides: Record<string, TeamSide>;
+  teamAssignmentMode: TeamAssignmentMode;
   hostId: string;
   hostName?: string;
   status: string;

@@ -7,14 +7,14 @@ import Mapbox, {
   ShapeSource,
   SymbolLayer,
 } from "@rnmapbox/maps";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CourtListItem } from "@/components/CourtListItem";
@@ -26,8 +26,14 @@ import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts } from "@/context/CourtPresenceContext";
 import { useDeviceLocation } from "@/context/DeviceLocationContext";
-import { coordinateForLocationAction } from "@/context/deviceLocationModel";
-import { fetchCourtsInBounds, fetchNearbyCourts } from "@/services/courtService";
+import {
+  coordinateForLocationAction,
+  type DeviceCoordinate,
+} from "@/context/deviceLocationModel";
+import {
+  fetchCourtsInBounds,
+  fetchNearbyCourts,
+} from "@/services/courtService";
 
 /**
  * Native map — @rnmapbox/maps with the dark style applied at the SDK level
@@ -54,7 +60,15 @@ const STYLE_URL =
 // Continental-US overview used only until we know where the user is.
 const FALLBACK_CENTER: [number, number] = [-96.0, 37.5];
 
-export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | "ALL" }) {
+export function MapScreen({
+  sportFilter = "ALL",
+  addCourtMode = false,
+  focusCoordinate = null,
+}: {
+  sportFilter?: CourtSport | "ALL";
+  addCourtMode?: boolean;
+  focusCoordinate?: DeviceCoordinate | null;
+}) {
   const { courts: contextCourts, localCourtId, localCourt } = useApp();
   const { bottom } = useSafeAreaInsets();
   const { openCourtSheet } = useCourtSheet();
@@ -70,7 +84,11 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
 
   // ── Shared device location — same resolved coordinate as Explore's list and
   // AppContext's nearby-court fetch, so all three surfaces agree. ──
-  const { coord: deviceCoord, status: locationStatus, refresh: refreshDeviceLocation } = useDeviceLocation();
+  const {
+    coord: deviceCoord,
+    status: locationStatus,
+    refresh: refreshDeviceLocation,
+  } = useDeviceLocation();
   const userCoord: [number, number] | null = deviceCoord
     ? [deviceCoord.lng, deviceCoord.lat]
     : null;
@@ -121,7 +139,7 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
       }
     });
     return Array.from(merged.values()).filter(
-      (court) => sportFilter === "ALL" || court.sport === sportFilter
+      (court) => sportFilter === "ALL" || court.sport === sportFilter,
     );
   }, [viewportCourts, contextCourts, localCourt, sportFilter]);
 
@@ -134,7 +152,7 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
           ? { ...c, activeCount: live.activeCount, localCount: live.localCount }
           : c;
       }),
-    [mergedCourts, liveCounts]
+    [mergedCourts, liveCounts],
   );
 
   const liveCourtCount = allCourts.filter((c) => c.activeCount > 0).length;
@@ -146,7 +164,10 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
       features: allCourts.map((c) => ({
         type: "Feature" as const,
         id: c.id,
-        geometry: { type: "Point" as const, coordinates: [c.longitude, c.latitude] },
+        geometry: {
+          type: "Point" as const,
+          coordinates: [c.longitude, c.latitude],
+        },
         properties: {
           id: c.id,
           active: c.activeCount ?? 0,
@@ -156,7 +177,7 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
         },
       })),
     }),
-    [allCourts, localCourtId]
+    [allCourts, localCourtId],
   );
 
   // ── Interactions ──
@@ -176,15 +197,17 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
         return;
       }
       const court = allCourts.find((c) => c.id === feature.properties?.id);
-      if (court) openCourtSheet({ courtId: court.id, distanceKm: court.distanceKm });
+      if (court)
+        openCourtSheet({ courtId: court.id, distanceKm: court.distanceKm });
     },
-    [allCourts, openCourtSheet]
+    [allCourts, openCourtSheet],
   );
 
   const flyToUser = useCallback(async () => {
     const current = coordinateForLocationAction(locationStatus, deviceCoord);
     const fresh = current ? null : await refreshDeviceLocation();
-    const resolved = current ?? coordinateForLocationAction(fresh!.status, fresh!.coord);
+    const resolved =
+      current ?? coordinateForLocationAction(fresh!.status, fresh!.coord);
     if (resolved) {
       cameraRef.current?.setCamera({
         centerCoordinate: [resolved.lng, resolved.lat],
@@ -201,7 +224,8 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
     try {
       const current = coordinateForLocationAction(locationStatus, deviceCoord);
       const fresh = current ? null : await refreshDeviceLocation();
-      const resolved = current ?? coordinateForLocationAction(fresh!.status, fresh!.coord);
+      const resolved =
+        current ?? coordinateForLocationAction(fresh!.status, fresh!.coord);
       if (!resolved) {
         setLocationNotice("LOCATION NEEDED TO FIND THE NEAREST COURT");
         return;
@@ -228,23 +252,55 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
     } catch {
       setLocationNotice("LOCATION UNAVAILABLE — TRY AGAIN");
     }
-  }, [deviceCoord, locationStatus, openCourtSheet, refreshDeviceLocation, sportFilter]);
+  }, [
+    deviceCoord,
+    locationStatus,
+    openCourtSheet,
+    refreshDeviceLocation,
+    sportFilter,
+  ]);
 
   // The map can finish mounting before profile/location hydration. Reapply the
   // scoped camera only after the SDK is ready; otherwise setCamera is dropped
   // and the user gets stuck on the continent fallback with no visible pins.
   useEffect(() => {
     if (!mapReady) return;
+    if (focusCoordinate) {
+      cameraRef.current?.setCamera({
+        centerCoordinate: [focusCoordinate.lng, focusCoordinate.lat],
+        zoomLevel: 17,
+        pitch: 58,
+        heading: -22,
+        padding: {
+          paddingTop: 1,
+          paddingRight: 1,
+          paddingBottom: 220,
+          paddingLeft: 1,
+        },
+        animationMode: "flyTo",
+        animationDuration: 1100,
+      });
+      return;
+    }
     const center =
-      (localCourt ? [localCourt.longitude, localCourt.latitude] as [number, number] : null) ??
-      userCoord;
+      (localCourt
+        ? ([localCourt.longitude, localCourt.latitude] as [number, number])
+        : null) ?? userCoord;
     if (!center) return;
     cameraRef.current?.setCamera({
       centerCoordinate: center,
       zoomLevel: 12.5,
       animationDuration: 650,
     });
-  }, [mapReady, userCoord, localCourt?.id, localCourt?.latitude, localCourt?.longitude]);
+  }, [
+    focusCoordinate?.lat,
+    focusCoordinate?.lng,
+    mapReady,
+    userCoord,
+    localCourt?.id,
+    localCourt?.latitude,
+    localCourt?.longitude,
+  ]);
 
   // Missing-token guard: a build without EXPO_PUBLIC_MAPBOX_TOKEN degrades to
   // the nearby-court list instead of mounting an SDK that was never configured.
@@ -254,14 +310,22 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
         <View style={styles.listOverlay}>
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: bottom + 96 }}
+            contentContainerStyle={{
+              paddingHorizontal: 20,
+              paddingTop: 24,
+              paddingBottom: bottom + 96,
+            }}
           >
-            <Text style={styles.emptyText}>MAP UNAVAILABLE — SHOWING NEARBY COURTS</Text>
+            <Text style={styles.emptyText}>
+              MAP UNAVAILABLE — SHOWING NEARBY COURTS
+            </Text>
             {contextCourts.map((c) => (
               <CourtListItem
                 key={c.id}
                 court={c}
-                onPress={() => openCourtSheet({ courtId: c.id, distanceKm: c.distanceKm })}
+                onPress={() =>
+                  openCourtSheet({ courtId: c.id, distanceKm: c.distanceKm })
+                }
               />
             ))}
           </ScrollView>
@@ -288,9 +352,15 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
       >
         <Camera
           ref={cameraRef}
-          defaultSettings={{ centerCoordinate: initialCenter, zoomLevel: initialZoom }}
+          defaultSettings={{
+            centerCoordinate: initialCenter,
+            zoomLevel: initialZoom,
+          }}
         />
-        <LocationPuck visible pulsing={{ isEnabled: true, color: Colors.accent }} />
+        <LocationPuck
+          visible
+          pulsing={{ isEnabled: true, color: Colors.accent }}
+        />
 
         <ShapeSource
           ref={sourceRef}
@@ -307,7 +377,15 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
             filter={["has", "point_count"]}
             style={{
               circleColor: Colors.surfaceHigh,
-              circleRadius: ["step", ["get", "point_count"], 14, 25, 18, 100, 24],
+              circleRadius: [
+                "step",
+                ["get", "point_count"],
+                14,
+                25,
+                18,
+                100,
+                24,
+              ],
               circleStrokeWidth: 1.5,
               circleStrokeColor: Colors.accent,
               circleOpacity: 0.92,
@@ -327,7 +405,11 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
           {/* Quiet courts: visible sport-identity pin; orange remains live-only. */}
           <CircleLayer
             id="court-quiet"
-            filter={["all", ["!", ["has", "point_count"]], ["==", ["get", "active"], 0]]}
+            filter={[
+              "all",
+              ["!", ["has", "point_count"]],
+              ["==", ["get", "active"], 0],
+            ]}
             style={{
               circleColor: ["get", "sportColor"],
               circleRadius: 8,
@@ -340,7 +422,11 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
           {/* Active courts: accent glow + disc + live count */}
           <CircleLayer
             id="court-active-glow"
-            filter={["all", ["!", ["has", "point_count"]], [">", ["get", "active"], 0]]}
+            filter={[
+              "all",
+              ["!", ["has", "point_count"]],
+              [">", ["get", "active"], 0],
+            ]}
             style={{
               circleColor: Colors.accent,
               circleRadius: 20,
@@ -350,7 +436,11 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
           />
           <CircleLayer
             id="court-active"
-            filter={["all", ["!", ["has", "point_count"]], [">", ["get", "active"], 0]]}
+            filter={[
+              "all",
+              ["!", ["has", "point_count"]],
+              [">", ["get", "active"], 0],
+            ]}
             style={{
               circleColor: Colors.accent,
               circleRadius: 12,
@@ -360,7 +450,11 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
           />
           <SymbolLayer
             id="court-active-count"
-            filter={["all", ["!", ["has", "point_count"]], [">", ["get", "active"], 0]]}
+            filter={[
+              "all",
+              ["!", ["has", "point_count"]],
+              [">", ["get", "active"], 0],
+            ]}
             style={{
               textField: ["to-string", ["get", "active"]],
               textSize: 12,
@@ -383,53 +477,93 @@ export function MapScreen({ sportFilter = "ALL" }: { sportFilter?: CourtSport | 
         </ShapeSource>
       </MapView>
 
-      <View style={[styles.topBar, { top: 12 }]}>
-        <View style={[styles.liveBadge, liveCourtCount === 0 && styles.liveBadgeQuiet]}>
-          <View style={styles.liveDot} />
-          <Text style={styles.liveBadgeText}>
-            {liveCourtCount > 0 ? `${liveCourtCount} LIVE NOW` : "NO ACTIVE CHECK-INS IN VIEW"}
-          </Text>
-        </View>
-      </View>
+      {!addCourtMode ? (
+        <>
+          <View style={[styles.topBar, { top: 12 }]}>
+            <View
+              style={[
+                styles.liveBadge,
+                liveCourtCount === 0 && styles.liveBadgeQuiet,
+              ]}
+            >
+              <View style={styles.liveDot} />
+              <Text style={styles.liveBadgeText}>
+                {liveCourtCount > 0
+                  ? `${liveCourtCount} LIVE NOW`
+                  : "NO ACTIVE CHECK-INS IN VIEW"}
+              </Text>
+            </View>
+          </View>
 
-      {/* ── Legend ── */}
-      <View style={[styles.legend, { bottom: bottom + Layout.tabBarClearance }]}>
-        <View style={styles.legendRow}>
-          <View style={[styles.legendDot, { backgroundColor: Colors.accent }]} />
-          <Text style={styles.legendText}>ACTIVE NOW</Text>
-        </View>
-        <View style={styles.legendRow}>
-          <View style={[styles.legendDot, { backgroundColor: getCourtIdentityColor("BASKETBALL") }]} />
-          <Text style={styles.legendText}>BASKETBALL</Text>
-        </View>
-        <View style={styles.legendRow}>
-          <View style={[styles.legendDot, { backgroundColor: getCourtIdentityColor("PICKLEBALL") }]} />
-          <Text style={styles.legendText}>PICKLEBALL</Text>
-        </View>
-      </View>
+          {/* ── Legend ── */}
+          <View
+            style={[
+              styles.legend,
+              { bottom: bottom + Layout.tabBarClearance + 60 },
+            ]}
+          >
+            <View style={styles.legendRow}>
+              <View
+                style={[styles.legendDot, { backgroundColor: Colors.accent }]}
+              />
+              <Text style={styles.legendText}>ACTIVE NOW</Text>
+            </View>
+            <View style={styles.legendRow}>
+              <View
+                style={[
+                  styles.legendDot,
+                  { backgroundColor: getCourtIdentityColor("BASKETBALL") },
+                ]}
+              />
+              <Text style={styles.legendText}>BASKETBALL</Text>
+            </View>
+            <View style={styles.legendRow}>
+              <View
+                style={[
+                  styles.legendDot,
+                  { backgroundColor: getCourtIdentityColor("PICKLEBALL") },
+                ]}
+              />
+              <Text style={styles.legendText}>PICKLEBALL</Text>
+            </View>
+          </View>
 
-      {/* ── Right-side control: center the map on the current device ── */}
-      <Pressable
-        style={[styles.roundBtn, { bottom: bottom + 82 }]}
-        onPress={flyToUser}
-        accessibilityLabel="Center on my location"
-      >
-        <Feather name="navigation" size={18} color={Colors.text} />
-      </Pressable>
+          {/* ── Right-side control: center the map on the current device ── */}
+          <Pressable
+            style={[
+              styles.roundBtn,
+              { bottom: bottom + Layout.tabBarClearance + 60 },
+            ]}
+            onPress={flyToUser}
+            accessibilityLabel="Center on my location"
+          >
+            <Feather name="navigation" size={18} color={Colors.text} />
+          </Pressable>
 
-      <Pressable
-        accessibilityLabel="Find nearest court"
-        accessibilityRole="button"
-        onPress={findNearestCourt}
-        style={({ pressed }) => [styles.nearestButton, { bottom: bottom + 18 }, pressed && styles.nearestButtonPressed]}
-      >
-        <Feather color={Colors.black} name="navigation" size={15} />
-        <Text style={styles.nearestButtonText}>FIND NEAREST COURT</Text>
-      </Pressable>
-      {locationNotice ? (
-        <View style={[styles.locationNotice, { bottom: bottom + 68 }]}>
-          <Text style={styles.locationNoticeText}>{locationNotice}</Text>
-        </View>
+          <Pressable
+            accessibilityLabel="Find nearest court"
+            accessibilityRole="button"
+            onPress={findNearestCourt}
+            style={({ pressed }) => [
+              styles.nearestButton,
+              { bottom: bottom + Layout.tabBarClearance + 10 },
+              pressed && styles.nearestButtonPressed,
+            ]}
+          >
+            <Feather color={Colors.black} name="navigation" size={15} />
+            <Text style={styles.nearestButtonText}>FIND NEAREST COURT</Text>
+          </Pressable>
+          {locationNotice ? (
+            <View
+              style={[
+                styles.locationNotice,
+                { bottom: bottom + Layout.tabBarClearance + 60 },
+              ]}
+            >
+              <Text style={styles.locationNoticeText}>{locationNotice}</Text>
+            </View>
+          ) : null}
+        </>
       ) : null}
     </View>
   );
@@ -532,9 +666,9 @@ const styles = StyleSheet.create({
   nearestButton: {
     position: "absolute",
     alignSelf: "center",
-    minWidth: 208,
+    minWidth: 190,
     minHeight: 44,
-    paddingHorizontal: 18,
+    paddingHorizontal: 15,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -543,7 +677,12 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
   },
   nearestButtonPressed: { opacity: 0.78 },
-  nearestButtonText: { fontFamily: Typography.heading, fontSize: 12, color: Colors.black, letterSpacing: 1.4 },
+  nearestButtonText: {
+    fontFamily: Typography.heading,
+    fontSize: 12,
+    color: Colors.black,
+    letterSpacing: 1.4,
+  },
   locationNotice: {
     position: "absolute",
     alignSelf: "center",
@@ -554,5 +693,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  locationNoticeText: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.text, textAlign: "center" },
+  locationNoticeText: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    color: Colors.text,
+    textAlign: "center",
+  },
 });

@@ -51,11 +51,16 @@ export function PlayerSummaryRow({
         </Text>
       </View>
       {checkInCount !== undefined ? (
-        <View accessibilityLabel={`${checkInCount} check-ins`} style={styles.checkIns}>
-          <Text numberOfLines={1} style={styles.checkInLabel}>{checkInCount} CHECK-INS</Text>
+        <View
+          accessibilityLabel={`${checkInCount} check-ins`}
+          style={styles.checkIns}
+        >
+          <Text numberOfLines={1} style={styles.checkInLabel}>
+            {checkInCount} {checkInCount === 1 ? "CHECK-IN" : "CHECK-INS"}
+          </Text>
         </View>
       ) : null}
-      <EloStat value={player.elo} />
+      <EloStat alignEnd value={player.elo} />
     </Pressable>
   );
 }
