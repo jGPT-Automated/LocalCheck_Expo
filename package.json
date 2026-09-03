@@ -64,7 +64,7 @@
     "expo-updates": "~29.0.19",
     "expo-web-browser": "~15.0.11",
     "mapbox-gl": "^2.15.0",
-    "react": "19.1.0",
+    "react": "19.2.8",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
     "react-native-gesture-handler": "~2.28.0",
@@ -80,7 +80,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
-    "@types/react": "~19.1.10",
+    "@types/react": "~19.2.18",
     "@types/react-dom": "~19.1.7",
     "babel-plugin-react-compiler": "^19.0.0-beta-e993439-20250117",
     "babel-preset-expo": "54.0.10",
