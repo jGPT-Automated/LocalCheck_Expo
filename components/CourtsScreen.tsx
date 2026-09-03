@@ -54,7 +54,7 @@ export function CourtsScreen() {
     localCourtId,
   } = useApp();
   const { openCourtSheet: presentCourtSheet } = useCourtSheet();
-  const { coord: deviceCoord } = useDeviceLocation();
+  const { coord: deviceCoord, status: locationStatus } = useDeviceLocation();
 
   const [mode, setMode] = useState<ExploreMode>("LIST");
   const [sportFilter, setSportFilter] = useState<SportFilter>(
@@ -86,45 +86,58 @@ export function CourtsScreen() {
     [presentCourtSheet, visitCourt],
   );
 
-  // Local court (if set) is always the discovery anchor. Otherwise this reads
-  // the one shared device coordinate — no local caching here, so a real GPS
-  // fix that lands after mount is picked up instead of frozen at whatever
-  // resolved first (or the LA fallback). Memoized on primitives so identity
-  // is stable across renders that don't actually change the origin.
+  // Discovery is anchored on a real permission-backed device fix when we have
+  // one, so "NEARBY COURTS" is genuinely nearby even when the saved local court
+  // is in another city. The local court is the fallback (and still always
+  // pinned in its own section above). No local caching here, so a GPS fix that
+  // lands after mount is picked up instead of frozen at whatever resolved first
+  // (or the LA fallback). Memoized on primitives so identity is stable.
   const localCourtLat = localCourt?.latitude;
   const localCourtLng = localCourt?.longitude;
+  const locationIsTrusted = locationStatus === "granted" && deviceCoord != null;
   const discoveryOrigin = useMemo(() => {
+    if (locationIsTrusted) return deviceCoord;
     if (localCourtLat != null && localCourtLng != null) {
       return { lat: localCourtLat, lng: localCourtLng };
     }
     return deviceCoord;
-  }, [localCourtLat, localCourtLng, deviceCoord]);
+  }, [locationIsTrusted, localCourtLat, localCourtLng, deviceCoord]);
 
   const loadDiscovery = useCallback(async () => {
     if (!discoveryOrigin) return;
     setLoading(true);
     try {
       const origin = discoveryOrigin;
-      const courts = localCourt?.market
-        ? await fetchCourtsByMarket(
-            localCourt.market,
-            origin,
-            sportFilter === "ALL" ? null : sportFilter,
-            DISCOVERY_LIMIT,
-          )
-        : await fetchNearbyCourts(
-            origin.lat,
-            origin.lng,
-            sportFilter === "ALL" ? null : sportFilter,
-            DISCOVERY_LIMIT,
-          );
+      // Market-scoped discovery is the "my scene" view around a saved local
+      // court. Once we have a real device fix, switch to true radius search so
+      // travelling users see courts where they actually are.
+      const courts =
+        localCourt?.market && !locationIsTrusted
+          ? await fetchCourtsByMarket(
+              localCourt.market,
+              origin,
+              sportFilter === "ALL" ? null : sportFilter,
+              DISCOVERY_LIMIT,
+            )
+          : await fetchNearbyCourts(
+              origin.lat,
+              origin.lng,
+              sportFilter === "ALL" ? null : sportFilter,
+              DISCOVERY_LIMIT,
+            );
       setNearbyCourts(courts);
     } catch {
       setNearbyCourts([]);
     } finally {
       setLoading(false);
     }
-  }, [discoveryOrigin, localCourt?.id, localCourt?.market, sportFilter]);
+  }, [
+    discoveryOrigin,
+    locationIsTrusted,
+    localCourt?.id,
+    localCourt?.market,
+    sportFilter,
+  ]);
 
   useEffect(() => {
     setShowAll(false);

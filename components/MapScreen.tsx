@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import Mapbox, {
   Camera,
   CircleLayer,
+  LineLayer,
   LocationPuck,
   MapView,
   ShapeSource,
@@ -34,6 +35,15 @@ import {
   fetchCourtsInBounds,
   fetchNearbyCourts,
 } from "@/services/courtService";
+import {
+  boundsFor,
+  fetchWalkingPath,
+  kmBetween,
+  type LngLat,
+  type NearestRoute,
+  ROUTE_MAX_KM,
+  straightPath,
+} from "@/lib/nearestRoute";
 
 /**
  * Native map — @rnmapbox/maps with the dark style applied at the SDK level
@@ -76,10 +86,14 @@ export function MapScreen({
   const mapRef = useRef<MapView>(null);
   const cameraRef = useRef<Camera>(null);
   const sourceRef = useRef<ShapeSource>(null);
+  // Once the user taps "center on me" or "find nearest court", stop the
+  // hydration reconcile effect from yanking the camera back to the home court.
+  const userCameraOverride = useRef(false);
 
   const [viewportCourts, setViewportCourts] = useState<Court[]>([]);
   const [mapReady, setMapReady] = useState(false);
   const [locationNotice, setLocationNotice] = useState<string | null>(null);
+  const [nearestRoute, setNearestRoute] = useState<NearestRoute | null>(null);
   const fetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Shared device location — same resolved coordinate as Explore's list and
@@ -92,12 +106,20 @@ export function MapScreen({
   const userCoord: [number, number] | null = deviceCoord
     ? [deviceCoord.lng, deviceCoord.lat]
     : null;
+  // Explore answers "what's near me now". Anchor on a real permission-backed
+  // device fix when we have one; the saved local court (often another city)
+  // and the continental overview are fallbacks, not the default.
+  const locationIsTrusted = locationStatus === "granted" && userCoord != null;
+  const localCourtCenter: [number, number] | null = localCourt
+    ? [localCourt.longitude, localCourt.latitude]
+    : null;
 
   const initialCenter: [number, number] =
-    (localCourt ? [localCourt.longitude, localCourt.latitude] : null) ??
+    (locationIsTrusted ? userCoord : null) ??
+    localCourtCenter ??
     userCoord ??
     FALLBACK_CENTER;
-  const initialZoom = userCoord || localCourt ? 12 : 3.4;
+  const initialZoom = locationIsTrusted || localCourt ? 12 : userCoord ? 9 : 3.4;
 
   // ── Viewport-driven Supabase fetch (400ms debounce, sequenced) ──
   // Responses can arrive out of order while panning; only the newest request
@@ -209,6 +231,8 @@ export function MapScreen({
     const resolved =
       current ?? coordinateForLocationAction(fresh!.status, fresh!.coord);
     if (resolved) {
+      userCameraOverride.current = true;
+      setNearestRoute(null);
       cameraRef.current?.setCamera({
         centerCoordinate: [resolved.lng, resolved.lat],
         zoomLevel: 13,
@@ -240,15 +264,34 @@ export function MapScreen({
         setLocationNotice("NO COURT FOUND NEAR THIS LOCATION");
         return;
       }
-      cameraRef.current?.setCamera({
-        centerCoordinate: [nearest.longitude, nearest.latitude],
-        zoomLevel: 14,
-        animationDuration: 700,
-      });
+
+      const from: LngLat = [resolved.lng, resolved.lat];
+      const to: LngLat = [nearest.longitude, nearest.latitude];
+      const distanceKm = nearest.distanceKm ?? kmBetween(from, to);
+
+      // Frame both the puck and the court, leaving room for the drawer that
+      // opens over the lower third of the screen.
+      userCameraOverride.current = true;
+      const { ne, sw } = boundsFor([from, to]);
+      cameraRef.current?.fitBounds(ne, sw, [96, 64, 380, 64], 900);
       setLocationNotice(null);
+
+      // Show a straight connector immediately; upgrade to the walking route
+      // when the court is close enough for one to make sense.
+      setNearestRoute({ from, to, path: straightPath(from, to), distanceKm });
+      if (distanceKm <= ROUTE_MAX_KM) {
+        void fetchWalkingPath(from, to, MAPBOX_TOKEN).then((path) => {
+          setNearestRoute((prev) =>
+            prev && prev.to[0] === to[0] && prev.to[1] === to[1]
+              ? { ...prev, path }
+              : prev,
+          );
+        });
+      }
+
       setTimeout(() => {
-        openCourtSheet({ courtId: nearest.id, distanceKm: nearest.distanceKm });
-      }, 720);
+        openCourtSheet({ courtId: nearest.id, distanceKm });
+      }, 950);
     } catch {
       setLocationNotice("LOCATION UNAVAILABLE — TRY AGAIN");
     }
@@ -266,6 +309,8 @@ export function MapScreen({
   useEffect(() => {
     if (!mapReady) return;
     if (focusCoordinate) {
+      userCameraOverride.current = false;
+      setNearestRoute(null);
       cameraRef.current?.setCamera({
         centerCoordinate: [focusCoordinate.lng, focusCoordinate.lat],
         zoomLevel: 17,
@@ -282,10 +327,12 @@ export function MapScreen({
       });
       return;
     }
+    // A tap on "center on me" / "find nearest court" takes precedence — don't
+    // reset the camera underneath the user when location or the local court
+    // hydrates a moment later.
+    if (userCameraOverride.current) return;
     const center =
-      (localCourt
-        ? ([localCourt.longitude, localCourt.latitude] as [number, number])
-        : null) ?? userCoord;
+      (locationIsTrusted ? userCoord : null) ?? localCourtCenter ?? userCoord;
     if (!center) return;
     cameraRef.current?.setCamera({
       centerCoordinate: center,
@@ -296,7 +343,9 @@ export function MapScreen({
     focusCoordinate?.lat,
     focusCoordinate?.lng,
     mapReady,
-    userCoord,
+    locationIsTrusted,
+    deviceCoord?.lat,
+    deviceCoord?.lng,
     localCourt?.id,
     localCourt?.latitude,
     localCourt?.longitude,
@@ -345,6 +394,7 @@ export function MapScreen({
         scaleBarEnabled={false}
         compassEnabled={false}
         onMapIdle={refetchViewport}
+        onPress={() => setNearestRoute(null)}
         onDidFinishLoadingMap={() => {
           setMapReady(true);
           refetchViewport();
@@ -361,6 +411,61 @@ export function MapScreen({
           visible
           pulsing={{ isEnabled: true, color: Colors.accent }}
         />
+
+        {nearestRoute ? (
+          <ShapeSource
+            id="nearest-route"
+            shape={{
+              type: "FeatureCollection",
+              features: [
+                {
+                  type: "Feature",
+                  properties: {},
+                  geometry: nearestRoute.path,
+                },
+                {
+                  type: "Feature",
+                  properties: { marker: true },
+                  geometry: { type: "Point", coordinates: nearestRoute.to },
+                },
+              ],
+            }}
+          >
+            <LineLayer
+              id="nearest-route-glow"
+              filter={["==", ["geometry-type"], "LineString"]}
+              style={{
+                lineColor: Colors.accent,
+                lineOpacity: 0.22,
+                lineWidth: 12,
+                lineCap: "round",
+                lineJoin: "round",
+              }}
+            />
+            <LineLayer
+              id="nearest-route-line"
+              filter={["==", ["geometry-type"], "LineString"]}
+              style={{
+                lineColor: Colors.accent,
+                lineWidth: 3.5,
+                lineCap: "round",
+                lineJoin: "round",
+                lineDasharray:
+                  nearestRoute.distanceKm > ROUTE_MAX_KM ? [1.5, 1.5] : [1],
+              }}
+            />
+            <CircleLayer
+              id="nearest-route-target"
+              filter={["==", ["get", "marker"], true]}
+              style={{
+                circleColor: Colors.accent,
+                circleRadius: 7,
+                circleStrokeWidth: 3,
+                circleStrokeColor: Colors.background,
+              }}
+            />
+          </ShapeSource>
+        ) : null}
 
         <ShapeSource
           ref={sourceRef}

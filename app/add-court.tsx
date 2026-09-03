@@ -185,7 +185,7 @@ export default function AddCourtRoute() {
     try {
       const photo = await liveCameraRef.current?.takePictureAsync({
         base64: true,
-        quality: 0.7,
+        quality: 0.85,
         exif: false,
       });
       if (!photo?.base64) return;
@@ -250,14 +250,10 @@ export default function AddCourtRoute() {
           style={StyleSheet.absoluteFill}
           facing="back"
         />
+        <CameraFrameOverlay />
         <View style={[styles.cameraShade, { paddingTop: Math.max(12, top) }]}>
           <FlowHeader title="TAKE A PHOTO" step={2} onBack={explore} />
-          <View style={styles.cameraBody}>
-            <View style={styles.cameraGuide}>
-              <CourtGuide />
-              <Text style={styles.pointAt}>Point at the court</Text>
-            </View>
-          </View>
+          <View style={styles.cameraBody} />
           <View style={[styles.captureArea, { paddingBottom: bottom + 20 }]}>
             <Text style={styles.liveOnly}>LIVE CAMERA ONLY · NO GALLERY</Text>
             <Pressable
@@ -387,13 +383,26 @@ function FlowProgress({ step }: { step: number }) {
     </View>
   );
 }
-function CourtGuide() {
+// Scanner-style framing overlay: the live preview stays at full brightness
+// inside the window; only the surrounding scrim is dimmed, with accent corner
+// brackets and one instruction line so the submitter frames the whole court.
+function CameraFrameOverlay() {
   return (
-    <View style={styles.courtGuide}>
-      <View style={styles.hoopTop} />
-      <View style={styles.hoopBottom} />
-      <View style={styles.halfLine} />
-      <View style={styles.centerCircle} />
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <View style={styles.frameScrimTop}>
+        <Text style={styles.frameHint}>Frame the full court</Text>
+      </View>
+      <View style={styles.frameRow}>
+        <View style={styles.frameScrimSide} />
+        <View style={styles.frameWindow}>
+          <View style={[styles.frameCorner, styles.frameCornerTL]} />
+          <View style={[styles.frameCorner, styles.frameCornerTR]} />
+          <View style={[styles.frameCorner, styles.frameCornerBL]} />
+          <View style={[styles.frameCorner, styles.frameCornerBR]} />
+        </View>
+        <View style={styles.frameScrimSide} />
+      </View>
+      <View style={styles.frameScrimBottom} />
     </View>
   );
 }
@@ -428,7 +437,9 @@ function Details({
         {photoUri ? (
           <Image source={{ uri: photoUri }} style={StyleSheet.absoluteFill} />
         ) : (
-          <CourtGuide />
+          <View style={styles.photoPreviewEmpty}>
+            <Feather name="camera-off" size={20} color={Colors.muted} />
+          </View>
         )}
         <View style={styles.liveBadge}>
           <Feather name="camera" size={13} color={Colors.text} />
@@ -779,71 +790,46 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   cameraScreen: { flex: 1, backgroundColor: Colors.black },
-  cameraShade: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)" },
-  cameraBody: { flex: 1, alignItems: "center", justifyContent: "center" },
-  cameraGuide: {
-    width: "82%",
-    aspectRatio: 1,
-    borderWidth: 4,
-    borderColor: Colors.accent,
-    borderRadius: Radius.md,
+  cameraShade: { flex: 1 },
+  cameraBody: { flex: 1 },
+  frameScrimTop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-end",
+    paddingBottom: 16,
   },
-  courtGuide: {
-    width: "94%",
-    height: "78%",
-    borderWidth: 3,
-    borderColor: "rgba(242,242,246,0.18)",
-    position: "relative",
-  },
-  hoopTop: {
+  frameRow: { flexDirection: "row", alignItems: "stretch" },
+  frameScrimSide: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)" },
+  frameWindow: { width: "88%", aspectRatio: 4 / 3 },
+  frameScrimBottom: { flex: 1.35, backgroundColor: "rgba(0,0,0,0.5)" },
+  frameCorner: {
     position: "absolute",
-    top: 0,
-    left: "28%",
-    width: "44%",
-    height: "30%",
-    borderWidth: 3,
-    borderTopWidth: 0,
-    borderColor: "rgba(242,242,246,0.18)",
-    borderBottomLeftRadius: 6,
-    borderBottomRightRadius: 6,
+    width: 26,
+    height: 26,
+    borderColor: Colors.accent,
   },
-  hoopBottom: {
-    position: "absolute",
-    bottom: 0,
-    left: "28%",
-    width: "44%",
-    height: "30%",
-    borderWidth: 3,
-    borderBottomWidth: 0,
-    borderColor: "rgba(242,242,246,0.18)",
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
+  frameCornerTL: { top: -1, left: -1, borderTopWidth: 3, borderLeftWidth: 3 },
+  frameCornerTR: { top: -1, right: -1, borderTopWidth: 3, borderRightWidth: 3 },
+  frameCornerBL: {
+    bottom: -1,
+    left: -1,
+    borderBottomWidth: 3,
+    borderLeftWidth: 3,
   },
-  halfLine: {
-    position: "absolute",
-    top: "50%",
-    height: 3,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(242,242,246,0.18)",
+  frameCornerBR: {
+    bottom: -1,
+    right: -1,
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
   },
-  centerCircle: {
-    position: "absolute",
-    width: "36%",
-    aspectRatio: 1,
-    borderRadius: 100,
-    borderWidth: 3,
-    borderColor: "rgba(242,242,246,0.18)",
-    top: "32%",
-    left: "32%",
-  },
-  pointAt: {
-    position: "absolute",
-    color: Colors.textSecondary,
+  frameHint: {
+    color: Colors.text,
     fontFamily: Typography.bodyBold,
-    fontSize: 19,
+    fontSize: 15,
+    letterSpacing: 0.4,
+    textShadowColor: "rgba(0,0,0,0.6)",
+    textShadowRadius: 6,
   },
   captureArea: {
     alignItems: "center",
@@ -876,6 +862,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Colors.surfaceDark,
+  },
+  photoPreviewEmpty: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
   },
   liveBadge: {
     position: "absolute",
