@@ -343,6 +343,10 @@ interaction with supported installed primitives and record that decision here.
   export, and direct visual checks at standard and compact iPhone-sized
   viewports. Test multi-account realtime behavior separately on two
   authenticated clients.
+- A screen does not pass because it looks similar in a screenshot. Headers,
+  sheets, cards, buttons, and controls must use their canonical shared owner so
+  their navigation, gestures, dismissal, loading, and disabled behavior remain
+  consistent with the rest of LocalCheck.
 
 ## MVP scope guardrail
 

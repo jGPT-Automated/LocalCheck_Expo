@@ -23,7 +23,12 @@ import { Feather } from "@expo/vector-icons";
 
 import { Colors, Radius } from "@/constants/colors";
 import { Layout } from "@/constants/layout";
-import { Court, PlannedVisit, getSportColor } from "@/constants/data";
+import {
+  Court,
+  PlannedVisit,
+  TeamAssignmentMode,
+  getSportColor,
+} from "@/constants/data";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { RunCard } from "@/components/RunCard";
 import { ScreenHeader } from "@/components/ScreenHeader";
@@ -380,6 +385,8 @@ function HostRunModal({
   const [dayOffset, setDayOffset] = useState(0);
   const [time, setTime] = useState("18:00");
   const [format, setFormat] = useState<ScheduledGameFormat>("5V5");
+  const [teamAssignmentMode, setTeamAssignmentMode] =
+    useState<TeamAssignmentMode>("elo_balance");
   const [submitting, setSubmitting] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -399,6 +406,7 @@ function HostRunModal({
         `${String(nextHour > 23 ? 18 : Math.max(8, nextHour)).padStart(2, "0")}:00`,
       );
       setFailed(false);
+      setTeamAssignmentMode("elo_balance");
     }
   }, [visible]);
 
@@ -421,6 +429,7 @@ function HostRunModal({
       title: generatedTitle,
       startTime: startTime.toISOString(),
       maxPlayers: maxPlayersForFormat(format),
+      teamAssignmentMode,
       note: note.trim() || undefined,
     });
     setSubmitting(false);
@@ -479,6 +488,47 @@ function HostRunModal({
             </Text>
           </Pressable>
         ))}
+      </View>
+
+      <Text style={styles.fieldLabel}>TEAMS</Text>
+      <View style={styles.teamModeRow}>
+        {([
+          { value: "elo_balance", label: "ELO BALANCE" },
+          { value: "choose_teams", label: "CHOOSE TEAMS" },
+        ] as const).map((option) => (
+          <Pressable
+            key={option.value}
+            accessibilityRole="button"
+            accessibilityState={{ selected: option.value === teamAssignmentMode }}
+            onPress={() => setTeamAssignmentMode(option.value)}
+            style={[
+              styles.teamModeOption,
+              option.value === teamAssignmentMode && styles.teamModeOptionActive,
+            ]}
+          >
+            <Feather
+              name={option.value === "elo_balance" ? "shuffle" : "users"}
+              size={15}
+              color={option.value === teamAssignmentMode ? Colors.accent : Colors.muted}
+            />
+            <Text
+              style={[
+                styles.teamModeOptionText,
+                option.value === teamAssignmentMode && styles.teamModeOptionTextActive,
+              ]}
+            >
+              {option.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      <View style={styles.teamModeHelp}>
+        <Feather name="info" size={14} color={Colors.accent} />
+        <Text style={styles.teamModeHelpText}>
+          {teamAssignmentMode === "elo_balance"
+            ? "Players join the roster. When it fills, LocalCheck splits the two sides by ELO."
+            : "You start on Side A. Each player chooses a side when they join."}
+        </Text>
       </View>
 
       <Text style={styles.fieldLabel}>COURT</Text>
@@ -1219,8 +1269,12 @@ export default function ScheduleScreen() {
 
       <ScrollView
         style={styles.scheduleBody}
-        contentContainerStyle={styles.scheduleBodyContent}
+        contentContainerStyle={[
+          styles.scheduleBodyContent,
+          scheduleMode === "EDIT" && styles.scheduleBodyContentEdit,
+        ]}
         nestedScrollEnabled
+        scrollEnabled={scheduleMode === "VIEW"}
         showsVerticalScrollIndicator={false}
       >
         {/* ── Court selector ── */}
@@ -1244,39 +1298,6 @@ export default function ScheduleScreen() {
               : "Who's Going"}
           </Text>
         </View>
-
-        {scheduleMode === "EDIT" ? (
-          <View style={styles.editOptions}>
-            <Text style={styles.editOptionsLabel}>NEW TIMES VISIBLE TO</Text>
-            <View style={styles.editVisibilityRow}>
-              {VISIBILITY_OPTIONS.map((option) => (
-                <Pressable
-                  key={option.value}
-                  onPress={() => setEditVisibility(option.value)}
-                  style={[
-                    styles.editVisibilityButton,
-                    editVisibility === option.value &&
-                      styles.editVisibilityButtonActive,
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityState={{
-                    selected: editVisibility === option.value,
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.editVisibilityText,
-                      editVisibility === option.value &&
-                        styles.editVisibilityTextActive,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-        ) : null}
 
         {/* ── Heatmap: the time axis switches between fixed AM and PM states. ── */}
         <View style={styles.heatmap}>
@@ -1487,6 +1508,35 @@ export default function ScheduleScreen() {
           </View>
         </View>
 
+        {scheduleMode === "EDIT" ? (
+          <View style={styles.editOptions}>
+            <Text style={styles.editOptionsLabel}>NEW TIMES VISIBLE TO</Text>
+            <View style={styles.editVisibilityRow}>
+              {VISIBILITY_OPTIONS.map((option) => (
+                <Pressable
+                  key={option.value}
+                  onPress={() => setEditVisibility(option.value)}
+                  style={[
+                    styles.editVisibilityButton,
+                    editVisibility === option.value && styles.editVisibilityButtonActive,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: editVisibility === option.value }}
+                >
+                  <Text
+                    style={[
+                      styles.editVisibilityText,
+                      editVisibility === option.value && styles.editVisibilityTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
         {/* ── Selected slot detail ── */}
         {scheduleMode === "VIEW" &&
           selectedSlot &&
@@ -1584,7 +1634,7 @@ export default function ScheduleScreen() {
           })()}
 
         {/* ── Scheduled games ── */}
-        <View style={styles.runsSection}>
+        {scheduleMode === "VIEW" ? <View style={styles.runsSection}>
           <Text style={styles.runsTitle}>Scheduled Games</Text>
           {courtRuns.length === 0 ? (
             <View style={styles.runsEmpty}>
@@ -1595,7 +1645,7 @@ export default function ScheduleScreen() {
           ) : (
             courtRuns.map((run) => <RunCard key={run.id} run={run} />)
           )}
-        </View>
+        </View> : null}
       </ScrollView>
 
       {scheduleMode === "VIEW" && court?.id === localCourt?.id ? (
@@ -1677,6 +1727,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   scheduleBody: { flex: 1, minHeight: 0 },
   scheduleBodyContent: { flexGrow: 1, paddingBottom: 88 },
+  scheduleBodyContentEdit: { paddingBottom: 8 },
   pressed: { backgroundColor: Colors.surfaceHigh },
 
   headerDate: {
@@ -1742,7 +1793,8 @@ const styles = StyleSheet.create({
   },
   editOptions: {
     marginHorizontal: 20,
-    marginBottom: 12,
+    marginTop: "auto",
+    marginBottom: 8,
     padding: 10,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -1776,6 +1828,45 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   editVisibilityTextActive: { color: Colors.text },
+  teamModeRow: { flexDirection: "row", gap: 8 },
+  teamModeOption: {
+    flex: 1,
+    minHeight: 46,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surface,
+  },
+  teamModeOptionActive: { borderColor: Colors.accent, backgroundColor: Colors.accentDim },
+  teamModeOptionText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.muted,
+    letterSpacing: 0.8,
+  },
+  teamModeOptionTextActive: { color: Colors.text },
+  teamModeHelp: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    marginTop: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surface,
+  },
+  teamModeHelpText: {
+    flex: 1,
+    fontFamily: Typography.body,
+    fontSize: 11,
+    lineHeight: 16,
+    color: Colors.textSecondary,
+  },
   visibilityHint: {
     fontFamily: Typography.body,
     fontSize: 11,

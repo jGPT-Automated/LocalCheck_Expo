@@ -92,7 +92,7 @@ interface AppContextValue {
   checkIn: (courtId: string) => Promise<void>;
   checkOut: () => Promise<void>;
   visitCourt: (courtId: string) => Promise<void>;
-  joinRun: (runId: string) => Promise<boolean>;
+  joinRun: (runId: string, teamSide?: "a" | "b") => Promise<boolean>;
   addPlannedVisit: (courtId: string, plannedAtIso: string, note?: string, visibility?: Visibility) => Promise<boolean>;
   removePlannedVisit: (visitId: string) => Promise<boolean>;
   savePlannedVisitBatch: (
@@ -687,16 +687,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const getFriendsList = useCallback(() => friends, [friends]);
 
   const joinRun = useCallback(
-    async (runId: string): Promise<boolean> => {
+    async (runId: string, teamSide?: "a" | "b"): Promise<boolean> => {
       if (!userId) return false;
-      const ok = await joinScheduledGame(runId, userId);
+      const ok = await joinScheduledGame(runId, userId, teamSide);
       if (ok) {
         // Reflect the confirmed RSVP immediately, then reconcile from the DB.
         setRuns((prev) =>
           prev.map((run) => {
             if (run.id !== runId) return run;
             if (run.participants.some((p) => p.id === userId)) return run;
-            return { ...run, participants: [...run.participants, currentUser] };
+            return {
+              ...run,
+              participants: [...run.participants, currentUser],
+              participantSides: teamSide
+                ? { ...run.participantSides, [userId]: teamSide }
+                : run.participantSides,
+            };
           })
         );
         refreshRuns();

@@ -86,6 +86,25 @@ force-push shared branches, or include unrelated user changes.
   functional icons only through installed icon libraries. Do not create icons
   from Unicode, emoji, inline drawings, or one-off SVG/CSS shapes.
 
+### UI change gate
+
+- Before editing a screen, use `rg` to find the existing component that owns the
+  same interaction and the tokens it uses. Reuse that implementation. A new
+  component that only resembles an existing header, sheet, card, button, or
+  control does not pass review.
+- Treat user screenshots and visual annotations as acceptance cases. Identify
+  the exact route, state, element, and owning component; make the smallest
+  change that satisfies the latest instruction and preserve unrelated behavior.
+- Visual consistency includes behavior. A surface that looks draggable must use
+  the established draggable surface; back, close, tap-out, swipe, loading, and
+  disabled states must work before the change is reported complete.
+- Inspect the rendered route at an iPhone-sized viewport and exercise the
+  changed interaction. If authentication or native-only behavior prevents that
+  check, state the exact boundary in the pull request instead of substituting a
+  source or export claim.
+- A UI handoff must name the reused component, the rendered state inspected, the
+  interaction exercised, and any device-only check still required.
+
 - All durable product data comes from Supabase through `services/`.
 - Approved database RPCs own atomic behavior. Do not replace them with client
   write sequences.

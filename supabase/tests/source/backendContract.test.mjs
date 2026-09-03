@@ -345,3 +345,23 @@ test("stale push backfill is isolated from the applied delivery migration", asyn
   assert.match(backfillSql, /push_attempts = 0/i);
   assert.match(backfillSql, /push_sent_at is null/i);
 });
+
+test("scheduled games persist and enforce their team assignment mode", async () => {
+  const sql = await migrationEndingWith("_add_scheduled_game_team_assignment.sql");
+  for (const contract of [
+    "team_assignment_mode",
+    "team_side",
+    "private.assign_balanced_run_teams",
+    "public.create_scheduled_game",
+    "public.join_scheduled_game",
+  ]) {
+    assert.ok(sql.includes(contract), `missing team assignment contract ${contract}`);
+  }
+  assert.match(sql, /team_assignment_mode in \('elo_balance', 'choose_teams'\)/i);
+  assert.match(sql, /p_team_side not in \('a', 'b'\)/i);
+  assert.match(sql, /v_side_count >= v_run\.max_players \/ 2/i);
+  assert.match(sql, /v_roster_count <> v_run\.max_players/i);
+  assert.match(sql, /submitted teams do not match the scheduled teams/i);
+  assert.match(sql, /grant execute on function public\.create_scheduled_game[\s\S]*to authenticated/i);
+  assert.match(sql, /grant execute on function public\.join_scheduled_game[\s\S]*to authenticated/i);
+});
