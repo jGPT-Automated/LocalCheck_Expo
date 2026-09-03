@@ -8,6 +8,8 @@ import React, {
 } from "react";
 import {
   Modal,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -21,7 +23,12 @@ import { Feather } from "@expo/vector-icons";
 
 import { Colors, Radius } from "@/constants/colors";
 import { Layout } from "@/constants/layout";
-import { Court, PlannedVisit, getSportColor } from "@/constants/data";
+import {
+  Court,
+  PlannedVisit,
+  TeamAssignmentMode,
+  getSportColor,
+} from "@/constants/data";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { RunCard } from "@/components/RunCard";
 import { ScreenHeader } from "@/components/ScreenHeader";
@@ -67,6 +74,13 @@ const RUN_TIMES = [
   "22:00",
   "23:00",
 ];
+
+const TIME_ROW_PITCH = 28;
+const TIME_WINDOW_ROW_COUNT = 8;
+const LATE_TIME_WINDOW_START_INDEX = 7;
+const LATE_TIME_WINDOW_OFFSET = LATE_TIME_WINDOW_START_INDEX * TIME_ROW_PITCH;
+const TIME_WINDOW_HEIGHT = TIME_WINDOW_ROW_COUNT * TIME_ROW_PITCH;
+type TimeWindow = "EARLY" | "LATE";
 
 // Rolling next-7-days window (today first) — matches the product model of
 // "who's going this week" and the [today, +7d] data fetch window. A calendar
@@ -371,6 +385,8 @@ function HostRunModal({
   const [dayOffset, setDayOffset] = useState(0);
   const [time, setTime] = useState("18:00");
   const [format, setFormat] = useState<ScheduledGameFormat>("5V5");
+  const [teamAssignmentMode, setTeamAssignmentMode] =
+    useState<TeamAssignmentMode>("elo_balance");
   const [submitting, setSubmitting] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -390,6 +406,7 @@ function HostRunModal({
         `${String(nextHour > 23 ? 18 : Math.max(8, nextHour)).padStart(2, "0")}:00`,
       );
       setFailed(false);
+      setTeamAssignmentMode("elo_balance");
     }
   }, [visible]);
 
@@ -412,6 +429,7 @@ function HostRunModal({
       title: generatedTitle,
       startTime: startTime.toISOString(),
       maxPlayers: maxPlayersForFormat(format),
+      teamAssignmentMode,
       note: note.trim() || undefined,
     });
     setSubmitting(false);
@@ -470,6 +488,47 @@ function HostRunModal({
             </Text>
           </Pressable>
         ))}
+      </View>
+
+      <Text style={styles.fieldLabel}>TEAMS</Text>
+      <View style={styles.teamModeRow}>
+        {([
+          { value: "elo_balance", label: "ELO BALANCE" },
+          { value: "choose_teams", label: "CHOOSE TEAMS" },
+        ] as const).map((option) => (
+          <Pressable
+            key={option.value}
+            accessibilityRole="button"
+            accessibilityState={{ selected: option.value === teamAssignmentMode }}
+            onPress={() => setTeamAssignmentMode(option.value)}
+            style={[
+              styles.teamModeOption,
+              option.value === teamAssignmentMode && styles.teamModeOptionActive,
+            ]}
+          >
+            <Feather
+              name={option.value === "elo_balance" ? "shuffle" : "users"}
+              size={15}
+              color={option.value === teamAssignmentMode ? Colors.accent : Colors.muted}
+            />
+            <Text
+              style={[
+                styles.teamModeOptionText,
+                option.value === teamAssignmentMode && styles.teamModeOptionTextActive,
+              ]}
+            >
+              {option.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      <View style={styles.teamModeHelp}>
+        <Feather name="info" size={14} color={Colors.accent} />
+        <Text style={styles.teamModeHelpText}>
+          {teamAssignmentMode === "elo_balance"
+            ? "Players join the roster. When it fills, LocalCheck splits the two sides by ELO."
+            : "You start on Side A. Each player chooses a side when they join."}
+        </Text>
       </View>
 
       <Text style={styles.fieldLabel}>COURT</Text>
@@ -791,8 +850,13 @@ export default function ScheduleScreen() {
     slot: number;
   } | null>(null);
   const [scheduleMode, setScheduleMode] = useState<"VIEW" | "EDIT">("VIEW");
-  const [timePeriod, setTimePeriod] = useState<"AM" | "PM">(
-    new Date().getHours() < 12 ? "AM" : "PM",
+  const initialTimeWindowRef = useRef<TimeWindow>(
+    scheduleSlotIndex(new Date().getHours()) >= LATE_TIME_WINDOW_START_INDEX
+      ? "LATE"
+      : "EARLY",
+  );
+  const [timeWindow, setTimeWindow] = useState<TimeWindow>(
+    initialTimeWindowRef.current,
   );
   const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
   const [editVisibility, setEditVisibility] = useState<Visibility>("public");
@@ -808,6 +872,8 @@ export default function ScheduleScreen() {
   );
   const consumedCourtParamRef = useRef<string | null>(null);
   const consumedCreateParamRef = useRef<string | null>(null);
+  const timeScrollRef = useRef<ScrollView>(null);
+  const positionedInitialTimeWindowRef = useRef(false);
   const saveNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -876,10 +942,12 @@ export default function ScheduleScreen() {
   );
 
   const weekLabel = useMemo(() => {
-    const fmt = (d: Date) =>
-      d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
     const last = weekDays[6];
-    return `${fmt(weekStart)} – ${fmt(last)}`;
+    const month = new Intl.DateTimeFormat("en-US", { month: "long" });
+    if (weekStart.getMonth() === last.getMonth()) {
+      return `${month.format(weekStart)} ${weekStart.getDate()} – ${last.getDate()}`;
+    }
+    return `${month.format(weekStart)} ${weekStart.getDate()} – ${month.format(last)} ${last.getDate()}`;
   }, [weekStart, weekDays]);
 
   const bucketKey = useCallback(
@@ -1039,6 +1107,13 @@ export default function ScheduleScreen() {
     : null;
   const selectedEntry = selectedKey ? slotMap.get(selectedKey) : undefined;
   const selectedDate = selectedSlot ? weekDays[selectedSlot.day] : null;
+  const selectedRuns = useMemo(
+    () =>
+      selectedKey
+        ? courtRuns.filter((run) => bucketKey(run.startTimeIso) === selectedKey)
+        : [],
+    [bucketKey, courtRuns, selectedKey],
+  );
 
   const heatStyle = (count: number) => {
     if (count >= 5) return styles.heatHigh;
@@ -1052,8 +1127,34 @@ export default function ScheduleScreen() {
     scheduleSlotIndex(new Date().getHours()),
   );
   const currentKey = `0:${currentSlotIndex}`;
-  const switchTimePeriod = () =>
-    setTimePeriod((period) => (period === "AM" ? "PM" : "AM"));
+  const showTimeWindow = useCallback(
+    (nextWindow: TimeWindow, animated = true) => {
+      setTimeWindow(nextWindow);
+      timeScrollRef.current?.scrollTo({
+        animated,
+        x: 0,
+        y: nextWindow === "LATE" ? LATE_TIME_WINDOW_OFFSET : 0,
+      });
+    },
+    [],
+  );
+  const positionInitialTimeWindow = useCallback(() => {
+    if (positionedInitialTimeWindowRef.current) return;
+    positionedInitialTimeWindowRef.current = true;
+    showTimeWindow(initialTimeWindowRef.current, false);
+  }, [showTimeWindow]);
+  const syncTimeWindow = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const nextWindow =
+        event.nativeEvent.contentOffset.y >= LATE_TIME_WINDOW_OFFSET / 2
+          ? "LATE"
+          : "EARLY";
+      setTimeWindow((current) =>
+        current === nextWindow ? current : nextWindow,
+      );
+    },
+    [],
+  );
 
   // Returning to Schedule should always answer "what is happening now?" first.
   // A deliberate tap can still move the detail card to any other slot.
@@ -1161,12 +1262,19 @@ export default function ScheduleScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="SCHEDULE" />
+      <ScreenHeader
+        title="SCHEDULE"
+        right={<Text style={styles.headerDate}>{weekLabel}</Text>}
+      />
 
       <ScrollView
         style={styles.scheduleBody}
-        contentContainerStyle={styles.scheduleBodyContent}
+        contentContainerStyle={[
+          styles.scheduleBodyContent,
+          scheduleMode === "EDIT" && styles.scheduleBodyContentEdit,
+        ]}
         nestedScrollEnabled
+        scrollEnabled={scheduleMode === "VIEW"}
         showsVerticalScrollIndicator={false}
       >
         {/* ── Court selector ── */}
@@ -1182,56 +1290,14 @@ export default function ScheduleScreen() {
           <Feather name="chevron-right" size={15} color={Colors.muted} />
         </Pressable>
 
-        {/* ── Date range (no paging — see weekStart comment) ── */}
-        <View style={styles.weekNav}>
-          <Text style={styles.weekLabel}>{weekLabel.toUpperCase()}</Text>
-          {scheduleMode === "EDIT" ? (
-            <Text style={styles.editingLabel}>EDITING TIMES</Text>
-          ) : null}
-        </View>
-
-        {/* Mode lives in the header action (EDIT / CANCEL) — this row only
-            reports state, so the grid stays the tallest thing on screen. */}
+        {/* One restrained instruction above the time grid. */}
         <View style={styles.scheduleModeRow}>
           <Text style={styles.scheduleModeStatus}>
             {scheduleMode === "EDIT"
               ? `${pendingKeys.size} SELECTED — TAP TO ADD OR REMOVE`
-              : "TAP A TIME TO SEE WHO'S GOING"}
+              : "Who's Going"}
           </Text>
         </View>
-
-        {scheduleMode === "EDIT" ? (
-          <View style={styles.editOptions}>
-            <Text style={styles.editOptionsLabel}>NEW TIMES VISIBLE TO</Text>
-            <View style={styles.editVisibilityRow}>
-              {VISIBILITY_OPTIONS.map((option) => (
-                <Pressable
-                  key={option.value}
-                  onPress={() => setEditVisibility(option.value)}
-                  style={[
-                    styles.editVisibilityButton,
-                    editVisibility === option.value &&
-                      styles.editVisibilityButtonActive,
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityState={{
-                    selected: editVisibility === option.value,
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.editVisibilityText,
-                      editVisibility === option.value &&
-                        styles.editVisibilityTextActive,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-        ) : null}
 
         {/* ── Heatmap: the time axis switches between fixed AM and PM states. ── */}
         <View style={styles.heatmap}>
@@ -1262,137 +1328,148 @@ export default function ScheduleScreen() {
               );
             })}
           </View>
-          <View>
-            {timePeriod === "PM" ? (
-              <View style={styles.timeArrowRow}>
-                <Pressable
-                  accessibilityLabel="Show AM times"
-                  accessibilityRole="button"
-                  hitSlop={2}
-                  onPress={switchTimePeriod}
-                  style={styles.timeArrow}
-                >
-                  <Feather color={Colors.text} name="chevron-up" size={18} />
-                </Pressable>
-              </View>
-            ) : null}
-            <View style={styles.timeRows}>
-              {SLOT_HOURS.filter((h) =>
-                timePeriod === "AM" ? h < 12 : h >= 12,
-              ).map((h) => {
-                const slotIdx = SLOT_HOURS.indexOf(h);
-                return (
-                  <View key={h} style={styles.heatRow}>
-                    <View style={styles.heatTimeCol}>
-                      <Text
-                        style={[
-                          styles.heatTimeText,
-                          slotIdx === currentSlotIndex && styles.heatAxisActive,
-                        ]}
-                      >
-                        {scheduleSlotLabel(h)}
-                      </Text>
-                    </View>
-                    {weekDays.map((_, dayIdx) => {
-                      const key = `${dayIdx}:${slotIdx}`;
-                      const count = slotTotal(key);
-                      const isSelected =
-                        selectedSlot?.day === dayIdx &&
-                        selectedSlot?.slot === slotIdx;
-                      const isCurrent = key === currentKey;
-                      const isMinePending = pendingKeys.has(key);
-                      const wasMine = myVisitsByKey.has(key);
-                      const previewCount =
-                        scheduleMode === "EDIT"
-                          ? Math.max(
-                              0,
-                              count +
-                                (isMinePending && !wasMine ? 1 : 0) -
-                                (!isMinePending && wasMine ? 1 : 0),
-                            )
-                          : count;
-                      const slotDate = new Date(weekDays[dayIdx]);
-                      slotDate.setHours(SLOT_HOURS[slotIdx], 0, 0, 0);
-                      slotDate.setHours(SLOT_HOURS[slotIdx] + 1, 0, 0, 0);
-                      const isPast = slotDate.getTime() <= Date.now();
-                      return (
-                        <Pressable
-                          key={dayIdx}
-                          style={[
-                            styles.heatCell,
-                            heatStyle(previewCount),
-                            isCurrent && styles.heatCellCurrent,
-                            isSelected && styles.heatCellSelected,
-                            scheduleMode === "EDIT" &&
-                              isMinePending &&
-                              styles.heatCellMine,
-                            scheduleMode === "EDIT" &&
-                              isPast &&
-                              !isMinePending &&
-                              styles.heatCellDisabled,
-                          ]}
-                          onPress={() =>
-                            scheduleMode === "EDIT"
-                              ? togglePendingKey(key)
-                              : setSelectedSlot(
-                                  isSelected
-                                    ? null
-                                    : { day: dayIdx, slot: slotIdx },
-                                )
-                          }
-                          disabled={
-                            scheduleMode === "EDIT" && isPast && !isMinePending
-                          }
-                          accessibilityRole="button"
-                          accessibilityLabel={`${DAYS[weekDays[dayIdx].getDay()]} ${weekDays[dayIdx].getDate()}, ${scheduleSlotLabel(SLOT_HOURS[slotIdx])}, ${previewCount} going${isMinePending ? ", selected as my time" : ""}`}
-                          accessibilityState={{
-                            selected:
-                              scheduleMode === "EDIT"
-                                ? isMinePending
-                                : isSelected,
-                            disabled:
-                              scheduleMode === "EDIT" &&
-                              isPast &&
-                              !isMinePending,
-                          }}
-                          testID={`heat-${dayIdx}-${slotIdx}`}
-                        >
-                          {scheduleMode === "EDIT" && isMinePending ? (
-                            <Feather
-                              name="check"
-                              size={13}
-                              color={Colors.text}
-                            />
-                          ) : (isSelected || previewCount >= 5) &&
-                            previewCount > 0 ? (
-                            <Text style={styles.heatCellCount}>
-                              {previewCount}
-                            </Text>
-                          ) : null}
-                          {(slotMap.get(key)?.runCount ?? 0) > 0 ? (
-                            <View style={styles.runDot} />
-                          ) : null}
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                );
-              })}
+          {timeWindow === "LATE" ? (
+            <View style={[styles.timeCueRow, styles.timeCueRowAbove]}>
+              <Pressable
+                accessibilityLabel="Show earlier times"
+                accessibilityRole="button"
+                hitSlop={10}
+                onPress={() => showTimeWindow("EARLY")}
+                style={({ pressed }) => [
+                  styles.timeWindowCue,
+                  pressed && styles.timeWindowCuePressed,
+                ]}
+              >
+                <Feather
+                  color={Colors.textSecondary}
+                  name="chevron-up"
+                  size={16}
+                />
+              </Pressable>
             </View>
-            {timePeriod === "AM" ? (
-              <View style={styles.timeArrowRow}>
-                <Pressable
-                  accessibilityLabel="Show PM times"
-                  accessibilityRole="button"
-                  hitSlop={2}
-                  onPress={switchTimePeriod}
-                  style={styles.timeArrow}
-                >
-                  <Feather color={Colors.text} name="chevron-down" size={18} />
-                </Pressable>
+          ) : null}
+          <ScrollView
+            ref={timeScrollRef}
+            contentContainerStyle={styles.timeRows}
+            decelerationRate="fast"
+            disableIntervalMomentum
+            nestedScrollEnabled
+            onContentSizeChange={positionInitialTimeWindow}
+            onScroll={syncTimeWindow}
+            scrollEventThrottle={16}
+            snapToAlignment="start"
+            snapToOffsets={[0, LATE_TIME_WINDOW_OFFSET]}
+            showsVerticalScrollIndicator={false}
+            style={styles.timeScroller}
+          >
+            {SLOT_HOURS.map((h, slotIdx) => (
+              <View key={h} style={styles.heatRow}>
+                <View style={styles.heatTimeCol}>
+                  <Text
+                    style={[
+                      styles.heatTimeText,
+                      slotIdx === currentSlotIndex && styles.heatAxisActive,
+                    ]}
+                  >
+                    {scheduleSlotLabel(h)}
+                  </Text>
+                </View>
+                {weekDays.map((_, dayIdx) => {
+                  const key = `${dayIdx}:${slotIdx}`;
+                  const count = slotTotal(key);
+                  const runCount = slotMap.get(key)?.runCount ?? 0;
+                  const isSelected =
+                    selectedSlot?.day === dayIdx &&
+                    selectedSlot?.slot === slotIdx;
+                  const isCurrent = key === currentKey;
+                  const isMinePending = pendingKeys.has(key);
+                  const wasMine = myVisitsByKey.has(key);
+                  const previewCount =
+                    scheduleMode === "EDIT"
+                      ? Math.max(
+                          0,
+                          count +
+                            (isMinePending && !wasMine ? 1 : 0) -
+                            (!isMinePending && wasMine ? 1 : 0),
+                        )
+                      : count;
+                  const slotDate = new Date(weekDays[dayIdx]);
+                  slotDate.setHours(SLOT_HOURS[slotIdx], 0, 0, 0);
+                  slotDate.setHours(SLOT_HOURS[slotIdx] + 1, 0, 0, 0);
+                  const isPast = slotDate.getTime() <= Date.now();
+                  return (
+                    <Pressable
+                      key={dayIdx}
+                      style={[
+                        styles.heatCell,
+                        heatStyle(previewCount),
+                        isCurrent && styles.heatCellCurrent,
+                        isSelected && styles.heatCellSelected,
+                        scheduleMode === "EDIT" &&
+                          isMinePending &&
+                          styles.heatCellMine,
+                        scheduleMode === "EDIT" &&
+                          isPast &&
+                          !isMinePending &&
+                          styles.heatCellDisabled,
+                      ]}
+                      onPress={() =>
+                        scheduleMode === "EDIT"
+                          ? togglePendingKey(key)
+                          : setSelectedSlot(
+                              isSelected
+                                ? null
+                                : { day: dayIdx, slot: slotIdx },
+                            )
+                      }
+                      disabled={
+                        scheduleMode === "EDIT" && isPast && !isMinePending
+                      }
+                      accessibilityRole="button"
+                      accessibilityLabel={`${DAYS[weekDays[dayIdx].getDay()]} ${weekDays[dayIdx].getDate()}, ${scheduleSlotLabel(SLOT_HOURS[slotIdx])}, ${previewCount} going${runCount > 0 ? `, ${runCount} scheduled ${runCount === 1 ? "game" : "games"}` : ""}${isMinePending ? ", selected as my time" : ""}`}
+                      accessibilityState={{
+                        selected:
+                          scheduleMode === "EDIT" ? isMinePending : isSelected,
+                        disabled:
+                          scheduleMode === "EDIT" && isPast && !isMinePending,
+                      }}
+                      testID={`heat-${dayIdx}-${slotIdx}`}
+                    >
+                      {scheduleMode === "EDIT" && isMinePending ? (
+                        <Feather name="check" size={13} color={Colors.text} />
+                      ) : (isSelected || previewCount >= 5) &&
+                        previewCount > 0 ? (
+                        <Text style={styles.heatCellCount}>{previewCount}</Text>
+                      ) : null}
+                      {runCount > 0 ? (
+                        <View accessible={false} style={styles.runMarker} />
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
               </View>
-            ) : null}
-          </View>
+            ))}
+          </ScrollView>
+          {timeWindow === "EARLY" ? (
+            <View style={styles.timeCueRow}>
+              <Pressable
+                accessibilityLabel="Show later times"
+                accessibilityRole="button"
+                hitSlop={10}
+                onPress={() => showTimeWindow("LATE")}
+                style={({ pressed }) => [
+                  styles.timeWindowCue,
+                  pressed && styles.timeWindowCuePressed,
+                ]}
+              >
+                <Feather
+                  color={Colors.textSecondary}
+                  name="chevron-down"
+                  size={16}
+                />
+              </Pressable>
+            </View>
+          ) : null}
           {/* Legend */}
           <View style={styles.legendRow}>
             <View style={styles.legendScale}>
@@ -1423,9 +1500,42 @@ export default function ScheduleScreen() {
               />
               <Text style={styles.legendText}>Busy</Text>
             </View>
+            <View style={styles.legendGame}>
+              <View style={styles.legendGameDot} />
+              <Text style={styles.legendText}>Game</Text>
+            </View>
             <Text style={styles.legendText}>Local time · 1-hr slots</Text>
           </View>
         </View>
+
+        {scheduleMode === "EDIT" ? (
+          <View style={styles.editOptions}>
+            <Text style={styles.editOptionsLabel}>NEW TIMES VISIBLE TO</Text>
+            <View style={styles.editVisibilityRow}>
+              {VISIBILITY_OPTIONS.map((option) => (
+                <Pressable
+                  key={option.value}
+                  onPress={() => setEditVisibility(option.value)}
+                  style={[
+                    styles.editVisibilityButton,
+                    editVisibility === option.value && styles.editVisibilityButtonActive,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: editVisibility === option.value }}
+                >
+                  <Text
+                    style={[
+                      styles.editVisibilityText,
+                      editVisibility === option.value && styles.editVisibilityTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ) : null}
 
         {/* ── Selected slot detail ── */}
         {scheduleMode === "VIEW" &&
@@ -1436,6 +1546,7 @@ export default function ScheduleScreen() {
             const total = slotTotal(selectedKey);
             const hidden = slotHidden(selectedKey);
             const visible = selectedEntry?.attendees ?? [];
+            const gameCount = selectedEntry?.runCount ?? 0;
             return (
               <View style={styles.slotCard}>
                 <Text style={styles.slotCardTitle}>
@@ -1443,6 +1554,11 @@ export default function ScheduleScreen() {
                   {scheduleSlotLabel(SLOT_HOURS[selectedSlot.slot])}
                   {"  "}
                   <Text style={styles.slotCardGoing}>— {total} GOING</Text>
+                  {gameCount > 0 ? (
+                    <Text style={styles.slotCardGame}>
+                      {` · ${gameCount} ${gameCount === 1 ? "GAME" : "GAMES"}`}
+                    </Text>
+                  ) : null}
                 </Text>
                 {total > 0 ? (
                   <View style={styles.slotAvatars}>
@@ -1489,6 +1605,13 @@ export default function ScheduleScreen() {
                     Nobody yet — post your time so people know to pull up.
                   </Text>
                 )}
+                {selectedRuns.length > 0 ? (
+                  <View style={styles.slotGames}>
+                    {selectedRuns.map((run) => (
+                      <RunCard key={run.id} run={run} />
+                    ))}
+                  </View>
+                ) : null}
                 {(() => {
                   const mine = selectedEntry?.attendees.find(
                     (a) => a.isMine && a.visitId,
@@ -1511,7 +1634,7 @@ export default function ScheduleScreen() {
           })()}
 
         {/* ── Scheduled games ── */}
-        <View style={styles.runsSection}>
+        {scheduleMode === "VIEW" ? <View style={styles.runsSection}>
           <Text style={styles.runsTitle}>Scheduled Games</Text>
           {courtRuns.length === 0 ? (
             <View style={styles.runsEmpty}>
@@ -1522,7 +1645,7 @@ export default function ScheduleScreen() {
           ) : (
             courtRuns.map((run) => <RunCard key={run.id} run={run} />)
           )}
-        </View>
+        </View> : null}
       </ScrollView>
 
       {scheduleMode === "VIEW" && court?.id === localCourt?.id ? (
@@ -1604,9 +1727,18 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   scheduleBody: { flex: 1, minHeight: 0 },
   scheduleBodyContent: { flexGrow: 1, paddingBottom: 88 },
+  scheduleBodyContentEdit: { paddingBottom: 8 },
   pressed: { backgroundColor: Colors.surfaceHigh },
 
-  // ── Court selector + week nav ──
+  headerDate: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Colors.text,
+    letterSpacing: 0.1,
+  },
+
+  // ── Court selector ──
   courtSelector: {
     flexDirection: "row",
     alignItems: "center",
@@ -1623,33 +1755,11 @@ const styles = StyleSheet.create({
     color: Colors.text,
     letterSpacing: 0.3,
   },
-  weekNav: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 10,
-    gap: 4,
-  },
-  weekLabel: {
-    fontFamily: Typography.heading,
-    fontSize: 26,
-    lineHeight: 30,
-    color: Colors.text,
-    letterSpacing: 0.5,
-    textAlign: "center",
-  },
   scheduleModeRow: {
     paddingHorizontal: 20,
-    paddingBottom: 6,
-    gap: 8,
-    alignItems: "center",
-  },
-  editingLabel: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 8,
-    color: Colors.accent,
-    letterSpacing: 1.2,
+    paddingTop: 10,
+    paddingBottom: 2,
+    alignItems: "flex-start",
   },
   modeToggle: {
     flexDirection: "row",
@@ -1675,16 +1785,16 @@ const styles = StyleSheet.create({
   },
   modeToggleTextActive: { color: Colors.accent },
   scheduleModeStatus: {
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 11,
-    lineHeight: 13,
-    color: Colors.textSecondary,
-    letterSpacing: 0.25,
-    textAlign: "center",
+    fontFamily: Typography.heading,
+    fontSize: 17,
+    lineHeight: 21,
+    color: Colors.text,
+    letterSpacing: 0.5,
   },
   editOptions: {
     marginHorizontal: 20,
-    marginBottom: 12,
+    marginTop: "auto",
+    marginBottom: 8,
     padding: 10,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -1718,6 +1828,45 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   editVisibilityTextActive: { color: Colors.text },
+  teamModeRow: { flexDirection: "row", gap: 8 },
+  teamModeOption: {
+    flex: 1,
+    minHeight: 46,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surface,
+  },
+  teamModeOptionActive: { borderColor: Colors.accent, backgroundColor: Colors.accentDim },
+  teamModeOptionText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.muted,
+    letterSpacing: 0.8,
+  },
+  teamModeOptionTextActive: { color: Colors.text },
+  teamModeHelp: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    marginTop: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surface,
+  },
+  teamModeHelpText: {
+    flex: 1,
+    fontFamily: Typography.body,
+    fontSize: 11,
+    lineHeight: 16,
+    color: Colors.textSecondary,
+  },
   visibilityHint: {
     fontFamily: Typography.body,
     fontSize: 11,
@@ -1743,48 +1892,61 @@ const styles = StyleSheet.create({
 
   // ── Heatmap ──
   heatmap: { paddingHorizontal: 20 },
+  timeScroller: { height: TIME_WINDOW_HEIGHT, maxHeight: TIME_WINDOW_HEIGHT },
   timeRows: { paddingBottom: 2 },
-  timeArrowRow: {
-    height: Layout.minTouchTarget,
+  timeCueRow: {
+    width: 44,
+    height: 14,
     alignItems: "center",
     justifyContent: "center",
   },
-  timeArrow: {
-    width: Layout.minTouchTarget,
-    height: Layout.minTouchTarget,
+  timeCueRowAbove: {
+    height: 0,
+    zIndex: 2,
+    transform: [{ translateY: 3 }],
+  },
+  timeWindowCue: {
+    width: 44,
+    height: 18,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
   },
+  timeWindowCuePressed: { opacity: 0.55 },
   heatRow: {
     flexDirection: "row",
     gap: 3,
     marginBottom: 3,
     alignItems: "center",
   },
-  heatTimeCol: { width: 40 },
+  heatTimeCol: {
+    width: 44,
+    alignItems: "flex-end",
+    justifyContent: "center",
+    paddingRight: 6,
+  },
   heatTimeText: {
     fontFamily: Typography.bodyMedium,
-    fontSize: 9,
+    fontSize: 11,
+    lineHeight: 14,
     color: Colors.muted,
-    letterSpacing: 0.5,
+    letterSpacing: 0,
+    fontVariant: ["tabular-nums"],
+    textAlign: "right",
   },
-  heatDayHeader: { flex: 1, alignItems: "center", paddingBottom: 4 },
+  heatDayHeader: { flex: 1, alignItems: "center" },
   heatDayName: {
     fontFamily: Typography.bodySemiBold,
-    fontSize: 8,
+    fontSize: 9,
+    lineHeight: 12,
     color: Colors.muted,
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
   heatDayNameToday: { color: Colors.accent },
   heatDayDate: {
     fontFamily: Typography.heading,
-    fontSize: 13,
+    fontSize: 14,
+    lineHeight: 17,
     color: Colors.textSecondary,
-    marginTop: 1,
   },
   heatDayDateToday: { color: Colors.text },
   heatAxisActive: {
@@ -1828,13 +1990,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.text,
   },
-  runDot: {
+  runMarker: {
     position: "absolute",
-    right: 3,
-    top: 3,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    right: 4,
+    top: 4,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
     backgroundColor: Colors.accent,
   },
   legendRow: {
@@ -1844,6 +2006,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   legendScale: { flexDirection: "row", alignItems: "center", gap: 5 },
+  legendGame: { flexDirection: "row", alignItems: "center", gap: 4 },
+  legendGameDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: Colors.accent,
+  },
   legendSwatch: {
     width: 10,
     height: 10,
@@ -1853,7 +2022,8 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontFamily: Typography.body,
-    fontSize: 9,
+    fontSize: 10,
+    lineHeight: 13,
     color: Colors.muted,
   },
 
@@ -1875,6 +2045,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   slotCardGoing: { color: Colors.accent },
+  slotCardGame: { color: Colors.textSecondary },
   slotAvatars: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   slotAvatarItem: { alignItems: "center", width: 44 },
   slotAvatarName: {
@@ -1903,6 +2074,7 @@ const styles = StyleSheet.create({
     color: Colors.muted,
     lineHeight: 17,
   },
+  slotGames: { marginTop: 12 },
   slotRemoveBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1931,21 +2103,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 6,
   },
-  runsEmpty: {
-    paddingHorizontal: 18,
-    paddingVertical: 22,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.surface,
-    alignItems: "center",
-  },
+  runsEmpty: { paddingVertical: 8 },
   runsEmptyText: {
     fontFamily: Typography.body,
     fontSize: 12,
     color: Colors.muted,
     lineHeight: 18,
-    textAlign: "center",
   },
   runCard: {
     width: 280,

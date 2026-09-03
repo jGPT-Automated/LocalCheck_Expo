@@ -384,7 +384,18 @@ export interface VerifiedCourtSubmission {
   longitude: number;
   imageBase64: string;
   imageMimeType: string;
+  sport?: "BASKETBALL" | "PICKLEBALL";
 }
+
+export type CourtSubmissionFailureCode =
+  | "not_a_court"
+  | "cooldown"
+  | "duplicate"
+  | "quota"
+  | "unauthorized"
+  | "unavailable"
+  | "invalid"
+  | "unknown";
 
 export interface CourtSubmissionResult {
   verified: boolean;
@@ -394,6 +405,10 @@ export interface CourtSubmissionResult {
   court?: Court;
   submissionStatus?: "pending_review";
   nameReview?: unknown;
+  failureCode?: CourtSubmissionFailureCode;
+  attemptsUsed?: number;
+  attemptLimit?: number;
+  cooldownUntil?: string;
 }
 
 interface CourtSubmissionResponse {
@@ -404,22 +419,70 @@ interface CourtSubmissionResponse {
   court?: unknown;
   submissionStatus?: unknown;
   nameReview?: unknown;
+  error?: unknown;
+  failureCode?: unknown;
+  attemptsUsed?: unknown;
+  attemptLimit?: unknown;
+  cooldownUntil?: unknown;
 }
 
-async function functionErrorMessage(error: unknown): Promise<string> {
+const COURT_FAILURE_CODES = new Set<CourtSubmissionFailureCode>([
+  "not_a_court",
+  "cooldown",
+  "duplicate",
+  "quota",
+  "unauthorized",
+  "unavailable",
+  "invalid",
+  "unknown",
+]);
+
+function failureCode(value: unknown): CourtSubmissionFailureCode | undefined {
+  return typeof value === "string" && COURT_FAILURE_CODES.has(value as CourtSubmissionFailureCode)
+    ? value as CourtSubmissionFailureCode
+    : undefined;
+}
+
+function safeAttemptCount(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(0, Math.floor(value))
+    : undefined;
+}
+
+async function functionErrorResult(error: unknown): Promise<CourtSubmissionResult> {
+  let status: number | undefined;
+  let payload: CourtSubmissionResponse | null = null;
   if (error && typeof error === "object" && "context" in error) {
     const context = (error as { context?: unknown }).context;
     if (context instanceof Response) {
-      const payload = (await context
+      status = context.status;
+      payload = (await context
         .clone()
         .json()
-        .catch(() => null)) as { error?: unknown } | null;
-      if (typeof payload?.error === "string" && payload.error.trim())
-        return payload.error;
+        .catch(() => null)) as CourtSubmissionResponse | null;
     }
   }
-  if (error instanceof Error && error.message) return error.message;
-  return "The court verification service is unavailable. Please try again.";
+  const reason = typeof payload?.error === "string" && payload.error.trim()
+    ? payload.error.trim()
+    : error instanceof Error && error.message
+      ? error.message
+      : "The court verification service is unavailable. Please try again.";
+  const inferredCode: CourtSubmissionFailureCode = status === 401
+    ? "unauthorized"
+    : status === 400
+      ? "invalid"
+      : status === 502 || status === 503
+        ? "unavailable"
+        : "unknown";
+  return {
+    verified: false,
+    confidence: 0,
+    reason,
+    failureCode: failureCode(payload?.failureCode) ?? inferredCode,
+    attemptsUsed: safeAttemptCount(payload?.attemptsUsed),
+    attemptLimit: safeAttemptCount(payload?.attemptLimit),
+    cooldownUntil: typeof payload?.cooldownUntil === "string" ? payload.cooldownUntil : undefined,
+  };
 }
 
 /**
@@ -435,11 +498,7 @@ export async function createCourt(
       body: input,
     });
     if (error) {
-      return {
-        verified: false,
-        confidence: 0,
-        reason: await functionErrorMessage(error),
-      };
+      return functionErrorResult(error);
     }
 
     const payload = (data ?? {}) as CourtSubmissionResponse;
@@ -473,13 +532,13 @@ export async function createCourt(
       court,
       submissionStatus: payload.submissionStatus === "pending_review" ? "pending_review" : undefined,
       nameReview: payload.nameReview,
+      failureCode: failureCode(payload.failureCode),
+      attemptsUsed: safeAttemptCount(payload.attemptsUsed),
+      attemptLimit: safeAttemptCount(payload.attemptLimit),
+      cooldownUntil: typeof payload.cooldownUntil === "string" ? payload.cooldownUntil : undefined,
     };
   } catch (error) {
-    return {
-      verified: false,
-      confidence: 0,
-      reason: await functionErrorMessage(error),
-    };
+    return functionErrorResult(error);
   }
 }
 

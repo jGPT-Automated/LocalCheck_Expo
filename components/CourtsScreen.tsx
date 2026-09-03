@@ -1,5 +1,11 @@
 import { Feather } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -15,6 +21,8 @@ import { CourtListItem } from "@/components/CourtListItem";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { MapScreen } from "@/components/MapScreen";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { AddCourtIntroSheet } from "@/components/add-court/AddCourtIntroSheet";
+import { AddCourtLocationSheet } from "@/components/add-court/AddCourtLocationSheet";
 import { useCourtSheet } from "@/components/sheet/CourtSheetHost";
 import { CompactSelect } from "@/components/ui/CompactSelect";
 import { ModeTabs } from "@/components/ui/ModeTabs";
@@ -24,6 +32,7 @@ import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts } from "@/context/CourtPresenceContext";
 import { useDeviceLocation } from "@/context/DeviceLocationContext";
+import type { DeviceCoordinate } from "@/context/deviceLocationModel";
 import {
   fetchCourtsByMarket,
   fetchNearbyCourts,
@@ -48,10 +57,17 @@ export function CourtsScreen() {
   const { coord: deviceCoord } = useDeviceLocation();
 
   const [mode, setMode] = useState<ExploreMode>("LIST");
-  const [sportFilter, setSportFilter] = useState<SportFilter>(preferredSport ?? "ALL");
+  const [sportFilter, setSportFilter] = useState<SportFilter>(
+    preferredSport ?? "ALL",
+  );
   const [nearbyCourts, setNearbyCourts] = useState<Court[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
+  const [addCourtIntroVisible, setAddCourtIntroVisible] = useState(false);
+  const [addCourtLocationVisible, setAddCourtLocationVisible] = useState(false);
+  const [addCourtCoordinate, setAddCourtCoordinate] =
+    useState<DeviceCoordinate | null>(null);
+  const addCourtTransitionRef = useRef<"intro" | "location" | null>(null);
   const router = useRouter();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,10 +77,13 @@ export function CourtsScreen() {
 
   const openCourt = useCallback(
     (court: Court) => {
-      presentCourtSheet({ courtId: court.id, distanceKm: court.distanceKm ?? undefined });
+      presentCourtSheet({
+        courtId: court.id,
+        distanceKm: court.distanceKm ?? undefined,
+      });
       void visitCourt(court.id);
     },
-    [presentCourtSheet, visitCourt]
+    [presentCourtSheet, visitCourt],
   );
 
   // Local court (if set) is always the discovery anchor. Otherwise this reads
@@ -91,13 +110,13 @@ export function CourtsScreen() {
             localCourt.market,
             origin,
             sportFilter === "ALL" ? null : sportFilter,
-            DISCOVERY_LIMIT
+            DISCOVERY_LIMIT,
           )
         : await fetchNearbyCourts(
             origin.lat,
             origin.lng,
             sportFilter === "ALL" ? null : sportFilter,
-            DISCOVERY_LIMIT
+            DISCOVERY_LIMIT,
           );
       setNearbyCourts(courts);
     } catch {
@@ -125,7 +144,7 @@ export function CourtsScreen() {
       const results = await searchCourts(
         query,
         sportFilter === "ALL" ? null : sportFilter,
-        DISCOVERY_LIMIT
+        DISCOVERY_LIMIT,
       );
       setSearchResults(results);
       setSearchLoading(false);
@@ -139,7 +158,8 @@ export function CourtsScreen() {
   const countTargets = useMemo(() => {
     const byId = new Map<string, Court>();
     if (localCourt) byId.set(localCourt.id, localCourt);
-    for (const court of isSearchMode ? searchResults : nearbyCourts) byId.set(court.id, court);
+    for (const court of isSearchMode ? searchResults : nearbyCourts)
+      byId.set(court.id, court);
     return Array.from(byId.values());
   }, [isSearchMode, localCourt, nearbyCourts, searchResults]);
   const liveCounts = useCourtCounts(countTargets);
@@ -147,36 +167,45 @@ export function CourtsScreen() {
     (court: Court) => {
       const live = liveCounts[court.id];
       return live
-        ? { ...court, activeCount: live.activeCount, localCount: live.localCount }
+        ? {
+            ...court,
+            activeCount: live.activeCount,
+            localCount: live.localCount,
+          }
         : court;
     },
-    [liveCounts]
+    [liveCounts],
   );
 
   const localCourtLive = localCourt ? withLiveCounts(localCourt) : null;
   const listSource = (isSearchMode ? searchResults : nearbyCourts)
     .filter((court) => court.id !== localCourtId)
     .map(withLiveCounts);
-  const visibleCourts = isSearchMode || showAll
-    ? listSource
-    : listSource.slice(0, COLLAPSED_LIMIT);
+  const visibleCourts =
+    isSearchMode || showAll ? listSource : listSource.slice(0, COLLAPSED_LIMIT);
 
   return (
     <View style={styles.container}>
       <ScreenHeader
         title="EXPLORE"
-        right={(
+        right={
           <Pressable
             accessibilityLabel="Add a court"
             accessibilityRole="button"
-            onPress={() => router.push("/add-court")}
-            style={({ pressed }) => [styles.addCourtAction, pressed && styles.addCourtActionPressed]}
+            onPress={() => {
+              setMode("MAP");
+              setAddCourtIntroVisible(true);
+            }}
+            style={({ pressed }) => [
+              styles.addCourtAction,
+              pressed && styles.addCourtActionPressed,
+            ]}
             testID="add-court-action"
           >
             <Feather color={Colors.accent} name="plus" size={15} />
             <Text style={styles.addCourtActionText}>ADD</Text>
           </Pressable>
-        )}
+        }
       />
 
       <View style={styles.searchArea}>
@@ -209,7 +238,9 @@ export function CourtsScreen() {
             returnKeyType="search"
             clearButtonMode="while-editing"
           />
-          {searchLoading && <ActivityIndicator size="small" color={Colors.muted} />}
+          {searchLoading && (
+            <ActivityIndicator size="small" color={Colors.muted} />
+          )}
         </View>
       </View>
 
@@ -224,16 +255,24 @@ export function CourtsScreen() {
 
       {mode === "MAP" ? (
         <View style={styles.mapStage}>
-          <MapScreen sportFilter={sportFilter} />
+          <MapScreen
+            sportFilter={sportFilter}
+            addCourtMode={addCourtLocationVisible}
+            focusCoordinate={addCourtCoordinate}
+          />
         </View>
       ) : (
         <KeyboardAwareScrollViewCompat
           bottomOffset={104}
           style={styles.list}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 84 : 110 }}
+          contentContainerStyle={{
+            paddingBottom: Platform.OS === "web" ? 84 : 110,
+          }}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          keyboardDismissMode={
+            Platform.OS === "ios" ? "interactive" : "on-drag"
+          }
         >
           {!isSearchMode && localCourtLive && (
             <View style={styles.localSection}>
@@ -252,7 +291,9 @@ export function CourtsScreen() {
             <View style={styles.noLocalState}>
               <Feather name="home" size={20} color={Colors.muted} />
               <Text style={styles.noLocalTitle}>NO LOCAL COURT SET</Text>
-              <Text style={styles.noLocalCopy}>Open a court and make it yours to pin it here.</Text>
+              <Text style={styles.noLocalCopy}>
+                Open a court and make it yours to pin it here.
+              </Text>
             </View>
           )}
 
@@ -264,14 +305,18 @@ export function CourtsScreen() {
                   : `${localCourt?.market?.toUpperCase() ?? "NEARBY"} COURTS`}
               </Text>
               {!isSearchMode && listSource.length > COLLAPSED_LIMIT && (
-                <Text style={styles.resultCount}>{visibleCourts.length} OF {listSource.length}</Text>
+                <Text style={styles.resultCount}>
+                  {visibleCourts.length} OF {listSource.length}
+                </Text>
               )}
             </View>
 
             {loading && !isSearchMode ? (
               <View style={styles.loadingRow}>
                 <ActivityIndicator color={Colors.accent} />
-                <Text style={styles.loadingText}>FINDING RELEVANT COURTS...</Text>
+                <Text style={styles.loadingText}>
+                  FINDING RELEVANT COURTS...
+                </Text>
               </View>
             ) : (
               visibleCourts.map((court) => (
@@ -286,12 +331,17 @@ export function CourtsScreen() {
 
             {!loading && visibleCourts.length === 0 && (
               <Text style={styles.emptyText}>
-                {isSearchMode ? "NO COURTS MATCH THIS SEARCH" : "NO OTHER COURTS IN THIS SCOPE"}
+                {isSearchMode
+                  ? "NO COURTS MATCH THIS SEARCH"
+                  : "NO OTHER COURTS IN THIS SCOPE"}
               </Text>
             )}
 
             {!isSearchMode && listSource.length > COLLAPSED_LIMIT && (
-              <Pressable style={styles.viewAllButton} onPress={() => setShowAll((value) => !value)}>
+              <Pressable
+                style={styles.viewAllButton}
+                onPress={() => setShowAll((value) => !value)}
+              >
                 <Text style={styles.viewAllText}>
                   {showAll ? "SHOW LESS" : `VIEW ALL ${listSource.length}`}
                 </Text>
@@ -306,6 +356,47 @@ export function CourtsScreen() {
         </KeyboardAwareScrollViewCompat>
       )}
 
+      <AddCourtIntroSheet
+        visible={addCourtIntroVisible}
+        onClose={() => {
+          setAddCourtIntroVisible(false);
+          if (addCourtTransitionRef.current === "location") {
+            addCourtTransitionRef.current = null;
+            setAddCourtLocationVisible(true);
+          }
+        }}
+        onStart={() => {
+          addCourtTransitionRef.current = "location";
+          setAddCourtIntroVisible(false);
+        }}
+      />
+      <AddCourtLocationSheet
+        visible={addCourtLocationVisible}
+        onCoordinate={setAddCourtCoordinate}
+        onBack={() => {
+          addCourtTransitionRef.current = "intro";
+          setAddCourtLocationVisible(false);
+        }}
+        onClose={() => {
+          setAddCourtLocationVisible(false);
+          if (addCourtTransitionRef.current === "intro") {
+            addCourtTransitionRef.current = null;
+            setAddCourtIntroVisible(true);
+          } else {
+            setAddCourtCoordinate(null);
+          }
+        }}
+        onContinue={(coordinate) => {
+          router.push({
+            pathname: "/add-court",
+            params: {
+              start: "camera",
+              lat: String(coordinate.lat),
+              lng: String(coordinate.lng),
+            },
+          });
+        }}
+      />
     </View>
   );
 }
@@ -353,7 +444,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 3,
   },
-  sportMenuButtonText: { fontFamily: Typography.bodyBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.2 },
+  sportMenuButtonText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.textSecondary,
+    letterSpacing: 1.2,
+  },
   searchDivider: { width: 1, height: 18, backgroundColor: Colors.border },
   sportMenu: {
     position: "absolute",
@@ -371,9 +467,21 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 7 },
     elevation: 10,
   },
-  sportMenuItem: { minHeight: 38, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderRadius: Radius.xs },
+  sportMenuItem: {
+    minHeight: 38,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: Radius.xs,
+  },
   sportMenuItemActive: { backgroundColor: Colors.surface },
-  sportMenuItemText: { fontFamily: Typography.bodySemiBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.2 },
+  sportMenuItemText: {
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 9,
+    color: Colors.textSecondary,
+    letterSpacing: 1.2,
+  },
   sportMenuItemTextActive: { color: Colors.text },
   list: { flex: 1 },
   localSection: { paddingTop: 16, paddingBottom: 6 },
@@ -416,7 +524,11 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     letterSpacing: 1.4,
   },
-  noLocalCopy: { fontFamily: Typography.body, fontSize: 11, color: Colors.muted },
+  noLocalCopy: {
+    fontFamily: Typography.body,
+    fontSize: 11,
+    color: Colors.muted,
+  },
   loadingRow: {
     minHeight: 150,
     alignItems: "center",

@@ -251,7 +251,9 @@ The court detail page keeps the brand/detail header, six-metric court panel, and
 ## Schedule and run flow
 
 - Schedule keeps a stable weekly heatmap footprint in view mode. Its one-hour
-  time axis scrolls independently and snaps to the 28-point row pitch, and compact screens may scroll the body so
+  time axis scrolls independently between two overlapping snap windows (8 AM–3 PM
+  and 3–10 PM). A single directional chevron sits below the early window or above
+  the late window and is also a tap target. Compact screens may scroll the body so
   selected-slot details and upcoming runs remain reachable.
 - The reachable `SpeedDialFab` exposes **Add times** and **Create run** using the shared Reanimated component and Feather icons.
 - Add-times mode supports multi-select cells and one save action.
@@ -341,6 +343,10 @@ interaction with supported installed primitives and record that decision here.
   export, and direct visual checks at standard and compact iPhone-sized
   viewports. Test multi-account realtime behavior separately on two
   authenticated clients.
+- A screen does not pass because it looks similar in a screenshot. Headers,
+  sheets, cards, buttons, and controls must use their canonical shared owner so
+  their navigation, gestures, dismissal, loading, and disabled behavior remain
+  consistent with the rest of LocalCheck.
 
 ## MVP scope guardrail
 

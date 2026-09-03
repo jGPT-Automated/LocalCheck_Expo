@@ -104,6 +104,48 @@ test("community court names stay private and pending manual review", async () =>
   );
 });
 
+test("live Add Court submissions enforce two failed photo attempts and a 24-hour cooldown", async () => {
+  const sql = await migrationEndingWith(
+    "_add_court_verification_attempt_cooldown.sql",
+  );
+  for (const contract of [
+    "private.court_verification_attempt_states",
+    "public.reserve_court_verification_attempt",
+    "public.cancel_court_verification_attempt",
+    "public.reject_court_verification_attempt",
+    "public.create_live_court_submission_v4",
+    "reservation_id",
+    "interval '24 hours'",
+    "'source_and_detection'",
+  ]) {
+    assert.ok(sql.includes(contract), `missing Add Court attempt contract ${contract}`);
+  }
+  assert.match(sql, /failed_attempts between 0 and 2/i);
+  assert.match(
+    sql,
+    /revoke execute on function public\.create_live_court_submission_v4[\s\S]*from public, anon, authenticated/i,
+  );
+  assert.match(
+    sql,
+    /grant execute on function public\.create_live_court_submission_v4[\s\S]*to service_role/i,
+  );
+
+  const edgeFunction = await readFile(
+    new URL("../../functions/verify-court/index.ts", import.meta.url),
+    "utf8",
+  );
+  const courtService = await readFile(
+    new URL("../../../services/courtService.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(edgeFunction, /reserve_court_verification_attempt/);
+  assert.match(edgeFunction, /reject_court_verification_attempt/);
+  assert.match(edgeFunction, /create_live_court_submission_v4/);
+  assert.match(edgeFunction, /failureCode:\s*inCooldown \? "cooldown" : "not_a_court"/);
+  assert.match(courtService, /cooldownUntil/);
+  assert.match(courtService, /attemptsUsed/);
+});
+
 test("safety controls enforce blocking across reads and social writes", async () => {
   const sql = await migrationEndingWith("_add_user_safety_controls.sql");
   for (const contract of [
@@ -302,4 +344,24 @@ test("stale push backfill is isolated from the applied delivery migration", asyn
   assert.match(backfillSql, /set push_status = 'skipped'/i);
   assert.match(backfillSql, /push_attempts = 0/i);
   assert.match(backfillSql, /push_sent_at is null/i);
+});
+
+test("scheduled games persist and enforce their team assignment mode", async () => {
+  const sql = await migrationEndingWith("_add_scheduled_game_team_assignment.sql");
+  for (const contract of [
+    "team_assignment_mode",
+    "team_side",
+    "private.assign_balanced_run_teams",
+    "public.create_scheduled_game",
+    "public.join_scheduled_game",
+  ]) {
+    assert.ok(sql.includes(contract), `missing team assignment contract ${contract}`);
+  }
+  assert.match(sql, /team_assignment_mode in \('elo_balance', 'choose_teams'\)/i);
+  assert.match(sql, /p_team_side not in \('a', 'b'\)/i);
+  assert.match(sql, /v_side_count >= v_run\.max_players \/ 2/i);
+  assert.match(sql, /v_roster_count <> v_run\.max_players/i);
+  assert.match(sql, /submitted teams do not match the scheduled teams/i);
+  assert.match(sql, /grant execute on function public\.create_scheduled_game[\s\S]*to authenticated/i);
+  assert.match(sql, /grant execute on function public\.join_scheduled_game[\s\S]*to authenticated/i);
 });

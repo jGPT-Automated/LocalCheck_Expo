@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   acceptsVerifiedCourt,
   courtNamesWereEdited,
+  matchesRequestedSport,
   normalizeGeminiResult,
   validateCourtSubmission,
 } from "./courtVerification.ts";
@@ -43,6 +44,7 @@ test("validates and normalizes an authenticated court submission", () => {
     longitude: -95.35,
     imageBase64: "x".repeat(200),
     imageMimeType: "image/jpeg",
+    sport: "BASKETBALL",
   });
   assert.equal(result.ok, true);
   if (result.ok) {
@@ -50,6 +52,7 @@ test("validates and normalizes an authenticated court submission", () => {
     assert.equal(result.value.shortName, "Jaycee");
     assert.equal(result.value.nameWasEdited, false);
     assert.equal(result.value.state, "TX");
+    assert.equal(result.value.requestedSport, "basketball");
   }
 });
 
@@ -93,6 +96,22 @@ test("rejects invalid image types and oversized base64 payloads", () => {
   }).ok, false);
 });
 
+test("keeps the legacy no-sport request compatible and rejects unsupported sport choices", () => {
+  const base = {
+    address: "123 Court Way",
+    city: "Houston",
+    state: "TX",
+    latitude: 29.75,
+    longitude: -95.35,
+    imageBase64: "x".repeat(200),
+    imageMimeType: "image/jpeg",
+  };
+  const legacy = validateCourtSubmission(base);
+  assert.equal(legacy.ok, true);
+  if (legacy.ok) assert.equal(legacy.value.requestedSport, null);
+  assert.equal(validateCourtSubmission({ ...base, sport: "tennis" }).ok, false);
+});
+
 test("accepts only high-confidence supported playable courts", () => {
   assert.equal(acceptsVerifiedCourt({
     verified: true,
@@ -112,4 +131,17 @@ test("accepts only high-confidence supported playable courts", () => {
     nameOkay: true,
     nameReason: "Ordinary court name.",
   }), false);
+
+  const basketball = {
+    verified: true,
+    sport: "basketball" as const,
+    setting: "outdoor" as const,
+    confidence: 95,
+    reason: "Playable court.",
+    nameOkay: true,
+    nameReason: "Ordinary court name.",
+  };
+  assert.equal(matchesRequestedSport(basketball, "basketball"), true);
+  assert.equal(matchesRequestedSport(basketball, "pickleball"), false);
+  assert.equal(matchesRequestedSport(basketball, null), true);
 });

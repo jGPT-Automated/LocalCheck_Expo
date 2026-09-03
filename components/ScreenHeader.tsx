@@ -21,12 +21,14 @@ export function ScreenHeader({
   right,
   wordmark = false,
   onBack,
+  onLogoPress,
 }: {
   title: string;
   subtitle?: string;
   right?: React.ReactNode;
   wordmark?: boolean;
   onBack?: () => void;
+  onLogoPress?: () => void;
 }) {
   const { top } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 44 : top;
@@ -52,6 +54,17 @@ export function ScreenHeader({
                 >
                   <LogoMark size={24} variant="back" />
                 </Pressable>
+              ) : onLogoPress ? (
+                <Pressable
+                  accessibilityHint="Returns to Explore"
+                  accessibilityLabel="Back to Explore"
+                  accessibilityRole="button"
+                  hitSlop={10}
+                  onPress={onLogoPress}
+                  style={({ pressed }) => pressed && styles.pressed}
+                >
+                  <LogoMark size={24} />
+                </Pressable>
               ) : (
                 <LogoMark size={24} />
               )}
@@ -66,11 +79,7 @@ export function ScreenHeader({
             </Text>
           ) : null}
         </View>
-        {right ? (
-          <View style={styles.rightSlot}>
-            {right}
-          </View>
-        ) : null}
+        {right ? <View style={styles.rightSlot}>{right}</View> : null}
       </View>
     </View>
   );

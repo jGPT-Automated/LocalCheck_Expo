@@ -312,6 +312,7 @@ function LeaderboardView({
     name: string;
     shortName?: string;
     sport: CourtSport;
+    city: string;
   } | null;
   bottom: number;
   loading?: boolean;
@@ -400,8 +401,12 @@ function LeaderboardView({
               {(localCourt.shortName || localCourt.name).toUpperCase()}
             </Text>
           </>
+        ) : scope === "REGIONAL" ? (
+          <Text style={styles.scopeLabelText} numberOfLines={1}>
+            {(localCourt?.city || "REGIONAL").toUpperCase()}
+          </Text>
         ) : (
-          <Text style={styles.scopeLabelText}>ELO RANKINGS</Text>
+          <Text style={styles.scopeLabelText}>UNITED STATES</Text>
         )}
       </View>
 
