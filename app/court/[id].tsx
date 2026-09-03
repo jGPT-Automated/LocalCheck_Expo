@@ -5,7 +5,6 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-n
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CourtSchedulePanel } from "@/components/CourtSchedulePanel";
-import { RunCard } from "@/components/RunCard";
 import { SectionHeader } from "@/components/ScreenHeader";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { GameResultModal } from "@/components/ui/GameResultModal";
@@ -42,7 +41,6 @@ export default function CourtProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const {
     courts,
-    runs,
     localCourtId,
     localCourt: contextLocalCourt,
     currentUser,
@@ -145,9 +143,6 @@ export default function CourtProfileScreen() {
   const hereNowIds = new Set(roster.map((player) => player.id));
   const visibleLocals = locals.filter(({ player }) => !hereNowIds.has(player.id));
   const privateLocalCount = Math.max(0, localCount - locals.length);
-  const courtRuns = runs
-    .filter((run) => run.courtId === court.id && new Date(run.startTimeIso).getTime() >= Date.now())
-    .sort((a, b) => a.startTimeIso.localeCompare(b.startTimeIso));
   const dashboard: DashboardMetric[] = [
     { label: "Active now", value: hiddenCount > 0 ? `~${activeCount}` : activeCount, accent: activeCount > 0 },
     { label: "Active locals", value: activityMetrics.activeLocals, trend: activityMetrics.activeLocalTrend, trendLabel: "90D" },
@@ -262,12 +257,6 @@ export default function CourtProfileScreen() {
         {activeTab === "schedule" ? (
           <View style={styles.scheduleView}>
             <CourtSchedulePanel court={court} interactive={false} />
-            <SectionHeader count={courtRuns.length || undefined} title="Upcoming runs" />
-            <View style={styles.runSection}>
-              {courtRuns.length > 0 ? courtRuns.slice(0, 1).map((run) => <RunCard key={run.id} run={run} />) : (
-                <EmptyState title="No games scheduled" body="Open Schedule to set a time or schedule the first game." />
-              )}
-            </View>
           </View>
         ) : null}
 
@@ -389,7 +378,6 @@ const styles = StyleSheet.create({
   moreButton: { minHeight: 48, marginHorizontal: Layout.screenGutter, marginTop: Space.md, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Space.sm, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md },
   moreText: { fontFamily: Typography.bodyBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.2 },
   privateNote: { paddingHorizontal: Layout.screenGutter, paddingVertical: Space.md, fontFamily: Typography.bodyMedium, fontSize: 9, color: Colors.muted },
-  runSection: { paddingHorizontal: Layout.screenGutter, paddingTop: Space.sm, gap: Space.sm },
   detailList: { paddingHorizontal: Layout.screenGutter },
   detailRow: { minHeight: 62, paddingVertical: Space.md, justifyContent: "center", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.borderSubtle },
   detailLabel: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.muted, letterSpacing: 1.2, textTransform: "uppercase" },

@@ -4,11 +4,12 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Colors, Radius } from "@/constants/colors";
-import { Court } from "@/constants/data";
+import { Court, GameRun } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { fetchCourtPlannedTimes } from "@/services/plannedVisitService";
 import { scheduleSlotIndex, scheduleSlotLabel, SLOT_HOURS } from "@/components/schedule/scheduleModel";
+import { formatForMaxPlayers } from "@/components/schedule/scheduledGameModel";
 import { PlayerAvatar } from "./PlayerAvatar";
 
 const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
@@ -24,6 +25,7 @@ interface SlotEntry {
   attendees: SlotAttendee[];
   plannedVisible: number;
   runCount: number;
+  runs: GameRun[];
 }
 
 export function CourtSchedulePanel({
@@ -50,7 +52,7 @@ export function CourtSchedulePanel({
   const [selected, setSelected] = useState<{
     day: number;
     slot: number;
-  } | null>(interactive ? { day: 0, slot: currentSlot } : null);
+  } | null>({ day: 0, slot: currentSlot });
   const [plannedBuckets, setPlannedBuckets] = useState<Record<string, number>>(
     {},
   );
@@ -72,16 +74,13 @@ export function CourtSchedulePanel({
       }),
     [weekStart],
   );
-  const weekLabel = useMemo(() => {
-    const first = weekDays[0].toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-    const last = weekDays[6];
-    return weekDays[0].getMonth() === last.getMonth()
-      ? `${first}–${last.getDate()}`
-      : `${first} – ${last.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
-  }, [weekDays]);
+  const monthLabel = useMemo(
+    () =>
+      weekDays[0]
+        .toLocaleDateString("en-US", { month: "short" })
+        .toUpperCase(),
+    [weekDays],
+  );
 
   const bucketKey = useCallback(
     (iso: string): string | null => {
@@ -123,7 +122,12 @@ export function CourtSchedulePanel({
     const add = (iso: string, attendee: SlotAttendee, planned: boolean) => {
       const key = bucketKey(iso);
       if (!key) return;
-      const entry = map.get(key) ?? { attendees: [], plannedVisible: 0, runCount: 0 };
+      const entry = map.get(key) ?? {
+        attendees: [],
+        plannedVisible: 0,
+        runCount: 0,
+        runs: [],
+      };
       const existing = entry.attendees.find((item) => item.id === attendee.id);
       if (!existing) {
         entry.attendees.push(attendee);
@@ -152,8 +156,14 @@ export function CourtSchedulePanel({
       if (run.courtId !== court.id) return;
       const key = bucketKey(run.startTimeIso);
       if (key) {
-        const entry = map.get(key) ?? { attendees: [], plannedVisible: 0, runCount: 0 };
+        const entry = map.get(key) ?? {
+          attendees: [],
+          plannedVisible: 0,
+          runCount: 0,
+          runs: [],
+        };
         entry.runCount += 1;
+        entry.runs.push(run);
         map.set(key, entry);
       }
       run.participants.forEach((player) =>
@@ -188,6 +198,7 @@ export function CourtSchedulePanel({
 
   const selectedKey = selected ? `${selected.day}:${selected.slot}` : null;
   const selectedEntry = selectedKey ? slotMap.get(selectedKey) : undefined;
+  const selectedRuns = selectedEntry?.runs ?? [];
   const myVisit = selectedEntry?.attendees.find(
     (attendee) => attendee.isMine && attendee.visitId,
   );
@@ -223,18 +234,11 @@ export function CourtSchedulePanel({
 
   return (
     <View style={styles.panel}>
-      <View style={styles.headingRow}>
-        <Text style={styles.heading}>{weekLabel}</Text>
-        <Text style={styles.hint}>
-          {interactive
-            ? "TAP A SLOT TO SAY YOU'RE IN"
-            : "COURT RHYTHM · 1-HR SLOTS"}
-        </Text>
-      </View>
-
       <View style={styles.heatmap}>
         <View style={styles.heatRow}>
-          <View style={styles.timeColumn} />
+          <View style={[styles.timeColumn, styles.monthCorner]}>
+            <Text style={styles.monthLabel}>{monthLabel}</Text>
+          </View>
           {weekDays.map((date, index) => (
             <View key={date.toISOString()} style={styles.dayHeader}>
               <Text style={[styles.dayName, index === 0 && styles.today]}>
@@ -247,8 +251,7 @@ export function CourtSchedulePanel({
           ))}
         </View>
         <View style={styles.scrollCue} pointerEvents="none">
-          <Text style={styles.scrollCueText}>SWIPE TIMES</Text>
-          <Feather color={Colors.muted} name="chevrons-up" size={10} />
+          <Feather color={Colors.muted} name="chevrons-down" size={12} />
         </View>
         <ScrollView
           contentContainerStyle={styles.timeRows}
@@ -272,10 +275,10 @@ export function CourtSchedulePanel({
                 <Pressable
                   key={key}
                   onPress={() => {
-                    setSelected(active ? null : { day, slot });
+                    setSelected({ day, slot });
                     setNotice(null);
                   }}
-                  disabled={past || !interactive}
+                  disabled={past}
                   style={[
                     styles.cell,
                     heatStyle(count),
@@ -283,16 +286,20 @@ export function CourtSchedulePanel({
                     past && styles.cellPast,
                   ]}
                   accessibilityRole="button"
-                  accessibilityLabel={`${DAYS[date.getDay()]} ${date.getDate()}, ${scheduleSlotLabel(hour)}, ${count} going`}
+                  accessibilityLabel={`${DAYS[date.getDay()]} ${date.getDate()}, ${scheduleSlotLabel(hour)}, ${count} going${(slotMap.get(key)?.runCount ?? 0) > 0 ? `, ${slotMap.get(key)?.runCount} scheduled ${(slotMap.get(key)?.runCount ?? 0) === 1 ? "game" : "games"}` : ""}`}
                   accessibilityState={{
                     selected: active,
-                    disabled: past || !interactive,
+                    disabled: past,
                   }}
                 >
                   {(active || count >= 5) && count > 0 ? (
                     <Text style={styles.cellCount}>{count}</Text>
                   ) : null}
-                  {(slotMap.get(key)?.runCount ?? 0) > 0 ? <View style={styles.runDot} /> : null}
+                  {(slotMap.get(key)?.runCount ?? 0) > 0 ? (
+                    <View style={styles.runBadge}>
+                      <Feather color={Colors.black} name="calendar" size={9} />
+                    </View>
+                  ) : null}
                 </Pressable>
               );
             })}
@@ -319,63 +326,102 @@ export function CourtSchedulePanel({
         </View>
       </View>
 
-      {interactive && selected && selectedKey && selectedDate ? (
+      {selected && selectedKey && selectedDate ? (
         <View style={styles.slotCard}>
-          <Text style={styles.slotTitle}>
-            WHO'S GOING · {DAYS[selectedDate.getDay()]} {selectedDate.getDate()}{" "}
-            · {scheduleSlotLabel(SLOT_HOURS[selected.slot])}
-          </Text>
+          <View style={styles.slotHeader}>
+            <Text style={styles.slotTitle}>
+              {DAYS[selectedDate.getDay()]} {selectedDate.getDate()} · {scheduleSlotLabel(SLOT_HOURS[selected.slot])}
+            </Text>
+            <Text style={styles.slotMeta}>
+              {slotTotal(selectedKey)} GOING
+              {selectedRuns.length > 0
+                ? ` · ${selectedRuns.length} ${selectedRuns.length === 1 ? "GAME" : "GAMES"}`
+                : ""}
+            </Text>
+          </View>
           <View style={styles.slotContent}>
-            <View style={styles.avatars}>
-              {(selectedEntry?.attendees ?? []).slice(0, 5).map((attendee) => (
-                <Pressable
-                  key={attendee.id}
-                  style={styles.avatar}
-                  onPress={() => router.push(`/player/${attendee.id}`)}
-                >
-                  <PlayerAvatar
-                    initials={attendee.initials}
-                    name={attendee.name}
-                    playerId={attendee.id}
-                    size={36}
-                    accent={attendee.isMine}
-                  />
-                  <Text style={styles.avatarName} numberOfLines={1}>
-                    {attendee.isMine ? "YOU" : attendee.name.split(" ")[0]}
-                  </Text>
-                </Pressable>
-              ))}
-              {hiddenCount(selectedKey) > 0 ? (
-                <View style={styles.avatar}>
-                  <View style={styles.hiddenAvatar}>
-                    <Text style={styles.hiddenText}>
-                      +{hiddenCount(selectedKey)}
+            <View style={styles.peopleArea}>
+              <Text style={styles.sectionLabel}>WHO'S GOING</Text>
+              <ScrollView
+                contentContainerStyle={styles.avatars}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+              >
+                {(selectedEntry?.attendees ?? []).slice(0, 5).map((attendee) => (
+                  <Pressable
+                    key={attendee.id}
+                    style={styles.avatar}
+                    onPress={() => router.push(`/player/${attendee.id}`)}
+                  >
+                    <PlayerAvatar
+                      initials={attendee.initials}
+                      name={attendee.name}
+                      playerId={attendee.id}
+                      size={30}
+                      accent={attendee.isMine}
+                    />
+                    <Text style={styles.avatarName} numberOfLines={1}>
+                      {attendee.isMine ? "YOU" : attendee.name.split(" ")[0]}
                     </Text>
+                  </Pressable>
+                ))}
+                {hiddenCount(selectedKey) > 0 ? (
+                  <View style={styles.avatar}>
+                    <View style={styles.hiddenAvatar}>
+                      <Text style={styles.hiddenText}>
+                        +{hiddenCount(selectedKey)}
+                      </Text>
+                    </View>
+                    <Text style={styles.avatarName}>PRIVATE</Text>
                   </View>
-                  <Text style={styles.avatarName}>HIDDEN</Text>
-                </View>
-              ) : null}
-              {slotTotal(selectedKey) === 0 ? (
-                <Text style={styles.empty}>
-                  BE THE FIRST TO PUT THIS TIME ON THE BOARD.
-                </Text>
-              ) : null}
+                ) : null}
+                {slotTotal(selectedKey) === 0 ? (
+                  <Text style={styles.empty}>NOBODY YET.</Text>
+                ) : null}
+              </ScrollView>
             </View>
+            <View style={styles.gameArea}>
+              <Text style={styles.sectionLabel}>{selectedRuns.length === 1 ? "GAME" : "GAMES"}</Text>
+              {selectedRuns.length > 0 ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {selectedRuns.map((run) => {
+                    const format = formatForMaxPlayers(run.maxPlayers) ?? "GAME";
+                    const spots = Math.max(0, run.maxPlayers - run.participants.length);
+                    return (
+                      <Pressable
+                        accessibilityHint="Opens scheduled game details"
+                        accessibilityLabel={`${format}, ${run.participants.length} joined, ${spots} open`}
+                        accessibilityRole="button"
+                        key={run.id}
+                        onPress={() => router.push(`/run/${run.id}`)}
+                        style={({ pressed }) => [styles.gameTile, pressed && styles.gameTilePressed]}
+                      >
+                        <View style={styles.gameIcon}>
+                          <Feather color={Colors.black} name="calendar" size={11} />
+                        </View>
+                        <View style={styles.gameCopy}>
+                          <Text style={styles.gameTitle}>{format}</Text>
+                          <Text style={styles.gameMeta}>{run.participants.length}/{run.maxPlayers} JOINED · {spots} OPEN</Text>
+                        </View>
+                        <Feather color={Colors.textSecondary} name="chevron-right" size={13} />
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              ) : (
+                <Text style={styles.noGame}>NO GAME SCHEDULED</Text>
+              )}
+            </View>
+          </View>
+          {interactive ? (
             <View style={styles.actions}>
               <Pressable
-                style={[
-                  styles.action,
-                  (!selectedDate || saving) && styles.actionDisabled,
-                ]}
+                style={[styles.action, (!selectedDate || saving) && styles.actionDisabled]}
                 onPress={() => void handleAttendance()}
                 disabled={!selectedDate || saving}
               >
                 <Text style={styles.actionText}>
-                  {saving
-                    ? "SAVING…"
-                    : myVisit
-                      ? "I'M NOT COMING"
-                      : "I'M COMING"}
+                  {saving ? "SAVING…" : myVisit ? "I'M NOT COMING" : "I'M COMING"}
                 </Text>
               </Pressable>
               <Pressable
@@ -387,64 +433,58 @@ export function CourtSchedulePanel({
                   })
                 }
               >
-                <Text style={styles.actionText}>CREATE A RUN</Text>
+                <Text style={styles.actionText}>CREATE A GAME</Text>
               </Pressable>
             </View>
-          </View>
+          ) : null}
           {notice ? <Text style={styles.notice}>{notice}</Text> : null}
         </View>
-      ) : interactive ? (
-        <Text style={styles.emptyPrompt}>
-          SELECT A FUTURE TIME TO SEE WHO'S GOING.
-        </Text>
       ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  panel: { paddingVertical: 20 },
-  headingRow: {
-    paddingHorizontal: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-    marginBottom: 13,
-  },
-  heading: {
-    fontFamily: Typography.heading,
-    fontSize: 16,
-    color: Colors.text,
-    letterSpacing: 0.5,
-  },
-  hint: {
-    flexShrink: 1,
-    textAlign: "right",
-    fontFamily: Typography.bodyBold,
-    fontSize: 7,
-    color: Colors.muted,
-    letterSpacing: 0.8,
-  },
+  panel: { flex: 1, minHeight: 0, paddingVertical: 10 },
   heatmap: { paddingHorizontal: 12 },
-  timeScroller: { maxHeight: 238 },
+  timeScroller: { maxHeight: 220 },
   timeRows: { paddingBottom: 2 },
-  scrollCue: { height: 16, flexDirection: "row", justifyContent: "flex-end", alignItems: "center", gap: 4 },
-  scrollCueText: { fontFamily: Typography.bodyMedium, fontSize: 6, color: Colors.muted, letterSpacing: 0.8 },
+  scrollCue: {
+    height: 13,
+    paddingRight: 2,
+    alignItems: "flex-end",
+    justifyContent: "center",
+  },
   heatRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
     marginBottom: 3,
   },
-  timeColumn: { width: 37 },
+  timeColumn: { width: 42 },
+  monthCorner: {
+    height: 31,
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
+  monthLabel: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 8,
+    color: Colors.textSecondary,
+    letterSpacing: 1,
+  },
   timeLabel: {
     fontFamily: Typography.bodyMedium,
     fontSize: 7,
     color: Colors.muted,
     letterSpacing: 0.2,
   },
-  dayHeader: { flex: 1, alignItems: "center", paddingBottom: 4 },
+  dayHeader: {
+    flex: 1,
+    height: 31,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   dayName: {
     fontFamily: Typography.bodyBold,
     fontSize: 7,
@@ -479,7 +519,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.text,
   },
-  runDot: { position: "absolute", right: 3, top: 3, width: 4, height: 4, borderRadius: 2, backgroundColor: Colors.accent },
+  runBadge: {
+    position: "absolute",
+    right: 2,
+    top: 2,
+    width: 14,
+    height: 14,
+    borderRadius: Radius.xs,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.accent,
+  },
   legend: {
     marginTop: 7,
     flexDirection: "row",
@@ -501,31 +551,68 @@ const styles = StyleSheet.create({
     borderColor: Colors.borderSubtle,
   },
   slotCard: {
-    marginHorizontal: 18,
-    marginTop: 17,
-    paddingTop: 13,
-    borderTopWidth: 1,
+    minHeight: 105,
+    marginHorizontal: 12,
+    marginTop: 10,
+    borderWidth: 1,
     borderTopColor: Colors.border,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surface,
+    overflow: "hidden",
+  },
+  slotHeader: {
+    minHeight: 29,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
   },
   slotTitle: {
     fontFamily: Typography.bodyBold,
     fontSize: 8,
-    color: Colors.textSecondary,
-    letterSpacing: 1.2,
-    marginBottom: 10,
+    color: Colors.text,
+    letterSpacing: 1,
+  },
+  slotMeta: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 7,
+    color: Colors.accent,
+    letterSpacing: 0.8,
+    textAlign: "right",
   },
   slotContent: {
     minHeight: 74,
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
   },
-  avatars: { flex: 1, flexDirection: "row", alignItems: "flex-start", gap: 7 },
-  avatar: { width: 39, alignItems: "center" },
+  peopleArea: {
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  gameArea: {
+    width: 148,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderLeftColor: Colors.border,
+  },
+  sectionLabel: {
+    marginBottom: 6,
+    fontFamily: Typography.bodyBold,
+    fontSize: 6,
+    color: Colors.muted,
+    letterSpacing: 0.9,
+  },
+  avatars: { flexDirection: "row", alignItems: "flex-start", gap: 7 },
+  avatar: { width: 34, alignItems: "center" },
   avatarName: {
-    width: 39,
-    marginTop: 4,
+    width: 34,
+    marginTop: 3,
     textAlign: "center",
     fontFamily: Typography.bodyBold,
     fontSize: 6,
@@ -533,8 +620,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   hiddenAvatar: {
-    width: 36,
-    height: 36,
+    width: 30,
+    height: 30,
     borderRadius: Radius.sm,
     borderWidth: 1,
     borderStyle: "dashed",
@@ -548,14 +635,60 @@ const styles = StyleSheet.create({
     color: Colors.muted,
   },
   empty: {
-    flex: 1,
+    paddingTop: 9,
     fontFamily: Typography.body,
-    fontSize: 9,
-    lineHeight: 13,
+    fontSize: 8,
     color: Colors.muted,
   },
-  actions: { width: 108, gap: 7 },
+  gameTile: {
+    width: 128,
+    minHeight: 43,
+    paddingRight: 5,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.accentDim,
+  },
+  gameTilePressed: { backgroundColor: Colors.accentGlow },
+  gameIcon: {
+    width: 27,
+    alignSelf: "stretch",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.accent,
+  },
+  gameCopy: { flex: 1, minWidth: 0 },
+  gameTitle: {
+    fontFamily: Typography.heading,
+    fontSize: 12,
+    color: Colors.text,
+  },
+  gameMeta: {
+    marginTop: 1,
+    fontFamily: Typography.bodyBold,
+    fontSize: 5.5,
+    color: Colors.textSecondary,
+    letterSpacing: 0.35,
+  },
+  noGame: {
+    paddingTop: 11,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 7,
+    color: Colors.muted,
+    letterSpacing: 0.6,
+  },
+  actions: {
+    minHeight: 40,
+    paddingHorizontal: 8,
+    paddingBottom: 8,
+    flexDirection: "row",
+    gap: 7,
+  },
   action: {
+    flex: 1,
     minHeight: 38,
     paddingHorizontal: 8,
     alignItems: "center",
@@ -574,18 +707,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   notice: {
-    marginTop: 9,
+    paddingHorizontal: 10,
+    paddingBottom: 8,
     fontFamily: Typography.bodyBold,
     fontSize: 8,
     color: Colors.loss,
     letterSpacing: 0.6,
-  },
-  emptyPrompt: {
-    paddingHorizontal: 18,
-    paddingTop: 15,
-    fontFamily: Typography.bodyBold,
-    fontSize: 8,
-    color: Colors.muted,
-    letterSpacing: 1,
   },
 });
