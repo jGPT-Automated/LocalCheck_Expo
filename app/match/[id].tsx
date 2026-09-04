@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { MatchReviewCard } from "@/components/match/MatchReviewCard";
-import { MatchRevisionSheet } from "@/components/match/MatchRevisionSheet";
+import { MatchRevisionForm } from "@/components/match/MatchRevisionForm";
 import { DetailHeader } from "@/components/ui/DetailHeader";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { Colors, Radius } from "@/constants/colors";
@@ -156,6 +156,26 @@ export default function MatchReviewScreen() {
     );
   }
 
+  if (editing) {
+    return (
+      <View style={styles.screen}>
+        <DetailHeader
+          onBack={() => setEditing(false)}
+          title={revisionMode === "dispute" ? "DISPUTE SCORE" : "UPDATE GAME"}
+        />
+        <MatchRevisionForm
+          courts={courts}
+          match={match}
+          mode={revisionMode}
+          onCancel={() => setEditing(false)}
+          onSubmit={(change) => void submitRevision(change)}
+          viewerId={user?.id}
+          working={working}
+        />
+      </View>
+    );
+  }
+
   const viewer = match.participants.find(
     (participant) => participant.id === user?.id,
   );
@@ -288,16 +308,6 @@ export default function MatchReviewScreen() {
           </Pressable>
         </View>
       ) : null}
-
-      <MatchRevisionSheet
-        courts={courts}
-        match={match}
-        onClose={() => setEditing(false)}
-        onSubmit={(change) => void submitRevision(change)}
-        mode={revisionMode}
-        visible={editing}
-        working={working}
-      />
     </View>
   );
 }
