@@ -17,8 +17,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { compactCourtLabel, normalizeState } from "@/components/addCourtModel";
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { Colors, Radius } from "@/constants/colors";
-import { Layout } from "@/constants/layout";
-import { Typography } from "@/constants/typography";
+import { Layout, Space } from "@/constants/layout";
+import { TextStyles, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import type { CourtSubmissionResult } from "@/services/courtService";
 
@@ -205,21 +205,40 @@ export default function AddCourtRoute() {
   const submit = async () => {
     if (lat == null || lng == null || !photoBase64 || !courtName.trim()) return;
     setScreen("verifying");
-    const response = (await addCourt({
-      suggestedOfficialName: suggestedName,
-      suggestedShortName: suggestedName,
-      officialName: courtName.trim(),
-      shortName: courtName.trim(),
-      name: courtName.trim(),
-      address: address.trim(),
-      city: city.trim(),
-      state: state.trim().toUpperCase(),
-      latitude: lat,
-      longitude: lng,
-      imageBase64: photoBase64,
-      imageMimeType: "image/jpeg",
-      sport,
-    } as Parameters<typeof addCourt>[0])) as Result;
+    // Never let the screen hang on a stalled request — the CANCEL affordance
+    // already lets the user out, and this converts a silent stall into a
+    // recoverable error state.
+    const timeout = new Promise<Result>((resolve) =>
+      setTimeout(
+        () =>
+          resolve({
+            verified: false,
+            confidence: 0,
+            reason:
+              "Verification is taking too long. Check your connection and try again.",
+            failureCode: "unavailable",
+          } as Result),
+        30_000,
+      ),
+    );
+    const response = (await Promise.race([
+      addCourt({
+        suggestedOfficialName: suggestedName,
+        suggestedShortName: suggestedName,
+        officialName: courtName.trim(),
+        shortName: courtName.trim(),
+        name: courtName.trim(),
+        address: address.trim(),
+        city: city.trim(),
+        state: state.trim().toUpperCase(),
+        latitude: lat,
+        longitude: lng,
+        imageBase64: photoBase64,
+        imageMimeType: "image/jpeg",
+        sport,
+      } as Parameters<typeof addCourt>[0]) as Promise<Result>,
+      timeout,
+    ])) as Result;
     setResult(response);
     if (response.verified && response.court) setScreen("success");
     else if (
@@ -300,6 +319,7 @@ export default function AddCourtRoute() {
           title="VERIFYING COURT"
           body="AI is checking your photo to confirm this is an actual court…"
           progress
+          onCancel={() => setScreen("details")}
         />
       ) : null}
       {screen === "success" && result?.court ? (
@@ -359,7 +379,7 @@ function FlowHeader({
           accessibilityRole="button"
           style={styles.backButton}
         >
-          <Feather name="chevron-left" size={30} color={Colors.text} />
+          <Feather name="chevron-left" size={22} color={Colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>{title}</Text>
       </View>
@@ -488,7 +508,7 @@ function Details({
         onPress={onSubmit}
         disabled={!name.trim() || !photoUri}
         variant="accent"
-        size="lg"
+        size="md"
         style={{ ...styles.fullButton, marginTop: 20 }}
       />
     </ScrollView>
@@ -529,16 +549,18 @@ function CenteredState({
   title,
   body,
   progress = false,
+  onCancel,
 }: {
   icon: React.ComponentProps<typeof Feather>["name"];
   title: string;
   body: string;
   progress?: boolean;
+  onCancel?: () => void;
 }) {
   return (
     <View style={styles.centered}>
       <View style={styles.stateIcon}>
-        <Feather name={icon} size={39} color={Colors.accent} />
+        <Feather name={icon} size={22} color={Colors.accent} />
       </View>
       <Text style={styles.stateTitle}>{title}</Text>
       <Text style={styles.stateBody}>{body}</Text>
@@ -549,6 +571,15 @@ function CenteredState({
           </View>
           <Text style={styles.waitText}>This usually takes a few seconds</Text>
         </>
+      ) : null}
+      {onCancel ? (
+        <Pressable
+          onPress={onCancel}
+          accessibilityRole="button"
+          hitSlop={8}
+        >
+          <Text style={styles.cancelText}>CANCEL</Text>
+        </Pressable>
       ) : null}
     </View>
   );
@@ -566,7 +597,7 @@ function SuccessState({
   return (
     <View style={styles.centered}>
       <View style={[styles.stateIcon, styles.successIcon]}>
-        <Feather name="check" size={38} color={Colors.accent} />
+        <Feather name="check" size={22} color={Colors.accent} />
       </View>
       <Text style={styles.stateTitle}>COURT ADDED</Text>
       <Text style={styles.stateBody}>
@@ -591,14 +622,14 @@ function SuccessState({
         label="CHECK IN NOW"
         onPress={onCheckIn}
         variant="accent"
-        size="lg"
+        size="md"
         style={styles.fullButton}
       />
       <BrutalistButton
         label="Back to Explore"
         onPress={onExplore}
         variant="outline"
-        size="lg"
+        size="md"
         style={styles.fullButton}
       />
     </View>
@@ -618,19 +649,19 @@ function RejectedState({
   return (
     <View style={styles.centered}>
       <View style={[styles.stateIcon, styles.failureIcon]}>
-        <Feather name="x" size={38} color={Colors.loss} />
+        <Feather name="x" size={22} color={Colors.loss} />
       </View>
-      <Text style={styles.stateTitle}>NOT A COURT</Text>
+      <Text style={styles.stateTitle}>COULDN’T VERIFY THIS</Text>
       <Text style={styles.stateBody}>
         {result?.reason ||
-          "We couldn't verify a court in your photo. Make sure the court surface, lines, or hoop/net are clearly visible."}
+          "Make sure the court surface, lines, or hoop/net are clearly visible."}
       </Text>
       <AttemptBox used={used} limit={limit} />
       <BrutalistButton
         label="TRY AGAIN"
         onPress={onRetry}
         variant="accent"
-        size="lg"
+        size="md"
         style={styles.fullButton}
       />
       <Pressable onPress={onCancel} accessibilityRole="button">
@@ -650,7 +681,7 @@ function CooldownState({
   return (
     <View style={styles.centered}>
       <View style={styles.stateIcon}>
-        <Feather name="clock" size={38} color={Colors.muted} />
+        <Feather name="clock" size={22} color={Colors.muted} />
       </View>
       <Text style={styles.stateTitle}>COOL DOWN</Text>
       <Text style={styles.stateBody}>
@@ -662,7 +693,7 @@ function CooldownState({
         label="Back to Explore"
         onPress={onExplore}
         variant="outline"
-        size="lg"
+        size="md"
         style={styles.fullButton}
       />
     </View>
@@ -680,7 +711,7 @@ function ErrorState({
   return (
     <View style={styles.centered}>
       <View style={styles.stateIcon}>
-        <Feather name="alert-circle" size={38} color={Colors.accent} />
+        <Feather name="alert-circle" size={22} color={Colors.accent} />
       </View>
       <Text style={styles.stateTitle}>CAN’T ADD COURT</Text>
       <Text style={styles.stateBody}>
@@ -691,14 +722,14 @@ function ErrorState({
         label="TRY AGAIN"
         onPress={onRetry}
         variant="accent"
-        size="lg"
+        size="md"
         style={styles.fullButton}
       />
       <BrutalistButton
         label="Back to Explore"
         onPress={onCancel}
         variant="outline"
-        size="lg"
+        size="md"
         style={styles.fullButton}
       />
     </View>
@@ -721,7 +752,7 @@ function PermissionState({
     <View style={styles.root}>
       <View style={styles.centered}>
         <View style={styles.stateIcon}>
-          <Feather name="camera" size={38} color={Colors.accent} />
+          <Feather name="camera" size={22} color={Colors.accent} />
         </View>
         <Text style={styles.stateTitle}>{title}</Text>
         <Text style={styles.stateBody}>{body}</Text>
@@ -729,14 +760,14 @@ function PermissionState({
           label={action}
           onPress={onAction}
           variant="accent"
-          size="lg"
+          size="md"
           style={styles.fullButton}
         />
         <BrutalistButton
           label="GO BACK"
           onPress={onBack}
           variant="outline"
-          size="lg"
+          size="md"
           style={styles.fullButton}
         />
       </View>
@@ -747,27 +778,26 @@ function PermissionState({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   header: {
-    height: 104,
+    height: 96,
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: Space.md,
     paddingHorizontal: Layout.screenGutter,
   },
   backButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: Radius.lg,
+    borderRadius: Radius.md,
     borderWidth: 1,
     borderColor: Colors.border,
     backgroundColor: Colors.surface,
   },
   headerTitle: {
+    ...TextStyles.title,
     color: Colors.text,
-    fontFamily: Typography.heading,
-    fontSize: 28,
-    letterSpacing: 1.1,
+    letterSpacing: 0.6,
   },
   progress: {
     flexDirection: "row",
@@ -786,8 +816,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: Colors.muted,
     fontFamily: Typography.bodySemiBold,
-    fontSize: 17,
-    paddingVertical: 7,
+    fontSize: 12,
+    letterSpacing: 0.6,
+    paddingVertical: Space.sm,
   },
   cameraScreen: { flex: 1, backgroundColor: Colors.black },
   cameraShade: { flex: 1 },
@@ -826,32 +857,32 @@ const styles = StyleSheet.create({
   frameHint: {
     color: Colors.text,
     fontFamily: Typography.bodyBold,
-    fontSize: 15,
-    letterSpacing: 0.4,
+    fontSize: 12,
+    letterSpacing: 0.6,
     textShadowColor: "rgba(0,0,0,0.6)",
     textShadowRadius: 6,
   },
   captureArea: {
     alignItems: "center",
-    gap: 24,
-    paddingTop: 18,
+    gap: Space.lg,
+    paddingTop: Space.lg,
     backgroundColor: "rgba(0,0,0,0.72)",
   },
   liveOnly: {
     color: Colors.textSecondary,
     fontFamily: Typography.bodyMedium,
-    letterSpacing: 2,
-    fontSize: 13,
+    letterSpacing: 1.8,
+    fontSize: 11,
   },
   shutter: {
-    width: 86,
-    height: 86,
-    borderRadius: 43,
-    borderWidth: 6,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    borderWidth: 5,
     borderColor: Colors.white,
-    padding: 8,
+    padding: 6,
   },
-  shutterInner: { flex: 1, borderRadius: 40, backgroundColor: Colors.white },
+  shutterInner: { flex: 1, borderRadius: 28, backgroundColor: Colors.white },
   detailsContent: { padding: Layout.screenGutter, gap: 13 },
   photoPreview: {
     height: 185,
@@ -953,18 +984,18 @@ const styles = StyleSheet.create({
   },
   centered: {
     flex: 1,
-    padding: Layout.screenGutter + 6,
+    padding: Layout.screenGutter,
     alignItems: "center",
     justifyContent: "center",
-    gap: 22,
+    gap: Space.lg,
   },
   stateIcon: {
-    width: 118,
-    height: 118,
-    borderRadius: 59,
+    width: 56,
+    height: 56,
+    borderRadius: Radius.lg,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 3,
+    borderWidth: 1,
     borderColor: Colors.border,
   },
   successIcon: {
@@ -976,35 +1007,32 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.lossDim,
   },
   stateTitle: {
+    ...TextStyles.title,
     color: Colors.text,
-    fontFamily: Typography.heading,
-    fontSize: 38,
-    letterSpacing: 1.3,
+    letterSpacing: 0.6,
     textAlign: "center",
   },
   stateBody: {
+    ...TextStyles.bodySmall,
     color: Colors.textSecondary,
-    fontFamily: Typography.body,
-    fontSize: 18,
-    lineHeight: 27,
     textAlign: "center",
-    maxWidth: 460,
+    maxWidth: 320,
   },
   verifyLine: {
-    width: "90%",
-    height: 7,
-    borderRadius: 4,
+    width: "72%",
+    height: 4,
+    borderRadius: 2,
     backgroundColor: Colors.border,
     overflow: "hidden",
-    marginTop: 22,
+    marginTop: Space.xs,
   },
   verifyFill: {
     width: "65%",
     height: "100%",
-    borderRadius: 4,
+    borderRadius: 2,
     backgroundColor: Colors.accent,
   },
-  waitText: { color: Colors.muted, fontFamily: Typography.body, fontSize: 15 },
+  waitText: { ...TextStyles.caption, color: Colors.muted },
   courtCard: {
     width: "100%",
     gap: 14,

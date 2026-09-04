@@ -27,8 +27,10 @@ import {
 } from "@/lib/nearestRoute";
 
 const ROUTE_SOURCE_ID = "explore-nearest-route";
+const ROUTE_HALO_LAYER_ID = "explore-nearest-route-halo";
 const ROUTE_GLOW_LAYER_ID = "explore-nearest-route-glow";
 const ROUTE_LINE_LAYER_ID = "explore-nearest-route-line";
+const ROUTE_TARGET_GLOW_LAYER_ID = "explore-nearest-route-target-glow";
 const ROUTE_TARGET_LAYER_ID = "explore-nearest-route-target";
 
 declare global {
@@ -459,6 +461,20 @@ function MapboxMap({
       existing.setData(data);
     } else {
       map.addSource(ROUTE_SOURCE_ID, { type: "geojson", data });
+      // Neon LocalCheck-orange path: wide soft glow → tight glow → core line.
+      map.addLayer({
+        id: ROUTE_HALO_LAYER_ID,
+        type: "line",
+        source: ROUTE_SOURCE_ID,
+        filter: ["==", ["geometry-type"], "LineString"],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": Colors.accent,
+          "line-opacity": 0.18,
+          "line-width": 22,
+          "line-blur": 6,
+        },
+      });
       map.addLayer({
         id: ROUTE_GLOW_LAYER_ID,
         type: "line",
@@ -467,8 +483,9 @@ function MapboxMap({
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
           "line-color": Colors.accent,
-          "line-opacity": 0.22,
-          "line-width": 12,
+          "line-opacity": 0.45,
+          "line-width": 10,
+          "line-blur": 2.5,
         },
       });
       map.addLayer({
@@ -477,7 +494,19 @@ function MapboxMap({
         source: ROUTE_SOURCE_ID,
         filter: ["==", ["geometry-type"], "LineString"],
         layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": Colors.accent, "line-width": 3.5 },
+        paint: { "line-color": Colors.accent, "line-width": 4 },
+      });
+      map.addLayer({
+        id: ROUTE_TARGET_GLOW_LAYER_ID,
+        type: "circle",
+        source: ROUTE_SOURCE_ID,
+        filter: ["==", ["get", "marker"], true],
+        paint: {
+          "circle-color": Colors.accent,
+          "circle-opacity": 0.28,
+          "circle-radius": 18,
+          "circle-blur": 0.8,
+        },
       });
       map.addLayer({
         id: ROUTE_TARGET_LAYER_ID,
@@ -497,7 +526,7 @@ function MapboxMap({
       map.setPaintProperty(
         ROUTE_LINE_LAYER_ID,
         "line-dasharray",
-        route && route.distanceKm > ROUTE_MAX_KM ? [1.5, 1.5] : [1],
+        route && route.distanceKm > ROUTE_MAX_KM ? [1.6, 1.4] : null,
       );
     }
 

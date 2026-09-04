@@ -269,11 +269,22 @@ export function MapScreen({
       const to: LngLat = [nearest.longitude, nearest.latitude];
       const distanceKm = nearest.distanceKm ?? kmBetween(from, to);
 
-      // Frame both the puck and the court, leaving room for the drawer that
-      // opens over the lower third of the screen.
+      // Zoom out to frame both the puck and the court, leaving room for the
+      // drawer that opens over the lower third of the screen. setCamera(bounds)
+      // is used here rather than fitBounds() because it shares the exact path
+      // as the working "center on me" control.
       userCameraOverride.current = true;
       const { ne, sw } = boundsFor([from, to]);
-      cameraRef.current?.fitBounds(ne, sw, [96, 64, 380, 64], 900);
+      cameraRef.current?.setCamera({
+        bounds: { ne, sw },
+        padding: {
+          paddingTop: 110,
+          paddingRight: 56,
+          paddingBottom: 380,
+          paddingLeft: 56,
+        },
+        animationDuration: 900,
+      });
       setLocationNotice(null);
 
       // Show a straight connector immediately; upgrade to the walking route
@@ -431,13 +442,27 @@ export function MapScreen({
               ],
             }}
           >
+            {/* Neon LocalCheck-orange path: wide soft glow → tight glow → core */}
+            <LineLayer
+              id="nearest-route-halo"
+              filter={["==", ["geometry-type"], "LineString"]}
+              style={{
+                lineColor: Colors.accent,
+                lineOpacity: 0.18,
+                lineWidth: 22,
+                lineBlur: 6,
+                lineCap: "round",
+                lineJoin: "round",
+              }}
+            />
             <LineLayer
               id="nearest-route-glow"
               filter={["==", ["geometry-type"], "LineString"]}
               style={{
                 lineColor: Colors.accent,
-                lineOpacity: 0.22,
-                lineWidth: 12,
+                lineOpacity: 0.45,
+                lineWidth: 10,
+                lineBlur: 2.5,
                 lineCap: "round",
                 lineJoin: "round",
               }}
@@ -447,11 +472,21 @@ export function MapScreen({
               filter={["==", ["geometry-type"], "LineString"]}
               style={{
                 lineColor: Colors.accent,
-                lineWidth: 3.5,
+                lineWidth: 4,
                 lineCap: "round",
                 lineJoin: "round",
                 lineDasharray:
-                  nearestRoute.distanceKm > ROUTE_MAX_KM ? [1.5, 1.5] : [1],
+                  nearestRoute.distanceKm > ROUTE_MAX_KM ? [1.6, 1.4] : [1],
+              }}
+            />
+            <CircleLayer
+              id="nearest-route-target-glow"
+              filter={["==", ["get", "marker"], true]}
+              style={{
+                circleColor: Colors.accent,
+                circleOpacity: 0.28,
+                circleRadius: 18,
+                circleBlur: 0.8,
               }}
             />
             <CircleLayer
