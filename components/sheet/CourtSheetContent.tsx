@@ -10,12 +10,14 @@ import { AnimatedEntry } from "@/components/AnimatedEntry";
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { StatBlock } from "@/components/StatBlock";
+import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
 import { SportEmblem } from "@/components/ui/SportEmblem";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { usePresence } from "@/context/CourtPresenceContext";
+import { isInactiveLocal, relativeTime } from "@/lib/localPresence";
 import { fetchCourtById } from "@/services/courtService";
 import {
   fetchLocalsWithLastCheckIn,
@@ -100,16 +102,6 @@ export function CourtSheetContent({
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-  };
-
-  const lastSeenLabel = (iso: string | null) => {
-    if (!iso) return "NO CHECK-INS YET";
-    const d = new Date(iso);
-    const days = Math.floor((Date.now() - d.getTime()) / 86_400_000);
-    if (days === 0) return "TODAY";
-    if (days === 1) return "YESTERDAY";
-    if (days < 7) return `${days}D AGO`;
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
   };
 
   return (
@@ -210,30 +202,30 @@ export function CourtSheetContent({
       </View>
 
       {/* ── Locals: username list with last check-in ── */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
+      <View style={styles.sectionBleed}>
+        <View style={[styles.sectionHeader, styles.sectionInset]}>
           <Text style={styles.sectionTitle}>LOCALS</Text>
           <Text style={styles.sectionAccent}>{locals.length}</Text>
         </View>
         {locals.length === 0 ? (
-          <Text style={styles.emptyText}>NO ONE HAS CLAIMED THIS COURT YET</Text>
+          <Text style={[styles.emptyText, styles.sectionInset]}>
+            NO ONE HAS CLAIMED THIS COURT YET
+          </Text>
         ) : (
-          locals.map(({ player, lastCheckInAt }) => (
-            <Pressable
+          locals.map(({ player, lastCheckInAt, checkInCount }) => (
+            <PlayerSummaryRow
+              checkInCount={checkInCount}
+              detail={
+                lastCheckInAt
+                  ? `Last here · ${relativeTime(lastCheckInAt)}`
+                  : "No check-ins yet"
+              }
+              friend={isFriend(player.id)}
+              inactive={isInactiveLocal(lastCheckInAt)}
               key={player.id}
-              style={({ pressed }) => [styles.localRow, pressed && styles.pressed]}
               onPress={() => go(`/player/${player.id}`)}
-            >
-              <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={30} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.localName}>{player.name.toUpperCase()}</Text>
-                <Text style={styles.localMeta}>
-                  LAST CHECK-IN: {lastSeenLabel(lastCheckInAt)}
-                </Text>
-              </View>
-              {isFriend(player.id) && <Text style={styles.friendLabel}>FRIEND</Text>}
-              <Text style={styles.localElo}>{player.elo}</Text>
-            </Pressable>
+              player={player}
+            />
           ))
         )}
       </View>
@@ -387,6 +379,13 @@ const styles = StyleSheet.create({
     borderTopWidth: 0.5,
     borderTopColor: Colors.border,
   },
+  sectionBleed: {
+    paddingTop: 18,
+    paddingBottom: 14,
+    borderTopWidth: 0.5,
+    borderTopColor: Colors.border,
+  },
+  sectionInset: { paddingHorizontal: 20 },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -439,39 +438,6 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
 
-  localRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.borderSubtle,
-    minHeight: 48,
-  },
-  localName: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 12,
-    color: Colors.text,
-    letterSpacing: 0.5,
-  },
-  localMeta: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 9,
-    color: Colors.muted,
-    letterSpacing: 1,
-    marginTop: 2,
-  },
-  localElo: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.textSecondary,
-  },
-  friendLabel: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 8,
-    color: Colors.win,
-    letterSpacing: 1.2,
-  },
   pressed: { backgroundColor: Colors.surfaceHigh },
 
   visitRow: {

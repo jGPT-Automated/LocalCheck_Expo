@@ -28,6 +28,7 @@ import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
+import { isInactiveLocal, relativeTime } from "@/lib/localPresence";
 import {
   fetchLocalsWithLastCheckIn,
   type LocalWithLastCheckIn,
@@ -287,7 +288,7 @@ export function HomeScreen() {
                         : "Local player"
                     }
                     friend={isFriend(player.id)}
-                    inactive={isInactive(lastCheckInAt)}
+                    inactive={isInactiveLocal(lastCheckInAt)}
                     key={player.id}
                     onPress={() => router.push(`/player/${player.id}`)}
                     player={player}
@@ -403,21 +404,6 @@ function NoCourtState({ isSignedIn }: { isSignedIn: boolean }) {
   );
 }
 
-function relativeTime(value: string): string {
-  const elapsed = Date.now() - new Date(value).getTime();
-  if (!Number.isFinite(elapsed) || elapsed < 0) return "recently";
-  const minutes = Math.floor(elapsed / 60_000);
-  if (minutes < 60) return minutes <= 1 ? "just now" : `${minutes} min ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hr${hours === 1 ? "" : "s"} ago`;
-  const days = Math.floor(hours / 24);
-  return `${days} day${days === 1 ? "" : "s"} ago`;
-}
-
-function isInactive(value: string | null): boolean {
-  if (!value) return true;
-  return Date.now() - new Date(value).getTime() > 90 * 86_400_000;
-}
 
 const styles = StyleSheet.create({
   tabBody: {
