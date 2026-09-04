@@ -8,7 +8,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AnimatedEntry } from "@/components/AnimatedEntry";
 import { BrutalistButton } from "@/components/BrutalistButton";
-import { LivePulse } from "@/components/LivePulse";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { StatBlock } from "@/components/StatBlock";
 import { SportEmblem } from "@/components/ui/SportEmblem";
@@ -125,19 +124,13 @@ export function CourtSheetContent({
           <View style={styles.sportTag}>
             <SportEmblem glow={false} size={13} sport={court.sport} />
             <Text style={[styles.sportText, { color: sportColor }]}>{court.sport}</Text>
-            {distLabel && <Text style={styles.metaDim}>· {distLabel}</Text>}
           </View>
         </View>
         <View style={styles.headerCornerRight}>
           <Text numberOfLines={1} style={styles.courtAddress}>
-            {court.city || court.neighborhood}
+            {[court.city || court.neighborhood, distLabel].filter(Boolean).join(" · ")}
           </Text>
-          {activeCount > 0 ? (
-            <View style={styles.liveChip}>
-              <LivePulse size={4} color={Colors.black} style={{ marginRight: 4 }} />
-              <Text style={styles.liveChipText}>LIVE</Text>
-            </View>
-          ) : isMyLocal ? (
+          {isMyLocal ? (
             <View style={styles.myLocalTag}>
               <Feather color={Colors.accent} fill={Colors.accent} name="star" size={9} />
               <Text style={styles.myLocalInline}>MY LOCAL</Text>
@@ -145,7 +138,9 @@ export function CourtSheetContent({
           ) : null}
         </View>
         <View pointerEvents="none" style={styles.centerTitleWrap}>
-          <Text style={styles.courtName} numberOfLines={2}>{court.name.toUpperCase()}</Text>
+          <Text style={styles.courtName} numberOfLines={1}>
+            {(court.shortName || court.name).toUpperCase()}
+          </Text>
           {court.neighborhood && court.neighborhood !== court.city ? (
             <Text numberOfLines={1} style={styles.neighborhood}>{court.neighborhood}</Text>
           ) : null}
@@ -153,7 +148,7 @@ export function CourtSheetContent({
       </View>
 
       <View style={styles.statsRow}>
-        <StatBlock value={activeCount} label="On Court" />
+        <StatBlock live={activeCount > 0} value={activeCount} label="On Court" />
         <View style={styles.statDiv} />
         <StatBlock value={localCount} label="Locals" />
         <View style={styles.statDiv} />
@@ -310,18 +305,11 @@ const styles = StyleSheet.create({
   headerCornerRight: { position: "absolute", right: 20, top: 12, maxWidth: "36%", alignItems: "flex-end", gap: 6 },
   centerTitleWrap: { alignSelf: "center", width: "72%", alignItems: "center", paddingTop: 20 },
   sportTag: { flexDirection: "row", alignItems: "center", gap: 5 },
-  sportDot: { width: 6, height: 6, borderRadius: 3 },
   sportText: {
     fontFamily: Typography.bodyMedium,
     fontSize: 10,
     letterSpacing: 1.5,
     textTransform: "uppercase" as const,
-  },
-  metaDim: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 10,
-    color: Colors.muted,
-    letterSpacing: 1,
   },
   myLocalInline: {
     fontFamily: Typography.bodyBold,
@@ -350,20 +338,6 @@ const styles = StyleSheet.create({
     color: Colors.mutedDark,
     marginTop: 2,
     textAlign: "center",
-  },
-  liveChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.accent,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: Radius.xs,
-  },
-  liveChipText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.black,
-    letterSpacing: 1.5,
   },
 
   statsRow: {
