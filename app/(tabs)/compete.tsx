@@ -23,6 +23,7 @@ import { EloStat } from "@/components/ui/EloStat";
 import { ModeTabs } from "@/components/ui/ModeTabs";
 import { parsePlayerQrCode } from "@/components/ui/playerIdentity";
 import { RecentDatePicker } from "@/components/ui/RecentDatePicker";
+import { ScoreCard } from "@/components/match/ScoreCard";
 import { Colors, Radius } from "@/constants/colors";
 import {
   Court,
@@ -859,6 +860,27 @@ function LogGameView({
     setReviewGame({ ...form });
   };
 
+  const gameCardProps = (game: GameLog) => {
+    const court =
+      supportedCourts.find((c) => c.id === game.courtId) ?? localCourt ?? null;
+    const initials = (player: Player) =>
+      player.name.split(" ")[0].toUpperCase();
+    const mine =
+      game.teamSize === 1
+        ? "YOU"
+        : ["YOU", ...game.teammates.map(initials)].join(" · ");
+    const theirs = game.opponents.map(initials).join(" · ") || "OPPONENT";
+    return {
+      courtName: court?.shortName || court?.name || "COURT",
+      sport: (game.sport || "BASKETBALL") as CourtSport,
+      playedOn: game.playedOn,
+      leftLabel: mine,
+      rightLabel: theirs,
+      leftScore: game.myScore || "0",
+      rightScore: game.theirScore || "0",
+    };
+  };
+
   const handleSubmit = async () => {
     if (!reviewGame || submitting) return;
     setSubmitting(true);
@@ -1170,9 +1192,6 @@ function LogGameView({
   };
 
   if (reviewGame) {
-    const reviewCourt = supportedCourts.find(
-      (court) => court.id === reviewGame.courtId,
-    );
     return (
       <View style={styles.successState}>
         <Text style={styles.successTitle}>REVIEW SCORE</Text>
@@ -1180,36 +1199,11 @@ function LogGameView({
           Check the matchup, then send it in. Ratings don&apos;t move until it&apos;s
           confirmed.
         </Text>
-        <View style={styles.successCard}>
-          <View style={styles.successCardHeader}>
-            <Text numberOfLines={1} style={styles.successCourt}>
-              {reviewGame.sport === "BASKETBALL" ? "BB" : "PB"}
-              {` · ${reviewCourt?.shortName || reviewCourt?.name || "COURT"}`}
-            </Text>
-            <Text style={styles.reviewDate}>{reviewGame.playedOn}</Text>
-          </View>
-          <View style={styles.successScoreRow}>
-            <View style={styles.reviewPlayer}>
-              <Text numberOfLines={1} style={styles.successPlayerName}>
-                {reviewGame.teamSize === 1
-                  ? currentUser.name
-                  : [currentUser, ...reviewGame.teammates]
-                      .map((player) => player.name.split(" ")[0])
-                      .join(" · ")}
-              </Text>
-              <Text style={styles.successScore}>{reviewGame.myScore}</Text>
-            </View>
-            <Text style={styles.successDash}>–</Text>
-            <View style={styles.reviewPlayer}>
-              <Text numberOfLines={1} style={styles.successPlayerName}>
-                {reviewGame.opponents
-                  .map((player) => player.name.split(" ")[0])
-                  .join(" · ")}
-              </Text>
-              <Text style={styles.successScore}>{reviewGame.theirScore}</Text>
-            </View>
-          </View>
-        </View>
+        <ScoreCard
+          status="draft"
+          note="Ratings don't move until this is confirmed."
+          {...gameCardProps(reviewGame)}
+        />
         <View style={styles.reviewActions}>
           <Pressable
             accessibilityLabel="Edit score"
@@ -1238,9 +1232,6 @@ function LogGameView({
   }
 
   if (submittedGame) {
-    const submittedCourt = supportedCourts.find(
-      (court) => court.id === submittedGame.courtId,
-    );
     return (
       <View style={styles.successState}>
         <View style={styles.successIcon}>
@@ -1249,43 +1240,18 @@ function LogGameView({
         <Text style={styles.successTitle}>SCORE SENT FOR REVIEW</Text>
         <Text style={styles.successSub}>
           {submittedGame.teamSize === 1
-            ? "Your opponent can confirm or object. No rating changes yet."
-            : "Every player can review the result. No rating changes yet."}
+            ? "Your opponent can confirm or dispute it. No rating changes yet."
+            : "Any player can confirm or dispute it. No rating changes yet."}
         </Text>
-        <View style={styles.successCard}>
-          <View style={styles.successCardHeader}>
-            <Text numberOfLines={1} style={styles.successCourt}>
-              {submittedGame.sport === "BASKETBALL" ? "BB" : "PB"}
-              {` · ${submittedCourt?.shortName || submittedCourt?.name || "COURT"}`}
-            </Text>
-            <View style={styles.pendingBadge}>
-              <Text style={styles.pendingText}>PENDING</Text>
-            </View>
-          </View>
-          <View style={styles.successScoreRow}>
-            <View style={styles.successPlayer}>
-              <Text numberOfLines={1} style={styles.successPlayerName}>
-                {submittedGame.teamSize === 1
-                  ? currentUser.name
-                  : [currentUser, ...submittedGame.teammates]
-                      .map((player) => player.name.split(" ")[0])
-                      .join(" · ")}
-              </Text>
-              <Text style={styles.successScore}>{submittedGame.myScore}</Text>
-            </View>
-            <Text style={styles.successDash}>–</Text>
-            <View style={[styles.successPlayer, styles.successPlayerRight]}>
-              <Text numberOfLines={1} style={styles.successPlayerName}>
-                {submittedGame.opponents
-                  .map((player) => player.name.split(" ")[0])
-                  .join(" · ")}
-              </Text>
-              <Text style={styles.successScore}>
-                {submittedGame.theirScore}
-              </Text>
-            </View>
-          </View>
-        </View>
+        <ScoreCard
+          status="pending"
+          note={
+            submittedGame.teamSize === 1
+              ? "Waiting on your opponent, or it auto-confirms in 3 days."
+              : "Waiting on the other players, or it auto-confirms in 3 days."
+          }
+          {...gameCardProps(submittedGame)}
+        />
       </View>
     );
   }
@@ -2143,77 +2109,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.muted,
     textAlign: "center" as const,
-  },
-  successCard: {
-    width: "100%",
-    marginTop: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
-  },
-  successCardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  successCourt: {
-    flex: 1,
-    minWidth: 0,
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 12,
-    lineHeight: 16,
-    color: Colors.textSecondary,
-  },
-  pendingBadge: {
-    minHeight: 24,
-    paddingHorizontal: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 3,
-    backgroundColor: Colors.accentDim,
-  },
-  pendingText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 10,
-    color: Colors.accent,
-    letterSpacing: 1,
-  },
-  successScoreRow: {
-    marginTop: 18,
-    flexDirection: "row",
-    alignItems: "flex-end",
-  },
-  successPlayer: { flex: 1, minWidth: 0, alignItems: "flex-start" },
-  successPlayerRight: { alignItems: "flex-end" },
-  reviewPlayer: { flex: 1, minWidth: 0, alignItems: "center" },
-  successPlayerName: {
-    maxWidth: "100%",
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 12,
-    lineHeight: 16,
-    color: Colors.textSecondary,
-    textTransform: "uppercase" as const,
-  },
-  successScore: {
-    marginTop: 4,
-    fontFamily: Typography.headingBold,
-    fontSize: 38,
-    lineHeight: 42,
-    color: Colors.text,
-  },
-  successDash: {
-    paddingBottom: 5,
-    fontFamily: Typography.headingRegular,
-    fontSize: 28,
-    color: Colors.mutedDark,
-  },
-  reviewDate: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 10,
-    color: Colors.muted,
-    letterSpacing: 0.6,
   },
   reviewActions: {
     width: "100%",
