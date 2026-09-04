@@ -89,15 +89,37 @@ of the 2026-09-04 batch).
   hero and the court detail page's metric panel, which weren't touched this
   pass and still have their own treatment.
 
-### Area 4 — Roster consistency across surfaces ⬜ BACKLOG
+### Area 4 — Roster consistency across surfaces 🚧 IN PROGRESS
 WHO'S HERE / LOCALS is built three different ways today with different data
 and styling:
 1. Court preview drawer (`components/sheet/CourtSheetContent.tsx`)
 2. Home LOCALS tab (`components/HomeScreen.tsx`)
 3. `court/[id]` LOCALS tab (`app/court/[id].tsx`)
 
-Unify to one shared treatment (or one shared component) so a player reads the
-same information the same way regardless of entry point.
+- ✅ DONE (`1bdefd0`): turned out Home and `court/[id]` already agreed with
+  each other (both used `PlayerSummaryRow` + "Last here · 3 days ago"). The
+  drawer's **LOCALS** list was the actual outlier (custom row, uppercase
+  "LAST CHECK-IN: TODAY", no check-in count) — now uses `PlayerSummaryRow`
+  too. The two duplicated `relativeTime`/`isInactive` helpers Home and
+  `court/[id]` each carried verbatim are unified in `lib/localPresence.ts`.
+- ⬜ STILL OPEN — **WHO'S HERE** (the live-right-now group): the drawer shows
+  it as a horizontal avatar carousel; Home and `court/[id]` show it as a
+  vertical `PlayerSummaryRow` list (same component as LOCALS, different data
+  set). Two ways to resolve, needs a call before touching it:
+  1. Convert the drawer's WHO'S HERE to vertical `PlayerSummaryRow` too —
+     maximum consistency, matches everywhere else.
+  2. **Proposal:** keep the horizontal carousel for WHO'S HERE specifically,
+     and consider bringing it to Home/`court/[id]` too. A live "who's here
+     right now" group is usually small and reads faster as faces you can scan
+     in one glance than as a stack of rows (Von Restorff: the live group
+     should visually read as a different kind of thing than the historical
+     LOCALS list, not just a shorter version of the same row). LOCALS stays
+     the detailed vertical list either way — it's the larger, historical set
+     where check-in count / ELO / last-seen actually matter.
+  Not built — flagging for a decision.
+- ⬜ STILL OPEN: private-mode dimming has not reached these roster surfaces
+  (a private check-in still renders as a normal row today) — see the
+  2026-09-03 entry below.
 
 ### Not yet triaged from this batch
 - (none outstanding — all 10 screenshots map to areas 1–4 above)
