@@ -11,7 +11,11 @@ its Supabase source of truth. Read this file before changing anything.
 4. `docs/TESTING.md` — required automated and multi-user verification.
 5. `docs/RELEASE.md` — OTA, TestFlight, and rollback procedure.
 6. `docs/SUPABASE.md` — live-cloud grounding, migrations, functions, and deployment.
-7. For product or visual work, read the relevant files under `docs/product/`.
+7. `docs/FEEDBACK_TRACKER.md` — Jesse's screen-by-screen feedback, its
+   done/in-progress/backlog status, and which commit/branch/PR each item
+   landed in. Read this before starting any UI/polish task and update it as
+   part of the same change.
+8. For product or visual work, read the relevant files under `docs/product/`.
 
 ## Repository authority
 
