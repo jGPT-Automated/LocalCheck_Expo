@@ -65,18 +65,29 @@ small set of commits, reported back before moving on.
 | Large note textbox at the top of the dispute form is wrong; move it down | `745cad4` |
 | Score input text not centered in its box | `745cad4` |
 
-### Area 3 — Explore card & court drawer ⬜ BACKLOG (next up)
+### Area 3 — Explore card & court drawer 🚧 IN PROGRESS
 Screenshots: `MY LOCAL COURT` card + court preview drawer header (images 1–5
 of the 2026-09-04 batch).
-- The `•N` live-indicator dot pushes the "ACTIVE NOW" number off-center;
-  design a balanced/symmetric way to show "a player is here" without
-  unbalancing the card. Drop "NOW" → "ACTIVE"; drop the "HERE" label.
-- Court drawer header: sport + distance + city are scattered; tuck sport +
-  location in a corner, put distance next to city, one line. Court name
-  (short slug) should fit on one line, padded deliberately — not the current
-  layout, which Jesse called out as "the agent who did this was very lazy."
-- Replace the `LIVE` pill with a quieter/different way to signal live
-  activity.
+- ✅ DONE (`3c81d71`): the `•N` live-indicator dot pushed the "ACTIVE NOW"
+  number off-center. Fixed with a corner-pulse pattern (small `LivePulse`
+  badge over the number instead of inline before it; number takes accent
+  color) added to `StatBlock` (shared) and applied in `CourtListItem`. "ACTIVE
+  NOW" → "ACTIVE" to match "LOCALS" as one word. The checked-in "HERE" pill
+  moved out of the stats row into the top line so the two stat columns are
+  always symmetric regardless of check-in state.
+- ✅ DONE (`3c81d71`): court drawer header — sport tag alone in its corner,
+  distance moved next to city on the opposite corner ("Houston · 33.5 MI"),
+  title now uses `court.shortName || court.name` (was always the full name,
+  the actual reason it wrapped to two lines). Dropped the `LIVE` pill; live
+  activity now shows via the same corner-pulse on the "On Court" stat.
+- ⬜ STILL OPEN: "padded... more intentionally" — the header box spacing
+  itself hasn't had a dedicated pass yet, just the content it holds. Revisit
+  if it still looks cramped once device-verified.
+- **Proposal, not built:** the corner-pulse pattern now lives in `StatBlock`
+  and `CourtListItem` independently. Area 4 (below) should promote it to the
+  one place any surface asks "is this thing live" — including Home's court
+  hero and the court detail page's metric panel, which weren't touched this
+  pass and still have their own treatment.
 
 ### Area 4 — Roster consistency across surfaces ⬜ BACKLOG
 WHO'S HERE / LOCALS is built three different ways today with different data
