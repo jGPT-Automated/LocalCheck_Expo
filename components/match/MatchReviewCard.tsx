@@ -17,9 +17,11 @@ import { ScoreCard } from "./ScoreCard";
 export function MatchReviewCard({
   match,
   viewerId,
+  compact = false,
 }: {
   match: MatchReview;
   viewerId?: string;
+  compact?: boolean;
 }) {
   const [now, setNow] = React.useState(Date.now());
   const copy = matchStatusCopy(match.status);
@@ -54,21 +56,27 @@ export function MatchReviewCard({
   const secondSide = viewerSide === "b" ? sideA : sideB;
   const firstScore = viewerSide === "b" ? match.scoreB : match.scoreA;
   const secondScore = viewerSide === "b" ? match.scoreA : match.scoreB;
+  const remaining =
+    deadline && copy.countdownLabel
+      ? formatRemainingTime(deadline, now)
+      : null;
 
   return (
     <ScoreCard
+      compact={compact}
       countdown={
-        deadline && copy.countdownLabel
-          ? {
-              label: copy.countdownLabel,
-              value: formatRemainingTime(deadline, now),
-            }
+        !compact && remaining
+          ? { label: copy.countdownLabel as string, value: remaining }
           : null
       }
       courtName={match.courtName}
       leftLabel={sideLabel(firstSide, "SIDE A")}
       leftScore={firstScore}
-      note={copy.description}
+      note={
+        compact && remaining
+          ? `${copy.countdownLabel} · ${remaining}`
+          : copy.description
+      }
       playedOn={match.playedAt}
       rightLabel={sideLabel(secondSide, "SIDE B")}
       rightMeta={

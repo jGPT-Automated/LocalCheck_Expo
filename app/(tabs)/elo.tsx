@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { HeaderIconAction, ScreenHeader } from "@/components/ScreenHeader";
+import { MatchReviewCard } from "@/components/match/MatchReviewCard";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { GameResultModal } from "@/components/ui/GameResultModal";
 import { PlayerQrModal } from "@/components/ui/PlayerQrModal";
@@ -31,6 +32,8 @@ import {
   fetchSuggestedPlayers,
   searchPlayers,
 } from "@/services/profileService";
+import { fetchOpenMatchesForPlayer } from "@/services/gameService";
+import type { MatchReview } from "@/services/gameService";
 import type { Player } from "@/constants/data";
 
 type ProfileTab = "activity" | "friends" | "inbox";
@@ -63,6 +66,7 @@ export default function MeScreen() {
     sport: FeedItem["sport"];
     courtName?: string;
   } | null>(null);
+  const [openMatches, setOpenMatches] = useState<MatchReview[]>([]);
 
   const friends = getFriendsList();
   const searchingFriends = friendQuery.trim().length >= 2;
@@ -80,16 +84,29 @@ export default function MeScreen() {
     () => feed.filter((item) => item.playerId === currentUser.id).slice(0, 8),
     [feed, currentUser.id],
   );
+  // Score reviews now show as real game cards below, so the notification feed
+  // in the inbox is only the things that have no card of their own.
   const inboxNotifications = useMemo(
     () =>
       notifications.filter(
-        (notification) =>
-          notification.type === "match_review" ||
-          notification.type === "run_invite",
+        (notification) => notification.type === "run_invite",
       ),
     [notifications],
   );
-  const inboxCount = incomingFriendRequests.length + inboxNotifications.length;
+  const inboxCount =
+    incomingFriendRequests.length +
+    openMatches.length +
+    inboxNotifications.length;
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchOpenMatchesForPlayer(currentUser.id).then((rows) => {
+      if (!cancelled) setOpenMatches(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser.id, activeTab, notifications.length, matches.length]);
   useEffect(() => {
     if (!localCourt?.id) return setSuggestedFriends([]);
     let cancelled = false;
@@ -320,6 +337,26 @@ export default function MeScreen() {
           </View>
         ) : (
           <View style={styles.content}>
+            {openMatches.length > 0 ? (
+              <View style={styles.gameGroup}>
+                <Text style={styles.requestGroupTitle}>GAMES</Text>
+                {openMatches.map((match) => (
+                  <Pressable
+                    accessibilityLabel={`Open game at ${match.courtName}`}
+                    accessibilityRole="button"
+                    key={match.id}
+                    onPress={() => router.push(`/match/${match.id}`)}
+                    style={({ pressed }) => [pressed && styles.pressed]}
+                  >
+                    <MatchReviewCard
+                      compact
+                      match={match}
+                      viewerId={currentUser.id}
+                    />
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
             {incomingFriendRequests.length > 0 ? (
               <View style={styles.requestGroup}>
                 <Text style={styles.requestGroupTitle}>FRIEND REQUESTS</Text>
@@ -392,10 +429,11 @@ export default function MeScreen() {
                   </Text>
                 </Pressable>
               ))
-            ) : incomingFriendRequests.length === 0 ? (
+            ) : incomingFriendRequests.length === 0 &&
+              openMatches.length === 0 ? (
               <EmptyState
                 title="YOU'RE ALL CAUGHT UP"
-                body="Friend requests, game reviews, and game invitations will appear here."
+                body="Games to review, friend requests, and game invitations show up here."
               />
             ) : null}
           </View>
@@ -687,6 +725,7 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   requestGroup: { marginHorizontal: 20, marginBottom: 10 },
+  gameGroup: { marginHorizontal: 20, marginBottom: 16, gap: 12 },
   requestGroupTitle: {
     fontFamily: Typography.bodySemiBold,
     fontSize: 11,
