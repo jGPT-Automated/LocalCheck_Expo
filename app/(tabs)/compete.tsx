@@ -33,6 +33,7 @@ import { parsePlayerQrCode } from "@/components/ui/playerIdentity";
 import { WeekDatePicker } from "@/components/ui/WeekDatePicker";
 import { Colors, Radius } from "@/constants/colors";
 import {
+  Court,
   CourtSport,
   getSportColor,
   getTierColor,
@@ -47,6 +48,7 @@ import {
   searchPlayers,
 } from "@/services/profileService";
 import { logGame, logTeamGame } from "@/services/gameService";
+import { searchCourts } from "@/services/courtService";
 
 // BACKEND NOTE:
 
@@ -536,6 +538,203 @@ function GameDateField({
   return <WeekDatePicker onChange={onChange} value={value} />;
 }
 
+/** Tap to switch the game's sport. It sits to the left of the court field and
+ * drives which courts the picker suggests. */
+function SportToggle({
+  sport,
+  onToggle,
+}: {
+  sport: CourtSport | "";
+  onToggle: () => void;
+}) {
+  const resolved: CourtSport = sport === "PICKLEBALL" ? "PICKLEBALL" : "BASKETBALL";
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Sport: ${resolved === "PICKLEBALL" ? "pickleball" : "basketball"}. Tap to switch.`}
+      onPress={onToggle}
+      style={({ pressed }) => [styles.sportToggle, pressed && styles.pressed]}
+    >
+      <View
+        style={[
+          styles.sportToggleDot,
+          { backgroundColor: getSportColor(resolved) },
+        ]}
+      />
+      <Text style={styles.sportToggleText}>
+        {resolved === "PICKLEBALL" ? "PB" : "BB"}
+      </Text>
+    </Pressable>
+  );
+}
+
+/** Court field: shows the current court; tapping opens a search with the
+ * nearest few courts for the chosen sport, then live typeahead. */
+function CourtPickerField({
+  courts,
+  localCourt,
+  sport,
+  valueId,
+  onSelect,
+}: {
+  courts: Court[];
+  localCourt: Court | null;
+  sport: CourtSport | "";
+  valueId: string;
+  onSelect: (court: Court) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<Court[]>([]);
+  const [searching, setSearching] = useState(false);
+  const activeSport: CourtSport = sport === "PICKLEBALL" ? "PICKLEBALL" : "BASKETBALL";
+  const selected =
+    courts.find((court) => court.id === valueId) ??
+    (localCourt?.id === valueId ? localCourt : null);
+
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+      setResults([]);
+      setSearching(false);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    const term = query.trim();
+    if (term.length < 2) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+    let active = true;
+    setSearching(true);
+    const timer = setTimeout(() => {
+      void searchCourts(term, activeSport, 8).then((found) => {
+        if (!active) return;
+        setResults(found);
+        setSearching(false);
+      });
+    }, 220);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [query, activeSport]);
+
+  const nearby = useMemo(() => {
+    const seen = new Set<string>();
+    const list: Court[] = [];
+    if (localCourt && localCourt.sport === activeSport) {
+      list.push(localCourt);
+      seen.add(localCourt.id);
+    }
+    for (const court of courts) {
+      if (court.sport !== activeSport || seen.has(court.id)) continue;
+      list.push(court);
+      seen.add(court.id);
+      if (list.length >= 4) break;
+    }
+    return list;
+  }, [courts, localCourt, activeSport]);
+
+  const term = query.trim();
+  const rows = term.length >= 2 ? results : nearby;
+
+  return (
+    <View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Choose court"
+        accessibilityState={{ expanded: open }}
+        onPress={() => setOpen((shown) => !shown)}
+        style={styles.courtTrigger}
+      >
+        <Text
+          numberOfLines={1}
+          style={selected ? styles.courtTriggerValue : styles.courtTriggerPlaceholder}
+        >
+          {selected?.name ?? "Choose a court"}
+        </Text>
+        <Feather
+          color={Colors.muted}
+          name={open ? "chevron-up" : "chevron-down"}
+          size={16}
+        />
+      </Pressable>
+      {open ? (
+        <View style={styles.courtPanel}>
+          <View style={styles.courtSearch}>
+            <Feather color={Colors.muted} name="search" size={14} />
+            <TextInput
+              accessibilityLabel="Search courts"
+              autoCorrect={false}
+              autoFocus
+              onChangeText={setQuery}
+              placeholder="Search courts"
+              placeholderTextColor={Colors.mutedDark}
+              returnKeyType="search"
+              style={styles.courtSearchInput}
+              value={query}
+            />
+            {searching ? (
+              <ActivityIndicator color={Colors.accent} size="small" />
+            ) : null}
+          </View>
+          {term.length < 2 ? (
+            <Text style={styles.courtSectionLabel}>NEAREST</Text>
+          ) : null}
+          {rows.map((court) => {
+            const isLocal = court.id === localCourt?.id;
+            const active = court.id === valueId;
+            return (
+              <Pressable
+                accessibilityLabel={`Pick ${court.name}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                key={court.id}
+                onPress={() => {
+                  onSelect(court);
+                  setOpen(false);
+                }}
+                style={({ pressed }) => [
+                  styles.courtRow,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text numberOfLines={1} style={styles.courtRowName}>
+                    {court.name}
+                  </Text>
+                  <Text numberOfLines={1} style={styles.courtRowMeta}>
+                    {[
+                      court.city,
+                      court.distanceKm != null
+                        ? `${(court.distanceKm * 0.621371).toFixed(1)} MI`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </Text>
+                </View>
+                {isLocal ? (
+                  <Text style={styles.courtRowTag}>YOUR COURT</Text>
+                ) : null}
+                {active ? (
+                  <Feather color={Colors.accent} name="check" size={15} />
+                ) : null}
+              </Pressable>
+            );
+          })}
+          {term.length >= 2 && !searching && rows.length === 0 ? (
+            <Text style={styles.courtEmpty}>NO COURTS FOUND</Text>
+          ) : null}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 function LogGameView({
   currentUser,
   courts,
@@ -555,7 +754,7 @@ function LogGameView({
   localCourtId: string | null;
   inSheet?: boolean;
 }) {
-  const { isFriend, getFriendsList } = useApp();
+  const { isFriend, getFriendsList, localCourt } = useApp();
 
   // Default court: preferredCourtId > localCourtId > empty
   const supportedCourts = useMemo(
@@ -570,7 +769,8 @@ function LogGameView({
   const defaultCourt = supportedCourts.find(
     (court) => court.id === defaultCourtId,
   );
-  const defaultSport = defaultCourt?.sport ?? preferredSport ?? "";
+  const defaultSport: CourtSport =
+    defaultCourt?.sport ?? preferredSport ?? "BASKETBALL";
 
   const [form, setForm] = useState<GameLog>({
     sport: defaultSport,
@@ -591,7 +791,6 @@ function LogGameView({
     side: "theirs",
     index: 0,
   });
-  const [showCourtPicker, setShowCourtPicker] = useState(false);
   const [opponentQuery, setOpponentQuery] = useState("");
   const [opponentSuggestions, setOpponentSuggestions] = useState<Player[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -601,20 +800,48 @@ function LogGameView({
     Crypto.randomUUID(),
   );
 
-  // A court owns its sport. This keeps the label and the rating update in
-  // agreement, including when the court arrives after the screen first opens.
+  // The sport toggle is the creator's call once they've touched it. Until then,
+  // the game follows its court: fill in the creator's local court on open, and
+  // keep the sport in agreement with a chosen court (including one that hydrates
+  // after the screen mounts).
+  const sportTouchedRef = React.useRef(false);
   useEffect(() => {
-    const nextCourtId = form.courtId || defaultCourtId;
+    const nextCourtId =
+      form.courtId || (sportTouchedRef.current ? "" : defaultCourtId);
+    if (!nextCourtId) return;
     const selectedCourt = supportedCourts.find(
       (court) => court.id === nextCourtId,
     );
     if (!selectedCourt) return;
-    setForm((current) =>
-      current.courtId === nextCourtId && current.sport === selectedCourt.sport
+    setForm((current) => {
+      const sport = sportTouchedRef.current ? current.sport : selectedCourt.sport;
+      return current.courtId === nextCourtId && current.sport === sport
         ? current
-        : { ...current, courtId: nextCourtId, sport: selectedCourt.sport },
-    );
+        : { ...current, courtId: nextCourtId, sport };
+    });
   }, [defaultCourtId, form.courtId, supportedCourts]);
+
+  const toggleSport = () => {
+    sportTouchedRef.current = true;
+    setForm((current) => {
+      const next: CourtSport =
+        current.sport === "PICKLEBALL" ? "BASKETBALL" : "PICKLEBALL";
+      const court = supportedCourts.find((c) => c.id === current.courtId);
+      return {
+        ...current,
+        sport: next,
+        courtId: court && court.sport === next ? current.courtId : "",
+      };
+    });
+  };
+
+  const selectCourt = (court: Court) => {
+    setForm((current) => ({
+      ...current,
+      courtId: court.id,
+      sport: sportTouchedRef.current ? current.sport : court.sport,
+    }));
+  };
 
   // Apply the deep-linked opponent once it resolves from the loaded player
   // list. Never clobbers a manually chosen (or cleared) opponent.
@@ -1138,74 +1365,21 @@ function LogGameView({
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
     >
-      {/* Court owns the ranked sport, so the two read as one decision. */}
+      {/* Sport drives which courts the picker suggests, so it leads the row. */}
       <View style={styles.fieldRow}>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.fieldLabel}>SPORT</Text>
+          <SportToggle sport={form.sport} onToggle={toggleSport} />
+        </View>
         <View style={[styles.fieldGroup, styles.courtField]}>
           <Text style={styles.fieldLabel}>COURT</Text>
-          <Pressable
-            accessibilityLabel="Select court"
-            accessibilityRole="button"
-            accessibilityState={{ expanded: showCourtPicker }}
-            onPress={() => setShowCourtPicker((shown) => !shown)}
-            style={styles.opponentTrigger}
-          >
-            <Text
-              numberOfLines={1}
-              style={
-                selectedCourt
-                  ? styles.opponentSelectedText
-                  : styles.opponentPlaceholder
-              }
-            >
-              {selectedCourt?.name ?? "Select a court"}
-            </Text>
-            <Ionicons
-              name={showCourtPicker ? "chevron-up" : "chevron-down"}
-              size={16}
-              color={Colors.muted}
-            />
-          </Pressable>
-          {showCourtPicker ? (
-            <View style={styles.opponentDropdown}>
-              {supportedCourts.map((c) => (
-                <Pressable
-                  key={c.id}
-                  style={styles.opponentOption}
-                  onPress={() => {
-                    setForm((f) => ({ ...f, courtId: c.id, sport: c.sport }));
-                    setShowCourtPicker(false);
-                  }}
-                >
-                  <Text numberOfLines={1} style={styles.opponentOptionName}>
-                    {c.name}
-                  </Text>
-                  {form.courtId === c.id ? (
-                    <Ionicons
-                      name="checkmark"
-                      size={16}
-                      color={Colors.accent}
-                    />
-                  ) : null}
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
-        </View>
-        <View style={[styles.fieldGroup, styles.sportField]}>
-          <Text style={styles.fieldLabel}>SPORT</Text>
-          <View style={[styles.sportOption, styles.sportOptionActive]}>
-            <View
-              style={[
-                styles.sportOptionDot,
-                { backgroundColor: getSportColor(form.sport || "BASKETBALL") },
-              ]}
-            />
-            <Text
-              style={[styles.sportOptionText, styles.sportOptionTextActive]}
-            >
-              {form.sport === "PICKLEBALL" ? "PB" : "BB"}
-            </Text>
-          </View>
+          <CourtPickerField
+            courts={supportedCourts}
+            localCourt={localCourt}
+            sport={form.sport}
+            valueId={form.courtId}
+            onSelect={selectCourt}
+          />
         </View>
       </View>
 
@@ -1718,7 +1892,6 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   courtField: { flex: 1, minWidth: 0 },
-  sportField: { width: 88 },
   dateField: { flex: 1, minWidth: 0 },
   formatField: { flex: 1, minWidth: 0 },
   fieldLabel: {
@@ -1728,29 +1901,119 @@ const styles = StyleSheet.create({
     letterSpacing: 2.5,
     textTransform: "uppercase" as const,
   },
-  sportOption: {
+  sportToggle: {
     minHeight: 48,
+    minWidth: 62,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.accentDim,
+  },
+  sportToggleDot: { width: 8, height: 8, borderRadius: 4 },
+  sportToggleText: {
+    fontFamily: Typography.heading,
+    fontSize: 13,
+    color: Colors.text,
+    letterSpacing: 1,
+  },
+  courtTrigger: {
+    minHeight: 48,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 8,
-    borderWidth: 0.5,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
-    paddingHorizontal: 12,
     borderRadius: Radius.xs,
     backgroundColor: Colors.surface,
   },
-  sportOptionActive: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.accentDim,
+  courtTriggerValue: {
+    flex: 1,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 14,
+    color: Colors.text,
+    letterSpacing: 0.4,
   },
-  sportOptionDot: { width: 8, height: 8, borderRadius: 4 },
-  sportOptionText: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
+  courtTriggerPlaceholder: {
+    flex: 1,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 14,
     color: Colors.muted,
+  },
+  courtPanel: {
+    marginTop: 6,
+    overflow: "hidden",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.surface,
+  },
+  courtSearch: {
+    minHeight: 44,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  courtSearchInput: {
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: 0,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 13,
+    color: Colors.text,
+  },
+  courtSectionLabel: {
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 2,
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.muted,
+    letterSpacing: 1.6,
+  },
+  courtRow: {
+    minHeight: 52,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  courtRowName: {
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 13,
+    color: Colors.text,
+    letterSpacing: 0.3,
+  },
+  courtRowMeta: {
+    marginTop: 2,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    color: Colors.muted,
+    letterSpacing: 0.4,
+  },
+  courtRowTag: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 8,
+    color: Colors.accent,
     letterSpacing: 1,
   },
-  sportOptionTextActive: { color: Colors.text },
+  courtEmpty: {
+    padding: 16,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    color: Colors.muted,
+    letterSpacing: 0.6,
+    textAlign: "center",
+  },
   formatOptions: {
     minHeight: 48,
     flexDirection: "row",
@@ -2087,18 +2350,6 @@ const styles = StyleSheet.create({
   },
 
   // Opponent selector
-  opponentTrigger: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xs,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    minHeight: 48,
-  },
   opponentTriggerShell: {
     minHeight: 48,
     flexDirection: "row",
