@@ -13,15 +13,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import Animated, {
-  Easing,
-  ReduceMotion,
-  useAnimatedProps,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Circle } from "react-native-svg";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
@@ -54,60 +46,6 @@ import { searchCourts } from "@/services/courtService";
 
 type Scope = "GLOBAL" | "REGIONAL" | "LOCAL";
 type CompeteMode = "RANKINGS" | "LOG_GAME";
-
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-
-function CountdownRing({ seconds }: { seconds: number }) {
-  const size = 54;
-  const strokeWidth = 3;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const progress = useSharedValue(1);
-
-  useEffect(() => {
-    progress.value = withTiming(0, {
-      duration: 5000,
-      easing: Easing.linear,
-      reduceMotion: ReduceMotion.System,
-    });
-  }, [progress]);
-
-  const animatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: circumference * (1 - progress.value),
-  }));
-
-  return (
-    <View
-      accessibilityLabel={`Sending in ${seconds} seconds`}
-      style={styles.reviewCountdown}
-    >
-      <Svg height={size} style={StyleSheet.absoluteFill} width={size}>
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          fill="transparent"
-          r={radius}
-          stroke={Colors.border}
-          strokeWidth={strokeWidth}
-        />
-        <AnimatedCircle
-          animatedProps={animatedProps}
-          cx={size / 2}
-          cy={size / 2}
-          fill="transparent"
-          origin={`${size / 2}, ${size / 2}`}
-          r={radius}
-          rotation="-90"
-          stroke={Colors.accent}
-          strokeDasharray={`${circumference} ${circumference}`}
-          strokeLinecap="round"
-          strokeWidth={strokeWidth}
-        />
-      </Svg>
-      <Text style={styles.reviewCountdownValue}>{seconds}</Text>
-    </View>
-  );
-}
 
 export default function CompeteScreen() {
   const {
@@ -783,7 +721,6 @@ function LogGameView({
     opponents: [],
   });
   const [reviewGame, setReviewGame] = useState<GameLog | null>(null);
-  const [reviewSeconds, setReviewSeconds] = useState(5);
   const [submittedGame, setSubmittedGame] = useState<GameLog | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showOpponentPicker, setShowOpponentPicker] = useState(false);
@@ -919,7 +856,6 @@ function LogGameView({
   const handleReview = () => {
     if (!canSubmit || !form.opponents[0]?.id || !form.courtId) return;
     setSubmitError(null);
-    setReviewSeconds(5);
     setReviewGame({ ...form });
   };
 
@@ -981,19 +917,6 @@ function LogGameView({
       opponents: [],
     });
   };
-
-  useEffect(() => {
-    if (!reviewGame) return;
-    if (reviewSeconds <= 0) {
-      if (!submitting) void handleSubmit();
-      return;
-    }
-    const timer = setTimeout(
-      () => setReviewSeconds((seconds) => Math.max(0, seconds - 1)),
-      1000,
-    );
-    return () => clearTimeout(timer);
-  }, [reviewGame, reviewSeconds, submitting]);
 
   const placePlayer = (player: Player, slot = activePlayerSlot) => {
     setForm((current) => {
@@ -1252,10 +1175,10 @@ function LogGameView({
     );
     return (
       <View style={styles.successState}>
-        <CountdownRing seconds={reviewSeconds} />
         <Text style={styles.successTitle}>REVIEW SCORE</Text>
         <Text style={styles.successSub}>
-          Check the matchup. It sends automatically when the timer ends.
+          Check the matchup, then send it in. Ratings don&apos;t move until it&apos;s
+          confirmed.
         </Text>
         <View style={styles.successCard}>
           <View style={styles.successCardHeader}>
@@ -2200,19 +2123,6 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 20,
     paddingTop: 48,
-  },
-  reviewCountdown: {
-    width: 54,
-    height: 54,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 27,
-  },
-  reviewCountdownValue: {
-    fontFamily: Typography.headingBold,
-    fontSize: 19,
-    lineHeight: 22,
-    color: Colors.accent,
   },
   successIcon: {
     width: 56,
