@@ -30,7 +30,7 @@ import { CompactSelect } from "@/components/ui/CompactSelect";
 import { EloStat } from "@/components/ui/EloStat";
 import { ModeTabs } from "@/components/ui/ModeTabs";
 import { parsePlayerQrCode } from "@/components/ui/playerIdentity";
-import { WeekDatePicker } from "@/components/ui/WeekDatePicker";
+import { RecentDatePicker } from "@/components/ui/RecentDatePicker";
 import { Colors, Radius } from "@/constants/colors";
 import {
   Court,
@@ -504,7 +504,7 @@ type GameLog = {
   theirScore: string;
   courtId: string;
   playedOn: string;
-  teamSize: 1 | 2 | 3 | 5;
+  teamSize: number;
   teammates: Player[];
   opponents: Player[];
 };
@@ -535,7 +535,7 @@ function GameDateField({
   value: string;
   onChange: (value: string) => void;
 }) {
-  return <WeekDatePicker onChange={onChange} value={value} />;
+  return <RecentDatePicker daysBack={7} onChange={onChange} value={value} />;
 }
 
 /** Tap to switch the game's sport. It sits to the left of the court field and
@@ -841,6 +841,25 @@ function LogGameView({
       courtId: court.id,
       sport: sportTouchedRef.current ? current.sport : court.sport,
     }));
+  };
+
+  const addPlayerRow = () => {
+    setForm((current) => ({
+      ...current,
+      teamSize: Math.min(5, current.teamSize + 1),
+    }));
+  };
+
+  const removePlayerRow = () => {
+    setForm((current) => {
+      const next = Math.max(1, current.teamSize - 1);
+      return {
+        ...current,
+        teamSize: next,
+        teammates: current.teammates.slice(0, next - 1),
+        opponents: current.opponents.slice(0, next),
+      };
+    });
   };
 
   // Apply the deep-linked opponent once it resolves from the loaded player
@@ -1383,90 +1402,85 @@ function LogGameView({
         </View>
       </View>
 
-      <View style={styles.fieldRow}>
-        <View style={[styles.fieldGroup, styles.dateField]}>
-          <Text style={styles.fieldLabel}>DATE</Text>
-          <GameDateField
-            onChange={(playedOn) =>
-              setForm((current) => ({ ...current, playedOn }))
-            }
-            value={form.playedOn}
-          />
-        </View>
-        <View style={[styles.fieldGroup, styles.formatField]}>
-          <Text style={styles.fieldLabel}>FORMAT</Text>
-          <View accessibilityRole="tablist" style={styles.formatOptions}>
-            {([1, 2, 3, 5] as const).map((size) => (
-              <Pressable
-                accessibilityRole="tab"
-                accessibilityState={{ selected: form.teamSize === size }}
-                key={size}
-                onPress={() =>
-                  setForm((current) => ({
-                    ...current,
-                    teamSize: size,
-                    teammates: current.teammates.slice(0, size - 1),
-                    opponents: current.opponents.slice(0, size),
-                  }))
-                }
-                style={[
-                  styles.formatOption,
-                  form.teamSize === size && styles.formatOptionActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.formatOptionText,
-                    form.teamSize === size && styles.formatOptionTextActive,
-                  ]}
-                >
-                  {size}V{size}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
+      <View style={styles.fieldGroup}>
+        <Text style={styles.fieldLabel}>DATE</Text>
+        <GameDateField
+          onChange={(playedOn) =>
+            setForm((current) => ({ ...current, playedOn }))
+          }
+          value={form.playedOn}
+        />
       </View>
 
-      {/* Player selection uses one shared typeahead/QR contract for solo and teams. */}
+      {/* No format selector: 1v1 by default; "add player" grows both sides. */}
       <View style={styles.fieldGroup}>
         <Text style={styles.fieldLabel}>
-          {form.teamSize === 1 ? "OPPONENT" : "PLAYERS"}
+          {form.teamSize === 1 ? "MATCHUP" : `${form.teamSize}V${form.teamSize}`}
         </Text>
-        {form.teamSize > 1 ? (
-          <View style={styles.rosterGroup}>
-            <Text style={styles.rosterLabel}>YOUR TEAM</Text>
-            <View style={styles.lockedPlayer}>
-              <PlayerAvatar
-                initials={currentUser.avatar}
-                name={currentUser.name}
-                playerId={currentUser.id}
-                size={28}
-              />
-              <Text numberOfLines={1} style={styles.lockedPlayerName}>
-                {currentUser.name.toUpperCase()}
-              </Text>
-              <Text style={styles.youBadge}>YOU</Text>
-            </View>
-            {Array.from({ length: form.teamSize - 1 }, (_, index) =>
-              renderPlayerSlot(
-                { side: "mine", index },
-                `ADD TEAMMATE ${index + 1}`,
-              ),
-            )}
-            <Text style={[styles.rosterLabel, styles.rosterLabelOpponents]}>
-              OTHER TEAM
+        <View style={styles.rosterGroup}>
+          <Text style={styles.rosterLabel}>
+            {form.teamSize === 1 ? "YOU" : "YOUR SIDE"}
+          </Text>
+          <View style={styles.lockedPlayer}>
+            <PlayerAvatar
+              initials={currentUser.avatar}
+              name={currentUser.name}
+              playerId={currentUser.id}
+              size={28}
+            />
+            <Text numberOfLines={1} style={styles.lockedPlayerName}>
+              {currentUser.name.toUpperCase()}
             </Text>
-            {Array.from({ length: form.teamSize }, (_, index) =>
-              renderPlayerSlot(
-                { side: "theirs", index },
-                `ADD OPPONENT ${index + 1}`,
-              ),
-            )}
+            <Text style={styles.youBadge}>YOU</Text>
           </View>
-        ) : (
-          renderPlayerSlot({ side: "theirs", index: 0 }, "SELECT OPPONENT")
-        )}
+          {Array.from({ length: form.teamSize - 1 }, (_, index) =>
+            renderPlayerSlot({ side: "mine", index }, `TEAMMATE ${index + 1}`),
+          )}
+
+          <Text style={[styles.rosterLabel, styles.rosterLabelOpponents]}>
+            {form.teamSize === 1 ? "OPPONENT" : "OTHER SIDE"}
+          </Text>
+          {Array.from({ length: form.teamSize }, (_, index) =>
+            renderPlayerSlot(
+              { side: "theirs", index },
+              form.teamSize === 1
+                ? "SELECT OPPONENT"
+                : `OPPONENT ${index + 1}`,
+            ),
+          )}
+
+          <View style={styles.rosterActions}>
+            {form.teamSize < 5 ? (
+              <Pressable
+                accessibilityLabel="Add a player to each side"
+                accessibilityRole="button"
+                onPress={addPlayerRow}
+                style={({ pressed }) => [
+                  styles.rosterAdd,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Feather color={Colors.accent} name="plus" size={14} />
+                <Text style={styles.rosterAddText}>
+                  ADD PLAYER · {form.teamSize + 1}V{form.teamSize + 1}
+                </Text>
+              </Pressable>
+            ) : null}
+            {form.teamSize > 1 ? (
+              <Pressable
+                accessibilityLabel="Remove the last player row"
+                accessibilityRole="button"
+                onPress={removePlayerRow}
+                style={({ pressed }) => [
+                  styles.rosterRemove,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.rosterRemoveText}>REMOVE</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
       </View>
 
       {/* Score */}
@@ -1892,8 +1906,6 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   courtField: { flex: 1, minWidth: 0 },
-  dateField: { flex: 1, minWidth: 0 },
-  formatField: { flex: 1, minWidth: 0 },
   fieldLabel: {
     fontFamily: Typography.heading,
     fontSize: 11,
@@ -2014,65 +2026,46 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textAlign: "center",
   },
-  formatOptions: {
-    minHeight: 48,
+  rosterActions: {
+    marginTop: 10,
     flexDirection: "row",
-    alignItems: "stretch",
-    overflow: "hidden",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.surface,
+    alignItems: "center",
+    gap: 8,
   },
-  formatOption: {
+  rosterAdd: {
     flex: 1,
-    minWidth: 0,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  formatOptionActive: { backgroundColor: Colors.accentDim },
-  formatOptionText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.muted,
-  },
-  formatOptionTextActive: { color: Colors.accent },
-  dateTrigger: {
-    minHeight: 48,
-    paddingHorizontal: 14,
+    minHeight: 44,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.surface,
-  },
-  dateTriggerCopy: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  dateTriggerText: {
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 14,
-    color: Colors.text,
-    letterSpacing: 0.8,
-  },
-  dateDone: {
-    minHeight: 40,
-    alignItems: "center",
     justifyContent: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
+    gap: 7,
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
     borderRadius: Radius.xs,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.accentDim,
   },
-  dateDoneText: {
+  rosterAddText: {
     fontFamily: Typography.bodyBold,
-    fontSize: 11,
+    fontSize: 10,
     color: Colors.accent,
-    letterSpacing: 1.4,
+    letterSpacing: 1,
+  },
+  rosterRemove: {
+    minHeight: 44,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.surface,
+  },
+  rosterRemoveText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 10,
+    color: Colors.muted,
+    letterSpacing: 1,
   },
   rosterGroup: { gap: 8 },
   rosterLabel: {
