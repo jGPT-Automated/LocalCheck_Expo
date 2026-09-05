@@ -24,21 +24,98 @@ point.
 ## Branch / PR status
 
 - **Working branch:** `codex/explore-location-nearest-court` (base
-  `origin/main` @ `39fc658`). **Not merged to `main`. No PR opened yet.**
+  `origin/main` @ `39fc658`). **PR open: [#42](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/42),
+  not merged.**
 - **Plan (confirmed by Jesse, 2026-09-04):** keep stacking commits on this one
-  branch through settings → game logging → explore/roster polish → a final
-  screen-by-screen review pass. Claude opens and merges the final PR to
-  `main`; Jesse screenshots that merged build for App Store Connect and
-  submits it. Do **not** split this into several small PRs.
+  branch through settings → game logging → explore/roster polish → score
+  review delight → a final screen-by-screen review pass. Claude opens and
+  merges the final PR to `main`; Jesse screenshots that merged build for App
+  Store Connect and submits it. Do **not** split this into several small PRs.
 - All commits so far are **JS-only → OTA-eligible** (no new TestFlight build
   required once merged + OTA'd).
-- **Not yet device/browser verified** for any commit below — the web preview
-  sits behind login and no test credential has been available in-session.
-  Verification happens when Jesse pulls the branch or after merge + OTA.
+- **The release loop is simple and already automatic** (corrected
+  2026-09-04 after Claude wrongly hedged on this): opening a PR against
+  `main` auto-publishes a scannable Expo Go preview via
+  `expo-pr-preview.yml`; merging that PR to `main` auto-triggers the
+  TestFlight build. No manual EAS step either way. Expo Go runs the whole
+  app; only Explore's map crashes there (reload recovers) — see
+  `docs/RELEASE.md`.
+- **Now device-verified via PR #42's Expo Go preview** — Jesse tested on two
+  accounts (`jessebharrick` and `8yp4gttjwv`) and sent the next round of
+  feedback below from that build.
 
 ## Status legend
 
 ✅ done — committed on the branch · 🚧 in progress · ⬜ backlog, not started
+
+## 2026-09-04 (second wave) — tested PR #42 in Expo Go, two accounts
+
+Jesse's own priority call: **the score-review/approval flow is the biggest
+remaining item** — "this part needs to be gamified and addicting... people
+should love checking in, adding times, logging games, because they see their
+stats go up." Everything else here is real but secondary to that.
+
+### Priority 0 — Match-approval delight loop ⬜ BACKLOG, NOT STARTED
+Jesse sent a game for review, approved it from the other account, and got
+**nothing**: no visible ELO change, no feed entry, no notification, no sense
+it was even approved — "I didn't even know it was approved." This is a
+product-critical gap, not a cosmetic one. Needs investigation into:
+- Does a push/in-app notification fire for the *submitter* when the other
+  side approves/confirms (as opposed to the existing notification that fires
+  for the *reviewer* asking them to review)?
+- Does the feed actually refresh/show the confirmed result promptly on both
+  accounts, and is the ELO delta visible anywhere in the moment it happens?
+- What would "gamified and addicting" look like here — some kind of
+  animation/toast/haptic when your rating moves, not just a silent DB update.
+Not built yet — this is the next investigation before any other item below.
+
+### Priority 1 — ScoreCard/Inbox redesign ⬜ BACKLOG
+From the annotated Inbox screenshot (yellow "In Review" pill circled):
+- Card is too tall for a list of several — "will look bad when there are
+  multiple games to review or in progress."
+- Replace the corner status pill with a thin full-width bar at the card's
+  top edge: yellow background, black text, says "PENDING" (or similar,
+  viewer-aware — see next point).
+- **Status copy should be relative to the viewer**, not a generic raw-status
+  label: distinguish "action required by you" from "pending the other
+  player" instead of one static "IN REVIEW" for everyone.
+- **Invert the card's hierarchy**: player names should be the primary/large
+  text; court + date drop to secondary/sub text (today `ScoreCard` does the
+  opposite — court name is the title, players are in the scoreboard row).
+- Player names should be tappable → routes to that player's profile.
+- The "GAMES" section label above the Inbox cards may be unnecessary chrome
+  — re-check once the card itself is redesigned.
+This directly affects `components/match/ScoreCard.tsx` (shared everywhere a
+game shows — Log Game confirm, Inbox, FINAL SCORE screen), so the redesign
+propagates automatically once done in one place.
+
+### Priority 2 — Court page (Feed tab + SET LOCAL) ⬜ BACKLOG
+- `SET LOCAL` button (court detail header) needs a real icon instead of/along
+  with the text — "a court with a star, signaling Favorite / Local Court" —
+  more intuitive than a plain text button.
+- Feed tab: the first activity row's text is misaligned with its timeline
+  dot.
+- Game-result entries in the feed ("X beat Y, 11–5") are plain sentences
+  that "break the clean view" next to check-in/check-out rows — Jesse wants
+  them as a distinct "thin, long game card box," not sentence-style text.
+  Related to the typed note "Unified Activity Feed — consolidated view" —
+  the events are already in one feed; the visual treatment isn't unified.
+
+### Priority 3 — Profile header (Me tab) + username ⬜ BACKLOG
+- `ProfileHero` alignment: avatar box, name, and ELO aren't vertically
+  aligned with each other ("align the name and number with the box").
+- Header layout in general needs cleanup — "reduce clutter from long
+  tags/handles."
+- Reposition ELO so it doesn't sit awkwardly inline with tags/username.
+- **New feature, not just polish**: usernames today are raw-looking
+  auto-generated strings (e.g. `8YP4GTTJWV`) with no friendly default and no
+  way to change them. Auto-generate a nicer default slug at signup, and add
+  a username field to Settings so a player can edit it.
+
+### Also noted (typed list, folded into the above where they overlap)
+- Matchup copy should show both real player names, not "You vs. X" style
+  pronoun copy, for consistent, scannable, clickable cards — same fix as
+  Priority 1's "player names first" + "tappable" points.
 
 ## 2026-09-04 — 10 annotated TestFlight screenshots
 
