@@ -1,50 +1,39 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
 
-import { Colors, Radius } from "@/constants/colors";
-import { Layout, Space } from "@/constants/layout";
-import { TextStyles } from "@/constants/typography";
 import type { MatchReview } from "@/services/gameService";
 import {
   formatRemainingTime,
   matchStatusCopy,
 } from "@/services/matchReviewModel";
 
-const STATUS_TONE = {
-  pending: {
-    background: Colors.accentDim,
-    border: Colors.accentBorder,
-    text: Colors.accent,
-  },
-  held: {
-    background: Colors.accentDim,
-    border: Colors.accentBorder,
-    text: Colors.accent,
-  },
-  confirmed: {
-    background: Colors.winDim,
-    border: Colors.win,
-    text: Colors.win,
-  },
-  voided: {
-    background: Colors.surfaceHigh,
-    border: Colors.borderLight,
-    text: Colors.textSecondary,
-  },
-} as const;
+import { ScoreCard } from "./ScoreCard";
 
+/**
+ * FINAL SCORE screen wrapper around the shared ScoreCard: it resolves the
+ * viewer's side, the live countdown, and the policy copy, then hands plain
+ * props to the card so the game reads identically here, in the Inbox, and in
+ * Log Game's review step.
+ */
 export function MatchReviewCard({
   match,
   viewerId,
+  compact = false,
 }: {
   match: MatchReview;
   viewerId?: string;
+  compact?: boolean;
 }) {
   const [now, setNow] = React.useState(Date.now());
   const copy = matchStatusCopy(match.status);
-  const tone = STATUS_TONE[match.status];
   const deadline =
     match.status === "pending" ? match.reviewDueAt : match.resolutionDueAt;
+
+  React.useEffect(() => {
+    if (!deadline) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [deadline]);
+
   const viewerSide = match.participants.find(
     (participant) => participant.id === viewerId,
   )?.side;
@@ -54,163 +43,59 @@ export function MatchReviewCard({
   const sideB = match.participants.filter(
     (participant) => participant.side === "b",
   );
-
-  React.useEffect(() => {
-    if (!deadline) return;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [deadline]);
-
-  const sideLabel = (side: typeof sideA, fallback: string) => {
-    const label = side
+  const sideLabel = (side: typeof sideA, fallback: string) =>
+    side
       .map((participant) =>
         participant.id === viewerId
           ? "YOU"
           : participant.name.split(" ")[0].toUpperCase(),
       )
-      .join(" · ");
-    return label || fallback;
+      .join(" · ") || fallback;
+  // A before/after ELO transition only reads cleanly for a single player per
+  // side; team sides skip it rather than showing a misleading aggregate.
+  const sideElo = (side: typeof sideA) => {
+    if (side.length !== 1) return null;
+    const { eloBefore, eloAfter } = side[0];
+    return eloBefore != null && eloAfter != null ? { before: eloBefore, after: eloAfter } : null;
   };
+
   const firstSide = viewerSide === "b" ? sideB : sideA;
   const secondSide = viewerSide === "b" ? sideA : sideB;
   const firstScore = viewerSide === "b" ? match.scoreB : match.scoreA;
   const secondScore = viewerSide === "b" ? match.scoreA : match.scoreB;
+  const remaining =
+    deadline && copy.countdownLabel
+      ? formatRemainingTime(deadline, now)
+      : null;
 
   return (
-    <View style={styles.wrap}>
-      {deadline && copy.countdownLabel ? (
-        <View accessibilityLiveRegion="polite" style={styles.countdown}>
-          <Text style={styles.countdownLabel}>{copy.countdownLabel}</Text>
-          <Text style={styles.countdownValue}>
-            {formatRemainingTime(deadline, now)}
-          </Text>
-        </View>
-      ) : null}
-
-      <View style={styles.card}>
-        <View style={styles.metaRow}>
-          <View
-            style={[
-              styles.badge,
-              { backgroundColor: tone.background, borderColor: tone.border },
-            ]}
-          >
-            <Text style={[styles.badgeText, { color: tone.text }]}>
-              {copy.label}
-            </Text>
-          </View>
-          {match.disputeCount > 0 ? (
-            <Text style={styles.disputeCount}>
-              DISPUTE {Math.min(match.disputeCount, 2)} OF 2
-            </Text>
-          ) : null}
-        </View>
-
-        <Text numberOfLines={2} style={styles.court}>
-          {match.courtName}
-        </Text>
-        <Text style={styles.detail}>
-          {match.sport === "BASKETBALL" ? "BB" : "PB"} ·{" "}
-          {new Date(match.playedAt).toLocaleDateString()}
-        </Text>
-
-        <View style={styles.scoreboard}>
-          <View style={styles.side}>
-            <Text numberOfLines={2} style={styles.sideName}>
-              {sideLabel(firstSide, "SIDE A")}
-            </Text>
-            <Text style={styles.score}>{firstScore}</Text>
-          </View>
-          <Text style={styles.divider}>–</Text>
-          <View style={styles.side}>
-            <Text numberOfLines={2} style={styles.sideName}>
-              {sideLabel(secondSide, "SIDE B")}
-            </Text>
-            <Text style={styles.score}>{secondScore}</Text>
-          </View>
-        </View>
-        <Text style={styles.statusDescription}>{copy.description}</Text>
-      </View>
-    </View>
+    <ScoreCard
+      compact={compact}
+      countdown={
+        !compact && remaining
+          ? { label: copy.countdownLabel as string, value: remaining }
+          : null
+      }
+      courtName={match.courtName}
+      leftElo={sideElo(firstSide)}
+      leftLabel={sideLabel(firstSide, "SIDE A")}
+      leftScore={firstScore}
+      note={
+        compact && remaining
+          ? `${copy.countdownLabel} · ${remaining}`
+          : copy.description
+      }
+      playedOn={match.playedAt}
+      rightElo={sideElo(secondSide)}
+      rightLabel={sideLabel(secondSide, "SIDE B")}
+      rightMeta={
+        match.disputeCount > 0
+          ? `DISPUTE ${Math.min(match.disputeCount, 2)} OF 2`
+          : undefined
+      }
+      rightScore={secondScore}
+      sport={match.sport}
+      status={match.status}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: {
-    width: "100%",
-    maxWidth: Layout.maxContentWidth,
-    alignSelf: "center",
-    gap: Space.lg,
-  },
-  countdown: { alignItems: "center", gap: Space.xs, paddingTop: Space.sm },
-  countdownLabel: {
-    ...TextStyles.labelSmall,
-    color: Colors.textSecondary,
-    letterSpacing: 1.8,
-  },
-  countdownValue: {
-    ...TextStyles.display,
-    color: Colors.text,
-    fontVariant: ["tabular-nums"],
-  },
-  card: {
-    gap: Space.sm,
-    padding: Space.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-    borderRadius: Radius.card,
-    backgroundColor: Colors.surface,
-  },
-  metaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: Space.md,
-  },
-  badge: {
-    minHeight: 28,
-    justifyContent: "center",
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderRadius: 14,
-  },
-  badgeText: { ...TextStyles.labelSmall, letterSpacing: 1.2 },
-  disputeCount: {
-    ...TextStyles.labelSmall,
-    color: Colors.textSecondary,
-    letterSpacing: 1.1,
-  },
-  court: {
-    ...TextStyles.title,
-    color: Colors.text,
-    marginTop: Space.sm,
-    textTransform: "uppercase",
-  },
-  detail: { ...TextStyles.metadata, color: Colors.textSecondary },
-  scoreboard: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: Space.lg,
-    paddingVertical: Space.xl,
-  },
-  side: { flex: 1, minWidth: 0, alignItems: "center", gap: Space.sm },
-  sideName: {
-    ...TextStyles.label,
-    minHeight: 32,
-    color: Colors.textSecondary,
-    textAlign: "center",
-  },
-  score: {
-    ...TextStyles.displayLarge,
-    fontSize: 60,
-    lineHeight: 68,
-    color: Colors.text,
-    fontVariant: ["tabular-nums"],
-  },
-  divider: { ...TextStyles.title, color: Colors.mutedDark },
-  statusDescription: {
-    ...TextStyles.bodySmall,
-    color: Colors.textSecondary,
-    textAlign: "center",
-  },
-});

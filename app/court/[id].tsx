@@ -21,6 +21,8 @@ import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
 import { useRealtimeHub } from "@/context/RealtimeHubContext";
 import { batchHasResource, type RealtimeTopic } from "@/lib/realtimeHub";
 import { openCourtInMaps } from "@/lib/openMaps";
+import { isInactiveLocal, relativeTime } from "@/lib/localPresence";
+import { groupCheckinBursts } from "@/lib/activityPresentation";
 import {
   fetchCourtActivityMetrics,
   fetchCourtById,
@@ -56,6 +58,10 @@ export default function CourtProfileScreen() {
   const [fetchError, setFetchError] = React.useState(false);
   const [locals, setLocals] = React.useState<LocalWithLastCheckIn[]>([]);
   const [courtFeed, setCourtFeed] = React.useState<Awaited<ReturnType<typeof fetchFeed>>>([]);
+  const groupedCourtFeed = React.useMemo(
+    () => groupCheckinBursts(courtFeed),
+    [courtFeed],
+  );
   const [rankedIds, setRankedIds] = React.useState<Set<string>>(new Set());
   const [feedVisible, setFeedVisible] = React.useState(FEED_PAGE);
   const [activityMetrics, setActivityMetrics] = React.useState<CourtActivityMetrics>({
@@ -195,11 +201,11 @@ export default function CourtProfileScreen() {
       <View style={styles.tabContent}>
         {activeTab === "feed" ? (
           <ScrollView contentContainerStyle={{ paddingBottom: bottomPad }} showsVerticalScrollIndicator={false}>
-            {courtFeed.length > 0 ? (
-              courtFeed.slice(0, feedVisible).map((item, index) => (
+            {groupedCourtFeed.length > 0 ? (
+              groupedCourtFeed.slice(0, feedVisible).map((item, index) => (
                 <ActivityRow
                   isFirst={index === 0}
-                  isLast={index === Math.min(feedVisible, courtFeed.length) - 1}
+                  isLast={index === Math.min(feedVisible, groupedCourtFeed.length) - 1}
                   item={item}
                   key={item.id}
                   onActorPress={item.playerId ? () => router.push(`/player/${item.playerId}`) : undefined}
@@ -209,7 +215,7 @@ export default function CourtProfileScreen() {
             ) : (
               <EmptyState title="No court activity yet" body="The first check-in or game here will start the feed." />
             )}
-            {feedVisible < courtFeed.length ? (
+            {feedVisible < groupedCourtFeed.length ? (
               <Pressable onPress={() => setFeedVisible((count) => count + FEED_PAGE)} style={styles.moreButton}>
                 <Text style={styles.moreText}>VIEW MORE</Text>
                 <Feather color={Colors.accent} name="chevron-down" size={14} />
@@ -243,7 +249,7 @@ export default function CourtProfileScreen() {
                 checkInCount={checkInCount}
                 detail={lastCheckInAt ? `Last here · ${relativeTime(lastCheckInAt)}` : "No check-ins yet"}
                 friend={isFriend(player.id)}
-                inactive={isInactive(lastCheckInAt)}
+                inactive={isInactiveLocal(lastCheckInAt)}
                 key={player.id}
                 onPress={() => router.push(`/player/${player.id}`)}
                 player={player}
@@ -329,22 +335,6 @@ function EmptyState({ title, body }: { title: string; body: string }) {
       <Text style={styles.emptyBody}>{body}</Text>
     </View>
   );
-}
-
-function relativeTime(value: string): string {
-  const elapsed = Date.now() - new Date(value).getTime();
-  if (!Number.isFinite(elapsed) || elapsed < 0) return "recently";
-  const minutes = Math.floor(elapsed / 60_000);
-  if (minutes < 60) return minutes <= 1 ? "just now" : `${minutes} min ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hr${hours === 1 ? "" : "s"} ago`;
-  const days = Math.floor(hours / 24);
-  return `${days} day${days === 1 ? "" : "s"} ago`;
-}
-
-function isInactive(value: string | null): boolean {
-  if (!value) return true;
-  return Date.now() - new Date(value).getTime() > 90 * 86_400_000;
 }
 
 function formatDate(value?: string): string {

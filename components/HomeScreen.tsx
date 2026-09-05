@@ -28,6 +28,8 @@ import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
+import { isInactiveLocal, relativeTime } from "@/lib/localPresence";
+import { groupCheckinBursts } from "@/lib/activityPresentation";
 import {
   fetchLocalsWithLastCheckIn,
   type LocalWithLastCheckIn,
@@ -113,6 +115,18 @@ export function HomeScreen() {
   const privateLocalCount = Math.max(0, localCount - locals.length);
 
   const courtFeed = feed.filter((item) => item.courtId === localCourt.id);
+  const groupedCourtFeed = useMemo(
+    () => groupCheckinBursts(courtFeed),
+    [courtFeed],
+  );
+  const recentArrivalCount = useMemo(() => {
+    const hourAgo = Date.now() - 60 * 60_000;
+    return courtFeed.filter(
+      (item) =>
+        item.type === "checkin" &&
+        new Date(item.occurredAtIso).getTime() >= hourAgo,
+    ).length;
+  }, [courtFeed]);
 
   const handleCheckIn = async () => {
     if (isChecking) return;
@@ -208,11 +222,17 @@ export function HomeScreen() {
                 count={courtFeed.length || undefined}
                 title="Court activity"
               />
-              {courtFeed.length > 0 ? (
-                courtFeed.map((item, index) => (
+              {recentArrivalCount > 0 ? (
+                <Text style={styles.activitySummary}>
+                  {recentArrivalCount} arrival
+                  {recentArrivalCount === 1 ? "" : "s"} in the last hour
+                </Text>
+              ) : null}
+              {groupedCourtFeed.length > 0 ? (
+                groupedCourtFeed.map((item, index) => (
                   <ActivityRow
                     isFirst={index === 0}
-                    isLast={index === courtFeed.length - 1}
+                    isLast={index === groupedCourtFeed.length - 1}
                     item={item}
                     key={item.id}
                     onActorPress={
@@ -287,7 +307,7 @@ export function HomeScreen() {
                         : "Local player"
                     }
                     friend={isFriend(player.id)}
-                    inactive={isInactive(lastCheckInAt)}
+                    inactive={isInactiveLocal(lastCheckInAt)}
                     key={player.id}
                     onPress={() => router.push(`/player/${player.id}`)}
                     player={player}
@@ -403,21 +423,6 @@ function NoCourtState({ isSignedIn }: { isSignedIn: boolean }) {
   );
 }
 
-function relativeTime(value: string): string {
-  const elapsed = Date.now() - new Date(value).getTime();
-  if (!Number.isFinite(elapsed) || elapsed < 0) return "recently";
-  const minutes = Math.floor(elapsed / 60_000);
-  if (minutes < 60) return minutes <= 1 ? "just now" : `${minutes} min ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hr${hours === 1 ? "" : "s"} ago`;
-  const days = Math.floor(hours / 24);
-  return `${days} day${days === 1 ? "" : "s"} ago`;
-}
-
-function isInactive(value: string | null): boolean {
-  if (!value) return true;
-  return Date.now() - new Date(value).getTime() > 90 * 86_400_000;
-}
 
 const styles = StyleSheet.create({
   tabBody: {
@@ -472,6 +477,14 @@ const styles = StyleSheet.create({
   },
   activitySection: {
     minHeight: 150,
+  },
+  activitySummary: {
+    marginTop: -4,
+    marginBottom: Space.sm,
+    paddingHorizontal: Layout.screenGutter,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    color: Colors.muted,
   },
   activityEmpty: {
     minHeight: 120,

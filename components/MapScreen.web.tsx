@@ -10,11 +10,28 @@ import { Layout } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts } from "@/context/CourtPresenceContext";
+import { useDeviceLocation } from "@/context/DeviceLocationContext";
 import type { DeviceCoordinate } from "@/context/deviceLocationModel";
 import {
   fetchCourtsInBounds,
   fetchNearbyCourts,
 } from "@/services/courtService";
+import {
+  boundsFor,
+  fetchWalkingPath,
+  kmBetween,
+  type LngLat,
+  type NearestRoute,
+  ROUTE_MAX_KM,
+  straightPath,
+} from "@/lib/nearestRoute";
+
+const ROUTE_SOURCE_ID = "explore-nearest-route";
+const ROUTE_HALO_LAYER_ID = "explore-nearest-route-halo";
+const ROUTE_GLOW_LAYER_ID = "explore-nearest-route-glow";
+const ROUTE_LINE_LAYER_ID = "explore-nearest-route-line";
+const ROUTE_TARGET_GLOW_LAYER_ID = "explore-nearest-route-target-glow";
+const ROUTE_TARGET_LAYER_ID = "explore-nearest-route-target";
 
 declare global {
   interface Window {
@@ -61,9 +78,12 @@ function MapboxMap({
   onCourtSelect,
   onBoundsChange,
   initialCenter,
+  initialZoom,
   localCourtId,
   focusCourt,
   focusCoordinate,
+  route,
+  onMapTap,
 }: {
   courts: Court[];
   onCourtSelect: (c: Court) => void;
@@ -72,14 +92,18 @@ function MapboxMap({
     ne: { lat: number; lng: number },
   ) => void;
   initialCenter: [number, number];
+  initialZoom: number;
   localCourtId: string | null;
   focusCourt: Court | null;
   focusCoordinate: DeviceCoordinate | null;
+  route: NearestRoute | null;
+  onMapTap?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const onBoundsChangeRef = useRef(onBoundsChange);
   const onCourtSelectRef = useRef(onCourtSelect);
+  const onMapTapRef = useRef(onMapTap);
   const courtsRef = useRef(courts);
   const [mapReady, setMapReady] = useState(false);
   const overlayOpacity = useRef(new Animated.Value(1)).current;
@@ -87,6 +111,7 @@ function MapboxMap({
 
   onBoundsChangeRef.current = onBoundsChange;
   onCourtSelectRef.current = onCourtSelect;
+  onMapTapRef.current = onMapTap;
   courtsRef.current = courts;
 
   useEffect(() => {
@@ -130,7 +155,7 @@ function MapboxMap({
         container: containerRef.current,
         style: "mapbox://styles/mapbox/dark-v11",
         center: initialCenter,
-        zoom: 12.5,
+        zoom: initialZoom,
         attributionControl: false,
       });
 
@@ -333,6 +358,17 @@ function MapboxMap({
         };
         map.on("click", QUIET_LAYER_ID, selectCourt);
         map.on("click", ACTIVE_LAYER_ID, selectCourt);
+        map.on("click", (event: any) => {
+          const interactive = [
+            CLUSTER_LAYER_ID,
+            QUIET_LAYER_ID,
+            ACTIVE_LAYER_ID,
+          ].filter((layerId) => map.getLayer(layerId));
+          const hits = map.queryRenderedFeatures(event.point, {
+            layers: interactive,
+          });
+          if (!hits.length) onMapTapRef.current?.();
+        });
         [CLUSTER_LAYER_ID, QUIET_LAYER_ID, ACTIVE_LAYER_ID].forEach(
           (layerId) => {
             map.on("mouseenter", layerId, () => {
@@ -400,6 +436,109 @@ function MapboxMap({
       essential: true,
     });
   }, [focusCourt?.id, mapReady]);
+
+  // "Find nearest court" connector: draw the path, mark the destination, and
+  // frame both the user and the court above the drawer.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!mapReady || !map) return;
+    const data = route
+      ? {
+          type: "FeatureCollection" as const,
+          features: [
+            { type: "Feature" as const, properties: {}, geometry: route.path },
+            {
+              type: "Feature" as const,
+              properties: { marker: true },
+              geometry: { type: "Point" as const, coordinates: route.to },
+            },
+          ],
+        }
+      : { type: "FeatureCollection" as const, features: [] };
+
+    const existing = map.getSource(ROUTE_SOURCE_ID);
+    if (existing) {
+      existing.setData(data);
+    } else {
+      map.addSource(ROUTE_SOURCE_ID, { type: "geojson", data });
+      // Neon LocalCheck-orange path: wide soft glow → tight glow → core line.
+      map.addLayer({
+        id: ROUTE_HALO_LAYER_ID,
+        type: "line",
+        source: ROUTE_SOURCE_ID,
+        filter: ["==", ["geometry-type"], "LineString"],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": Colors.accent,
+          "line-opacity": 0.18,
+          "line-width": 22,
+          "line-blur": 6,
+        },
+      });
+      map.addLayer({
+        id: ROUTE_GLOW_LAYER_ID,
+        type: "line",
+        source: ROUTE_SOURCE_ID,
+        filter: ["==", ["geometry-type"], "LineString"],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": Colors.accent,
+          "line-opacity": 0.45,
+          "line-width": 10,
+          "line-blur": 2.5,
+        },
+      });
+      map.addLayer({
+        id: ROUTE_LINE_LAYER_ID,
+        type: "line",
+        source: ROUTE_SOURCE_ID,
+        filter: ["==", ["geometry-type"], "LineString"],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": Colors.accent, "line-width": 4 },
+      });
+      map.addLayer({
+        id: ROUTE_TARGET_GLOW_LAYER_ID,
+        type: "circle",
+        source: ROUTE_SOURCE_ID,
+        filter: ["==", ["get", "marker"], true],
+        paint: {
+          "circle-color": Colors.accent,
+          "circle-opacity": 0.28,
+          "circle-radius": 18,
+          "circle-blur": 0.8,
+        },
+      });
+      map.addLayer({
+        id: ROUTE_TARGET_LAYER_ID,
+        type: "circle",
+        source: ROUTE_SOURCE_ID,
+        filter: ["==", ["get", "marker"], true],
+        paint: {
+          "circle-color": Colors.accent,
+          "circle-radius": 7,
+          "circle-stroke-width": 3,
+          "circle-stroke-color": Colors.background,
+        },
+      });
+    }
+
+    if (map.getLayer(ROUTE_LINE_LAYER_ID)) {
+      map.setPaintProperty(
+        ROUTE_LINE_LAYER_ID,
+        "line-dasharray",
+        route && route.distanceKm > ROUTE_MAX_KM ? [1.6, 1.4] : null,
+      );
+    }
+
+    if (route) {
+      const { ne, sw } = boundsFor([route.from, route.to]);
+      map.fitBounds([sw, ne], {
+        padding: { top: 90, right: 60, bottom: 360, left: 60 },
+        duration: 900,
+        essential: true,
+      });
+    }
+  }, [mapReady, route]);
 
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
@@ -472,8 +611,10 @@ export function MapScreen({
   focusCoordinate?: DeviceCoordinate | null;
 }) {
   const { courts: contextCourts, localCourt } = useApp();
+  const { coord: deviceCoord, status: locationStatus } = useDeviceLocation();
   const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
   const [focusedCourt, setFocusedCourt] = useState<Court | null>(null);
+  const [nearestRoute, setNearestRoute] = useState<NearestRoute | null>(null);
   const [locationNotice, setLocationNotice] = useState<string | null>(null);
   // Selecting a court opens the app-wide court drawer (see CourtSheetHost).
   const { openCourtSheet } = useCourtSheet();
@@ -548,20 +689,30 @@ export function MapScreen({
 
   const activeCourts = courts.filter((c) => c.activeCount > 0);
 
+  // Explore answers "what's near me now": anchor on a real permission-backed
+  // device fix when we have one; the saved local court and continental
+  // overview are fallbacks, not the default.
+  const locationIsTrusted = locationStatus === "granted" && deviceCoord != null;
   const initialCenter = React.useMemo<[number, number]>(
     () =>
-      localCourt
-        ? [localCourt.longitude, localCourt.latitude]
-        : contextCourts[0]
-          ? [contextCourts[0].longitude, contextCourts[0].latitude]
-          : [-96, 37.5],
+      locationIsTrusted
+        ? [deviceCoord!.lng, deviceCoord!.lat]
+        : localCourt
+          ? [localCourt.longitude, localCourt.latitude]
+          : contextCourts[0]
+            ? [contextCourts[0].longitude, contextCourts[0].latitude]
+            : [-96, 37.5],
     [
+      locationIsTrusted,
+      deviceCoord?.lat,
+      deviceCoord?.lng,
       localCourt?.id,
       localCourt?.latitude,
       localCourt?.longitude,
       contextCourts,
     ],
   );
+  const initialZoom = locationIsTrusted || localCourt ? 12.5 : 4;
 
   const findNearestCourt = React.useCallback(async () => {
     setLocationNotice("FINDING NEAREST COURT…");
@@ -587,11 +738,29 @@ export function MapScreen({
         setLocationNotice("NO COURT FOUND NEAR THIS LOCATION");
         return;
       }
-      setFocusedCourt(nearest);
+
+      const from: LngLat = [
+        location.coords.longitude,
+        location.coords.latitude,
+      ];
+      const to: LngLat = [nearest.longitude, nearest.latitude];
+      const distanceKm = nearest.distanceKm ?? kmBetween(from, to);
+
       setLocationNotice(null);
+      setNearestRoute({ from, to, path: straightPath(from, to), distanceKm });
+      if (distanceKm <= ROUTE_MAX_KM) {
+        void fetchWalkingPath(from, to, MAPBOX_TOKEN).then((path) => {
+          setNearestRoute((prev) =>
+            prev && prev.to[0] === to[0] && prev.to[1] === to[1]
+              ? { ...prev, path }
+              : prev,
+          );
+        });
+      }
+
       window.setTimeout(() => {
-        openCourtSheet({ courtId: nearest.id, distanceKm: nearest.distanceKm });
-      }, 720);
+        openCourtSheet({ courtId: nearest.id, distanceKm });
+      }, 950);
     } catch {
       setLocationNotice("LOCATION UNAVAILABLE — TRY AGAIN");
     }
@@ -605,9 +774,12 @@ export function MapScreen({
           onCourtSelect={setSelectedCourt}
           onBoundsChange={handleBoundsChange}
           initialCenter={initialCenter}
+          initialZoom={initialZoom}
           localCourtId={localCourt?.id ?? null}
           focusCourt={focusedCourt}
           focusCoordinate={focusCoordinate}
+          route={nearestRoute}
+          onMapTap={() => setNearestRoute(null)}
         />
 
         {!addCourtMode ? (

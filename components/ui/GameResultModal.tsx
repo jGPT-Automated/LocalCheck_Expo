@@ -1,4 +1,5 @@
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   AccessibilityInfo,
@@ -39,6 +40,7 @@ export function GameResultModal({
   onClose: () => void;
 }) {
   const { bottom } = useSafeAreaInsets();
+  const router = useRouter();
   const progress = React.useRef(new Animated.Value(0)).current;
   const [mounted, setMounted] = React.useState(visible);
 
@@ -74,8 +76,13 @@ export function GameResultModal({
         .toUpperCase();
   const translateY = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: [56, 0],
+    outputRange: [24, 0],
   });
+
+  const viewGame = () => {
+    onClose();
+    router.push(`/match/${match.id}`);
+  };
 
   return (
     <Modal
@@ -99,7 +106,7 @@ export function GameResultModal({
           style={[
             styles.card,
             {
-              paddingBottom: Math.max(bottom, Space.lg),
+              marginBottom: Math.max(bottom, 0) + Space.xl,
               opacity: progress,
               transform: [{ translateY }],
             },
@@ -148,10 +155,11 @@ export function GameResultModal({
 
           <Pressable
             accessibilityRole="button"
-            onPress={onClose}
-            style={({ pressed }) => [styles.done, pressed && styles.pressed]}
+            onPress={viewGame}
+            style={({ pressed }) => [styles.viewGame, pressed && styles.pressed]}
           >
-            <Text style={styles.doneText}>DONE</Text>
+            <Text style={styles.viewGameText}>VIEW GAME</Text>
+            <Feather color={Colors.accent} name="arrow-right" size={13} />
           </Pressable>
         </Animated.View>
       </View>
@@ -222,14 +230,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.overlay,
   },
   card: {
+    marginHorizontal: Space.lg,
+    maxHeight: "60%",
     paddingHorizontal: 20,
     paddingTop: Space.sm,
+    paddingBottom: Space.lg,
     backgroundColor: Colors.surface,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
+    borderRadius: 26,
     borderWidth: 1,
-    borderBottomWidth: 0,
     borderColor: Colors.borderLight,
+    overflow: "hidden",
   },
   handle: {
     width: 44,
@@ -352,19 +362,19 @@ const styles = StyleSheet.create({
     borderRightWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
   },
-  done: {
-    minHeight: 48,
+  viewGame: {
+    minHeight: 44,
     marginTop: Space.md,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.accent,
+    gap: 6,
   },
-  doneText: {
-    fontFamily: Typography.headingBold,
-    fontSize: 12,
-    color: Colors.black,
-    letterSpacing: 1.4,
+  viewGameText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    color: Colors.accent,
+    letterSpacing: 1.2,
   },
   pressed: {
     opacity: 0.72,

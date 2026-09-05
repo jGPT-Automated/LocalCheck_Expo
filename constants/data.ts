@@ -108,7 +108,12 @@ export interface FeedItem {
     | "game_result"
     | "run_result"
     | "new_court"
-    | "run_started";
+    | "run_started"
+    // Presentation-only types produced by lib/activityPresentation.ts —
+    // never returned directly by a fetch, only by pairVisits/
+    // groupCheckinBursts transforming raw checkin/checkout items.
+    | "visit"
+    | "checkin_burst";
   playerId: string;
   playerName: string;
   courtName?: string;
@@ -121,9 +126,25 @@ export interface FeedItem {
   /** Structured, authoritative result data for confirmed match events. */
   match?: FeedMatchSummary;
   timestamp: string;
+  /** Raw instant this event occurred, for duration math and grouping —
+   * `timestamp` is already relative/formatted and not safe to re-parse. */
+  occurredAtIso: string;
   hypeCount: number;
   hypedByCurrentUser?: boolean;
   imageUri?: string;
+  /** "visit" items only — a collapsed checkin+checkout pair. */
+  visit?: {
+    checkInIso: string;
+    checkOutIso: string;
+    durationMinutes: number | null;
+  };
+  /** "checkin_burst" items only — 3+ check-ins grouped within a short window. */
+  burst?: {
+    count: number;
+    playerNames: string[];
+    startIso: string;
+    endIso: string;
+  };
 }
 
 export interface FeedMatchParticipant {

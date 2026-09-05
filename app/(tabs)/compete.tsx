@@ -13,15 +13,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import Animated, {
-  Easing,
-  ReduceMotion,
-  useAnimatedProps,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Circle } from "react-native-svg";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
@@ -30,9 +22,11 @@ import { CompactSelect } from "@/components/ui/CompactSelect";
 import { EloStat } from "@/components/ui/EloStat";
 import { ModeTabs } from "@/components/ui/ModeTabs";
 import { parsePlayerQrCode } from "@/components/ui/playerIdentity";
-import { WeekDatePicker } from "@/components/ui/WeekDatePicker";
+import { RecentDatePicker } from "@/components/ui/RecentDatePicker";
+import { ScoreCard } from "@/components/match/ScoreCard";
 import { Colors, Radius } from "@/constants/colors";
 import {
+  Court,
   CourtSport,
   getSportColor,
   getTierColor,
@@ -47,65 +41,12 @@ import {
   searchPlayers,
 } from "@/services/profileService";
 import { logGame, logTeamGame } from "@/services/gameService";
+import { searchCourts } from "@/services/courtService";
 
 // BACKEND NOTE:
 
 type Scope = "GLOBAL" | "REGIONAL" | "LOCAL";
 type CompeteMode = "RANKINGS" | "LOG_GAME";
-
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-
-function CountdownRing({ seconds }: { seconds: number }) {
-  const size = 54;
-  const strokeWidth = 3;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const progress = useSharedValue(1);
-
-  useEffect(() => {
-    progress.value = withTiming(0, {
-      duration: 5000,
-      easing: Easing.linear,
-      reduceMotion: ReduceMotion.System,
-    });
-  }, [progress]);
-
-  const animatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: circumference * (1 - progress.value),
-  }));
-
-  return (
-    <View
-      accessibilityLabel={`Sending in ${seconds} seconds`}
-      style={styles.reviewCountdown}
-    >
-      <Svg height={size} style={StyleSheet.absoluteFill} width={size}>
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          fill="transparent"
-          r={radius}
-          stroke={Colors.border}
-          strokeWidth={strokeWidth}
-        />
-        <AnimatedCircle
-          animatedProps={animatedProps}
-          cx={size / 2}
-          cy={size / 2}
-          fill="transparent"
-          origin={`${size / 2}, ${size / 2}`}
-          r={radius}
-          rotation="-90"
-          stroke={Colors.accent}
-          strokeDasharray={`${circumference} ${circumference}`}
-          strokeLinecap="round"
-          strokeWidth={strokeWidth}
-        />
-      </Svg>
-      <Text style={styles.reviewCountdownValue}>{seconds}</Text>
-    </View>
-  );
-}
 
 export default function CompeteScreen() {
   const {
@@ -502,7 +443,7 @@ type GameLog = {
   theirScore: string;
   courtId: string;
   playedOn: string;
-  teamSize: 1 | 2 | 3 | 5;
+  teamSize: number;
   teammates: Player[];
   opponents: Player[];
 };
@@ -533,7 +474,204 @@ function GameDateField({
   value: string;
   onChange: (value: string) => void;
 }) {
-  return <WeekDatePicker onChange={onChange} value={value} />;
+  return <RecentDatePicker daysBack={7} onChange={onChange} value={value} />;
+}
+
+/** Tap to switch the game's sport. It sits to the left of the court field and
+ * drives which courts the picker suggests. */
+function SportToggle({
+  sport,
+  onToggle,
+}: {
+  sport: CourtSport | "";
+  onToggle: () => void;
+}) {
+  const resolved: CourtSport = sport === "PICKLEBALL" ? "PICKLEBALL" : "BASKETBALL";
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Sport: ${resolved === "PICKLEBALL" ? "pickleball" : "basketball"}. Tap to switch.`}
+      onPress={onToggle}
+      style={({ pressed }) => [styles.sportToggle, pressed && styles.pressed]}
+    >
+      <View
+        style={[
+          styles.sportToggleDot,
+          { backgroundColor: getSportColor(resolved) },
+        ]}
+      />
+      <Text style={styles.sportToggleText}>
+        {resolved === "PICKLEBALL" ? "PB" : "BB"}
+      </Text>
+    </Pressable>
+  );
+}
+
+/** Court field: shows the current court; tapping opens a search with the
+ * nearest few courts for the chosen sport, then live typeahead. */
+function CourtPickerField({
+  courts,
+  localCourt,
+  sport,
+  valueId,
+  onSelect,
+}: {
+  courts: Court[];
+  localCourt: Court | null;
+  sport: CourtSport | "";
+  valueId: string;
+  onSelect: (court: Court) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<Court[]>([]);
+  const [searching, setSearching] = useState(false);
+  const activeSport: CourtSport = sport === "PICKLEBALL" ? "PICKLEBALL" : "BASKETBALL";
+  const selected =
+    courts.find((court) => court.id === valueId) ??
+    (localCourt?.id === valueId ? localCourt : null);
+
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+      setResults([]);
+      setSearching(false);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    const term = query.trim();
+    if (term.length < 2) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+    let active = true;
+    setSearching(true);
+    const timer = setTimeout(() => {
+      void searchCourts(term, activeSport, 8).then((found) => {
+        if (!active) return;
+        setResults(found);
+        setSearching(false);
+      });
+    }, 220);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [query, activeSport]);
+
+  const nearby = useMemo(() => {
+    const seen = new Set<string>();
+    const list: Court[] = [];
+    if (localCourt && localCourt.sport === activeSport) {
+      list.push(localCourt);
+      seen.add(localCourt.id);
+    }
+    for (const court of courts) {
+      if (court.sport !== activeSport || seen.has(court.id)) continue;
+      list.push(court);
+      seen.add(court.id);
+      if (list.length >= 4) break;
+    }
+    return list;
+  }, [courts, localCourt, activeSport]);
+
+  const term = query.trim();
+  const rows = term.length >= 2 ? results : nearby;
+
+  return (
+    <View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Choose court"
+        accessibilityState={{ expanded: open }}
+        onPress={() => setOpen((shown) => !shown)}
+        style={styles.courtTrigger}
+      >
+        <Text
+          numberOfLines={1}
+          style={selected ? styles.courtTriggerValue : styles.courtTriggerPlaceholder}
+        >
+          {selected?.name ?? "Choose a court"}
+        </Text>
+        <Feather
+          color={Colors.muted}
+          name={open ? "chevron-up" : "chevron-down"}
+          size={16}
+        />
+      </Pressable>
+      {open ? (
+        <View style={styles.courtPanel}>
+          <View style={styles.courtSearch}>
+            <Feather color={Colors.muted} name="search" size={14} />
+            <TextInput
+              accessibilityLabel="Search courts"
+              autoCorrect={false}
+              autoFocus
+              onChangeText={setQuery}
+              placeholder="Search courts"
+              placeholderTextColor={Colors.mutedDark}
+              returnKeyType="search"
+              style={styles.courtSearchInput}
+              value={query}
+            />
+            {searching ? (
+              <ActivityIndicator color={Colors.accent} size="small" />
+            ) : null}
+          </View>
+          {term.length < 2 ? (
+            <Text style={styles.courtSectionLabel}>NEAREST</Text>
+          ) : null}
+          {rows.map((court) => {
+            const isLocal = court.id === localCourt?.id;
+            const active = court.id === valueId;
+            return (
+              <Pressable
+                accessibilityLabel={`Pick ${court.name}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                key={court.id}
+                onPress={() => {
+                  onSelect(court);
+                  setOpen(false);
+                }}
+                style={({ pressed }) => [
+                  styles.courtRow,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text numberOfLines={1} style={styles.courtRowName}>
+                    {court.name}
+                  </Text>
+                  <Text numberOfLines={1} style={styles.courtRowMeta}>
+                    {[
+                      court.city,
+                      court.distanceKm != null
+                        ? `${(court.distanceKm * 0.621371).toFixed(1)} MI`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </Text>
+                </View>
+                {isLocal ? (
+                  <Text style={styles.courtRowTag}>YOUR COURT</Text>
+                ) : null}
+                {active ? (
+                  <Feather color={Colors.accent} name="check" size={15} />
+                ) : null}
+              </Pressable>
+            );
+          })}
+          {term.length >= 2 && !searching && rows.length === 0 ? (
+            <Text style={styles.courtEmpty}>NO COURTS FOUND</Text>
+          ) : null}
+        </View>
+      ) : null}
+    </View>
+  );
 }
 
 function LogGameView({
@@ -555,7 +693,7 @@ function LogGameView({
   localCourtId: string | null;
   inSheet?: boolean;
 }) {
-  const { isFriend, getFriendsList } = useApp();
+  const { isFriend, getFriendsList, localCourt } = useApp();
 
   // Default court: preferredCourtId > localCourtId > empty
   const supportedCourts = useMemo(
@@ -570,7 +708,8 @@ function LogGameView({
   const defaultCourt = supportedCourts.find(
     (court) => court.id === defaultCourtId,
   );
-  const defaultSport = defaultCourt?.sport ?? preferredSport ?? "";
+  const defaultSport: CourtSport =
+    defaultCourt?.sport ?? preferredSport ?? "BASKETBALL";
 
   const [form, setForm] = useState<GameLog>({
     sport: defaultSport,
@@ -583,7 +722,6 @@ function LogGameView({
     opponents: [],
   });
   const [reviewGame, setReviewGame] = useState<GameLog | null>(null);
-  const [reviewSeconds, setReviewSeconds] = useState(5);
   const [submittedGame, setSubmittedGame] = useState<GameLog | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showOpponentPicker, setShowOpponentPicker] = useState(false);
@@ -591,7 +729,6 @@ function LogGameView({
     side: "theirs",
     index: 0,
   });
-  const [showCourtPicker, setShowCourtPicker] = useState(false);
   const [opponentQuery, setOpponentQuery] = useState("");
   const [opponentSuggestions, setOpponentSuggestions] = useState<Player[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -601,20 +738,67 @@ function LogGameView({
     Crypto.randomUUID(),
   );
 
-  // A court owns its sport. This keeps the label and the rating update in
-  // agreement, including when the court arrives after the screen first opens.
+  // The sport toggle is the creator's call once they've touched it. Until then,
+  // the game follows its court: fill in the creator's local court on open, and
+  // keep the sport in agreement with a chosen court (including one that hydrates
+  // after the screen mounts).
+  const sportTouchedRef = React.useRef(false);
   useEffect(() => {
-    const nextCourtId = form.courtId || defaultCourtId;
+    const nextCourtId =
+      form.courtId || (sportTouchedRef.current ? "" : defaultCourtId);
+    if (!nextCourtId) return;
     const selectedCourt = supportedCourts.find(
       (court) => court.id === nextCourtId,
     );
     if (!selectedCourt) return;
-    setForm((current) =>
-      current.courtId === nextCourtId && current.sport === selectedCourt.sport
+    setForm((current) => {
+      const sport = sportTouchedRef.current ? current.sport : selectedCourt.sport;
+      return current.courtId === nextCourtId && current.sport === sport
         ? current
-        : { ...current, courtId: nextCourtId, sport: selectedCourt.sport },
-    );
+        : { ...current, courtId: nextCourtId, sport };
+    });
   }, [defaultCourtId, form.courtId, supportedCourts]);
+
+  const toggleSport = () => {
+    sportTouchedRef.current = true;
+    setForm((current) => {
+      const next: CourtSport =
+        current.sport === "PICKLEBALL" ? "BASKETBALL" : "PICKLEBALL";
+      const court = supportedCourts.find((c) => c.id === current.courtId);
+      return {
+        ...current,
+        sport: next,
+        courtId: court && court.sport === next ? current.courtId : "",
+      };
+    });
+  };
+
+  const selectCourt = (court: Court) => {
+    setForm((current) => ({
+      ...current,
+      courtId: court.id,
+      sport: sportTouchedRef.current ? current.sport : court.sport,
+    }));
+  };
+
+  const addPlayerRow = () => {
+    setForm((current) => ({
+      ...current,
+      teamSize: Math.min(5, current.teamSize + 1),
+    }));
+  };
+
+  const removePlayerRow = () => {
+    setForm((current) => {
+      const next = Math.max(1, current.teamSize - 1);
+      return {
+        ...current,
+        teamSize: next,
+        teammates: current.teammates.slice(0, next - 1),
+        opponents: current.opponents.slice(0, next),
+      };
+    });
+  };
 
   // Apply the deep-linked opponent once it resolves from the loaded player
   // list. Never clobbers a manually chosen (or cleared) opponent.
@@ -673,8 +857,28 @@ function LogGameView({
   const handleReview = () => {
     if (!canSubmit || !form.opponents[0]?.id || !form.courtId) return;
     setSubmitError(null);
-    setReviewSeconds(5);
     setReviewGame({ ...form });
+  };
+
+  const gameCardProps = (game: GameLog) => {
+    const court =
+      supportedCourts.find((c) => c.id === game.courtId) ?? localCourt ?? null;
+    const initials = (player: Player) =>
+      player.name.split(" ")[0].toUpperCase();
+    const mine =
+      game.teamSize === 1
+        ? "YOU"
+        : ["YOU", ...game.teammates.map(initials)].join(" · ");
+    const theirs = game.opponents.map(initials).join(" · ") || "OPPONENT";
+    return {
+      courtName: court?.shortName || court?.name || "COURT",
+      sport: (game.sport || "BASKETBALL") as CourtSport,
+      playedOn: game.playedOn,
+      leftLabel: mine,
+      rightLabel: theirs,
+      leftScore: game.myScore || "0",
+      rightScore: game.theirScore || "0",
+    };
   };
 
   const handleSubmit = async () => {
@@ -735,19 +939,6 @@ function LogGameView({
       opponents: [],
     });
   };
-
-  useEffect(() => {
-    if (!reviewGame) return;
-    if (reviewSeconds <= 0) {
-      if (!submitting) void handleSubmit();
-      return;
-    }
-    const timer = setTimeout(
-      () => setReviewSeconds((seconds) => Math.max(0, seconds - 1)),
-      1000,
-    );
-    return () => clearTimeout(timer);
-  }, [reviewGame, reviewSeconds, submitting]);
 
   const placePlayer = (player: Player, slot = activePlayerSlot) => {
     setForm((current) => {
@@ -1001,46 +1192,18 @@ function LogGameView({
   };
 
   if (reviewGame) {
-    const reviewCourt = supportedCourts.find(
-      (court) => court.id === reviewGame.courtId,
-    );
     return (
       <View style={styles.successState}>
-        <CountdownRing seconds={reviewSeconds} />
         <Text style={styles.successTitle}>REVIEW SCORE</Text>
         <Text style={styles.successSub}>
-          Check the matchup. It sends automatically when the timer ends.
+          Check the matchup, then send it in. Ratings don&apos;t move until it&apos;s
+          confirmed.
         </Text>
-        <View style={styles.successCard}>
-          <View style={styles.successCardHeader}>
-            <Text numberOfLines={1} style={styles.successCourt}>
-              {reviewGame.sport === "BASKETBALL" ? "BB" : "PB"}
-              {` · ${reviewCourt?.shortName || reviewCourt?.name || "COURT"}`}
-            </Text>
-            <Text style={styles.reviewDate}>{reviewGame.playedOn}</Text>
-          </View>
-          <View style={styles.successScoreRow}>
-            <View style={styles.reviewPlayer}>
-              <Text numberOfLines={1} style={styles.successPlayerName}>
-                {reviewGame.teamSize === 1
-                  ? currentUser.name
-                  : [currentUser, ...reviewGame.teammates]
-                      .map((player) => player.name.split(" ")[0])
-                      .join(" · ")}
-              </Text>
-              <Text style={styles.successScore}>{reviewGame.myScore}</Text>
-            </View>
-            <Text style={styles.successDash}>–</Text>
-            <View style={styles.reviewPlayer}>
-              <Text numberOfLines={1} style={styles.successPlayerName}>
-                {reviewGame.opponents
-                  .map((player) => player.name.split(" ")[0])
-                  .join(" · ")}
-              </Text>
-              <Text style={styles.successScore}>{reviewGame.theirScore}</Text>
-            </View>
-          </View>
-        </View>
+        <ScoreCard
+          status="draft"
+          note="Ratings don't move until this is confirmed."
+          {...gameCardProps(reviewGame)}
+        />
         <View style={styles.reviewActions}>
           <Pressable
             accessibilityLabel="Edit score"
@@ -1069,9 +1232,6 @@ function LogGameView({
   }
 
   if (submittedGame) {
-    const submittedCourt = supportedCourts.find(
-      (court) => court.id === submittedGame.courtId,
-    );
     return (
       <View style={styles.successState}>
         <View style={styles.successIcon}>
@@ -1080,43 +1240,18 @@ function LogGameView({
         <Text style={styles.successTitle}>SCORE SENT FOR REVIEW</Text>
         <Text style={styles.successSub}>
           {submittedGame.teamSize === 1
-            ? "Your opponent can confirm or object. No rating changes yet."
-            : "Every player can review the result. No rating changes yet."}
+            ? "Your opponent can confirm or dispute it. No rating changes yet."
+            : "Any player can confirm or dispute it. No rating changes yet."}
         </Text>
-        <View style={styles.successCard}>
-          <View style={styles.successCardHeader}>
-            <Text numberOfLines={1} style={styles.successCourt}>
-              {submittedGame.sport === "BASKETBALL" ? "BB" : "PB"}
-              {` · ${submittedCourt?.shortName || submittedCourt?.name || "COURT"}`}
-            </Text>
-            <View style={styles.pendingBadge}>
-              <Text style={styles.pendingText}>PENDING</Text>
-            </View>
-          </View>
-          <View style={styles.successScoreRow}>
-            <View style={styles.successPlayer}>
-              <Text numberOfLines={1} style={styles.successPlayerName}>
-                {submittedGame.teamSize === 1
-                  ? currentUser.name
-                  : [currentUser, ...submittedGame.teammates]
-                      .map((player) => player.name.split(" ")[0])
-                      .join(" · ")}
-              </Text>
-              <Text style={styles.successScore}>{submittedGame.myScore}</Text>
-            </View>
-            <Text style={styles.successDash}>–</Text>
-            <View style={[styles.successPlayer, styles.successPlayerRight]}>
-              <Text numberOfLines={1} style={styles.successPlayerName}>
-                {submittedGame.opponents
-                  .map((player) => player.name.split(" ")[0])
-                  .join(" · ")}
-              </Text>
-              <Text style={styles.successScore}>
-                {submittedGame.theirScore}
-              </Text>
-            </View>
-          </View>
-        </View>
+        <ScoreCard
+          status="pending"
+          note={
+            submittedGame.teamSize === 1
+              ? "Waiting on your opponent, or it auto-confirms in 3 days."
+              : "Waiting on the other players, or it auto-confirms in 3 days."
+          }
+          {...gameCardProps(submittedGame)}
+        />
       </View>
     );
   }
@@ -1138,161 +1273,103 @@ function LogGameView({
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
     >
-      {/* Court owns the ranked sport, so the two read as one decision. */}
+      {/* Sport drives which courts the picker suggests, so it leads the row. */}
       <View style={styles.fieldRow}>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.fieldLabel}>SPORT</Text>
+          <SportToggle sport={form.sport} onToggle={toggleSport} />
+        </View>
         <View style={[styles.fieldGroup, styles.courtField]}>
           <Text style={styles.fieldLabel}>COURT</Text>
-          <Pressable
-            accessibilityLabel="Select court"
-            accessibilityRole="button"
-            accessibilityState={{ expanded: showCourtPicker }}
-            onPress={() => setShowCourtPicker((shown) => !shown)}
-            style={styles.opponentTrigger}
-          >
-            <Text
-              numberOfLines={1}
-              style={
-                selectedCourt
-                  ? styles.opponentSelectedText
-                  : styles.opponentPlaceholder
-              }
-            >
-              {selectedCourt?.name ?? "Select a court"}
-            </Text>
-            <Ionicons
-              name={showCourtPicker ? "chevron-up" : "chevron-down"}
-              size={16}
-              color={Colors.muted}
-            />
-          </Pressable>
-          {showCourtPicker ? (
-            <View style={styles.opponentDropdown}>
-              {supportedCourts.map((c) => (
-                <Pressable
-                  key={c.id}
-                  style={styles.opponentOption}
-                  onPress={() => {
-                    setForm((f) => ({ ...f, courtId: c.id, sport: c.sport }));
-                    setShowCourtPicker(false);
-                  }}
-                >
-                  <Text numberOfLines={1} style={styles.opponentOptionName}>
-                    {c.name}
-                  </Text>
-                  {form.courtId === c.id ? (
-                    <Ionicons
-                      name="checkmark"
-                      size={16}
-                      color={Colors.accent}
-                    />
-                  ) : null}
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
-        </View>
-        <View style={[styles.fieldGroup, styles.sportField]}>
-          <Text style={styles.fieldLabel}>SPORT</Text>
-          <View style={[styles.sportOption, styles.sportOptionActive]}>
-            <View
-              style={[
-                styles.sportOptionDot,
-                { backgroundColor: getSportColor(form.sport || "BASKETBALL") },
-              ]}
-            />
-            <Text
-              style={[styles.sportOptionText, styles.sportOptionTextActive]}
-            >
-              {form.sport === "PICKLEBALL" ? "PB" : "BB"}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.fieldRow}>
-        <View style={[styles.fieldGroup, styles.dateField]}>
-          <Text style={styles.fieldLabel}>DATE</Text>
-          <GameDateField
-            onChange={(playedOn) =>
-              setForm((current) => ({ ...current, playedOn }))
-            }
-            value={form.playedOn}
+          <CourtPickerField
+            courts={supportedCourts}
+            localCourt={localCourt}
+            sport={form.sport}
+            valueId={form.courtId}
+            onSelect={selectCourt}
           />
         </View>
-        <View style={[styles.fieldGroup, styles.formatField]}>
-          <Text style={styles.fieldLabel}>FORMAT</Text>
-          <View accessibilityRole="tablist" style={styles.formatOptions}>
-            {([1, 2, 3, 5] as const).map((size) => (
-              <Pressable
-                accessibilityRole="tab"
-                accessibilityState={{ selected: form.teamSize === size }}
-                key={size}
-                onPress={() =>
-                  setForm((current) => ({
-                    ...current,
-                    teamSize: size,
-                    teammates: current.teammates.slice(0, size - 1),
-                    opponents: current.opponents.slice(0, size),
-                  }))
-                }
-                style={[
-                  styles.formatOption,
-                  form.teamSize === size && styles.formatOptionActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.formatOptionText,
-                    form.teamSize === size && styles.formatOptionTextActive,
-                  ]}
-                >
-                  {size}V{size}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
       </View>
 
-      {/* Player selection uses one shared typeahead/QR contract for solo and teams. */}
+      <View style={styles.fieldGroup}>
+        <Text style={styles.fieldLabel}>DATE</Text>
+        <GameDateField
+          onChange={(playedOn) =>
+            setForm((current) => ({ ...current, playedOn }))
+          }
+          value={form.playedOn}
+        />
+      </View>
+
+      {/* No format selector: 1v1 by default; "add player" grows both sides. */}
       <View style={styles.fieldGroup}>
         <Text style={styles.fieldLabel}>
-          {form.teamSize === 1 ? "OPPONENT" : "PLAYERS"}
+          {form.teamSize === 1 ? "MATCHUP" : `${form.teamSize}V${form.teamSize}`}
         </Text>
-        {form.teamSize > 1 ? (
-          <View style={styles.rosterGroup}>
-            <Text style={styles.rosterLabel}>YOUR TEAM</Text>
-            <View style={styles.lockedPlayer}>
-              <PlayerAvatar
-                initials={currentUser.avatar}
-                name={currentUser.name}
-                playerId={currentUser.id}
-                size={28}
-              />
-              <Text numberOfLines={1} style={styles.lockedPlayerName}>
-                {currentUser.name.toUpperCase()}
-              </Text>
-              <Text style={styles.youBadge}>YOU</Text>
-            </View>
-            {Array.from({ length: form.teamSize - 1 }, (_, index) =>
-              renderPlayerSlot(
-                { side: "mine", index },
-                `ADD TEAMMATE ${index + 1}`,
-              ),
-            )}
-            <Text style={[styles.rosterLabel, styles.rosterLabelOpponents]}>
-              OTHER TEAM
+        <View style={styles.rosterGroup}>
+          <Text style={styles.rosterLabel}>
+            {form.teamSize === 1 ? "YOU" : "YOUR SIDE"}
+          </Text>
+          <View style={styles.lockedPlayer}>
+            <PlayerAvatar
+              initials={currentUser.avatar}
+              name={currentUser.name}
+              playerId={currentUser.id}
+              size={28}
+            />
+            <Text numberOfLines={1} style={styles.lockedPlayerName}>
+              {currentUser.name.toUpperCase()}
             </Text>
-            {Array.from({ length: form.teamSize }, (_, index) =>
-              renderPlayerSlot(
-                { side: "theirs", index },
-                `ADD OPPONENT ${index + 1}`,
-              ),
-            )}
+            <Text style={styles.youBadge}>YOU</Text>
           </View>
-        ) : (
-          renderPlayerSlot({ side: "theirs", index: 0 }, "SELECT OPPONENT")
-        )}
+          {Array.from({ length: form.teamSize - 1 }, (_, index) =>
+            renderPlayerSlot({ side: "mine", index }, `TEAMMATE ${index + 1}`),
+          )}
+
+          <Text style={[styles.rosterLabel, styles.rosterLabelOpponents]}>
+            {form.teamSize === 1 ? "OPPONENT" : "OTHER SIDE"}
+          </Text>
+          {Array.from({ length: form.teamSize }, (_, index) =>
+            renderPlayerSlot(
+              { side: "theirs", index },
+              form.teamSize === 1
+                ? "SELECT OPPONENT"
+                : `OPPONENT ${index + 1}`,
+            ),
+          )}
+
+          <View style={styles.rosterActions}>
+            {form.teamSize < 5 ? (
+              <Pressable
+                accessibilityLabel="Add a player to each side"
+                accessibilityRole="button"
+                onPress={addPlayerRow}
+                style={({ pressed }) => [
+                  styles.rosterAdd,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Feather color={Colors.accent} name="plus" size={14} />
+                <Text style={styles.rosterAddText}>
+                  ADD PLAYER · {form.teamSize + 1}V{form.teamSize + 1}
+                </Text>
+              </Pressable>
+            ) : null}
+            {form.teamSize > 1 ? (
+              <Pressable
+                accessibilityLabel="Remove the last player row"
+                accessibilityRole="button"
+                onPress={removePlayerRow}
+                style={({ pressed }) => [
+                  styles.rosterRemove,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.rosterRemoveText}>REMOVE</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
       </View>
 
       {/* Score */}
@@ -1718,9 +1795,6 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   courtField: { flex: 1, minWidth: 0 },
-  sportField: { width: 88 },
-  dateField: { flex: 1, minWidth: 0 },
-  formatField: { flex: 1, minWidth: 0 },
   fieldLabel: {
     fontFamily: Typography.heading,
     fontSize: 11,
@@ -1728,76 +1802,147 @@ const styles = StyleSheet.create({
     letterSpacing: 2.5,
     textTransform: "uppercase" as const,
   },
-  sportOption: {
+  sportToggle: {
     minHeight: 48,
+    minWidth: 62,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.accentDim,
+  },
+  sportToggleDot: { width: 8, height: 8, borderRadius: 4 },
+  sportToggleText: {
+    fontFamily: Typography.heading,
+    fontSize: 13,
+    color: Colors.text,
+    letterSpacing: 1,
+  },
+  courtTrigger: {
+    minHeight: 48,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 8,
-    borderWidth: 0.5,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
-    paddingHorizontal: 12,
     borderRadius: Radius.xs,
     backgroundColor: Colors.surface,
   },
-  sportOptionActive: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.accentDim,
+  courtTriggerValue: {
+    flex: 1,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 14,
+    color: Colors.text,
+    letterSpacing: 0.4,
   },
-  sportOptionDot: { width: 8, height: 8, borderRadius: 4 },
-  sportOptionText: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
+  courtTriggerPlaceholder: {
+    flex: 1,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 14,
     color: Colors.muted,
-    letterSpacing: 1,
   },
-  sportOptionTextActive: { color: Colors.text },
-  formatOptions: {
-    minHeight: 48,
-    flexDirection: "row",
-    alignItems: "stretch",
+  courtPanel: {
+    marginTop: 6,
     overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
     borderRadius: Radius.xs,
     backgroundColor: Colors.surface,
   },
-  formatOption: {
+  courtSearch: {
+    minHeight: 44,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  courtSearchInput: {
     flex: 1,
     minWidth: 0,
-    alignItems: "center",
-    justifyContent: "center",
+    paddingVertical: 0,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 13,
+    color: Colors.text,
   },
-  formatOptionActive: { backgroundColor: Colors.accentDim },
-  formatOptionText: {
+  courtSectionLabel: {
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 2,
     fontFamily: Typography.bodyBold,
     fontSize: 9,
     color: Colors.muted,
+    letterSpacing: 1.6,
   },
-  formatOptionTextActive: { color: Colors.accent },
-  dateTrigger: {
-    minHeight: 48,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.surface,
-  },
-  dateTriggerCopy: {
+  courtRow: {
+    minHeight: 52,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
   },
-  dateTriggerText: {
+  courtRowName: {
     fontFamily: Typography.bodySemiBold,
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.text,
-    letterSpacing: 0.8,
+    letterSpacing: 0.3,
   },
-  dateDone: {
-    minHeight: 40,
+  courtRowMeta: {
+    marginTop: 2,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    color: Colors.muted,
+    letterSpacing: 0.4,
+  },
+  courtRowTag: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 8,
+    color: Colors.accent,
+    letterSpacing: 1,
+  },
+  courtEmpty: {
+    padding: 16,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    color: Colors.muted,
+    letterSpacing: 0.6,
+    textAlign: "center",
+  },
+  rosterActions: {
+    marginTop: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  rosterAdd: {
+    flex: 1,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.accentDim,
+  },
+  rosterAddText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 10,
+    color: Colors.accent,
+    letterSpacing: 1,
+  },
+  rosterRemove: {
+    minHeight: 44,
+    paddingHorizontal: 16,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: StyleSheet.hairlineWidth,
@@ -1805,11 +1950,11 @@ const styles = StyleSheet.create({
     borderRadius: Radius.xs,
     backgroundColor: Colors.surface,
   },
-  dateDoneText: {
+  rosterRemoveText: {
     fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    color: Colors.accent,
-    letterSpacing: 1.4,
+    fontSize: 10,
+    color: Colors.muted,
+    letterSpacing: 1,
   },
   rosterGroup: { gap: 8 },
   rosterLabel: {
@@ -1945,19 +2090,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 48,
   },
-  reviewCountdown: {
-    width: 54,
-    height: 54,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 27,
-  },
-  reviewCountdownValue: {
-    fontFamily: Typography.headingBold,
-    fontSize: 19,
-    lineHeight: 22,
-    color: Colors.accent,
-  },
   successIcon: {
     width: 56,
     height: 56,
@@ -1977,77 +2109,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.muted,
     textAlign: "center" as const,
-  },
-  successCard: {
-    width: "100%",
-    marginTop: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
-  },
-  successCardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  successCourt: {
-    flex: 1,
-    minWidth: 0,
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 12,
-    lineHeight: 16,
-    color: Colors.textSecondary,
-  },
-  pendingBadge: {
-    minHeight: 24,
-    paddingHorizontal: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 3,
-    backgroundColor: Colors.accentDim,
-  },
-  pendingText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 10,
-    color: Colors.accent,
-    letterSpacing: 1,
-  },
-  successScoreRow: {
-    marginTop: 18,
-    flexDirection: "row",
-    alignItems: "flex-end",
-  },
-  successPlayer: { flex: 1, minWidth: 0, alignItems: "flex-start" },
-  successPlayerRight: { alignItems: "flex-end" },
-  reviewPlayer: { flex: 1, minWidth: 0, alignItems: "center" },
-  successPlayerName: {
-    maxWidth: "100%",
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 12,
-    lineHeight: 16,
-    color: Colors.textSecondary,
-    textTransform: "uppercase" as const,
-  },
-  successScore: {
-    marginTop: 4,
-    fontFamily: Typography.headingBold,
-    fontSize: 38,
-    lineHeight: 42,
-    color: Colors.text,
-  },
-  successDash: {
-    paddingBottom: 5,
-    fontFamily: Typography.headingRegular,
-    fontSize: 28,
-    color: Colors.mutedDark,
-  },
-  reviewDate: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 10,
-    color: Colors.muted,
-    letterSpacing: 0.6,
   },
   reviewActions: {
     width: "100%",
@@ -2087,18 +2148,6 @@ const styles = StyleSheet.create({
   },
 
   // Opponent selector
-  opponentTrigger: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xs,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    minHeight: 48,
-  },
   opponentTriggerShell: {
     minHeight: 48,
     flexDirection: "row",

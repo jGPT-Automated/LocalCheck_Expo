@@ -319,6 +319,37 @@ export async function fetchGamesByCourt(
   }
 }
 
+/**
+ * The player's games that still need attention — pending review or on hold.
+ * Drives the Me-tab inbox. Confirmed and voided games have already reached the
+ * feed and profile, so they are not repeated here.
+ */
+export async function fetchOpenMatchesForPlayer(
+  userId: string,
+): Promise<MatchReview[]> {
+  try {
+    const ids = await fetchParticipantMatchIds(userId);
+    if (ids.length === 0) return [];
+    const { data, error } = await supabase
+      .from("matches")
+      .select("id,status,updated_at")
+      .in("id", ids)
+      .in("status", ["pending", "held", "rejected"])
+      .order("updated_at", { ascending: false })
+      .limit(20);
+    if (error || !data) {
+      if (error) console.warn("fetchOpenMatchesForPlayer failed", error.message);
+      return [];
+    }
+    const reviews = await Promise.all(
+      (data as Array<{ id: string }>).map((row) => fetchMatchReview(row.id)),
+    );
+    return reviews.filter((review): review is MatchReview => review != null);
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchGamesByPlayer(
   userId: string,
 ): Promise<MatchResult[]> {

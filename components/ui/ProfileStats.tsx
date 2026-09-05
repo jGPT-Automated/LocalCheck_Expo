@@ -1,3 +1,4 @@
+import { NumberFlow } from "number-flow-react-native";
 import React, { type ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -14,10 +15,15 @@ export function ProfileStats({
   metrics,
   trailing,
   compact = false,
+  animateChanges = false,
 }: {
   metrics: ProfileMetric[];
   trailing?: ReactNode;
   compact?: boolean;
+  /** Only pass this on the signed-in player's own stats — a peer's profile
+   * should never animate just because you happened to load it after a
+   * change. See ScoreCard's EloChangeLine for the ELO-specific case. */
+  animateChanges?: boolean;
 }) {
   return (
     <View style={[styles.row, compact && styles.rowCompact]}>
@@ -27,15 +33,26 @@ export function ProfileStats({
             key={metric.label}
             style={[styles.metric, index > 0 && styles.divider]}
           >
-            <Text
-              style={[
-                styles.value,
-                metric.tone === "win" && styles.win,
-                metric.tone === "loss" && styles.loss,
-              ]}
-            >
-              {metric.value}
-            </Text>
+            {animateChanges && typeof metric.value === "number" ? (
+              <NumberFlow
+                style={StyleSheet.flatten([
+                  styles.value,
+                  metric.tone === "win" && styles.win,
+                  metric.tone === "loss" && styles.loss,
+                ])}
+                value={metric.value}
+              />
+            ) : (
+              <Text
+                style={[
+                  styles.value,
+                  metric.tone === "win" && styles.win,
+                  metric.tone === "loss" && styles.loss,
+                ]}
+              >
+                {metric.value}
+              </Text>
+            )}
             <Text style={styles.label}>{metric.label}</Text>
           </View>
         ))}

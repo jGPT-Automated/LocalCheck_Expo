@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Colors, Radius } from "@/constants/colors";
 import type { Court } from "@/constants/data";
-import { Layout, Space } from "@/constants/layout";
+import { Layout } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 
 import { LivePulse } from "./LivePulse";
@@ -33,7 +33,7 @@ export function CourtListItem({
   stats,
 }: CourtListItemProps) {
   const cardStats = stats ?? [
-    { label: "ACTIVE NOW", value: court.activeCount ?? 0, live: (court.activeCount ?? 0) > 0 },
+    { label: "ACTIVE", value: court.activeCount ?? 0, live: (court.activeCount ?? 0) > 0 },
     { label: "LOCALS", value: court.localCount ?? 0 },
   ];
   const sportMeta = court.sport === "PICKLEBALL"
@@ -65,6 +65,12 @@ export function CourtListItem({
           <SportEmblem glow={false} size={15} sport={court.sport} />
           <Text style={[styles.sportText, { color: sportMeta }]}>{court.sport}</Text>
         </View>
+        {isCheckedIn ? (
+          <View style={styles.hereBadge}>
+            <Feather color={Colors.black} name="check" size={11} />
+            <Text style={styles.hereText}>HERE</Text>
+          </View>
+        ) : null}
       </View>
 
       <Text numberOfLines={1} style={styles.name}>
@@ -83,19 +89,15 @@ export function CourtListItem({
               {index > 0 ? <View style={styles.statDivider} /> : null}
               <View style={styles.statBlock}>
                 <View style={styles.statValueRow}>
-                  {stat.live ? <LivePulse color={Colors.accent} size={6} /> : null}
                   <Text style={[styles.statValue, stat.live && styles.liveValue]}>{stat.value}</Text>
+                  {stat.live ? (
+                    <LivePulse color={Colors.accent} size={6} style={styles.liveDot} />
+                  ) : null}
                 </View>
                 <Text style={styles.statLabel}>{stat.label}</Text>
               </View>
             </React.Fragment>
           ))}
-          {isCheckedIn ? (
-            <View style={styles.hereBadge}>
-              <Feather color={Colors.black} name="check" size={11} />
-              <Text style={styles.hereText}>HERE</Text>
-            </View>
-          ) : null}
         </View>
         <View style={styles.arrowButton}>
           <Feather color={Colors.textSecondary} name="arrow-right" size={21} />
@@ -123,7 +125,7 @@ const styles = StyleSheet.create({
   },
   featured: { minHeight: 146 },
   pressed: { opacity: 0.78, transform: [{ scale: 0.992 }] },
-  topline: { minHeight: 20, flexDirection: "row", alignItems: "center" },
+  topline: { minHeight: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   sportMeta: { flexDirection: "row", alignItems: "center", gap: 5 },
   sportText: { fontFamily: Typography.bodyMedium, fontSize: 9, letterSpacing: 1.5 },
   name: { marginTop: 12, fontFamily: Typography.headingBold, fontSize: 21, lineHeight: 24, color: Colors.text, textTransform: "uppercase" },
@@ -132,12 +134,13 @@ const styles = StyleSheet.create({
   bottomRow: { marginTop: "auto", paddingTop: 12, flexDirection: "row", alignItems: "center" },
   statsRow: { minWidth: 0, maxWidth: "68%", flex: 1, flexDirection: "row", alignItems: "center" },
   statBlock: { flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center" },
-  statValueRow: { minHeight: 19, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5 },
+  statValueRow: { minHeight: 19, position: "relative", alignItems: "center", justifyContent: "center" },
   statValue: { fontFamily: Typography.headingBold, fontSize: 24, lineHeight: 27, color: Colors.text },
   liveValue: { color: Colors.accent },
+  liveDot: { position: "absolute", top: -4, right: -11 },
   statLabel: { marginTop: 2, fontFamily: Typography.bodyMedium, fontSize: 11, lineHeight: 13, color: Colors.muted, letterSpacing: 1.1, textAlign: "center" },
   statDivider: { width: StyleSheet.hairlineWidth, height: 29, marginHorizontal: 5, backgroundColor: Colors.borderLight },
   arrowButton: { marginLeft: "auto", width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: Colors.borderLight, alignItems: "center", justifyContent: "center" },
-  hereBadge: { marginLeft: Space.sm, paddingHorizontal: 7, paddingVertical: 4, flexDirection: "row", alignItems: "center", gap: 3, borderRadius: Radius.sm, backgroundColor: Colors.accent },
+  hereBadge: { paddingHorizontal: 7, paddingVertical: 4, flexDirection: "row", alignItems: "center", gap: 3, borderRadius: Radius.sm, backgroundColor: Colors.accent },
   hereText: { fontFamily: Typography.bodyBold, fontSize: 7, color: Colors.black, letterSpacing: 0.9 },
 });

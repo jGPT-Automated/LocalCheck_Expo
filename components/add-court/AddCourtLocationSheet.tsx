@@ -62,7 +62,7 @@ export function AddCourtLocationSheet({
       onClose={onClose}
       title="ADD A COURT"
       eyebrow="STEP 1 OF 3 · LOCATION"
-      snapPoints={[coordinate ? "44%" : "40%"]}
+      snapPoints={["34%"]}
       bottomClearance={Layout.tabBarClearance}
       contentBottomPadding={12}
       backdropOpacity={0}
@@ -74,7 +74,7 @@ export function AddCourtLocationSheet({
           onPress={onBack}
           style={styles.back}
         >
-          <Feather name="chevron-left" size={17} color={Colors.textSecondary} />
+          <Feather name="chevron-left" size={15} color={Colors.textSecondary} />
           <Text style={styles.backText}>BACK</Text>
         </Pressable>
 
@@ -82,7 +82,7 @@ export function AddCourtLocationSheet({
           <View style={styles.iconBox}>
             <Feather
               name={coordinate ? "map-pin" : "crosshair"}
-              size={20}
+              size={16}
               color={Colors.accent}
             />
           </View>
@@ -105,12 +105,12 @@ export function AddCourtLocationSheet({
           onPress={coordinate ? () => onContinue(coordinate) : locate}
           loading={locating}
           variant="accent"
-          size="lg"
+          size="md"
           style={styles.fullButton}
           icon={
             <Feather
               name={coordinate ? "camera" : "navigation"}
-              size={16}
+              size={15}
               color={Colors.black}
             />
           }
@@ -140,18 +140,18 @@ const styles = StyleSheet.create({
     gap: Space.md,
   },
   iconBox: {
-    width: 48,
-    height: 48,
+    width: 38,
+    height: 38,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: Radius.md,
+    borderRadius: Radius.sm,
     borderWidth: 1,
     borderColor: Colors.accentBorder,
     backgroundColor: Colors.accentGhost,
   },
-  copy: { flex: 1, gap: 2 },
-  title: { ...TextStyles.title, color: Colors.text, letterSpacing: 1.1 },
-  body: { ...TextStyles.bodySmall, color: Colors.textSecondary },
-  notice: { ...TextStyles.metadata, color: Colors.muted, lineHeight: 18 },
-  fullButton: { width: "100%" },
+  copy: { flex: 1, gap: 1 },
+  title: { ...TextStyles.label, color: Colors.text, letterSpacing: 1 },
+  body: { ...TextStyles.caption, color: Colors.textSecondary },
+  notice: { ...TextStyles.caption, color: Colors.muted },
+  fullButton: { width: "100%", marginTop: Space.xs },
 });

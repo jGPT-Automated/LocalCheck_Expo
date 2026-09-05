@@ -6,7 +6,17 @@ import type { MatchResult } from "@/constants/data";
 import { Space } from "@/constants/layout";
 import { TextStyles, Typography } from "@/constants/typography";
 
-export function ProfileMatchRow({ match }: { match: MatchResult }) {
+export function ProfileMatchRow({
+  match,
+  opponentName,
+}: {
+  match: MatchResult;
+  /** When every row in this list is against the same known player (a
+   * head-to-head list), pass their name so the row leads with who was
+   * played instead of where — MatchResult carries no participant names of
+   * its own. */
+  opponentName?: string;
+}) {
   const won = match.result === "WIN";
 
   return (
@@ -16,10 +26,12 @@ export function ProfileMatchRow({ match }: { match: MatchResult }) {
       />
       <View style={styles.copy}>
         <Text numberOfLines={1} style={styles.court}>
-          {match.courtName}
+          {opponentName ? `VS ${opponentName.toUpperCase()}` : match.courtName}
         </Text>
-        <Text style={styles.meta}>
-          {formatDate(match.playedAtIso)} · {match.sport.toUpperCase()}
+        <Text numberOfLines={1} style={styles.meta}>
+          {opponentName
+            ? `${match.courtName} · ${formatDate(match.playedAtIso)}`
+            : `${formatDate(match.playedAtIso)} · ${match.sport.toUpperCase()}`}
         </Text>
       </View>
       <View style={styles.scoreBlock}>
