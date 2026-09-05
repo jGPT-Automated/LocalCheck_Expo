@@ -64,6 +64,7 @@
     "expo-updates": "~29.0.19",
     "expo-web-browser": "~15.0.11",
     "mapbox-gl": "^2.15.0",
+    "number-flow-react-native": "^0.5.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
