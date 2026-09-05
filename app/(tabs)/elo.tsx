@@ -19,7 +19,6 @@ import { ActivityRow } from "@/components/ui/ActivityRow";
 import { GameResultModal } from "@/components/ui/GameResultModal";
 import { PlayerQrModal } from "@/components/ui/PlayerQrModal";
 import { ProfileHero } from "@/components/ui/ProfileHero";
-import { ProfileMatchRow } from "@/components/ui/ProfileMatchRow";
 import { ProfileStats } from "@/components/ui/ProfileStats";
 import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
 import { Colors, Radius } from "@/constants/colors";
@@ -34,6 +33,7 @@ import {
 } from "@/services/profileService";
 import { fetchOpenMatchesForPlayer } from "@/services/gameService";
 import type { MatchReview } from "@/services/gameService";
+import { fetchPlayerActivity } from "@/services/feedService";
 import type { Player } from "@/constants/data";
 
 type ProfileTab = "activity" | "friends" | "inbox";
@@ -44,7 +44,6 @@ export default function MeScreen() {
   const { profile } = useAuth();
   const {
     currentUser,
-    feed,
     matches,
     localCourt,
     preferredSport,
@@ -67,6 +66,7 @@ export default function MeScreen() {
     courtName?: string;
   } | null>(null);
   const [openMatches, setOpenMatches] = useState<MatchReview[]>([]);
+  const [activity, setActivity] = useState<FeedItem[]>([]);
 
   const friends = getFriendsList();
   const searchingFriends = friendQuery.trim().length >= 2;
@@ -80,10 +80,19 @@ export default function MeScreen() {
       setActiveTab(params.tab);
     }
   }, [params.tab]);
-  const activity = useMemo(
-    () => feed.filter((item) => item.playerId === currentUser.id).slice(0, 8),
-    [feed, currentUser.id],
-  );
+
+  // A player's own activity across every court, not just the local one a
+  // court-scoped feed would use — see fetchPlayerActivity for why a plain
+  // actor_id filter also isn't enough (it would hide this player's losses).
+  useEffect(() => {
+    let cancelled = false;
+    void fetchPlayerActivity(currentUser.id, 20).then((items) => {
+      if (!cancelled) setActivity(items);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser.id, matches.length]);
   // Score reviews now show as real game cards below, so the notification feed
   // in the inbox is only the things that have no card of their own.
   const inboxNotifications = useMemo(
@@ -242,12 +251,6 @@ export default function MeScreen() {
                   }
                 />
               ))
-            ) : matches.length > 0 ? (
-              matches
-                .slice(0, 8)
-                .map((match) => (
-                  <ProfileMatchRow key={match.id} match={match} />
-                ))
             ) : (
               <EmptyState
                 title="NO ACTIVITY YET"

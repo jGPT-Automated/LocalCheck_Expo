@@ -188,6 +188,54 @@ export async function fetchFeed(
   }
 }
 
+/**
+ * A player's own activity across every court, not just their local one.
+ * `fetchFeed` scopes to a single court_id, which is right for "what's
+ * happening at my court" but wrong for "my activity" — a game played
+ * anywhere else silently disappeared from this player's own history.
+ * A match_result event's actor_id is the winner (1v1) or creator (team/
+ * scheduled) — never the participant who lost or didn't create it — so a
+ * plain actor_id filter would also hide this player's own losses. Match on
+ * participation instead: actor_id = you, OR the event's match is one you
+ * played in.
+ */
+export async function fetchPlayerActivity(
+  userId: string,
+  limit = 20,
+): Promise<FeedItem[]> {
+  try {
+    const { data: participantRows, error: participantError } = await supabase
+      .from("match_participants")
+      .select("match_id")
+      .eq("user_id", userId);
+    if (participantError) {
+      console.warn("fetchPlayerActivity participants error:", participantError.message);
+    }
+    const matchIds = (participantRows ?? []).map((row) => row.match_id);
+    const orFilter =
+      matchIds.length > 0
+        ? `actor_id.eq.${userId},match_id.in.(${matchIds.join(",")})`
+        : `actor_id.eq.${userId}`;
+
+    const { data, error } = await supabase
+      .from("activity_events")
+      .select(EVENT_SELECT)
+      .or(orFilter)
+      .order("occurred_at", { ascending: false })
+      .limit(limit);
+    if (error || !data) {
+      if (error) console.warn("fetchPlayerActivity error:", error.message);
+      return [];
+    }
+    return (data as unknown as SupabaseActivityEvent[])
+      .map((row) => mapEvent(row, userId))
+      .filter((i): i is FeedItem => i !== null);
+  } catch (err) {
+    console.warn("fetchPlayerActivity exception:", err);
+    return [];
+  }
+}
+
 /** Persist one hype per user. Duplicate taps converge to the existing row. */
 export async function hypePost(postId: string, userId: string): Promise<boolean> {
   const eventId = Number(postId.replace(/^ae-/, ""));
