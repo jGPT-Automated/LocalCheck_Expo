@@ -71,20 +71,32 @@ the text was the same generic line every time: "SCORE APPROVED / The result
 is final and ratings are updated." No name, no score, no ELO number, no
 reason to tap in.
 
-- ✅ DONE (`90c0c3a`): personalized `notify_match_change`'s 1v1-confirm
-  notification — "YOU WON" / "FINAL SCORE" title, body has the real
-  opponent name, score, and ELO delta ("Beat 8yp4gttjwv 11–0 · ELO 1200
-  (+18)"). Sends to BOTH participants now (was submitter-only). Needs a
-  real device test to confirm the copy renders right — not simulated
-  against live match data.
+- ✅ DONE (`90c0c3a`, corrected tone in `f20b8ce`): personalized
+  `notify_match_change`'s 1v1-confirm notification. Title is always
+  "MATCH CONFIRMED" (deterministic regardless of outcome); body states the
+  fact plainly — "You beat 8yp4gttjwv, 11–0. ELO now 1200 (+18)." Sends to
+  BOTH participants now (was submitter-only). **Correction from Jesse:**
+  first version read "YOU WON! Beat X 11-0 · ELO 1200 (+18)" — exclamatory,
+  wrong tone. Fixed to be "purely and professionally deterministic," per his
+  direct instruction — same personalization, plain sentence, no hype.
+- ✅ DONE (`90b34a3`): **"gamified" clarified by Jesse — it means animate
+  the ELO number when it changes, not hype copy.** Installed
+  `number-flow-react-native` (pure JS, built on the already-installed
+  `react-native-reanimated`, no native module, stays OTA-eligible) and
+  wired it into `EloStat` — the one shared ELO component (leaderboard rows,
+  profile hero, match rows). Every digit now rolls to its new value instead
+  of jump-cutting. Verified in the library's own source that first render
+  is static (no counting up from zero on screen load).
 - ⬜ STILL OPEN: scheduled/team match confirmations
   (`apply_scheduled_match_elo` / `apply_ad_hoc_team_elo`) still send **no**
-  confirmation notification at all, personalized or otherwise — only the
-  ad-hoc 1v1 path was fixed.
-- ⬜ STILL OPEN: an actual in-app celebratory moment — the confirmed
-  `ScoreCard` state is currently just a static "FINAL" pill, no animation,
-  no ELO-delta highlight. The push notification fix addresses "I didn't
-  know" but not yet the "addicting" part Jesse asked for.
+  confirmation notification at all — only the ad-hoc 1v1 path was fixed.
+- ⬜ STILL OPEN: full inventory of every notification title/body currently
+  in the system was compiled and given to Jesse directly in chat (not yet
+  copied into this file) — worth doing if another tone pass is needed.
+- **Proposal, not built:** the same NumberFlow treatment could extend to
+  `ScoreCard`'s score digits and `StatBlock`'s counts (Explore's ACTIVE/
+  LOCALS numbers) for a consistent "numbers feel alive" language — scoped
+  to ELO only for now since that's what was asked.
 
 ### Priority 1 — ScoreCard/Inbox redesign ⬜ BACKLOG
 From the annotated Inbox screenshot (yellow "In Review" pill circled):
