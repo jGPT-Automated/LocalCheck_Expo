@@ -51,6 +51,13 @@ export function MatchReviewCard({
           : participant.name.split(" ")[0].toUpperCase(),
       )
       .join(" · ") || fallback;
+  // A before/after ELO transition only reads cleanly for a single player per
+  // side; team sides skip it rather than showing a misleading aggregate.
+  const sideElo = (side: typeof sideA) => {
+    if (side.length !== 1) return null;
+    const { eloBefore, eloAfter } = side[0];
+    return eloBefore != null && eloAfter != null ? { before: eloBefore, after: eloAfter } : null;
+  };
 
   const firstSide = viewerSide === "b" ? sideB : sideA;
   const secondSide = viewerSide === "b" ? sideA : sideB;
@@ -70,6 +77,7 @@ export function MatchReviewCard({
           : null
       }
       courtName={match.courtName}
+      leftElo={sideElo(firstSide)}
       leftLabel={sideLabel(firstSide, "SIDE A")}
       leftScore={firstScore}
       note={
@@ -78,6 +86,7 @@ export function MatchReviewCard({
           : copy.description
       }
       playedOn={match.playedAt}
+      rightElo={sideElo(secondSide)}
       rightLabel={sideLabel(secondSide, "SIDE B")}
       rightMeta={
         match.disputeCount > 0

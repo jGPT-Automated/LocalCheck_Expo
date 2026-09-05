@@ -1,3 +1,4 @@
+import { NumberFlow } from "number-flow-react-native";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -5,6 +6,27 @@ import { Colors, Radius } from "@/constants/colors";
 import { Layout, Space } from "@/constants/layout";
 import { TextStyles } from "@/constants/typography";
 import type { CourtSport } from "@/constants/data";
+
+/** Plays the before -> after ELO transition once the card mounts. This is
+ * the one deliberate place ELO animates: the moment a score is confirmed,
+ * not an ambient live number that ticks anywhere ELO happens to render. */
+function EloChangeLine({ before, after }: { before: number; after: number }) {
+  const [display, setDisplay] = React.useState(before);
+  React.useEffect(() => {
+    const timer = setTimeout(() => setDisplay(after), 500);
+    return () => clearTimeout(timer);
+  }, [after]);
+  const delta = after - before;
+  return (
+    <View style={styles.eloLine}>
+      <NumberFlow style={styles.eloValue} value={display} />
+      <Text style={[styles.eloDelta, delta < 0 && styles.eloDeltaNegative]}>
+        {delta >= 0 ? "+" : ""}
+        {delta}
+      </Text>
+    </View>
+  );
+}
 
 export type ScoreCardStatus =
   | "draft"
@@ -72,6 +94,8 @@ export function ScoreCard({
   rightLabel,
   leftScore,
   rightScore,
+  leftElo,
+  rightElo,
   note,
   countdown,
   rightMeta,
@@ -85,6 +109,9 @@ export function ScoreCard({
   rightLabel: string;
   leftScore: number | string;
   rightScore: number | string;
+  /** Only rendered (with an animated transition) when status is "confirmed". */
+  leftElo?: { before: number; after: number } | null;
+  rightElo?: { before: number; after: number } | null;
   note?: string;
   countdown?: { label: string; value: string } | null;
   rightMeta?: string;
@@ -130,6 +157,9 @@ export function ScoreCard({
             <Text style={[styles.score, compact && styles.scoreCompact]}>
               {leftScore}
             </Text>
+            {status === "confirmed" && leftElo ? (
+              <EloChangeLine after={leftElo.after} before={leftElo.before} />
+            ) : null}
           </View>
           <Text style={[styles.divider, compact && styles.dividerCompact]}>
             –
@@ -141,6 +171,9 @@ export function ScoreCard({
             <Text style={[styles.score, compact && styles.scoreCompact]}>
               {rightScore}
             </Text>
+            {status === "confirmed" && rightElo ? (
+              <EloChangeLine after={rightElo.after} before={rightElo.before} />
+            ) : null}
           </View>
         </View>
 
@@ -224,6 +257,21 @@ const styles = StyleSheet.create({
     fontVariant: ["tabular-nums"],
   },
   scoreCompact: { fontSize: 34, lineHeight: 40 },
+  eloLine: {
+    marginTop: 2,
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 4,
+  },
+  eloValue: {
+    ...TextStyles.labelSmall,
+    color: Colors.textSecondary,
+  },
+  eloDelta: {
+    ...TextStyles.labelSmall,
+    color: Colors.accent,
+  },
+  eloDeltaNegative: { color: Colors.loss },
   divider: { ...TextStyles.title, color: Colors.mutedDark },
   dividerCompact: { ...TextStyles.body, color: Colors.mutedDark },
   note: {

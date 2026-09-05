@@ -172,6 +172,7 @@ export default function MeScreen() {
           username={profile?.username || currentUser.username}
         />
         <ProfileStats
+          animateChanges
           compact
           metrics={[
             { value: currentUser.wins, label: "WINS" },
