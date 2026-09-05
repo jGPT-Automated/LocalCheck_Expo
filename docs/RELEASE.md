@@ -17,20 +17,16 @@ automatic TestFlight workflow after an approved merge to `main`.
 
 ## Phone preview
 
-**Opening a pull request is the trigger.** `expo-pr-preview.yml`
-automatically publishes that branch to the `preview` EAS Update channel and
-comments a scannable QR/link on the PR — no extra step. Scan it with Expo
-Go: sign-in, check-in, scheduling, game logging, and score review all work
-there. Explore's native Mapbox map crashes on mount in Expo Go (it's a
-custom native module Expo Go doesn't ship); reload the app to recover, or
-verify map-specific behavior on a LocalCheck development build or TestFlight
-build instead. Use `pnpm preview:web` for desktop annotation and
-simultaneous signed-in users.
+Opening a pull request auto-publishes it for Expo Go: `expo-pr-preview.yml`
+publishes the branch to the `preview` EAS Update channel and comments a
+scannable QR/link on the PR. Scan it and preview on your phone — no manual
+step. Explore's map crashes there; reload recovers it. Use `pnpm preview:web`
+for desktop annotation and simultaneous signed-in users.
 
-Merging that same PR is the *other* automatic trigger — see
-[TestFlight/native release](#testflightnative-release) below. Together
-that's the whole loop: open PR → phone preview now, merge → TestFlight build
-automatically. Neither step needs a manual EAS command.
+Merging that PR to `main` is the other automatic trigger: `Release iOS
+(build + TestFlight)` builds and submits to TestFlight on its own — see
+TestFlight/native release below. That's the whole loop: open PR → phone
+preview, merge → TestFlight build. No extra steps either way.
 
 PR #28 also carries GitHub's `eas-build-ios:production` label, the current Expo
 syntax `eas-build-[platform]:[profile]`. That label asks the Expo GitHub
