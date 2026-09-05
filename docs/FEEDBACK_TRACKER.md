@@ -55,19 +55,36 @@ remaining item** — "this part needs to be gamified and addicting... people
 should love checking in, adding times, logging games, because they see their
 stats go up." Everything else here is real but secondary to that.
 
-### Priority 0 — Match-approval delight loop ⬜ BACKLOG, NOT STARTED
+### Priority 0 — Match-approval delight loop 🚧 IN PROGRESS
 Jesse sent a game for review, approved it from the other account, and got
 **nothing**: no visible ELO change, no feed entry, no notification, no sense
-it was even approved — "I didn't even know it was approved." This is a
-product-critical gap, not a cosmetic one. Needs investigation into:
-- Does a push/in-app notification fire for the *submitter* when the other
-  side approves/confirms (as opposed to the existing notification that fires
-  for the *reviewer* asking them to review)?
-- Does the feed actually refresh/show the confirmed result promptly on both
-  accounts, and is the ELO delta visible anywhere in the moment it happens?
-- What would "gamified and addicting" look like here — some kind of
-  animation/toast/haptic when your rating moves, not just a silent DB update.
-Not built yet — this is the next investigation before any other item below.
+it was even approved — "I didn't even know it was approved."
+
+**Investigated at the DB level (not guessed):** `apply_match_elo` already
+updates ELO/wins/losses correctly and inserts the feed activity event;
+`notify_match_change` already fires a notification + push on confirm.
+Checked `push_delivery_attempts` for real confirmed-match notifications
+since 2026-09-03 — every one shows `ticket_status: accepted`,
+`receipt_status: ok`. The pipeline was never broken. Every one of those
+notifications also shows `read_at: null` — never opened, not once — because
+the text was the same generic line every time: "SCORE APPROVED / The result
+is final and ratings are updated." No name, no score, no ELO number, no
+reason to tap in.
+
+- ✅ DONE (`90c0c3a`): personalized `notify_match_change`'s 1v1-confirm
+  notification — "YOU WON" / "FINAL SCORE" title, body has the real
+  opponent name, score, and ELO delta ("Beat 8yp4gttjwv 11–0 · ELO 1200
+  (+18)"). Sends to BOTH participants now (was submitter-only). Needs a
+  real device test to confirm the copy renders right — not simulated
+  against live match data.
+- ⬜ STILL OPEN: scheduled/team match confirmations
+  (`apply_scheduled_match_elo` / `apply_ad_hoc_team_elo`) still send **no**
+  confirmation notification at all, personalized or otherwise — only the
+  ad-hoc 1v1 path was fixed.
+- ⬜ STILL OPEN: an actual in-app celebratory moment — the confirmed
+  `ScoreCard` state is currently just a static "FINAL" pill, no animation,
+  no ELO-delta highlight. The push notification fix addresses "I didn't
+  know" but not yet the "addicting" part Jesse asked for.
 
 ### Priority 1 — ScoreCard/Inbox redesign ⬜ BACKLOG
 From the annotated Inbox screenshot (yellow "In Review" pill circled):
