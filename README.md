@@ -25,6 +25,11 @@ The web preview is useful for fast iteration and multi-user testing. A
 development build or TestFlight is authoritative for Mapbox, notifications,
 Apple Sign-In, SecureStore, location, and other native behavior.
 
+Opening a pull request auto-publishes a scannable Expo Go preview and merging
+it auto-triggers the TestFlight build — see `docs/RELEASE.md`. Expo Go runs
+the whole app except Explore's native map, which crashes on mount there
+(reload recovers); use a development build or TestFlight to check the map.
+
 ## Commands
 
 | Command              | Purpose                                          |

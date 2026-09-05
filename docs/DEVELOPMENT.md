@@ -71,10 +71,14 @@ silently reusing unknown content.
 output can contain deliberate placeholder values and must never be opened as a
 connected application.
 
-Expo Go is not an authoritative client because LocalCheck includes custom
-native Mapbox code. Use a LocalCheck development build or TestFlight for phone
-acceptance. The browser remains valuable for layout, annotations, and live
-multi-account interaction.
+Expo Go runs the app for everyday phone iteration: sign-in, check-in,
+scheduling, game logging, and score review all work in it. The one confirmed
+gap is Explore's native Mapbox map — it crashes on mount in Expo Go because
+Mapbox is a custom native module Expo Go doesn't ship, and reloading the app
+recovers it. Verify Mapbox-specific behavior on a LocalCheck development
+build or TestFlight instead; everything else is fine to confirm in Expo Go.
+The browser remains valuable for layout, annotations, and live multi-account
+interaction.
 
 ## Before handoff
 
