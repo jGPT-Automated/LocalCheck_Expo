@@ -93,6 +93,12 @@ reason to tap in.
 - ⬜ STILL OPEN: full inventory of every notification title/body currently
   in the system was compiled and given to Jesse directly in chat (not yet
   copied into this file) — worth doing if another tone pass is needed.
+- ⬜ STILL OPEN: Jesse's "friends counter, the check-in metric... matters"
+  note (same "animate on your own profile after your own action" rule as
+  ELO) has no counterpart feature yet — there's no visible friends-count
+  number anywhere in the app today (only a bare tab label), so this needs
+  either a small new feature (a friends-count metric on `ProfileStats`) or
+  an explicit call that it's deferred, before it can animate.
 - **Correction from Jesse, then fixed:** the first cut wired NumberFlow into
   `EloStat` itself — wrong, because `EloStat` is one of several *different*
   ELO renderings across the app (see the new 2026-09-05 section below) and
@@ -138,28 +144,54 @@ EloStat" DESIGN.md claims.
   fixed, since a real redesign decision (what should the one look be)
   should happen with his input, not be invented silently after several
   correction rounds today.
-- ⬜ BACKLOG, needs a design decision before building — same theme as
-  Priority 1 above, now expanded:
-  - `ProfileMatchRow` (used on the other-player "ACTIVITY"/"VS YOU" tabs,
-    which Jesse said looks better than his own Activity tab) shows
-    `match.courtName` as the bold primary text today — needs to become
-    player names instead, court/date as sub text. `MatchResult` (the type
-    it receives) carries no participant-name field at all right now, so
-    this needs a small data-shape change (`gameService.ts`'s
-    `mapMatchToResult`), not just a component edit.
-  - The Home feed's and court feed's `match_result` entries render as plain
-    sentence text next to check-in/check-out timeline dots (already flagged
-    in Priority 2 as "should be a thin, long game card box") — same root
-    ask as the `ProfileMatchRow` one: **one consistent, player-names-forward
-    game-result treatment used everywhere a game shows in a feed/activity
-    list** (Home feed, court feed, Me tab activity, other-player Activity
-    tab), distinct from the plain check-in/check-out rows they sit beside.
-  - Not started. Proposed approach: a compact, feed-specific game card
-    (lighter than `ScoreCard`, which carries review-status semantics that
-    don't apply to a historical feed entry) rendered wherever `ActivityRow`
-    currently renders a `type: "game_result"` item, and reused by
-    `ProfileMatchRow`'s call sites. Needs confirmation before building —
-    this is a real design decision, not a bug fix.
+- ✅ DONE — activity feed redesign, built from Jesse's own full written spec
+  (two-tier presence/event weight, no green/red on names, collapsed visits,
+  simplified rail, grouped arrival bursts, floating game-result card). Five
+  commits, in dependency order:
+  - `6c9e863` — presentation layer. `FeedItem` gained `occurredAtIso` (raw
+    ISO instant) and two UI-only synthetic types: `"visit"` (a paired
+    checkin+checkout collapsed into one entry with a duration) and
+    `"checkin_burst"` (3+ arrivals within a ~15-minute window collapsed into
+    one expandable row). New `lib/activityPresentation.ts` holds the pure
+    transforms (`pairVisits`, `groupCheckinBursts`, plus duration/relative-day
+    formatters) with `lib/activityPresentation.test.mts` (10 cases: matching
+    pairs, unmatched checkins, games never blocking pairing, the 3+ grouping
+    threshold, gap/type breaks in a run). Built as pure + unit-tested first
+    specifically to de-risk the rest of the batch after two correction
+    rounds earlier in the week.
+  - `32b372c` — `components/ui/ActivityRow.tsx` rewritten as a dispatcher on
+    `item.type`. Game rows get their own header ("GAME · FINAL" + time) and
+    two name+score lines with a text "WIN" tag and accent-colored winner
+    score — **no color on the player name itself**, exactly per spec (result
+    semantics live on the score/tag, not the identity text). Visit rows show
+    court + duration + relative day. Burst rows show a count that expands to
+    the name list on tap. New dot styles (`gameNode` filled, `visitNode`
+    hollow/larger) keep the vertical rail but simplify what each dot means.
+  - `6b53f32` — wired into both profiles. Me tab (`elo.tsx`) and the
+    other-player profile (`player/[id].tsx`) both now run their activity
+    through `pairVisits` before rendering, so raw checkin/checkout pairs
+    collapse into one "VISIT" entry instead of two rows. `player/[id].tsx`
+    also dropped its separate `fetchGamesByPlayer`/`playerMatches` path
+    entirely — one activity fetch now serves both the ACTIVITY tab list and
+    (via `ProfileMatchRow`'s new `opponentName` prop) the VS YOU tab, so a
+    head-to-head row leads with `VS <NAME>` instead of court name.
+  - `be5597a` — court-level feeds. `HomeScreen.tsx` and `court/[id].tsx` both
+    run `courtFeed` through `groupCheckinBursts` before rendering. Home also
+    gained the persistent summary caption under "Court activity" ("N
+    arrivals in the last hour") — the always-visible court-activity header
+    from the spec. `court/[id]` skipped its own summary line since that page
+    already has `MetricDashboard` doing that job.
+  - `9537e1e` — `GameResultModal` (the FINAL SCORE bottom sheet) converted
+    from an edge-to-edge sheet to a detached floating card: 16px side
+    margins, 26px radius on all four corners, 60% max height, and "VIEW
+    GAME →" (routes to `/match/[id]`) replacing the old full-width DONE
+    button.
+  - Not covered by this batch, flagged for a follow-up: `CourtSheetContent`
+    (the Explore court-preview drawer) has no activity-feed section at all
+    today (only WHO'S HERE/LOCALS/PULLING UP TODAY/NEXT RUN), so the
+    grouping/summary treatment above was never applicable there — confirm
+    with Jesse whether that drawer should grow one before treating this as
+    fully closed.
 
 ### Priority 1 — ScoreCard/Inbox redesign ⬜ BACKLOG
 From the annotated Inbox screenshot (yellow "In Review" pill circled):
