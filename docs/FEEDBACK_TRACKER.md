@@ -93,10 +93,73 @@ reason to tap in.
 - ⬜ STILL OPEN: full inventory of every notification title/body currently
   in the system was compiled and given to Jesse directly in chat (not yet
   copied into this file) — worth doing if another tone pass is needed.
-- **Proposal, not built:** the same NumberFlow treatment could extend to
-  `ScoreCard`'s score digits and `StatBlock`'s counts (Explore's ACTIVE/
-  LOCALS numbers) for a consistent "numbers feel alive" language — scoped
-  to ELO only for now since that's what was asked.
+- **Correction from Jesse, then fixed:** the first cut wired NumberFlow into
+  `EloStat` itself — wrong, because `EloStat` is one of several *different*
+  ELO renderings across the app (see the new 2026-09-05 section below) and
+  making the shared component animate would make ELO look like an ambient
+  live number everywhere it appears (leaderboard, other players' rows,
+  roster carousels), which Jesse explicitly does not want. Reverted
+  (`4fb30f1`), then correctly scoped in `654cb90`: `ScoreCard` animates
+  each 1v1 side's ELO before → after **only when status is "confirmed"**
+  (the moment you open a just-approved match), and `ProfileStats` gained an
+  `animateChanges` prop wired **only** at the Me tab's own-stats call site —
+  `player/[id].tsx`'s peer-profile call site is untouched. Team-side ELO
+  (>1 player per side) intentionally shows no animation — no single
+  before/after pair to show honestly.
+
+## 2026-09-05 — activity feed inconsistency + ELO display fragmentation
+
+Jesse's report: the Me tab's own ACTIVITY tab doesn't show game activity,
+only check-ins/check-outs — "we need to reimagine that." Also: ELO is
+rendered with "many different styles" across the app, not the "one shared
+EloStat" DESIGN.md claims.
+
+- ✅ DONE (`9a61e14`): **real bug, verified by reading the query, not
+  guessed** — the Me tab's activity reused `fetchFeed(localCourt?.id, ...)`,
+  which is scoped to your *local court*. A game played at any other court
+  never appeared in your own activity. There was already a fallback to a
+  match-history list when that court-scoped feed came back empty, but
+  check-in/check-out events at your local court kept the fallback from
+  firing, so only checkins/checkouts ever showed — exactly what was
+  reported. A second bug in the same spot: a `match_result` event's
+  `actor_id` is the *winner* (1v1) or *creator* (team/scheduled) — never
+  the losing/non-creating participant — so even a plain `actor_id` filter
+  would still hide your own losses. New `fetchPlayerActivity(userId)` in
+  `services/feedService.ts` fixes both: matches on participation, not court
+  or raw actor_id. Wired into the Me tab; the two-tier fallback is gone
+  (the fetch is correct up front, so it's unnecessary).
+- ✅ VERIFIED (not guessed): grepped every ELO render site. `EloStat` is
+  used in `compete.tsx` (leaderboard), `PlayerSummaryRow`, and
+  `ProfileHero`'s non-compact variant. But `feed.tsx`, `elo.tsx`'s friend
+  rows, `settings.tsx`, `run/[id].tsx` (×3 spots), `CourtSheetContent`'s
+  WHO'S HERE carousel, and `ProfileHero`'s *own* "compact" variant all
+  hand-roll their own `<Text>{elo} ELO</Text>` with different styling —
+  confirming Jesse's report exactly. Not yet unified — flagged here, not
+  fixed, since a real redesign decision (what should the one look be)
+  should happen with his input, not be invented silently after several
+  correction rounds today.
+- ⬜ BACKLOG, needs a design decision before building — same theme as
+  Priority 1 above, now expanded:
+  - `ProfileMatchRow` (used on the other-player "ACTIVITY"/"VS YOU" tabs,
+    which Jesse said looks better than his own Activity tab) shows
+    `match.courtName` as the bold primary text today — needs to become
+    player names instead, court/date as sub text. `MatchResult` (the type
+    it receives) carries no participant-name field at all right now, so
+    this needs a small data-shape change (`gameService.ts`'s
+    `mapMatchToResult`), not just a component edit.
+  - The Home feed's and court feed's `match_result` entries render as plain
+    sentence text next to check-in/check-out timeline dots (already flagged
+    in Priority 2 as "should be a thin, long game card box") — same root
+    ask as the `ProfileMatchRow` one: **one consistent, player-names-forward
+    game-result treatment used everywhere a game shows in a feed/activity
+    list** (Home feed, court feed, Me tab activity, other-player Activity
+    tab), distinct from the plain check-in/check-out rows they sit beside.
+  - Not started. Proposed approach: a compact, feed-specific game card
+    (lighter than `ScoreCard`, which carries review-status semantics that
+    don't apply to a historical feed entry) rendered wherever `ActivityRow`
+    currently renders a `type: "game_result"` item, and reused by
+    `ProfileMatchRow`'s call sites. Needs confirmation before building —
+    this is a real design decision, not a bug fix.
 
 ### Priority 1 — ScoreCard/Inbox redesign ⬜ BACKLOG
 From the annotated Inbox screenshot (yellow "In Review" pill circled):
