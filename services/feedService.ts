@@ -91,6 +91,7 @@ function mapEvent(
     courtId: row.courts?.id,
     sport,
     timestamp: formatTimestamp(row.occurred_at),
+    occurredAtIso: row.occurred_at,
     ...summarizeActivityHype(row.activity_event_likes, currentUserId),
   };
 
