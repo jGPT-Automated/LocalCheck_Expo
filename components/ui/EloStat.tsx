@@ -1,4 +1,3 @@
-import { NumberFlow } from "number-flow-react-native";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -34,15 +33,19 @@ export function EloStat({
         alignEnd && styles.alignEnd,
       ]}
     >
-      <NumberFlow
-        style={StyleSheet.flatten([
+      <Text
+        adjustsFontSizeToFit={hero}
+        minimumFontScale={0.85}
+        numberOfLines={1}
+        style={[
           styles.value,
           hero && styles.hero,
           leaderboard && styles.leaderboardValue,
           emphasized && styles.emphasized,
-        ])}
-        value={value}
-      />
+        ]}
+      >
+        {value}
+      </Text>
       {showLabel ? (
         <Text
           style={[
