@@ -34,6 +34,7 @@ import {
 import { fetchOpenMatchesForPlayer } from "@/services/gameService";
 import type { MatchReview } from "@/services/gameService";
 import { fetchPlayerActivity } from "@/services/feedService";
+import { pairVisits } from "@/lib/activityPresentation";
 import type { Player } from "@/constants/data";
 
 type ProfileTab = "activity" | "friends" | "inbox";
@@ -87,7 +88,9 @@ export default function MeScreen() {
   useEffect(() => {
     let cancelled = false;
     void fetchPlayerActivity(currentUser.id, 20).then((items) => {
-      if (!cancelled) setActivity(items);
+      // A profile tells a "visits + games" story, not raw system events —
+      // collapse matching checkin/checkout pairs into one visit each.
+      if (!cancelled) setActivity(pairVisits(items));
     });
     return () => {
       cancelled = true;

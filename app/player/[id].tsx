@@ -12,7 +12,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ActivityRow } from "@/components/ui/ActivityRow";
 import { DetailHeader } from "@/components/ui/DetailHeader";
+import { GameResultModal } from "@/components/ui/GameResultModal";
 import { PlayerQrModal } from "@/components/ui/PlayerQrModal";
 import { ProfileHero } from "@/components/ui/ProfileHero";
 import { ProfileMatchRow } from "@/components/ui/ProfileMatchRow";
@@ -22,15 +24,18 @@ import { HeadToHeadSummary } from "@/components/ui/HeadToHeadSummary";
 import { Colors, Radius } from "@/constants/colors";
 import {
   Court,
+  type FeedItem,
   MatchResult,
   Player,
 } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
 import { TextStyles, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
-import { fetchGamesByPlayer, fetchHeadToHeadGames } from "@/services/gameService";
+import { fetchHeadToHeadGames } from "@/services/gameService";
 import { fetchCourtById } from "@/services/courtService";
 import { fetchLeaderboard, fetchProfile } from "@/services/profileService";
+import { fetchPlayerActivity } from "@/services/feedService";
+import { pairVisits } from "@/lib/activityPresentation";
 import { fetchPlayerActivityByWeekday } from "@/services/checkInService";
 import {
   blockUser,
@@ -146,7 +151,7 @@ export default function PlayerProfileScreen() {
 
   const [player, setPlayer] = useState<Player | null>(null);
   const [playerCourt, setPlayerCourt] = useState<Court | null>(null);
-  const [playerMatches, setPlayerMatches] = useState<MatchResult[]>([]);
+  const [activity, setActivity] = useState<FeedItem[]>([]);
   const [sharedMatches, setSharedMatches] = useState<MatchResult[]>([]);
   const [weekdayActivity, setWeekdayActivity] = useState<number[]>(Array(7).fill(0));
   const [playerRank, setPlayerRank] = useState<number | null>(null);
@@ -154,6 +159,11 @@ export default function PlayerProfileScreen() {
   const [activeTab, setActiveTab] = useState<PlayerProfileTab>("versus");
   const [qrVisible, setQrVisible] = useState(false);
   const [showSafetyControls, setShowSafetyControls] = useState(false);
+  const [selectedResult, setSelectedResult] = useState<{
+    match: FeedItem["match"];
+    sport: FeedItem["sport"];
+    courtName?: string;
+  } | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -173,9 +183,9 @@ export default function PlayerProfileScreen() {
       setLoading(true);
       setActiveTab("versus");
       setPlayerRank(null);
-      const [p, m, shared, activityByDay] = await Promise.all([
+      const [p, activityItems, shared, activityByDay] = await Promise.all([
         fetchProfile(id),
-        fetchGamesByPlayer(id),
+        fetchPlayerActivity(id, 20),
         currentUser.id && currentUser.id !== id
           ? fetchHeadToHeadGames(currentUser.id, id)
           : Promise.resolve([] as MatchResult[]),
@@ -187,7 +197,8 @@ export default function PlayerProfileScreen() {
       if (!mounted) return;
       setPlayer(p);
       setPlayerCourt(resolvedCourt ?? null);
-      setPlayerMatches(m);
+      // A profile tells a "visits + games" story, not raw system events.
+      setActivity(pairVisits(activityItems));
       setSharedMatches(shared);
       setWeekdayActivity(activityByDay);
       setLoading(false);
@@ -333,14 +344,32 @@ export default function PlayerProfileScreen() {
             {h2h.matches.length > 0 ? (
               <View style={styles.section}>
                 <Text style={styles.subSectionTitle}>GAMES TOGETHER</Text>
-                {h2h.matches.slice(0, 5).map((match) => <ProfileMatchRow key={match.id} match={match} />)}
+                {h2h.matches.slice(0, 5).map((match) => (
+                  <ProfileMatchRow key={match.id} match={match} opponentName={player.name} />
+                ))}
               </View>
             ) : null}
           </>
         ) : activeTab === "activity" ? (
           <View style={styles.activityContent}>
-            {playerMatches.length > 0 ? (
-              playerMatches.map((match) => <ProfileMatchRow key={match.id} match={match} />)
+            {activity.length > 0 ? (
+              activity.map((item, index) => (
+                <ActivityRow
+                  isFirst={index === 0}
+                  isLast={index === activity.length - 1}
+                  item={item}
+                  key={item.id}
+                  quietRail={item.type === "checkin" || item.type === "checkout"}
+                  onActorPress={
+                    item.playerId ? () => router.push(`/player/${item.playerId}`) : undefined
+                  }
+                  onPress={
+                    item.type === "game_result" && item.match
+                      ? () => setSelectedResult({ match: item.match!, sport: item.sport, courtName: item.courtName })
+                      : undefined
+                  }
+                />
+              ))
             ) : (
               <EmptyProfileState title="NO ACTIVITY YET" body="Games and court activity will appear here." />
             )}
@@ -404,6 +433,13 @@ export default function PlayerProfileScreen() {
         playerId={player.id}
         playerName={player.name}
         visible={qrVisible}
+      />
+      <GameResultModal
+        courtName={selectedResult?.courtName}
+        match={selectedResult?.match ?? null}
+        onClose={() => setSelectedResult(null)}
+        sport={selectedResult?.sport}
+        visible={Boolean(selectedResult)}
       />
     </View>
   );
