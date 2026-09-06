@@ -482,8 +482,8 @@ const styles = StyleSheet.create({
     minHeight: 150,
   },
   activitySummary: {
-    marginTop: -4,
-    marginBottom: Space.sm,
+    marginTop: Space.md,
+    marginBottom: Space.xs,
     paddingHorizontal: Layout.screenGutter,
     fontFamily: Typography.bodyMedium,
     fontSize: 11,

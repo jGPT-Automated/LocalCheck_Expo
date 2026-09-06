@@ -92,7 +92,10 @@ After merge:
 4. Add the proven build to the external tester group, completing Beta App
    Review if App Store Connect requires it.
 5. Submit the App Store version only after metadata, privacy answers,
-   screenshots, support URLs, account deletion, and review notes are complete.
+   screenshots, review notes, and the support / privacy / terms URLs
+   (`https://localchecksports.com/support`, `/privacy`, `/terms`; support
+   email `localchecksports@gmail.com`) are entered in App Store Connect.
+   Account deletion is already shipped (Settings → Delete Account).
 
 ## Backend order
 

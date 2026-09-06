@@ -30,14 +30,19 @@ fresh iOS build proves push delivery.
 - Finish empty, loading, failure, long-content, privacy, and accessibility
   states.
 - Resolve Mapbox camera/marker and bottom-sheet behavior on physical iPhone.
-- Complete account deletion and Apple token revocation verification.
+- ~~Complete account deletion and Apple token revocation verification.~~ Done
+  (2026-09-05) — in-app DELETE ACCOUNT + `delete-account` Edge Function
+  revoke the Apple token and remove the user.
 
 Gate: browser and iPhone captures pass `DESIGN_QA.md` and native acceptance.
 
 ## 4. App Store readiness
 
-- Privacy and account-deletion review.
-- Support/metadata/screenshots.
+- Privacy review. (Account deletion: done — see section 3.)
+- Support/metadata/screenshots. Support email `localchecksports@gmail.com`;
+  privacy / terms / support pages at `https://localchecksports.com`
+  (`/privacy`, `/terms`, `/support`), already linked from Settings → Legal
+  & Support. These URLs still need to be entered in App Store Connect.
 - Production monitoring and rollback drill.
 - Final TestFlight regression across the high-risk matrix.
 

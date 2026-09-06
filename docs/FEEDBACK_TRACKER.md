@@ -541,9 +541,14 @@ and styling:
 
 ## Known gaps, not yet scheduled
 
-- No Terms of Service / EULA URL — App Store review requires one. Privacy
-  policy and support links are live.
+- Terms of Service / EULA — Settings → Legal & Support now links
+  `localchecksports.com/terms` alongside `/privacy` and `/support` (support
+  email `localchecksports@gmail.com`). Remaining: make sure that page is
+  live on the site and enter the URL in App Store Connect. App wiring done.
 - "Report player" destination/handling is unconfirmed.
+- Account deletion — done (Settings → Delete Account + `delete-account`
+  Edge Function revokes the Apple token). Was previously listed as a
+  release blocker in `docs/CURRENT_STATE.md`; cleared 2026-09-05.
 
 ## How to use this file
 
