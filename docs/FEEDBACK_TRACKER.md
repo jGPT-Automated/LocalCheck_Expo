@@ -48,6 +48,63 @@ point.
 
 ✅ done — committed on the branch · 🚧 in progress · ⬜ backlog, not started
 
+## 2026-09-06 (polish round 4) — game card + score review, live markup
+
+Fast Expo Go iteration on the score card and the FINAL SCORE / Inbox
+flow. Landing state after this round:
+
+- ✅ **Score card** (`ScoreCard`): two centred side-by-side columns, name
+  first, **no avatars** (they threw off the balance — Jesse's call after
+  trying them). 1v1 side = name → ELO move → score; team side = team label
+  → score → a name/ELO row per member. Caption leads with court short slug
+  · format (1V1/2V2) · date. Winner's name + score in accent; **WIN badge**
+  on the winning column (confirmed only) — Jesse: "clean". Player names
+  link to `/player/[id]`. No inner box — columns sit on the card.
+- ✅ **Status** is a thin top banner, not a pill. On the full FINAL SCORE
+  screen the banner + review timer + explainer are lifted above the card
+  (screen furniture); the Inbox keeps the banner on the card.
+- ✅ **Inbox card** (`compact`): one tight line per side (name · score), so
+  several games fit — was too tall to see more than one.
+- ✅ **viewerStatusLabel**: whoever last submitted the score has implicitly
+  approved it → they never see "YOUR APPROVAL" (they see who they're
+  waiting on / "CONFIRMING…"). Fixes a game logged here + approved by the
+  other account still showing "your approval" with no approve button.
+- ✅ **Inbox freshness**: `elo.tsx` refetches open matches on focus, so a
+  game the opponent approved elsewhere leaves the inbox.
+- ✅ **After approving a 1v1** (`match/[id]`): it confirms + moves ELO, then
+  routes to the profile tab. The profile ELO (`EloStat`/`ProfileHero` new
+  `animate` flag, wired only at the own-profile call site) rolls its digits
+  when it changes.
+- ✅ **BrandCheck** (`components/brand/LogoMark.tsx`): the LocalCheck frame
+  fades in and the check springs up inside it — on-brand success mark.
+  Used on the SCORE SENT screen below the card. Jesse: "i love the
+  checkmark". ⬜ NEXT: roll it out to other Feather check / success spots
+  for brand consistency (Jesse asked for this broadly).
+- ✅ Compete header: `#rank` readout is a right-aligned stack (big number,
+  small privacy line under it), not an inline row.
+- ✅ schedule.tsx time-window chevron given real spacing off the time axis.
+- ✅ Home "N arrivals in the last hour" no longer overlaps the section rule.
+- ✅ Log Game review / SCORE SENT: title, check and actions centred; real
+  safe-area inset so CONFIRM clears the tab bar.
+
+### Account deletion + App Store metadata (2026-09-06, per Jesse)
+- ✅ Account deletion is **done**, no longer a release blocker — the in-app
+  DELETE ACCOUNT flow + `delete-account` Edge Function revoke the Apple
+  token and remove the user. Cleared the "needs verification" line in
+  `CURRENT_STATE.md`, `ROADMAP.md`, `RELEASE.md`.
+- Support email **localchecksports@gmail.com**; privacy / terms / support
+  pages at **localchecksports.com** (`/privacy`, `/terms`, `/support`),
+  already linked from Settings → Legal & Support. Still to do (outside the
+  repo): enter these URLs in App Store Connect, and make sure the pages are
+  live. The Apple **privacy manifest** (`app.json` → `ios.privacyManifests`)
+  is already filled in.
+
+### ⬜ Still open / next
+- Roll BrandCheck out to the remaining success/checkmark icons.
+- Inbox vs. notifications badge-count reconciliation + the all/games filter
+  (from round 3) — still a product call.
+- The Starter/tier system (round 2).
+
 ## 2026-09-05 (polish round 3) — Expo Go pass, live element markup
 
 Jesse tested on Expo Go and marked up live elements. First finding: the
