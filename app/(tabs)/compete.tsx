@@ -170,7 +170,9 @@ export default function CompeteScreen() {
                 >
                   #{myRank}
                 </Text>
-                <Text style={styles.myRankLabel}>{rankContext}</Text>
+                <Text numberOfLines={1} style={styles.myRankLabel}>
+                  {rankContext}
+                </Text>
               </View>
             ) : null}
           </View>
@@ -196,6 +198,7 @@ export default function CompeteScreen() {
           players={leaderboardPlayers}
           myRank={myRank}
           showMyRank={showMyRank}
+          rankContext={rankContext}
           currentUserId={currentUser.id}
           currentUser={rankedCurrentUser}
           scope={scope}
@@ -230,6 +233,7 @@ function LeaderboardView({
   players,
   myRank,
   showMyRank,
+  rankContext,
   currentUserId,
   currentUser,
   scope,
@@ -243,6 +247,7 @@ function LeaderboardView({
   players: Player[];
   myRank: number;
   showMyRank: boolean;
+  rankContext: string;
   currentUserId: string;
   currentUser: Player;
   scope: Scope;
@@ -376,10 +381,15 @@ function LeaderboardView({
                   size={40}
                 />
                 <View style={styles.playerInfo}>
-                  <Text numberOfLines={1} style={styles.playerName}>
-                    {currentUser.name}
-                  </Text>
+                  <View style={styles.playerNameRow}>
+                    <Text numberOfLines={1} style={styles.playerName}>
+                      {currentUser.name}
+                    </Text>
+                  </View>
                   <View style={styles.playerBadges}>
+                    <Text style={[styles.tierText, { color: Colors.muted }]}>
+                      {rankContext}
+                    </Text>
                     <Text style={styles.wlText}>
                       {currentUser.wins}W · {currentUser.losses}L
                     </Text>
@@ -1569,24 +1579,26 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   myRankBadge: {
+    flexDirection: "row",
     alignItems: "center",
-    paddingBottom: 2,
+    gap: 6,
   },
   myRankNum: {
     fontFamily: Typography.heading,
-    fontSize: 22,
+    fontSize: 20,
     color: Colors.accent,
     letterSpacing: 0.5,
-    lineHeight: 24,
+    lineHeight: 22,
   },
   myRankNumDim: {
     color: Colors.muted,
   },
   myRankLabel: {
+    maxWidth: 132,
     fontFamily: Typography.bodyMedium,
     fontSize: 8,
     color: Colors.muted,
-    letterSpacing: 1.5,
+    letterSpacing: 1.4,
     textTransform: "uppercase" as const,
   },
 

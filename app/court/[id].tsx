@@ -1,4 +1,4 @@
-import { Feather } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -185,10 +185,10 @@ export default function CourtProfileScreen() {
             pressed && styles.pressed,
           ]}
         >
-          <Feather
+          <Ionicons
             color={isMyLocal ? Colors.accent : Colors.textSecondary}
-            name={isMyLocal ? "check-circle" : "map-pin"}
-            size={12}
+            name={isMyLocal ? "star" : "star-outline"}
+            size={13}
           />
           <Text style={[styles.localButtonText, isMyLocal && styles.localButtonTextActive]}>
             {isMyLocal ? "LOCAL" : "SET LOCAL"}
@@ -354,9 +354,9 @@ const styles = StyleSheet.create({
   notFoundText: { fontFamily: Typography.heading, fontSize: 22, color: Colors.text },
   retryButton: { minHeight: 44, paddingHorizontal: Space.xl, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
   retryText: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.text, letterSpacing: 1.2 },
-  localButton: { minHeight: Layout.minTouchTarget, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Space.xs, borderWidth: 1, borderColor: Colors.borderLight, borderRadius: 5, backgroundColor: Colors.surfaceHigh },
-  localButtonActive: { borderColor: Colors.accentBorder, backgroundColor: Colors.accentDim },
-  localButtonText: { ...TextStyles.labelSmall, color: Colors.textSecondary, letterSpacing: 0.25 },
+  localButton: { minHeight: 34, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, borderWidth: 1, borderColor: Colors.border, borderRadius: 17, backgroundColor: "transparent" },
+  localButtonActive: { borderColor: Colors.accent, backgroundColor: Colors.accentDim },
+  localButtonText: { ...TextStyles.labelSmall, color: Colors.textSecondary, letterSpacing: 1 },
   localButtonTextActive: { color: Colors.accent },
   tabs: { minHeight: 44, paddingHorizontal: Layout.screenGutter, flexDirection: "row", borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Colors.border },
   tab: { flex: 1, alignItems: "center", justifyContent: "center", borderBottomWidth: 2, borderBottomColor: "transparent" },
