@@ -95,24 +95,32 @@ export function CourtsScreen() {
   const localCourtLat = localCourt?.latitude;
   const localCourtLng = localCourt?.longitude;
   const locationIsTrusted = locationStatus === "granted" && deviceCoord != null;
+  // Any real device coordinate wins over a saved court in another city — the
+  // permission *status* can still read "undetermined" for a beat after a fix
+  // lands, and during that window we were anchoring the whole list on the far
+  // local court's market (LA courts for a user standing in Houston).
   const discoveryOrigin = useMemo(() => {
-    if (locationIsTrusted) return deviceCoord;
+    if (deviceCoord) return deviceCoord;
     if (localCourtLat != null && localCourtLng != null) {
       return { lat: localCourtLat, lng: localCourtLng };
     }
-    return deviceCoord;
-  }, [locationIsTrusted, localCourtLat, localCourtLng, deviceCoord]);
+    return null;
+  }, [localCourtLat, localCourtLng, deviceCoord]);
 
+  // Only the newest discovery request may write the list — a slow market
+  // query resolving after a fast device-radius query would otherwise stomp
+  // fresh "where I am now" results with stale "my home city" ones.
+  const discoverySeq = useRef(0);
   const loadDiscovery = useCallback(async () => {
     if (!discoveryOrigin) return;
+    const seq = ++discoverySeq.current;
     setLoading(true);
     try {
       const origin = discoveryOrigin;
       // Market-scoped discovery is the "my scene" view around a saved local
-      // court. Once we have a real device fix, switch to true radius search so
-      // travelling users see courts where they actually are.
+      // court, used only when we have no device coordinate at all.
       const courts =
-        localCourt?.market && !locationIsTrusted
+        localCourt?.market && !deviceCoord
           ? await fetchCourtsByMarket(
               localCourt.market,
               origin,
@@ -125,19 +133,13 @@ export function CourtsScreen() {
               sportFilter === "ALL" ? null : sportFilter,
               DISCOVERY_LIMIT,
             );
-      setNearbyCourts(courts);
+      if (seq === discoverySeq.current) setNearbyCourts(courts);
     } catch {
-      setNearbyCourts([]);
+      if (seq === discoverySeq.current) setNearbyCourts([]);
     } finally {
-      setLoading(false);
+      if (seq === discoverySeq.current) setLoading(false);
     }
-  }, [
-    discoveryOrigin,
-    locationIsTrusted,
-    localCourt?.id,
-    localCourt?.market,
-    sportFilter,
-  ]);
+  }, [discoveryOrigin, deviceCoord, localCourt?.market, sportFilter]);
 
   useEffect(() => {
     setShowAll(false);

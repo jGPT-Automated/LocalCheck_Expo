@@ -164,13 +164,16 @@ export function MapScreen({
       const [[neLng, neLat], [swLng, swLat]] = bounds;
       const latPad = (neLat - swLat) * 0.15;
       const lngPad = (neLng - swLng) * 0.15;
+      // A wide, zoomed-out viewport should still return a full spread of pins
+      // for Mapbox to cluster — 250 was leaving whole metros blank at national
+      // zoom. The clustering layers keep the render cheap.
       const courts = await fetchCourtsInBounds(
         swLat - latPad,
         swLng - lngPad,
         neLat + latPad,
         neLng + lngPad,
         sportFilter,
-        250,
+        1500,
       );
       if (seq !== fetchSeq.current) return;
       // Never blank the map on an empty response while we still have pins —
@@ -182,24 +185,20 @@ export function MapScreen({
     }, 400);
   }, [sportFilter]);
 
-  // ── Merge context courts (authoritative for local court) + live counts ──
+  // ── Courts on the map are whatever the viewport fetch returned, plus the
+  // saved local court (always pinned) and the nearby context set. No market
+  // scoping here — a map you can pan and zoom *is* the scope, and scoping by
+  // the saved local court's market was the reason zooming out never revealed
+  // courts in other cities. Sport is the only filter. ──
   const mergedCourts = useMemo(() => {
     const merged = new Map<string, Court>();
     viewportCourts.forEach((c) => merged.set(c.id, c));
     contextCourts.forEach((c) => {
-      const belongsToCurrentMarket =
-        !localCourt ||
-        c.id === localCourt.id ||
-        // When the local court has no market tag we can't scope by it — fall
-        // back to trusting every context court (AppContext already fetches
-        // them nearby-scoped), so the map is never left with zero pins if the
-        // viewport fetch hasn't landed.
-        !localCourt.market ||
-        c.market === localCourt.market;
-      if (merged.has(c.id) || belongsToCurrentMarket) {
-        merged.set(c.id, merged.has(c.id) ? { ...merged.get(c.id)!, ...c } : c);
-      }
+      merged.set(c.id, merged.has(c.id) ? { ...merged.get(c.id)!, ...c } : c);
     });
+    if (localCourt && !merged.has(localCourt.id)) {
+      merged.set(localCourt.id, localCourt);
+    }
     return Array.from(merged.values()).filter(
       (court) => sportFilter === "ALL" || court.sport === sportFilter,
     );
