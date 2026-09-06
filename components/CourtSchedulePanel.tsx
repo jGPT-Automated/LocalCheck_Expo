@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Colors, Radius } from "@/constants/colors";
 import { Court, GameRun } from "@/constants/data";
+import { Layout } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { fetchCourtPlannedTimes } from "@/services/plannedVisitService";
@@ -303,9 +304,7 @@ export function CourtSchedulePanel({
                     <Text style={styles.cellCount}>{count}</Text>
                   ) : null}
                   {(slotMap.get(key)?.runCount ?? 0) > 0 ? (
-                    <View style={styles.runBadge}>
-                      <Feather color={Colors.black} name="calendar" size={9} />
-                    </View>
+                    <View style={styles.runDot} />
                   ) : null}
                 </Pressable>
               );
@@ -453,10 +452,12 @@ export function CourtSchedulePanel({
 
 const styles = StyleSheet.create({
   panel: { flex: 1, minHeight: 0 },
-  panelContent: { paddingTop: 8, paddingBottom: 20 },
+  // Clears the floating tab bar so the selected-slot card can scroll fully
+  // into view; no artificial gap when the content already fits.
+  panelContent: { paddingTop: 6, paddingBottom: Layout.tabBarClearance },
   heatmap: { paddingHorizontal: 12 },
-  timeScroller: { maxHeight: 220 },
-  timeScrollerCompact: { maxHeight: 148 },
+  timeScroller: { maxHeight: 260 },
+  timeScrollerCompact: { maxHeight: 182 },
   timeRows: { paddingBottom: 2 },
   heatRow: {
     flexDirection: "row",
@@ -522,15 +523,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.text,
   },
-  runBadge: {
+  runDot: {
     position: "absolute",
-    right: 2,
-    top: 2,
-    width: 14,
-    height: 14,
-    borderRadius: Radius.xs,
-    alignItems: "center",
-    justifyContent: "center",
+    right: 3,
+    top: 3,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
     backgroundColor: Colors.accent,
   },
   legend: {
@@ -554,9 +553,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.borderSubtle,
   },
   slotCard: {
-    minHeight: 105,
     marginHorizontal: 12,
-    marginTop: 10,
+    marginTop: 8,
     borderWidth: 1,
     borderTopColor: Colors.border,
     borderColor: Colors.border,
@@ -565,7 +563,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   slotHeader: {
-    minHeight: 29,
+    minHeight: 27,
     paddingHorizontal: 10,
     flexDirection: "row",
     alignItems: "center",
@@ -588,19 +586,19 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   slotContent: {
-    minHeight: 74,
+    minHeight: 56,
     flexDirection: "row",
   },
   peopleArea: {
     flex: 1,
     minWidth: 0,
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   gameArea: {
     width: 148,
     paddingHorizontal: 9,
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderLeftWidth: StyleSheet.hairlineWidth,
     borderLeftColor: Colors.border,
   },

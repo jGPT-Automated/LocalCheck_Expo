@@ -330,12 +330,7 @@ export function HomeScreen() {
         ) : null}
 
         {activeTab === "schedule" ? (
-          <View
-            style={[
-              styles.scheduleTab,
-              { paddingBottom: Layout.tabBarClearance },
-            ]}
-          >
+          <View style={styles.scheduleTab}>
             <CourtSchedulePanel court={localCourt} interactive={false} />
           </View>
         ) : null}
