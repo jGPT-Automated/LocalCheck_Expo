@@ -1,7 +1,15 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { DetailHeader } from "@/components/ui/DetailHeader";
@@ -101,7 +109,28 @@ export default function LocalPlusScreen() {
           >
             <Text style={styles.ctaText}>SEE PLANS</Text>
           </Pressable>
-        ) : null}
+        ) : isFounding ? (
+          <Text style={styles.manageNote}>
+            Your founding year is on us — there's no subscription to cancel.
+            LocalPlus simply lapses at the end of the year unless you start one.
+          </Text>
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() =>
+              void Linking.openURL(
+                "https://apps.apple.com/account/subscriptions",
+              )
+            }
+            style={({ pressed }) => [
+              styles.manageButton,
+              pressed && styles.ctaPressed,
+            ]}
+          >
+            <Feather color={Colors.textSecondary} name="external-link" size={13} />
+            <Text style={styles.manageButtonText}>MANAGE / CANCEL SUBSCRIPTION</Text>
+          </Pressable>
+        )}
 
         <Text style={styles.fine}>
           Older games are only hidden from the profile feed — they still move
@@ -166,6 +195,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     letterSpacing: 1.6,
     color: Colors.black,
+  },
+  manageButton: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  manageButtonText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    letterSpacing: 1.2,
+    color: Colors.textSecondary,
+  },
+  manageNote: {
+    ...TextStyles.bodySmall,
+    color: Colors.muted,
+    lineHeight: 17,
   },
   fine: {
     ...TextStyles.caption,

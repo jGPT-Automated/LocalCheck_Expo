@@ -37,6 +37,7 @@ import {
 } from "@/constants/data";
 import { TextStyles, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { useLocalPlus } from "@/hooks/useLocalPlus";
 import { usePresence } from "@/context/CourtPresenceContext";
 import {
   fetchLeaderboard,
@@ -57,11 +58,14 @@ export default function CompeteScreen() {
     localCourt,
     courts,
     currentUser,
-    isLocalPlus,
     visibility,
     preferredSport,
     preferredCourtId,
   } = useApp();
+  // Single source for the viewer's entitlement — matches the rest of the app
+  // (Settings, /localplus, the history gate). `useApp().isLocalPlus` is the raw
+  // is_pro flag, which lags the founding grant.
+  const isLocalPlus = useLocalPlus();
   const { bottom } = useSafeAreaInsets();
 
   // Deep-link support: /(tabs)/compete?tab=log&courtId=... opens Log Game
@@ -371,10 +375,12 @@ function LeaderboardView({
         rankedRows.map((row) => {
           if (row.kind === "hidden") {
             return (
-              <View
+              <Pressable
                 key="current-user-hidden"
+                onPress={() => router.push(`/localplus`)}
                 style={[styles.leaderRow, styles.hiddenLeaderRow]}
               >
+                <View style={styles.hiddenDot} />
                 <Text style={styles.rank}>{row.rank}</Text>
                 <PlayerAvatar
                   initials={currentUser.avatar}
@@ -384,12 +390,15 @@ function LeaderboardView({
                 />
                 <View style={styles.playerInfo}>
                   <View style={styles.playerNameRow}>
-                    <Text numberOfLines={1} style={styles.playerName}>
+                    <Text numberOfLines={1} style={styles.hiddenPlayerName}>
                       {currentUser.name}
                     </Text>
+                    <View style={styles.youChip}>
+                      <Text style={styles.youChipText}>YOU</Text>
+                    </View>
                   </View>
                   <View style={styles.playerBadges}>
-                    <Text style={[styles.tierText, { color: Colors.muted }]}>
+                    <Text style={[styles.tierText, { color: Colors.accent }]}>
                       {rankContext}
                     </Text>
                     <Text style={styles.wlText}>
@@ -398,7 +407,7 @@ function LeaderboardView({
                   </View>
                 </View>
                 <EloStat leaderboard value={currentUser.elo} />
-              </View>
+              </Pressable>
             );
           }
 
@@ -1619,9 +1628,41 @@ const styles = StyleSheet.create({
   },
 
   // ── Inline private position indicator ──
+  // Findable, not faded: an accent spine + "YOU" chip keep the row easy to
+  // spot, while the name itself is dimmed to say "not on the public board".
   hiddenLeaderRow: {
-    backgroundColor: Colors.surfaceHigh,
-    opacity: 0.48,
+    position: "relative",
+    backgroundColor: `${Colors.accent}0D`,
+    borderColor: Colors.accentBorder,
+  },
+  hiddenDot: {
+    position: "absolute",
+    left: 0,
+    top: 8,
+    bottom: 8,
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: Colors.accent,
+  },
+  hiddenPlayerName: {
+    flexShrink: 1,
+    fontFamily: Typography.heading,
+    fontSize: 15,
+    letterSpacing: 0.4,
+    color: Colors.muted,
+  },
+  youChip: {
+    marginLeft: 7,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.accent,
+  },
+  youChipText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 8,
+    letterSpacing: 1,
+    color: Colors.black,
   },
   yourPositionRank: {
     fontFamily: Typography.heading,

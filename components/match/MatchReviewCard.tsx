@@ -131,14 +131,24 @@ export function MatchReviewCard({
       ? match.participants.find((p) => p.id === match.lastSubmittedBy)
       : undefined;
   const revisedByOther = reviser != null && reviser.id !== viewerId;
+  const reviserFirst = reviser
+    ? reviser.name.split(" ")[0].toUpperCase()
+    : "";
 
+  // The note text lives on the match screen. The card only flags there is
+  // one so it stays a single clean height. Compact keeps the caption short;
+  // the full screen names who left it.
   const captionExtras = [
     match.disputeCount > 0
       ? `DISPUTE ${Math.min(match.disputeCount, 2)} OF 2`
       : null,
-    revisedByOther
-      ? `REVISED BY ${reviser!.name.split(" ")[0].toUpperCase()}`
-      : null,
+    match.disputeNote && revisedByOther
+      ? compact
+        ? "NOTE ADDED"
+        : `${reviserFirst} ADDED A NOTE`
+      : revisedByOther
+        ? `REVISED BY ${reviserFirst}`
+        : null,
   ].filter(Boolean);
 
   const card = (
@@ -151,13 +161,11 @@ export function MatchReviewCard({
       leftPlayers={sidePlayers(firstSide)}
       leftScore={firstScore}
       note={
-        compact && match.disputeNote
-          ? match.disputeNote
-          : compact && remaining
-            ? `${copy.countdownLabel} · ${remaining}`
-            : compact
-              ? copy.description
-              : undefined
+        compact && remaining
+          ? `${copy.countdownLabel} · ${remaining}`
+          : compact
+            ? copy.description
+            : undefined
       }
       onPlayerPress={(id) => router.push(`/player/${id}`)}
       playedOn={match.playedAt}
