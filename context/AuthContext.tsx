@@ -38,6 +38,9 @@ export interface UserProfile {
   preferred_sport: string | null;
   postal_code: string | null;
   is_pro: boolean;
+  /** Persistent identity-level privacy: governs check-ins, schedule, and the
+   *  leaderboard. Absent until the profile-visibility migration is applied. */
+  visibility?: "public" | "friends" | "private";
   created_at: string;
   updated_at: string;
   // PR #43 additions — absent until the founding/referral migration is applied.

@@ -55,7 +55,7 @@ import { searchCourts } from "@/services/courtService";
 
 // BACKEND NOTE:
 
-type Scope = "GLOBAL" | "REGIONAL" | "LOCAL";
+type Scope = "FRIENDS" | "REGIONAL" | "LOCAL";
 type CompeteMode = "RANKINGS" | "LOG_GAME";
 
 export default function CompeteScreen() {
@@ -64,6 +64,7 @@ export default function CompeteScreen() {
     localCourt,
     courts,
     currentUser,
+    getFriendsList,
     visibility,
     preferredSport,
     preferredCourtId,
@@ -111,13 +112,21 @@ export default function CompeteScreen() {
     }
   }, [localCourt?.sport, preferredSport]);
 
+  const friendIdsKey = getFriendsList()
+    .map((f) => f.id)
+    .sort()
+    .join(",");
   useEffect(() => {
     let mounted = true;
     setLeaderboardLoading(true);
     fetchLeaderboard(
       scope,
-      scope === "GLOBAL" ? null : localCourtId,
+      scope === "FRIENDS" ? null : localCourtId,
       rankingSport,
+      {
+        viewerId: currentUser.id,
+        friendIds: friendIdsKey ? friendIdsKey.split(",") : [],
+      },
     )
       .then((players) => {
         if (!mounted) return;
@@ -129,7 +138,7 @@ export default function CompeteScreen() {
     return () => {
       mounted = false;
     };
-  }, [scope, localCourtId, rankingSport, currentUser.elo]);
+  }, [scope, localCourtId, rankingSport, currentUser.elo, currentUser.id, friendIdsKey]);
 
   // Profile/QR deep links are identity lookups, not leaderboard lookups. A
   // valid opponent can be outside the current local/regional/ranked scope.
@@ -154,13 +163,20 @@ export default function CompeteScreen() {
   const myRank = allPlayers.findIndex((p) => p.id === currentUser.id) + 1;
   const rankedCurrentUser =
     allPlayers.find((p) => p.id === currentUser.id) ?? currentUser;
-  const amIVisible = visibility === "public" && isLocalPlus;
+  // "Would anyone else see my rank on this board?" — LocalPlus gates every
+  // scope; a friends-only profile is visible only on the FRIENDS board.
+  const amIVisible =
+    isLocalPlus &&
+    (visibility === "public" ||
+      (visibility === "friends" && scope === "FRIENDS"));
   const showMyRank = myRank > 0 && amIVisible;
-  const rankContext = showMyRank
-    ? "LOCALPLUS"
-    : visibility === "public"
-      ? "HIDDEN — LOCALPLUS"
-      : "HIDDEN — PRIVATE";
+  const rankContext = !isLocalPlus
+    ? "HIDDEN — LOCALPLUS"
+    : visibility === "private"
+      ? "HIDDEN — PRIVATE"
+      : visibility === "friends"
+        ? "FRIENDS ONLY"
+        : "LOCALPLUS";
   const leaderboardPlayers = useMemo(
     () =>
       showMyRank
@@ -325,7 +341,7 @@ function LeaderboardView({
           />
         </View>
         <View accessibilityRole="tablist" style={styles.scopeRow}>
-          {(["LOCAL", "REGIONAL", "GLOBAL"] as Scope[]).map((s) => (
+          {(["FRIENDS", "LOCAL", "REGIONAL"] as Scope[]).map((s) => (
             <Pressable
               accessibilityRole="tab"
               accessibilityState={{ selected: scope === s }}
@@ -365,6 +381,8 @@ function LeaderboardView({
           <Text style={styles.scopeLabelText} numberOfLines={1}>
             {(localCourt?.city || "REGIONAL").toUpperCase()}
           </Text>
+        ) : scope === "FRIENDS" ? (
+          <Text style={styles.scopeLabelText}>YOU + YOUR FRIENDS</Text>
         ) : (
           <Text style={styles.scopeLabelText}>UNITED STATES</Text>
         )}

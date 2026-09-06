@@ -1,8 +1,10 @@
+import { LocalPlusFlags } from "@/constants/flags";
 import { CourtSport, getEloTier, Player } from "@/constants/data";
 import { supabase } from "@/lib/supabase";
 import {
   canLoadLeaderboardScope,
   chunkLeaderboardIds,
+  type LeaderboardScope,
   LEADERBOARD_COURT_PAGE_SIZE,
 } from "@/services/leaderboardFilter";
 import { resolveProfileSport } from "@/services/profileModel";
@@ -28,6 +30,8 @@ export interface SupabaseProfile {
   local_court_id: string | null;
   preferred_sport: string | null;
   postal_code: string | null;
+  is_pro?: boolean;
+  visibility?: "public" | "friends" | "private";
   created_at: string;
   updated_at: string;
 }
@@ -221,6 +225,7 @@ export async function updateProfileFields(
     local_court_id: string | null;
     preferred_sport: string | null;
     postal_code: string | null;
+    visibility: "public" | "friends" | "private";
   }>,
 ): Promise<boolean> {
   try {
@@ -394,13 +399,56 @@ async function fetchRankedProfileRows(
  * membership uses preferred_sport when set, then falls back to the saved home
  * court's sport. Accounts with neither value are not ranked.
  */
+/**
+ * Whether a profile row belongs on a leaderboard the given viewer is looking
+ * at. LocalPlus is the gate (flag-gated until the founding grant is applied);
+ * `private` is never listed; `friends` only to a friend. You always see
+ * yourself so the app can render a "you, hidden" row.
+ */
+function isLeaderboardVisible(
+  row: { id: string; is_pro?: boolean; visibility?: string | null },
+  viewerId: string | undefined,
+  friendIds: Set<string>,
+): boolean {
+  if (viewerId && row.id === viewerId) return true;
+  if (LocalPlusFlags.gateLeaderboard && !row.is_pro) return false;
+  if (row.visibility === "private") return false;
+  if (row.visibility === "friends") return friendIds.has(row.id);
+  return true;
+}
+
 export async function fetchLeaderboard(
-  scope: "LOCAL" | "GLOBAL" | "REGIONAL",
+  scope: LeaderboardScope,
   courtId: string | null,
   sport?: CourtSport | null,
+  opts: { viewerId?: string; friendIds?: string[] } = {},
 ): Promise<Player[]> {
+  const { viewerId } = opts;
+  const friendIds = new Set(opts.friendIds ?? []);
   try {
     if (!canLoadLeaderboardScope(scope, courtId)) return [];
+
+    // FRIENDS — just you + your accepted friends, ranked. Scoped by id, so no
+    // court/market plumbing; the visibility filter still drops private friends.
+    if (scope === "FRIENDS") {
+      if (!viewerId) return [];
+      const ids = [viewerId, ...friendIds];
+      const ratingColumn =
+        sport === "PICKLEBALL" ? "elo_pickleball" : "elo_basketball";
+      const run = (col: string) =>
+        supabase
+          .from("profiles")
+          .select("*")
+          .in("id", ids)
+          .order(col, { ascending: false })
+          .limit(200);
+      let res = await run(ratingColumn);
+      if (res.error?.code === "42703") res = await run("elo_rating");
+      if (res.error || !res.data) return [];
+      return (res.data as SupabaseProfile[])
+        .filter((row) => isLeaderboardVisible(row, viewerId, friendIds))
+        .map((row) => mapProfileToPlayer(row, sport));
+    }
 
     let regionalCourtIds: string[] | null = null;
     let fallbackSportCourtIds: string[] = [];
@@ -469,7 +517,15 @@ export async function fetchLeaderboard(
         );
       }
       if (result.error) return [];
-      return result.data.map((row) => mapProfileToPlayer(row, sport));
+      return result.data
+        .filter((row) =>
+          isLeaderboardVisible(
+            row as { id: string; is_pro?: boolean; visibility?: string | null },
+            viewerId,
+            friendIds,
+          ),
+        )
+        .map((row) => mapProfileToPlayer(row, sport));
     }
 
     const buildQuery = (orderColumn: string) => {
@@ -486,9 +542,9 @@ export async function fetchLeaderboard(
     // until the additive sport-rating migration is applied.
     if (result.error?.code === "42703") result = await buildQuery("elo_rating");
     if (result.error || !result.data) return [];
-    return (result.data as SupabaseProfile[]).map((row) =>
-      mapProfileToPlayer(row, sport),
-    );
+    return (result.data as SupabaseProfile[])
+      .filter((row) => isLeaderboardVisible(row, viewerId, friendIds))
+      .map((row) => mapProfileToPlayer(row, sport));
   } catch {
     return [];
   }

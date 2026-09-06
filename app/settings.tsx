@@ -47,19 +47,19 @@ const VISIBILITY_OPTIONS: Array<{
     value: "public",
     label: "PUBLIC",
     description:
-      "Anyone at the court sees your name, avatar, and rank when you check in.",
+      "Anyone sees your check-ins, scheduled times, and — with LocalPlus — your leaderboard rank.",
   },
   {
     value: "friends",
     label: "FRIENDS",
     description:
-      "Only accepted friends see your identity. Everyone else sees an anonymous check-in.",
+      "Only accepted friends see your check-ins, schedule, and rank. Everyone else sees an anonymous check-in and no rank.",
   },
   {
     value: "private",
     label: "PRIVATE",
     description:
-      "You still count as active, but your name, avatar, and rank stay hidden from everyone — including on the leaderboard.",
+      "You still count as active, but your name, schedule, and rank stay hidden from everyone — including every leaderboard.",
   },
 ];
 
@@ -314,7 +314,7 @@ export default function SettingsScreen() {
         <Section title="PROFILE">
           <DrillRow
             icon="eye"
-            label="CHECK-IN PRIVACY"
+            label="PRIVACY"
             value={privacyLabel}
             onPress={() => setEditor("privacy")}
           />
@@ -622,8 +622,8 @@ function PrivacyEditorSheet({
     <RunFlowSheet
       visible={visible}
       onClose={onClose}
-      title="CHECK-IN PRIVACY"
-      eyebrow="WHO SEES YOU AT A COURT"
+      title="PRIVACY"
+      eyebrow="WHO SEES YOUR CHECK-INS, SCHEDULE & RANK"
       snapPoints={["62%"]}
     >
       <View style={styles.optionList}>
