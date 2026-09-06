@@ -8,6 +8,7 @@ import {
   Linking,
   Platform,
   Pressable,
+  Share,
   StyleSheet,
   Switch,
   Text,
@@ -27,8 +28,12 @@ import { TextStyles, Typography } from "@/constants/typography";
 import { useApp, Visibility } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useNotifications } from "@/context/NotificationContext";
+import { useLocalPlus } from "@/hooks/useLocalPlus";
 import { deleteCurrentAccount } from "@/services/accountService";
 import { searchCourts } from "@/services/courtService";
+
+const APP_STORE_URL =
+  process.env.EXPO_PUBLIC_APP_STORE_URL ?? "https://localchecksports.com";
 
 const WEBSITE_URL =
   process.env.EXPO_PUBLIC_WEBSITE_URL ?? "https://localchecksports.com";
@@ -93,7 +98,20 @@ export default function SettingsScreen() {
     setLocalCourt,
   } = useApp();
   const { user, profile, signOut } = useAuth();
+  const hasLocalPlus = useLocalPlus();
   const { bottom } = useSafeAreaInsets();
+
+  const inviteFriends = async () => {
+    const code = profile?.referral_code;
+    const message = code
+      ? `Come play pickup on LocalCheck. Use my code ${code} when you sign up. ${APP_STORE_URL}`
+      : `Come play pickup on LocalCheck. ${APP_STORE_URL}`;
+    try {
+      await Share.share({ message });
+    } catch {
+      /* user dismissed the share sheet */
+    }
+  };
   const [deleting, setDeleting] = useState(false);
   const [pushSaving, setPushSaving] = useState(false);
   const { pushEnabled, enablePush, disablePush } = useNotifications();
@@ -266,6 +284,32 @@ export default function SettingsScreen() {
             </Text>
           </View>
         ) : null}
+
+        <Section title="LOCALPLUS">
+          <SettingsRow
+            icon={hasLocalPlus ? "check-circle" : "zap"}
+            label={hasLocalPlus ? "LOCALPLUS ACTIVE" : "UPGRADE TO LOCALPLUS"}
+            detail={
+              hasLocalPlus
+                ? profile?.is_founding_member
+                  ? "Founding member — free for your first year"
+                  : "Leaderboard, full history, and travel court insights"
+                : "Leaderboard, full history, and travel court insights"
+            }
+            onPress={() => router.push("/localplus" as Href)}
+          />
+          <SettingsRow
+            icon="user-plus"
+            label="INVITE FRIENDS"
+            detail={
+              profile?.recruits_count
+                ? `${profile.recruits_count} joined with your code`
+                : "Share your code — see who you bring on"
+            }
+            onPress={() => void inviteFriends()}
+            last
+          />
+        </Section>
 
         <Section title="PROFILE">
           <DrillRow

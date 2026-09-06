@@ -449,7 +449,7 @@ function Details({
     <ScrollView
       contentContainerStyle={[
         styles.detailsContent,
-        { paddingBottom: bottom + 28 },
+        { paddingBottom: bottom + 44 },
       ]}
       keyboardShouldPersistTaps="handled"
     >
@@ -535,7 +535,7 @@ function SportCard({
     >
       <Feather
         name={icon}
-        size={32}
+        size={20}
         color={selected ? Colors.accent : Colors.muted}
       />
       <Text style={[styles.sportText, selected && styles.sportTextSelected]}>
@@ -883,9 +883,9 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   shutterInner: { flex: 1, borderRadius: 28, backgroundColor: Colors.white },
-  detailsContent: { padding: Layout.screenGutter, gap: 13 },
+  detailsContent: { padding: Layout.screenGutter, gap: 10 },
   photoPreview: {
-    height: 185,
+    height: 148,
     overflow: "hidden",
     borderRadius: Radius.card,
     borderWidth: 1,
@@ -901,34 +901,35 @@ const styles = StyleSheet.create({
   },
   liveBadge: {
     position: "absolute",
-    right: 14,
-    top: 14,
+    right: 12,
+    top: 12,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingVertical: 9,
-    paddingHorizontal: 12,
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 9,
     backgroundColor: Colors.black,
-    borderRadius: Radius.md,
+    borderRadius: Radius.sm,
   },
   liveBadgeText: {
     color: Colors.accent,
     fontFamily: Typography.bodyBold,
-    fontSize: 13,
+    fontSize: 10,
+    letterSpacing: 1,
   },
   fieldLabel: {
-    marginTop: 13,
+    marginTop: 12,
     color: Colors.muted,
     fontFamily: Typography.bodyBold,
-    fontSize: 13,
-    letterSpacing: 2,
+    fontSize: 11,
+    letterSpacing: 1.4,
   },
   nameInputWrap: {
-    minHeight: 70,
+    minHeight: 52,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 18,
+    gap: 10,
+    paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radius.card,
@@ -938,17 +939,17 @@ const styles = StyleSheet.create({
     flex: 1,
     color: Colors.text,
     fontFamily: Typography.heading,
-    fontSize: 25,
-    letterSpacing: 0.7,
+    fontSize: 17,
+    letterSpacing: 0.5,
   },
-  fieldHelp: { color: Colors.muted, fontFamily: Typography.body, fontSize: 13 },
-  sportRow: { flexDirection: "row", gap: 14 },
+  fieldHelp: { color: Colors.muted, fontFamily: Typography.body, fontSize: 11 },
+  sportRow: { flexDirection: "row", gap: 10 },
   sportCard: {
     flex: 1,
-    height: 152,
+    height: 88,
     alignItems: "center",
     justifyContent: "center",
-    gap: 17,
+    gap: 8,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radius.card,
@@ -961,16 +962,16 @@ const styles = StyleSheet.create({
   sportText: {
     color: Colors.muted,
     fontFamily: Typography.heading,
-    fontSize: 21,
-    letterSpacing: 0.7,
+    fontSize: 13,
+    letterSpacing: 0.6,
   },
   sportTextSelected: { color: Colors.accent },
   addressBox: {
-    minHeight: 66,
+    minHeight: 52,
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
-    paddingHorizontal: 18,
+    gap: 12,
+    paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radius.card,
@@ -980,7 +981,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: Colors.textSecondary,
     fontFamily: Typography.body,
-    fontSize: 16,
+    fontSize: 13,
   },
   centered: {
     flex: 1,

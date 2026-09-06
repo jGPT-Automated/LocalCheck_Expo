@@ -30,12 +30,14 @@ import { Colors, Radius } from "@/constants/colors";
 import {
   Court,
   CourtSport,
+  formatTierLabel,
   getSportColor,
   getTierColor,
   Player,
 } from "@/constants/data";
 import { TextStyles, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { useLocalPlus } from "@/hooks/useLocalPlus";
 import { usePresence } from "@/context/CourtPresenceContext";
 import {
   fetchLeaderboard,
@@ -56,11 +58,14 @@ export default function CompeteScreen() {
     localCourt,
     courts,
     currentUser,
-    isLocalPlus,
     visibility,
     preferredSport,
     preferredCourtId,
   } = useApp();
+  // Single source for the viewer's entitlement — matches the rest of the app
+  // (Settings, /localplus, the history gate). `useApp().isLocalPlus` is the raw
+  // is_pro flag, which lags the founding grant.
+  const isLocalPlus = useLocalPlus();
   const { bottom } = useSafeAreaInsets();
 
   // Deep-link support: /(tabs)/compete?tab=log&courtId=... opens Log Game
@@ -370,10 +375,12 @@ function LeaderboardView({
         rankedRows.map((row) => {
           if (row.kind === "hidden") {
             return (
-              <View
+              <Pressable
                 key="current-user-hidden"
+                onPress={() => router.push(`/localplus`)}
                 style={[styles.leaderRow, styles.hiddenLeaderRow]}
               >
+                <View style={styles.hiddenDot} />
                 <Text style={styles.rank}>{row.rank}</Text>
                 <PlayerAvatar
                   initials={currentUser.avatar}
@@ -383,12 +390,15 @@ function LeaderboardView({
                 />
                 <View style={styles.playerInfo}>
                   <View style={styles.playerNameRow}>
-                    <Text numberOfLines={1} style={styles.playerName}>
+                    <Text numberOfLines={1} style={styles.hiddenPlayerName}>
                       {currentUser.name}
                     </Text>
+                    <View style={styles.youChip}>
+                      <Text style={styles.youChipText}>YOU</Text>
+                    </View>
                   </View>
                   <View style={styles.playerBadges}>
-                    <Text style={[styles.tierText, { color: Colors.muted }]}>
+                    <Text style={[styles.tierText, { color: Colors.accent }]}>
                       {rankContext}
                     </Text>
                     <Text style={styles.wlText}>
@@ -397,7 +407,7 @@ function LeaderboardView({
                   </View>
                 </View>
                 <EloStat leaderboard value={currentUser.elo} />
-              </View>
+              </Pressable>
             );
           }
 
@@ -431,7 +441,7 @@ function LeaderboardView({
                       { color: getTierColor(player.tier) },
                     ]}
                   >
-                    {player.tier}
+                    {formatTierLabel(player.tier)}
                   </Text>
                   <Text style={styles.wlText}>
                     {player.wins}W · {player.losses}L
@@ -524,12 +534,16 @@ function SportToggle({
 function CourtPickerField({
   courts,
   localCourt,
+  selectedCourt,
   sport,
   valueId,
   onSelect,
 }: {
   courts: Court[];
   localCourt: Court | null;
+  /** The resolved court for `valueId`, including one picked from search that
+   *  isn't in `courts` — so the field never blanks after a typeahead pick. */
+  selectedCourt?: Court | null;
   sport: CourtSport | "";
   valueId: string;
   onSelect: (court: Court) => void;
@@ -541,7 +555,8 @@ function CourtPickerField({
   const activeSport: CourtSport = sport === "PICKLEBALL" ? "PICKLEBALL" : "BASKETBALL";
   const selected =
     courts.find((court) => court.id === valueId) ??
-    (localCourt?.id === valueId ? localCourt : null);
+    (localCourt?.id === valueId ? localCourt : null) ??
+    (selectedCourt?.id === valueId ? selectedCourt : null);
 
   useEffect(() => {
     if (!open) {
@@ -741,6 +756,10 @@ function LogGameView({
   });
   const [reviewGame, setReviewGame] = useState<GameLog | null>(null);
   const [submittedGame, setSubmittedGame] = useState<GameLog | null>(null);
+  // The court picked from typeahead search may not be in the nearby `courts`
+  // array — hold onto the full object so the field, the review card, and the
+  // submit all agree on which court is being logged.
+  const [pickedCourt, setPickedCourt] = useState<Court | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showOpponentPicker, setShowOpponentPicker] = useState(false);
   const [activePlayerSlot, setActivePlayerSlot] = useState<PlayerSlot>({
@@ -792,12 +811,19 @@ function LogGameView({
   };
 
   const selectCourt = (court: Court) => {
+    setPickedCourt(court);
     setForm((current) => ({
       ...current,
       courtId: court.id,
       sport: sportTouchedRef.current ? current.sport : court.sport,
     }));
   };
+
+  // A court is valid whether it came from the nearby list or from search.
+  const courtForId = (id: string): Court | null =>
+    supportedCourts.find((c) => c.id === id) ??
+    (pickedCourt?.id === id ? pickedCourt : null) ??
+    (localCourt?.id === id ? localCourt : null);
 
   const addPlayerRow = () => {
     setForm((current) => ({
@@ -863,9 +889,7 @@ function LogGameView({
     form.courtId !== "" &&
     isValidPlayedOn(form.playedOn) &&
     !submitting;
-  const selectedCourt = supportedCourts.find(
-    (court) => court.id === form.courtId,
-  );
+  const selectedCourt = courtForId(form.courtId);
   const { roster: activeCourtPlayers } = usePresence(selectedCourt?.id);
   const courtPlayers = useMemo(
     () => activeCourtPlayers.filter((player) => player.id !== currentUser.id),
@@ -880,8 +904,7 @@ function LogGameView({
   };
 
   const gameCardProps = (game: GameLog) => {
-    const court =
-      supportedCourts.find((c) => c.id === game.courtId) ?? localCourt ?? null;
+    const court = courtForId(game.courtId) ?? localCourt ?? null;
     const playerOf = (player: Player) => ({ id: player.id, name: player.name });
     return {
       courtName: court?.shortName || court?.name || "COURT",
@@ -1198,7 +1221,7 @@ function LogGameView({
                 {suggestion.name.toUpperCase()}
               </Text>
               <Text style={styles.opponentOptionMeta}>
-                {suggestion.tier} · {suggestion.elo} ELO
+                {formatTierLabel(suggestion.tier)} · {suggestion.elo} ELO
               </Text>
             </View>
             {isFriend(suggestion.id) ? (
@@ -1335,6 +1358,7 @@ function LogGameView({
           <CourtPickerField
             courts={supportedCourts}
             localCourt={localCourt}
+            selectedCourt={selectedCourt}
             sport={form.sport}
             valueId={form.courtId}
             onSelect={selectCourt}
@@ -1604,9 +1628,41 @@ const styles = StyleSheet.create({
   },
 
   // ── Inline private position indicator ──
+  // Findable, not faded: an accent spine + "YOU" chip keep the row easy to
+  // spot, while the name itself is dimmed to say "not on the public board".
   hiddenLeaderRow: {
-    backgroundColor: Colors.surfaceHigh,
-    opacity: 0.48,
+    position: "relative",
+    backgroundColor: `${Colors.accent}0D`,
+    borderColor: Colors.accentBorder,
+  },
+  hiddenDot: {
+    position: "absolute",
+    left: 0,
+    top: 8,
+    bottom: 8,
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: Colors.accent,
+  },
+  hiddenPlayerName: {
+    flexShrink: 1,
+    fontFamily: Typography.heading,
+    fontSize: 15,
+    letterSpacing: 0.4,
+    color: Colors.muted,
+  },
+  youChip: {
+    marginLeft: 7,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.accent,
+  },
+  youChipText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 8,
+    letterSpacing: 1,
+    color: Colors.black,
   },
   yourPositionRank: {
     fontFamily: Typography.heading,

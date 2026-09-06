@@ -70,7 +70,7 @@ export function ProfileHero({
             initials={initials}
             name={name}
             playerId={playerId}
-            size={72}
+            size={60}
             style={styles.compactAvatar}
           />
         </Pressable>
@@ -199,9 +199,9 @@ function profileHandle(
 
 const styles = StyleSheet.create({
   compactHero: {
-    minHeight: 116,
+    minHeight: 88,
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
     columnGap: Space.xl,
@@ -218,23 +218,22 @@ const styles = StyleSheet.create({
   compactIdentity: {
     flex: 1,
     minWidth: 0,
-    justifyContent: "flex-start",
+    justifyContent: "center",
     alignSelf: "stretch",
-    paddingTop: 20,
   },
   compactName: {
     minWidth: 0,
     flexShrink: 1,
     ...TextStyles.title,
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 21,
+    lineHeight: 24,
     color: Colors.text,
     letterSpacing: 0.45,
     textTransform: "uppercase",
   },
   compactMeta: {
     minWidth: 0,
-    marginTop: 5,
+    marginTop: 3,
     flexDirection: "row",
     alignItems: "center",
   },
@@ -264,8 +263,8 @@ const styles = StyleSheet.create({
   },
   compactEloValue: {
     fontFamily: Typography.headingBold,
-    fontSize: 36,
-    lineHeight: 40,
+    fontSize: 30,
+    lineHeight: 33,
     color: Colors.text,
     textAlign: "right",
   },

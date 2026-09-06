@@ -40,6 +40,12 @@ export interface UserProfile {
   is_pro: boolean;
   created_at: string;
   updated_at: string;
+  // PR #43 additions — absent until the founding/referral migration is applied.
+  is_founding_member?: boolean;
+  referral_code?: string | null;
+  recruited_by?: string | null;
+  recruits_count?: number;
+  local_court_changed_at?: string | null;
 }
 
 interface AuthResult {

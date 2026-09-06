@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeedCard } from "@/components/FeedCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors, Radius } from "@/constants/colors";
-import { CourtSport, Player } from "@/constants/data";
+import { CourtSport, formatTierLabel, Player } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { fetchLeaderboard } from "@/services/profileService";
@@ -182,7 +182,7 @@ export default function FeedScreen() {
                     <Text style={styles.leaderName}>{player.name}</Text>
                     <View style={styles.leaderMeta}>
                       <View style={[styles.tierBadge, { borderColor: tierColor + "60" }]}>
-                        <Text style={[styles.tierText, { color: tierColor }]}>{player.tier}</Text>
+                        <Text style={[styles.tierText, { color: tierColor }]}>{formatTierLabel(player.tier)}</Text>
                       </View>
                       <Text style={styles.wlText}>
                         {player.wins}W · {player.losses}L
