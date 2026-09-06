@@ -31,9 +31,13 @@ interface SlotEntry {
 export function CourtSchedulePanel({
   court,
   interactive = true,
+  bottomInset = 0,
 }: {
   court: Court;
   interactive?: boolean;
+  /** Space to leave under the pinned slot card (floating tab bar on Home,
+   * safe-area inset on the court detail screen). */
+  bottomInset?: number;
 }) {
   const {
     currentUser,
@@ -234,6 +238,7 @@ export function CourtSchedulePanel({
 
   return (
     <View style={styles.panel}>
+      <View style={styles.gridArea}>
       <View style={styles.heatmap}>
         <View style={styles.heatRow}>
           <View style={[styles.timeColumn, styles.monthCorner]}>
@@ -249,9 +254,6 @@ export function CourtSchedulePanel({
               </Text>
             </View>
           ))}
-        </View>
-        <View style={styles.scrollCue} pointerEvents="none">
-          <Feather color={Colors.muted} name="chevrons-down" size={12} />
         </View>
         <ScrollView
           contentContainerStyle={styles.timeRows}
@@ -296,9 +298,7 @@ export function CourtSchedulePanel({
                     <Text style={styles.cellCount}>{count}</Text>
                   ) : null}
                   {(slotMap.get(key)?.runCount ?? 0) > 0 ? (
-                    <View style={styles.runBadge}>
-                      <Feather color={Colors.black} name="calendar" size={9} />
-                    </View>
+                    <View style={styles.runDot} />
                   ) : null}
                 </Pressable>
               );
@@ -325,9 +325,10 @@ export function CourtSchedulePanel({
           <Text style={styles.legendText}>LOCAL TIME</Text>
         </View>
       </View>
+      </View>
 
       {selected && selectedKey && selectedDate ? (
-        <View style={styles.slotCard}>
+        <View style={[styles.slotCard, { marginBottom: bottomInset + 8 }]}>
           <View style={styles.slotHeader}>
             <Text style={styles.slotTitle}>
               {DAYS[selectedDate.getDay()]} {selectedDate.getDate()} · {scheduleSlotLabel(SLOT_HOURS[selected.slot])}
@@ -445,21 +446,19 @@ export function CourtSchedulePanel({
 }
 
 const styles = StyleSheet.create({
-  panel: { flex: 1, minHeight: 0, paddingVertical: 10 },
-  heatmap: { paddingHorizontal: 12 },
-  timeScroller: { maxHeight: 220 },
+  panel: { flex: 1, minHeight: 0, paddingTop: 6 },
+  // The grid fills the space above the pinned slot card and scrolls its own
+  // rows, so the card sits at the bottom edge instead of floating in dead
+  // space or getting clipped.
+  gridArea: { flex: 1, minHeight: 0 },
+  heatmap: { flex: 1, minHeight: 0, paddingHorizontal: 12 },
+  timeScroller: { flex: 1, minHeight: 0 },
   timeRows: { paddingBottom: 2 },
-  scrollCue: {
-    height: 13,
-    paddingRight: 2,
-    alignItems: "flex-end",
-    justifyContent: "center",
-  },
   heatRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
-    marginBottom: 3,
+    marginBottom: 2,
   },
   timeColumn: { width: 42 },
   monthCorner: {
@@ -519,15 +518,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.text,
   },
-  runBadge: {
+  runDot: {
     position: "absolute",
-    right: 2,
-    top: 2,
-    width: 14,
-    height: 14,
-    borderRadius: Radius.xs,
-    alignItems: "center",
-    justifyContent: "center",
+    right: 3,
+    top: 3,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
     backgroundColor: Colors.accent,
   },
   legend: {
@@ -551,9 +548,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.borderSubtle,
   },
   slotCard: {
-    minHeight: 105,
     marginHorizontal: 12,
-    marginTop: 10,
+    marginTop: 8,
     borderWidth: 1,
     borderTopColor: Colors.border,
     borderColor: Colors.border,
@@ -562,7 +558,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   slotHeader: {
-    minHeight: 29,
+    minHeight: 27,
     paddingHorizontal: 10,
     flexDirection: "row",
     alignItems: "center",
@@ -585,19 +581,19 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   slotContent: {
-    minHeight: 74,
+    minHeight: 56,
     flexDirection: "row",
   },
   peopleArea: {
     flex: 1,
     minWidth: 0,
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   gameArea: {
     width: 148,
     paddingHorizontal: 9,
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderLeftWidth: StyleSheet.hairlineWidth,
     borderLeftColor: Colors.border,
   },

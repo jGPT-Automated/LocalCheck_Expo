@@ -9,7 +9,7 @@ import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { PlayerAvatar } from "./PlayerAvatar";
 
-const FEED_TYPE_LABELS: Record<FeedItem["type"], string> = {
+const FEED_TYPE_LABELS: Partial<Record<FeedItem["type"], string>> = {
   checkin: "CHECKED IN",
   checkout: "CHECKED OUT",
   game_result: "GAME",
@@ -20,7 +20,7 @@ const FEED_TYPE_LABELS: Record<FeedItem["type"], string> = {
 
 // Event-type color coding — tokens from constants/colors.ts only.
 // fg = chip text, bg = chip fill, edge = card's 3px left border tint.
-const FEED_TYPE_COLORS: Record<FeedItem["type"], { fg: string; bg: string; edge: string }> = {
+const FEED_TYPE_COLORS: Partial<Record<FeedItem["type"], { fg: string; bg: string; edge: string }>> = {
   checkin: { fg: Colors.accent, bg: Colors.accentDim, edge: Colors.accent },
   checkout: { fg: Colors.muted, bg: Colors.surfaceHigh, edge: Colors.border },
   game_result: { fg: Colors.win, bg: Colors.winDim, edge: Colors.win },

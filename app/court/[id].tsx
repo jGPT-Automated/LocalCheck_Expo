@@ -1,4 +1,4 @@
-import { Feather } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -21,6 +21,8 @@ import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
 import { useRealtimeHub } from "@/context/RealtimeHubContext";
 import { batchHasResource, type RealtimeTopic } from "@/lib/realtimeHub";
 import { openCourtInMaps } from "@/lib/openMaps";
+import { isInactiveLocal, relativeTime } from "@/lib/localPresence";
+import { groupCheckinBursts } from "@/lib/activityPresentation";
 import {
   fetchCourtActivityMetrics,
   fetchCourtById,
@@ -56,6 +58,10 @@ export default function CourtProfileScreen() {
   const [fetchError, setFetchError] = React.useState(false);
   const [locals, setLocals] = React.useState<LocalWithLastCheckIn[]>([]);
   const [courtFeed, setCourtFeed] = React.useState<Awaited<ReturnType<typeof fetchFeed>>>([]);
+  const groupedCourtFeed = React.useMemo(
+    () => groupCheckinBursts(courtFeed),
+    [courtFeed],
+  );
   const [rankedIds, setRankedIds] = React.useState<Set<string>>(new Set());
   const [feedVisible, setFeedVisible] = React.useState(FEED_PAGE);
   const [activityMetrics, setActivityMetrics] = React.useState<CourtActivityMetrics>({
@@ -144,7 +150,7 @@ export default function CourtProfileScreen() {
   const visibleLocals = locals.filter(({ player }) => !hereNowIds.has(player.id));
   const privateLocalCount = Math.max(0, localCount - locals.length);
   const dashboard: DashboardMetric[] = [
-    { label: "Active now", value: hiddenCount > 0 ? `~${activeCount}` : activeCount, accent: activeCount > 0 },
+    { label: "Active", value: hiddenCount > 0 ? `~${activeCount}` : activeCount, accent: activeCount > 0 },
     { label: "Active locals", value: activityMetrics.activeLocals, trend: activityMetrics.activeLocalTrend, trendLabel: "90D" },
     { label: "Check-ins · 7D", value: activityMetrics.checkInsThisWeek, trend: activityMetrics.checkInTrend, trendLabel: "7D" },
     { label: "Games · 7D", value: activityMetrics.gamesThisWeek },
@@ -179,10 +185,10 @@ export default function CourtProfileScreen() {
             pressed && styles.pressed,
           ]}
         >
-          <Feather
+          <Ionicons
             color={isMyLocal ? Colors.accent : Colors.textSecondary}
-            name={isMyLocal ? "check-circle" : "map-pin"}
-            size={12}
+            name={isMyLocal ? "star" : "star-outline"}
+            size={13}
           />
           <Text style={[styles.localButtonText, isMyLocal && styles.localButtonTextActive]}>
             {isMyLocal ? "LOCAL" : "SET LOCAL"}
@@ -195,11 +201,11 @@ export default function CourtProfileScreen() {
       <View style={styles.tabContent}>
         {activeTab === "feed" ? (
           <ScrollView contentContainerStyle={{ paddingBottom: bottomPad }} showsVerticalScrollIndicator={false}>
-            {courtFeed.length > 0 ? (
-              courtFeed.slice(0, feedVisible).map((item, index) => (
+            {groupedCourtFeed.length > 0 ? (
+              groupedCourtFeed.slice(0, feedVisible).map((item, index) => (
                 <ActivityRow
                   isFirst={index === 0}
-                  isLast={index === Math.min(feedVisible, courtFeed.length) - 1}
+                  isLast={index === Math.min(feedVisible, groupedCourtFeed.length) - 1}
                   item={item}
                   key={item.id}
                   onActorPress={item.playerId ? () => router.push(`/player/${item.playerId}`) : undefined}
@@ -209,7 +215,7 @@ export default function CourtProfileScreen() {
             ) : (
               <EmptyState title="No court activity yet" body="The first check-in or game here will start the feed." />
             )}
-            {feedVisible < courtFeed.length ? (
+            {feedVisible < groupedCourtFeed.length ? (
               <Pressable onPress={() => setFeedVisible((count) => count + FEED_PAGE)} style={styles.moreButton}>
                 <Text style={styles.moreText}>VIEW MORE</Text>
                 <Feather color={Colors.accent} name="chevron-down" size={14} />
@@ -243,7 +249,7 @@ export default function CourtProfileScreen() {
                 checkInCount={checkInCount}
                 detail={lastCheckInAt ? `Last here · ${relativeTime(lastCheckInAt)}` : "No check-ins yet"}
                 friend={isFriend(player.id)}
-                inactive={isInactive(lastCheckInAt)}
+                inactive={isInactiveLocal(lastCheckInAt)}
                 key={player.id}
                 onPress={() => router.push(`/player/${player.id}`)}
                 player={player}
@@ -256,7 +262,11 @@ export default function CourtProfileScreen() {
 
         {activeTab === "schedule" ? (
           <View style={styles.scheduleView}>
-            <CourtSchedulePanel court={court} interactive={false} />
+            <CourtSchedulePanel
+              bottomInset={Platform.OS === "web" ? 16 : bottom + 12}
+              court={court}
+              interactive={false}
+            />
           </View>
         ) : null}
 
@@ -331,22 +341,6 @@ function EmptyState({ title, body }: { title: string; body: string }) {
   );
 }
 
-function relativeTime(value: string): string {
-  const elapsed = Date.now() - new Date(value).getTime();
-  if (!Number.isFinite(elapsed) || elapsed < 0) return "recently";
-  const minutes = Math.floor(elapsed / 60_000);
-  if (minutes < 60) return minutes <= 1 ? "just now" : `${minutes} min ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hr${hours === 1 ? "" : "s"} ago`;
-  const days = Math.floor(hours / 24);
-  return `${days} day${days === 1 ? "" : "s"} ago`;
-}
-
-function isInactive(value: string | null): boolean {
-  if (!value) return true;
-  return Date.now() - new Date(value).getTime() > 90 * 86_400_000;
-}
-
 function formatDate(value?: string): string {
   if (!value) return "Not available";
   return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -364,9 +358,9 @@ const styles = StyleSheet.create({
   notFoundText: { fontFamily: Typography.heading, fontSize: 22, color: Colors.text },
   retryButton: { minHeight: 44, paddingHorizontal: Space.xl, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
   retryText: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.text, letterSpacing: 1.2 },
-  localButton: { minHeight: Layout.minTouchTarget, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Space.xs, borderWidth: 1, borderColor: Colors.borderLight, borderRadius: 5, backgroundColor: Colors.surfaceHigh },
-  localButtonActive: { borderColor: Colors.accentBorder, backgroundColor: Colors.accentDim },
-  localButtonText: { ...TextStyles.labelSmall, color: Colors.textSecondary, letterSpacing: 0.25 },
+  localButton: { minHeight: 34, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, borderWidth: 1, borderColor: Colors.border, borderRadius: 17, backgroundColor: "transparent" },
+  localButtonActive: { borderColor: Colors.accent, backgroundColor: Colors.accentDim },
+  localButtonText: { ...TextStyles.labelSmall, color: Colors.textSecondary, letterSpacing: 1 },
   localButtonTextActive: { color: Colors.accent },
   tabs: { minHeight: 44, paddingHorizontal: Layout.screenGutter, flexDirection: "row", borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Colors.border },
   tab: { flex: 1, alignItems: "center", justifyContent: "center", borderBottomWidth: 2, borderBottomColor: "transparent" },

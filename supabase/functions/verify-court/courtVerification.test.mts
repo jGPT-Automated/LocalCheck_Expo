@@ -9,24 +9,56 @@ import {
   validateCourtSubmission,
 } from "./courtVerification.ts";
 
-test("normalizes Gemini output and clamps confidence", () => {
+test("normalizes Gemini output, clamps confidence, and constrains codes", () => {
   assert.deepEqual(normalizeGeminiResult({
     verified: true,
     sport: "BASKETBALL",
     setting: "OUTDOOR",
     confidence: 140,
-    reason: "  Clear regulation court.  ",
+    rejection_code: "not_a_court",
     name_okay: true,
-    name_reason: " Ordinary park name. ",
+    name_code: "offensive",
   }), {
     verified: true,
     sport: "basketball",
     setting: "outdoor",
     confidence: 100,
-    reason: "Clear regulation court.",
+    // verified=true forces rejection_code -> "none" and name_code -> "none"
+    rejectionCode: "none",
     nameOkay: true,
-    nameReason: "Ordinary park name.",
+    nameCode: "none",
   });
+
+  assert.deepEqual(normalizeGeminiResult({
+    verified: false,
+    sport: "other",
+    setting: "unclear",
+    confidence: 20,
+    rejection_code: "PHOTO_OF_SCREEN",
+    name_okay: false,
+    name_code: "CONTACT_INFO",
+  }), {
+    verified: false,
+    sport: "other",
+    setting: "unclear",
+    confidence: 20,
+    rejectionCode: "photo_of_screen",
+    nameOkay: false,
+    nameCode: "contact_info",
+  });
+
+  // Unknown rejection_code falls back to too_unclear; missing name_code -> none.
+  const fallback = normalizeGeminiResult({
+    verified: false,
+    sport: "unclear",
+    setting: "unclear",
+    confidence: 0,
+    rejection_code: "made_up",
+    name_okay: true,
+  });
+  assert.equal(fallback?.rejectionCode, "too_unclear");
+  assert.equal(fallback?.nameCode, "none");
+
   assert.equal(normalizeGeminiResult({ sport: "tennis", setting: "outdoor" }), null);
 });
 
@@ -118,18 +150,18 @@ test("accepts only high-confidence supported playable courts", () => {
     sport: "pickleball",
     setting: "indoor",
     confidence: 80,
-    reason: "Playable court.",
+    rejectionCode: "none",
     nameOkay: true,
-    nameReason: "Ordinary court name.",
+    nameCode: "none",
   }), true);
   assert.equal(acceptsVerifiedCourt({
     verified: true,
     sport: "pickleball",
     setting: "indoor",
     confidence: 79,
-    reason: "Playable court.",
+    rejectionCode: "none",
     nameOkay: true,
-    nameReason: "Ordinary court name.",
+    nameCode: "none",
   }), false);
 
   const basketball = {
@@ -137,9 +169,9 @@ test("accepts only high-confidence supported playable courts", () => {
     sport: "basketball" as const,
     setting: "outdoor" as const,
     confidence: 95,
-    reason: "Playable court.",
+    rejectionCode: "none" as const,
     nameOkay: true,
-    nameReason: "Ordinary court name.",
+    nameCode: "none" as const,
   };
   assert.equal(matchesRequestedSport(basketball, "basketball"), true);
   assert.equal(matchesRequestedSport(basketball, "pickleball"), false);

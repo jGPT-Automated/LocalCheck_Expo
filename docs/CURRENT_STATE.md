@@ -54,8 +54,11 @@ development and testing.
   iPhone registered after the production OTA and received a real friend-request
   alert. Foreground routing, cold-start navigation, retry/receipt handling, and
   invalid-token cleanup still need explicit device/provider evidence.
-- Account deletion needs physical Apple-token revocation verification before
-  App Store release confidence.
+- Account deletion is done: the in-app DELETE ACCOUNT flow (`settings.tsx` →
+  `deleteCurrentAccount` → the `delete-account` Edge Function) removes the
+  Supabase user and passes a fresh Apple authorization code so the function
+  revokes Apple's token first. Confirmed acceptable for release by Jesse,
+  2026-09-05 — no longer a release blocker.
 
 ## Pull-request quarantine
 

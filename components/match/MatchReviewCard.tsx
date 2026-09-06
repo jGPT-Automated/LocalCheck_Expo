@@ -1,50 +1,90 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 
-import { Colors, Radius } from "@/constants/colors";
-import { Layout, Space } from "@/constants/layout";
+import { Colors } from "@/constants/colors";
+import { Space } from "@/constants/layout";
 import { TextStyles } from "@/constants/typography";
-import type { MatchReview } from "@/services/gameService";
+import type { MatchReview, MatchReviewParticipant } from "@/services/gameService";
 import {
   formatRemainingTime,
   matchStatusCopy,
 } from "@/services/matchReviewModel";
 
-const STATUS_TONE = {
-  pending: {
-    background: Colors.accentDim,
-    border: Colors.accentBorder,
-    text: Colors.accent,
-  },
-  held: {
-    background: Colors.accentDim,
-    border: Colors.accentBorder,
-    text: Colors.accent,
-  },
-  confirmed: {
-    background: Colors.winDim,
-    border: Colors.win,
-    text: Colors.win,
-  },
-  voided: {
-    background: Colors.surfaceHigh,
-    border: Colors.borderLight,
-    text: Colors.textSecondary,
-  },
-} as const;
+import { ScoreCard, scoreCardStatusLabel, scoreCardTone } from "./ScoreCard";
 
+/** Badge text from the viewer's seat: whose move it is, not a raw status. */
+function viewerStatusLabel(
+  match: MatchReview,
+  viewerId?: string,
+): string | undefined {
+  if (match.status === "confirmed") return "FINAL";
+  if (match.status === "voided") return "VOIDED";
+  const me = match.participants.find((p) => p.id === viewerId);
+  if (match.status === "held") {
+    return me?.decision === "disputed" ? "YOU DISPUTED" : "DISPUTED";
+  }
+  // pending
+  if (!me) return undefined; // spectator — fall back to the generic label
+  if (me.decision === "disputed") return "YOU DISPUTED";
+  const other = match.participants.find(
+    (p) => p.id !== viewerId && p.decision === "pending",
+  );
+  const otherName = other
+    ? `WAITING ON ${other.name.split(" ")[0].toUpperCase()}`
+    : "CONFIRMING…";
+  // Whoever last submitted the score has, in effect, already approved it —
+  // they never need to "approve their own game", so they see who they're
+  // waiting on instead of a phantom "WAITING ON YOU".
+  if (viewerId && viewerId === match.lastSubmittedBy) return otherName;
+  // "WAITING ON YOU" rather than "YOUR APPROVAL" — it reads as the same kind
+  // of thing as "WAITING ON JESSE" on the other player's card.
+  if (me.decision === "pending") return "WAITING ON YOU";
+  return otherName;
+}
+
+/** Whether this card is the viewer's move to make ("action" — it wears accent
+ *  and a spine so it stands out in the Inbox stack) or is just pending someone
+ *  else ("waiting" — quiet). Mirrors viewerStatusLabel: "WAITING ON YOU" only
+ *  ever pairs with "action". */
+function viewerEmphasis(
+  match: MatchReview,
+  viewerId?: string,
+): "action" | "waiting" | undefined {
+  if (match.status !== "pending") return undefined;
+  const me = match.participants.find((p) => p.id === viewerId);
+  if (!me || me.decision !== "pending") return "waiting";
+  if (viewerId && viewerId === match.lastSubmittedBy) return "waiting";
+  return "action";
+}
+
+/**
+ * Wrapper around the shared ScoreCard. In the Inbox (`compact`) the status
+ * rides on the card. On the full FINAL SCORE screen the status, the review
+ * timer and the policy explainer are screen furniture — they sit above the
+ * card, which is then only the game itself.
+ */
 export function MatchReviewCard({
   match,
   viewerId,
+  compact = false,
 }: {
   match: MatchReview;
   viewerId?: string;
+  compact?: boolean;
 }) {
+  const router = useRouter();
   const [now, setNow] = React.useState(Date.now());
   const copy = matchStatusCopy(match.status);
-  const tone = STATUS_TONE[match.status];
   const deadline =
     match.status === "pending" ? match.reviewDueAt : match.resolutionDueAt;
+
+  React.useEffect(() => {
+    if (!deadline) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [deadline]);
+
   const viewerSide = match.participants.find(
     (participant) => participant.id === viewerId,
   )?.side;
@@ -54,163 +94,169 @@ export function MatchReviewCard({
   const sideB = match.participants.filter(
     (participant) => participant.side === "b",
   );
+  const confirmed = match.status === "confirmed";
+  // One entry per player, each with its own ELO move (animated only on
+  // confirm). Team games get a row per member instead of one aggregate.
+  const sidePlayers = (side: MatchReviewParticipant[]) =>
+    side.map((participant) => ({
+      id: participant.id,
+      name: participant.name,
+      elo:
+        confirmed &&
+        participant.eloBefore != null &&
+        participant.eloAfter != null
+          ? { before: participant.eloBefore, after: participant.eloAfter }
+          : null,
+    }));
 
-  React.useEffect(() => {
-    if (!deadline) return;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [deadline]);
-
-  const sideLabel = (side: typeof sideA, fallback: string) => {
-    const label = side
-      .map((participant) =>
-        participant.id === viewerId
-          ? "YOU"
-          : participant.name.split(" ")[0].toUpperCase(),
-      )
-      .join(" · ");
-    return label || fallback;
-  };
   const firstSide = viewerSide === "b" ? sideB : sideA;
   const secondSide = viewerSide === "b" ? sideA : sideB;
   const firstScore = viewerSide === "b" ? match.scoreB : match.scoreA;
   const secondScore = viewerSide === "b" ? match.scoreA : match.scoreB;
+  const remaining =
+    deadline && copy.countdownLabel
+      ? formatRemainingTime(deadline, now)
+      : null;
+  const statusText =
+    viewerStatusLabel(match, viewerId) ?? scoreCardStatusLabel(match.status);
+  const tone = scoreCardTone(match.status);
+
+  const firstIsMine = viewerSide != null;
+
+  // A revision the *other* player made — the number on the card isn't the one
+  // this viewer entered. `revisionNumber > 0` means the score has been edited
+  // at least once since it was first logged.
+  const reviser =
+    match.revisionNumber > 0
+      ? match.participants.find((p) => p.id === match.lastSubmittedBy)
+      : undefined;
+  const revisedByOther = reviser != null && reviser.id !== viewerId;
+
+  const captionExtras = [
+    match.disputeCount > 0
+      ? `DISPUTE ${Math.min(match.disputeCount, 2)} OF 2`
+      : null,
+    revisedByOther
+      ? `REVISED BY ${reviser!.name.split(" ")[0].toUpperCase()}`
+      : null,
+  ].filter(Boolean);
+
+  const card = (
+    <ScoreCard
+      compact={compact}
+      courtName={match.courtName}
+      emphasis={compact ? viewerEmphasis(match, viewerId) : undefined}
+      format={`${match.teamSize}V${match.teamSize}`}
+      leftLabel={firstIsMine ? "YOUR TEAM" : "TEAM A"}
+      leftPlayers={sidePlayers(firstSide)}
+      leftScore={firstScore}
+      note={
+        compact && match.disputeNote
+          ? match.disputeNote
+          : compact && remaining
+            ? `${copy.countdownLabel} · ${remaining}`
+            : compact
+              ? copy.description
+              : undefined
+      }
+      onPlayerPress={(id) => router.push(`/player/${id}`)}
+      playedOn={match.playedAt}
+      rightLabel={firstIsMine ? "OTHER TEAM" : "TEAM B"}
+      rightPlayers={sidePlayers(secondSide)}
+      rightMeta={
+        captionExtras.length > 0 ? captionExtras.join(" · ") : undefined
+      }
+      rightScore={secondScore}
+      status={match.status}
+      statusLabel={statusText}
+      statusPlacement={compact ? "card" : "none"}
+    />
+  );
+
+  if (compact) return card;
 
   return (
     <View style={styles.wrap}>
-      {deadline && copy.countdownLabel ? (
-        <View accessibilityLiveRegion="polite" style={styles.countdown}>
-          <Text style={styles.countdownLabel}>{copy.countdownLabel}</Text>
-          <Text style={styles.countdownValue}>
-            {formatRemainingTime(deadline, now)}
+      <View style={styles.header}>
+        <View
+          style={[
+            styles.statusBar,
+            { backgroundColor: tone.bg, borderColor: tone.border },
+          ]}
+        >
+          <Text style={[styles.statusBarText, { color: tone.text }]}>
+            {statusText}
           </Text>
         </View>
-      ) : null}
-
-      <View style={styles.card}>
-        <View style={styles.metaRow}>
-          <View
-            style={[
-              styles.badge,
-              { backgroundColor: tone.background, borderColor: tone.border },
-            ]}
-          >
-            <Text style={[styles.badgeText, { color: tone.text }]}>
-              {copy.label}
-            </Text>
+        {remaining && copy.countdownLabel ? (
+          <View accessibilityLiveRegion="polite" style={styles.timer}>
+            <Text style={styles.timerLabel}>{copy.countdownLabel}</Text>
+            <Text style={styles.timerValue}>{remaining}</Text>
           </View>
-          {match.disputeCount > 0 ? (
-            <Text style={styles.disputeCount}>
-              DISPUTE {Math.min(match.disputeCount, 2)} OF 2
+        ) : null}
+        {copy.description ? (
+          <Text style={styles.explainer}>{copy.description}</Text>
+        ) : null}
+        {match.disputeNote ? (
+          <View style={styles.disputeNote}>
+            <Text style={styles.disputeNoteLabel}>
+              {revisedByOther && reviser
+                ? `${reviser.name.split(" ")[0].toUpperCase()} SAYS`
+                : "DISPUTE NOTE"}
             </Text>
-          ) : null}
-        </View>
-
-        <Text numberOfLines={2} style={styles.court}>
-          {match.courtName}
-        </Text>
-        <Text style={styles.detail}>
-          {match.sport === "BASKETBALL" ? "BB" : "PB"} ·{" "}
-          {new Date(match.playedAt).toLocaleDateString()}
-        </Text>
-
-        <View style={styles.scoreboard}>
-          <View style={styles.side}>
-            <Text numberOfLines={2} style={styles.sideName}>
-              {sideLabel(firstSide, "SIDE A")}
-            </Text>
-            <Text style={styles.score}>{firstScore}</Text>
+            <Text style={styles.disputeNoteText}>{match.disputeNote}</Text>
           </View>
-          <Text style={styles.divider}>–</Text>
-          <View style={styles.side}>
-            <Text numberOfLines={2} style={styles.sideName}>
-              {sideLabel(secondSide, "SIDE B")}
-            </Text>
-            <Text style={styles.score}>{secondScore}</Text>
-          </View>
-        </View>
-        <Text style={styles.statusDescription}>{copy.description}</Text>
+        ) : null}
       </View>
+      {card}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    width: "100%",
-    maxWidth: Layout.maxContentWidth,
-    alignSelf: "center",
-    gap: Space.lg,
+  wrap: { gap: Space.lg },
+  header: { alignItems: "center", gap: Space.md },
+  statusBar: {
+    alignSelf: "stretch",
+    paddingVertical: 10,
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 8,
   },
-  countdown: { alignItems: "center", gap: Space.xs, paddingTop: Space.sm },
-  countdownLabel: {
+  statusBarText: { ...TextStyles.label, letterSpacing: 2 },
+  timer: { alignItems: "center", gap: 2 },
+  timerLabel: {
     ...TextStyles.labelSmall,
     color: Colors.textSecondary,
-    letterSpacing: 1.8,
+    letterSpacing: 1.6,
   },
-  countdownValue: {
+  timerValue: {
     ...TextStyles.display,
     color: Colors.text,
     fontVariant: ["tabular-nums"],
   },
-  card: {
-    gap: Space.sm,
-    padding: Space.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-    borderRadius: Radius.card,
-    backgroundColor: Colors.surface,
-  },
-  metaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: Space.md,
-  },
-  badge: {
-    minHeight: 28,
-    justifyContent: "center",
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderRadius: 14,
-  },
-  badgeText: { ...TextStyles.labelSmall, letterSpacing: 1.2 },
-  disputeCount: {
-    ...TextStyles.labelSmall,
-    color: Colors.textSecondary,
-    letterSpacing: 1.1,
-  },
-  court: {
-    ...TextStyles.title,
-    color: Colors.text,
-    marginTop: Space.sm,
-    textTransform: "uppercase",
-  },
-  detail: { ...TextStyles.metadata, color: Colors.textSecondary },
-  scoreboard: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: Space.lg,
-    paddingVertical: Space.xl,
-  },
-  side: { flex: 1, minWidth: 0, alignItems: "center", gap: Space.sm },
-  sideName: {
-    ...TextStyles.label,
-    minHeight: 32,
-    color: Colors.textSecondary,
-    textAlign: "center",
-  },
-  score: {
-    ...TextStyles.displayLarge,
-    fontSize: 60,
-    lineHeight: 68,
-    color: Colors.text,
-    fontVariant: ["tabular-nums"],
-  },
-  divider: { ...TextStyles.title, color: Colors.mutedDark },
-  statusDescription: {
+  explainer: {
     ...TextStyles.bodySmall,
-    color: Colors.textSecondary,
+    color: Colors.muted,
     textAlign: "center",
+  },
+  disputeNote: {
+    alignSelf: "stretch",
+    gap: 3,
+    paddingVertical: Space.sm,
+    paddingHorizontal: Space.md,
+    borderLeftWidth: 2,
+    borderLeftColor: Colors.accent,
+    backgroundColor: Colors.surfaceHigh,
+    borderRadius: 6,
+  },
+  disputeNoteLabel: {
+    ...TextStyles.labelSmall,
+    color: Colors.accent,
+    letterSpacing: 1.4,
+  },
+  disputeNoteText: {
+    ...TextStyles.bodySmall,
+    color: Colors.text,
   },
 });

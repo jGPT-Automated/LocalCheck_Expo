@@ -19,15 +19,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, CourtSport } from "@/constants/data";
+import { Space } from "@/constants/layout";
 import { TextStyles, Typography } from "@/constants/typography";
 import { useApp, Visibility } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useNotifications } from "@/context/NotificationContext";
 import { deleteCurrentAccount } from "@/services/accountService";
 import { searchCourts } from "@/services/courtService";
-import { updateProfileFields } from "@/services/profileService";
 
 const WEBSITE_URL =
   process.env.EXPO_PUBLIC_WEBSITE_URL ?? "https://localchecksports.com";
@@ -40,19 +41,45 @@ const VISIBILITY_OPTIONS: Array<{
   {
     value: "public",
     label: "PUBLIC",
-    description: "Anyone at the court can see your live check-in.",
+    description:
+      "Anyone at the court sees your name, avatar, and rank when you check in.",
   },
   {
     value: "friends",
     label: "FRIENDS",
-    description: "Only accepted friends can see your identity.",
+    description:
+      "Only accepted friends see your identity. Everyone else sees an anonymous check-in.",
   },
   {
     value: "private",
     label: "PRIVATE",
-    description: "Count me as active without showing my profile.",
+    description:
+      "You still count as active, but your name, avatar, and rank stay hidden from everyone — including on the leaderboard.",
   },
 ];
+
+const SPORT_OPTIONS: Array<{
+  value: CourtSport;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "BASKETBALL",
+    label: "BASKETBALL",
+    description: "Explore, rankings, and Log Game open on basketball.",
+  },
+  {
+    value: "PICKLEBALL",
+    label: "PICKLEBALL",
+    description: "Explore, rankings, and Log Game open on pickleball.",
+  },
+];
+
+function sportLabel(sport: CourtSport | null): string {
+  if (sport === "BASKETBALL") return "BASKETBALL";
+  if (sport === "PICKLEBALL") return "PICKLEBALL";
+  return "NOT SET";
+}
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -65,51 +92,19 @@ export default function SettingsScreen() {
     localCourt,
     setLocalCourt,
   } = useApp();
-  const { user, profile, refreshProfile, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const { bottom } = useSafeAreaInsets();
   const [deleting, setDeleting] = useState(false);
-  const [postalCode, setPostalCode] = useState(profile?.postal_code ?? "");
-  const [postalSaving, setPostalSaving] = useState(false);
-  const [postalSaved, setPostalSaved] = useState(false);
-  const [courtQuery, setCourtQuery] = useState("");
-  const [courtFocused, setCourtFocused] = useState(false);
-  const [courtResults, setCourtResults] = useState<Court[]>([]);
-  const [courtSearching, setCourtSearching] = useState(false);
-  const [courtSavingId, setCourtSavingId] = useState<string | null>(null);
   const [pushSaving, setPushSaving] = useState(false);
   const { pushEnabled, enablePush, disablePush } = useNotifications();
   const [pushValue, setPushValue] = useState(pushEnabled);
-
-  useEffect(() => {
-    setPostalCode(profile?.postal_code ?? "");
-  }, [profile?.postal_code]);
+  const [editor, setEditor] = useState<null | "privacy" | "sport" | "court">(
+    null,
+  );
 
   useEffect(() => {
     if (!pushSaving) setPushValue(pushEnabled);
   }, [pushEnabled, pushSaving]);
-
-  useEffect(() => {
-    const term =
-      courtQuery.trim() || (postalCode.length === 5 ? postalCode : "");
-    if (term.length < 2) {
-      setCourtResults([]);
-      setCourtSearching(false);
-      return;
-    }
-    let active = true;
-    setCourtSearching(true);
-    const timer = setTimeout(() => {
-      void searchCourts(term, null, 8).then((results) => {
-        if (!active) return;
-        setCourtResults(results);
-        setCourtSearching(false);
-      });
-    }, 180);
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [courtQuery, postalCode]);
 
   const openWebsitePath = (path: string) => {
     void Linking.openURL(`${WEBSITE_URL}${path}`);
@@ -219,58 +214,11 @@ export default function SettingsScreen() {
     setPushSaving(false);
   };
 
-  const savePostalCode = async () => {
-    if (!user || postalSaving) return;
-    const next = postalCode.trim();
-    if (next && !/^\d{5}$/.test(next)) {
-      Alert.alert("Check ZIP code", "Enter a five-digit ZIP code.");
-      return;
-    }
-    if ((profile?.postal_code ?? "") === next) {
-      setPostalSaved(true);
-      return;
-    }
-    setPostalSaving(true);
-    setPostalSaved(false);
-    const ok = await updateProfileFields(user.id, {
-      postal_code: next || null,
-    });
-    if (ok) await refreshProfile();
-    setPostalSaving(false);
-    if (!ok) {
-      Alert.alert(
-        "ZIP code couldn't be saved",
-        "Check your connection and try again. You can still use this ZIP to search for a local court now.",
-      );
-      return;
-    }
-    setPostalSaved(true);
-  };
-
-  const chooseLocalCourt = async (court: Court) => {
-    if (courtSavingId) return;
-    setCourtSavingId(court.id);
-    const ok = await setLocalCourt(court.id, court);
-    setCourtSavingId(null);
-    if (!ok) {
-      Alert.alert(
-        "Local court couldn't be updated",
-        "Check your connection and try selecting the court again.",
-      );
-      return;
-    }
-    setCourtQuery("");
-    setCourtResults([]);
-    setCourtFocused(false);
-  };
-
-  const normalizedPostalCode = postalCode.trim();
-  const postalChanged = normalizedPostalCode !== (profile?.postal_code ?? "");
-  const postalValid =
-    normalizedPostalCode.length === 0 || /^\d{5}$/.test(normalizedPostalCode);
-  const courtSearchTerm =
-    courtQuery.trim() ||
-    (/^\d{5}$/.test(normalizedPostalCode) ? normalizedPostalCode : "");
+  const isPrivate = visibility === "private";
+  const isFriendsOnly = visibility === "friends";
+  const privacyLabel =
+    VISIBILITY_OPTIONS.find((option) => option.value === visibility)?.label ??
+    "PUBLIC";
 
   return (
     <View style={styles.screen}>
@@ -285,7 +233,7 @@ export default function SettingsScreen() {
           paddingBottom: Platform.OS === "web" ? 90 : bottom + 80,
         }}
       >
-        <View style={styles.profileRow}>
+        <View style={[styles.profileRow, isPrivate && styles.profileRowHidden]}>
           <PlayerAvatar
             initials={currentUser.avatar || "LC"}
             name={currentUser.name}
@@ -302,197 +250,49 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <Section title="CHECK-IN PRIVACY">
-          <View style={styles.segmented}>
-            {VISIBILITY_OPTIONS.map((option) => {
-              const active = visibility === option.value;
-              return (
-                <Pressable
-                  key={option.value}
-                  style={[styles.segment, active && styles.segmentActive]}
-                  onPress={() => void setVisibility(option.value)}
-                >
-                  <Text
-                    style={[
-                      styles.segmentText,
-                      active && styles.segmentTextActive,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          <Text style={styles.explanation}>
-            {
-              VISIBILITY_OPTIONS.find((option) => option.value === visibility)
-                ?.description
-            }
-          </Text>
-        </Section>
-
-        <Section title="SPORT">
-          <View style={styles.segmented}>
-            {(["BASKETBALL", "PICKLEBALL"] as CourtSport[]).map((sport) => {
-              const active = preferredSport === sport;
-              return (
-                <Pressable
-                  key={sport}
-                  style={[styles.segment, active && styles.segmentActive]}
-                  onPress={() => void setPreferredSport(sport)}
-                >
-                  <Text
-                    style={[
-                      styles.segmentText,
-                      active && styles.segmentTextActive,
-                    ]}
-                  >
-                    {sport === "BASKETBALL" ? "BASKETBALL" : "PICKLEBALL"}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </Section>
-
-        <Section title="LOCATION">
-          <View style={styles.locationField}>
-            <Text style={styles.locationLabel}>ZIP CODE</Text>
-            <View style={styles.locationInputRow}>
-              <Feather color={Colors.textSecondary} name="map-pin" size={17} />
-              <TextInput
-                accessibilityLabel="Home ZIP code"
-                autoComplete="postal-code"
-                keyboardType="number-pad"
-                maxLength={5}
-                onChangeText={(value) => {
-                  setPostalCode(value.replace(/\D/g, "").slice(0, 5));
-                  setPostalSaved(false);
-                }}
-                onSubmitEditing={() => void savePostalCode()}
-                placeholder="Enter ZIP code"
-                placeholderTextColor={Colors.mutedDark}
-                returnKeyType="done"
-                style={styles.locationInput}
-                value={postalCode}
-              />
-              {postalSaving ? (
-                <ActivityIndicator color={Colors.accent} size="small" />
-              ) : postalChanged ? (
-                <Pressable
-                  accessibilityLabel="Save home ZIP code"
-                  accessibilityRole="button"
-                  disabled={!postalValid}
-                  hitSlop={8}
-                  onPress={() => void savePostalCode()}
-                  style={({ pressed }) => [
-                    styles.inlineSave,
-                    !postalValid && styles.inlineSaveDisabled,
-                    pressed && postalValid && styles.pressed,
-                  ]}
-                >
-                  <Text style={styles.inlineSaveText}>SAVE</Text>
-                </Pressable>
-              ) : postalSaved || normalizedPostalCode.length === 5 ? (
-                <Feather color={Colors.win} name="check" size={17} />
-              ) : null}
-            </View>
-            <Text style={styles.locationHelp}>
-              Enter a ZIP to find courts without sharing your device location.
+        {isPrivate ? (
+          <View style={styles.visibilityBanner}>
+            <Feather name="eye-off" size={13} color={Colors.muted} />
+            <Text style={styles.visibilityBannerText}>
+              HIDDEN — you won't appear in court rosters or the leaderboard
             </Text>
           </View>
-
-          <View style={styles.locationField}>
-            <Text style={styles.locationLabel}>LOCAL COURT</Text>
-            <View style={styles.locationInputRow}>
-              <Feather color={Colors.textSecondary} name="search" size={17} />
-              <TextInput
-                accessibilityLabel="Search for a local court"
-                autoCapitalize="words"
-                autoCorrect={false}
-                clearButtonMode="while-editing"
-                onChangeText={(value) => {
-                  setCourtQuery(value);
-                  setCourtFocused(true);
-                }}
-                onFocus={() => setCourtFocused(true)}
-                placeholder="Name, city, or ZIP"
-                placeholderTextColor={Colors.mutedDark}
-                returnKeyType="search"
-                style={styles.locationInput}
-                value={courtQuery}
-              />
-              {courtSearching ? (
-                <ActivityIndicator color={Colors.accent} size="small" />
-              ) : null}
-            </View>
-            {localCourt ? (
-              <Text style={styles.currentCourt}>
-                CURRENT COURT · {localCourt.name.toUpperCase()}
-              </Text>
-            ) : null}
-            {courtFocused && courtSearchTerm.length >= 2 ? (
-              <View style={styles.courtResults}>
-                {courtResults.length > 0 ? (
-                  courtResults.map((court) => (
-                    <Pressable
-                      accessibilityLabel={`Set ${court.name} as local court`}
-                      accessibilityRole="button"
-                      accessibilityState={{
-                        selected: court.id === localCourt?.id,
-                      }}
-                      disabled={Boolean(courtSavingId)}
-                      key={court.id}
-                      onPress={() => void chooseLocalCourt(court)}
-                      style={({ pressed }) => [
-                        styles.courtResult,
-                        pressed && styles.pressed,
-                      ]}
-                    >
-                      <View style={styles.courtResultCopy}>
-                        <Text numberOfLines={1} style={styles.courtResultName}>
-                          {court.name}
-                        </Text>
-                        <Text numberOfLines={1} style={styles.courtResultMeta}>
-                          {[
-                            court.city,
-                            court.postalCode,
-                            court.sport === "BASKETBALL" ? "BB" : "PB",
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </Text>
-                      </View>
-                      {courtSavingId === court.id ? (
-                        <ActivityIndicator color={Colors.accent} size="small" />
-                      ) : (
-                        <Feather
-                          color={
-                            court.id === localCourt?.id
-                              ? Colors.accent
-                              : Colors.muted
-                          }
-                          name={
-                            court.id === localCourt?.id
-                              ? "check"
-                              : "chevron-right"
-                          }
-                          size={17}
-                        />
-                      )}
-                    </Pressable>
-                  ))
-                ) : !courtSearching ? (
-                  <Text style={styles.noCourtResults}>
-                    {/^\d{5}$/.test(courtSearchTerm)
-                      ? `No courts found near ${courtSearchTerm}`
-                      : `No courts match “${courtSearchTerm}”`}
-                  </Text>
-                ) : null}
-              </View>
-            ) : null}
+        ) : isFriendsOnly ? (
+          <View style={styles.visibilityBanner}>
+            <Feather name="users" size={13} color={Colors.muted} />
+            <Text style={styles.visibilityBannerText}>
+              FRIENDS ONLY — players who aren't your friends see an anonymous
+              check-in
+            </Text>
           </View>
+        ) : null}
+
+        <Section title="PROFILE">
+          <DrillRow
+            icon="eye"
+            label="CHECK-IN PRIVACY"
+            value={privacyLabel}
+            onPress={() => setEditor("privacy")}
+          />
+          <DrillRow
+            icon="target"
+            label="PRIMARY SPORT"
+            value={sportLabel(preferredSport)}
+            valueMuted={!preferredSport}
+            onPress={() => setEditor("sport")}
+          />
+          <DrillRow
+            icon="map-pin"
+            label="LOCAL COURT"
+            value={
+              localCourt
+                ? (localCourt.shortName || localCourt.name).toUpperCase()
+                : "NOT SET"
+            }
+            valueMuted={!localCourt}
+            onPress={() => setEditor("court")}
+            last
+          />
         </Section>
 
         <Section title="ALERTS">
@@ -509,6 +309,7 @@ export default function SettingsScreen() {
             label="NOTIFICATION INBOX"
             detail="See all LocalCheck alerts"
             onPress={() => router.push("/notifications" as Href)}
+            last
           />
         </Section>
 
@@ -518,6 +319,7 @@ export default function SettingsScreen() {
             label="BLOCKED PLAYERS"
             detail="Review or unblock players"
             onPress={() => router.push("/blocked-users" as Href)}
+            last
           />
         </Section>
 
@@ -536,16 +338,19 @@ export default function SettingsScreen() {
             icon="help-circle"
             label="HELP & SUPPORT"
             onPress={() => openWebsitePath("/support")}
+            last
           />
         </Section>
 
         <Section title="ACCOUNT">
-          <SettingsRow icon="log-out" label="LOG OUT" onPress={handleLogout} />
+          <SettingsRow
+            icon="log-out"
+            label="LOG OUT"
+            onPress={handleLogout}
+            last
+          />
           <Pressable
-            style={({ pressed }) => [
-              styles.deleteRow,
-              pressed && styles.pressed,
-            ]}
+            style={({ pressed }) => [styles.deleteRow, pressed && styles.pressed]}
             onPress={handleDeleteAccount}
             disabled={deleting}
           >
@@ -562,6 +367,26 @@ export default function SettingsScreen() {
 
         <Text style={styles.version}>LOCALCHECK 1.0.0</Text>
       </KeyboardAwareScrollViewCompat>
+
+      <PrivacyEditorSheet
+        visible={editor === "privacy"}
+        value={visibility}
+        onSelect={(next) => void setVisibility(next)}
+        onClose={() => setEditor(null)}
+      />
+      <SportEditorSheet
+        visible={editor === "sport"}
+        value={preferredSport}
+        onSelect={(next) => void setPreferredSport(next)}
+        onClose={() => setEditor(null)}
+      />
+      <LocalCourtEditorSheet
+        visible={editor === "court"}
+        current={localCourt}
+        onChoose={(court) => setLocalCourt(court.id, court)}
+        onRemove={() => setLocalCourt(null)}
+        onClose={() => setEditor(null)}
+      />
     </View>
   );
 }
@@ -581,20 +406,68 @@ function Section({
   );
 }
 
+/** `[icon]  LABEL ......... value  ›` — taps open a focused editor. */
+function DrillRow({
+  icon,
+  label,
+  value,
+  valueMuted,
+  onPress,
+  last,
+}: {
+  icon: React.ComponentProps<typeof Feather>["name"];
+  label: string;
+  value: string;
+  valueMuted?: boolean;
+  onPress: () => void;
+  last?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label}. Currently ${value}.`}
+      style={({ pressed }) => [
+        styles.row,
+        last && styles.rowLast,
+        pressed && styles.pressed,
+      ]}
+      onPress={onPress}
+    >
+      <Feather name={icon} size={17} color={Colors.textSecondary} />
+      <Text style={styles.rowLabel} numberOfLines={1}>
+        {label}
+      </Text>
+      <Text
+        style={[styles.rowValue, valueMuted && styles.rowValueMuted]}
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
+      <Feather name="chevron-right" size={17} color={Colors.muted} />
+    </Pressable>
+  );
+}
+
 function SettingsRow({
   icon,
   label,
   detail,
   onPress,
+  last,
 }: {
   icon: React.ComponentProps<typeof Feather>["name"];
   label: string;
   detail?: string;
   onPress: () => void;
+  last?: boolean;
 }) {
   return (
     <Pressable
-      style={({ pressed }) => [styles.settingsRow, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.row,
+        last && styles.rowLast,
+        pressed && styles.pressed,
+      ]}
       onPress={onPress}
     >
       <Feather name={icon} size={17} color={Colors.textSecondary} />
@@ -625,7 +498,7 @@ function ToggleSettingsRow({
   value: boolean;
 }) {
   return (
-    <View style={styles.settingsRow}>
+    <View style={styles.row}>
       <Feather name={icon} size={17} color={Colors.textSecondary} />
       <View style={{ flex: 1 }}>
         <Text style={styles.settingsLabel} numberOfLines={1}>
@@ -649,6 +522,325 @@ function ToggleSettingsRow({
   );
 }
 
+// ─── Focused editors ─────────────────────────────────────────────────────────
+
+function OptionRow({
+  label,
+  description,
+  selected,
+  onPress,
+}: {
+  label: string;
+  description: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      style={({ pressed }) => [
+        styles.option,
+        selected && styles.optionSelected,
+        pressed && styles.pressed,
+      ]}
+      onPress={onPress}
+    >
+      <View style={styles.optionCopy}>
+        <Text
+          style={[styles.optionLabel, selected && styles.optionLabelSelected]}
+        >
+          {label}
+        </Text>
+        <Text style={styles.optionDescription}>{description}</Text>
+      </View>
+      <View style={[styles.radio, selected && styles.radioSelected]}>
+        {selected ? (
+          <Feather name="check" size={13} color={Colors.black} />
+        ) : null}
+      </View>
+    </Pressable>
+  );
+}
+
+function PrivacyEditorSheet({
+  visible,
+  value,
+  onSelect,
+  onClose,
+}: {
+  visible: boolean;
+  value: Visibility;
+  onSelect: (value: Visibility) => void;
+  onClose: () => void;
+}) {
+  return (
+    <RunFlowSheet
+      visible={visible}
+      onClose={onClose}
+      title="CHECK-IN PRIVACY"
+      eyebrow="WHO SEES YOU AT A COURT"
+      snapPoints={["62%"]}
+    >
+      <View style={styles.optionList}>
+        {VISIBILITY_OPTIONS.map((option) => (
+          <OptionRow
+            key={option.value}
+            label={option.label}
+            description={option.description}
+            selected={value === option.value}
+            onPress={() => {
+              onSelect(option.value);
+              onClose();
+            }}
+          />
+        ))}
+      </View>
+    </RunFlowSheet>
+  );
+}
+
+function SportEditorSheet({
+  visible,
+  value,
+  onSelect,
+  onClose,
+}: {
+  visible: boolean;
+  value: CourtSport | null;
+  onSelect: (value: CourtSport) => void;
+  onClose: () => void;
+}) {
+  return (
+    <RunFlowSheet
+      visible={visible}
+      onClose={onClose}
+      title="PRIMARY SPORT"
+      eyebrow="YOUR DEFAULT ACROSS LOCALCHECK"
+      snapPoints={["46%"]}
+    >
+      <View style={styles.optionList}>
+        {SPORT_OPTIONS.map((option) => (
+          <OptionRow
+            key={option.value}
+            label={option.label}
+            description={option.description}
+            selected={value === option.value}
+            onPress={() => {
+              onSelect(option.value);
+              onClose();
+            }}
+          />
+        ))}
+      </View>
+    </RunFlowSheet>
+  );
+}
+
+function LocalCourtEditorSheet({
+  visible,
+  current,
+  onChoose,
+  onRemove,
+  onClose,
+}: {
+  visible: boolean;
+  current: Court | null;
+  onChoose: (court: Court) => Promise<boolean>;
+  onRemove: () => Promise<boolean>;
+  onClose: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<Court[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!visible) {
+      setQuery("");
+      setResults([]);
+      setSearching(false);
+      setBusyId(null);
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    const term = query.trim();
+    if (term.length < 2) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+    let active = true;
+    setSearching(true);
+    const timer = setTimeout(() => {
+      void searchCourts(term, null, 8).then((found) => {
+        if (!active) return;
+        setResults(found);
+        setSearching(false);
+      });
+    }, 220);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  const pick = async (court: Court) => {
+    if (busyId) return;
+    setBusyId(court.id);
+    const ok = await onChoose(court);
+    setBusyId(null);
+    if (ok) {
+      onClose();
+    } else {
+      Alert.alert(
+        "Local court couldn't be updated",
+        "Check your connection and try selecting the court again.",
+      );
+    }
+  };
+
+  const clear = async () => {
+    if (busyId) return;
+    setBusyId("__remove__");
+    const ok = await onRemove();
+    setBusyId(null);
+    if (ok) {
+      onClose();
+    } else {
+      Alert.alert(
+        "Local court couldn't be updated",
+        "Check your connection and try again.",
+      );
+    }
+  };
+
+  const term = query.trim();
+
+  return (
+    <RunFlowSheet
+      visible={visible}
+      onClose={onClose}
+      title="LOCAL COURT"
+      eyebrow="ANCHORS YOUR RANKINGS & LOG GAME"
+      snapPoints={["82%"]}
+      contentBottomPadding={64}
+    >
+      {current ? (
+        <View style={styles.currentCourtCard}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.currentCourtEyebrow}>CURRENT</Text>
+            <Text style={styles.currentCourtName} numberOfLines={1}>
+              {current.name.toUpperCase()}
+            </Text>
+            <Text style={styles.currentCourtMeta} numberOfLines={1}>
+              {[
+                current.city,
+                current.sport === "BASKETBALL" ? "BASKETBALL" : "PICKLEBALL",
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </Text>
+          </View>
+          <Pressable
+            accessibilityLabel="Remove local court"
+            accessibilityRole="button"
+            disabled={Boolean(busyId)}
+            hitSlop={8}
+            onPress={() => void clear()}
+            style={({ pressed }) => [
+              styles.removeCourt,
+              pressed && styles.pressed,
+            ]}
+          >
+            {busyId === "__remove__" ? (
+              <ActivityIndicator color={Colors.loss} size="small" />
+            ) : (
+              <Text style={styles.removeCourtText}>REMOVE</Text>
+            )}
+          </Pressable>
+        </View>
+      ) : null}
+
+      <View style={styles.searchBox}>
+        <Feather name="search" size={16} color={Colors.muted} />
+        <TextInput
+          accessibilityLabel="Search for a court"
+          autoCapitalize="words"
+          autoCorrect={false}
+          onChangeText={setQuery}
+          placeholder="Court name, city, or ZIP"
+          placeholderTextColor={Colors.mutedDark}
+          returnKeyType="search"
+          style={styles.searchInput}
+          value={query}
+        />
+        {searching ? (
+          <ActivityIndicator color={Colors.accent} size="small" />
+        ) : null}
+      </View>
+
+      {term.length >= 2 ? (
+        <View style={styles.results}>
+          {results.length > 0 ? (
+            results.map((court) => {
+              const active = court.id === current?.id;
+              return (
+                <Pressable
+                  key={court.id}
+                  accessibilityLabel={`Set ${court.name} as local court`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  disabled={Boolean(busyId)}
+                  onPress={() => void pick(court)}
+                  style={({ pressed }) => [
+                    styles.resultRow,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={styles.resultName} numberOfLines={1}>
+                      {court.name}
+                    </Text>
+                    <Text style={styles.resultMeta} numberOfLines={1}>
+                      {[
+                        court.city,
+                        court.postalCode,
+                        court.sport === "BASKETBALL" ? "BB" : "PB",
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </Text>
+                  </View>
+                  {busyId === court.id ? (
+                    <ActivityIndicator color={Colors.accent} size="small" />
+                  ) : (
+                    <Feather
+                      color={active ? Colors.accent : Colors.muted}
+                      name={active ? "check" : "chevron-right"}
+                      size={17}
+                    />
+                  )}
+                </Pressable>
+              );
+            })
+          ) : !searching ? (
+            <Text style={styles.resultsEmpty}>
+              NO COURTS MATCH “{term.toUpperCase()}”
+            </Text>
+          ) : null}
+        </View>
+      ) : (
+        <Text style={styles.searchHint}>
+          Your local court anchors your ranking scope and prefills the court when
+          you log a game.
+        </Text>
+      )}
+    </RunFlowSheet>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
   profileRow: {
@@ -658,6 +850,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 13,
   },
+  profileRowHidden: { opacity: 0.48 },
   profileName: {
     fontFamily: Typography.heading,
     fontSize: 20,
@@ -671,6 +864,25 @@ const styles = StyleSheet.create({
     color: Colors.muted,
     letterSpacing: 0.8,
     marginTop: 4,
+  },
+  visibilityBanner: {
+    marginHorizontal: 20,
+    marginBottom: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surface,
+  },
+  visibilityBannerText: {
+    ...TextStyles.caption,
+    flex: 1,
+    color: Colors.muted,
+    letterSpacing: 0.3,
   },
   section: { paddingHorizontal: 20, marginBottom: 21 },
   sectionTitle: {
@@ -687,119 +899,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     overflow: "hidden",
   },
-  segmented: { flexDirection: "row", margin: 10, gap: 6 },
-  segment: {
-    flex: 1,
-    minHeight: 38,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.surfaceHigh,
-    borderWidth: 1,
-    borderColor: "transparent",
-    paddingHorizontal: 5,
-  },
-  segmentActive: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.accentDim,
-  },
-  segmentText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    color: Colors.muted,
-    letterSpacing: 0.9,
-    textAlign: "center",
-  },
-  segmentTextActive: { color: Colors.text },
-  explanation: {
-    ...TextStyles.bodySmall,
-    color: Colors.muted,
-    paddingHorizontal: 13,
-    paddingBottom: 13,
-  },
-  locationField: {
-    padding: 14,
-    gap: 7,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderSubtle,
-  },
-  locationLabel: {
-    ...TextStyles.labelSmall,
-    color: Colors.muted,
-    letterSpacing: 1.3,
-  },
-  locationInputRow: {
-    minHeight: 44,
-    paddingHorizontal: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.background,
-  },
-  locationInput: {
-    flex: 1,
-    minWidth: 0,
-    paddingVertical: 0,
-    ...TextStyles.bodySmall,
-    color: Colors.text,
-  },
-  locationHelp: {
-    ...TextStyles.caption,
-    color: Colors.muted,
-  },
-  currentCourt: {
-    ...TextStyles.labelSmall,
-    color: Colors.accent,
-    letterSpacing: 0.7,
-  },
-  inlineSave: {
-    minHeight: 32,
-    paddingHorizontal: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  inlineSaveDisabled: { opacity: 0.35 },
-  inlineSaveText: {
-    ...TextStyles.labelSmall,
-    color: Colors.accent,
-    letterSpacing: 0.8,
-  },
-  courtResults: {
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.background,
-  },
-  courtResult: {
-    minHeight: 58,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderSubtle,
-  },
-  courtResultCopy: { flex: 1, minWidth: 0 },
-  courtResultName: {
-    ...TextStyles.listName,
-    color: Colors.text,
-  },
-  courtResultMeta: {
-    marginTop: 3,
-    ...TextStyles.metadata,
-    color: Colors.muted,
-  },
-  noCourtResults: {
-    padding: 18,
-    ...TextStyles.metadata,
-    color: Colors.muted,
-    textAlign: "center",
-  },
-  settingsRow: {
+  row: {
     minHeight: 58,
     paddingHorizontal: 14,
     flexDirection: "row",
@@ -808,6 +908,22 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderSubtle,
   },
+  rowLast: { borderBottomWidth: 0 },
+  rowLabel: {
+    flex: 1,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 11,
+    color: Colors.text,
+    letterSpacing: 0.55,
+  },
+  rowValue: {
+    maxWidth: "44%",
+    ...TextStyles.label,
+    color: Colors.textSecondary,
+    letterSpacing: 0.4,
+    textAlign: "right",
+  },
+  rowValueMuted: { color: Colors.mutedDark },
   settingsLabel: {
     fontFamily: Typography.bodySemiBold,
     fontSize: 11,
@@ -851,5 +967,147 @@ const styles = StyleSheet.create({
     letterSpacing: 1.3,
     textAlign: "center",
     marginTop: 2,
+  },
+
+  // ── Editor sheets ──
+  optionList: { gap: Space.sm },
+  option: {
+    minHeight: 64,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surface,
+  },
+  optionSelected: {
+    borderColor: Colors.accentBorder,
+    backgroundColor: Colors.accentDim,
+  },
+  optionCopy: { flex: 1, gap: 3 },
+  optionLabel: {
+    ...TextStyles.label,
+    color: Colors.textSecondary,
+    letterSpacing: 1,
+  },
+  optionLabelSelected: { color: Colors.text },
+  optionDescription: {
+    ...TextStyles.caption,
+    color: Colors.muted,
+    lineHeight: 15,
+  },
+  radio: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  radioSelected: {
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accent,
+  },
+  currentCourtCard: {
+    marginBottom: Space.md,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.accentDim,
+  },
+  currentCourtEyebrow: {
+    ...TextStyles.labelSmall,
+    color: Colors.accent,
+    letterSpacing: 1.4,
+  },
+  currentCourtName: {
+    ...TextStyles.title,
+    color: Colors.text,
+    marginTop: 2,
+  },
+  currentCourtMeta: {
+    ...TextStyles.caption,
+    color: Colors.muted,
+    marginTop: 3,
+    letterSpacing: 0.6,
+  },
+  removeCourt: {
+    minHeight: 40,
+    minWidth: 72,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surface,
+  },
+  removeCourtText: {
+    ...TextStyles.labelSmall,
+    color: Colors.loss,
+    letterSpacing: 1,
+  },
+  searchBox: {
+    minHeight: 46,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surface,
+  },
+  searchInput: {
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: 0,
+    ...TextStyles.bodySmall,
+    color: Colors.text,
+  },
+  searchHint: {
+    ...TextStyles.caption,
+    color: Colors.muted,
+    marginTop: 12,
+    lineHeight: 16,
+  },
+  results: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    overflow: "hidden",
+  },
+  resultRow: {
+    minHeight: 58,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderSubtle,
+  },
+  resultName: {
+    ...TextStyles.listName,
+    color: Colors.text,
+  },
+  resultMeta: {
+    marginTop: 3,
+    ...TextStyles.metadata,
+    color: Colors.muted,
+  },
+  resultsEmpty: {
+    padding: 18,
+    ...TextStyles.metadata,
+    color: Colors.muted,
+    textAlign: "center",
   },
 });

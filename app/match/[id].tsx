@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { MatchReviewCard } from "@/components/match/MatchReviewCard";
-import { MatchRevisionSheet } from "@/components/match/MatchRevisionSheet";
+import { MatchRevisionForm } from "@/components/match/MatchRevisionForm";
 import { DetailHeader } from "@/components/ui/DetailHeader";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { Colors, Radius } from "@/constants/colors";
@@ -33,6 +33,20 @@ import {
 function localDateValue(date: Date) {
   const offset = date.getTimezoneOffset() * 60_000;
   return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}
+
+/** The auto "score changed from X to Y" line plus any note the player typed,
+ *  kept under the RPC's 280-char cap (the canned line always survives). */
+const DISPUTE_NOTE_MAX = 280;
+function buildDisputeExplanation(
+  autoLine: string | null,
+  typed: string,
+): string | undefined {
+  const note = typed.trim();
+  if (!autoLine) return note || undefined;
+  if (!note) return autoLine;
+  const room = DISPUTE_NOTE_MAX - autoLine.length - 1;
+  return room > 0 ? `${autoLine} ${note.slice(0, room)}` : autoLine;
 }
 
 export default function MatchReviewScreen() {
@@ -92,6 +106,12 @@ export default function MatchReviewScreen() {
       return;
     }
     await refreshAll();
+    // Approving a 1v1 confirms it and moves ELO. Send the player to their
+    // profile so they see the rating tick over.
+    if (decision === "approve") {
+      const fresh = await fetchMatchReview(match.id);
+      if (fresh?.status === "confirmed") router.replace("/(tabs)/elo");
+    }
   };
 
   const submitRevision = async (change: {
@@ -103,15 +123,29 @@ export default function MatchReviewScreen() {
   }) => {
     if (!match || working) return;
     setWorking(true);
+    const scoreChanged =
+      change.scoreA !== match.scoreA || change.scoreB !== match.scoreB;
     const changed =
+      scoreChanged ||
       change.courtId !== match.courtId ||
-      change.scoreA !== match.scoreA ||
-      change.scoreB !== match.scoreB ||
       change.playedOn !== localDateValue(new Date(match.playedAt));
+    // Auto-prepend a plain-language record of the score edit to the dispute
+    // note, so the other player sees exactly what changed and doesn't have to
+    // remember what they submitted. The DB overwrites the score in place and
+    // keeps no history — this note is the history.
+    const explanation =
+      revisionMode === "dispute"
+        ? buildDisputeExplanation(
+            scoreChanged
+              ? `Score changed from ${match.scoreA}–${match.scoreB} to ${change.scoreA}–${change.scoreB}.`
+              : null,
+            change.note,
+          )
+        : undefined;
     const result =
       revisionMode === "dispute"
         ? await respondToMatch(match.id, "dispute", {
-            explanation: change.note || undefined,
+            explanation,
             ...(changed
               ? {
                   courtId: change.courtId,
@@ -152,6 +186,26 @@ export default function MatchReviewScreen() {
         <Pressable onPress={() => router.back()} style={styles.emptyButton}>
           <Text style={styles.emptyButtonText}>GO BACK</Text>
         </Pressable>
+      </View>
+    );
+  }
+
+  if (editing) {
+    return (
+      <View style={styles.screen}>
+        <DetailHeader
+          onBack={() => setEditing(false)}
+          title={revisionMode === "dispute" ? "DISPUTE SCORE" : "UPDATE GAME"}
+        />
+        <MatchRevisionForm
+          courts={courts}
+          match={match}
+          mode={revisionMode}
+          onCancel={() => setEditing(false)}
+          onSubmit={(change) => void submitRevision(change)}
+          viewerId={user?.id}
+          working={working}
+        />
       </View>
     );
   }
@@ -288,16 +342,6 @@ export default function MatchReviewScreen() {
           </Pressable>
         </View>
       ) : null}
-
-      <MatchRevisionSheet
-        courts={courts}
-        match={match}
-        onClose={() => setEditing(false)}
-        onSubmit={(change) => void submitRevision(change)}
-        mode={revisionMode}
-        visible={editing}
-        working={working}
-      />
     </View>
   );
 }

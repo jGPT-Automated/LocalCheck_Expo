@@ -8,15 +8,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AnimatedEntry } from "@/components/AnimatedEntry";
 import { BrutalistButton } from "@/components/BrutalistButton";
-import { LivePulse } from "@/components/LivePulse";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { StatBlock } from "@/components/StatBlock";
+import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
 import { SportEmblem } from "@/components/ui/SportEmblem";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, getSportColor } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { usePresence } from "@/context/CourtPresenceContext";
+import { isInactiveLocal, relativeTime } from "@/lib/localPresence";
 import { fetchCourtById } from "@/services/courtService";
 import {
   fetchLocalsWithLastCheckIn,
@@ -103,16 +104,6 @@ export function CourtSheetContent({
     }
   };
 
-  const lastSeenLabel = (iso: string | null) => {
-    if (!iso) return "NO CHECK-INS YET";
-    const d = new Date(iso);
-    const days = Math.floor((Date.now() - d.getTime()) / 86_400_000);
-    if (days === 0) return "TODAY";
-    if (days === 1) return "YESTERDAY";
-    if (days < 7) return `${days}D AGO`;
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
-  };
-
   return (
     <BottomSheetScrollView
       showsVerticalScrollIndicator={false}
@@ -125,19 +116,13 @@ export function CourtSheetContent({
           <View style={styles.sportTag}>
             <SportEmblem glow={false} size={13} sport={court.sport} />
             <Text style={[styles.sportText, { color: sportColor }]}>{court.sport}</Text>
-            {distLabel && <Text style={styles.metaDim}>· {distLabel}</Text>}
           </View>
         </View>
         <View style={styles.headerCornerRight}>
           <Text numberOfLines={1} style={styles.courtAddress}>
-            {court.city || court.neighborhood}
+            {[court.city || court.neighborhood, distLabel].filter(Boolean).join(" · ")}
           </Text>
-          {activeCount > 0 ? (
-            <View style={styles.liveChip}>
-              <LivePulse size={4} color={Colors.black} style={{ marginRight: 4 }} />
-              <Text style={styles.liveChipText}>LIVE</Text>
-            </View>
-          ) : isMyLocal ? (
+          {isMyLocal ? (
             <View style={styles.myLocalTag}>
               <Feather color={Colors.accent} fill={Colors.accent} name="star" size={9} />
               <Text style={styles.myLocalInline}>MY LOCAL</Text>
@@ -145,7 +130,9 @@ export function CourtSheetContent({
           ) : null}
         </View>
         <View pointerEvents="none" style={styles.centerTitleWrap}>
-          <Text style={styles.courtName} numberOfLines={2}>{court.name.toUpperCase()}</Text>
+          <Text style={styles.courtName} numberOfLines={1}>
+            {(court.shortName || court.name).toUpperCase()}
+          </Text>
           {court.neighborhood && court.neighborhood !== court.city ? (
             <Text numberOfLines={1} style={styles.neighborhood}>{court.neighborhood}</Text>
           ) : null}
@@ -153,7 +140,7 @@ export function CourtSheetContent({
       </View>
 
       <View style={styles.statsRow}>
-        <StatBlock value={activeCount} label="On Court" />
+        <StatBlock live={activeCount > 0} value={activeCount} label="On Court" />
         <View style={styles.statDiv} />
         <StatBlock value={localCount} label="Locals" />
         <View style={styles.statDiv} />
@@ -215,30 +202,30 @@ export function CourtSheetContent({
       </View>
 
       {/* ── Locals: username list with last check-in ── */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
+      <View style={styles.sectionBleed}>
+        <View style={[styles.sectionHeader, styles.sectionInset]}>
           <Text style={styles.sectionTitle}>LOCALS</Text>
           <Text style={styles.sectionAccent}>{locals.length}</Text>
         </View>
         {locals.length === 0 ? (
-          <Text style={styles.emptyText}>NO ONE HAS CLAIMED THIS COURT YET</Text>
+          <Text style={[styles.emptyText, styles.sectionInset]}>
+            NO ONE HAS CLAIMED THIS COURT YET
+          </Text>
         ) : (
-          locals.map(({ player, lastCheckInAt }) => (
-            <Pressable
+          locals.map(({ player, lastCheckInAt, checkInCount }) => (
+            <PlayerSummaryRow
+              checkInCount={checkInCount}
+              detail={
+                lastCheckInAt
+                  ? `Last here · ${relativeTime(lastCheckInAt)}`
+                  : "No check-ins yet"
+              }
+              friend={isFriend(player.id)}
+              inactive={isInactiveLocal(lastCheckInAt)}
               key={player.id}
-              style={({ pressed }) => [styles.localRow, pressed && styles.pressed]}
               onPress={() => go(`/player/${player.id}`)}
-            >
-              <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={30} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.localName}>{player.name.toUpperCase()}</Text>
-                <Text style={styles.localMeta}>
-                  LAST CHECK-IN: {lastSeenLabel(lastCheckInAt)}
-                </Text>
-              </View>
-              {isFriend(player.id) && <Text style={styles.friendLabel}>FRIEND</Text>}
-              <Text style={styles.localElo}>{player.elo}</Text>
-            </Pressable>
+              player={player}
+            />
           ))
         )}
       </View>
@@ -310,18 +297,11 @@ const styles = StyleSheet.create({
   headerCornerRight: { position: "absolute", right: 20, top: 12, maxWidth: "36%", alignItems: "flex-end", gap: 6 },
   centerTitleWrap: { alignSelf: "center", width: "72%", alignItems: "center", paddingTop: 20 },
   sportTag: { flexDirection: "row", alignItems: "center", gap: 5 },
-  sportDot: { width: 6, height: 6, borderRadius: 3 },
   sportText: {
     fontFamily: Typography.bodyMedium,
     fontSize: 10,
     letterSpacing: 1.5,
     textTransform: "uppercase" as const,
-  },
-  metaDim: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 10,
-    color: Colors.muted,
-    letterSpacing: 1,
   },
   myLocalInline: {
     fontFamily: Typography.bodyBold,
@@ -350,20 +330,6 @@ const styles = StyleSheet.create({
     color: Colors.mutedDark,
     marginTop: 2,
     textAlign: "center",
-  },
-  liveChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.accent,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: Radius.xs,
-  },
-  liveChipText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.black,
-    letterSpacing: 1.5,
   },
 
   statsRow: {
@@ -413,6 +379,13 @@ const styles = StyleSheet.create({
     borderTopWidth: 0.5,
     borderTopColor: Colors.border,
   },
+  sectionBleed: {
+    paddingTop: 18,
+    paddingBottom: 14,
+    borderTopWidth: 0.5,
+    borderTopColor: Colors.border,
+  },
+  sectionInset: { paddingHorizontal: 20 },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -465,39 +438,6 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
 
-  localRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.borderSubtle,
-    minHeight: 48,
-  },
-  localName: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 12,
-    color: Colors.text,
-    letterSpacing: 0.5,
-  },
-  localMeta: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 9,
-    color: Colors.muted,
-    letterSpacing: 1,
-    marginTop: 2,
-  },
-  localElo: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.textSecondary,
-  },
-  friendLabel: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 8,
-    color: Colors.win,
-    letterSpacing: 1.2,
-  },
   pressed: { backgroundColor: Colors.surfaceHigh },
 
   visitRow: {

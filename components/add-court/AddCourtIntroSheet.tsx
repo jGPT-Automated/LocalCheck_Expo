@@ -23,44 +23,38 @@ export function AddCourtIntroSheet({
       visible={visible}
       onClose={onClose}
       title="ADD A COURT"
-      snapPoints={["64%"]}
+      snapPoints={["50%"]}
       bottomClearance={Layout.tabBarClearance}
       contentBottomPadding={12}
     >
       <View style={styles.content}>
         <Text style={styles.body}>
-          Help grow the network. Submit a court near you and it’ll be live for
-          everyone once verified.
+          Submit a court near you and it goes live for everyone once verified.
         </Text>
         <View style={styles.rows}>
           <IntroRow
             icon="map-pin"
             title="DROP YOUR PIN"
-            body="We use your live location. You must be at the court."
+            body="Uses your live location. Be at the court."
           />
           <IntroRow
             icon="camera"
             title="SNAP A LIVE PHOTO"
-            body="Take a photo of the court right now. No gallery picks — keeps it real."
+            body="A photo of the court right now — no gallery."
           />
           <IntroRow
             icon="check-circle"
             title="CONFIRM & SUBMIT"
-            body="Court name auto-fills from your street. Pick the sport and hit Add."
+            body="Name auto-fills. Pick the sport and add."
           />
         </View>
-        <View style={styles.warning}>
-          <Feather name="alert-circle" color={Colors.muted} size={18} />
-          <Text style={styles.warningCopy}>
-            AI verifies your photo is an actual court. You get{" "}
-            <Text style={styles.warningStrong}>2 attempts</Text> — then a
-            cooldown before you can try again.
-          </Text>
-        </View>
+        <Text style={styles.note}>
+          AI checks the photo is a real court · 2 tries, then a short cooldown.
+        </Text>
         <BrutalistButton
           label="LET’S GO"
           variant="accent"
-          size="lg"
+          size="md"
           style={styles.fullButton}
           onPress={onStart}
         />
@@ -81,7 +75,7 @@ function IntroRow({
   return (
     <View style={styles.row}>
       <View style={styles.iconBox}>
-        <Feather name={icon} color={Colors.accent} size={20} />
+        <Feather name={icon} color={Colors.accent} size={16} />
       </View>
       <View style={styles.copy}>
         <Text style={styles.rowTitle}>{title}</Text>
@@ -92,42 +86,26 @@ function IntroRow({
 }
 
 const styles = StyleSheet.create({
-  content: { gap: Space.lg },
+  content: { gap: Space.md },
   body: { ...TextStyles.bodySmall, color: Colors.textSecondary },
-  rows: { gap: Space.md },
+  rows: { gap: Space.sm },
   row: { flexDirection: "row", alignItems: "center", gap: Space.md },
   iconBox: {
-    width: 48,
-    height: 48,
+    width: 38,
+    height: 38,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: Radius.md,
+    borderRadius: Radius.sm,
     borderWidth: 1,
     borderColor: Colors.accentBorder,
     backgroundColor: Colors.accentGhost,
   },
-  copy: { flex: 1, gap: 2 },
-  rowTitle: { ...TextStyles.label, color: Colors.text, letterSpacing: 1.1 },
-  rowBody: { ...TextStyles.metadata, color: Colors.muted, lineHeight: 18 },
-  warning: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: Space.sm,
-    padding: Space.md,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-  },
-  warningCopy: {
-    ...TextStyles.metadata,
-    flex: 1,
+  copy: { flex: 1, gap: 1 },
+  rowTitle: { ...TextStyles.labelSmall, color: Colors.text, letterSpacing: 1 },
+  rowBody: { ...TextStyles.caption, color: Colors.muted },
+  note: {
+    ...TextStyles.caption,
     color: Colors.muted,
-    lineHeight: 18,
   },
-  warningStrong: {
-    color: Colors.text,
-    fontFamily: TextStyles.label.fontFamily,
-  },
-  fullButton: { width: "100%" },
+  fullButton: { width: "100%", marginTop: Space.xs },
 });

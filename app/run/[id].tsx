@@ -31,10 +31,14 @@ import { updateScheduledGame } from "@/services/scheduledGameService";
 
 export default function RunScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { runs, joinRun, currentUser, refreshRuns, getFriendsList } = useApp();
+  const { runs, joinRun, leaveRun, cancelRun, currentUser, refreshRuns, getFriendsList } =
+    useApp();
   const realtimeHub = useRealtimeHub();
   const { bottom } = useSafeAreaInsets();
   const [joining, setJoining] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [cancelArmed, setCancelArmed] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [joinError, setJoinError] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showResult, setShowResult] = useState(false);
@@ -79,6 +83,8 @@ export default function RunScreen() {
     .filter((friend) => !participantIds.has(friend.id))
     .slice(0, 8);
 
+  const mySide = run.participantSides[currentUser.id];
+
   const handleJoin = async (teamSide?: "a" | "b") => {
     if (isJoined || isFull || joining) return;
     setJoining(true);
@@ -86,6 +92,42 @@ export default function RunScreen() {
     const ok = await joinRun(run.id, teamSide);
     setJoining(false);
     if (!ok) setJoinError(true);
+  };
+
+  // A joined player moving A -> B (or back). join_scheduled_game upserts the
+  // team_side, so this is just another join call with the other side.
+  const handleSwitchSide = async () => {
+    if (!isJoined || joining || !mySide) return;
+    setJoining(true);
+    setJoinError(false);
+    const ok = await joinRun(run.id, mySide === "a" ? "b" : "a");
+    setJoining(false);
+    if (!ok) setJoinError(true);
+  };
+
+  const handleLeave = async () => {
+    if (!isJoined || isHost || leaving) return;
+    setLeaving(true);
+    setJoinError(false);
+    const ok = await leaveRun(run.id);
+    setLeaving(false);
+    if (!ok) setJoinError(true);
+  };
+
+  const handleCancelGame = async () => {
+    if (!isHost || cancelling) return;
+    if (!cancelArmed) {
+      setCancelArmed(true);
+      return;
+    }
+    setCancelling(true);
+    const ok = await cancelRun(run.id);
+    setCancelling(false);
+    if (ok) router.back();
+    else {
+      setJoinError(true);
+      setCancelArmed(false);
+    }
   };
 
   const teamSize = max / 2;
@@ -133,9 +175,18 @@ export default function RunScreen() {
             <Feather color={Colors.accent} name="map-pin" size={14} />
             <View style={styles.factCopy}>
               <Text style={styles.factLabel}>LOCATION</Text>
-              <Text numberOfLines={1} style={styles.factValue}>{run.courtName}</Text>
+              <Text numberOfLines={1} style={styles.factValue}>{run.courtShortName}</Text>
             </View>
           </View>
+        </View>
+
+        {/* Creator gets its own full-width line so the badge stops eating
+            into player names in the roster below. */}
+        <View style={styles.creatorRow}>
+          <Feather color={Colors.accent} name="award" size={13} />
+          <Text style={styles.creatorRowText}>
+            CREATED BY {(run.hostName || "COURT LOCAL").toUpperCase()}
+          </Text>
         </View>
 
         <View style={styles.rosterArea}>
@@ -179,8 +230,10 @@ export default function RunScreen() {
                         <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={34} />
                         <View style={styles.playerIdentity}>
                           <View style={styles.playerNameRow}>
+                            {player.id === run.hostId ? (
+                              <Feather color={Colors.accent} name="award" size={11} />
+                            ) : null}
                             <Text numberOfLines={1} style={styles.slotName}>{player.name.split(" ")[0]}</Text>
-                            {player.id === run.hostId ? <Text style={styles.creatorBadge}>CREATOR</Text> : null}
                           </View>
                           <Text style={styles.slotElo}>{player.elo} ELO</Text>
                         </View>
@@ -206,8 +259,10 @@ export default function RunScreen() {
                   <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={34} />
                   <View style={styles.playerIdentity}>
                     <View style={styles.playerNameRow}>
+                      {player.id === run.hostId ? (
+                        <Feather color={Colors.accent} name="award" size={11} />
+                      ) : null}
                       <Text numberOfLines={1} style={styles.slotName}>{player.name.split(" ")[0]}</Text>
-                      {player.id === run.hostId ? <Text style={styles.creatorBadge}>CREATOR</Text> : null}
                     </View>
                     <Text style={styles.slotElo}>{player.elo} ELO</Text>
                   </View>
@@ -299,7 +354,26 @@ export default function RunScreen() {
                 style={styles.resultBtn}
                 testID="edit-run-btn"
               />
+              <BrutalistButton
+                label={
+                  cancelling
+                    ? "CANCELLING…"
+                    : cancelArmed
+                      ? "TAP TO CONFIRM"
+                      : "CANCEL GAME"
+                }
+                onPress={() => void handleCancelGame()}
+                variant="outline"
+                disabled={cancelling}
+                style={styles.resultBtn}
+                testID="cancel-run-btn"
+              />
             </View>
+            {cancelArmed && !cancelling ? (
+              <Text style={styles.cancelHint}>
+                This calls off the game for everyone who joined.
+              </Text>
+            ) : null}
           </View>
         ) : null}
       </ScrollView>
@@ -325,7 +399,7 @@ export default function RunScreen() {
       />
 
       <View style={[styles.footer, { paddingBottom: (Platform.OS === "web" ? 34 : bottom) + 12 }]}>
-        {joinError && <Text style={styles.joinError}>COULD NOT JOIN — TRY AGAIN</Text>}
+        {joinError && <Text style={styles.joinError}>SOMETHING WENT WRONG — TRY AGAIN</Text>}
         {run.teamAssignmentMode === "choose_teams" && !isJoined && !isFull ? (
           <View style={styles.joinSideRow}>
             {(["a", "b"] as const).map((side) => {
@@ -343,6 +417,34 @@ export default function RunScreen() {
                 />
               );
             })}
+          </View>
+        ) : isJoined && !isHost && !hasStarted ? (
+          // Joined players can back out (or move teams) right up to start.
+          <View style={styles.joinSideRow}>
+            {run.teamAssignmentMode === "choose_teams" && mySide ? (
+              <BrutalistButton
+                label={`MOVE TO SIDE ${mySide === "a" ? "B" : "A"}`}
+                onPress={() => void handleSwitchSide()}
+                variant="outline"
+                disabled={joining || leaving}
+                loading={joining}
+                style={styles.joinSideButton}
+                testID="switch-run-side"
+              />
+            ) : null}
+            <BrutalistButton
+              label={leaving ? "LEAVING…" : "LEAVE GAME"}
+              onPress={() => void handleLeave()}
+              variant="outline"
+              disabled={joining || leaving}
+              loading={leaving}
+              style={
+                run.teamAssignmentMode === "choose_teams" && mySide
+                  ? styles.joinSideButton
+                  : { flex: 1 }
+              }
+              testID="leave-run-btn"
+            />
           </View>
         ) : (
           <BrutalistButton
@@ -586,7 +688,28 @@ const styles = StyleSheet.create({
   playerIdentity: { flex: 1, minWidth: 0 },
   playerNameRow: { flexDirection: "row", alignItems: "center", gap: 5, minWidth: 0 },
   slotName: { ...TextStyles.listName, color: Colors.text, flexShrink: 1 },
-  creatorBadge: { fontFamily: Typography.bodyBold, fontSize: 7, lineHeight: 14, color: Colors.accent, letterSpacing: 0.6, paddingHorizontal: 5, borderWidth: 1, borderColor: Colors.accentDim, borderRadius: Radius.xs },
+  creatorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  creatorRowText: {
+    ...TextStyles.labelSmall,
+    color: Colors.textSecondary,
+    letterSpacing: 1,
+  },
+  cancelHint: {
+    marginTop: 8,
+    fontFamily: Typography.body,
+    fontSize: 11,
+    lineHeight: 15,
+    color: Colors.muted,
+  },
   slotElo: { ...TextStyles.caption, color: Colors.muted, marginTop: 1 },
   openSlot: { borderStyle: "dashed", opacity: 0.72 },
   openAvatar: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderWidth: 1, borderStyle: "dashed", borderColor: Colors.border, borderRadius: Radius.sm },

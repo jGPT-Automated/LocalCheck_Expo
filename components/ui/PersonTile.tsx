@@ -41,9 +41,9 @@ export function PersonTile({
 const styles = StyleSheet.create({
   tile: {
     width: 62,
-    minHeight: Layout.minTouchTarget + 28,
+    minHeight: Layout.minTouchTarget + 16,
     alignItems: "center",
-    gap: Space.sm,
+    gap: 6,
     paddingVertical: Space.xs,
     borderRadius: 8,
   },

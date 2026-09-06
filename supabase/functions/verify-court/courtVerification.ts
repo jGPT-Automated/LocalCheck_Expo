@@ -8,14 +8,36 @@ export const supportedMimeTypes = new Set([
 export const supportedSettings = new Set(["outdoor", "indoor", "mixed", "outdoor_covered"]);
 export const supportedSports = new Set(["basketball", "pickleball"]);
 
+// Gemini picks exactly one of these — never free prose. The Edge Function maps
+// the code to the single user-facing sentence in REJECTION_COPY.
+export const REJECTION_CODES = [
+  "none",
+  "not_a_court",
+  "photo_of_screen",
+  "not_at_court",
+  "wrong_sport",
+  "surface_unplayable",
+  "too_unclear",
+] as const;
+export type RejectionCode = (typeof REJECTION_CODES)[number];
+
+export const NAME_CODES = [
+  "none",
+  "offensive",
+  "contact_info",
+  "promotional",
+  "not_a_name",
+] as const;
+export type NameCode = (typeof NAME_CODES)[number];
+
 export interface GeminiCourtResult {
   verified: boolean;
   sport: "basketball" | "pickleball" | "other" | "unclear";
   setting: "outdoor" | "indoor" | "mixed" | "outdoor_covered" | "unclear";
   confidence: number;
-  reason: string;
+  rejectionCode: RejectionCode;
   nameOkay: boolean;
-  nameReason: string;
+  nameCode: NameCode;
 }
 
 export interface ValidCourtSubmission {
@@ -88,14 +110,26 @@ export function normalizeGeminiResult(payload: unknown): GeminiCourtResult | nul
   const confidence = typeof candidate.confidence === "number"
     ? Math.max(0, Math.min(100, Math.round(candidate.confidence)))
     : 0;
+  const rawRejection = typeof candidate.rejection_code === "string"
+    ? candidate.rejection_code.toLowerCase()
+    : "";
+  const rejectionCode = (REJECTION_CODES as readonly string[]).includes(rawRejection)
+    ? (rawRejection as RejectionCode)
+    : "too_unclear";
+  const rawName = typeof candidate.name_code === "string"
+    ? candidate.name_code.toLowerCase()
+    : "";
+  const nameCode = (NAME_CODES as readonly string[]).includes(rawName)
+    ? (rawName as NameCode)
+    : "none";
   return {
     verified: candidate.verified === true,
     sport: sport as GeminiCourtResult["sport"],
     setting: setting as GeminiCourtResult["setting"],
     confidence,
-    reason: cleanText(candidate.reason, 240) || "The photo did not contain enough visual evidence.",
+    rejectionCode: candidate.verified === true ? "none" : rejectionCode,
     nameOkay: candidate.name_okay,
-    nameReason: cleanText(candidate.name_reason, 240) || "The submitted name needs manual review.",
+    nameCode: candidate.name_okay ? "none" : nameCode,
   };
 }
 

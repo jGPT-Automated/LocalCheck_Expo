@@ -1,8 +1,11 @@
+import { NumberFlow } from "number-flow-react-native";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Colors } from "@/constants/colors";
 import { TextStyles } from "@/constants/typography";
+
+const NO_GROUPING = { useGrouping: false } as const;
 
 export function EloStat({
   value,
@@ -13,6 +16,7 @@ export function EloStat({
   compactDelta = false,
   leaderboard = false,
   alignEnd = false,
+  animate = false,
 }: {
   value: number;
   emphasized?: boolean;
@@ -22,7 +26,15 @@ export function EloStat({
   compactDelta?: boolean;
   leaderboard?: boolean;
   alignEnd?: boolean;
+  /** Roll the digits when the value changes (own profile after a game). */
+  animate?: boolean;
 }) {
+  const valueStyle = [
+    styles.value,
+    hero && styles.hero,
+    leaderboard && styles.leaderboardValue,
+    emphasized && styles.emphasized,
+  ];
   return (
     <View
       accessibilityLabel={`${value} ELO`}
@@ -33,19 +45,22 @@ export function EloStat({
         alignEnd && styles.alignEnd,
       ]}
     >
-      <Text
-        adjustsFontSizeToFit={hero}
-        minimumFontScale={0.85}
-        numberOfLines={1}
-        style={[
-          styles.value,
-          hero && styles.hero,
-          leaderboard && styles.leaderboardValue,
-          emphasized && styles.emphasized,
-        ]}
-      >
-        {value}
-      </Text>
+      {animate ? (
+        <NumberFlow
+          format={NO_GROUPING}
+          style={StyleSheet.flatten(valueStyle)}
+          value={value}
+        />
+      ) : (
+        <Text
+          adjustsFontSizeToFit={hero}
+          minimumFontScale={0.85}
+          numberOfLines={1}
+          style={valueStyle}
+        >
+          {value}
+        </Text>
+      )}
       {showLabel ? (
         <Text
           style={[

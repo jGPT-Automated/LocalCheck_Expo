@@ -39,8 +39,12 @@ export function RunCard({ run }: RunCardProps) {
           <Text style={styles.title}>{format}</Text>
           <Text style={styles.status}>SCHEDULED</Text>
         </View>
-        <Text style={styles.court} numberOfLines={1}>{run.courtName.toUpperCase()}</Text>
-        <Text style={styles.createdBy}>CREATED BY {run.hostName?.toUpperCase() || "COURT LOCAL"}</Text>
+        {/* The page is already court-scoped, so lead with the format and let
+            the court fall back to its short slug next to the creator. */}
+        <Text style={styles.court} numberOfLines={1}>
+          {(run.courtShortName || run.courtName).toUpperCase()} · CREATED BY{" "}
+          {run.hostName?.toUpperCase() || "COURT LOCAL"}
+        </Text>
         <View style={styles.meta}>
           <View style={styles.avatarRow}>
             {run.participants.slice(0, 4).map((p, i) => (
@@ -78,13 +82,12 @@ const styles = StyleSheet.create({
   },
   divider: { width: 1, height: 48, backgroundColor: Colors.border, marginHorizontal: 12 },
   center: { flex: 1, paddingVertical: 14 },
-  titleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  title: { fontFamily: Typography.heading, fontSize: 17, lineHeight: 21, color: Colors.text, letterSpacing: 0.5 },
-  status: { fontFamily: Typography.bodySemiBold, fontSize: 11, lineHeight: 14, color: Colors.accent, letterSpacing: 0.8 },
-  court: { marginTop: 2, fontFamily: Typography.bodySemiBold, fontSize: 12, lineHeight: 16, color: Colors.textSecondary },
-  createdBy: {
-    fontFamily: Typography.body, fontSize: 11, lineHeight: 14, color: Colors.muted,
-    letterSpacing: 0.5, marginTop: 2, marginBottom: 7,
+  titleRow: { flexDirection: "row", alignItems: "baseline", gap: 8 },
+  title: { fontFamily: Typography.heading, fontSize: 22, lineHeight: 25, color: Colors.text, letterSpacing: 0.6 },
+  status: { fontFamily: Typography.bodySemiBold, fontSize: 10, lineHeight: 14, color: Colors.accent, letterSpacing: 1 },
+  court: {
+    fontFamily: Typography.body, fontSize: 10, lineHeight: 14, color: Colors.muted,
+    letterSpacing: 0.5, marginTop: 3, marginBottom: 8,
   },
   meta: { flexDirection: "row", alignItems: "center", gap: 10 },
   avatarRow: { flexDirection: "row" },

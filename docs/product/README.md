@@ -21,4 +21,6 @@ for review, not executable code, database truth, or proof that a feature ships.
 
 Engineering truth lives in `docs/CURRENT_STATE.md` and `docs/ARCHITECTURE.md`.
 Do not add activity ledgers, competing launch documents, or machine-specific
-paths here.
+paths here. Jesse's screen-by-screen feedback and its implementation status
+is tracked at `docs/FEEDBACK_TRACKER.md` (a requested exception, kept outside
+this folder on purpose) — do not duplicate it here.

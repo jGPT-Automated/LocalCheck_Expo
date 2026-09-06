@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -14,11 +14,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { HeaderIconAction, ScreenHeader } from "@/components/ScreenHeader";
+import { MatchReviewCard } from "@/components/match/MatchReviewCard";
 import { ActivityRow } from "@/components/ui/ActivityRow";
+import { CompactSelect } from "@/components/ui/CompactSelect";
 import { GameResultModal } from "@/components/ui/GameResultModal";
 import { PlayerQrModal } from "@/components/ui/PlayerQrModal";
 import { ProfileHero } from "@/components/ui/ProfileHero";
-import { ProfileMatchRow } from "@/components/ui/ProfileMatchRow";
 import { ProfileStats } from "@/components/ui/ProfileStats";
 import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
 import { Colors, Radius } from "@/constants/colors";
@@ -31,17 +32,24 @@ import {
   fetchSuggestedPlayers,
   searchPlayers,
 } from "@/services/profileService";
+import {
+  fetchOpenMatchesForPlayer,
+  fetchRecentlySettledMatchesForPlayer,
+} from "@/services/gameService";
+import type { MatchReview } from "@/services/gameService";
+import { fetchPlayerActivity } from "@/services/feedService";
+import { pairVisits } from "@/lib/activityPresentation";
 import type { Player } from "@/constants/data";
 
 type ProfileTab = "activity" | "friends" | "inbox";
+type InboxScope = "pending" | "all";
 
 export default function MeScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ tab?: ProfileTab }>();
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const {
     currentUser,
-    feed,
     matches,
     localCourt,
     preferredSport,
@@ -50,6 +58,7 @@ export default function MeScreen() {
     acceptFriendRequest,
     removeFriend,
     isFriend,
+    refreshMatches,
   } = useApp();
   const { bottom } = useSafeAreaInsets();
   const { notifications, openNotification } = useNotifications();
@@ -63,6 +72,11 @@ export default function MeScreen() {
     sport: FeedItem["sport"];
     courtName?: string;
   } | null>(null);
+  const [openMatches, setOpenMatches] = useState<MatchReview[]>([]);
+  const [settledMatches, setSettledMatches] = useState<MatchReview[]>([]);
+  const [inboxScope, setInboxScope] = useState<InboxScope>("pending");
+  const [inboxQuery, setInboxQuery] = useState("");
+  const [activity, setActivity] = useState<FeedItem[]>([]);
 
   const friends = getFriendsList();
   const searchingFriends = friendQuery.trim().length >= 2;
@@ -76,20 +90,115 @@ export default function MeScreen() {
       setActiveTab(params.tab);
     }
   }, [params.tab]);
-  const activity = useMemo(
-    () => feed.filter((item) => item.playerId === currentUser.id).slice(0, 8),
-    [feed, currentUser.id],
-  );
+
+  // A player's own activity across every court, not just the local one a
+  // court-scoped feed would use — see fetchPlayerActivity for why a plain
+  // actor_id filter also isn't enough (it would hide this player's losses).
+  const refreshActivity = useCallback(() => {
+    let cancelled = false;
+    void fetchPlayerActivity(currentUser.id, 20).then((items) => {
+      // A profile tells a "visits + games" story, not raw system events —
+      // collapse matching checkin/checkout pairs into one visit each.
+      if (!cancelled) setActivity(pairVisits(items));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser.id]);
+  useEffect(refreshActivity, [refreshActivity, matches.length]);
+  // Score reviews now show as real game cards below, so the notification feed
+  // in the inbox is only the things that have no card of their own.
   const inboxNotifications = useMemo(
     () =>
       notifications.filter(
-        (notification) =>
-          notification.type === "match_review" ||
-          notification.type === "run_invite",
+        (notification) => notification.type === "run_invite",
       ),
     [notifications],
   );
-  const inboxCount = incomingFriendRequests.length + inboxNotifications.length;
+  const inboxCount =
+    incomingFriendRequests.length +
+    openMatches.length +
+    inboxNotifications.length;
+
+  // Free-text filter over everything in the inbox — court, players, or the
+  // notification copy. The dropdown scopes pending vs. everything; this
+  // narrows within whatever the scope shows.
+  const inboxQ = inboxQuery.trim().toLowerCase();
+  const matchHay = (m: MatchReview) =>
+    [m.courtName, ...m.participants.map((p) => p.name)]
+      .join(" ")
+      .toLowerCase();
+  const visibleOpenMatches = inboxQ
+    ? openMatches.filter((m) => matchHay(m).includes(inboxQ))
+    : openMatches;
+  const visibleSettledMatches = inboxQ
+    ? settledMatches.filter((m) => matchHay(m).includes(inboxQ))
+    : settledMatches;
+  const visibleRequests = inboxQ
+    ? incomingFriendRequests.filter((p) =>
+        p.name.toLowerCase().includes(inboxQ),
+      )
+    : incomingFriendRequests;
+  const visibleInboxNotifications = inboxQ
+    ? inboxNotifications.filter((n) =>
+        `${n.title} ${n.body}`.toLowerCase().includes(inboxQ),
+      )
+    : inboxNotifications;
+
+  const refreshOpenMatches = useCallback(() => {
+    let cancelled = false;
+    void fetchOpenMatchesForPlayer(currentUser.id).then((rows) => {
+      if (!cancelled) setOpenMatches(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser.id]);
+  useEffect(
+    refreshOpenMatches,
+    [refreshOpenMatches, activeTab, notifications.length, matches.length],
+  );
+  // The "ALL" inbox scope also shows games that have already settled — so a
+  // player can see that a game was approved and what it did to their rating
+  // without hunting the court feed. Only fetched when that scope is on.
+  const refreshSettledMatches = useCallback(() => {
+    let cancelled = false;
+    void fetchRecentlySettledMatchesForPlayer(currentUser.id).then((rows) => {
+      if (!cancelled) setSettledMatches(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser.id]);
+  useEffect(() => {
+    if (activeTab !== "inbox" || inboxScope !== "all") return;
+    return refreshSettledMatches();
+  }, [activeTab, inboxScope, refreshSettledMatches, matches.length]);
+  // A match confirmed on another device (the opponent approved it there)
+  // changes this player's ELO / W-L and adds a game to their activity, but
+  // the per-user realtime broadcast for that isn't reliable. Re-pull the
+  // authoritative profile + matches + activity every time this screen is
+  // focused so the numbers and the feed are never stale here.
+  useFocusEffect(
+    useCallback(() => {
+      void refreshProfile();
+      void refreshMatches();
+      const stopActivity = refreshActivity();
+      const stopMatches = refreshOpenMatches();
+      const stopSettled = refreshSettledMatches();
+      return () => {
+        stopActivity?.();
+        stopMatches?.();
+        stopSettled?.();
+      };
+    }, [
+      refreshProfile,
+      refreshMatches,
+      refreshActivity,
+      refreshOpenMatches,
+      refreshSettledMatches,
+    ]),
+  );
   useEffect(() => {
     if (!localCourt?.id) return setSuggestedFriends([]);
     let cancelled = false;
@@ -140,6 +249,7 @@ export default function MeScreen() {
           compact
           courtLabel={localCourt?.shortName || localCourt?.name}
           elo={currentUser.elo}
+          eloAnimate
           headline={currentUser.name}
           initials={currentUser.avatar || "LC"}
           name={currentUser.name}
@@ -155,6 +265,7 @@ export default function MeScreen() {
           username={profile?.username || currentUser.username}
         />
         <ProfileStats
+          animateChanges
           compact
           metrics={[
             { value: currentUser.wins, label: "WINS" },
@@ -182,6 +293,36 @@ export default function MeScreen() {
           onPress={() => setActiveTab("inbox")}
         />
       </View>
+
+      {activeTab === "inbox" ? (
+        <View style={styles.inboxSearchRow}>
+          <CompactSelect
+            accessibilityLabel="Filter the inbox"
+            align="start"
+            onChange={setInboxScope}
+            options={[
+              { label: "PENDING", value: "pending" },
+              { label: "ALL", value: "all" },
+            ]}
+            value={inboxScope}
+            variant="plain"
+          />
+          <View style={styles.inboxSearchDivider} />
+          <Feather color={Colors.muted} name="search" size={15} />
+          <TextInput
+            accessibilityLabel="Search your inbox"
+            autoCapitalize="none"
+            autoCorrect={false}
+            clearButtonMode="while-editing"
+            onChangeText={setInboxQuery}
+            placeholder="Search inbox..."
+            placeholderTextColor={Colors.mutedDark}
+            returnKeyType="search"
+            style={styles.inboxSearchInput}
+            value={inboxQuery}
+          />
+        </View>
+      ) : null}
 
       <KeyboardAwareScrollViewCompat
         bottomOffset={104}
@@ -224,12 +365,6 @@ export default function MeScreen() {
                   }
                 />
               ))
-            ) : matches.length > 0 ? (
-              matches
-                .slice(0, 8)
-                .map((match) => (
-                  <ProfileMatchRow key={match.id} match={match} />
-                ))
             ) : (
               <EmptyState
                 title="NO ACTIVITY YET"
@@ -320,10 +455,32 @@ export default function MeScreen() {
           </View>
         ) : (
           <View style={styles.content}>
-            {incomingFriendRequests.length > 0 ? (
+            {visibleOpenMatches.length > 0 ? (
+              <View style={styles.gameGroup}>
+                <Text style={styles.requestGroupTitle}>
+                  {inboxScope === "all" ? "IN REVIEW" : "GAMES"}
+                </Text>
+                {visibleOpenMatches.map((match) => (
+                  <Pressable
+                    accessibilityLabel={`Open game at ${match.courtName}`}
+                    accessibilityRole="button"
+                    key={match.id}
+                    onPress={() => router.push(`/match/${match.id}`)}
+                    style={({ pressed }) => [pressed && styles.pressed]}
+                  >
+                    <MatchReviewCard
+                      compact
+                      match={match}
+                      viewerId={currentUser.id}
+                    />
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+            {visibleRequests.length > 0 ? (
               <View style={styles.requestGroup}>
                 <Text style={styles.requestGroupTitle}>FRIEND REQUESTS</Text>
-                {incomingFriendRequests.map((player) => (
+                {visibleRequests.map((player) => (
                   <View key={player.id} style={styles.requestRow}>
                     <Pressable
                       onPress={() => router.push(`/player/${player.id}`)}
@@ -362,40 +519,78 @@ export default function MeScreen() {
                 ))}
               </View>
             ) : null}
-            {inboxNotifications.length > 0 ? (
-              inboxNotifications.map((notification) => (
-                <Pressable
-                  key={notification.id}
-                  onPress={() => void openNotification(notification)}
-                  style={({ pressed }) => [
-                    styles.notificationRow,
-                    !notification.readAt && styles.notificationUnread,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.notificationDot,
-                      notification.readAt && styles.notificationDotRead,
+            {visibleInboxNotifications.length > 0
+              ? visibleInboxNotifications.map((notification) => (
+                  <Pressable
+                    key={notification.id}
+                    onPress={() => void openNotification(notification)}
+                    style={({ pressed }) => [
+                      styles.notificationRow,
+                      !notification.readAt && styles.notificationUnread,
+                      pressed && styles.pressed,
                     ]}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.notificationTitle}>
-                      {notification.title}
+                  >
+                    <View
+                      style={[
+                        styles.notificationDot,
+                        notification.readAt && styles.notificationDotRead,
+                      ]}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.notificationTitle}>
+                        {notification.title}
+                      </Text>
+                      <Text style={styles.notificationBody}>
+                        {notification.body}
+                      </Text>
+                    </View>
+                    <Text style={styles.notificationTime}>
+                      {relativeNotificationTime(notification.createdAt)}
                     </Text>
-                    <Text style={styles.notificationBody}>
-                      {notification.body}
-                    </Text>
-                  </View>
-                  <Text style={styles.notificationTime}>
-                    {relativeNotificationTime(notification.createdAt)}
-                  </Text>
-                </Pressable>
-              ))
-            ) : incomingFriendRequests.length === 0 ? (
+                  </Pressable>
+                ))
+              : null}
+
+            {inboxScope === "all" && visibleSettledMatches.length > 0 ? (
+              <View style={styles.gameGroup}>
+                <Text style={styles.requestGroupTitle}>RECENTLY SETTLED</Text>
+                {visibleSettledMatches.map((match) => (
+                  <Pressable
+                    accessibilityLabel={`Open game at ${match.courtName}`}
+                    accessibilityRole="button"
+                    key={match.id}
+                    onPress={() => router.push(`/match/${match.id}`)}
+                    style={({ pressed }) => [pressed && styles.pressed]}
+                  >
+                    <MatchReviewCard
+                      compact
+                      match={match}
+                      viewerId={currentUser.id}
+                    />
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+
+            {visibleOpenMatches.length === 0 &&
+            visibleRequests.length === 0 &&
+            visibleInboxNotifications.length === 0 &&
+            !(inboxScope === "all" && visibleSettledMatches.length > 0) ? (
               <EmptyState
-                title="YOU'RE ALL CAUGHT UP"
-                body="Friend requests, game reviews, and game invitations will appear here."
+                title={
+                  inboxQ
+                    ? "NO MATCHES"
+                    : inboxScope === "all"
+                      ? "NOTHING HERE YET"
+                      : "YOU'RE ALL CAUGHT UP"
+                }
+                body={
+                  inboxQ
+                    ? "Nothing in your inbox matches that search."
+                    : inboxScope === "all"
+                      ? "Games you log or play, friend requests, and invitations all land here."
+                      : "Games to review, friend requests, and game invitations show up here."
+                }
               />
             ) : null}
           </View>
@@ -606,6 +801,27 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: Colors.accent,
   },
+  // Filter dropdown + search in one row — same pattern as Explore's court
+  // search, so the two screens feel of a piece and the dropdown has room to
+  // grow more filters later.
+  inboxSearchRow: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  inboxSearchDivider: { width: 1, height: 18, backgroundColor: Colors.border },
+  inboxSearchInput: {
+    flex: 1,
+    paddingVertical: 8,
+    fontFamily: Typography.body,
+    fontSize: 14,
+    color: Colors.text,
+  },
   content: { paddingTop: 0 },
   activityContent: { paddingTop: 0 },
   timelineRow: { flexDirection: "row", minHeight: 60 },
@@ -687,6 +903,7 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   requestGroup: { marginHorizontal: 20, marginBottom: 10 },
+  gameGroup: { marginHorizontal: 20, marginBottom: 16, gap: 12 },
   requestGroupTitle: {
     fontFamily: Typography.bodySemiBold,
     fontSize: 11,
