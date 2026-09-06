@@ -105,6 +105,17 @@ export function MapScreen({
   const [locationNotice, setLocationNotice] = useState<string | null>(null);
   const [nearestRoute, setNearestRoute] = useState<NearestRoute | null>(null);
   const fetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The "find nearest court" flow opens the court sheet on a delay so the
+  // camera can settle first. Track it so a sport switch or an unmount cancels
+  // it — otherwise the previous sport's court drawer fires over the new view.
+  const sheetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (fetchTimer.current) clearTimeout(fetchTimer.current);
+      if (sheetTimer.current) clearTimeout(sheetTimer.current);
+    },
+    [],
+  );
 
   // ── Shared device location — same resolved coordinate as Explore's list and
   // AppContext's nearby-court fetch, so all three surfaces agree. ──
@@ -201,6 +212,14 @@ export function MapScreen({
     if (mapReady) refetchViewport();
   }, [mapReady, sportFilter, refetchViewport]);
 
+  // Switching sport invalidates any drawn route / pending court drawer from a
+  // prior "find nearest" on the other sport.
+  useEffect(() => {
+    if (sheetTimer.current) clearTimeout(sheetTimer.current);
+    setNearestRoute(null);
+    setLocationNotice(null);
+  }, [sportFilter]);
+
   const liveCounts = useCourtCounts(mergedCourts);
   const allCourts = useMemo(
     () =>
@@ -276,10 +295,13 @@ export function MapScreen({
   );
 
   const flyToUser = useCallback(async () => {
-    const current = coordinateForLocationAction(locationStatus, deviceCoord);
-    const fresh = current ? null : await refreshDeviceLocation();
+    // An explicit "center on me" tap should trust a live fix, not a cached one
+    // from the user's last city. Fall back to the cached coordinate only if the
+    // refresh yields nothing.
+    const fresh = await refreshDeviceLocation().catch(() => null);
     const resolved =
-      current ?? coordinateForLocationAction(fresh!.status, fresh!.coord);
+      (fresh ? coordinateForLocationAction(fresh.status, fresh.coord) : null) ??
+      coordinateForLocationAction(locationStatus, deviceCoord);
     if (resolved && isLngLat([resolved.lng, resolved.lat])) {
       userCameraOverride.current = true;
       setNearestRoute(null);
@@ -295,11 +317,14 @@ export function MapScreen({
 
   const findNearestCourt = useCallback(async () => {
     setLocationNotice("FINDING NEAREST COURT…");
+    if (sheetTimer.current) clearTimeout(sheetTimer.current);
     try {
-      const current = coordinateForLocationAction(locationStatus, deviceCoord);
-      const fresh = current ? null : await refreshDeviceLocation();
+      // Same as center-on-me: refresh the fix before routing anywhere.
+      const fresh = await refreshDeviceLocation().catch(() => null);
       const resolved =
-        current ?? coordinateForLocationAction(fresh!.status, fresh!.coord);
+        (fresh
+          ? coordinateForLocationAction(fresh.status, fresh.coord)
+          : null) ?? coordinateForLocationAction(locationStatus, deviceCoord);
       if (!resolved) {
         setLocationNotice("LOCATION NEEDED TO FIND THE NEAREST COURT");
         return;
@@ -345,16 +370,20 @@ export function MapScreen({
       // when the court is close enough for one to make sense.
       setNearestRoute({ from, to, path: straightPath(from, to), distanceKm });
       if (distanceKm <= ROUTE_MAX_KM) {
-        void fetchWalkingPath(from, to, MAPBOX_TOKEN).then((path) => {
-          setNearestRoute((prev) =>
-            prev && prev.to[0] === to[0] && prev.to[1] === to[1]
-              ? { ...prev, path }
-              : prev,
-          );
-        });
+        void fetchWalkingPath(from, to, MAPBOX_TOKEN)
+          .then((path) => {
+            setNearestRoute((prev) =>
+              prev && prev.to[0] === to[0] && prev.to[1] === to[1]
+                ? { ...prev, path }
+                : prev,
+            );
+          })
+          .catch(() => {
+            /* keep the straight connector already shown */
+          });
       }
 
-      setTimeout(() => {
+      sheetTimer.current = setTimeout(() => {
         openCourtSheet({ courtId: nearest.id, distanceKm });
       }, 950);
     } catch {

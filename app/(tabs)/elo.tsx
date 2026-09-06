@@ -393,8 +393,8 @@ export default function MeScreen() {
                       .map((item, index) => renderRow(item, index, false))}
                     <HistoryLockCard
                       lockedGames={lockedGames}
-                      onUpgrade={() => router.push("/settings")}
-                      preview={activity.slice(cut, cut + 3)}
+                      onUpgrade={() => router.push("/localplus")}
+                      preview={activity.slice(cut, cut + 6)}
                       renderRow={renderRow}
                       startIndex={cut}
                     />
@@ -685,29 +685,13 @@ function HistoryLockCard({
   startIndex: number;
 }) {
   return (
-    <View style={styles.historyLock}>
-      <View pointerEvents="none" style={styles.historyLockPreview}>
-        {preview.map((item, i) =>
-          renderRow(item, startIndex + i, i === preview.length - 1),
-        )}
-        <BlurView
-          intensity={18}
-          style={StyleSheet.absoluteFill}
-          tint="dark"
-        />
-        <View style={styles.historyLockFade} />
-      </View>
+    <>
       <View style={styles.historyLockCta}>
-        <View style={styles.historyLockIcon}>
-          <Feather color={Colors.accent} name="lock" size={13} />
-        </View>
-        <Text style={styles.historyLockTitle}>
-          {lockedGames} EARLIER GAME{lockedGames === 1 ? "" : "S"}
-        </Text>
-        <Text style={styles.historyLockBody}>
-          Your last {LocalPlusFlags.freeHistoryCount} games are always free.
-          They still count toward your rating and stats — LocalPlus shows the
-          full history here.
+        <Feather color={Colors.accent} name="lock" size={12} />
+        <Text style={styles.historyLockText}>
+          You can see your last {LocalPlusFlags.freeHistoryCount} games here.
+          Every game counts toward your ELO and stat line — LocalPlus unlocks
+          your full history and the scores for older games.
         </Text>
         <Pressable
           accessibilityRole="button"
@@ -717,10 +701,19 @@ function HistoryLockCard({
             pressed && styles.pressed,
           ]}
         >
-          <Text style={styles.historyLockButtonText}>UPGRADE TO LOCALPLUS</Text>
+          <Text style={styles.historyLockButtonText}>
+            UNLOCK {lockedGames} MORE
+          </Text>
         </Pressable>
       </View>
-    </View>
+      <View pointerEvents="none" style={styles.historyLockPreview}>
+        {preview.map((item, i) =>
+          renderRow(item, startIndex + i, i === preview.length - 1),
+        )}
+        <BlurView intensity={14} style={StyleSheet.absoluteFill} tint="dark" />
+        <View style={styles.historyLockFade} />
+      </View>
+    </>
   );
 }
 
@@ -936,50 +929,33 @@ const styles = StyleSheet.create({
   content: { paddingTop: 0 },
   activityContent: { paddingTop: 0 },
 
-  // ── LocalPlus history gate ──
-  historyLock: { position: "relative" },
-  historyLockPreview: { maxHeight: 210, overflow: "hidden", opacity: 0.5 },
-  historyLockFade: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.background,
-    opacity: 0.35,
-  },
+  // ── LocalPlus history gate — a slim note, then blurred games below it ──
   historyLockCta: {
-    marginTop: -70,
+    marginTop: 10,
     marginHorizontal: 20,
-    padding: 18,
+    marginBottom: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
-    gap: 7,
+    gap: 8,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
-    borderRadius: Radius.lg,
+    borderColor: Colors.borderLight,
+    borderRadius: Radius.md,
     backgroundColor: Colors.surface,
   },
-  historyLockIcon: {
-    width: 30,
-    height: 30,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 15,
-    backgroundColor: Colors.accentGhost,
-  },
-  historyLockTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    letterSpacing: 1.4,
-    color: Colors.text,
-  },
-  historyLockBody: {
+  historyLockText: {
+    flex: 1,
+    minWidth: 180,
     fontFamily: Typography.body,
-    fontSize: 11.5,
-    lineHeight: 16,
+    fontSize: 11,
+    lineHeight: 15,
     color: Colors.muted,
-    textAlign: "center",
   },
   historyLockButton: {
-    marginTop: 5,
-    minHeight: 40,
-    alignSelf: "stretch",
+    minHeight: 30,
+    paddingHorizontal: 12,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: Radius.sm,
@@ -987,9 +963,19 @@ const styles = StyleSheet.create({
   },
   historyLockButtonText: {
     fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    letterSpacing: 1.2,
+    fontSize: 10,
+    letterSpacing: 1,
     color: Colors.black,
+  },
+  historyLockPreview: {
+    maxHeight: 260,
+    overflow: "hidden",
+    opacity: 0.6,
+  },
+  historyLockFade: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors.background,
+    opacity: 0.25,
   },
   timelineRow: { flexDirection: "row", minHeight: 60 },
   timelineRail: { width: 20, alignItems: "center" },

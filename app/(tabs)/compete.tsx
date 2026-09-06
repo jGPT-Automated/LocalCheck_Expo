@@ -525,12 +525,16 @@ function SportToggle({
 function CourtPickerField({
   courts,
   localCourt,
+  selectedCourt,
   sport,
   valueId,
   onSelect,
 }: {
   courts: Court[];
   localCourt: Court | null;
+  /** The resolved court for `valueId`, including one picked from search that
+   *  isn't in `courts` — so the field never blanks after a typeahead pick. */
+  selectedCourt?: Court | null;
   sport: CourtSport | "";
   valueId: string;
   onSelect: (court: Court) => void;
@@ -542,7 +546,8 @@ function CourtPickerField({
   const activeSport: CourtSport = sport === "PICKLEBALL" ? "PICKLEBALL" : "BASKETBALL";
   const selected =
     courts.find((court) => court.id === valueId) ??
-    (localCourt?.id === valueId ? localCourt : null);
+    (localCourt?.id === valueId ? localCourt : null) ??
+    (selectedCourt?.id === valueId ? selectedCourt : null);
 
   useEffect(() => {
     if (!open) {
@@ -742,6 +747,10 @@ function LogGameView({
   });
   const [reviewGame, setReviewGame] = useState<GameLog | null>(null);
   const [submittedGame, setSubmittedGame] = useState<GameLog | null>(null);
+  // The court picked from typeahead search may not be in the nearby `courts`
+  // array — hold onto the full object so the field, the review card, and the
+  // submit all agree on which court is being logged.
+  const [pickedCourt, setPickedCourt] = useState<Court | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showOpponentPicker, setShowOpponentPicker] = useState(false);
   const [activePlayerSlot, setActivePlayerSlot] = useState<PlayerSlot>({
@@ -793,12 +802,19 @@ function LogGameView({
   };
 
   const selectCourt = (court: Court) => {
+    setPickedCourt(court);
     setForm((current) => ({
       ...current,
       courtId: court.id,
       sport: sportTouchedRef.current ? current.sport : court.sport,
     }));
   };
+
+  // A court is valid whether it came from the nearby list or from search.
+  const courtForId = (id: string): Court | null =>
+    supportedCourts.find((c) => c.id === id) ??
+    (pickedCourt?.id === id ? pickedCourt : null) ??
+    (localCourt?.id === id ? localCourt : null);
 
   const addPlayerRow = () => {
     setForm((current) => ({
@@ -864,9 +880,7 @@ function LogGameView({
     form.courtId !== "" &&
     isValidPlayedOn(form.playedOn) &&
     !submitting;
-  const selectedCourt = supportedCourts.find(
-    (court) => court.id === form.courtId,
-  );
+  const selectedCourt = courtForId(form.courtId);
   const { roster: activeCourtPlayers } = usePresence(selectedCourt?.id);
   const courtPlayers = useMemo(
     () => activeCourtPlayers.filter((player) => player.id !== currentUser.id),
@@ -881,8 +895,7 @@ function LogGameView({
   };
 
   const gameCardProps = (game: GameLog) => {
-    const court =
-      supportedCourts.find((c) => c.id === game.courtId) ?? localCourt ?? null;
+    const court = courtForId(game.courtId) ?? localCourt ?? null;
     const playerOf = (player: Player) => ({ id: player.id, name: player.name });
     return {
       courtName: court?.shortName || court?.name || "COURT",
@@ -1336,6 +1349,7 @@ function LogGameView({
           <CourtPickerField
             courts={supportedCourts}
             localCourt={localCourt}
+            selectedCourt={selectedCourt}
             sport={form.sport}
             valueId={form.courtId}
             onSelect={selectCourt}
