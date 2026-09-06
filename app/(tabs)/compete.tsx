@@ -870,6 +870,7 @@ function LogGameView({
         ? "YOU"
         : ["YOU", ...game.teammates.map(initials)].join(" · ");
     const theirs = game.opponents.map(initials).join(" · ") || "OPPONENT";
+    const avatarOf = (player: Player) => ({ id: player.id, name: player.name });
     return {
       courtName: court?.shortName || court?.name || "COURT",
       sport: (game.sport || "BASKETBALL") as CourtSport,
@@ -878,6 +879,13 @@ function LogGameView({
       rightLabel: theirs,
       leftScore: game.myScore || "0",
       rightScore: game.theirScore || "0",
+      leftAvatars: [
+        { id: currentUser.id, name: currentUser.name },
+        ...game.teammates.map(avatarOf),
+      ],
+      rightAvatars: game.opponents.map(avatarOf),
+      leftRole: "you" as const,
+      rightRole: "opponent" as const,
     };
   };
 

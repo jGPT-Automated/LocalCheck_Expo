@@ -2,6 +2,7 @@ import { NumberFlow } from "number-flow-react-native";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors, Radius } from "@/constants/colors";
 import { Layout, Space } from "@/constants/layout";
 import { TextStyles } from "@/constants/typography";
@@ -9,8 +10,18 @@ import type { CourtSport } from "@/constants/data";
 
 /** Plays the before -> after ELO transition once the card mounts. This is
  * the one deliberate place ELO animates: the moment a score is confirmed,
- * not an ambient live number that ticks anywhere ELO happens to render. */
-function EloChangeLine({ before, after }: { before: number; after: number }) {
+ * not an ambient live number that ticks anywhere ELO happens to render.
+ * `big` renders it prominently inside the player box (the animation is the
+ * point of the confirmed card); the small variant sits under a bare score. */
+function EloChangeLine({
+  before,
+  after,
+  big = false,
+}: {
+  before: number;
+  after: number;
+  big?: boolean;
+}) {
   const [display, setDisplay] = React.useState(before);
   React.useEffect(() => {
     const timer = setTimeout(() => setDisplay(after), 500);
@@ -18,9 +29,17 @@ function EloChangeLine({ before, after }: { before: number; after: number }) {
   }, [after]);
   const delta = after - before;
   return (
-    <View style={styles.eloLine}>
-      <NumberFlow style={styles.eloValue} value={display} />
-      <Text style={[styles.eloDelta, delta < 0 && styles.eloDeltaNegative]}>
+    <View style={[styles.eloLine, big && styles.eloLineBig]}>
+      <NumberFlow
+        style={big ? styles.eloValueBig : styles.eloValue}
+        value={display}
+      />
+      <Text
+        style={[
+          big ? styles.eloDeltaBig : styles.eloDelta,
+          delta < 0 && styles.eloDeltaNegative,
+        ]}
+      >
         {delta >= 0 ? "+" : ""}
         {delta}
       </Text>
@@ -34,6 +53,10 @@ export type ScoreCardStatus =
   | "held"
   | "confirmed"
   | "voided";
+
+export type ScoreCardRole = "you" | "opponent" | null;
+export type ScoreCardAvatar = { id?: string; name: string };
+type ScoreCardElo = { before: number; after: number } | null;
 
 const TONE: Record<
   ScoreCardStatus,
@@ -79,14 +102,63 @@ function formatPlayedOn(value: string): string {
     .toUpperCase();
 }
 
+function PlayerColumn({
+  avatars,
+  label,
+  role,
+  elo,
+  compact,
+}: {
+  avatars: ScoreCardAvatar[];
+  label: string;
+  role: ScoreCardRole;
+  elo: ScoreCardElo;
+  compact: boolean;
+}) {
+  const size = compact ? 30 : 46;
+  return (
+    <View style={styles.playerCol}>
+      <View style={styles.avatarStack}>
+        {avatars.slice(0, 3).map((avatar, index) => (
+          <PlayerAvatar
+            accent={role === "you"}
+            key={avatar.id ?? `${avatar.name}-${index}`}
+            name={avatar.name}
+            playerId={avatar.id}
+            size={size}
+            style={index > 0 ? { marginLeft: -size * 0.34 } : undefined}
+          />
+        ))}
+      </View>
+      <Text numberOfLines={1} style={styles.playerName}>
+        {label}
+      </Text>
+      {role ? (
+        <Text style={styles.playerRole}>
+          {role === "you" ? "YOU" : "OPPONENT"}
+        </Text>
+      ) : null}
+      {elo ? (
+        <EloChangeLine after={elo.after} before={elo.before} big />
+      ) : null}
+    </View>
+  );
+}
+
 /**
  * The one score + status card. Log Game's review step, the Inbox, and the
  * FINAL SCORE screen all render this so a game looks the same everywhere it
  * appears. Callers map their own data onto these props; the card owns the
  * status tone, the score hierarchy, and the optional countdown above it.
+ *
+ * When `leftAvatars` is supplied the card is player-first: a box of avatars +
+ * YOU / OPPONENT role above the score, and the confirmed-ELO animation moves
+ * into that box (see PlayerColumn). Callers without participant identities
+ * (older Log Game paths) keep the plain name-in-scoreboard layout.
  */
 export function ScoreCard({
   status,
+  statusLabel,
   courtName,
   sport,
   playedOn,
@@ -96,12 +168,19 @@ export function ScoreCard({
   rightScore,
   leftElo,
   rightElo,
+  leftAvatars,
+  rightAvatars,
+  leftRole = null,
+  rightRole = null,
   note,
   countdown,
   rightMeta,
   compact = false,
 }: {
   status: ScoreCardStatus;
+  /** Viewer-aware override for the badge text ("YOUR APPROVAL", "WAITING ON
+   * JESSE"…). Tone still comes from `status`. Falls back to STATUS_LABEL. */
+  statusLabel?: string;
   courtName: string;
   sport: CourtSport;
   playedOn: string;
@@ -110,14 +189,20 @@ export function ScoreCard({
   leftScore: number | string;
   rightScore: number | string;
   /** Only rendered (with an animated transition) when status is "confirmed". */
-  leftElo?: { before: number; after: number } | null;
-  rightElo?: { before: number; after: number } | null;
+  leftElo?: ScoreCardElo;
+  rightElo?: ScoreCardElo;
+  leftAvatars?: ScoreCardAvatar[];
+  rightAvatars?: ScoreCardAvatar[];
+  leftRole?: ScoreCardRole;
+  rightRole?: ScoreCardRole;
   note?: string;
   countdown?: { label: string; value: string } | null;
   rightMeta?: string;
   compact?: boolean;
 }) {
   const tone = TONE[status];
+  const showPlayerBox = Boolean(leftAvatars && leftAvatars.length > 0);
+  const confirmedElo = status === "confirmed";
   return (
     <View style={styles.wrap}>
       {countdown ? (
@@ -135,8 +220,8 @@ export function ScoreCard({
               { backgroundColor: tone.bg, borderColor: tone.border },
             ]}
           >
-            <Text style={[styles.badgeText, { color: tone.text }]}>
-              {STATUS_LABEL[status]}
+            <Text numberOfLines={1} style={[styles.badgeText, { color: tone.text }]}>
+              {statusLabel ?? STATUS_LABEL[status]}
             </Text>
           </View>
           {rightMeta ? <Text style={styles.rightMeta}>{rightMeta}</Text> : null}
@@ -149,15 +234,39 @@ export function ScoreCard({
           {sport === "BASKETBALL" ? "BB" : "PB"} · {formatPlayedOn(playedOn)}
         </Text>
 
+        {showPlayerBox ? (
+          <View
+            style={[styles.playerBox, compact && styles.playerBoxCompact]}
+          >
+            <PlayerColumn
+              avatars={leftAvatars ?? []}
+              compact={compact}
+              elo={confirmedElo ? leftElo ?? null : null}
+              label={leftLabel}
+              role={leftRole}
+            />
+            <Text style={styles.vs}>VS</Text>
+            <PlayerColumn
+              avatars={rightAvatars ?? []}
+              compact={compact}
+              elo={confirmedElo ? rightElo ?? null : null}
+              label={rightLabel}
+              role={rightRole}
+            />
+          </View>
+        ) : null}
+
         <View style={[styles.scoreboard, compact && styles.scoreboardCompact]}>
           <View style={styles.side}>
-            <Text numberOfLines={2} style={styles.sideName}>
-              {leftLabel}
-            </Text>
+            {showPlayerBox ? null : (
+              <Text numberOfLines={2} style={styles.sideName}>
+                {leftLabel}
+              </Text>
+            )}
             <Text style={[styles.score, compact && styles.scoreCompact]}>
               {leftScore}
             </Text>
-            {status === "confirmed" && leftElo ? (
+            {!showPlayerBox && confirmedElo && leftElo ? (
               <EloChangeLine after={leftElo.after} before={leftElo.before} />
             ) : null}
           </View>
@@ -165,13 +274,15 @@ export function ScoreCard({
             –
           </Text>
           <View style={styles.side}>
-            <Text numberOfLines={2} style={styles.sideName}>
-              {rightLabel}
-            </Text>
+            {showPlayerBox ? null : (
+              <Text numberOfLines={2} style={styles.sideName}>
+                {rightLabel}
+              </Text>
+            )}
             <Text style={[styles.score, compact && styles.scoreCompact]}>
               {rightScore}
             </Text>
-            {status === "confirmed" && rightElo ? (
+            {!showPlayerBox && confirmedElo && rightElo ? (
               <EloChangeLine after={rightElo.after} before={rightElo.before} />
             ) : null}
           </View>
@@ -218,6 +329,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     minHeight: 26,
+    maxWidth: "72%",
     justifyContent: "center",
     paddingHorizontal: 10,
     borderWidth: 1,
@@ -235,6 +347,36 @@ const styles = StyleSheet.create({
     marginTop: Space.xs,
   },
   detail: { ...TextStyles.metadata, color: Colors.textSecondary },
+
+  // ── Player box: avatars + role, player-first per the score-review mock ──
+  playerBox: {
+    marginTop: Space.md,
+    paddingVertical: Space.md,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: Space.sm,
+  },
+  playerBoxCompact: { marginTop: Space.sm, paddingVertical: Space.sm },
+  playerCol: { flex: 1, minWidth: 0, alignItems: "center", gap: 6 },
+  avatarStack: { flexDirection: "row", alignItems: "center" },
+  playerName: {
+    ...TextStyles.label,
+    color: Colors.text,
+    textAlign: "center",
+  },
+  playerRole: {
+    ...TextStyles.labelSmall,
+    color: Colors.textSecondary,
+    letterSpacing: 1.4,
+  },
+  vs: {
+    ...TextStyles.labelSmall,
+    marginTop: 18,
+    color: Colors.mutedDark,
+    letterSpacing: 1.5,
+  },
+
   scoreboard: {
     flexDirection: "row",
     alignItems: "center",
@@ -263,12 +405,23 @@ const styles = StyleSheet.create({
     alignItems: "baseline",
     gap: 4,
   },
+  eloLineBig: { marginTop: 4, gap: 6 },
   eloValue: {
     ...TextStyles.labelSmall,
     color: Colors.textSecondary,
   },
+  eloValueBig: {
+    ...TextStyles.metadata,
+    fontSize: 15,
+    color: Colors.text,
+  },
   eloDelta: {
     ...TextStyles.labelSmall,
+    color: Colors.accent,
+  },
+  eloDeltaBig: {
+    ...TextStyles.label,
+    fontSize: 13,
     color: Colors.accent,
   },
   eloDeltaNegative: { color: Colors.loss },

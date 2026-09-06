@@ -1,12 +1,35 @@
 import React from "react";
 
-import type { MatchReview } from "@/services/gameService";
+import type { MatchReview, MatchReviewParticipant } from "@/services/gameService";
 import {
   formatRemainingTime,
   matchStatusCopy,
 } from "@/services/matchReviewModel";
 
-import { ScoreCard } from "./ScoreCard";
+import { ScoreCard, type ScoreCardRole } from "./ScoreCard";
+
+/** Badge text from the viewer's seat: whose move it is, not a raw status. */
+function viewerStatusLabel(
+  match: MatchReview,
+  viewerId?: string,
+): string | undefined {
+  if (match.status === "confirmed") return "FINAL";
+  if (match.status === "voided") return "VOIDED";
+  const me = match.participants.find((p) => p.id === viewerId);
+  if (match.status === "held") {
+    return me?.decision === "disputed" ? "YOU DISPUTED" : "DISPUTED";
+  }
+  // pending
+  if (!me) return undefined; // spectator — fall back to the generic label
+  if (me.decision === "pending") return "YOUR APPROVAL";
+  if (me.decision === "disputed") return "YOU DISPUTED";
+  const waitingOn = match.participants.find(
+    (p) => p.id !== viewerId && p.decision === "pending",
+  );
+  return waitingOn
+    ? `WAITING ON ${waitingOn.name.split(" ")[0].toUpperCase()}`
+    : "WAITING ON REVIEW";
+}
 
 /**
  * FINAL SCORE screen wrapper around the shared ScoreCard: it resolves the
@@ -43,7 +66,7 @@ export function MatchReviewCard({
   const sideB = match.participants.filter(
     (participant) => participant.side === "b",
   );
-  const sideLabel = (side: typeof sideA, fallback: string) =>
+  const sideLabel = (side: MatchReviewParticipant[], fallback: string) =>
     side
       .map((participant) =>
         participant.id === viewerId
@@ -51,12 +74,22 @@ export function MatchReviewCard({
           : participant.name.split(" ")[0].toUpperCase(),
       )
       .join(" · ") || fallback;
+  const sideAvatars = (side: MatchReviewParticipant[]) =>
+    side.map((participant) => ({ id: participant.id, name: participant.name }));
+  const sideRole = (side: MatchReviewParticipant[]): ScoreCardRole => {
+    if (!viewerId || !viewerSide) return null;
+    return side.some((participant) => participant.id === viewerId)
+      ? "you"
+      : "opponent";
+  };
   // A before/after ELO transition only reads cleanly for a single player per
   // side; team sides skip it rather than showing a misleading aggregate.
-  const sideElo = (side: typeof sideA) => {
+  const sideElo = (side: MatchReviewParticipant[]) => {
     if (side.length !== 1) return null;
     const { eloBefore, eloAfter } = side[0];
-    return eloBefore != null && eloAfter != null ? { before: eloBefore, after: eloAfter } : null;
+    return eloBefore != null && eloAfter != null
+      ? { before: eloBefore, after: eloAfter }
+      : null;
   };
 
   const firstSide = viewerSide === "b" ? sideB : sideA;
@@ -77,8 +110,10 @@ export function MatchReviewCard({
           : null
       }
       courtName={match.courtName}
+      leftAvatars={sideAvatars(firstSide)}
       leftElo={sideElo(firstSide)}
       leftLabel={sideLabel(firstSide, "SIDE A")}
+      leftRole={sideRole(firstSide)}
       leftScore={firstScore}
       note={
         compact && remaining
@@ -86,8 +121,10 @@ export function MatchReviewCard({
           : copy.description
       }
       playedOn={match.playedAt}
+      rightAvatars={sideAvatars(secondSide)}
       rightElo={sideElo(secondSide)}
       rightLabel={sideLabel(secondSide, "SIDE B")}
+      rightRole={sideRole(secondSide)}
       rightMeta={
         match.disputeCount > 0
           ? `DISPUTE ${Math.min(match.disputeCount, 2)} OF 2`
@@ -96,6 +133,7 @@ export function MatchReviewCard({
       rightScore={secondScore}
       sport={match.sport}
       status={match.status}
+      statusLabel={viewerStatusLabel(match, viewerId)}
     />
   );
 }

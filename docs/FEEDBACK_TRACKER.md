@@ -48,6 +48,74 @@ point.
 
 ✅ done — committed on the branch · 🚧 in progress · ⬜ backlog, not started
 
+## 2026-09-05 (polish round — pre-merge) — 7 annotated Expo Go screenshots
+
+Jesse's framing: "this looks really good. we're almost there." Light polish on
+Schedule + Home, a cooler game card, and a couple of real functional gaps.
+He merges to `main` after this round. Screenshots 1–7 map to the items below.
+
+### Home feed (screenshot 1)
+- ✅ DONE (`_pending_`): first activity row's timeline dot sat ~2px above the
+  row's text center — the first/last rail segments weren't symmetric with the
+  middle rows. `ActivityRow` rail rebuilt so top and bottom segments are
+  always the same box (only the line colour is hidden on the cap), so every
+  dot lands on the row centre.
+- ✅ DONE (`_pending_`): "too much space in the checked-in section" — the
+  Home roster strip (`peopleSection` / `roster`) tightened (shorter min
+  heights, less vertical padding).
+- ✅ DONE (`_pending_`): "text overlaps" — the person-tile name label under
+  the checked-in avatars could ride into the section divider; constrained.
+
+### Home → SCHEDULE tab (screenshot 2) — `CourtSchedulePanel`
+- ✅ DONE (`_pending_`): bottom "SAT 5 · 7 PM" slot card was clipped by the
+  tab bar — the Home schedule tab now reserves tab-bar clearance so the card
+  is fully visible.
+- ✅ DONE (`_pending_`): dead vertical space between the day-header row and
+  the first time row removed (the standalone scroll-cue row is gone; the
+  hint moved to the top of the time axis, not its own full-width row).
+
+### Scheduled game detail (screenshot 3) — `app/run/[id].tsx`
+- ✅ DONE (`_pending_`): "I can't leave a game once I join or switch sides."
+  Added `LEAVE GAME` (non-host, before start) via the existing
+  `public.leave_run` RPC — new `leaveScheduledGame` service fn + `leaveRun`
+  in `AppContext`, no migration, stays OTA-eligible. For `choose_teams`
+  games a joined player also gets `SWITCH SIDE` (re-calls
+  `join_scheduled_game` with the other side — the RPC already upserts
+  `team_side`). Host still can't leave (must cancel) — that's the RPC rule.
+
+### Full Schedule page (screenshots 4, 5, 6) — `app/(tabs)/schedule.tsx`
+- ✅ DONE (`_pending_`, screenshot 4): the selected time cell only had
+  `REMOVE MY TIME`; added an `ADD MY TIME` affordance on the selected-slot
+  card so a single cell is easy to opt into without entering bulk-edit. The
+  FAB (bulk add times / schedule a game) is unchanged, as asked.
+- ✅ DONE (`_pending_`, screenshot 5): the "N SELECTED — TAP TO ADD OR
+  REMOVE" line moved out of the top instruction row into a summary block
+  below the grid that lists the actual selected times (not just a count),
+  above CANCEL / SAVE CHANGES.
+- ✅ DONE (`_pending_`, screenshot 6): `RunCard` re-weighted — game format
+  (2V2 / 4V4) is the headline, court name drops to `courtShortName` (the
+  short slug) as sub-text since the page is already court-scoped; created-by,
+  spots-open and the going-avatars stay.
+
+### Game card + score-review flow (screenshot 7 mockup)
+"could have a cooler ui"; "if we show the players box we can animate the elo
+there, more prominent / visual"; "clearer court state, and who's it pending".
+Reference is Jesse's own "PLAYER-FIRST GAME CARD STATES" mockup (6 states +
+voided). Split so the merge isn't blocked on the whole redesign:
+- 🚧 IN PROGRESS (`_pending_`): `ScoreCard` gains a player box — avatars +
+  `YOU` / `OPPONENT` role labels + `VS`, player-first per the mockup — and
+  the ELO before→after animation moves into that box (prominent, not a small
+  line under the score). Status line becomes viewer-aware:
+  "YOUR APPROVAL NEEDED" / "WAITING ON <NAME>" / "FINAL" / "VOIDED" instead
+  of one static "IN REVIEW".
+- ⬜ NEXT ROUND: the rest of the mockup polish — the "Score visible" toggle,
+  the trophy winner banner, the per-state action-button sets (Approve /
+  Dispute / Request Void / Final Approve / View Details), the inline
+  correction thread, and the "auto-approves in 2d 23h" countdown chip
+  styling. These are screen-level (`elo.tsx` inbox, `match/[id].tsx`,
+  `compete.tsx` review step) and already partly wired; folding them into the
+  card's new shape is the next pass.
+
 ## 2026-09-04 (second wave) — tested PR #42 in Expo Go, two accounts
 
 Jesse's own priority call: **the score-review/approval flow is the biggest
