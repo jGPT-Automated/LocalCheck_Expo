@@ -233,7 +233,12 @@ export function CourtSchedulePanel({
   };
 
   return (
-    <View style={styles.panel}>
+    <ScrollView
+      contentContainerStyle={styles.panelContent}
+      nestedScrollEnabled
+      showsVerticalScrollIndicator={false}
+      style={styles.panel}
+    >
       <View style={styles.heatmap}>
         <View style={styles.heatRow}>
           <View style={[styles.timeColumn, styles.monthCorner]}>
@@ -250,14 +255,16 @@ export function CourtSchedulePanel({
             </View>
           ))}
         </View>
-        <View style={styles.scrollCue} pointerEvents="none">
-          <Feather color={Colors.muted} name="chevrons-down" size={12} />
-        </View>
         <ScrollView
           contentContainerStyle={styles.timeRows}
           nestedScrollEnabled
           showsVerticalScrollIndicator={false}
-          style={styles.timeScroller}
+          style={[
+            styles.timeScroller,
+            // The Home preview is height-boxed above the tab bar; keep the
+            // grid short so the selected-slot card below stays on screen.
+            !interactive && styles.timeScrollerCompact,
+          ]}
         >
         {SLOT_HOURS.map((hour, slot) => (
           <View key={hour} style={styles.heatRow}>
@@ -440,26 +447,22 @@ export function CourtSchedulePanel({
           {notice ? <Text style={styles.notice}>{notice}</Text> : null}
         </View>
       ) : null}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  panel: { flex: 1, minHeight: 0, paddingVertical: 10 },
+  panel: { flex: 1, minHeight: 0 },
+  panelContent: { paddingTop: 8, paddingBottom: 20 },
   heatmap: { paddingHorizontal: 12 },
   timeScroller: { maxHeight: 220 },
+  timeScrollerCompact: { maxHeight: 148 },
   timeRows: { paddingBottom: 2 },
-  scrollCue: {
-    height: 13,
-    paddingRight: 2,
-    alignItems: "flex-end",
-    justifyContent: "center",
-  },
   heatRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
-    marginBottom: 3,
+    marginBottom: 2,
   },
   timeColumn: { width: 42 },
   monthCorner: {

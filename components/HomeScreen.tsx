@@ -330,7 +330,12 @@ export function HomeScreen() {
         ) : null}
 
         {activeTab === "schedule" ? (
-          <View style={styles.scheduleTab}>
+          <View
+            style={[
+              styles.scheduleTab,
+              { paddingBottom: Layout.tabBarClearance },
+            ]}
+          >
             <CourtSchedulePanel court={localCourt} interactive={false} />
           </View>
         ) : null}
@@ -458,15 +463,14 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   peopleSection: {
-    minHeight: 112,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.borderSubtle,
   },
   peopleSectionEmpty: { minHeight: 0 },
   roster: {
-    minHeight: 70,
     paddingHorizontal: Layout.screenGutter,
-    paddingVertical: Space.lg,
+    paddingTop: Space.sm,
+    paddingBottom: Space.md,
     gap: Space.md,
   },
   emptyPeople: {

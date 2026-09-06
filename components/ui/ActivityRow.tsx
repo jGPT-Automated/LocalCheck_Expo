@@ -72,17 +72,25 @@ export function ActivityRow({
   return (
     <View style={[styles.row, rowHeight]}>
       <View style={styles.rail}>
-        {!isFirst ? (
-          <View style={[styles.lineTop, quietRail && styles.quietLine]} />
-        ) : (
-          <View style={styles.lineCap} />
-        )}
+        {/* Top and bottom segments are the same box; only the colour is
+            dropped on a cap. That keeps the node on the row's exact centre
+            for the first and last rows too — previously the first row's cap
+            had no min-height, so its dot floated a couple px high. */}
+        <View
+          style={[
+            styles.railSegment,
+            styles.railSegmentTop,
+            isFirst ? styles.railSegmentHidden : quietRail && styles.quietLine,
+          ]}
+        />
         <View style={[styles.node, nodeStyle, nodeSize]} />
-        {!isLast ? (
-          <View style={[styles.lineBottom, quietRail && styles.quietLine]} />
-        ) : (
-          <View style={styles.lineCap} />
-        )}
+        <View
+          style={[
+            styles.railSegment,
+            styles.railSegmentBottom,
+            isLast ? styles.railSegmentHidden : quietRail && styles.quietLine,
+          ]}
+        />
       </View>
 
       <Pressable
@@ -278,22 +286,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.muted,
   },
-  lineTop: {
+  railSegment: {
     flex: 1,
     width: StyleSheet.hairlineWidth,
     minHeight: 14,
-    marginBottom: 4,
     backgroundColor: Colors.border,
   },
-  lineBottom: {
-    flex: 1,
-    width: StyleSheet.hairlineWidth,
-    minHeight: 14,
-    marginTop: 4,
-    backgroundColor: Colors.border,
-  },
+  railSegmentTop: { marginBottom: 4 },
+  railSegmentBottom: { marginTop: 4 },
+  railSegmentHidden: { backgroundColor: "transparent" },
   quietLine: { backgroundColor: Colors.mutedDark },
-  lineCap: { flex: 1, width: StyleSheet.hairlineWidth },
   copy: {
     flex: 1,
     minWidth: 0,
