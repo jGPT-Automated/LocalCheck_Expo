@@ -42,7 +42,7 @@ type ProfileTab = "activity" | "friends" | "inbox";
 export default function MeScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ tab?: ProfileTab }>();
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const {
     currentUser,
     matches,
@@ -53,6 +53,7 @@ export default function MeScreen() {
     acceptFriendRequest,
     removeFriend,
     isFriend,
+    refreshMatches,
   } = useApp();
   const { bottom } = useSafeAreaInsets();
   const { notifications, openNotification } = useNotifications();
@@ -85,7 +86,7 @@ export default function MeScreen() {
   // A player's own activity across every court, not just the local one a
   // court-scoped feed would use — see fetchPlayerActivity for why a plain
   // actor_id filter also isn't enough (it would hide this player's losses).
-  useEffect(() => {
+  const refreshActivity = useCallback(() => {
     let cancelled = false;
     void fetchPlayerActivity(currentUser.id, 20).then((items) => {
       // A profile tells a "visits + games" story, not raw system events —
@@ -95,7 +96,8 @@ export default function MeScreen() {
     return () => {
       cancelled = true;
     };
-  }, [currentUser.id, matches.length]);
+  }, [currentUser.id]);
+  useEffect(refreshActivity, [refreshActivity, matches.length]);
   // Score reviews now show as real game cards below, so the notification feed
   // in the inbox is only the things that have no card of their own.
   const inboxNotifications = useMemo(
@@ -123,9 +125,23 @@ export default function MeScreen() {
     refreshOpenMatches,
     [refreshOpenMatches, activeTab, notifications.length, matches.length],
   );
-  // A game confirmed on another device (the opponent approved it there)
-  // should drop out of the inbox the next time this screen is focused.
-  useFocusEffect(refreshOpenMatches);
+  // A match confirmed on another device (the opponent approved it there)
+  // changes this player's ELO / W-L and adds a game to their activity, but
+  // the per-user realtime broadcast for that isn't reliable. Re-pull the
+  // authoritative profile + matches + activity every time this screen is
+  // focused so the numbers and the feed are never stale here.
+  useFocusEffect(
+    useCallback(() => {
+      void refreshProfile();
+      void refreshMatches();
+      const stopActivity = refreshActivity();
+      const stopMatches = refreshOpenMatches();
+      return () => {
+        stopActivity?.();
+        stopMatches?.();
+      };
+    }, [refreshProfile, refreshMatches, refreshActivity, refreshOpenMatches]),
+  );
   useEffect(() => {
     if (!localCourt?.id) return setSuggestedFriends([]);
     let cancelled = false;

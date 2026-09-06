@@ -502,6 +502,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       if (batchHasResource(batch, USER_MATCH_RESOURCES)) {
         scheduleRealtimeRefresh("matches", refreshMatches);
+        // A match confirming/voiding moves this user's ELO and W-L, but the
+        // profiles broadcast for that doesn't always land on this topic.
+        scheduleRealtimeRefresh("profile", refreshProfile);
+        scheduleRealtimeRefresh("feed", refreshFeed);
       }
       if (batchHasResource(batch, RUN_RESOURCES)) {
         scheduleRealtimeRefresh("runs", refreshRuns);
