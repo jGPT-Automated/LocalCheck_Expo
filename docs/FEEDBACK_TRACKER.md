@@ -55,27 +55,27 @@ Schedule + Home, a cooler game card, and a couple of real functional gaps.
 He merges to `main` after this round. Screenshots 1–7 map to the items below.
 
 ### Home feed (screenshot 1)
-- ✅ DONE (`_pending_`): first activity row's timeline dot sat ~2px above the
+- ✅ DONE (`fb2587f`): first activity row's timeline dot sat ~2px above the
   row's text center — the first/last rail segments weren't symmetric with the
   middle rows. `ActivityRow` rail rebuilt so top and bottom segments are
   always the same box (only the line colour is hidden on the cap), so every
   dot lands on the row centre.
-- ✅ DONE (`_pending_`): "too much space in the checked-in section" — the
+- ✅ DONE (`fb2587f`): "too much space in the checked-in section" — the
   Home roster strip (`peopleSection` / `roster`) tightened (shorter min
   heights, less vertical padding).
-- ✅ DONE (`_pending_`): "text overlaps" — the person-tile name label under
+- ✅ DONE (`fb2587f`): "text overlaps" — the person-tile name label under
   the checked-in avatars could ride into the section divider; constrained.
 
 ### Home → SCHEDULE tab (screenshot 2) — `CourtSchedulePanel`
-- ✅ DONE (`_pending_`): bottom "SAT 5 · 7 PM" slot card was clipped by the
+- ✅ DONE (`fb2587f`): bottom "SAT 5 · 7 PM" slot card was clipped by the
   tab bar — the Home schedule tab now reserves tab-bar clearance so the card
   is fully visible.
-- ✅ DONE (`_pending_`): dead vertical space between the day-header row and
+- ✅ DONE (`fb2587f`): dead vertical space between the day-header row and
   the first time row removed (the standalone scroll-cue row is gone; the
   hint moved to the top of the time axis, not its own full-width row).
 
 ### Scheduled game detail (screenshot 3) — `app/run/[id].tsx`
-- ✅ DONE (`_pending_`): "I can't leave a game once I join or switch sides."
+- ✅ DONE (`06f2450`): "I can't leave a game once I join or switch sides."
   Added `LEAVE GAME` (non-host, before start) via the existing
   `public.leave_run` RPC — new `leaveScheduledGame` service fn + `leaveRun`
   in `AppContext`, no migration, stays OTA-eligible. For `choose_teams`
@@ -84,15 +84,15 @@ He merges to `main` after this round. Screenshots 1–7 map to the items below.
   `team_side`). Host still can't leave (must cancel) — that's the RPC rule.
 
 ### Full Schedule page (screenshots 4, 5, 6) — `app/(tabs)/schedule.tsx`
-- ✅ DONE (`_pending_`, screenshot 4): the selected time cell only had
+- ✅ DONE (`0219ab9`, screenshot 4): the selected time cell only had
   `REMOVE MY TIME`; added an `ADD MY TIME` affordance on the selected-slot
   card so a single cell is easy to opt into without entering bulk-edit. The
   FAB (bulk add times / schedule a game) is unchanged, as asked.
-- ✅ DONE (`_pending_`, screenshot 5): the "N SELECTED — TAP TO ADD OR
+- ✅ DONE (`0219ab9`, screenshot 5): the "N SELECTED — TAP TO ADD OR
   REMOVE" line moved out of the top instruction row into a summary block
   below the grid that lists the actual selected times (not just a count),
   above CANCEL / SAVE CHANGES.
-- ✅ DONE (`_pending_`, screenshot 6): `RunCard` re-weighted — game format
+- ✅ DONE (`0219ab9`, screenshot 6): `RunCard` re-weighted — game format
   (2V2 / 4V4) is the headline, court name drops to `courtShortName` (the
   short slug) as sub-text since the page is already court-scoped; created-by,
   spots-open and the going-avatars stay.
@@ -102,7 +102,7 @@ He merges to `main` after this round. Screenshots 1–7 map to the items below.
 there, more prominent / visual"; "clearer court state, and who's it pending".
 Reference is Jesse's own "PLAYER-FIRST GAME CARD STATES" mockup (6 states +
 voided). Split so the merge isn't blocked on the whole redesign:
-- 🚧 IN PROGRESS (`_pending_`): `ScoreCard` gains a player box — avatars +
+- 🚧 IN PROGRESS (`9ed0718`): `ScoreCard` gains a player box — avatars +
   `YOU` / `OPPONENT` role labels + `VS`, player-first per the mockup — and
   the ELO before→after animation moves into that box (prominent, not a small
   line under the score). Status line becomes viewer-aware:
