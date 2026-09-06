@@ -833,6 +833,7 @@ export default function ScheduleScreen() {
     plannedVisits,
     currentUser,
     refreshRuns,
+    addPlannedVisit,
     removePlannedVisit,
     savePlannedVisitBatch,
   } = useApp();
@@ -861,6 +862,7 @@ export default function ScheduleScreen() {
   const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
   const [editVisibility, setEditVisibility] = useState<Visibility>("public");
   const [savingTimes, setSavingTimes] = useState(false);
+  const [addingSelectedTime, setAddingSelectedTime] = useState(false);
   // Null when there is nothing to say. Any string here is shown verbatim, so a
   // save can never look successful when nothing actually reached the database.
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
@@ -1199,6 +1201,51 @@ export default function ScheduleScreen() {
     setSaveNotice(null);
   };
 
+  // Chips under the grid in edit mode: the actual selected times, sorted, so
+  // "N SELECTED" reads as a summary instead of a bare counter up top.
+  const pendingTimeLabels = useMemo(
+    () =>
+      Array.from(pendingKeys)
+        .map((key) => {
+          const [day, slot] = key.split(":").map(Number);
+          const date = weekDays[day];
+          if (!date || SLOT_HOURS[slot] == null) return null;
+          return {
+            key,
+            sort: day * 100 + slot,
+            label: `${DAYS[date.getDay()]} ${scheduleSlotLabel(SLOT_HOURS[slot])}`,
+          };
+        })
+        .filter(
+          (entry): entry is { key: string; sort: number; label: string } =>
+            entry !== null,
+        )
+        .sort((a, b) => a.sort - b.sort),
+    [pendingKeys, weekDays],
+  );
+
+  // VIEW mode: opt a single selected cell in without entering bulk edit.
+  const handleAddSelectedTime = async () => {
+    if (!court || !selectedSlot || addingSelectedTime) return;
+    if (court.id !== localCourt?.id) {
+      setSaveNotice("TIMES CAN ONLY BE ADDED AT YOUR LOCAL COURT.");
+      return;
+    }
+    const date = new Date(weekDays[selectedSlot.day]);
+    date.setHours(SLOT_HOURS[selectedSlot.slot], 0, 0, 0);
+    const plannedAt = new Date(Math.max(date.getTime(), Date.now() + 60_000));
+    setAddingSelectedTime(true);
+    setSaveNotice(null);
+    const ok = await addPlannedVisit(
+      court.id,
+      plannedAt.toISOString(),
+      undefined,
+      "public",
+    );
+    setAddingSelectedTime(false);
+    if (!ok) setSaveNotice("COULD NOT ADD YOUR TIME. TRY AGAIN.");
+  };
+
   const saveMyTimes = async () => {
     if (savingTimes) return;
     // Save used to return silently with no court selected, so the button simply
@@ -1290,12 +1337,11 @@ export default function ScheduleScreen() {
           <Feather name="chevron-right" size={15} color={Colors.muted} />
         </Pressable>
 
-        {/* One restrained instruction above the time grid. */}
+        {/* One restrained instruction above the time grid. The running tally
+            of picked times lives in a summary block below the grid, not here. */}
         <View style={styles.scheduleModeRow}>
           <Text style={styles.scheduleModeStatus}>
-            {scheduleMode === "EDIT"
-              ? `${pendingKeys.size} SELECTED — TAP TO ADD OR REMOVE`
-              : "Who's Going"}
+            {scheduleMode === "EDIT" ? "Tap cells to add your times" : "Who's Going"}
           </Text>
         </View>
 
@@ -1509,6 +1555,36 @@ export default function ScheduleScreen() {
         </View>
 
         {scheduleMode === "EDIT" ? (
+          <View style={styles.selectedSummary}>
+            <Text style={styles.selectedSummaryLabel}>
+              {pendingKeys.size} {pendingKeys.size === 1 ? "TIME" : "TIMES"}{" "}
+              SELECTED
+            </Text>
+            {pendingTimeLabels.length > 0 ? (
+              <View style={styles.selectedChips}>
+                {pendingTimeLabels.map((entry) => (
+                  <Pressable
+                    accessibilityHint="Removes this time"
+                    accessibilityLabel={entry.label}
+                    accessibilityRole="button"
+                    key={entry.key}
+                    onPress={() => togglePendingKey(entry.key)}
+                    style={styles.selectedChip}
+                  >
+                    <Text style={styles.selectedChipText}>{entry.label}</Text>
+                    <Feather name="x" size={9} color={Colors.textSecondary} />
+                  </Pressable>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.selectedSummaryHint}>
+                Tap cells in the grid above to add your times.
+              </Text>
+            )}
+          </View>
+        ) : null}
+
+        {scheduleMode === "EDIT" ? (
           <View style={styles.editOptions}>
             <Text style={styles.editOptionsLabel}>NEW TIMES VISIBLE TO</Text>
             <View style={styles.editVisibilityRow}>
@@ -1616,16 +1692,45 @@ export default function ScheduleScreen() {
                   const mine = selectedEntry?.attendees.find(
                     (a) => a.isMine && a.visitId,
                   );
-                  if (!mine?.visitId) return null;
-                  const visitId = mine.visitId;
+                  if (mine?.visitId) {
+                    const visitId = mine.visitId;
+                    return (
+                      <Pressable
+                        style={styles.slotRemoveBtn}
+                        onPress={() => removePlannedVisit(visitId)}
+                        testID={`remove-visit-${visitId}`}
+                      >
+                        <Feather name="x" size={11} color={Colors.loss} />
+                        <Text style={styles.slotRemoveText}>REMOVE MY TIME</Text>
+                      </Pressable>
+                    );
+                  }
+                  // Not going yet — one tap to opt this single cell in without
+                  // dropping into bulk edit mode.
+                  const slotStart = new Date(selectedDate);
+                  slotStart.setHours(
+                    SLOT_HOURS[selectedSlot.slot] + 1,
+                    0,
+                    0,
+                    0,
+                  );
+                  if (
+                    court?.id !== localCourt?.id ||
+                    slotStart.getTime() <= Date.now()
+                  ) {
+                    return null;
+                  }
                   return (
                     <Pressable
-                      style={styles.slotRemoveBtn}
-                      onPress={() => removePlannedVisit(visitId)}
-                      testID={`remove-visit-${visitId}`}
+                      style={styles.slotAddBtn}
+                      onPress={() => void handleAddSelectedTime()}
+                      disabled={addingSelectedTime}
+                      testID="add-selected-visit"
                     >
-                      <Feather name="x" size={11} color={Colors.loss} />
-                      <Text style={styles.slotRemoveText}>REMOVE MY TIME</Text>
+                      <Feather name="plus" size={12} color={Colors.accent} />
+                      <Text style={styles.slotAddText}>
+                        {addingSelectedTime ? "ADDING…" : "ADD MY TIME"}
+                      </Text>
                     </Pressable>
                   );
                 })()}
@@ -1793,7 +1898,6 @@ const styles = StyleSheet.create({
   },
   editOptions: {
     marginHorizontal: 20,
-    marginTop: "auto",
     marginBottom: 8,
     padding: 10,
     borderWidth: 1,
@@ -1801,6 +1905,43 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
     backgroundColor: Colors.surface,
     gap: 8,
+  },
+  selectedSummary: {
+    marginHorizontal: 20,
+    marginTop: "auto",
+    marginBottom: 8,
+    paddingTop: 12,
+    gap: 8,
+  },
+  selectedSummaryLabel: {
+    fontFamily: Typography.heading,
+    fontSize: 13,
+    color: Colors.text,
+    letterSpacing: 1,
+  },
+  selectedSummaryHint: {
+    fontFamily: Typography.body,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Colors.muted,
+  },
+  selectedChips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  selectedChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingVertical: 5,
+    paddingHorizontal: 9,
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.accentDim,
+  },
+  selectedChipText: {
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 10,
+    color: Colors.text,
+    letterSpacing: 0.6,
   },
   editOptionsLabel: {
     fontFamily: Typography.bodySemiBold,
@@ -2091,6 +2232,25 @@ const styles = StyleSheet.create({
     fontFamily: Typography.bodyBold,
     fontSize: 9,
     color: Colors.loss,
+    letterSpacing: 1.5,
+  },
+  slotAddBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    alignSelf: "flex-start",
+    marginTop: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.accentDim,
+  },
+  slotAddText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.accent,
     letterSpacing: 1.5,
   },
 
