@@ -234,3 +234,18 @@ export async function leaveScheduledGame(gameId: string): Promise<boolean> {
     return false;
   }
 }
+
+// The organizer calling off their own scheduled game. `cancel_run` flips the
+// run to 'cancelled' (organizer + still-scheduled only).
+export async function cancelScheduledGame(gameId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase.rpc("cancel_run", { p_run_id: gameId });
+    if (error) {
+      console.warn("cancelScheduledGame failed", error.message);
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}

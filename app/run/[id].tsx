@@ -31,12 +31,14 @@ import { updateScheduledGame } from "@/services/scheduledGameService";
 
 export default function RunScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { runs, joinRun, leaveRun, currentUser, refreshRuns, getFriendsList } =
+  const { runs, joinRun, leaveRun, cancelRun, currentUser, refreshRuns, getFriendsList } =
     useApp();
   const realtimeHub = useRealtimeHub();
   const { bottom } = useSafeAreaInsets();
   const [joining, setJoining] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [cancelArmed, setCancelArmed] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [joinError, setJoinError] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showResult, setShowResult] = useState(false);
@@ -112,6 +114,22 @@ export default function RunScreen() {
     if (!ok) setJoinError(true);
   };
 
+  const handleCancelGame = async () => {
+    if (!isHost || cancelling) return;
+    if (!cancelArmed) {
+      setCancelArmed(true);
+      return;
+    }
+    setCancelling(true);
+    const ok = await cancelRun(run.id);
+    setCancelling(false);
+    if (ok) router.back();
+    else {
+      setJoinError(true);
+      setCancelArmed(false);
+    }
+  };
+
   const teamSize = max / 2;
   const assignedCount = Object.keys(run.participantSides).length;
   const teamsAreAssigned = isFull && assignedCount === total;
@@ -157,9 +175,18 @@ export default function RunScreen() {
             <Feather color={Colors.accent} name="map-pin" size={14} />
             <View style={styles.factCopy}>
               <Text style={styles.factLabel}>LOCATION</Text>
-              <Text numberOfLines={1} style={styles.factValue}>{run.courtName}</Text>
+              <Text numberOfLines={1} style={styles.factValue}>{run.courtShortName}</Text>
             </View>
           </View>
+        </View>
+
+        {/* Creator gets its own full-width line so the badge stops eating
+            into player names in the roster below. */}
+        <View style={styles.creatorRow}>
+          <Feather color={Colors.accent} name="award" size={13} />
+          <Text style={styles.creatorRowText}>
+            CREATED BY {(run.hostName || "COURT LOCAL").toUpperCase()}
+          </Text>
         </View>
 
         <View style={styles.rosterArea}>
@@ -203,8 +230,10 @@ export default function RunScreen() {
                         <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={34} />
                         <View style={styles.playerIdentity}>
                           <View style={styles.playerNameRow}>
+                            {player.id === run.hostId ? (
+                              <Feather color={Colors.accent} name="award" size={11} />
+                            ) : null}
                             <Text numberOfLines={1} style={styles.slotName}>{player.name.split(" ")[0]}</Text>
-                            {player.id === run.hostId ? <Text style={styles.creatorBadge}>CREATOR</Text> : null}
                           </View>
                           <Text style={styles.slotElo}>{player.elo} ELO</Text>
                         </View>
@@ -230,8 +259,10 @@ export default function RunScreen() {
                   <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={34} />
                   <View style={styles.playerIdentity}>
                     <View style={styles.playerNameRow}>
+                      {player.id === run.hostId ? (
+                        <Feather color={Colors.accent} name="award" size={11} />
+                      ) : null}
                       <Text numberOfLines={1} style={styles.slotName}>{player.name.split(" ")[0]}</Text>
-                      {player.id === run.hostId ? <Text style={styles.creatorBadge}>CREATOR</Text> : null}
                     </View>
                     <Text style={styles.slotElo}>{player.elo} ELO</Text>
                   </View>
@@ -323,7 +354,26 @@ export default function RunScreen() {
                 style={styles.resultBtn}
                 testID="edit-run-btn"
               />
+              <BrutalistButton
+                label={
+                  cancelling
+                    ? "CANCELLING…"
+                    : cancelArmed
+                      ? "TAP TO CONFIRM"
+                      : "CANCEL GAME"
+                }
+                onPress={() => void handleCancelGame()}
+                variant="outline"
+                disabled={cancelling}
+                style={styles.resultBtn}
+                testID="cancel-run-btn"
+              />
             </View>
+            {cancelArmed && !cancelling ? (
+              <Text style={styles.cancelHint}>
+                This calls off the game for everyone who joined.
+              </Text>
+            ) : null}
           </View>
         ) : null}
       </ScrollView>
@@ -638,7 +688,28 @@ const styles = StyleSheet.create({
   playerIdentity: { flex: 1, minWidth: 0 },
   playerNameRow: { flexDirection: "row", alignItems: "center", gap: 5, minWidth: 0 },
   slotName: { ...TextStyles.listName, color: Colors.text, flexShrink: 1 },
-  creatorBadge: { fontFamily: Typography.bodyBold, fontSize: 7, lineHeight: 14, color: Colors.accent, letterSpacing: 0.6, paddingHorizontal: 5, borderWidth: 1, borderColor: Colors.accentDim, borderRadius: Radius.xs },
+  creatorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  creatorRowText: {
+    ...TextStyles.labelSmall,
+    color: Colors.textSecondary,
+    letterSpacing: 1,
+  },
+  cancelHint: {
+    marginTop: 8,
+    fontFamily: Typography.body,
+    fontSize: 11,
+    lineHeight: 15,
+    color: Colors.muted,
+  },
   slotElo: { ...TextStyles.caption, color: Colors.muted, marginTop: 1 },
   openSlot: { borderStyle: "dashed", opacity: 0.72 },
   openAvatar: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderWidth: 1, borderStyle: "dashed", borderColor: Colors.border, borderRadius: Radius.sm },

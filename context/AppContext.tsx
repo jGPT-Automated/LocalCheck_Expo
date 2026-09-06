@@ -42,6 +42,7 @@ import {
 import { fetchFeed, hypePost } from "@/services/feedService";
 import { fetchGamesByPlayer } from "@/services/gameService";
 import {
+  cancelScheduledGame,
   fetchScheduledGames,
   joinScheduledGame,
   leaveScheduledGame,
@@ -98,6 +99,7 @@ interface AppContextValue {
   visitCourt: (courtId: string) => Promise<void>;
   joinRun: (runId: string, teamSide?: "a" | "b") => Promise<boolean>;
   leaveRun: (runId: string) => Promise<boolean>;
+  cancelRun: (runId: string) => Promise<boolean>;
   addPlannedVisit: (courtId: string, plannedAtIso: string, note?: string, visibility?: Visibility) => Promise<boolean>;
   removePlannedVisit: (visitId: string) => Promise<boolean>;
   savePlannedVisitBatch: (
@@ -748,6 +750,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [userId, refreshRuns]
   );
 
+  const cancelRun = useCallback(
+    async (runId: string): Promise<boolean> => {
+      if (!userId) return false;
+      const ok = await cancelScheduledGame(runId);
+      if (ok) {
+        setRuns((prev) => prev.filter((run) => run.id !== runId));
+        refreshRuns();
+      }
+      return ok;
+    },
+    [userId, refreshRuns]
+  );
+
   const addPlannedVisit = useCallback(
     async (courtId: string, plannedAtIso: string, note?: string, visibility: Visibility = "public"): Promise<boolean> => {
       if (!userId) return false;
@@ -829,6 +844,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         visitCourt,
         joinRun,
         leaveRun,
+        cancelRun,
         addPlannedVisit,
         removePlannedVisit,
         savePlannedVisitBatch,
