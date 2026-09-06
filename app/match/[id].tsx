@@ -92,6 +92,12 @@ export default function MatchReviewScreen() {
       return;
     }
     await refreshAll();
+    // Approving a 1v1 confirms it and moves ELO. Send the player to their
+    // profile so they see the rating tick over.
+    if (decision === "approve") {
+      const fresh = await fetchMatchReview(match.id);
+      if (fresh?.status === "confirmed") router.replace("/(tabs)/elo");
+    }
   };
 
   const submitRevision = async (change: {

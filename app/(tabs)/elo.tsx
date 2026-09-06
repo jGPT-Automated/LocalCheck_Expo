@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -110,7 +110,7 @@ export default function MeScreen() {
     openMatches.length +
     inboxNotifications.length;
 
-  useEffect(() => {
+  const refreshOpenMatches = useCallback(() => {
     let cancelled = false;
     void fetchOpenMatchesForPlayer(currentUser.id).then((rows) => {
       if (!cancelled) setOpenMatches(rows);
@@ -118,7 +118,14 @@ export default function MeScreen() {
     return () => {
       cancelled = true;
     };
-  }, [currentUser.id, activeTab, notifications.length, matches.length]);
+  }, [currentUser.id]);
+  useEffect(
+    refreshOpenMatches,
+    [refreshOpenMatches, activeTab, notifications.length, matches.length],
+  );
+  // A game confirmed on another device (the opponent approved it there)
+  // should drop out of the inbox the next time this screen is focused.
+  useFocusEffect(refreshOpenMatches);
   useEffect(() => {
     if (!localCourt?.id) return setSuggestedFriends([]);
     let cancelled = false;
@@ -169,6 +176,7 @@ export default function MeScreen() {
           compact
           courtLabel={localCourt?.shortName || localCourt?.name}
           elo={currentUser.elo}
+          eloAnimate
           headline={currentUser.name}
           initials={currentUser.avatar || "LC"}
           name={currentUser.name}

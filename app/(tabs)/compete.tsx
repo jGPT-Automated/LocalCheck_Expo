@@ -691,7 +691,7 @@ function CourtPickerField({
 function LogGameView({
   currentUser,
   courts,
-  bottom,
+  bottom: bottomProp,
   preferredSport,
   preferredCourtId,
   preselectedOpponent,
@@ -708,6 +708,10 @@ function LogGameView({
   inSheet?: boolean;
 }) {
   const { isFriend, getFriendsList, localCourt } = useApp();
+  const insets = useSafeAreaInsets();
+  // The parent passes 0 for the sheet case; on the tab it needs the real
+  // inset so pinned actions clear the floating tab bar.
+  const bottom = inSheet ? bottomProp : Math.max(bottomProp, insets.bottom);
 
   // Default court: preferredCourtId > localCourtId > empty
   const supportedCourts = useMemo(
@@ -1218,8 +1222,8 @@ function LogGameView({
   const successPadBottom = inSheet
     ? 16
     : Platform.OS === "web"
-      ? 104
-      : bottom + 104;
+      ? 108
+      : bottom + 116;
 
   if (reviewGame) {
     return (

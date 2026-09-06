@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { NumberFlow } from "number-flow-react-native";
 import React, { type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -8,6 +9,8 @@ import { Space } from "@/constants/layout";
 import { TextStyles, Typography } from "@/constants/typography";
 
 import { EloStat } from "./EloStat";
+
+const ELO_NO_GROUPING = { useGrouping: false } as const;
 
 export function ProfileHero({
   playerId,
@@ -20,6 +23,7 @@ export function ProfileHero({
   sportLabel,
   elo,
   eloDelta,
+  eloAnimate = false,
   friend = false,
   onOpenQr,
   compact = false,
@@ -35,6 +39,8 @@ export function ProfileHero({
   sportLabel?: string | null;
   elo: number;
   eloDelta?: number | null;
+  /** Roll the ELO digits when it changes — own profile only. */
+  eloAnimate?: boolean;
   friend?: boolean;
   onOpenQr: () => void;
   compact?: boolean;
@@ -87,14 +93,22 @@ export function ProfileHero({
           {actions || (
             <View accessibilityLabel={`${elo} ELO`} style={styles.compactElo}>
               <Text style={styles.compactEloLabel}>ELO</Text>
-              <Text
-                adjustsFontSizeToFit
-                minimumFontScale={0.82}
-                numberOfLines={1}
-                style={styles.compactEloValue}
-              >
-                {elo}
-              </Text>
+              {eloAnimate ? (
+                <NumberFlow
+                  format={ELO_NO_GROUPING}
+                  style={styles.compactEloValue}
+                  value={elo}
+                />
+              ) : (
+                <Text
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.82}
+                  numberOfLines={1}
+                  style={styles.compactEloValue}
+                >
+                  {elo}
+                </Text>
+              )}
               {eloDelta != null ? (
                 <Text
                   style={[
@@ -146,7 +160,7 @@ export function ProfileHero({
           >
             {headline || name}
           </Text>
-          <EloStat delta={eloDelta} hero value={elo} />
+          <EloStat animate={eloAnimate} delta={eloDelta} hero value={elo} />
         </View>
         {username ? (
           <Text numberOfLines={1} style={styles.username}>

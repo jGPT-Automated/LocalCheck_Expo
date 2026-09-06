@@ -164,6 +164,53 @@ function PlayerName({
   );
 }
 
+/** Inbox / list density: one line per side — name(s) left, score right. */
+function CompactRow({
+  teamLabel,
+  score,
+  players,
+  winner,
+  onPlayerPress,
+}: {
+  teamLabel: string;
+  score: number | string;
+  players: ScoreCardPlayer[];
+  winner: boolean;
+  onPlayerPress?: (playerId: string) => void;
+}) {
+  const solo = players.length === 1 ? players[0] : null;
+  const name = solo ? firstName(solo.name) : teamLabel;
+  const onPress =
+    solo?.id && onPlayerPress ? () => onPlayerPress(solo.id as string) : undefined;
+  return (
+    <View style={styles.compactRow}>
+      <Pressable
+        disabled={!onPress}
+        onPress={onPress}
+        style={styles.compactNameWrap}
+      >
+        {({ pressed }) => (
+          <Text
+            numberOfLines={1}
+            style={[
+              styles.compactName,
+              winner && styles.sideNameWin,
+              pressed && onPress ? styles.namePressed : null,
+            ]}
+          >
+            {name}
+          </Text>
+        )}
+      </Pressable>
+      <Text
+        style={[styles.compactScore, winner && styles.sideScoreWin]}
+      >
+        {score}
+      </Text>
+    </View>
+  );
+}
+
 function SideColumn({
   teamLabel,
   score,
@@ -329,27 +376,50 @@ export function ScoreCard({
             {rightMeta ? ` · ${rightMeta}` : ""}
           </Text>
 
-          <View style={styles.matchup}>
-            <SideColumn
-              compact={compact}
-              onPlayerPress={onPlayerPress}
-              players={leftPlayers}
-              score={leftScore}
-              teamLabel={leftLabel}
-              winBadge={decided && leftNum > rightNum && status === "confirmed"}
-              winner={decided && leftNum > rightNum}
-            />
-            <View style={styles.sideDivider} />
-            <SideColumn
-              compact={compact}
-              onPlayerPress={onPlayerPress}
-              players={rightPlayers}
-              score={rightScore}
-              teamLabel={rightLabel}
-              winBadge={decided && rightNum > leftNum && status === "confirmed"}
-              winner={decided && rightNum > leftNum}
-            />
-          </View>
+          {compact ? (
+            <View style={styles.compactRows}>
+              <CompactRow
+                onPlayerPress={onPlayerPress}
+                players={leftPlayers}
+                score={leftScore}
+                teamLabel={leftLabel}
+                winner={decided && leftNum > rightNum}
+              />
+              <CompactRow
+                onPlayerPress={onPlayerPress}
+                players={rightPlayers}
+                score={rightScore}
+                teamLabel={rightLabel}
+                winner={decided && rightNum > leftNum}
+              />
+            </View>
+          ) : (
+            <View style={styles.matchup}>
+              <SideColumn
+                compact={compact}
+                onPlayerPress={onPlayerPress}
+                players={leftPlayers}
+                score={leftScore}
+                teamLabel={leftLabel}
+                winBadge={
+                  decided && leftNum > rightNum && status === "confirmed"
+                }
+                winner={decided && leftNum > rightNum}
+              />
+              <View style={styles.sideDivider} />
+              <SideColumn
+                compact={compact}
+                onPlayerPress={onPlayerPress}
+                players={rightPlayers}
+                score={rightScore}
+                teamLabel={rightLabel}
+                winBadge={
+                  decided && rightNum > leftNum && status === "confirmed"
+                }
+                winner={decided && rightNum > leftNum}
+              />
+            </View>
+          )}
 
           {note ? <Text style={styles.note}>{note}</Text> : null}
         </View>
@@ -372,7 +442,29 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   cardBody: { padding: Space.lg, gap: Space.md },
-  cardBodyCompact: { padding: Space.md, gap: Space.sm },
+  cardBodyCompact: { padding: Space.md, gap: 6 },
+
+  // ── Compact: one line per side ──
+  compactRows: { marginTop: 2, gap: 2 },
+  compactRow: {
+    minHeight: 28,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Space.sm,
+  },
+  compactNameWrap: { flex: 1, minWidth: 0 },
+  compactName: {
+    ...TextStyles.label,
+    fontSize: 12,
+    color: Colors.text,
+  },
+  compactScore: {
+    fontFamily: TextStyles.displayLarge.fontFamily,
+    fontSize: 20,
+    lineHeight: 22,
+    color: Colors.textSecondary,
+    fontVariant: ["tabular-nums"],
+  },
 
   // ── Status: a thin bar across the card's top edge, not a pill ──
   statusBanner: {
