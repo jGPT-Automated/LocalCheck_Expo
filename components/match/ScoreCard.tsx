@@ -70,6 +70,15 @@ export function scoreCardTone(status: ScoreCardStatus): ScoreCardTone {
   return TONE[status];
 }
 
+/** Pending, but not the viewer's move — a status to monitor, not act on.
+ *  Deliberately the quiet neutral treatment so the "YOUR APPROVAL" card
+ *  next to it in the Inbox is the only one wearing accent. */
+const WAITING_TONE: ScoreCardTone = {
+  bg: Colors.surfaceHigh,
+  border: Colors.borderLight,
+  text: Colors.textSecondary,
+};
+
 const TONE: Record<ScoreCardStatus, ScoreCardTone> = {
   draft: {
     bg: Colors.surfaceHigh,
@@ -318,12 +327,18 @@ export function ScoreCard({
   note,
   rightMeta,
   compact = false,
+  emphasis,
   onPlayerPress,
 }: {
   status: ScoreCardStatus;
   /** Viewer-aware override for the banner text ("YOUR APPROVAL", "WAITING ON
    * JESSE"…). Tone still comes from `status`. Falls back to STATUS_LABEL. */
   statusLabel?: string;
+  /** Inbox-list emphasis, independent of `status`: "action" = the viewer has
+   * to do something (loud accent banner + a left accent spine so it stands
+   * out in a stack); "waiting" = pending someone else (quiet neutral). Omit
+   * and the tone comes straight from `status`. */
+  emphasis?: "action" | "waiting";
   statusPlacement?: "card" | "none";
   /** Court short slug — a caption, not a headline. */
   courtName: string;
@@ -344,7 +359,12 @@ export function ScoreCard({
   /** Tapping a player's name calls this with their id. */
   onPlayerPress?: (playerId: string) => void;
 }) {
-  const tone = TONE[status];
+  const tone =
+    emphasis === "action"
+      ? TONE.pending
+      : emphasis === "waiting"
+        ? WAITING_TONE
+        : TONE[status];
   const leftNum = Number(leftScore);
   const rightNum = Number(rightScore);
   const decided =
@@ -352,7 +372,8 @@ export function ScoreCard({
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.card}>
+      <View style={[styles.card, emphasis === "action" && styles.cardAction]}>
+        {emphasis === "action" ? <View style={styles.actionSpine} /> : null}
         {statusPlacement === "card" ? (
           <View
             style={[
@@ -440,6 +461,16 @@ const styles = StyleSheet.create({
     borderRadius: Radius.card,
     backgroundColor: Colors.surface,
     overflow: "hidden",
+  },
+  cardAction: { borderColor: Colors.accentBorder },
+  actionSpine: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    backgroundColor: Colors.accent,
+    zIndex: 2,
   },
   cardBody: { padding: Space.lg, gap: Space.md },
   cardBodyCompact: { padding: Space.md, gap: 6 },

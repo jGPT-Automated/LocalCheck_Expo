@@ -41,6 +41,21 @@ function viewerStatusLabel(
   return otherName;
 }
 
+/** Whether this card is the viewer's move to make ("action" — it wears accent
+ *  and a spine so it stands out in the Inbox stack) or is just pending someone
+ *  else ("waiting" — quiet). Mirrors viewerStatusLabel: "YOUR APPROVAL" only
+ *  ever pairs with "action". */
+function viewerEmphasis(
+  match: MatchReview,
+  viewerId?: string,
+): "action" | "waiting" | undefined {
+  if (match.status !== "pending") return undefined;
+  const me = match.participants.find((p) => p.id === viewerId);
+  if (!me || me.decision !== "pending") return "waiting";
+  if (viewerId && viewerId === match.lastSubmittedBy) return "waiting";
+  return "action";
+}
+
 /**
  * Wrapper around the shared ScoreCard. In the Inbox (`compact`) the status
  * rides on the card. On the full FINAL SCORE screen the status, the review
@@ -109,6 +124,7 @@ export function MatchReviewCard({
     <ScoreCard
       compact={compact}
       courtName={match.courtName}
+      emphasis={compact ? viewerEmphasis(match, viewerId) : undefined}
       format={`${match.teamSize}V${match.teamSize}`}
       leftLabel={firstIsMine ? "YOUR TEAM" : "TEAM A"}
       leftPlayers={sidePlayers(firstSide)}
