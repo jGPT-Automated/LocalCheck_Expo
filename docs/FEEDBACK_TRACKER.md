@@ -48,6 +48,66 @@ point.
 
 ✅ done — committed on the branch · 🚧 in progress · ⬜ backlog, not started
 
+## 2026-09-05 (polish round 3) — Expo Go pass, live element markup
+
+Jesse tested on Expo Go and marked up live elements. First finding: the
+`expo start --web` preview he still had open was **stale** (dev server was
+stopped after the round-2 commits) — it showed the pre-round-2 SET LOCAL
+chip, old RunCard, old drawer. Expo Go had the current build. Lesson for
+next time: don't stop the web server between commits if he's mid-review.
+
+### Score card / FINAL SCORE screen ✅ DONE (`6b38222`)
+- ✅ Score number was riding the top of its row (the ELO line stacked above
+  it) — it's vertically centred on the player name now, ELO under the name.
+- ✅ ELO no longer gets a thousands separator ("1154", was "1,154" / "1
+  220") — `NumberFlow format={{ useGrouping: false }}`.
+- ✅ Dropped the "YOU / OPPONENT" sub-label (it read as loud as the name).
+  The accent ring on the viewer's avatar carries it.
+- ✅ Status is a thin full-width banner across the card's top edge, not a
+  pill.
+- ✅ "lots of empty space… status/timer are non-game-card elements": on the
+  full FINAL SCORE screen the status banner + review timer + policy
+  explainer are lifted to screen furniture above the card
+  (`MatchReviewCard` non-compact); the card is just the game. The Inbox
+  (compact) keeps the banner on the card.
+
+### Schedule panel ✅ DONE (`dc5aeb0`)
+- ✅ "put the box on the bottom of the screen, more room for the grid" —
+  `CourtSchedulePanel` is a flex column: the grid fills the space above the
+  slot card and scrolls its own rows, so the card sits flush at the bottom
+  (tab-bar clearance on Home, safe-area inset on court/[id]). No dead space,
+  no clipping. Verified on Home in the web build.
+
+### Explore / court page ✅ DONE (`dc5aeb0`)
+- ✅ court/[id] metric "ACTIVE NOW" → "ACTIVE".
+- ✅ Removed the "HERE" check-in pill from the Explore court card.
+- Note: the live-dot-pushes-text and drawer court-name / "LIVE"-collision
+  Jesse flagged were the **stale web preview** — current code already has
+  absolute-positioned live dots (`StatBlock`, `CourtListItem`) and the
+  drawer already uses the short slug with `numberOfLines={1}` and no LIVE
+  pill (that pill was dropped back in `3c81d71`). Re-confirm on Expo Go.
+
+### ⬜ Inbox vs. notifications — needs a product call
+Jesse: ME tab shows a "4" badge but ME→INBOX says "you're all caught up",
+while Settings→Notifications shows "6 NEW". Not a straightforward bug:
+- The **INBOX tab** deliberately shows only *actionable* items — games to
+  review (`fetchOpenMatchesForPlayer`, status pending/held/rejected),
+  incoming friend requests, and run invites.
+- Settings→**Notifications** shows everything, including informational and
+  now-stale rows ("SCORE APPROVED", "MATCH CONFIRMED", and "CONFIRM FINAL
+  SCORE" rows for matches that are already confirmed and so no longer in
+  the inbox).
+- The ME-tab **badge** counts unread notifications, a different set than
+  the inbox count — hence "4 vs 6 vs empty inbox".
+Jesse floated an all / games filter toggle on the inbox but said "idk".
+Options to decide:
+1. Make the badge match the inbox count exactly (badge = actionable only).
+2. Auto-mark "CONFIRM FINAL SCORE" read when its match confirms, so stale
+   rows stop inflating the notifications count.
+3. Add the all / games (/ friends) filter Jesse mentioned and let "all"
+   surface informational notifications inside the inbox too.
+Recommend 1 + 2 first (kills the confusion), then 3 if he still wants it.
+
 ## 2026-09-05 (polish round 2) — 8 screenshots + a detailed Log Game brief
 
 Jesse pushed back hard: things kept getting pushed out of view / overlapping
