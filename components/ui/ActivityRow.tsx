@@ -159,8 +159,10 @@ function GameContent({ item }: { item: FeedItem }) {
 
   return (
     <View style={styles.gameBlock}>
+      {/* No "GAME · FINAL" kicker: a game only reaches a feed once it's final
+          (before that it lives in the participants' inbox), so the label just
+          competed with the winner and score for attention. */}
       <View style={styles.gameHeader}>
-        <Text style={styles.gameLabel}>GAME · FINAL</Text>
         <Text style={styles.time}>{item.timestamp}</Text>
       </View>
       <View style={styles.gameSide}>
@@ -326,13 +328,7 @@ const styles = StyleSheet.create({
   gameHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-  },
-  gameLabel: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 10,
-    color: Colors.accent,
-    letterSpacing: 1.2,
+    justifyContent: "flex-end",
   },
   gameSide: {
     flexDirection: "row",

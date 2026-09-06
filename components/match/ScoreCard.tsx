@@ -150,11 +150,23 @@ function PlayerName({
   win: boolean;
   onPress?: () => void;
 }) {
+  // No handler → plain text. A disabled Pressable still swallows the tap that
+  // should reach the card wrapper (which opens the match), so it must not be
+  // in the tree at all in list contexts.
+  if (!onPress) {
+    return (
+      <Text
+        numberOfLines={1}
+        style={[styles.sideName, win && styles.sideNameWin]}
+      >
+        {firstName(name)}
+      </Text>
+    );
+  }
   return (
     <Pressable
-      accessibilityHint={onPress ? "Opens this player's profile" : undefined}
-      accessibilityRole={onPress ? "link" : undefined}
-      disabled={!onPress}
+      accessibilityHint="Opens this player's profile"
+      accessibilityRole="link"
       onPress={onPress}
     >
       {({ pressed }) => (
@@ -163,7 +175,7 @@ function PlayerName({
           style={[
             styles.sideName,
             win && styles.sideNameWin,
-            pressed && onPress ? styles.namePressed : null,
+            pressed ? styles.namePressed : null,
           ]}
         >
           {firstName(name)}
@@ -193,24 +205,31 @@ function CompactRow({
     solo?.id && onPlayerPress ? () => onPlayerPress(solo.id as string) : undefined;
   return (
     <View style={styles.compactRow}>
-      <Pressable
-        disabled={!onPress}
-        onPress={onPress}
-        style={styles.compactNameWrap}
-      >
-        {({ pressed }) => (
+      {onPress ? (
+        <Pressable onPress={onPress} style={styles.compactNameWrap}>
+          {({ pressed }) => (
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.compactName,
+                winner && styles.sideNameWin,
+                pressed ? styles.namePressed : null,
+              ]}
+            >
+              {name}
+            </Text>
+          )}
+        </Pressable>
+      ) : (
+        <View style={styles.compactNameWrap}>
           <Text
             numberOfLines={1}
-            style={[
-              styles.compactName,
-              winner && styles.sideNameWin,
-              pressed && onPress ? styles.namePressed : null,
-            ]}
+            style={[styles.compactName, winner && styles.sideNameWin]}
           >
             {name}
           </Text>
-        )}
-      </Pressable>
+        </View>
+      )}
       <Text
         style={[styles.compactScore, winner && styles.sideScoreWin]}
       >
@@ -365,6 +384,10 @@ export function ScoreCard({
       : emphasis === "waiting"
         ? WAITING_TONE
         : TONE[status];
+  // In compact / list contexts the whole card is one tap target — it opens the
+  // match. A profile link on the name inside it just steals that tap, so names
+  // are only links on the full (non-compact) card.
+  const namePress = compact ? undefined : onPlayerPress;
   const leftNum = Number(leftScore);
   const rightNum = Number(rightScore);
   const decided =
@@ -400,14 +423,14 @@ export function ScoreCard({
           {compact ? (
             <View style={styles.compactRows}>
               <CompactRow
-                onPlayerPress={onPlayerPress}
+                onPlayerPress={namePress}
                 players={leftPlayers}
                 score={leftScore}
                 teamLabel={leftLabel}
                 winner={decided && leftNum > rightNum}
               />
               <CompactRow
-                onPlayerPress={onPlayerPress}
+                onPlayerPress={namePress}
                 players={rightPlayers}
                 score={rightScore}
                 teamLabel={rightLabel}
@@ -418,7 +441,7 @@ export function ScoreCard({
             <View style={styles.matchup}>
               <SideColumn
                 compact={compact}
-                onPlayerPress={onPlayerPress}
+                onPlayerPress={namePress}
                 players={leftPlayers}
                 score={leftScore}
                 teamLabel={leftLabel}
@@ -430,7 +453,7 @@ export function ScoreCard({
               <View style={styles.sideDivider} />
               <SideColumn
                 compact={compact}
-                onPlayerPress={onPlayerPress}
+                onPlayerPress={namePress}
                 players={rightPlayers}
                 score={rightScore}
                 teamLabel={rightLabel}
