@@ -41,7 +41,11 @@ import {
 } from "@/services/friendshipService";
 import { fetchFeed, hypePost } from "@/services/feedService";
 import { fetchGamesByPlayer } from "@/services/gameService";
-import { fetchScheduledGames, joinScheduledGame } from "@/services/scheduledGameService";
+import {
+  fetchScheduledGames,
+  joinScheduledGame,
+  leaveScheduledGame,
+} from "@/services/scheduledGameService";
 import {
   createCourt,
   fetchCourtById,
@@ -93,6 +97,7 @@ interface AppContextValue {
   checkOut: () => Promise<void>;
   visitCourt: (courtId: string) => Promise<void>;
   joinRun: (runId: string, teamSide?: "a" | "b") => Promise<boolean>;
+  leaveRun: (runId: string) => Promise<boolean>;
   addPlannedVisit: (courtId: string, plannedAtIso: string, note?: string, visibility?: Visibility) => Promise<boolean>;
   removePlannedVisit: (visitId: string) => Promise<boolean>;
   savePlannedVisitBatch: (
@@ -692,13 +697,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const ok = await joinScheduledGame(runId, userId, teamSide);
       if (ok) {
         // Reflect the confirmed RSVP immediately, then reconcile from the DB.
+        // Also covers a side switch: an already-joined player re-calling this
+        // with the other side (join_scheduled_game upserts team_side).
         setRuns((prev) =>
           prev.map((run) => {
             if (run.id !== runId) return run;
-            if (run.participants.some((p) => p.id === userId)) return run;
+            const alreadyIn = run.participants.some((p) => p.id === userId);
             return {
               ...run,
-              participants: [...run.participants, currentUser],
+              participants: alreadyIn
+                ? run.participants
+                : [...run.participants, currentUser],
               participantSides: teamSide
                 ? { ...run.participantSides, [userId]: teamSide }
                 : run.participantSides,
@@ -710,6 +719,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return ok;
     },
     [userId, currentUser, refreshRuns]
+  );
+
+  const leaveRun = useCallback(
+    async (runId: string): Promise<boolean> => {
+      if (!userId) return false;
+      const ok = await leaveScheduledGame(runId);
+      if (ok) {
+        setRuns((prev) =>
+          prev.map((run) => {
+            if (run.id !== runId) return run;
+            const nextSides = Object.fromEntries(
+              Object.entries(run.participantSides).filter(
+                ([id]) => id !== userId,
+              ),
+            );
+            return {
+              ...run,
+              participants: run.participants.filter((p) => p.id !== userId),
+              participantSides: nextSides,
+            };
+          })
+        );
+        refreshRuns();
+      }
+      return ok;
+    },
+    [userId, refreshRuns]
   );
 
   const addPlannedVisit = useCallback(
@@ -792,6 +828,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         checkOut,
         visitCourt,
         joinRun,
+        leaveRun,
         addPlannedVisit,
         removePlannedVisit,
         savePlannedVisitBatch,

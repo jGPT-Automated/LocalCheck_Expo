@@ -219,3 +219,18 @@ export async function joinScheduledGame(
     return false;
   }
 }
+
+// A joined non-host player backing out. `leave_run` deletes their
+// run_participants row; it rejects the organizer (they must cancel the run).
+export async function leaveScheduledGame(gameId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase.rpc("leave_run", { p_run_id: gameId });
+    if (error) {
+      console.warn("leaveScheduledGame failed", error.message);
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}

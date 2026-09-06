@@ -31,10 +31,12 @@ import { updateScheduledGame } from "@/services/scheduledGameService";
 
 export default function RunScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { runs, joinRun, currentUser, refreshRuns, getFriendsList } = useApp();
+  const { runs, joinRun, leaveRun, currentUser, refreshRuns, getFriendsList } =
+    useApp();
   const realtimeHub = useRealtimeHub();
   const { bottom } = useSafeAreaInsets();
   const [joining, setJoining] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [joinError, setJoinError] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showResult, setShowResult] = useState(false);
@@ -79,12 +81,34 @@ export default function RunScreen() {
     .filter((friend) => !participantIds.has(friend.id))
     .slice(0, 8);
 
+  const mySide = run.participantSides[currentUser.id];
+
   const handleJoin = async (teamSide?: "a" | "b") => {
     if (isJoined || isFull || joining) return;
     setJoining(true);
     setJoinError(false);
     const ok = await joinRun(run.id, teamSide);
     setJoining(false);
+    if (!ok) setJoinError(true);
+  };
+
+  // A joined player moving A -> B (or back). join_scheduled_game upserts the
+  // team_side, so this is just another join call with the other side.
+  const handleSwitchSide = async () => {
+    if (!isJoined || joining || !mySide) return;
+    setJoining(true);
+    setJoinError(false);
+    const ok = await joinRun(run.id, mySide === "a" ? "b" : "a");
+    setJoining(false);
+    if (!ok) setJoinError(true);
+  };
+
+  const handleLeave = async () => {
+    if (!isJoined || isHost || leaving) return;
+    setLeaving(true);
+    setJoinError(false);
+    const ok = await leaveRun(run.id);
+    setLeaving(false);
     if (!ok) setJoinError(true);
   };
 
@@ -325,7 +349,7 @@ export default function RunScreen() {
       />
 
       <View style={[styles.footer, { paddingBottom: (Platform.OS === "web" ? 34 : bottom) + 12 }]}>
-        {joinError && <Text style={styles.joinError}>COULD NOT JOIN — TRY AGAIN</Text>}
+        {joinError && <Text style={styles.joinError}>SOMETHING WENT WRONG — TRY AGAIN</Text>}
         {run.teamAssignmentMode === "choose_teams" && !isJoined && !isFull ? (
           <View style={styles.joinSideRow}>
             {(["a", "b"] as const).map((side) => {
@@ -343,6 +367,34 @@ export default function RunScreen() {
                 />
               );
             })}
+          </View>
+        ) : isJoined && !isHost && !hasStarted ? (
+          // Joined players can back out (or move teams) right up to start.
+          <View style={styles.joinSideRow}>
+            {run.teamAssignmentMode === "choose_teams" && mySide ? (
+              <BrutalistButton
+                label={`MOVE TO SIDE ${mySide === "a" ? "B" : "A"}`}
+                onPress={() => void handleSwitchSide()}
+                variant="outline"
+                disabled={joining || leaving}
+                loading={joining}
+                style={styles.joinSideButton}
+                testID="switch-run-side"
+              />
+            ) : null}
+            <BrutalistButton
+              label={leaving ? "LEAVING…" : "LEAVE GAME"}
+              onPress={() => void handleLeave()}
+              variant="outline"
+              disabled={joining || leaving}
+              loading={leaving}
+              style={
+                run.teamAssignmentMode === "choose_teams" && mySide
+                  ? styles.joinSideButton
+                  : { flex: 1 }
+              }
+              testID="leave-run-btn"
+            />
           </View>
         ) : (
           <BrutalistButton
