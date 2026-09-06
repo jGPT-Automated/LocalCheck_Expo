@@ -70,6 +70,16 @@ const STYLE_URL =
 // Continental-US overview used only until we know where the user is.
 const FALLBACK_CENTER: [number, number] = [-96.0, 37.5];
 
+// The native Mapbox SDK aborts the process on a NaN / out-of-range coordinate
+// passed to setCamera — a bad row (0,0 or null lat/lng) must never reach it.
+const isLngLat = (c?: [number, number] | null): c is [number, number] =>
+  !!c &&
+  Number.isFinite(c[0]) &&
+  Number.isFinite(c[1]) &&
+  Math.abs(c[0]) <= 180 &&
+  Math.abs(c[1]) <= 90 &&
+  !(c[0] === 0 && c[1] === 0);
+
 export function MapScreen({
   sportFilter = "ALL",
   addCourtMode = false,
@@ -119,7 +129,8 @@ export function MapScreen({
     localCourtCenter ??
     userCoord ??
     FALLBACK_CENTER;
-  const initialZoom = locationIsTrusted || localCourt ? 12 : userCoord ? 9 : 3.4;
+  const initialZoom =
+    locationIsTrusted || localCourt ? 12 : userCoord ? 9 : 3.4;
 
   // ── Viewport-driven Supabase fetch (400ms debounce, sequenced) ──
   // Responses can arrive out of order while panning; only the newest request
@@ -128,8 +139,16 @@ export function MapScreen({
   const refetchViewport = useCallback(() => {
     if (fetchTimer.current) clearTimeout(fetchTimer.current);
     fetchTimer.current = setTimeout(async () => {
-      const bounds = await mapRef.current?.getVisibleBounds().catch(() => null);
-      if (!bounds) return;
+      // The map can report no bounds for a beat right after it loads — retry a
+      // few times rather than giving up, or the pins never appear until the
+      // next camera move (which may never come if the map opens already idle).
+      let bounds: number[][] | null = null;
+      for (let attempt = 0; attempt < 6 && !bounds; attempt++) {
+        bounds =
+          (await mapRef.current?.getVisibleBounds().catch(() => null)) ?? null;
+        if (!bounds) await new Promise((r) => setTimeout(r, 250));
+      }
+      if (!bounds || bounds.length < 2) return;
       const seq = ++fetchSeq.current;
       const [[neLng, neLat], [swLng, swLat]] = bounds;
       const latPad = (neLat - swLat) * 0.15;
@@ -143,7 +162,12 @@ export function MapScreen({
         250,
       );
       if (seq !== fetchSeq.current) return;
-      setViewportCourts(courts);
+      // Never blank the map on an empty response while we still have pins —
+      // an empty result is as likely a transient read failure as a genuinely
+      // court-free viewport. A later non-empty fetch replaces them.
+      setViewportCourts((prev) =>
+        courts.length === 0 && prev.length > 0 ? prev : courts,
+      );
     }, 400);
   }, [sportFilter]);
 
@@ -155,7 +179,12 @@ export function MapScreen({
       const belongsToCurrentMarket =
         !localCourt ||
         c.id === localCourt.id ||
-        (!!localCourt.market && c.market === localCourt.market);
+        // When the local court has no market tag we can't scope by it — fall
+        // back to trusting every context court (AppContext already fetches
+        // them nearby-scoped), so the map is never left with zero pins if the
+        // viewport fetch hasn't landed.
+        !localCourt.market ||
+        c.market === localCourt.market;
       if (merged.has(c.id) || belongsToCurrentMarket) {
         merged.set(c.id, merged.has(c.id) ? { ...merged.get(c.id)!, ...c } : c);
       }
@@ -164,6 +193,13 @@ export function MapScreen({
       (court) => sportFilter === "ALL" || court.sport === sportFilter,
     );
   }, [viewportCourts, contextCourts, localCourt, sportFilter]);
+
+  // Belt-and-braces: whenever the SDK reports ready, or we somehow have no
+  // pins at all, re-run the viewport fetch. onMapIdle alone has missed the
+  // first load in the field.
+  useEffect(() => {
+    if (mapReady) refetchViewport();
+  }, [mapReady, sportFilter, refetchViewport]);
 
   const liveCounts = useCourtCounts(mergedCourts);
   const allCourts = useMemo(
@@ -180,24 +216,28 @@ export function MapScreen({
   const liveCourtCount = allCourts.filter((c) => c.activeCount > 0).length;
 
   // ── GeoJSON for the ShapeSource ──
+  // One court row with a null / NaN / (0,0) coordinate can make the native
+  // source reject the whole collection — filter them out here.
   const courtsGeoJSON = useMemo(
     () => ({
       type: "FeatureCollection" as const,
-      features: allCourts.map((c) => ({
-        type: "Feature" as const,
-        id: c.id,
-        geometry: {
-          type: "Point" as const,
-          coordinates: [c.longitude, c.latitude],
-        },
-        properties: {
+      features: allCourts
+        .filter((c) => isLngLat([c.longitude, c.latitude]))
+        .map((c) => ({
+          type: "Feature" as const,
           id: c.id,
-          active: c.activeCount ?? 0,
-          confirmed: c.status === "confirmed",
-          isLocal: c.id === localCourtId,
-          sportColor: getCourtIdentityColor(c.sport),
-        },
-      })),
+          geometry: {
+            type: "Point" as const,
+            coordinates: [c.longitude, c.latitude],
+          },
+          properties: {
+            id: c.id,
+            active: c.activeCount ?? 0,
+            confirmed: c.status === "confirmed",
+            isLocal: c.id === localCourtId,
+            sportColor: getCourtIdentityColor(c.sport),
+          },
+        })),
     }),
     [allCourts, localCourtId],
   );
@@ -208,11 +248,21 @@ export function MapScreen({
       const feature = e.features?.[0];
       if (!feature) return;
       if (feature.properties?.cluster) {
-        const zoom = await sourceRef.current
-          ?.getClusterExpansionZoom(feature)
-          .catch(() => null);
+        const coords = feature.geometry?.coordinates as
+          | [number, number]
+          | undefined;
+        if (!isLngLat(coords ?? null)) return;
+        let zoom: number | null = null;
+        try {
+          zoom =
+            (await sourceRef.current
+              ?.getClusterExpansionZoom(feature)
+              .catch(() => null)) ?? null;
+        } catch {
+          zoom = null;
+        }
         cameraRef.current?.setCamera({
-          centerCoordinate: feature.geometry.coordinates,
+          centerCoordinate: coords,
           zoomLevel: (zoom ?? 12) + 0.5,
           animationDuration: 500,
         });
@@ -230,7 +280,7 @@ export function MapScreen({
     const fresh = current ? null : await refreshDeviceLocation();
     const resolved =
       current ?? coordinateForLocationAction(fresh!.status, fresh!.coord);
-    if (resolved) {
+    if (resolved && isLngLat([resolved.lng, resolved.lat])) {
       userCameraOverride.current = true;
       setNearestRoute(null);
       cameraRef.current?.setCamera({
@@ -267,6 +317,10 @@ export function MapScreen({
 
       const from: LngLat = [resolved.lng, resolved.lat];
       const to: LngLat = [nearest.longitude, nearest.latitude];
+      if (!isLngLat(from) || !isLngLat(to)) {
+        setLocationNotice("LOCATION UNAVAILABLE — TRY AGAIN");
+        return;
+      }
       const distanceKm = nearest.distanceKm ?? kmBetween(from, to);
 
       // Zoom out to frame both the puck and the court, leaving room for the
@@ -319,7 +373,10 @@ export function MapScreen({
   // and the user gets stuck on the continent fallback with no visible pins.
   useEffect(() => {
     if (!mapReady) return;
-    if (focusCoordinate) {
+    if (
+      focusCoordinate &&
+      isLngLat([focusCoordinate.lng, focusCoordinate.lat])
+    ) {
       userCameraOverride.current = false;
       setNearestRoute(null);
       cameraRef.current?.setCamera({
@@ -344,7 +401,7 @@ export function MapScreen({
     if (userCameraOverride.current) return;
     const center =
       (locationIsTrusted ? userCoord : null) ?? localCourtCenter ?? userCoord;
-    if (!center) return;
+    if (!isLngLat(center)) return;
     cameraRef.current?.setCamera({
       centerCoordinate: center,
       zoomLevel: 12.5,
@@ -405,6 +462,10 @@ export function MapScreen({
         scaleBarEnabled={false}
         compassEnabled={false}
         onMapIdle={refetchViewport}
+        onCameraChanged={() => {
+          if (!mapReady) return;
+          refetchViewport();
+        }}
         onPress={() => setNearestRoute(null)}
         onDidFinishLoadingMap={() => {
           setMapReady(true);

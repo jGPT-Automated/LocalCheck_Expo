@@ -146,9 +146,9 @@ function AnimatedCorner({
   return (
     <Animated.View pointerEvents="none" style={[styles.animatedLayer, { height: size, width: size }, animatedStyle]}>
       <Svg fill="none" height={size} viewBox={MARK_VIEWBOX} width={size}>
-        {rects.map((rect) => (
+        {rects.map((rect, i) => (
           <Rect
-            key={`${rect.x}-${rect.y}`}
+            key={i}
             fill={Colors.white}
             height={rect.height}
             width={rect.width}
