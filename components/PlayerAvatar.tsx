@@ -1,6 +1,7 @@
 import React from "react";
 import { Feather } from "@expo/vector-icons";
 import { Platform, StyleSheet, Text, View, ViewStyle } from "react-native";
+import Svg, { Rect } from "react-native-svg";
 
 import { Colors } from "@/constants/colors";
 import { Typography } from "@/constants/typography";
@@ -16,8 +17,35 @@ interface PlayerAvatarProps {
   accent?: boolean;
   ranked?: boolean;
   friend?: boolean;
+  /** Founding-cohort ("STARTER") treatment — a faint diagonal accent print. */
+  starter?: boolean;
   status?: "active" | "quiet" | "inactive";
   foregroundColor?: string;
+}
+
+/** Faint diagonal bands behind the initials — the founding-member "STARTER" mark. */
+function StarterPrint({ size }: { size: number }) {
+  return (
+    <Svg
+      height={size}
+      pointerEvents="none"
+      style={StyleSheet.absoluteFill}
+      width={size}
+    >
+      {[0, 1, 2, 3, 4].map((i) => (
+        <Rect
+          key={i}
+          x={size * (i * 0.3 - 0.35)}
+          y={-size}
+          width={size * 0.14}
+          height={size * 3}
+          fill={Colors.accent}
+          opacity={i % 2 === 0 ? 0.22 : 0.1}
+          transform={`rotate(38 ${size / 2} ${size / 2})`}
+        />
+      ))}
+    </Svg>
+  );
 }
 
 export function PlayerAvatar({
@@ -30,6 +58,7 @@ export function PlayerAvatar({
   accent = false,
   ranked = false,
   friend = false,
+  starter = false,
   status = "quiet",
   foregroundColor,
 }: PlayerAvatarProps) {
@@ -63,12 +92,18 @@ export function PlayerAvatar({
             height: size,
             backgroundColor: bg,
             borderRadius: radius,
-            borderColor: inactive ? Colors.borderSubtle : Colors.border,
+            borderColor: starter
+              ? Colors.accentBorder
+              : inactive
+                ? Colors.borderSubtle
+                : Colors.border,
+            overflow: "hidden",
           },
           highlighted ? styles.highlighted : null,
           style,
         ]}
       >
+        {starter && !inactive ? <StarterPrint size={size} /> : null}
         <Text
           style={[
             styles.initials,

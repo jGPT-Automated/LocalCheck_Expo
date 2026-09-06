@@ -14,7 +14,10 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { compactCourtLabel, normalizeState } from "@/components/addCourtModel";
+import {
+  courtNameFromLocation,
+  normalizeState,
+} from "@/components/addCourtModel";
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { Colors, Radius } from "@/constants/colors";
 import { Layout, Space } from "@/constants/layout";
@@ -166,10 +169,7 @@ export default function AddCourtRoute() {
         });
         if (!place) return;
         const street = addressFrom(place);
-        const nextName = compactCourtLabel(
-          place.name?.trim() || street,
-          street,
-        );
+        const nextName = courtNameFromLocation(place.name, street);
         setAddress(street);
         setCity(place.city?.trim() || place.district?.trim() || "");
         setState(normalizeState(place.region));

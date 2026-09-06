@@ -25,6 +25,7 @@ export function ProfileHero({
   eloDelta,
   eloAnimate = false,
   friend = false,
+  starter = false,
   onOpenQr,
   compact = false,
   actions,
@@ -42,6 +43,8 @@ export function ProfileHero({
   /** Roll the ELO digits when it changes — own profile only. */
   eloAnimate?: boolean;
   friend?: boolean;
+  /** Founding-cohort "STARTER" treatment on the avatar. */
+  starter?: boolean;
   onOpenQr: () => void;
   compact?: boolean;
   actions?: ReactNode;
@@ -71,6 +74,7 @@ export function ProfileHero({
             name={name}
             playerId={playerId}
             size={60}
+            starter={starter}
             style={styles.compactAvatar}
           />
         </Pressable>
@@ -139,6 +143,7 @@ export function ProfileHero({
         <PlayerAvatar
           accent
           friend={friend}
+          starter={starter}
           initials={initials}
           name={name}
           playerId={playerId}

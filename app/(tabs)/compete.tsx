@@ -181,6 +181,7 @@ export default function CompeteScreen() {
                   style={[styles.myRankNum, !showMyRank && styles.myRankNumDim]}
                 >
                   #{myRank}
+                  <Text style={styles.myRankTotal}>/{allPlayers.length}</Text>
                 </Text>
                 <Text numberOfLines={1} style={styles.myRankLabel}>
                   {rankContext}
@@ -1653,6 +1654,12 @@ const styles = StyleSheet.create({
   myRankNumDim: {
     color: Colors.muted,
   },
+  myRankTotal: {
+    fontFamily: Typography.heading,
+    fontSize: 13,
+    color: Colors.muted,
+    letterSpacing: 0.3,
+  },
   myRankLabel: {
     maxWidth: 150,
     marginTop: 1,
@@ -1687,6 +1694,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     letterSpacing: 0.4,
     color: Colors.muted,
+    textTransform: "uppercase" as const,
   },
   youChip: {
     marginLeft: 7,

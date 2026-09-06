@@ -236,10 +236,14 @@ export default function MeScreen() {
     return () => clearTimeout(timer);
   }, [currentUser.id, friendQuery]);
 
+  // Founding cohort — everyone who exists before the migration backfills the
+  // real flag; drives the "STARTER" screen title and the avatar print.
+  const isStarter = profile?.is_founding_member ?? true;
+
   return (
     <View style={styles.screen}>
       <ScreenHeader
-        title="PROFILE"
+        title={isStarter ? "STARTER" : "PROFILE"}
         right={
           <HeaderIconAction
             accessibilityLabel="Open settings"
@@ -259,6 +263,7 @@ export default function MeScreen() {
           name={currentUser.name}
           onOpenQr={() => setQrVisible(true)}
           playerId={currentUser.id}
+          starter={isStarter}
           sportLabel={
             (preferredSport || localCourt?.sport) === "BASKETBALL"
               ? "BB"

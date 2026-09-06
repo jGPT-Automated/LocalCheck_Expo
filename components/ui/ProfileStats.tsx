@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
     alignItems: "stretch",
     gap: 10,
   },
-  rowCompact: { minHeight: 60, paddingTop: 4, paddingBottom: 10 },
+  rowCompact: { minHeight: 74, paddingTop: 4, paddingBottom: 12 },
   panel: {
     flex: 1,
     minWidth: 0,
@@ -85,6 +85,7 @@ const styles = StyleSheet.create({
   metric: {
     flex: 1,
     minWidth: 0,
+    paddingVertical: 9,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -94,8 +95,8 @@ const styles = StyleSheet.create({
   },
   value: {
     fontFamily: Typography.headingBold,
-    fontSize: 21,
-    lineHeight: 23,
+    fontSize: 20,
+    lineHeight: 26,
     color: Colors.text,
   },
   win: { color: Colors.win },
