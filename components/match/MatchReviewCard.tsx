@@ -122,6 +122,25 @@ export function MatchReviewCard({
   const tone = scoreCardTone(match.status);
 
   const firstIsMine = viewerSide != null;
+
+  // A revision the *other* player made — the number on the card isn't the one
+  // this viewer entered. `revisionNumber > 0` means the score has been edited
+  // at least once since it was first logged.
+  const reviser =
+    match.revisionNumber > 0
+      ? match.participants.find((p) => p.id === match.lastSubmittedBy)
+      : undefined;
+  const revisedByOther = reviser != null && reviser.id !== viewerId;
+
+  const captionExtras = [
+    match.disputeCount > 0
+      ? `DISPUTE ${Math.min(match.disputeCount, 2)} OF 2`
+      : null,
+    revisedByOther
+      ? `REVISED BY ${reviser!.name.split(" ")[0].toUpperCase()}`
+      : null,
+  ].filter(Boolean);
+
   const card = (
     <ScoreCard
       compact={compact}
@@ -132,20 +151,20 @@ export function MatchReviewCard({
       leftPlayers={sidePlayers(firstSide)}
       leftScore={firstScore}
       note={
-        compact && remaining
-          ? `${copy.countdownLabel} · ${remaining}`
-          : compact
-            ? copy.description
-            : undefined
+        compact && match.disputeNote
+          ? match.disputeNote
+          : compact && remaining
+            ? `${copy.countdownLabel} · ${remaining}`
+            : compact
+              ? copy.description
+              : undefined
       }
       onPlayerPress={(id) => router.push(`/player/${id}`)}
       playedOn={match.playedAt}
       rightLabel={firstIsMine ? "OTHER TEAM" : "TEAM B"}
       rightPlayers={sidePlayers(secondSide)}
       rightMeta={
-        match.disputeCount > 0
-          ? `DISPUTE ${Math.min(match.disputeCount, 2)} OF 2`
-          : undefined
+        captionExtras.length > 0 ? captionExtras.join(" · ") : undefined
       }
       rightScore={secondScore}
       status={match.status}
@@ -177,6 +196,16 @@ export function MatchReviewCard({
         ) : null}
         {copy.description ? (
           <Text style={styles.explainer}>{copy.description}</Text>
+        ) : null}
+        {match.disputeNote ? (
+          <View style={styles.disputeNote}>
+            <Text style={styles.disputeNoteLabel}>
+              {revisedByOther && reviser
+                ? `${reviser.name.split(" ")[0].toUpperCase()} SAYS`
+                : "DISPUTE NOTE"}
+            </Text>
+            <Text style={styles.disputeNoteText}>{match.disputeNote}</Text>
+          </View>
         ) : null}
       </View>
       {card}
@@ -210,5 +239,24 @@ const styles = StyleSheet.create({
     ...TextStyles.bodySmall,
     color: Colors.muted,
     textAlign: "center",
+  },
+  disputeNote: {
+    alignSelf: "stretch",
+    gap: 3,
+    paddingVertical: Space.sm,
+    paddingHorizontal: Space.md,
+    borderLeftWidth: 2,
+    borderLeftColor: Colors.accent,
+    backgroundColor: Colors.surfaceHigh,
+    borderRadius: 6,
+  },
+  disputeNoteLabel: {
+    ...TextStyles.labelSmall,
+    color: Colors.accent,
+    letterSpacing: 1.4,
+  },
+  disputeNoteText: {
+    ...TextStyles.bodySmall,
+    color: Colors.text,
   },
 });

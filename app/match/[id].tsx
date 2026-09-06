@@ -35,6 +35,20 @@ function localDateValue(date: Date) {
   return new Date(date.getTime() - offset).toISOString().slice(0, 10);
 }
 
+/** The auto "score changed from X to Y" line plus any note the player typed,
+ *  kept under the RPC's 280-char cap (the canned line always survives). */
+const DISPUTE_NOTE_MAX = 280;
+function buildDisputeExplanation(
+  autoLine: string | null,
+  typed: string,
+): string | undefined {
+  const note = typed.trim();
+  if (!autoLine) return note || undefined;
+  if (!note) return autoLine;
+  const room = DISPUTE_NOTE_MAX - autoLine.length - 1;
+  return room > 0 ? `${autoLine} ${note.slice(0, room)}` : autoLine;
+}
+
 export default function MatchReviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -109,15 +123,29 @@ export default function MatchReviewScreen() {
   }) => {
     if (!match || working) return;
     setWorking(true);
+    const scoreChanged =
+      change.scoreA !== match.scoreA || change.scoreB !== match.scoreB;
     const changed =
+      scoreChanged ||
       change.courtId !== match.courtId ||
-      change.scoreA !== match.scoreA ||
-      change.scoreB !== match.scoreB ||
       change.playedOn !== localDateValue(new Date(match.playedAt));
+    // Auto-prepend a plain-language record of the score edit to the dispute
+    // note, so the other player sees exactly what changed and doesn't have to
+    // remember what they submitted. The DB overwrites the score in place and
+    // keeps no history — this note is the history.
+    const explanation =
+      revisionMode === "dispute"
+        ? buildDisputeExplanation(
+            scoreChanged
+              ? `Score changed from ${match.scoreA}–${match.scoreB} to ${change.scoreA}–${change.scoreB}.`
+              : null,
+            change.note,
+          )
+        : undefined;
     const result =
       revisionMode === "dispute"
         ? await respondToMatch(match.id, "dispute", {
-            explanation: change.note || undefined,
+            explanation,
             ...(changed
               ? {
                   courtId: change.courtId,

@@ -32,6 +32,7 @@ interface SupabaseMatch {
   dispute_count?: number | null;
   revision_number?: number | null;
   last_submitted_by?: string | null;
+  dispute_note?: string | null;
   confirmed_at: string | null;
   notes: string | null;
   created_at: string;
@@ -77,6 +78,9 @@ export interface MatchReview {
   disputeCount: number;
   revisionNumber: number;
   lastSubmittedBy: string;
+  /** Free-text note from the last dispute — starts with the auto "score
+   * changed from X to Y" line the reviser's client prepends. */
+  disputeNote?: string;
   scoreA: number;
   scoreB: number;
   runId?: string;
@@ -578,6 +582,10 @@ export async function fetchMatchReview(
     disputeCount: row.dispute_count ?? (row.status === "rejected" ? 1 : 0),
     revisionNumber: row.revision_number ?? 0,
     lastSubmittedBy: row.last_submitted_by ?? row.created_by,
+    disputeNote:
+      typeof row.dispute_note === "string" && row.dispute_note.trim()
+        ? row.dispute_note.trim()
+        : undefined,
     scoreA: row.score_a,
     scoreB: row.score_b,
     runId: row.run_id ?? undefined,
