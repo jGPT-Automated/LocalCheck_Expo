@@ -150,7 +150,7 @@ export default function CourtProfileScreen() {
   const visibleLocals = locals.filter(({ player }) => !hereNowIds.has(player.id));
   const privateLocalCount = Math.max(0, localCount - locals.length);
   const dashboard: DashboardMetric[] = [
-    { label: "Active now", value: hiddenCount > 0 ? `~${activeCount}` : activeCount, accent: activeCount > 0 },
+    { label: "Active", value: hiddenCount > 0 ? `~${activeCount}` : activeCount, accent: activeCount > 0 },
     { label: "Active locals", value: activityMetrics.activeLocals, trend: activityMetrics.activeLocalTrend, trendLabel: "90D" },
     { label: "Check-ins · 7D", value: activityMetrics.checkInsThisWeek, trend: activityMetrics.checkInTrend, trendLabel: "7D" },
     { label: "Games · 7D", value: activityMetrics.gamesThisWeek },
@@ -262,7 +262,11 @@ export default function CourtProfileScreen() {
 
         {activeTab === "schedule" ? (
           <View style={styles.scheduleView}>
-            <CourtSchedulePanel court={court} interactive={false} />
+            <CourtSchedulePanel
+              bottomInset={Platform.OS === "web" ? 16 : bottom + 12}
+              court={court}
+              interactive={false}
+            />
           </View>
         ) : null}
 

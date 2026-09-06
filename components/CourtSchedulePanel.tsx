@@ -5,7 +5,6 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Colors, Radius } from "@/constants/colors";
 import { Court, GameRun } from "@/constants/data";
-import { Layout } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { fetchCourtPlannedTimes } from "@/services/plannedVisitService";
@@ -32,9 +31,13 @@ interface SlotEntry {
 export function CourtSchedulePanel({
   court,
   interactive = true,
+  bottomInset = 0,
 }: {
   court: Court;
   interactive?: boolean;
+  /** Space to leave under the pinned slot card (floating tab bar on Home,
+   * safe-area inset on the court detail screen). */
+  bottomInset?: number;
 }) {
   const {
     currentUser,
@@ -234,12 +237,8 @@ export function CourtSchedulePanel({
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.panelContent}
-      nestedScrollEnabled
-      showsVerticalScrollIndicator={false}
-      style={styles.panel}
-    >
+    <View style={styles.panel}>
+      <View style={styles.gridArea}>
       <View style={styles.heatmap}>
         <View style={styles.heatRow}>
           <View style={[styles.timeColumn, styles.monthCorner]}>
@@ -260,12 +259,7 @@ export function CourtSchedulePanel({
           contentContainerStyle={styles.timeRows}
           nestedScrollEnabled
           showsVerticalScrollIndicator={false}
-          style={[
-            styles.timeScroller,
-            // The Home preview is height-boxed above the tab bar; keep the
-            // grid short so the selected-slot card below stays on screen.
-            !interactive && styles.timeScrollerCompact,
-          ]}
+          style={styles.timeScroller}
         >
         {SLOT_HOURS.map((hour, slot) => (
           <View key={hour} style={styles.heatRow}>
@@ -331,9 +325,10 @@ export function CourtSchedulePanel({
           <Text style={styles.legendText}>LOCAL TIME</Text>
         </View>
       </View>
+      </View>
 
       {selected && selectedKey && selectedDate ? (
-        <View style={styles.slotCard}>
+        <View style={[styles.slotCard, { marginBottom: bottomInset + 8 }]}>
           <View style={styles.slotHeader}>
             <Text style={styles.slotTitle}>
               {DAYS[selectedDate.getDay()]} {selectedDate.getDate()} · {scheduleSlotLabel(SLOT_HOURS[selected.slot])}
@@ -446,18 +441,18 @@ export function CourtSchedulePanel({
           {notice ? <Text style={styles.notice}>{notice}</Text> : null}
         </View>
       ) : null}
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  panel: { flex: 1, minHeight: 0 },
-  // Clears the floating tab bar so the selected-slot card can scroll fully
-  // into view; no artificial gap when the content already fits.
-  panelContent: { paddingTop: 6, paddingBottom: Layout.tabBarClearance },
-  heatmap: { paddingHorizontal: 12 },
-  timeScroller: { maxHeight: 260 },
-  timeScrollerCompact: { maxHeight: 182 },
+  panel: { flex: 1, minHeight: 0, paddingTop: 6 },
+  // The grid fills the space above the pinned slot card and scrolls its own
+  // rows, so the card sits at the bottom edge instead of floating in dead
+  // space or getting clipped.
+  gridArea: { flex: 1, minHeight: 0 },
+  heatmap: { flex: 1, minHeight: 0, paddingHorizontal: 12 },
+  timeScroller: { flex: 1, minHeight: 0 },
   timeRows: { paddingBottom: 2 },
   heatRow: {
     flexDirection: "row",

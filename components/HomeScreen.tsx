@@ -331,7 +331,11 @@ export function HomeScreen() {
 
         {activeTab === "schedule" ? (
           <View style={styles.scheduleTab}>
-            <CourtSchedulePanel court={localCourt} interactive={false} />
+            <CourtSchedulePanel
+              bottomInset={Layout.tabBarClearance}
+              court={localCourt}
+              interactive={false}
+            />
           </View>
         ) : null}
       </View>

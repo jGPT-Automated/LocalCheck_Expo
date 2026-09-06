@@ -65,12 +65,6 @@ export function CourtListItem({
           <SportEmblem glow={false} size={15} sport={court.sport} />
           <Text style={[styles.sportText, { color: sportMeta }]}>{court.sport}</Text>
         </View>
-        {isCheckedIn ? (
-          <View style={styles.hereBadge}>
-            <Feather color={Colors.black} name="check" size={11} />
-            <Text style={styles.hereText}>HERE</Text>
-          </View>
-        ) : null}
       </View>
 
       <Text numberOfLines={1} style={styles.name}>
@@ -141,6 +135,4 @@ const styles = StyleSheet.create({
   statLabel: { marginTop: 2, fontFamily: Typography.bodyMedium, fontSize: 11, lineHeight: 13, color: Colors.muted, letterSpacing: 1.1, textAlign: "center" },
   statDivider: { width: StyleSheet.hairlineWidth, height: 29, marginHorizontal: 5, backgroundColor: Colors.borderLight },
   arrowButton: { marginLeft: "auto", width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: Colors.borderLight, alignItems: "center", justifyContent: "center" },
-  hereBadge: { paddingHorizontal: 7, paddingVertical: 4, flexDirection: "row", alignItems: "center", gap: 3, borderRadius: Radius.sm, backgroundColor: Colors.accent },
-  hereText: { fontFamily: Typography.bodyBold, fontSize: 7, color: Colors.black, letterSpacing: 0.9 },
 });
