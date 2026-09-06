@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -39,6 +40,8 @@ import {
 import type { MatchReview } from "@/services/gameService";
 import { fetchPlayerActivity } from "@/services/feedService";
 import { pairVisits } from "@/lib/activityPresentation";
+import { LocalPlusFlags } from "@/constants/flags";
+import { useLocalPlus } from "@/hooks/useLocalPlus";
 import type { Player } from "@/constants/data";
 
 type ProfileTab = "activity" | "friends" | "inbox";
@@ -48,6 +51,7 @@ export default function MeScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ tab?: ProfileTab }>();
   const { profile, refreshProfile } = useAuth();
+  const hasLocalPlus = useLocalPlus();
   const {
     currentUser,
     matches,
@@ -337,34 +341,66 @@ export default function MeScreen() {
         {activeTab === "activity" ? (
           <View style={styles.activityContent}>
             {activity.length > 0 ? (
-              activity.map((item, index) => (
-                <ActivityRow
-                  isFirst={index === 0}
-                  isLast={index === activity.length - 1}
-                  item={item}
-                  key={item.id}
-                  quietRail={
-                    item.type === "checkin" || item.type === "checkout"
-                  }
-                  onActorPress={
-                    item.playerId
-                      ? () => router.push(`/player/${item.playerId}`)
-                      : undefined
-                  }
-                  onPress={
-                    item.type === "game_result" && item.match
-                      ? () =>
-                          setSelectedResult({
-                            match: item.match!,
-                            sport: item.sport,
-                            courtName: item.courtName,
-                          })
-                      : item.playerId
+              (() => {
+                const renderRow = (
+                  item: FeedItem,
+                  index: number,
+                  isLast: boolean,
+                ) => (
+                  <ActivityRow
+                    isFirst={index === 0}
+                    isLast={isLast}
+                    item={item}
+                    key={item.id}
+                    quietRail={
+                      item.type === "checkin" || item.type === "checkout"
+                    }
+                    onActorPress={
+                      item.playerId
                         ? () => router.push(`/player/${item.playerId}`)
                         : undefined
-                  }
-                />
-              ))
+                    }
+                    onPress={
+                      item.type === "game_result" && item.match
+                        ? () =>
+                            setSelectedResult({
+                              match: item.match!,
+                              sport: item.sport,
+                              courtName: item.courtName,
+                            })
+                        : item.playerId
+                          ? () => router.push(`/player/${item.playerId}`)
+                          : undefined
+                    }
+                  />
+                );
+                // The N most recent games are always free; older ones sit
+                // behind the LocalPlus blur. They still count for ELO, stats
+                // and head-to-head — this only hides them from the feed.
+                const cut = historyCutIndex(activity, hasLocalPlus);
+                if (cut == null) {
+                  return activity.map((item, index) =>
+                    renderRow(item, index, index === activity.length - 1),
+                  );
+                }
+                const lockedGames = activity
+                  .slice(cut)
+                  .filter((i) => i.type === "game_result").length;
+                return (
+                  <>
+                    {activity
+                      .slice(0, cut)
+                      .map((item, index) => renderRow(item, index, false))}
+                    <HistoryLockCard
+                      lockedGames={lockedGames}
+                      onUpgrade={() => router.push("/settings")}
+                      preview={activity.slice(cut, cut + 3)}
+                      renderRow={renderRow}
+                      startIndex={cut}
+                    />
+                  </>
+                );
+              })()
             ) : (
               <EmptyState
                 title="NO ACTIVITY YET"
@@ -613,6 +649,81 @@ export default function MeScreen() {
   );
 }
 
+/**
+ * Index of the first activity item to hide behind the LocalPlus blur — the
+ * item just after the Nth game. Returns null when the viewer has LocalPlus,
+ * the gate is off, or there aren't more than N games to begin with.
+ */
+function historyCutIndex(
+  items: FeedItem[],
+  hasLocalPlus: boolean,
+): number | null {
+  if (hasLocalPlus || !LocalPlusFlags.gateHistory) return null;
+  let games = 0;
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type === "game_result") {
+      games += 1;
+      if (games === LocalPlusFlags.freeHistoryCount) {
+        return i + 1 < items.length ? i + 1 : null;
+      }
+    }
+  }
+  return null;
+}
+
+function HistoryLockCard({
+  lockedGames,
+  onUpgrade,
+  preview,
+  renderRow,
+  startIndex,
+}: {
+  lockedGames: number;
+  onUpgrade: () => void;
+  preview: FeedItem[];
+  renderRow: (item: FeedItem, index: number, isLast: boolean) => React.ReactNode;
+  startIndex: number;
+}) {
+  return (
+    <View style={styles.historyLock}>
+      <View pointerEvents="none" style={styles.historyLockPreview}>
+        {preview.map((item, i) =>
+          renderRow(item, startIndex + i, i === preview.length - 1),
+        )}
+        <BlurView
+          intensity={18}
+          style={StyleSheet.absoluteFill}
+          tint="dark"
+        />
+        <View style={styles.historyLockFade} />
+      </View>
+      <View style={styles.historyLockCta}>
+        <View style={styles.historyLockIcon}>
+          <Feather color={Colors.accent} name="lock" size={13} />
+        </View>
+        <Text style={styles.historyLockTitle}>
+          {lockedGames} EARLIER GAME{lockedGames === 1 ? "" : "S"}
+        </Text>
+        <Text style={styles.historyLockBody}>
+          Your last {LocalPlusFlags.freeHistoryCount} games are always free.
+          They still count toward your rating and stats — LocalPlus shows the
+          full history here.
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={onUpgrade}
+          style={({ pressed }) => [
+            styles.historyLockButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.historyLockButtonText}>UPGRADE TO LOCALPLUS</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 function ProfileTabButton({
   label,
   active,
@@ -824,6 +935,62 @@ const styles = StyleSheet.create({
   },
   content: { paddingTop: 0 },
   activityContent: { paddingTop: 0 },
+
+  // ── LocalPlus history gate ──
+  historyLock: { position: "relative" },
+  historyLockPreview: { maxHeight: 210, overflow: "hidden", opacity: 0.5 },
+  historyLockFade: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors.background,
+    opacity: 0.35,
+  },
+  historyLockCta: {
+    marginTop: -70,
+    marginHorizontal: 20,
+    padding: 18,
+    alignItems: "center",
+    gap: 7,
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.surface,
+  },
+  historyLockIcon: {
+    width: 30,
+    height: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 15,
+    backgroundColor: Colors.accentGhost,
+  },
+  historyLockTitle: {
+    fontFamily: Typography.heading,
+    fontSize: 14,
+    letterSpacing: 1.4,
+    color: Colors.text,
+  },
+  historyLockBody: {
+    fontFamily: Typography.body,
+    fontSize: 11.5,
+    lineHeight: 16,
+    color: Colors.muted,
+    textAlign: "center",
+  },
+  historyLockButton: {
+    marginTop: 5,
+    minHeight: 40,
+    alignSelf: "stretch",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.accent,
+  },
+  historyLockButtonText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    letterSpacing: 1.2,
+    color: Colors.black,
+  },
   timelineRow: { flexDirection: "row", minHeight: 60 },
   timelineRail: { width: 20, alignItems: "center" },
   timelineDot: {
