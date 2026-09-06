@@ -30,6 +30,7 @@ import { Colors, Radius } from "@/constants/colors";
 import {
   Court,
   CourtSport,
+  formatTierLabel,
   getSportColor,
   getTierColor,
   Player,
@@ -431,7 +432,7 @@ function LeaderboardView({
                       { color: getTierColor(player.tier) },
                     ]}
                   >
-                    {player.tier}
+                    {formatTierLabel(player.tier)}
                   </Text>
                   <Text style={styles.wlText}>
                     {player.wins}W · {player.losses}L
@@ -1198,7 +1199,7 @@ function LogGameView({
                 {suggestion.name.toUpperCase()}
               </Text>
               <Text style={styles.opponentOptionMeta}>
-                {suggestion.tier} · {suggestion.elo} ELO
+                {formatTierLabel(suggestion.tier)} · {suggestion.elo} ELO
               </Text>
             </View>
             {isFriend(suggestion.id) ? (

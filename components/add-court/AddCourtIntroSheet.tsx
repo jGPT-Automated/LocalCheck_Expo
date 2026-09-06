@@ -23,7 +23,7 @@ export function AddCourtIntroSheet({
       visible={visible}
       onClose={onClose}
       title="ADD A COURT"
-      snapPoints={["50%"]}
+      snapPoints={["64%"]}
       bottomClearance={Layout.tabBarClearance}
       contentBottomPadding={12}
     >

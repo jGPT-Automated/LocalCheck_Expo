@@ -218,6 +218,17 @@ export function getEloTier(elo: number): EloTier {
   return "UNRANKED";
 }
 
+/**
+ * Display label for a rank tier. The entry tier reads as "STARTER" — the whole
+ * current user base is the founding cohort (free LocalPlus for a year), and
+ * "BRONZE" undersold that. Earned tiers keep their names.
+ * TODO: replace with a real `is_founding_member` profile flag once that ships,
+ * so a later 1200-ELO signup isn't also labelled STARTER.
+ */
+export function formatTierLabel(tier: EloTier | string): string {
+  return tier === "BRONZE" ? "STARTER" : String(tier);
+}
+
 export function getTierColor(tier: EloTier | string): string {
   switch (tier) {
     case "PLATINUM":
