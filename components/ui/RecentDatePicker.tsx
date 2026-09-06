@@ -14,9 +14,11 @@ function ymd(date: Date): string {
 }
 
 /**
- * Compact "recent day" picker: one row of chips for the last `daysBack` days,
- * today first. A game is logged close to when it was played, so there is no
- * calendar and no older-week paging — that would only invite stale results.
+ * Compact "recent day" picker: one row of chips for the last `daysBack` days.
+ * A game is logged right after it is played, so the axis reads like a
+ * calendar week — oldest on the left, TODAY on the right (where the row
+ * scrolls to by default) — and there is no future date and no older-week
+ * paging. Capping at a week keeps stale, half-remembered results out.
  */
 export function RecentDatePicker({
   value,
@@ -29,12 +31,15 @@ export function RecentDatePicker({
   daysBack?: number;
   accessibilityLabel?: string;
 }) {
+  const scrollRef = React.useRef<ScrollView>(null);
   const days = React.useMemo(() => {
     const start = new Date();
     start.setHours(12, 0, 0, 0);
+    const count = Math.max(1, daysBack);
+    // Oldest first, today last.
     return Array.from(
-      { length: Math.max(1, daysBack) },
-      (_, index) => new Date(start.getTime() - index * DAY_MS),
+      { length: count },
+      (_, index) => new Date(start.getTime() - (count - 1 - index) * DAY_MS),
     );
   }, [daysBack]);
 
@@ -44,11 +49,16 @@ export function RecentDatePicker({
       contentContainerStyle={styles.row}
       horizontal
       keyboardShouldPersistTaps="handled"
+      onContentSizeChange={() =>
+        scrollRef.current?.scrollToEnd({ animated: false })
+      }
+      ref={scrollRef}
       showsHorizontalScrollIndicator={false}
     >
       {days.map((date, index) => {
         const dateValue = ymd(date);
         const active = dateValue === value;
+        const isToday = index === days.length - 1;
         return (
           <Pressable
             accessibilityLabel={date.toLocaleDateString("en-US", {
@@ -63,7 +73,7 @@ export function RecentDatePicker({
             style={[styles.chip, active && styles.chipActive]}
           >
             <Text style={[styles.weekday, active && styles.textActive]}>
-              {index === 0
+              {isToday
                 ? "TODAY"
                 : date
                     .toLocaleDateString("en-US", { weekday: "short" })
@@ -82,12 +92,12 @@ export function RecentDatePicker({
 const styles = StyleSheet.create({
   row: { gap: 6, paddingVertical: 2 },
   chip: {
-    minWidth: 52,
-    minHeight: 56,
-    paddingHorizontal: 10,
+    minWidth: 46,
+    minHeight: 50,
+    paddingHorizontal: 8,
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
+    gap: 3,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
     borderRadius: Radius.sm,
@@ -102,8 +112,8 @@ const styles = StyleSheet.create({
   },
   day: {
     fontFamily: Typography.heading,
-    fontSize: 16,
-    lineHeight: 18,
+    fontSize: 15,
+    lineHeight: 17,
     color: Colors.text,
   },
   textActive: { color: Colors.black },

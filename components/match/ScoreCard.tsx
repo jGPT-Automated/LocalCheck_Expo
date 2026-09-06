@@ -10,18 +10,8 @@ import type { CourtSport } from "@/constants/data";
 
 /** Plays the before -> after ELO transition once the card mounts. This is
  * the one deliberate place ELO animates: the moment a score is confirmed,
- * not an ambient live number that ticks anywhere ELO happens to render.
- * `big` renders it prominently inside the player box (the animation is the
- * point of the confirmed card); the small variant sits under a bare score. */
-function EloChangeLine({
-  before,
-  after,
-  big = false,
-}: {
-  before: number;
-  after: number;
-  big?: boolean;
-}) {
+ * not an ambient live number that ticks anywhere ELO happens to render. */
+function EloChangeLine({ before, after }: { before: number; after: number }) {
   const [display, setDisplay] = React.useState(before);
   React.useEffect(() => {
     const timer = setTimeout(() => setDisplay(after), 500);
@@ -29,17 +19,9 @@ function EloChangeLine({
   }, [after]);
   const delta = after - before;
   return (
-    <View style={[styles.eloLine, big && styles.eloLineBig]}>
-      <NumberFlow
-        style={big ? styles.eloValueBig : styles.eloValue}
-        value={display}
-      />
-      <Text
-        style={[
-          big ? styles.eloDeltaBig : styles.eloDelta,
-          delta < 0 && styles.eloDeltaNegative,
-        ]}
-      >
+    <View style={styles.eloLine}>
+      <NumberFlow style={styles.eloValue} value={display} />
+      <Text style={[styles.eloDelta, delta < 0 && styles.eloDeltaNegative]}>
         {delta >= 0 ? "+" : ""}
         {delta}
       </Text>
@@ -102,22 +84,24 @@ function formatPlayedOn(value: string): string {
     .toUpperCase();
 }
 
-function PlayerColumn({
+/** One side of the compact box score: avatars, name + role, score, ELO. */
+function ScoreRow({
   avatars,
-  label,
+  name,
   role,
+  score,
   elo,
-  compact,
+  winner,
 }: {
   avatars: ScoreCardAvatar[];
-  label: string;
+  name: string;
   role: ScoreCardRole;
+  score: number | string;
   elo: ScoreCardElo;
-  compact: boolean;
+  winner: boolean;
 }) {
-  const size = compact ? 30 : 46;
   return (
-    <View style={styles.playerCol}>
+    <View style={styles.scoreRow}>
       <View style={styles.avatarStack}>
         {avatars.slice(0, 3).map((avatar, index) => (
           <PlayerAvatar
@@ -125,22 +109,29 @@ function PlayerColumn({
             key={avatar.id ?? `${avatar.name}-${index}`}
             name={avatar.name}
             playerId={avatar.id}
-            size={size}
-            style={index > 0 ? { marginLeft: -size * 0.34 } : undefined}
+            size={32}
+            style={index > 0 ? { marginLeft: -11 } : undefined}
           />
         ))}
       </View>
-      <Text numberOfLines={1} style={styles.playerName}>
-        {label}
-      </Text>
-      {role ? (
-        <Text style={styles.playerRole}>
-          {role === "you" ? "YOU" : "OPPONENT"}
+      <View style={styles.scoreRowIdentity}>
+        <Text numberOfLines={1} style={styles.scoreRowName}>
+          {name}
         </Text>
-      ) : null}
-      {elo ? (
-        <EloChangeLine after={elo.after} before={elo.before} big />
-      ) : null}
+        {role ? (
+          <Text style={styles.scoreRowRole}>
+            {role === "you" ? "YOU" : "OPPONENT"}
+          </Text>
+        ) : null}
+      </View>
+      <View style={styles.scoreRowRight}>
+        <Text
+          style={[styles.scoreRowScore, winner && styles.scoreRowScoreWin]}
+        >
+          {score}
+        </Text>
+        {elo ? <EloChangeLine after={elo.after} before={elo.before} /> : null}
+      </View>
     </View>
   );
 }
@@ -148,13 +139,12 @@ function PlayerColumn({
 /**
  * The one score + status card. Log Game's review step, the Inbox, and the
  * FINAL SCORE screen all render this so a game looks the same everywhere it
- * appears. Callers map their own data onto these props; the card owns the
- * status tone, the score hierarchy, and the optional countdown above it.
+ * appears. Callers map their own data onto these props.
  *
- * When `leftAvatars` is supplied the card is player-first: a box of avatars +
- * YOU / OPPONENT role above the score, and the confirmed-ELO animation moves
- * into that box (see PlayerColumn). Callers without participant identities
- * (older Log Game paths) keep the plain name-in-scoreboard layout.
+ * With `leftAvatars` it's a compact box score: one row per side (avatars +
+ * name + role + score, ELO animating in on confirm), context on a single
+ * caption line — players first, not the court. Without avatars it keeps the
+ * older stacked layout for callers that have no participant identities.
  */
 export function ScoreCard({
   status,
@@ -201,8 +191,71 @@ export function ScoreCard({
   compact?: boolean;
 }) {
   const tone = TONE[status];
-  const showPlayerBox = Boolean(leftAvatars && leftAvatars.length > 0);
+  const showBoxScore = Boolean(leftAvatars && leftAvatars.length > 0);
   const confirmedElo = status === "confirmed";
+  const leftNum = Number(leftScore);
+  const rightNum = Number(rightScore);
+  const decided =
+    Number.isFinite(leftNum) && Number.isFinite(rightNum) && leftNum !== rightNum;
+
+  if (showBoxScore) {
+    return (
+      <View style={styles.wrap}>
+        {countdown ? (
+          <View accessibilityLiveRegion="polite" style={styles.countdown}>
+            <Text style={styles.countdownLabel}>{countdown.label}</Text>
+            <Text style={styles.countdownValue}>{countdown.value}</Text>
+          </View>
+        ) : null}
+
+        <View style={[styles.card, compact && styles.cardCompact]}>
+          <View style={styles.metaRow}>
+            <View
+              style={[
+                styles.badge,
+                { backgroundColor: tone.bg, borderColor: tone.border },
+              ]}
+            >
+              <Text
+                numberOfLines={1}
+                style={[styles.badgeText, { color: tone.text }]}
+              >
+                {statusLabel ?? STATUS_LABEL[status]}
+              </Text>
+            </View>
+            <Text numberOfLines={1} style={styles.contextLine}>
+              {courtName.toUpperCase()} ·{" "}
+              {sport === "BASKETBALL" ? "BB" : "PB"} · {formatPlayedOn(playedOn)}
+              {rightMeta ? ` · ${rightMeta}` : ""}
+            </Text>
+          </View>
+
+          <View style={styles.boxScore}>
+            <ScoreRow
+              avatars={leftAvatars ?? []}
+              elo={confirmedElo ? leftElo ?? null : null}
+              name={leftLabel}
+              role={leftRole}
+              score={leftScore}
+              winner={decided && leftNum > rightNum}
+            />
+            <View style={styles.boxDivider} />
+            <ScoreRow
+              avatars={rightAvatars ?? []}
+              elo={confirmedElo ? rightElo ?? null : null}
+              name={rightLabel}
+              role={rightRole}
+              score={rightScore}
+              winner={decided && rightNum > leftNum}
+            />
+          </View>
+
+          {note ? <Text style={styles.note}>{note}</Text> : null}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.wrap}>
       {countdown ? (
@@ -220,7 +273,10 @@ export function ScoreCard({
               { backgroundColor: tone.bg, borderColor: tone.border },
             ]}
           >
-            <Text numberOfLines={1} style={[styles.badgeText, { color: tone.text }]}>
+            <Text
+              numberOfLines={1}
+              style={[styles.badgeText, { color: tone.text }]}
+            >
               {statusLabel ?? STATUS_LABEL[status]}
             </Text>
           </View>
@@ -234,39 +290,15 @@ export function ScoreCard({
           {sport === "BASKETBALL" ? "BB" : "PB"} · {formatPlayedOn(playedOn)}
         </Text>
 
-        {showPlayerBox ? (
-          <View
-            style={[styles.playerBox, compact && styles.playerBoxCompact]}
-          >
-            <PlayerColumn
-              avatars={leftAvatars ?? []}
-              compact={compact}
-              elo={confirmedElo ? leftElo ?? null : null}
-              label={leftLabel}
-              role={leftRole}
-            />
-            <Text style={styles.vs}>VS</Text>
-            <PlayerColumn
-              avatars={rightAvatars ?? []}
-              compact={compact}
-              elo={confirmedElo ? rightElo ?? null : null}
-              label={rightLabel}
-              role={rightRole}
-            />
-          </View>
-        ) : null}
-
         <View style={[styles.scoreboard, compact && styles.scoreboardCompact]}>
           <View style={styles.side}>
-            {showPlayerBox ? null : (
-              <Text numberOfLines={2} style={styles.sideName}>
-                {leftLabel}
-              </Text>
-            )}
+            <Text numberOfLines={2} style={styles.sideName}>
+              {leftLabel}
+            </Text>
             <Text style={[styles.score, compact && styles.scoreCompact]}>
               {leftScore}
             </Text>
-            {!showPlayerBox && confirmedElo && leftElo ? (
+            {confirmedElo && leftElo ? (
               <EloChangeLine after={leftElo.after} before={leftElo.before} />
             ) : null}
           </View>
@@ -274,15 +306,13 @@ export function ScoreCard({
             –
           </Text>
           <View style={styles.side}>
-            {showPlayerBox ? null : (
-              <Text numberOfLines={2} style={styles.sideName}>
-                {rightLabel}
-              </Text>
-            )}
+            <Text numberOfLines={2} style={styles.sideName}>
+              {rightLabel}
+            </Text>
             <Text style={[styles.score, compact && styles.scoreCompact]}>
               {rightScore}
             </Text>
-            {!showPlayerBox && confirmedElo && rightElo ? (
+            {confirmedElo && rightElo ? (
               <EloChangeLine after={rightElo.after} before={rightElo.before} />
             ) : null}
           </View>
@@ -325,58 +355,77 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: Space.md,
+    gap: Space.sm,
   },
   badge: {
-    minHeight: 26,
-    maxWidth: "72%",
+    minHeight: 24,
+    flexShrink: 0,
+    maxWidth: "58%",
     justifyContent: "center",
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
     borderWidth: 1,
-    borderRadius: 13,
+    borderRadius: 12,
   },
-  badgeText: { ...TextStyles.labelSmall, letterSpacing: 1.2 },
+  badgeText: { ...TextStyles.labelSmall, letterSpacing: 1.1 },
   rightMeta: {
     ...TextStyles.labelSmall,
     color: Colors.textSecondary,
     letterSpacing: 1.1,
   },
+  contextLine: {
+    flex: 1,
+    minWidth: 0,
+    textAlign: "right",
+    fontFamily: TextStyles.metadata.fontFamily,
+    fontSize: 10,
+    letterSpacing: 0.6,
+    color: Colors.muted,
+  },
+
+  // ── Compact box score (avatars + name + score per side) ──
+  boxScore: {
+    marginTop: Space.xs,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surfaceDark,
+  },
+  boxDivider: { height: 1, backgroundColor: Colors.border },
+  scoreRow: {
+    minHeight: 60,
+    paddingHorizontal: Space.md,
+    paddingVertical: Space.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Space.sm,
+  },
+  avatarStack: { flexDirection: "row", alignItems: "center" },
+  scoreRowIdentity: { flex: 1, minWidth: 0, gap: 2 },
+  scoreRowName: {
+    ...TextStyles.label,
+    color: Colors.text,
+  },
+  scoreRowRole: {
+    ...TextStyles.labelSmall,
+    color: Colors.textSecondary,
+    letterSpacing: 1.3,
+  },
+  scoreRowRight: { alignItems: "flex-end", gap: 2 },
+  scoreRowScore: {
+    fontFamily: TextStyles.displayLarge.fontFamily,
+    fontSize: 34,
+    lineHeight: 38,
+    color: Colors.textSecondary,
+    fontVariant: ["tabular-nums"],
+  },
+  scoreRowScoreWin: { color: Colors.text },
+
   court: {
     ...TextStyles.title,
     color: Colors.text,
     marginTop: Space.xs,
   },
   detail: { ...TextStyles.metadata, color: Colors.textSecondary },
-
-  // ── Player box: avatars + role, player-first per the score-review mock ──
-  playerBox: {
-    marginTop: Space.md,
-    paddingVertical: Space.md,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: Space.sm,
-  },
-  playerBoxCompact: { marginTop: Space.sm, paddingVertical: Space.sm },
-  playerCol: { flex: 1, minWidth: 0, alignItems: "center", gap: 6 },
-  avatarStack: { flexDirection: "row", alignItems: "center" },
-  playerName: {
-    ...TextStyles.label,
-    color: Colors.text,
-    textAlign: "center",
-  },
-  playerRole: {
-    ...TextStyles.labelSmall,
-    color: Colors.textSecondary,
-    letterSpacing: 1.4,
-  },
-  vs: {
-    ...TextStyles.labelSmall,
-    marginTop: 18,
-    color: Colors.mutedDark,
-    letterSpacing: 1.5,
-  },
-
   scoreboard: {
     flexDirection: "row",
     alignItems: "center",
@@ -400,28 +449,16 @@ const styles = StyleSheet.create({
   },
   scoreCompact: { fontSize: 34, lineHeight: 40 },
   eloLine: {
-    marginTop: 2,
     flexDirection: "row",
     alignItems: "baseline",
     gap: 4,
   },
-  eloLineBig: { marginTop: 4, gap: 6 },
   eloValue: {
     ...TextStyles.labelSmall,
     color: Colors.textSecondary,
   },
-  eloValueBig: {
-    ...TextStyles.metadata,
-    fontSize: 15,
-    color: Colors.text,
-  },
   eloDelta: {
     ...TextStyles.labelSmall,
-    color: Colors.accent,
-  },
-  eloDeltaBig: {
-    ...TextStyles.label,
-    fontSize: 13,
     color: Colors.accent,
   },
   eloDeltaNegative: { color: Colors.loss },

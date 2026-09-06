@@ -445,7 +445,7 @@ export async function fetchMatchReview(
   const [courtResult, participantsResult, reviewsResult] = await Promise.all([
     supabase
       .from("courts")
-      .select("name,sport_type")
+      .select("name,short_name,sport_type")
       .eq("id", row.court_id)
       .maybeSingle(),
     supabase
@@ -510,6 +510,7 @@ export async function fetchMatchReview(
   const opponent = profiles.get(row.opponent_id);
   const court = courtResult.data as {
     name: string;
+    short_name: string | null;
     sport_type: string;
   } | null;
   const legacyReviewDue =
@@ -527,7 +528,7 @@ export async function fetchMatchReview(
   return {
     id: row.id,
     courtId: row.court_id,
-    courtName: court?.name ?? "Unknown Court",
+    courtName: court?.short_name || court?.name || "Unknown Court",
     createdBy: row.created_by,
     opponentId: row.opponent_id,
     creatorName: creator?.display_name || creator?.username || "Player",

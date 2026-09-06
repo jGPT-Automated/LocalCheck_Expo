@@ -66,13 +66,11 @@ export function MatchReviewCard({
   const sideB = match.participants.filter(
     (participant) => participant.side === "b",
   );
+  // Real names here — the YOU / OPPONENT distinction is carried by the role
+  // label, so a "YOU" name on top of a "YOU" role just read as "YOU YOU".
   const sideLabel = (side: MatchReviewParticipant[], fallback: string) =>
     side
-      .map((participant) =>
-        participant.id === viewerId
-          ? "YOU"
-          : participant.name.split(" ")[0].toUpperCase(),
-      )
+      .map((participant) => participant.name.split(" ")[0].toUpperCase())
       .join(" · ") || fallback;
   const sideAvatars = (side: MatchReviewParticipant[]) =>
     side.map((participant) => ({ id: participant.id, name: participant.name }));

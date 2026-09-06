@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
   Platform,
   Pressable,
   ScrollView,
@@ -593,7 +594,9 @@ function CourtPickerField({
           numberOfLines={1}
           style={selected ? styles.courtTriggerValue : styles.courtTriggerPlaceholder}
         >
-          {selected?.name ?? "Choose a court"}
+          {selected
+            ? selected.shortName || selected.name
+            : "Choose a court"}
         </Text>
         <Feather
           color={Colors.muted}
@@ -643,7 +646,7 @@ function CourtPickerField({
               >
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text numberOfLines={1} style={styles.courtRowName}>
-                    {court.name}
+                    {court.shortName || court.name}
                   </Text>
                   <Text numberOfLines={1} style={styles.courtRowMeta}>
                     {[
@@ -855,6 +858,7 @@ function LogGameView({
   );
 
   const handleReview = () => {
+    Keyboard.dismiss();
     if (!canSubmit || !form.opponents[0]?.id || !form.courtId) return;
     setSubmitError(null);
     setReviewGame({ ...form });
@@ -863,13 +867,10 @@ function LogGameView({
   const gameCardProps = (game: GameLog) => {
     const court =
       supportedCourts.find((c) => c.id === game.courtId) ?? localCourt ?? null;
-    const initials = (player: Player) =>
+    const firstName = (player: Player) =>
       player.name.split(" ")[0].toUpperCase();
-    const mine =
-      game.teamSize === 1
-        ? "YOU"
-        : ["YOU", ...game.teammates.map(initials)].join(" · ");
-    const theirs = game.opponents.map(initials).join(" · ") || "OPPONENT";
+    const mine = [currentUser, ...game.teammates].map(firstName).join(" · ");
+    const theirs = game.opponents.map(firstName).join(" · ") || "OPPONENT";
     const avatarOf = (player: Player) => ({ id: player.id, name: player.name });
     return {
       courtName: court?.shortName || court?.name || "COURT",
@@ -961,6 +962,7 @@ function LogGameView({
     });
     setOpponentQuery("");
     setShowOpponentPicker(false);
+    Keyboard.dismiss();
   };
 
   const clearPlayer = (slot: PlayerSlot) => {
@@ -1072,146 +1074,168 @@ function LogGameView({
     setShowOpponentPicker(true);
   };
 
-  const renderPlayerSlot = (slot: PlayerSlot, placeholder: string) => {
+  // Compact trigger that lives inside a half-width matchup column. Tapping it
+  // opens the shared full-width picker panel below the columns (renderPlayer
+  // Picker) — a search field + suggestions can't fit in the column itself.
+  const renderSlotTrigger = (slot: PlayerSlot, placeholder: string) => {
     const roster = slot.side === "mine" ? form.teammates : form.opponents;
     const player = roster[slot.index];
-    const pickerActive =
+    const isActive =
       showOpponentPicker &&
       activePlayerSlot.side === slot.side &&
       activePlayerSlot.index === slot.index;
     return (
-      <View key={`${slot.side}-${slot.index}`}>
-        <View style={styles.opponentTriggerShell}>
-          <Pressable
-            accessibilityLabel={`Scan ${placeholder} player QR code`}
-            accessibilityRole="button"
-            onPress={() => {
-              setActivePlayerSlot(slot);
-              void handleScanOpponent();
-            }}
-            style={styles.scanOpponent}
+      <View key={`${slot.side}-${slot.index}`} style={styles.slotShell}>
+        <Pressable
+          accessibilityLabel={`Scan ${placeholder} player QR code`}
+          accessibilityRole="button"
+          onPress={() => {
+            setActivePlayerSlot(slot);
+            void handleScanOpponent();
+          }}
+          style={styles.slotScan}
+        >
+          <Feather color={Colors.accent} name="maximize" size={14} />
+        </Pressable>
+        <Pressable
+          accessibilityLabel={
+            player ? `Change ${player.name}` : `Select ${placeholder}`
+          }
+          accessibilityRole="button"
+          onPress={() => openPlayerPicker(slot)}
+          style={[styles.slotMain, isActive && styles.slotMainActive]}
+        >
+          {player ? (
+            <PlayerAvatar
+              initials={player.avatar}
+              name={player.name}
+              playerId={player.id}
+              size={20}
+            />
+          ) : null}
+          <Text
+            numberOfLines={1}
+            style={player ? styles.slotName : styles.slotPlaceholder}
           >
-            <Feather color={Colors.accent} name="maximize" size={17} />
-          </Pressable>
-          {pickerActive ? (
-            <View style={styles.opponentTriggerMain}>
-              <Ionicons color={Colors.muted} name="search" size={15} />
-              <TextInput
-                accessibilityLabel={`Search ${placeholder.toLowerCase()}`}
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoFocus
-                onChangeText={setOpponentQuery}
-                placeholder={`Search ${placeholder.toLowerCase()}`}
-                placeholderTextColor={Colors.mutedDark}
-                style={styles.opponentInlineInput}
-                value={opponentQuery}
-              />
-              <Pressable
-                accessibilityLabel="Close player search"
-                hitSlop={8}
-                onPress={() => setShowOpponentPicker(false)}
-              >
-                <Ionicons color={Colors.muted} name="close" size={17} />
-              </Pressable>
-            </View>
-          ) : (
-            <Pressable
-              accessibilityLabel={
-                player ? `Change ${player.name}` : `Select ${placeholder}`
-              }
-              accessibilityRole="button"
-              accessibilityState={{ expanded: false }}
-              onPress={() => openPlayerPicker(slot)}
-              style={styles.opponentTriggerMain}
-            >
-              <Text
-                numberOfLines={1}
-                style={
-                  player
-                    ? styles.opponentSelectedText
-                    : styles.opponentPlaceholder
-                }
-              >
-                {player?.name.toUpperCase() ?? placeholder}
-              </Text>
-              <Ionicons color={Colors.muted} name="chevron-down" size={16} />
-            </Pressable>
-          )}
-          {player && !pickerActive ? (
+            {player
+              ? player.name.split(" ")[0].toUpperCase()
+              : isActive
+                ? "SELECTING…"
+                : placeholder}
+          </Text>
+          {player ? (
             <Pressable
               accessibilityLabel={`Remove ${player.name}`}
-              accessibilityRole="button"
+              hitSlop={6}
               onPress={() => clearPlayer(slot)}
-              style={styles.clearOpponent}
             >
-              <Ionicons color={Colors.muted} name="close" size={17} />
+              <Ionicons color={Colors.muted} name="close" size={14} />
             </Pressable>
-          ) : null}
-        </View>
+          ) : (
+            <Ionicons color={Colors.muted} name="chevron-down" size={14} />
+          )}
+        </Pressable>
+      </View>
+    );
+  };
 
-        {pickerActive ? (
-          <View style={styles.opponentDropdown}>
-            <Text style={styles.opponentSection}>
-              {query
-                ? "BEST MATCHES"
-                : selectedCourt && courtPlayers.length > 0
-                  ? `AT ${selectedCourt.shortName ?? selectedCourt.name}`
-                  : "YOUR FRIENDS"}
-            </Text>
-            {availableSuggestions.map((suggestion) => (
-              <Pressable
-                key={suggestion.id}
-                onPress={() => placePlayer(suggestion, slot)}
-                style={styles.opponentOption}
-              >
-                <PlayerAvatar
-                  initials={suggestion.avatar}
-                  name={suggestion.name}
-                  playerId={suggestion.id}
-                  size={28}
-                />
-                <View style={styles.opponentOptionInfo}>
-                  <Text numberOfLines={1} style={styles.opponentOptionName}>
-                    {suggestion.name.toUpperCase()}
-                  </Text>
-                  <Text style={styles.opponentOptionMeta}>
-                    {suggestion.tier} · {suggestion.elo} ELO
-                  </Text>
-                </View>
-                {isFriend(suggestion.id) ? (
-                  <View style={styles.opponentFriendBadge}>
-                    <Text style={styles.opponentFriendBadgeText}>FRIEND</Text>
-                  </View>
-                ) : null}
-              </Pressable>
-            ))}
-            {availableSuggestions.length === 0 ? (
-              <Text style={styles.opponentEmpty}>
-                {query
-                  ? "No players found"
-                  : "No available players at this court"}
+  const renderPlayerPicker = () => {
+    if (!showOpponentPicker) return null;
+    const side = activePlayerSlot.side === "mine" ? "teammate" : "opponent";
+    return (
+      <View style={styles.pickerPanel}>
+        <View style={styles.pickerSearchRow}>
+          <Ionicons color={Colors.muted} name="search" size={15} />
+          <TextInput
+            accessibilityLabel={`Search ${side}`}
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoFocus
+            onChangeText={setOpponentQuery}
+            placeholder={`Search ${side}`}
+            placeholderTextColor={Colors.mutedDark}
+            style={styles.pickerSearchInput}
+            value={opponentQuery}
+          />
+          <Pressable
+            accessibilityLabel="Close player search"
+            hitSlop={8}
+            onPress={() => setShowOpponentPicker(false)}
+          >
+            <Ionicons color={Colors.muted} name="close" size={17} />
+          </Pressable>
+        </View>
+        <Text style={styles.opponentSection}>
+          {query
+            ? "BEST MATCHES"
+            : selectedCourt && courtPlayers.length > 0
+              ? `AT ${selectedCourt.shortName ?? selectedCourt.name}`
+              : "YOUR FRIENDS"}
+        </Text>
+        {availableSuggestions.map((suggestion) => (
+          <Pressable
+            key={suggestion.id}
+            onPress={() => placePlayer(suggestion, activePlayerSlot)}
+            style={styles.opponentOption}
+          >
+            <PlayerAvatar
+              initials={suggestion.avatar}
+              name={suggestion.name}
+              playerId={suggestion.id}
+              size={26}
+            />
+            <View style={styles.opponentOptionInfo}>
+              <Text numberOfLines={1} style={styles.opponentOptionName}>
+                {suggestion.name.toUpperCase()}
               </Text>
+              <Text style={styles.opponentOptionMeta}>
+                {suggestion.tier} · {suggestion.elo} ELO
+              </Text>
+            </View>
+            {isFriend(suggestion.id) ? (
+              <View style={styles.opponentFriendBadge}>
+                <Text style={styles.opponentFriendBadgeText}>FRIEND</Text>
+              </View>
             ) : null}
-          </View>
+          </Pressable>
+        ))}
+        {availableSuggestions.length === 0 ? (
+          <Text style={styles.opponentEmpty}>
+            {query ? "No players found" : "No available players at this court"}
+          </Text>
         ) : null}
       </View>
     );
   };
 
+  // These two views aren't inside the KeyboardAwareScrollView, so they pad
+  // for the tab bar themselves — otherwise the pinned actions sit under it.
+  const successPadBottom = inSheet
+    ? 16
+    : Platform.OS === "web"
+      ? 88
+      : bottom + 84;
+
   if (reviewGame) {
     return (
-      <View style={styles.successState}>
+      <View style={[styles.successState, { paddingBottom: successPadBottom }]}>
         <Text style={styles.successTitle}>REVIEW SCORE</Text>
         <Text style={styles.successSub}>
           Check the matchup, then send it in. Ratings don&apos;t move until it&apos;s
           confirmed.
         </Text>
-        <ScoreCard
-          status="draft"
-          note="Ratings don't move until this is confirmed."
-          {...gameCardProps(reviewGame)}
-        />
+        <ScrollView
+          contentContainerStyle={styles.successScrollContent}
+          showsVerticalScrollIndicator={false}
+          style={styles.successScroll}
+        >
+          <ScoreCard
+            compact
+            status="draft"
+            note="Ratings don't move until this is confirmed."
+            {...gameCardProps(reviewGame)}
+          />
+        </ScrollView>
         <View style={styles.reviewActions}>
           <Pressable
             accessibilityLabel="Edit score"
@@ -1241,7 +1265,7 @@ function LogGameView({
 
   if (submittedGame) {
     return (
-      <View style={styles.successState}>
+      <View style={[styles.successState, { paddingBottom: successPadBottom }]}>
         <View style={styles.successIcon}>
           <Feather color={Colors.black} name="check" size={28} />
         </View>
@@ -1251,15 +1275,22 @@ function LogGameView({
             ? "Your opponent can confirm or dispute it. No rating changes yet."
             : "Any player can confirm or dispute it. No rating changes yet."}
         </Text>
-        <ScoreCard
-          status="pending"
-          note={
-            submittedGame.teamSize === 1
-              ? "Waiting on your opponent, or it auto-confirms in 3 days."
-              : "Waiting on the other players, or it auto-confirms in 3 days."
-          }
-          {...gameCardProps(submittedGame)}
-        />
+        <ScrollView
+          contentContainerStyle={styles.successScrollContent}
+          showsVerticalScrollIndicator={false}
+          style={styles.successScroll}
+        >
+          <ScoreCard
+            compact
+            status="pending"
+            note={
+              submittedGame.teamSize === 1
+                ? "Waiting on your opponent, or it auto-confirms in 3 days."
+                : "Waiting on the other players, or it auto-confirms in 3 days."
+            }
+            {...gameCardProps(submittedGame)}
+          />
+        </ScrollView>
       </View>
     );
   }
@@ -1269,17 +1300,18 @@ function LogGameView({
       bottomOffset={112}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{
-        padding: 20,
-        gap: 20,
-        // Must come AFTER `padding` (shorthand would reset it to 20) so the
-        // submit button clears the bottom tab bar: 84px fixed bar on web
-        // (50 + 34), safe-area inset + bar height on native. +20 breathing room.
+        paddingHorizontal: 16,
+        paddingTop: 14,
+        gap: 14,
+        // Must come AFTER the shorthand-free paddings so the submit button
+        // clears the bottom tab bar: 84px fixed bar on web (50 + 34),
+        // safe-area inset + bar height on native. +16 breathing room.
         paddingBottom: inSheet
-          ? 32
-          : 20 + (Platform.OS === "web" ? 84 : bottom + 80),
+          ? 24
+          : 16 + (Platform.OS === "web" ? 84 : bottom + 76),
       }}
       keyboardShouldPersistTaps="handled"
-      keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+      keyboardDismissMode="on-drag"
     >
       {/* Sport drives which courts the picker suggests, so it leads the row. */}
       <View style={styles.fieldRow}>
@@ -1302,86 +1334,91 @@ function LogGameView({
       <View style={styles.fieldGroup}>
         <Text style={styles.fieldLabel}>DATE</Text>
         <GameDateField
-          onChange={(playedOn) =>
-            setForm((current) => ({ ...current, playedOn }))
-          }
+          onChange={(playedOn) => {
+            Keyboard.dismiss();
+            setForm((current) => ({ ...current, playedOn }));
+          }}
           value={form.playedOn}
         />
       </View>
 
-      {/* No format selector: 1v1 by default; "add player" grows both sides. */}
+      {/* Two columns so the matchup stays tight as players are added: YOU on
+          the left, OPPONENT on the right. The picker opens full-width below. */}
       <View style={styles.fieldGroup}>
         <Text style={styles.fieldLabel}>
           {form.teamSize === 1 ? "MATCHUP" : `${form.teamSize}V${form.teamSize}`}
         </Text>
-        <View style={styles.rosterGroup}>
-          <Text style={styles.rosterLabel}>
-            {form.teamSize === 1 ? "YOU" : "YOUR SIDE"}
-          </Text>
-          <View style={styles.lockedPlayer}>
-            <PlayerAvatar
-              initials={currentUser.avatar}
-              name={currentUser.name}
-              playerId={currentUser.id}
-              size={28}
-            />
-            <Text numberOfLines={1} style={styles.lockedPlayerName}>
-              {currentUser.name.toUpperCase()}
+        <View style={styles.matchColumns}>
+          <View style={styles.matchColumn}>
+            <Text style={styles.matchColHeading}>
+              {form.teamSize === 1 ? "YOU" : "YOUR SIDE"}
             </Text>
-            <Text style={styles.youBadge}>YOU</Text>
+            <View style={styles.lockedPlayer}>
+              <PlayerAvatar
+                initials={currentUser.avatar}
+                name={currentUser.name}
+                playerId={currentUser.id}
+                size={20}
+              />
+              <Text numberOfLines={1} style={styles.lockedPlayerName}>
+                {currentUser.name.split(" ")[0].toUpperCase()}
+              </Text>
+              <Text style={styles.youBadge}>YOU</Text>
+            </View>
+            {Array.from({ length: form.teamSize - 1 }, (_, index) =>
+              renderSlotTrigger({ side: "mine", index }, `TEAMMATE ${index + 1}`),
+            )}
           </View>
-          {Array.from({ length: form.teamSize - 1 }, (_, index) =>
-            renderPlayerSlot({ side: "mine", index }, `TEAMMATE ${index + 1}`),
-          )}
-
-          <Text style={[styles.rosterLabel, styles.rosterLabelOpponents]}>
-            {form.teamSize === 1 ? "OPPONENT" : "OTHER SIDE"}
-          </Text>
-          {Array.from({ length: form.teamSize }, (_, index) =>
-            renderPlayerSlot(
-              { side: "theirs", index },
-              form.teamSize === 1
-                ? "SELECT OPPONENT"
-                : `OPPONENT ${index + 1}`,
-            ),
-          )}
-
-          <View style={styles.rosterActions}>
-            {form.teamSize < 5 ? (
-              <Pressable
-                accessibilityLabel="Add a player to each side"
-                accessibilityRole="button"
-                onPress={addPlayerRow}
-                style={({ pressed }) => [
-                  styles.rosterAdd,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Feather color={Colors.accent} name="plus" size={14} />
-                <Text style={styles.rosterAddText}>
-                  ADD PLAYER · {form.teamSize + 1}V{form.teamSize + 1}
-                </Text>
-              </Pressable>
-            ) : null}
-            {form.teamSize > 1 ? (
-              <Pressable
-                accessibilityLabel="Remove the last player row"
-                accessibilityRole="button"
-                onPress={removePlayerRow}
-                style={({ pressed }) => [
-                  styles.rosterRemove,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text style={styles.rosterRemoveText}>REMOVE</Text>
-              </Pressable>
-            ) : null}
+          <View style={styles.matchColumn}>
+            <Text style={styles.matchColHeading}>
+              {form.teamSize === 1 ? "OPPONENT" : "OTHER SIDE"}
+            </Text>
+            {Array.from({ length: form.teamSize }, (_, index) =>
+              renderSlotTrigger(
+                { side: "theirs", index },
+                form.teamSize === 1 ? "SELECT" : `OPPONENT ${index + 1}`,
+              ),
+            )}
           </View>
+        </View>
+
+        {renderPlayerPicker()}
+
+        <View style={styles.rosterActions}>
+          {form.teamSize < 5 ? (
+            <Pressable
+              accessibilityLabel="Add a player to each side"
+              accessibilityRole="button"
+              onPress={addPlayerRow}
+              style={({ pressed }) => [
+                styles.rosterAdd,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Feather color={Colors.accent} name="plus" size={13} />
+              <Text style={styles.rosterAddText}>
+                ADD PLAYER · {form.teamSize + 1}V{form.teamSize + 1}
+              </Text>
+            </Pressable>
+          ) : null}
+          {form.teamSize > 1 ? (
+            <Pressable
+              accessibilityLabel="Remove the last player row"
+              accessibilityRole="button"
+              onPress={removePlayerRow}
+              style={({ pressed }) => [
+                styles.rosterRemove,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.rosterRemoveText}>REMOVE</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
 
       {/* Score */}
-      <View style={styles.fieldGroup}>
+      <View style={styles.scoreGroup}>
         <Text style={styles.fieldLabel}>FINAL SCORE</Text>
         <View style={styles.scoreRow}>
           <View style={styles.scoreBlock}>
@@ -1923,15 +1960,90 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textAlign: "center",
   },
+  // ── Matchup: two side-by-side columns ──
+  matchColumns: { flexDirection: "row", gap: 10 },
+  matchColumn: { flex: 1, minWidth: 0, gap: 6 },
+  matchColHeading: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.textSecondary,
+    letterSpacing: 1.4,
+  },
+  slotShell: {
+    minHeight: 40,
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 4,
+  },
+  slotScan: {
+    width: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.accentBorder,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.accentDim,
+  },
+  slotMain: {
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.surface,
+  },
+  slotMainActive: { borderColor: Colors.accent, backgroundColor: Colors.accentDim },
+  slotName: {
+    flex: 1,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 12,
+    color: Colors.text,
+  },
+  slotPlaceholder: {
+    flex: 1,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    color: Colors.muted,
+    letterSpacing: 0.4,
+  },
+  pickerPanel: {
+    marginTop: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surface,
+    overflow: "hidden",
+  },
+  pickerSearchRow: {
+    minHeight: 42,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  pickerSearchInput: {
+    flex: 1,
+    minHeight: 40,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 13,
+    color: Colors.text,
+  },
+  scoreGroup: { gap: 12 },
   rosterActions: {
-    marginTop: 10,
+    marginTop: 8,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
   rosterAdd: {
     flex: 1,
-    minHeight: 44,
+    minHeight: 40,
     paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
@@ -1964,30 +2076,21 @@ const styles = StyleSheet.create({
     color: Colors.muted,
     letterSpacing: 1,
   },
-  rosterGroup: { gap: 8 },
-  rosterLabel: {
-    marginTop: 2,
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.textSecondary,
-    letterSpacing: 1.4,
-  },
-  rosterLabelOpponents: { marginTop: 8 },
   lockedPlayer: {
-    minHeight: 48,
-    paddingHorizontal: 10,
+    minHeight: 40,
+    paddingHorizontal: 8,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 6,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
+    borderColor: Colors.accentBorder,
     borderRadius: Radius.xs,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.accentDim,
   },
   lockedPlayerName: {
     flex: 1,
     fontFamily: Typography.bodySemiBold,
-    fontSize: 13,
+    fontSize: 12,
     color: Colors.text,
   },
   youBadge: {
@@ -2015,14 +2118,14 @@ const styles = StyleSheet.create({
   },
   scoreInput: {
     fontFamily: Typography.heading,
-    fontSize: 48,
+    fontSize: 40,
     color: Colors.text,
     textAlign: "center" as const,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
     width: "100%",
-    paddingVertical: 4,
-    lineHeight: 56,
+    paddingVertical: 2,
+    lineHeight: 46,
   },
   scoreInputWin: { borderBottomColor: Colors.win, color: Colors.win },
   scoreInputLoss: { borderBottomColor: Colors.loss, color: Colors.loss },
@@ -2092,12 +2195,12 @@ const styles = StyleSheet.create({
 
   successState: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "flex-start",
-    gap: 12,
+    gap: 8,
     paddingHorizontal: 20,
-    paddingTop: 48,
+    paddingTop: 20,
   },
+  successScroll: { flex: 1, alignSelf: "stretch", marginTop: 4 },
+  successScrollContent: { paddingBottom: 12 },
   successIcon: {
     width: 56,
     height: 56,
