@@ -1,12 +1,21 @@
 import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 
+import { Colors } from "@/constants/colors";
+import { Space } from "@/constants/layout";
+import { TextStyles } from "@/constants/typography";
 import type { MatchReview, MatchReviewParticipant } from "@/services/gameService";
 import {
   formatRemainingTime,
   matchStatusCopy,
 } from "@/services/matchReviewModel";
 
-import { ScoreCard, type ScoreCardRole } from "./ScoreCard";
+import {
+  ScoreCard,
+  scoreCardStatusLabel,
+  scoreCardTone,
+  type ScoreCardRole,
+} from "./ScoreCard";
 
 /** Badge text from the viewer's seat: whose move it is, not a raw status. */
 function viewerStatusLabel(
@@ -32,10 +41,10 @@ function viewerStatusLabel(
 }
 
 /**
- * FINAL SCORE screen wrapper around the shared ScoreCard: it resolves the
- * viewer's side, the live countdown, and the policy copy, then hands plain
- * props to the card so the game reads identically here, in the Inbox, and in
- * Log Game's review step.
+ * Wrapper around the shared ScoreCard. In the Inbox (`compact`) the status
+ * rides on the card. On the full FINAL SCORE screen the status, the review
+ * timer and the policy explainer are screen furniture — they sit above the
+ * card, which is then only the game itself.
  */
 export function MatchReviewCard({
   match,
@@ -66,8 +75,6 @@ export function MatchReviewCard({
   const sideB = match.participants.filter(
     (participant) => participant.side === "b",
   );
-  // Real names here — the YOU / OPPONENT distinction is carried by the role
-  // label, so a "YOU" name on top of a "YOU" role just read as "YOU YOU".
   const sideLabel = (side: MatchReviewParticipant[], fallback: string) =>
     side
       .map((participant) => participant.name.split(" ")[0].toUpperCase())
@@ -98,15 +105,13 @@ export function MatchReviewCard({
     deadline && copy.countdownLabel
       ? formatRemainingTime(deadline, now)
       : null;
+  const statusText =
+    viewerStatusLabel(match, viewerId) ?? scoreCardStatusLabel(match.status);
+  const tone = scoreCardTone(match.status);
 
-  return (
+  const card = (
     <ScoreCard
       compact={compact}
-      countdown={
-        !compact && remaining
-          ? { label: copy.countdownLabel as string, value: remaining }
-          : null
-      }
       courtName={match.courtName}
       leftAvatars={sideAvatars(firstSide)}
       leftElo={sideElo(firstSide)}
@@ -116,7 +121,9 @@ export function MatchReviewCard({
       note={
         compact && remaining
           ? `${copy.countdownLabel} · ${remaining}`
-          : copy.description
+          : compact
+            ? copy.description
+            : undefined
       }
       playedOn={match.playedAt}
       rightAvatars={sideAvatars(secondSide)}
@@ -131,7 +138,66 @@ export function MatchReviewCard({
       rightScore={secondScore}
       sport={match.sport}
       status={match.status}
-      statusLabel={viewerStatusLabel(match, viewerId)}
+      statusLabel={statusText}
+      statusPlacement={compact ? "card" : "none"}
     />
   );
+
+  if (compact) return card;
+
+  return (
+    <View style={styles.wrap}>
+      <View style={styles.header}>
+        <View
+          style={[
+            styles.statusBar,
+            { backgroundColor: tone.bg, borderColor: tone.border },
+          ]}
+        >
+          <Text style={[styles.statusBarText, { color: tone.text }]}>
+            {statusText}
+          </Text>
+        </View>
+        {remaining && copy.countdownLabel ? (
+          <View accessibilityLiveRegion="polite" style={styles.timer}>
+            <Text style={styles.timerLabel}>{copy.countdownLabel}</Text>
+            <Text style={styles.timerValue}>{remaining}</Text>
+          </View>
+        ) : null}
+        {copy.description ? (
+          <Text style={styles.explainer}>{copy.description}</Text>
+        ) : null}
+      </View>
+      {card}
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  wrap: { gap: Space.lg },
+  header: { alignItems: "center", gap: Space.md },
+  statusBar: {
+    alignSelf: "stretch",
+    paddingVertical: 10,
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 8,
+  },
+  statusBarText: { ...TextStyles.label, letterSpacing: 2 },
+  timer: { alignItems: "center", gap: 2 },
+  timerLabel: {
+    ...TextStyles.labelSmall,
+    color: Colors.textSecondary,
+    letterSpacing: 1.6,
+  },
+  timerValue: {
+    ...TextStyles.display,
+    color: Colors.text,
+    fontVariant: ["tabular-nums"],
+  },
+  explainer: {
+    ...TextStyles.bodySmall,
+    color: Colors.muted,
+    textAlign: "center",
+  },
+});
