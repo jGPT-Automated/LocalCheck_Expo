@@ -25,6 +25,7 @@ function EloChangeLine({
     return () => clearTimeout(timer);
   }, [after]);
   const delta = after - before;
+  const down = delta < 0;
   return (
     <View style={styles.eloLine}>
       {/* ELO is a rating, not a quantity — no thousands separator. */}
@@ -33,15 +34,16 @@ function EloChangeLine({
         style={compact ? styles.eloValueCompact : styles.eloValue}
         value={display}
       />
+      {/* An arrow + colour so "my rating moved, and which way" reads at a
+          glance — nobody remembers their old number. */}
       <Text
         style={[
           styles.eloDelta,
-          compact && styles.eloValueCompact,
-          delta < 0 && styles.eloDeltaNegative,
+          compact && styles.eloDeltaCompact,
+          down && styles.eloDeltaNegative,
         ]}
       >
-        {delta >= 0 ? "+" : ""}
-        {delta}
+        {down ? "▼" : "▲"} {Math.abs(delta)}
       </Text>
     </View>
   );
@@ -203,6 +205,8 @@ function CompactRow({
   const name = solo ? firstName(solo.name) : teamLabel;
   const onPress =
     solo?.id && onPlayerPress ? () => onPlayerPress(solo.id as string) : undefined;
+  const elo = solo?.elo ?? null;
+  const eloDelta = elo ? elo.after - elo.before : 0;
   return (
     <View style={styles.compactRow}>
       {onPress ? (
@@ -230,6 +234,16 @@ function CompactRow({
           </Text>
         </View>
       )}
+      {elo ? (
+        <Text
+          style={[
+            styles.compactElo,
+            eloDelta < 0 && styles.eloDeltaNegative,
+          ]}
+        >
+          {eloDelta < 0 ? "▼" : "▲"} {Math.abs(eloDelta)}
+        </Text>
+      ) : null}
       <Text
         style={[styles.compactScore, winner && styles.sideScoreWin]}
       >
@@ -465,7 +479,11 @@ export function ScoreCard({
             </View>
           )}
 
-          {note ? <Text style={styles.note}>{note}</Text> : null}
+          {note ? (
+            <Text style={[styles.note, compact && styles.noteCompact]}>
+              {note}
+            </Text>
+          ) : null}
         </View>
       </View>
     </View>
@@ -517,6 +535,16 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 22,
     color: Colors.textSecondary,
+    fontVariant: ["tabular-nums"],
+  },
+  // Per-game rating move on a settled inbox card — the "did my ELO go up"
+  // answer, right where the game is.
+  compactElo: {
+    ...TextStyles.labelSmall,
+    fontFamily: TextStyles.label.fontFamily,
+    fontSize: 10,
+    color: Colors.win,
+    letterSpacing: 0.4,
     fontVariant: ["tabular-nums"],
   },
 
@@ -611,11 +639,19 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontVariant: ["tabular-nums"],
   },
-  eloDelta: { ...TextStyles.labelSmall, color: Colors.accent },
+  eloDelta: {
+    ...TextStyles.labelSmall,
+    fontFamily: TextStyles.label.fontFamily,
+    color: Colors.win,
+    letterSpacing: 0.4,
+  },
+  eloDeltaCompact: { fontSize: 10 },
   eloDeltaNegative: { color: Colors.loss },
   note: {
     ...TextStyles.bodySmall,
     color: Colors.textSecondary,
     textAlign: "center",
   },
+  // Denser in the inbox — the countdown is a footnote, not a headline.
+  noteCompact: { fontSize: 10, lineHeight: 14, color: Colors.muted },
 });

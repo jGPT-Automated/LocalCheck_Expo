@@ -350,6 +350,42 @@ export async function fetchOpenMatchesForPlayer(
   }
 }
 
+/**
+ * The player's games that have already reached a terminal state — confirmed or
+ * voided — most recently resolved first. Powers the Inbox "ALL" scope so a
+ * player can see that a game was approved, and what it did to their rating,
+ * without digging through the court feed. `fetchOpenMatchesForPlayer` covers
+ * everything still in flight; this is the settled tail.
+ */
+export async function fetchRecentlySettledMatchesForPlayer(
+  userId: string,
+  limit = 12,
+): Promise<MatchReview[]> {
+  try {
+    const ids = await fetchParticipantMatchIds(userId);
+    if (ids.length === 0) return [];
+    const { data, error } = await supabase
+      .from("matches")
+      .select("id,status,updated_at")
+      .in("id", ids)
+      .in("status", ["confirmed", "voided"])
+      .order("updated_at", { ascending: false })
+      .limit(limit);
+    if (error || !data) {
+      if (error) {
+        console.warn("fetchRecentlySettledMatchesForPlayer failed", error.message);
+      }
+      return [];
+    }
+    const reviews = await Promise.all(
+      (data as Array<{ id: string }>).map((row) => fetchMatchReview(row.id)),
+    );
+    return reviews.filter((review): review is MatchReview => review != null);
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchGamesByPlayer(
   userId: string,
 ): Promise<MatchResult[]> {

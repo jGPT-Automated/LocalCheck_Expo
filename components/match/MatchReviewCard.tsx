@@ -35,15 +35,17 @@ function viewerStatusLabel(
     : "CONFIRMING…";
   // Whoever last submitted the score has, in effect, already approved it —
   // they never need to "approve their own game", so they see who they're
-  // waiting on instead of a phantom "YOUR APPROVAL".
+  // waiting on instead of a phantom "WAITING ON YOU".
   if (viewerId && viewerId === match.lastSubmittedBy) return otherName;
-  if (me.decision === "pending") return "YOUR APPROVAL";
+  // "WAITING ON YOU" rather than "YOUR APPROVAL" — it reads as the same kind
+  // of thing as "WAITING ON JESSE" on the other player's card.
+  if (me.decision === "pending") return "WAITING ON YOU";
   return otherName;
 }
 
 /** Whether this card is the viewer's move to make ("action" — it wears accent
  *  and a spine so it stands out in the Inbox stack) or is just pending someone
- *  else ("waiting" — quiet). Mirrors viewerStatusLabel: "YOUR APPROVAL" only
+ *  else ("waiting" — quiet). Mirrors viewerStatusLabel: "WAITING ON YOU" only
  *  ever pairs with "action". */
 function viewerEmphasis(
   match: MatchReview,
