@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { BrandCheck } from "@/components/brand/LogoMark";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { CompactSelect } from "@/components/ui/CompactSelect";
@@ -877,24 +878,20 @@ function LogGameView({
   const gameCardProps = (game: GameLog) => {
     const court =
       supportedCourts.find((c) => c.id === game.courtId) ?? localCourt ?? null;
-    const firstName = (player: Player) =>
-      player.name.split(" ")[0].toUpperCase();
-    const mine = [currentUser, ...game.teammates].map(firstName).join(" · ");
-    const theirs = game.opponents.map(firstName).join(" · ") || "OPPONENT";
-    const avatarOf = (player: Player) => ({ id: player.id, name: player.name });
+    const playerOf = (player: Player) => ({ id: player.id, name: player.name });
     return {
       courtName: court?.shortName || court?.name || "COURT",
-      sport: (game.sport || "BASKETBALL") as CourtSport,
+      format: `${game.teamSize}V${game.teamSize}`,
       playedOn: game.playedOn,
-      leftLabel: mine,
-      rightLabel: theirs,
+      leftLabel: "YOUR TEAM",
+      rightLabel: "OTHER TEAM",
       leftScore: game.myScore || "0",
       rightScore: game.theirScore || "0",
-      leftAvatars: [
+      leftPlayers: [
         { id: currentUser.id, name: currentUser.name },
-        ...game.teammates.map(avatarOf),
+        ...game.teammates.map(playerOf),
       ],
-      rightAvatars: game.opponents.map(avatarOf),
+      rightPlayers: game.opponents.map(playerOf),
       leftRole: "you" as const,
       rightRole: "opponent" as const,
     };
@@ -1223,8 +1220,8 @@ function LogGameView({
   const successPadBottom = inSheet
     ? 16
     : Platform.OS === "web"
-      ? 88
-      : bottom + 84;
+      ? 104
+      : bottom + 104;
 
   if (reviewGame) {
     return (
@@ -1276,9 +1273,6 @@ function LogGameView({
   if (submittedGame) {
     return (
       <View style={[styles.successState, { paddingBottom: successPadBottom }]}>
-        <View style={styles.successIcon}>
-          <Feather color={Colors.black} name="check" size={28} />
-        </View>
         <Text style={styles.successTitle}>SCORE SENT FOR REVIEW</Text>
         <Text style={styles.successSub}>
           {submittedGame.teamSize === 1
@@ -1300,6 +1294,9 @@ function LogGameView({
             }
             {...gameCardProps(submittedGame)}
           />
+          <View style={styles.successCheck}>
+            <BrandCheck size={92} />
+          </View>
         </ScrollView>
       </View>
     );
@@ -1579,26 +1576,26 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   myRankBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+    alignItems: "flex-end",
   },
   myRankNum: {
     fontFamily: Typography.heading,
-    fontSize: 20,
+    fontSize: 22,
     color: Colors.accent,
     letterSpacing: 0.5,
-    lineHeight: 22,
+    lineHeight: 24,
   },
   myRankNumDim: {
     color: Colors.muted,
   },
   myRankLabel: {
-    maxWidth: 132,
+    maxWidth: 150,
+    marginTop: 1,
     fontFamily: Typography.bodyMedium,
     fontSize: 8,
     color: Colors.muted,
-    letterSpacing: 1.4,
+    letterSpacing: 1.2,
+    textAlign: "right",
     textTransform: "uppercase" as const,
   },
 
@@ -2207,25 +2204,20 @@ const styles = StyleSheet.create({
 
   successState: {
     flex: 1,
+    alignItems: "center",
     gap: 8,
     paddingHorizontal: 20,
     paddingTop: 20,
   },
   successScroll: { flex: 1, alignSelf: "stretch", marginTop: 4 },
   successScrollContent: { paddingBottom: 12 },
-  successIcon: {
-    width: 56,
-    height: 56,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 28,
-    backgroundColor: Colors.accent,
-  },
+  successCheck: { alignItems: "center", paddingVertical: 36 },
   successTitle: {
     fontFamily: Typography.heading,
     fontSize: 24,
     color: Colors.text,
     letterSpacing: 3,
+    textAlign: "center" as const,
   },
   successSub: {
     fontFamily: Typography.body,
@@ -2235,7 +2227,8 @@ const styles = StyleSheet.create({
   },
   reviewActions: {
     width: "100%",
-    maxWidth: 330,
+    maxWidth: 360,
+    alignSelf: "center",
     flexDirection: "row",
     gap: 10,
   },

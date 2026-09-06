@@ -75,27 +75,26 @@ export function MatchReviewCard({
   const sideB = match.participants.filter(
     (participant) => participant.side === "b",
   );
-  const sideLabel = (side: MatchReviewParticipant[], fallback: string) =>
-    side
-      .map((participant) => participant.name.split(" ")[0].toUpperCase())
-      .join(" · ") || fallback;
-  const sideAvatars = (side: MatchReviewParticipant[]) =>
-    side.map((participant) => ({ id: participant.id, name: participant.name }));
+  const confirmed = match.status === "confirmed";
   const sideRole = (side: MatchReviewParticipant[]): ScoreCardRole => {
     if (!viewerId || !viewerSide) return null;
     return side.some((participant) => participant.id === viewerId)
       ? "you"
       : "opponent";
   };
-  // A before/after ELO transition only reads cleanly for a single player per
-  // side; team sides skip it rather than showing a misleading aggregate.
-  const sideElo = (side: MatchReviewParticipant[]) => {
-    if (side.length !== 1) return null;
-    const { eloBefore, eloAfter } = side[0];
-    return eloBefore != null && eloAfter != null
-      ? { before: eloBefore, after: eloAfter }
-      : null;
-  };
+  // One entry per player, each with its own ELO move (animated only on
+  // confirm). Team games get a row per member instead of one aggregate.
+  const sidePlayers = (side: MatchReviewParticipant[]) =>
+    side.map((participant) => ({
+      id: participant.id,
+      name: participant.name,
+      elo:
+        confirmed &&
+        participant.eloBefore != null &&
+        participant.eloAfter != null
+          ? { before: participant.eloBefore, after: participant.eloAfter }
+          : null,
+    }));
 
   const firstSide = viewerSide === "b" ? sideB : sideA;
   const secondSide = viewerSide === "b" ? sideA : sideB;
@@ -109,13 +108,16 @@ export function MatchReviewCard({
     viewerStatusLabel(match, viewerId) ?? scoreCardStatusLabel(match.status);
   const tone = scoreCardTone(match.status);
 
+  // A solo side takes the player's name as its label; only a team side shows
+  // one of these.
+  const firstIsMine = sideRole(firstSide) === "you" || viewerSide != null;
   const card = (
     <ScoreCard
       compact={compact}
       courtName={match.courtName}
-      leftAvatars={sideAvatars(firstSide)}
-      leftElo={sideElo(firstSide)}
-      leftLabel={sideLabel(firstSide, "SIDE A")}
+      format={`${match.teamSize}V${match.teamSize}`}
+      leftLabel={firstIsMine ? "YOUR TEAM" : "TEAM A"}
+      leftPlayers={sidePlayers(firstSide)}
       leftRole={sideRole(firstSide)}
       leftScore={firstScore}
       note={
@@ -126,9 +128,8 @@ export function MatchReviewCard({
             : undefined
       }
       playedOn={match.playedAt}
-      rightAvatars={sideAvatars(secondSide)}
-      rightElo={sideElo(secondSide)}
-      rightLabel={sideLabel(secondSide, "SIDE B")}
+      rightLabel={firstIsMine ? "OTHER TEAM" : "TEAM B"}
+      rightPlayers={sidePlayers(secondSide)}
       rightRole={sideRole(secondSide)}
       rightMeta={
         match.disputeCount > 0
@@ -136,7 +137,6 @@ export function MatchReviewCard({
           : undefined
       }
       rightScore={secondScore}
-      sport={match.sport}
       status={match.status}
       statusLabel={statusText}
       statusPlacement={compact ? "card" : "none"}

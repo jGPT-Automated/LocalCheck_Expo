@@ -1,9 +1,17 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import Svg, { Path, Polygon, Rect } from "react-native-svg";
-import Animated, { type SharedValue, useAnimatedStyle } from "react-native-reanimated";
+import Animated, {
+  type SharedValue,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 
 import { Colors } from "@/constants/colors";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const FULL_LOCKUP_RATIO = 1290 / 202;
 const WORDMARK_RATIO = 1022 / 110;
@@ -28,19 +36,100 @@ const MARK_CORNERS = [
   ],
 ] as const;
 
+function FrameRects({ color = Colors.white }: { color?: string }) {
+  return (
+    <>
+      <Rect fill={color} height="16" width="65" x="0" y="0" />
+      <Rect fill={color} height="68" width="16" x="0" y="0" />
+      <Rect fill={color} height="16" width="65" x="145" y="0" />
+      <Rect fill={color} height="68" width="16" x="194" y="0" />
+      <Rect fill={color} height="17" width="65" x="0" y="185" />
+      <Rect fill={color} height="68" width="16" x="0" y="134" />
+      <Rect fill={color} height="17" width="65" x="145" y="185" />
+      <Rect fill={color} height="68" width="16" x="194" y="134" />
+    </>
+  );
+}
+
 function CornerFrame() {
   return (
     <>
-      <Rect fill={Colors.white} height="16" width="65" x="0" y="0" />
-      <Rect fill={Colors.white} height="68" width="16" x="0" y="0" />
-      <Rect fill={Colors.white} height="16" width="65" x="145" y="0" />
-      <Rect fill={Colors.white} height="68" width="16" x="194" y="0" />
-      <Rect fill={Colors.white} height="17" width="65" x="0" y="185" />
-      <Rect fill={Colors.white} height="68" width="16" x="0" y="134" />
-      <Rect fill={Colors.white} height="17" width="65" x="145" y="185" />
-      <Rect fill={Colors.white} height="68" width="16" x="194" y="134" />
+      <FrameRects />
       <Polygon fill={Colors.brandMark} points={MARK_CHECK_POINTS} />
     </>
+  );
+}
+
+/**
+ * Brand success mark: the LocalCheck frame fades in, then the check springs
+ * up inside it — a premium, on-brand alternative to a Feather "check" for
+ * confirmed states. Renders static when `play` is false or reduced motion.
+ */
+export function BrandCheck({
+  size = 88,
+  play = true,
+  checkColor = Colors.brandMark,
+  frameColor = Colors.white,
+}: {
+  size?: number;
+  play?: boolean;
+  checkColor?: string;
+  frameColor?: string;
+}) {
+  const reduceMotion = useReducedMotion() === true;
+  const animate = play && !reduceMotion;
+  const frame = useSharedValue(animate ? 0 : 1);
+  const check = useSharedValue(animate ? 0 : 1);
+
+  React.useEffect(() => {
+    if (!animate) {
+      frame.value = 1;
+      check.value = 1;
+      return;
+    }
+    frame.value = withTiming(1, { duration: 240 });
+    check.value = withDelay(
+      150,
+      withSpring(1, { damping: 11, stiffness: 150, mass: 0.7 }),
+    );
+  }, [animate, check, frame]);
+
+  const frameStyle = useAnimatedStyle(() => ({ opacity: frame.value }));
+  const checkStyle = useAnimatedStyle(() => ({
+    opacity: check.value,
+    transform: [{ scale: 0.5 + check.value * 0.5 }],
+  }));
+
+  return (
+    <View style={{ height: size, width: size }}>
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.animatedLayer, { height: size, width: size }, frameStyle]}
+      >
+        <Svg
+          accessibilityLabel="Confirmed"
+          fill="none"
+          height={size}
+          viewBox={MARK_VIEWBOX}
+          width={size}
+        >
+          <FrameRects color={frameColor} />
+        </Svg>
+      </Animated.View>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.animatedLayer,
+          styles.checkLayer,
+          { height: size, width: size },
+          checkStyle,
+        ]}
+      >
+        <Svg fill="none" height={size} viewBox={MARK_VIEWBOX} width={size}>
+          <Polygon fill={checkColor} points={MARK_CHECK_POINTS} />
+        </Svg>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -190,4 +279,5 @@ export function LogoWordmark({ width = 160 }: { width?: number }) {
 
 const styles = StyleSheet.create({
   animatedLayer: { position: "absolute" },
+  checkLayer: { alignItems: "center", justifyContent: "center" },
 });
