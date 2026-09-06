@@ -75,6 +75,16 @@ flow. Landing state after this round:
   routes to the profile tab. The profile ELO (`EloStat`/`ProfileHero` new
   `animate` flag, wired only at the own-profile call site) rolls its digits
   when it changes.
+- ✅ **Me tab went stale after a confirm on the other device** (`c4e1aad`):
+  Jesse logged 28-2 on Expo Go (8YP), Jesse-on-TestFlight approved it. Court
+  feed + notifications + FINAL SCORE screen all updated on 8YP's phone; the
+  Me tab kept ELO 1154 / 3 wins and never showed the new game. Cause: the
+  per-user realtime broadcast for that match/profile change doesn't reliably
+  land on this device's user topic. Fix is client-side: the Me tab's focus
+  effect now re-pulls profile + matches + activity + open matches every time
+  it's focused (`elo.tsx`), and a match batch on the user topic also kicks a
+  profile + feed refresh (`AppContext.tsx`). ⬜ The underlying broadcast gap
+  is a backend fix, still open.
 - ✅ **BrandCheck** (`components/brand/LogoMark.tsx`): the LocalCheck frame
   fades in and the check springs up inside it — on-brand success mark.
   Used on the SCORE SENT screen below the card. Jesse: "i love the
@@ -104,6 +114,14 @@ flow. Landing state after this round:
 - Inbox vs. notifications badge-count reconciliation + the all/games filter
   (from round 3) — still a product call.
 - The Starter/tier system (round 2).
+- **Backend:** the per-user realtime broadcast (`user:<id>` topic) doesn't
+  reliably fire on `profiles` / `matches` changes when a match is confirmed
+  from the *other* participant's device. The Me-tab focus refetch (`c4e1aad`)
+  masks it there; other own-data surfaces could still lag until the broadcast
+  is fixed at the source.
+- ME-tab notifications: sticky search bar under the tabs (reuse Explore's
+  search component) + a games/all filter dropdown — from round 4, deferred
+  with the inbox-vs-notifications product call.
 
 ## 2026-09-05 (polish round 3) — Expo Go pass, live element markup
 
