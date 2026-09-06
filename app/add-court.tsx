@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Location from "expo-location";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import {
   Image,
@@ -131,6 +131,15 @@ export default function AddCourtRoute() {
   const liveCameraRef = React.useRef<React.ElementRef<typeof CameraView>>(null);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [screen, setScreen] = React.useState<Screen>("camera");
+  // Drives CameraView's `active` prop so the capture camera is released the
+  // instant this route loses focus, not just when it fully unmounts.
+  const [routeFocused, setRouteFocused] = React.useState(true);
+  useFocusEffect(
+    React.useCallback(() => {
+      setRouteFocused(true);
+      return () => setRouteFocused(false);
+    }, []),
+  );
   const [lat] = React.useState<number | null>(
     hasSeedLocation ? initialLat : null,
   );
@@ -266,6 +275,7 @@ export default function AddCourtRoute() {
       <View style={styles.cameraScreen}>
         <CameraView
           ref={liveCameraRef}
+          active={routeFocused && screen === "camera"}
           style={StyleSheet.absoluteFill}
           facing="back"
         />

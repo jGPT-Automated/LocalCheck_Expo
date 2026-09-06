@@ -1,10 +1,16 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Crypto from "expo-crypto";
-import { router, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import {
+  router,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  AppState,
   Keyboard,
   Platform,
   Pressable,
@@ -1007,6 +1013,33 @@ function LogGameView({
     });
   };
 
+  // The modern barcode scanner is a native modal with no "user dismissed"
+  // event — if they swipe it away instead of scanning, nothing here fires and
+  // the camera (plus the green privacy indicator) keeps running. Force it shut
+  // on every path we *can* observe: state flip / unmount, the app leaving the
+  // foreground, this screen losing focus, and the next touch on the form.
+  const killScanner = useCallback(() => {
+    void CameraView.dismissScanner().catch(() => {});
+    setScannerOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!scannerOpen) return;
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active") killScanner();
+    });
+    return () => sub.remove();
+  }, [scannerOpen, killScanner]);
+
+  useFocusEffect(
+    useCallback(
+      () => () => {
+        killScanner();
+      },
+      [killScanner],
+    ),
+  );
+
   useEffect(() => {
     if (!scannerOpen) return;
     let handled = false;
@@ -1038,7 +1071,10 @@ function LogGameView({
       setScannerOpen(false);
       setSubmitError("QR SCANNER UNAVAILABLE. SELECT THE PLAYER INSTEAD.");
     });
-    return () => subscription.remove();
+    return () => {
+      subscription.remove();
+      void CameraView.dismissScanner().catch(() => {});
+    };
   }, [activePlayerSlot, currentUser.id, scannerOpen]);
 
   const handleScanOpponent = async () => {
@@ -1332,6 +1368,7 @@ function LogGameView({
   return (
     <KeyboardAwareScrollViewCompat
       bottomOffset={112}
+      onTouchStart={scannerOpen ? killScanner : undefined}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{
         paddingHorizontal: 16,
