@@ -48,6 +48,73 @@ point.
 
 ✅ done — committed on the branch · 🚧 in progress · ⬜ backlog, not started
 
+## 2026-09-05 (polish round 2) — 8 screenshots + a detailed Log Game brief
+
+Jesse pushed back hard: things kept getting pushed out of view / overlapping
+because changes weren't visually verified before claiming done. **This round
+was verified screen-by-screen in the `react-native-web` build (`expo start
+--web`, 375×812) before committing** — that's the fix for "I don't like
+doing them twice." No iOS Simulator runtime on this machine, so web is the
+verification surface; RN Web renders the same flat container/overflow bugs.
+
+### Log Game form — full rework ✅ DONE (`0aeea24`)
+Jesse's brief: log-after-the-fact flow (see who's checked in → pick them →
+court/sport/date prefilled → enter score → confirm), or scan a QR. Wants it
+to fit the screen with the LOG GAME button in view, no scroll.
+- ✅ Matchup is two columns (YOUR SIDE | OTHER SIDE); each grows a row on
+  ADD PLAYER. Verified LOG GAME stays in view at 1v1 and 2v2.
+- ✅ The player picker opens as a full-width panel below the columns.
+- ✅ DATE reads oldest-left → TODAY-right, scrolls to TODAY, capped at 7
+  days, no future date ("logging is after it happened").
+- ✅ Keyboard dismisses on submit / pick / date (number-pad has no Done).
+- ✅ COURT shows the short slug everywhere it was clipping (`…Sports
+  Complex` → `Rancho Cienega`) — CourtPickerField, ScoreCard context,
+  MatchReview (gameService now selects `short_name`), run/[id] LOCATION.
+- ✅ Clear gap between the FINAL SCORE label and the per-player labels.
+
+### Score review card ✅ DONE (`0aeea24`)
+Jesse: "you just made the box larger… still focus on the court name…
+buttons pushed out of view." Fixed:
+- ScoreCard with participant identities is a compact box score: one row per
+  side (avatars + name + YOU/OPPONENT role + score, ELO animating on
+  confirm). Court is a one-line caption, not a title.
+- Killed the "YOU / YOU" doubling (real name + role label).
+- REVIEW SCORE screen pads for the tab bar; EDIT / CONFIRM verified in view.
+
+### Scheduled game ✅ DONE (`3050e9e`)
+- ✅ "There should be an option for the creator to delete a game" — creator
+  gets CANCEL GAME (two-tap confirm) via the existing `public.cancel_run`
+  RPC. (Jesse hit this: made a game to test leaving, couldn't leave as
+  creator, had to use the TestFlight account.)
+- ✅ "Move the CREATOR label, it takes space from the name" — the text pill
+  is gone; creator is a full-width "CREATED BY <name>" line under WHEN /
+  LOCATION + a small award glyph before their name in the roster.
+
+### Home schedule panel ✅ DONE (`b1e0378`)
+- ✅ "Change this icon back to the dot" — in-cell game marker is a small
+  accent dot, not a calendar chip.
+- ✅ "Make the bottom box lower, give more area to the grid" + "lots of
+  empty space at the bottom" — card tightened, grid taller, panel scrolls
+  with tab-bar-clearance padding instead of a fixed dead gap.
+
+### Court page + Compete header ✅ DONE (`b1f568f`)
+- ✅ Court header SET LOCAL / LOCAL is a favourite-style star pill (filled
+  accent star when it's your local), replacing the boxy check-circle chip.
+- ✅ Compete header `#9` is a single line aligned with "COMPETE".
+- ✅ The viewer's own hidden leaderboard row matches other rows' structure
+  and shows its privacy state ("HIDDEN — LOCALPLUS" / "HIDDEN — PRIVATE")
+  where others show a tier, instead of a bare "BRONZE".
+
+### ⬜ NEXT ROUND / needs a product decision
+- **Tier + "Starter" system** (from the leaderboard screenshot): first 100
+  users get a "Starter" status with a distinct profile box and a free year
+  of the paid tier; the per-row badge should reflect privacy × paid state
+  (public+unpaid = hidden; friends-only+paid = a look; private+paid =
+  "private"). This is a real data-model + entitlements feature, not polish —
+  parked for a dedicated pass.
+- The friends-counter animate-on-own-action ask (no counter exists yet).
+- Copy the notification-type inventory into this file.
+
 ## 2026-09-05 (polish round — pre-merge) — 7 annotated Expo Go screenshots
 
 Jesse's framing: "this looks really good. we're almost there." Light polish on
