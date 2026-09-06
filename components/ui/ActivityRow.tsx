@@ -164,7 +164,7 @@ function GameContent({ item }: { item: FeedItem }) {
         <Text style={styles.time}>{item.timestamp}</Text>
       </View>
       <View style={styles.gameSide}>
-        <Text numberOfLines={1} style={styles.gameName}>
+        <Text numberOfLines={1} style={[styles.gameName, styles.winnerName]}>
           {formatMatchSide(winningSide)}
         </Text>
         <View style={styles.gameScoreGroup}>
@@ -356,6 +356,7 @@ const styles = StyleSheet.create({
     fontVariant: ["tabular-nums"],
   },
   winnerScore: { color: Colors.accent },
+  winnerName: { color: Colors.accent },
   winTag: {
     fontFamily: Typography.bodyBold,
     fontSize: 9,

@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 
 import { Colors } from "@/constants/colors";
 import { Space } from "@/constants/layout";
@@ -10,12 +11,7 @@ import {
   matchStatusCopy,
 } from "@/services/matchReviewModel";
 
-import {
-  ScoreCard,
-  scoreCardStatusLabel,
-  scoreCardTone,
-  type ScoreCardRole,
-} from "./ScoreCard";
+import { ScoreCard, scoreCardStatusLabel, scoreCardTone } from "./ScoreCard";
 
 /** Badge text from the viewer's seat: whose move it is, not a raw status. */
 function viewerStatusLabel(
@@ -30,14 +26,19 @@ function viewerStatusLabel(
   }
   // pending
   if (!me) return undefined; // spectator — fall back to the generic label
-  if (me.decision === "pending") return "YOUR APPROVAL";
   if (me.decision === "disputed") return "YOU DISPUTED";
-  const waitingOn = match.participants.find(
+  const other = match.participants.find(
     (p) => p.id !== viewerId && p.decision === "pending",
   );
-  return waitingOn
-    ? `WAITING ON ${waitingOn.name.split(" ")[0].toUpperCase()}`
-    : "WAITING ON REVIEW";
+  const otherName = other
+    ? `WAITING ON ${other.name.split(" ")[0].toUpperCase()}`
+    : "CONFIRMING…";
+  // Whoever last submitted the score has, in effect, already approved it —
+  // they never need to "approve their own game", so they see who they're
+  // waiting on instead of a phantom "YOUR APPROVAL".
+  if (viewerId && viewerId === match.lastSubmittedBy) return otherName;
+  if (me.decision === "pending") return "YOUR APPROVAL";
+  return otherName;
 }
 
 /**
@@ -55,6 +56,7 @@ export function MatchReviewCard({
   viewerId?: string;
   compact?: boolean;
 }) {
+  const router = useRouter();
   const [now, setNow] = React.useState(Date.now());
   const copy = matchStatusCopy(match.status);
   const deadline =
@@ -76,12 +78,6 @@ export function MatchReviewCard({
     (participant) => participant.side === "b",
   );
   const confirmed = match.status === "confirmed";
-  const sideRole = (side: MatchReviewParticipant[]): ScoreCardRole => {
-    if (!viewerId || !viewerSide) return null;
-    return side.some((participant) => participant.id === viewerId)
-      ? "you"
-      : "opponent";
-  };
   // One entry per player, each with its own ELO move (animated only on
   // confirm). Team games get a row per member instead of one aggregate.
   const sidePlayers = (side: MatchReviewParticipant[]) =>
@@ -108,9 +104,7 @@ export function MatchReviewCard({
     viewerStatusLabel(match, viewerId) ?? scoreCardStatusLabel(match.status);
   const tone = scoreCardTone(match.status);
 
-  // A solo side takes the player's name as its label; only a team side shows
-  // one of these.
-  const firstIsMine = sideRole(firstSide) === "you" || viewerSide != null;
+  const firstIsMine = viewerSide != null;
   const card = (
     <ScoreCard
       compact={compact}
@@ -118,7 +112,6 @@ export function MatchReviewCard({
       format={`${match.teamSize}V${match.teamSize}`}
       leftLabel={firstIsMine ? "YOUR TEAM" : "TEAM A"}
       leftPlayers={sidePlayers(firstSide)}
-      leftRole={sideRole(firstSide)}
       leftScore={firstScore}
       note={
         compact && remaining
@@ -127,10 +120,10 @@ export function MatchReviewCard({
             ? copy.description
             : undefined
       }
+      onPlayerPress={(id) => router.push(`/player/${id}`)}
       playedOn={match.playedAt}
       rightLabel={firstIsMine ? "OTHER TEAM" : "TEAM B"}
       rightPlayers={sidePlayers(secondSide)}
-      rightRole={sideRole(secondSide)}
       rightMeta={
         match.disputeCount > 0
           ? `DISPUTE ${Math.min(match.disputeCount, 2)} OF 2`

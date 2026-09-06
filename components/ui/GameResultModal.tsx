@@ -66,6 +66,10 @@ export function GameResultModal({
     onClose();
     router.push(`/match/${match.id}`);
   };
+  const openPlayer = (id: string) => {
+    onClose();
+    router.push(`/player/${id}`);
+  };
 
   return (
     <Modal
@@ -102,6 +106,7 @@ export function GameResultModal({
             leftLabel="TEAM A"
             leftPlayers={match.sideA.map((p) => ({ id: p.playerId, name: p.name }))}
             leftScore={match.scoreA}
+            onPlayerPress={openPlayer}
             playedOn={match.playedAt}
             rightLabel="TEAM B"
             rightPlayers={match.sideB.map((p) => ({ id: p.playerId, name: p.name }))}

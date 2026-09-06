@@ -1,8 +1,7 @@
 import { NumberFlow } from "number-flow-react-native";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors, Radius } from "@/constants/colors";
 import { Layout, Space } from "@/constants/layout";
 import { TextStyles } from "@/constants/typography";
@@ -127,31 +126,66 @@ function WinBadge() {
 }
 
 /**
- * One side of the matchup, centred in its half of the box. The identity
- * cluster (avatar, name, ELO move) sits above the big score:
- *  - 1v1: one avatar, the player's name, their ELO line, then the score.
- *    No "YOU / OPPONENT" — the accent ring on the viewer's avatar is the tell.
- *  - team: `teamLabel` over the score, then an avatar + name + ELO row per
- *    member.
+ * One side of the matchup, centred in its half. Name-first, no avatars:
+ *  - 1v1: the player's name, their ELO move, then the score.
+ *  - team: `teamLabel` over the score, then a name + ELO row per member.
+ * "YOU / OPPONENT" is never spelled out — the viewer-aware status banner
+ * and the score carry that.
  */
+function PlayerName({
+  name,
+  win,
+  onPress,
+}: {
+  name: string;
+  win: boolean;
+  onPress?: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityHint={onPress ? "Opens this player's profile" : undefined}
+      accessibilityRole={onPress ? "link" : undefined}
+      disabled={!onPress}
+      onPress={onPress}
+    >
+      {({ pressed }) => (
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.sideName,
+            win && styles.sideNameWin,
+            pressed && onPress ? styles.namePressed : null,
+          ]}
+        >
+          {firstName(name)}
+        </Text>
+      )}
+    </Pressable>
+  );
+}
+
 function SideColumn({
   teamLabel,
   score,
   players,
-  isYou,
   winner,
   winBadge,
   compact,
+  onPlayerPress,
 }: {
   teamLabel: string;
   score: number | string;
   players: ScoreCardPlayer[];
-  isYou: boolean;
   winner: boolean;
   winBadge: boolean;
   compact: boolean;
+  onPlayerPress?: (playerId: string) => void;
 }) {
   const solo = players.length === 1 ? players[0] : null;
+  const press = (player: ScoreCardPlayer) =>
+    player.id && onPlayerPress
+      ? () => onPlayerPress(player.id as string)
+      : undefined;
   const scoreEl = (
     <Text
       style={[
@@ -167,15 +201,7 @@ function SideColumn({
   if (solo) {
     return (
       <View style={styles.sideCol}>
-        <PlayerAvatar
-          accent={isYou}
-          name={solo.name}
-          playerId={solo.id}
-          size={compact ? 30 : 40}
-        />
-        <Text numberOfLines={1} style={styles.sideName}>
-          {firstName(solo.name)}
-        </Text>
+        <PlayerName name={solo.name} onPress={press(solo)} win={winner} />
         {solo.elo ? (
           <EloChangeLine
             after={solo.elo.after}
@@ -200,26 +226,20 @@ function SideColumn({
         {players.map((player, index) => (
           <View
             key={player.id ?? `${player.name}-${index}`}
-            style={styles.playerRow}
+            style={styles.playerText}
           >
-            <PlayerAvatar
-              accent={isYou}
+            <PlayerName
               name={player.name}
-              playerId={player.id}
-              size={compact ? 20 : 24}
+              onPress={press(player)}
+              win={winner}
             />
-            <View style={styles.playerText}>
-              <Text numberOfLines={1} style={styles.playerName}>
-                {firstName(player.name)}
-              </Text>
-              {player.elo ? (
-                <EloChangeLine
-                  after={player.elo.after}
-                  before={player.elo.before}
-                  compact={compact}
-                />
-              ) : null}
-            </View>
+            {player.elo ? (
+              <EloChangeLine
+                after={player.elo.after}
+                before={player.elo.before}
+                compact={compact}
+              />
+            ) : null}
           </View>
         ))}
       </View>
@@ -248,11 +268,10 @@ export function ScoreCard({
   rightScore,
   leftPlayers = [],
   rightPlayers = [],
-  leftRole = null,
-  rightRole = null,
   note,
   rightMeta,
   compact = false,
+  onPlayerPress,
 }: {
   status: ScoreCardStatus;
   /** Viewer-aware override for the banner text ("YOUR APPROVAL", "WAITING ON
@@ -272,11 +291,11 @@ export function ScoreCard({
   rightScore: number | string;
   leftPlayers?: ScoreCardPlayer[];
   rightPlayers?: ScoreCardPlayer[];
-  leftRole?: ScoreCardRole;
-  rightRole?: ScoreCardRole;
   note?: string;
   rightMeta?: string;
   compact?: boolean;
+  /** Tapping a player's name calls this with their id. */
+  onPlayerPress?: (playerId: string) => void;
 }) {
   const tone = TONE[status];
   const leftNum = Number(leftScore);
@@ -313,7 +332,7 @@ export function ScoreCard({
           <View style={styles.matchup}>
             <SideColumn
               compact={compact}
-              isYou={leftRole === "you"}
+              onPlayerPress={onPlayerPress}
               players={leftPlayers}
               score={leftScore}
               teamLabel={leftLabel}
@@ -323,7 +342,7 @@ export function ScoreCard({
             <View style={styles.sideDivider} />
             <SideColumn
               compact={compact}
-              isYou={rightRole === "you"}
+              onPlayerPress={onPlayerPress}
               players={rightPlayers}
               score={rightScore}
               teamLabel={rightLabel}
@@ -370,21 +389,16 @@ const styles = StyleSheet.create({
     color: Colors.muted,
   },
 
-  // ── Matchup: two side-by-side columns ──
+  // ── Matchup: two side-by-side columns, no box — sits on the card ──
   matchup: {
     flexDirection: "row",
-    alignItems: "stretch",
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.surfaceDark,
-    overflow: "hidden",
+    alignItems: "flex-start",
   },
-  sideDivider: { width: 1, backgroundColor: Colors.border },
+  sideDivider: { width: 1, alignSelf: "stretch", backgroundColor: Colors.border },
   sideCol: {
     flex: 1,
     minWidth: 0,
-    paddingVertical: Space.md,
+    paddingVertical: Space.sm,
     paddingHorizontal: Space.sm,
     alignItems: "center",
     gap: 5,
@@ -400,6 +414,8 @@ const styles = StyleSheet.create({
     color: Colors.text,
     textAlign: "center",
   },
+  sideNameWin: { color: Colors.accent },
+  namePressed: { opacity: 0.55 },
   sideScore: {
     fontFamily: TextStyles.displayLarge.fontFamily,
     fontSize: 40,
@@ -429,21 +445,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Space.sm,
   },
-  playerRow: {
-    maxWidth: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
-  },
-  playerText: { flexShrink: 1, minWidth: 0, alignItems: "center" },
-  playerName: {
-    fontFamily: TextStyles.label.fontFamily,
-    fontSize: 11,
-    letterSpacing: 0.4,
-    color: Colors.text,
-    textAlign: "center",
-  },
+  playerText: { maxWidth: "100%", minWidth: 0, alignItems: "center" },
 
   eloLine: {
     marginTop: 1,

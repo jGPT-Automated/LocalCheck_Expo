@@ -1,7 +1,7 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Crypto from "expo-crypto";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { router, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -892,8 +892,6 @@ function LogGameView({
         ...game.teammates.map(playerOf),
       ],
       rightPlayers: game.opponents.map(playerOf),
-      leftRole: "you" as const,
-      rightRole: "opponent" as const,
     };
   };
 
@@ -1240,6 +1238,7 @@ function LogGameView({
             compact
             status="draft"
             note="Ratings don't move until this is confirmed."
+            onPlayerPress={(id) => router.push(`/player/${id}`)}
             {...gameCardProps(reviewGame)}
           />
         </ScrollView>
@@ -1292,6 +1291,7 @@ function LogGameView({
                 ? "Waiting on your opponent, or it auto-confirms in 3 days."
                 : "Waiting on the other players, or it auto-confirms in 3 days."
             }
+            onPlayerPress={(id) => router.push(`/player/${id}`)}
             {...gameCardProps(submittedGame)}
           />
           <View style={styles.successCheck}>
