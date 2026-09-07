@@ -31,6 +31,7 @@ export interface SupabaseProfile {
   preferred_sport: string | null;
   postal_code: string | null;
   is_pro?: boolean;
+  is_test?: boolean;
   visibility?: "public" | "friends" | "private";
   created_at: string;
   updated_at: string;
@@ -406,11 +407,14 @@ async function fetchRankedProfileRows(
  * yourself so the app can render a "you, hidden" row.
  */
 function isLeaderboardVisible(
-  row: { id: string; is_pro?: boolean; visibility?: string | null },
+  row: { id: string; is_pro?: boolean; is_test?: boolean; visibility?: string | null },
   viewerId: string | undefined,
   friendIds: Set<string>,
 ): boolean {
   if (viewerId && row.id === viewerId) return true;
+  // QA/burner accounts never rank on anyone else's board (they still see
+  // their own row via the check above).
+  if (row.is_test) return false;
   if (LocalPlusFlags.gateLeaderboard && !row.is_pro) return false;
   if (row.visibility === "private") return false;
   if (row.visibility === "friends") return friendIds.has(row.id);
@@ -520,7 +524,12 @@ export async function fetchLeaderboard(
       return result.data
         .filter((row) =>
           isLeaderboardVisible(
-            row as { id: string; is_pro?: boolean; visibility?: string | null },
+            row as {
+              id: string;
+              is_pro?: boolean;
+              is_test?: boolean;
+              visibility?: string | null;
+            },
             viewerId,
             friendIds,
           ),
