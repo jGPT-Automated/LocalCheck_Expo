@@ -1,20 +1,21 @@
--- PR #43 — founding cohort, referral tracking, and the local-court cooldown.
+-- PR #43 — founding cohort columns, referral tracking, local-court cooldown.
 --
--- Adds four profile columns and the machinery around them:
---   is_founding_member     the original ~100 users; drives the STARTER badge
---                          and a one-year LocalPlus grant.
+-- Adds five profile columns and the machinery around them:
+--   is_founding_member     drives the STARTER badge + a one-year LocalPlus
+--                          grant. Column ships now; the grant is made by a
+--                          separate launch-day migration (see the tail of this
+--                          file) so no pre-launch QA account becomes a founder.
 --   referral_code          short public code every profile can share.
---   recruited_by           who invited this player (set once, via RPC).
+--   recruited_by            who invited this player (set once, via RPC).
 --   recruits_count          how many players this profile has brought on.
 --   local_court_changed_at  stamped whenever local_court_id changes; the app
 --                          blocks another change for 7 days.
 --
--- LocalPlus itself is unchanged: it still derives from public.subscriptions
--- via private.sync_profile_is_pro(). The founding grant is a 'promo'
--- subscription row so that existing plumbing lights up with no new flag.
+-- LocalPlus derives from public.subscriptions via private.sync_profile_is_pro().
+-- This migration adds NO subscription rows.
 --
--- Forward-only. Safe to apply before the client ships (every column is
--- nullable or defaulted; the client tolerates their absence).
+-- Forward-only, pure additive plumbing. Safe to apply before the client ships
+-- (every column is nullable or defaulted; the client tolerates their absence).
 
 begin;
 
@@ -162,32 +163,22 @@ $$;
 revoke execute on function public.redeem_referral_code(text) from public, anon;
 grant execute on function public.redeem_referral_code(text) to authenticated;
 
--- ── Backfill the founding cohort ─────────────────────────────────────────────
-update public.profiles
-set is_founding_member = true
-where created_at < timestamptz '2026-09-06T00:00:00Z';
-
+-- ── Referral-code backfill ──────────────────────────────────────────────────
+-- Every existing row gets a code so referral flows work in QA immediately.
 update public.profiles
 set referral_code = private.generate_referral_code()
 where referral_code is null;
 
--- A one-year LocalPlus grant for founders, expressed as a promo subscription so
--- private.sync_profile_is_pro() derives is_pro exactly as it will for paid subs.
-insert into public.subscriptions (
-  user_id, revenuecat_app_user_id, product_id, entitlement_id,
-  status, billing_provider, current_period_starts_at, current_period_ends_at,
-  expires_at, raw_payload
-)
-select
-  p.id, p.id::text, 'founding_year_grant', 'localplus',
-  'active', 'promo', now(), now() + interval '1 year',
-  now() + interval '1 year',
-  jsonb_build_object('grant', 'founding_member')
-from public.profiles p
-where p.is_founding_member = true
-  and not exists (
-    select 1 from public.subscriptions s
-    where s.user_id = p.id and s.product_id = 'founding_year_grant'
-  );
+-- ── Founding cohort + one-year LocalPlus grant: DEFERRED to launch day ───────
+-- The original backfill (is_founding_member = created_at < 2026-09-06, plus a
+-- 'founding_year_grant' promo subscription per founder) was removed. Every
+-- account that exists pre-launch is a QA/burner (profiles.is_test = true), so
+-- there is no real founding cohort yet. A launch-day migration will:
+--   • stamp the launch date,
+--   • grant is_founding_member + a 1-year 'founding_year_grant' promo row to the
+--     first 100 real (is_test = false) sign-ups, one year from each user's own
+--     created_at.
+-- Keeping the grant out of this migration means applying it now is pure,
+-- reversible plumbing.
 
 commit;
