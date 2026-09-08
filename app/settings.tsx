@@ -12,7 +12,6 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,6 +20,7 @@ import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollV
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
+import { SearchField } from "@/components/ui/SearchField";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, CourtSport } from "@/constants/data";
 import { Space } from "@/constants/layout";
@@ -809,23 +809,16 @@ function LocalCourtEditorSheet({
         </View>
       ) : null}
 
-      <View style={styles.searchBox}>
-        <Feather name="search" size={16} color={Colors.muted} />
-        <TextInput
-          accessibilityLabel="Search for a court"
-          autoCapitalize="words"
-          autoCorrect={false}
-          onChangeText={setQuery}
-          placeholder="Court name, city, or ZIP"
-          placeholderTextColor={Colors.mutedDark}
-          returnKeyType="search"
-          style={styles.searchInput}
-          value={query}
-        />
-        {searching ? (
-          <ActivityIndicator color={Colors.accent} size="small" />
-        ) : null}
-      </View>
+      <SearchField
+        style={styles.searchBox}
+        accessibilityLabel="Search for a court"
+        autoCapitalize="words"
+        placeholder="Court name, city, or ZIP"
+        value={query}
+        onChangeText={setQuery}
+        onClear={() => setQuery("")}
+        loading={searching}
+      />
 
       {term.length >= 2 ? (
         <View style={styles.results}>
@@ -1111,13 +1104,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: Radius.sm,
     backgroundColor: Colors.surface,
-  },
-  searchInput: {
-    flex: 1,
-    minWidth: 0,
-    paddingVertical: 0,
-    ...TextStyles.bodySmall,
-    color: Colors.text,
   },
   searchHint: {
     ...TextStyles.caption,

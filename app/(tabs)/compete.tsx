@@ -31,6 +31,7 @@ import { EloStat } from "@/components/ui/EloStat";
 import { ModeTabs } from "@/components/ui/ModeTabs";
 import { parsePlayerQrCode } from "@/components/ui/playerIdentity";
 import { RecentDatePicker } from "@/components/ui/RecentDatePicker";
+import { SearchField } from "@/components/ui/SearchField";
 import { ScoreCard } from "@/components/match/ScoreCard";
 import { Colors, Radius } from "@/constants/colors";
 import {
@@ -663,21 +664,16 @@ function CourtPickerField({
       {open ? (
         <View style={styles.courtPanel}>
           <View style={styles.courtSearch}>
-            <Feather color={Colors.muted} name="search" size={14} />
-            <TextInput
-              accessibilityLabel="Search courts"
-              autoCorrect={false}
+            <SearchField
+              variant="bare"
               autoFocus
-              onChangeText={setQuery}
+              accessibilityLabel="Search courts"
               placeholder="Search courts"
-              placeholderTextColor={Colors.mutedDark}
-              returnKeyType="search"
-              style={styles.courtSearchInput}
               value={query}
+              onChangeText={setQuery}
+              onClear={() => setQuery("")}
+              loading={searching}
             />
-            {searching ? (
-              <ActivityIndicator color={Colors.accent} size="small" />
-            ) : null}
           </View>
           {term.length < 2 ? (
             <Text style={styles.courtSectionLabel}>NEAREST</Text>
@@ -1237,25 +1233,23 @@ function LogGameView({
     return (
       <View style={styles.pickerPanel}>
         <View style={styles.pickerSearchRow}>
-          <Ionicons color={Colors.muted} name="search" size={15} />
-          <TextInput
-            accessibilityLabel={`Search ${side}`}
-            autoCapitalize="none"
-            autoCorrect={false}
+          <SearchField
+            variant="bare"
             autoFocus
-            onChangeText={setOpponentQuery}
+            accessibilityLabel={`Search ${side}`}
             placeholder={`Search ${side}`}
-            placeholderTextColor={Colors.mutedDark}
-            style={styles.pickerSearchInput}
             value={opponentQuery}
+            onChangeText={setOpponentQuery}
+            trailing={
+              <Pressable
+                accessibilityLabel="Close player search"
+                hitSlop={8}
+                onPress={() => setShowOpponentPicker(false)}
+              >
+                <Ionicons color={Colors.muted} name="close" size={17} />
+              </Pressable>
+            }
           />
-          <Pressable
-            accessibilityLabel="Close player search"
-            hitSlop={8}
-            onPress={() => setShowOpponentPicker(false)}
-          >
-            <Ionicons color={Colors.muted} name="close" size={17} />
-          </Pressable>
         </View>
         <Text style={styles.opponentSection}>
           {query
@@ -2047,14 +2041,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
   },
-  courtSearchInput: {
-    flex: 1,
-    minWidth: 0,
-    paddingVertical: 0,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 13,
-    color: Colors.text,
-  },
   courtSectionLabel: {
     paddingHorizontal: 12,
     paddingTop: 10,
@@ -2164,13 +2150,6 @@ const styles = StyleSheet.create({
     gap: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
-  },
-  pickerSearchInput: {
-    flex: 1,
-    minHeight: 40,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 13,
-    color: Colors.text,
   },
   scoreGroup: { gap: 12 },
   rosterActions: {
@@ -2461,22 +2440,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     maxHeight: 280,
     overflow: "hidden",
-  },
-  opponentSearch: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  opponentSearchInput: {
-    flex: 1,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 13,
-    color: Colors.text,
-    paddingVertical: 2,
   },
   opponentSection: {
     fontFamily: Typography.bodyBold,

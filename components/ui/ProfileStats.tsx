@@ -76,6 +76,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     flexDirection: "row",
+    alignItems: "center",
     overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.borderLight,
@@ -85,7 +86,8 @@ const styles = StyleSheet.create({
   metric: {
     flex: 1,
     minWidth: 0,
-    paddingVertical: 9,
+    alignSelf: "stretch",
+    paddingVertical: 10,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -96,16 +98,22 @@ const styles = StyleSheet.create({
   value: {
     fontFamily: Typography.headingBold,
     fontSize: 20,
-    lineHeight: 26,
+    // Line height kept close to the glyph so the number sits centred in the
+    // cell instead of riding the top of an over-tall line box.
+    lineHeight: 22,
+    textAlign: "center",
+    includeFontPadding: false,
     color: Colors.text,
   },
   win: { color: Colors.win },
   loss: { color: Colors.loss },
   label: {
-    marginTop: 1,
+    marginTop: 3,
     fontFamily: Typography.bodyMedium,
     fontSize: 9,
     lineHeight: 11,
+    textAlign: "center",
+    includeFontPadding: false,
     color: Colors.muted,
     letterSpacing: 0.8,
   },

@@ -12,7 +12,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 
@@ -26,6 +25,7 @@ import { AddCourtLocationSheet } from "@/components/add-court/AddCourtLocationSh
 import { useCourtSheet } from "@/components/sheet/CourtSheetHost";
 import { CompactSelect } from "@/components/ui/CompactSelect";
 import { ModeTabs } from "@/components/ui/ModeTabs";
+import { SearchField } from "@/components/ui/SearchField";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, CourtSport } from "@/constants/data";
 import { Typography } from "@/constants/typography";
@@ -238,24 +238,18 @@ export function CourtsScreen() {
             variant="plain"
           />
           <View style={styles.searchDivider} />
-          <Feather name="search" size={15} color={Colors.muted} />
-          <TextInput
-            style={styles.searchInput}
+          <SearchField
+            variant="bare"
+            accessibilityLabel="Search courts"
+            placeholder="Search courts..."
             value={searchQuery}
             onChangeText={(value) => {
               setSearchQuery(value);
               if (value.trim().length >= 2) setMode("LIST");
             }}
-            placeholder="Search courts..."
-            placeholderTextColor={Colors.mutedDark}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="search"
-            clearButtonMode="while-editing"
+            onClear={() => setSearchQuery("")}
+            loading={searchLoading}
           />
-          {searchLoading && (
-            <ActivityIndicator size="small" color={Colors.muted} />
-          )}
         </View>
       </View>
 
@@ -443,13 +437,6 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
     paddingHorizontal: 16,
     gap: 9,
-  },
-  searchInput: {
-    flex: 1,
-    fontFamily: Typography.body,
-    fontSize: 14,
-    color: Colors.text,
-    paddingVertical: 8,
   },
   sportMenuButton: {
     minWidth: 32,

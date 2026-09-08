@@ -2,14 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -22,6 +15,7 @@ import { GameResultModal } from "@/components/ui/GameResultModal";
 import { PlayerQrModal } from "@/components/ui/PlayerQrModal";
 import { ProfileHero } from "@/components/ui/ProfileHero";
 import { ProfileStats } from "@/components/ui/ProfileStats";
+import { SearchField } from "@/components/ui/SearchField";
 import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
 import { Colors, Radius } from "@/constants/colors";
 import { type FeedItem, type FeedMatchSummary } from "@/constants/data";
@@ -317,18 +311,13 @@ export default function MeScreen() {
             variant="plain"
           />
           <View style={styles.inboxSearchDivider} />
-          <Feather color={Colors.muted} name="search" size={15} />
-          <TextInput
+          <SearchField
+            variant="bare"
             accessibilityLabel="Search your inbox"
-            autoCapitalize="none"
-            autoCorrect={false}
-            clearButtonMode="while-editing"
-            onChangeText={setInboxQuery}
             placeholder="Search inbox..."
-            placeholderTextColor={Colors.mutedDark}
-            returnKeyType="search"
-            style={styles.inboxSearchInput}
             value={inboxQuery}
+            onChangeText={setInboxQuery}
+            onClear={() => setInboxQuery("")}
           />
         </View>
       ) : null}
@@ -415,18 +404,14 @@ export default function MeScreen() {
           </View>
         ) : activeTab === "friends" ? (
           <View style={styles.content}>
-            <View style={styles.searchWrap}>
-              <Feather color={Colors.muted} name="search" size={15} />
-              <TextInput
-                accessibilityLabel="Search players by username"
-                autoCapitalize="none"
-                onChangeText={setFriendQuery}
-                placeholder="Search by username"
-                placeholderTextColor={Colors.mutedDark}
-                style={styles.searchInput}
-                value={friendQuery}
-              />
-            </View>
+            <SearchField
+              style={styles.searchWrap}
+              accessibilityLabel="Search players by username"
+              placeholder="Search by username"
+              value={friendQuery}
+              onChangeText={setFriendQuery}
+              onClear={() => setFriendQuery("")}
+            />
             {searchingFriends ? (
               <View style={styles.suggested}>
                 <Text style={styles.suggestedTitle}>SEARCH RESULTS</Text>
@@ -924,13 +909,6 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
   },
   inboxSearchDivider: { width: 1, height: 18, backgroundColor: Colors.border },
-  inboxSearchInput: {
-    flex: 1,
-    paddingVertical: 8,
-    fontFamily: Typography.body,
-    fontSize: 14,
-    color: Colors.text,
-  },
   content: { paddingTop: 0 },
   activityContent: { paddingTop: 0 },
 
@@ -1119,13 +1097,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: Radius.lg,
     backgroundColor: Colors.surface,
-  },
-  searchInput: {
-    flex: 1,
-    minWidth: 0,
-    color: Colors.text,
-    fontFamily: Typography.body,
-    fontSize: 12,
   },
   suggested: { marginTop: 14 },
   suggestedTitle: {
