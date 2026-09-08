@@ -23,22 +23,17 @@ point.
 
 ## Branch / PR status
 
-- **PR [#42](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/42) and
-  [#44](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/44) are merged to
-  `main`.** `main` @ `8bdb401` (PR #44). TestFlight build **1.0.2 (21)** is that
-  commit.
-- **Working branch:** `codex/camera-lifecycle-release` → **PR open:
-  [#45](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/45)**, base
-  `main`. Contains: camera lifecycle release, unified `profiles.visibility`
-  privacy + FRIENDS leaderboard, launch polish (STARTER→tag identity,
-  cross-street court names, ME stat box, rank/total), and the account-tag
-  system. Not yet merged → no build 22 yet.
+- **PRs #42, #44, and [#45](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/45)
+  are merged to `main`.** `origin/main` @ `f5f5b81` (PR #45 squash, 2026-09-08).
+  #45 = camera lifecycle, unified `profiles.visibility` privacy + FRIENDS
+  leaderboard, `profiles.account_tag`, one shared `SearchField`, launch polish.
+  The merge triggered EAS production **build 22**.
+- **All LocalCheckProd migrations applied; none pending:** referral/cooldown
+  plumbing, `account_tags` (`docs/runbooks/ACCOUNT_TAGS.md`), `profile_visibility`.
 - **Release loop:** opening a PR against `main` auto-publishes a scannable Expo
   Go preview; merging to `main` auto-triggers the TestFlight build. No manual
   EAS step. See `docs/RELEASE.md`.
-- Backend applied to LocalCheckProd ahead of #45's merge: referral/cooldown
-  plumbing and `profiles.account_tag` (see `docs/runbooks/ACCOUNT_TAGS.md`).
-  `profiles.visibility` still lands with the #45 merge.
+- No feature branch open right now. Branch the next task from `origin/main`.
 
 ## Status legend
 

@@ -9,23 +9,23 @@ evidence only; it does not replace the production checkpoint below.
 
 ## Production checkpoint
 
-- iOS/TestFlight checkpoint: app `1.0.2`, build `21`, runtime `1.0.2`, source
-  commit `8bdb4011a7f81e7270c18c10b80a814a3c5cc5b1` (PR #44 merge). EAS build
-  `a1f15238-803a-49b6-8901-ac2bb32ec070`, FINISHED 2026-09-06.
-- Open PR #45 (`codex/camera-lifecycle-release`) stacks on that: camera
-  lifecycle, unified `profiles.visibility` privacy, FRIENDS leaderboard,
-  launch polish, and account tags. Not yet built.
+- Source truth: `origin/main` @ `f5f5b81` — PR #45 squash-merged 2026-09-08
+  (camera lifecycle, unified `profiles.visibility` privacy, FRIENDS leaderboard,
+  account tags, one shared `SearchField`, launch polish). That merge triggered
+  EAS production **build 22**; TestFlight state to confirm on the EAS/ASC side.
+- Previous TestFlight checkpoint: `1.0.2 (21)`, commit `8bdb401` (PR #44), EAS
+  build `a1f15238-803a-49b6-8901-ac2bb32ec070`, FINISHED 2026-09-06.
 - EAS project: `agenticjess-os/localcheck`
   (`9c906173-0258-45a9-a3fe-786cda373c66`).
 - Supabase production project: `qkrnmyexzvaxiqfxwwfb`.
 - Installed binaries use EAS Update with `runtimeVersion.policy = appVersion`.
 - Production OTA rollback remains available through EAS Update republish.
-- Applied to LocalCheckProd on 2026-09-07/08, ahead of PR #45's build:
+- **All migrations applied to LocalCheckProd (2026-09-07/08); none pending:**
   `pr43_founding_localplus_referral_cooldown` (referral codes + 7-day
-  local-court cooldown; **no** founding grant — deferred to launch day),
-  `profile_is_test_flag` then superseded by `account_tags`
-  (`profiles.account_tag`; see `docs/runbooks/ACCOUNT_TAGS.md`).
-  `profile_visibility` is still source-only, lands with PR #45.
+  local-court cooldown; founding grant deferred to a launch-day migration),
+  `account_tags` (`profiles.account_tag` — replaces `is_test` /
+  `is_founding_member`; runbook `docs/runbooks/ACCOUNT_TAGS.md`),
+  `profile_visibility` (`profiles.visibility` public/friends/private).
 
 ## Current product contract
 
@@ -56,8 +56,19 @@ development and testing.
 
 ## Known release risks
 
+- **LocalPlus monetization is not built.** No `react-native-purchases`, no
+  RevenueCat code, no webhook; `LOCALPLUS_DEV_DEFAULT = true` still grants Plus
+  to everyone in-app. Decision (Jesse, 2026-09-08): ship **one** plan —
+  **LocalPlus Monthly $4.99/mo**, no annual for v1; FOUNDER/STARTER are free via
+  a promo `subscriptions` row. The price is set in App Store Connect, not
+  RevenueCat. Entitlement string (`localplus` vs `localcheck_pro`) still to be
+  fixed in the shared manifest.
 - Mapbox, push notifications, Apple Sign-In, and SecureStore require physical
   iOS verification; browser success does not prove them.
+- The signup screen (`app/auth.tsx`) does no email or password validation —
+  `lebron@test.com` / `123456` is accepted. Supabase Auth leaked-password
+  protection and a minimum length are dashboard toggles; inline form validation
+  is a code change. Both open.
 - The old Add Court modal that called a dead `/api` route remains retired. The
   2026-08-11 physical attempt failed because `verify-court` was absent from
   LocalCheckProd and returned HTTP 404. The authenticated function and its
