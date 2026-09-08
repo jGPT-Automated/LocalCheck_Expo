@@ -16,6 +16,9 @@ export interface Player {
   username?: string;
   elo: number;
   tier: EloTier;
+  /** Account classification tag, when set. Overrides the ELO tier label on the
+   *  leaderboard. Source of truth: profiles.account_tag — see docs/runbooks/ACCOUNT_TAGS.md. */
+  tag?: AccountTag | null;
   avatar: string;
   wins: number;
   losses: number;
@@ -29,6 +32,14 @@ export interface Player {
 }
 
 export type EloTier = "PLATINUM" | "GOLD" | "SILVER" | "BRONZE" | "UNRANKED";
+
+/**
+ * profiles.account_tag values. One tag per account; null means an ordinary
+ * player. Changing what a tag means, or who has one, is a single documented
+ * SQL action — see docs/runbooks/ACCOUNT_TAGS.md. This union and that doc must stay in
+ * sync with the migration's CHECK constraint.
+ */
+export type AccountTag = "FOUNDER" | "STARTER" | "REVIEWER" | "TEST";
 
 export type CourtStatus = "pending" | "confirmed" | "community";
 
@@ -219,14 +230,18 @@ export function getEloTier(elo: number): EloTier {
 }
 
 /**
- * Display label for a rank tier. The entry tier reads as "STARTER" — the whole
- * current user base is the founding cohort (free LocalPlus for a year), and
- * "BRONZE" undersold that. Earned tiers keep their names.
- * TODO: replace with a real `is_founding_member` profile flag once that ships,
- * so a later 1200-ELO signup isn't also labelled STARTER.
+ * Display label for an earned ELO rank tier. Cohort identity ("FOUNDER",
+ * "STARTER", …) is a separate concept carried by profiles.account_tag and
+ * rendered ahead of this label where present — see docs/runbooks/ACCOUNT_TAGS.md.
  */
 export function formatTierLabel(tier: EloTier | string): string {
-  return tier === "BRONZE" ? "STARTER" : String(tier);
+  return String(tier);
+}
+
+/** The label to show for a player on a leaderboard row: their account tag when
+ *  they have one, otherwise their earned ELO tier. */
+export function playerRankLabel(player: Pick<Player, "tag" | "tier">): string {
+  return player.tag ?? formatTierLabel(player.tier);
 }
 
 export function getTierColor(tier: EloTier | string): string {

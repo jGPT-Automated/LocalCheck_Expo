@@ -58,3 +58,42 @@ export function compactCourtLabel(officialName: string, street: string): string 
   }
   return result || source.slice(0, 32).trim();
 }
+
+const STREET_TYPE_SUFFIX =
+  /\s+(st|street|ave|avenue|rd|road|blvd|boulevard|dr|drive|ln|lane|way|ct|court|pl|place|ter|terrace|cir|circle|pkwy|parkway|hwy|highway|trl|trail|sq|square|loop|path|walk|row|aly|alley|expressway|expy)\.?$/i;
+
+function titleCase(value: string): string {
+  return value
+    .toLowerCase()
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+/**
+ * The auto-filled court name. A real POI name from the geocoder wins; a plain
+ * street address becomes "<Street> Courts" — "123 Silver Sky St" → "Silver Sky
+ * Courts", not the raw address. The field stays user-editable either way.
+ */
+export function courtNameFromLocation(
+  placeName: string | null | undefined,
+  street: string,
+): string {
+  const name = (placeName ?? "").trim().replace(/\s+/g, " ");
+  const road = (street ?? "").trim().replace(/\s+/g, " ");
+  const nameIsJustTheAddress =
+    !name ||
+    /^\d/.test(name) ||
+    name.toLowerCase() === road.toLowerCase();
+  if (!nameIsJustTheAddress) return compactCourtLabel(name, road);
+
+  let base = road
+    .replace(/^\d+[a-z]?\s+/i, "") // leading house number ("123 ", "12b ")
+    .replace(/^(?:[NSEW]|NE|NW|SE|SW)\s+/i, "") // leading directional
+    .replace(STREET_TYPE_SUFFIX, "") // trailing "St" / "Ave" / …
+    .trim();
+  if (!base) base = road.replace(/^\d+[a-z]?\s+/i, "").trim();
+  if (!base) return "Community Court";
+  return compactCourtLabel(`${titleCase(base)} Courts`, road);
+}

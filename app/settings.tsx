@@ -12,7 +12,6 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,6 +20,7 @@ import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollV
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
+import { SearchField } from "@/components/ui/SearchField";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, CourtSport } from "@/constants/data";
 import { Space } from "@/constants/layout";
@@ -47,19 +47,19 @@ const VISIBILITY_OPTIONS: Array<{
     value: "public",
     label: "PUBLIC",
     description:
-      "Anyone at the court sees your name, avatar, and rank when you check in.",
+      "Anyone sees your check-ins, scheduled times, and — with LocalPlus — your leaderboard rank.",
   },
   {
     value: "friends",
     label: "FRIENDS",
     description:
-      "Only accepted friends see your identity. Everyone else sees an anonymous check-in.",
+      "Only accepted friends see your check-ins, schedule, and rank. Everyone else sees an anonymous check-in and no rank.",
   },
   {
     value: "private",
     label: "PRIVATE",
     description:
-      "You still count as active, but your name, avatar, and rank stay hidden from everyone — including on the leaderboard.",
+      "You still count as active, but your name, schedule, and rank stay hidden from everyone — including every leaderboard.",
   },
 ];
 
@@ -291,9 +291,11 @@ export default function SettingsScreen() {
             label={hasLocalPlus ? "LOCALPLUS ACTIVE" : "UPGRADE TO LOCALPLUS"}
             detail={
               hasLocalPlus
-                ? profile?.is_founding_member
-                  ? "Founding member — free for your first year"
-                  : "Leaderboard, full history, and travel court insights"
+                ? profile?.account_tag === "FOUNDER"
+                  ? "Founder — LocalPlus is on the house"
+                  : profile?.account_tag === "STARTER"
+                    ? "Starter — free for your first year"
+                    : "Leaderboard, full history, and travel court insights"
                 : "Leaderboard, full history, and travel court insights"
             }
             onPress={() => router.push("/localplus" as Href)}
@@ -314,7 +316,7 @@ export default function SettingsScreen() {
         <Section title="PROFILE">
           <DrillRow
             icon="eye"
-            label="CHECK-IN PRIVACY"
+            label="PRIVACY"
             value={privacyLabel}
             onPress={() => setEditor("privacy")}
           />
@@ -622,8 +624,8 @@ function PrivacyEditorSheet({
     <RunFlowSheet
       visible={visible}
       onClose={onClose}
-      title="CHECK-IN PRIVACY"
-      eyebrow="WHO SEES YOU AT A COURT"
+      title="PRIVACY"
+      eyebrow="WHO SEES YOUR CHECK-INS, SCHEDULE & RANK"
       snapPoints={["62%"]}
     >
       <View style={styles.optionList}>
@@ -807,23 +809,16 @@ function LocalCourtEditorSheet({
         </View>
       ) : null}
 
-      <View style={styles.searchBox}>
-        <Feather name="search" size={16} color={Colors.muted} />
-        <TextInput
-          accessibilityLabel="Search for a court"
-          autoCapitalize="words"
-          autoCorrect={false}
-          onChangeText={setQuery}
-          placeholder="Court name, city, or ZIP"
-          placeholderTextColor={Colors.mutedDark}
-          returnKeyType="search"
-          style={styles.searchInput}
-          value={query}
-        />
-        {searching ? (
-          <ActivityIndicator color={Colors.accent} size="small" />
-        ) : null}
-      </View>
+      <SearchField
+        style={styles.searchBox}
+        accessibilityLabel="Search for a court"
+        autoCapitalize="words"
+        placeholder="Court name, city, or ZIP"
+        value={query}
+        onChangeText={setQuery}
+        onClear={() => setQuery("")}
+        loading={searching}
+      />
 
       {term.length >= 2 ? (
         <View style={styles.results}>
@@ -1109,13 +1104,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: Radius.sm,
     backgroundColor: Colors.surface,
-  },
-  searchInput: {
-    flex: 1,
-    minWidth: 0,
-    paddingVertical: 0,
-    ...TextStyles.bodySmall,
-    color: Colors.text,
   },
   searchHint: {
     ...TextStyles.caption,

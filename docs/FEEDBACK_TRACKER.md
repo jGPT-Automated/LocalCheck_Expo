@@ -23,30 +23,45 @@ point.
 
 ## Branch / PR status
 
-- **Working branch:** `codex/explore-location-nearest-court` (base
-  `origin/main` @ `39fc658`). **PR open: [#42](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/42),
-  not merged.**
-- **Plan (confirmed by Jesse, 2026-09-04):** keep stacking commits on this one
-  branch through settings → game logging → explore/roster polish → score
-  review delight → a final screen-by-screen review pass. Claude opens and
-  merges the final PR to `main`; Jesse screenshots that merged build for App
-  Store Connect and submits it. Do **not** split this into several small PRs.
-- All commits so far are **JS-only → OTA-eligible** (no new TestFlight build
-  required once merged + OTA'd).
-- **The release loop is simple and already automatic** (corrected
-  2026-09-04 after Claude wrongly hedged on this): opening a PR against
-  `main` auto-publishes a scannable Expo Go preview via
-  `expo-pr-preview.yml`; merging that PR to `main` auto-triggers the
-  TestFlight build. No manual EAS step either way. Expo Go runs the whole
-  app; only Explore's map crashes there (reload recovers) — see
-  `docs/RELEASE.md`.
-- **Now device-verified via PR #42's Expo Go preview** — Jesse tested on two
-  accounts (`jessebharrick` and `8yp4gttjwv`) and sent the next round of
-  feedback below from that build.
+- **PR [#42](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/42) and
+  [#44](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/44) are merged to
+  `main`.** `main` @ `8bdb401` (PR #44). TestFlight build **1.0.2 (21)** is that
+  commit.
+- **Working branch:** `codex/camera-lifecycle-release` → **PR open:
+  [#45](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/45)**, base
+  `main`. Contains: camera lifecycle release, unified `profiles.visibility`
+  privacy + FRIENDS leaderboard, launch polish (STARTER→tag identity,
+  cross-street court names, ME stat box, rank/total), and the account-tag
+  system. Not yet merged → no build 22 yet.
+- **Release loop:** opening a PR against `main` auto-publishes a scannable Expo
+  Go preview; merging to `main` auto-triggers the TestFlight build. No manual
+  EAS step. See `docs/RELEASE.md`.
+- Backend applied to LocalCheckProd ahead of #45's merge: referral/cooldown
+  plumbing and `profiles.account_tag` (see `docs/runbooks/ACCOUNT_TAGS.md`).
+  `profiles.visibility` still lands with the #45 merge.
 
 ## Status legend
 
 ✅ done — committed on the branch · 🚧 in progress · ⬜ backlog, not started
+
+## 2026-09-08 — account tags, not deletion
+
+Jesse: don't delete the 44 dev accounts (a mass delete would cascade-kill 22 of
+the 52 games on the kept accounts). Use one tag to differentiate them, shown on
+the leaderboard, changeable in "one clear repeatable database action" from "a
+single file" — no future agent should have to explore the codebase to do it.
+
+| Item | Status |
+|------|--------|
+| `profiles.account_tag` — single tag: `FOUNDER` / `STARTER` / `REVIEWER` / `TEST` / null; replaces `is_test` + `is_founding_member` | ✅ migration `20260907120000`, applied to prod |
+| Jesse's account → `FOUNDER`, username/display → `JESSE` | ✅ (id `8ea0f430…`) |
+| Apple review account `APPLE` (apple@test.com) → `REVIEWER`, Apple-mark avatar | ✅ tagged (id `069a0d4c…`); Jesse created the login, Claude cannot |
+| Other 43 dev accounts → `TEST` (hidden from other users' boards) | ✅ backfilled |
+| First 100 real post-launch sign-ups → `STARTER` (1 free LocalPlus year each) | ⬜ launch-day SQL in the runbook |
+| `docs/runbooks/ACCOUNT_TAGS.md` — the whole procedure + blast radius + copy-paste SQL | ✅ new |
+| `AGENTS.md` — "Repeatable operations" section + per-turn "link the files + Supabase project" rule | ✅ |
+| Auth screen has zero email/password validation (`lebron@test.com` / `123456`) | ⬜ pre-submit, flagged only |
+| Future: multi-tag accolades (tournament wins, profile-square graphics) | ⬜ explicitly out of scope; separate `badges[]` later |
 
 ## 2026-09-06 (polish round 4) — game card + score review, live markup
 

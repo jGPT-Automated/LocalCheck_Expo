@@ -48,7 +48,11 @@ export default function LocalPlusScreen() {
   const { bottom } = useSafeAreaInsets();
   const { profile } = useAuth();
   const hasLocalPlus = useLocalPlus();
-  const isFounding = profile?.is_founding_member ?? false;
+  // FOUNDER / STARTER get LocalPlus at no cost — nothing to cancel.
+  // See docs/runbooks/ACCOUNT_TAGS.md.
+  const tag = profile?.account_tag ?? null;
+  const isFounder = tag === "FOUNDER";
+  const isComped = isFounder || tag === "STARTER";
 
   return (
     <View style={styles.screen}>
@@ -70,9 +74,11 @@ export default function LocalPlusScreen() {
           <View style={styles.statusBanner}>
             <Feather color={Colors.accent} name="check-circle" size={15} />
             <Text style={styles.statusText}>
-              {isFounding
-                ? "You're a founding member — LocalPlus is free for your first year."
-                : "LocalPlus is active on this account."}
+              {isFounder
+                ? "You're a founder — LocalPlus is on the house, for good."
+                : tag === "STARTER"
+                  ? "You're a Starter — LocalPlus is free for your first year."
+                  : "LocalPlus is active on this account."}
             </Text>
           </View>
         ) : (
@@ -109,10 +115,11 @@ export default function LocalPlusScreen() {
           >
             <Text style={styles.ctaText}>SEE PLANS</Text>
           </Pressable>
-        ) : isFounding ? (
+        ) : isComped ? (
           <Text style={styles.manageNote}>
-            Your founding year is on us — there's no subscription to cancel.
-            LocalPlus simply lapses at the end of the year unless you start one.
+            {isFounder
+              ? "LocalPlus is comped on your account — there's nothing to manage."
+              : "Your Starter year is on us — there's no subscription to cancel. LocalPlus simply lapses at the end of the year unless you start one."}
           </Text>
         ) : (
           <Pressable

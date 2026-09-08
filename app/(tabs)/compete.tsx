@@ -1,10 +1,16 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Crypto from "expo-crypto";
-import { router, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import {
+  router,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  AppState,
   Keyboard,
   Platform,
   Pressable,
@@ -25,15 +31,16 @@ import { EloStat } from "@/components/ui/EloStat";
 import { ModeTabs } from "@/components/ui/ModeTabs";
 import { parsePlayerQrCode } from "@/components/ui/playerIdentity";
 import { RecentDatePicker } from "@/components/ui/RecentDatePicker";
+import { SearchField } from "@/components/ui/SearchField";
 import { ScoreCard } from "@/components/match/ScoreCard";
 import { Colors, Radius } from "@/constants/colors";
 import {
   Court,
   CourtSport,
-  formatTierLabel,
   getSportColor,
   getTierColor,
   Player,
+  playerRankLabel,
 } from "@/constants/data";
 import { TextStyles, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
@@ -49,7 +56,7 @@ import { searchCourts } from "@/services/courtService";
 
 // BACKEND NOTE:
 
-type Scope = "GLOBAL" | "REGIONAL" | "LOCAL";
+type Scope = "FRIENDS" | "REGIONAL" | "LOCAL";
 type CompeteMode = "RANKINGS" | "LOG_GAME";
 
 export default function CompeteScreen() {
@@ -58,6 +65,7 @@ export default function CompeteScreen() {
     localCourt,
     courts,
     currentUser,
+    getFriendsList,
     visibility,
     preferredSport,
     preferredCourtId,
@@ -105,13 +113,21 @@ export default function CompeteScreen() {
     }
   }, [localCourt?.sport, preferredSport]);
 
+  const friendIdsKey = getFriendsList()
+    .map((f) => f.id)
+    .sort()
+    .join(",");
   useEffect(() => {
     let mounted = true;
     setLeaderboardLoading(true);
     fetchLeaderboard(
       scope,
-      scope === "GLOBAL" ? null : localCourtId,
+      scope === "FRIENDS" ? null : localCourtId,
       rankingSport,
+      {
+        viewerId: currentUser.id,
+        friendIds: friendIdsKey ? friendIdsKey.split(",") : [],
+      },
     )
       .then((players) => {
         if (!mounted) return;
@@ -123,7 +139,7 @@ export default function CompeteScreen() {
     return () => {
       mounted = false;
     };
-  }, [scope, localCourtId, rankingSport, currentUser.elo]);
+  }, [scope, localCourtId, rankingSport, currentUser.elo, currentUser.id, friendIdsKey]);
 
   // Profile/QR deep links are identity lookups, not leaderboard lookups. A
   // valid opponent can be outside the current local/regional/ranked scope.
@@ -148,13 +164,20 @@ export default function CompeteScreen() {
   const myRank = allPlayers.findIndex((p) => p.id === currentUser.id) + 1;
   const rankedCurrentUser =
     allPlayers.find((p) => p.id === currentUser.id) ?? currentUser;
-  const amIVisible = visibility === "public" && isLocalPlus;
+  // "Would anyone else see my rank on this board?" — LocalPlus gates every
+  // scope; a friends-only profile is visible only on the FRIENDS board.
+  const amIVisible =
+    isLocalPlus &&
+    (visibility === "public" ||
+      (visibility === "friends" && scope === "FRIENDS"));
   const showMyRank = myRank > 0 && amIVisible;
-  const rankContext = showMyRank
-    ? "LOCALPLUS"
-    : visibility === "public"
-      ? "HIDDEN — LOCALPLUS"
-      : "HIDDEN — PRIVATE";
+  const rankContext = !isLocalPlus
+    ? "HIDDEN — LOCALPLUS"
+    : visibility === "private"
+      ? "HIDDEN — PRIVATE"
+      : visibility === "friends"
+        ? "FRIENDS ONLY"
+        : "LOCALPLUS";
   const leaderboardPlayers = useMemo(
     () =>
       showMyRank
@@ -175,6 +198,7 @@ export default function CompeteScreen() {
                   style={[styles.myRankNum, !showMyRank && styles.myRankNumDim]}
                 >
                   #{myRank}
+                  <Text style={styles.myRankTotal}>/{allPlayers.length}</Text>
                 </Text>
                 <Text numberOfLines={1} style={styles.myRankLabel}>
                   {rankContext}
@@ -318,7 +342,7 @@ function LeaderboardView({
           />
         </View>
         <View accessibilityRole="tablist" style={styles.scopeRow}>
-          {(["LOCAL", "REGIONAL", "GLOBAL"] as Scope[]).map((s) => (
+          {(["FRIENDS", "LOCAL", "REGIONAL"] as Scope[]).map((s) => (
             <Pressable
               accessibilityRole="tab"
               accessibilityState={{ selected: scope === s }}
@@ -358,6 +382,8 @@ function LeaderboardView({
           <Text style={styles.scopeLabelText} numberOfLines={1}>
             {(localCourt?.city || "REGIONAL").toUpperCase()}
           </Text>
+        ) : scope === "FRIENDS" ? (
+          <Text style={styles.scopeLabelText}>YOU + YOUR FRIENDS</Text>
         ) : (
           <Text style={styles.scopeLabelText}>UNITED STATES</Text>
         )}
@@ -424,6 +450,7 @@ function LeaderboardView({
                 name={player.name}
                 playerId={player.id}
                 size={40}
+                tag={player.tag}
                 foregroundColor={rank === 1 ? Colors.black : undefined}
                 friend={isFriend(player.id)}
                 style={rank === 1 ? styles.leaderAvatarFirst : undefined}
@@ -438,10 +465,14 @@ function LeaderboardView({
                   <Text
                     style={[
                       styles.tierText,
-                      { color: getTierColor(player.tier) },
+                      {
+                        color: player.tag
+                          ? Colors.accent
+                          : getTierColor(player.tier),
+                      },
                     ]}
                   >
-                    {formatTierLabel(player.tier)}
+                    {playerRankLabel(player)}
                   </Text>
                   <Text style={styles.wlText}>
                     {player.wins}W · {player.losses}L
@@ -633,21 +664,16 @@ function CourtPickerField({
       {open ? (
         <View style={styles.courtPanel}>
           <View style={styles.courtSearch}>
-            <Feather color={Colors.muted} name="search" size={14} />
-            <TextInput
-              accessibilityLabel="Search courts"
-              autoCorrect={false}
+            <SearchField
+              variant="bare"
               autoFocus
-              onChangeText={setQuery}
+              accessibilityLabel="Search courts"
               placeholder="Search courts"
-              placeholderTextColor={Colors.mutedDark}
-              returnKeyType="search"
-              style={styles.courtSearchInput}
               value={query}
+              onChangeText={setQuery}
+              onClear={() => setQuery("")}
+              loading={searching}
             />
-            {searching ? (
-              <ActivityIndicator color={Colors.accent} size="small" />
-            ) : null}
           </View>
           {term.length < 2 ? (
             <Text style={styles.courtSectionLabel}>NEAREST</Text>
@@ -1007,6 +1033,33 @@ function LogGameView({
     });
   };
 
+  // The modern barcode scanner is a native modal with no "user dismissed"
+  // event — if they swipe it away instead of scanning, nothing here fires and
+  // the camera (plus the green privacy indicator) keeps running. Force it shut
+  // on every path we *can* observe: state flip / unmount, the app leaving the
+  // foreground, this screen losing focus, and the next touch on the form.
+  const killScanner = useCallback(() => {
+    void CameraView.dismissScanner().catch(() => {});
+    setScannerOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!scannerOpen) return;
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active") killScanner();
+    });
+    return () => sub.remove();
+  }, [scannerOpen, killScanner]);
+
+  useFocusEffect(
+    useCallback(
+      () => () => {
+        killScanner();
+      },
+      [killScanner],
+    ),
+  );
+
   useEffect(() => {
     if (!scannerOpen) return;
     let handled = false;
@@ -1038,7 +1091,10 @@ function LogGameView({
       setScannerOpen(false);
       setSubmitError("QR SCANNER UNAVAILABLE. SELECT THE PLAYER INSTEAD.");
     });
-    return () => subscription.remove();
+    return () => {
+      subscription.remove();
+      void CameraView.dismissScanner().catch(() => {});
+    };
   }, [activePlayerSlot, currentUser.id, scannerOpen]);
 
   const handleScanOpponent = async () => {
@@ -1177,25 +1233,23 @@ function LogGameView({
     return (
       <View style={styles.pickerPanel}>
         <View style={styles.pickerSearchRow}>
-          <Ionicons color={Colors.muted} name="search" size={15} />
-          <TextInput
-            accessibilityLabel={`Search ${side}`}
-            autoCapitalize="none"
-            autoCorrect={false}
+          <SearchField
+            variant="bare"
             autoFocus
-            onChangeText={setOpponentQuery}
+            accessibilityLabel={`Search ${side}`}
             placeholder={`Search ${side}`}
-            placeholderTextColor={Colors.mutedDark}
-            style={styles.pickerSearchInput}
             value={opponentQuery}
+            onChangeText={setOpponentQuery}
+            trailing={
+              <Pressable
+                accessibilityLabel="Close player search"
+                hitSlop={8}
+                onPress={() => setShowOpponentPicker(false)}
+              >
+                <Ionicons color={Colors.muted} name="close" size={17} />
+              </Pressable>
+            }
           />
-          <Pressable
-            accessibilityLabel="Close player search"
-            hitSlop={8}
-            onPress={() => setShowOpponentPicker(false)}
-          >
-            <Ionicons color={Colors.muted} name="close" size={17} />
-          </Pressable>
         </View>
         <Text style={styles.opponentSection}>
           {query
@@ -1215,13 +1269,14 @@ function LogGameView({
               name={suggestion.name}
               playerId={suggestion.id}
               size={26}
+              tag={suggestion.tag}
             />
             <View style={styles.opponentOptionInfo}>
               <Text numberOfLines={1} style={styles.opponentOptionName}>
                 {suggestion.name.toUpperCase()}
               </Text>
               <Text style={styles.opponentOptionMeta}>
-                {formatTierLabel(suggestion.tier)} · {suggestion.elo} ELO
+                {playerRankLabel(suggestion)} · {suggestion.elo} ELO
               </Text>
             </View>
             {isFriend(suggestion.id) ? (
@@ -1332,6 +1387,7 @@ function LogGameView({
   return (
     <KeyboardAwareScrollViewCompat
       bottomOffset={112}
+      onTouchStart={scannerOpen ? killScanner : undefined}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{
         paddingHorizontal: 16,
@@ -1616,6 +1672,12 @@ const styles = StyleSheet.create({
   myRankNumDim: {
     color: Colors.muted,
   },
+  myRankTotal: {
+    fontFamily: Typography.heading,
+    fontSize: 13,
+    color: Colors.muted,
+    letterSpacing: 0.3,
+  },
   myRankLabel: {
     maxWidth: 150,
     marginTop: 1,
@@ -1650,6 +1712,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     letterSpacing: 0.4,
     color: Colors.muted,
+    textTransform: "uppercase" as const,
   },
   youChip: {
     marginLeft: 7,
@@ -1978,14 +2041,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
   },
-  courtSearchInput: {
-    flex: 1,
-    minWidth: 0,
-    paddingVertical: 0,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 13,
-    color: Colors.text,
-  },
   courtSectionLabel: {
     paddingHorizontal: 12,
     paddingTop: 10,
@@ -2095,13 +2150,6 @@ const styles = StyleSheet.create({
     gap: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
-  },
-  pickerSearchInput: {
-    flex: 1,
-    minHeight: 40,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 13,
-    color: Colors.text,
   },
   scoreGroup: { gap: 12 },
   rosterActions: {
@@ -2392,22 +2440,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     maxHeight: 280,
     overflow: "hidden",
-  },
-  opponentSearch: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  opponentSearchInput: {
-    flex: 1,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 13,
-    color: Colors.text,
-    paddingVertical: 2,
   },
   opponentSection: {
     fontFamily: Typography.bodyBold,

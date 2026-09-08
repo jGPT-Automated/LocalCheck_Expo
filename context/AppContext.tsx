@@ -254,6 +254,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setPreferredSportState(
       profile.preferred_sport ? (profile.preferred_sport.toUpperCase() as CourtSport) : null
     );
+    // Persistent identity-level privacy. Falls back to "public" until the
+    // profile-visibility migration is applied.
+    if (profile.visibility) setVisibilityState(profile.visibility);
     if (localCourtInitializedForRef.current !== profile.id) {
       localCourtInitializedForRef.current = profile.id;
       setLocalCourtId(profile.local_court_id ?? null);
@@ -326,7 +329,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!userId) return;
     const active = await fetchActiveCheckInState(userId);
     setCheckedInCourtId(active?.courtId ?? null);
-    if (active) setVisibilityState(active.visibility);
+    // Visibility is the profile-level setting now (see the profile effect),
+    // not whatever the active check-in row happened to store.
   }, [userId]);
 
   useEffect(() => {
@@ -627,16 +631,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [userId, localCourtId, localCourt]);
 
   const setVisibility = useCallback(async (v: Visibility) => {
+    const prev = visibility;
+    setVisibilityState(v);
+    if (userId) {
+      // Persist the identity-level setting first — this is what the leaderboard
+      // and every future check-in read.
+      const persisted = await updateProfileFields(userId, { visibility: v });
+      if (!persisted) {
+        setVisibilityState(prev);
+        return;
+      }
+      void refreshProfile();
+    }
+    // Keep an active check-in row in sync so the current session reflects it too.
     if (checkedInCourtId && userId) {
-      const persisted = await updateActiveCheckInVisibility(userId, checkedInCourtId, v);
-      if (!persisted) return;
+      await updateActiveCheckInVisibility(userId, checkedInCourtId, v);
       refreshPresence(checkedInCourtId);
       refreshFeed();
     }
-    // Reflect the selected mode only after any active row and projected feed
-    // event have persisted through the idempotent check_in RPC.
-    setVisibilityState(v);
-  }, [checkedInCourtId, userId, refreshFeed, refreshPresence]);
+  }, [
+    visibility,
+    checkedInCourtId,
+    userId,
+    refreshProfile,
+    refreshFeed,
+    refreshPresence,
+  ]);
 
   // NOTE: profiles.is_pro is derived by a DB trigger from the subscriptions
   // table and must never be written from the client. LocalPlus status is

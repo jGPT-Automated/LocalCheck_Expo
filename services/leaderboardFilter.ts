@@ -1,4 +1,4 @@
-export type LeaderboardScope = "LOCAL" | "REGIONAL" | "GLOBAL";
+export type LeaderboardScope = "FRIENDS" | "LOCAL" | "REGIONAL" | "GLOBAL";
 export type LeaderboardSport = "BASKETBALL" | "PICKLEBALL";
 
 export const LEADERBOARD_COURT_PAGE_SIZE = 500;
@@ -8,7 +8,7 @@ export function canLoadLeaderboardScope(
   scope: LeaderboardScope,
   homeCourtId: string | null,
 ): boolean {
-  return scope === "GLOBAL" || Boolean(homeCourtId);
+  return scope === "GLOBAL" || scope === "FRIENDS" || Boolean(homeCourtId);
 }
 
 /**

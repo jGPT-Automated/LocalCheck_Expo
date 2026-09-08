@@ -1,7 +1,9 @@
 import React from "react";
-import { Feather } from "@expo/vector-icons";
+import { Feather, FontAwesome } from "@expo/vector-icons";
 import { Platform, StyleSheet, Text, View, ViewStyle } from "react-native";
+import Svg, { Rect } from "react-native-svg";
 
+import { AccountTag } from "@/constants/data";
 import { Colors } from "@/constants/colors";
 import { Typography } from "@/constants/typography";
 import { normalizePlayerInitials } from "@/components/ui/playerIdentity";
@@ -16,8 +18,37 @@ interface PlayerAvatarProps {
   accent?: boolean;
   ranked?: boolean;
   friend?: boolean;
+  /** Account tag treatment — see docs/runbooks/ACCOUNT_TAGS.md. FOUNDER/STARTER get the
+   *  faint diagonal accent print; REVIEWER shows the Apple mark in place of
+   *  initials. */
+  tag?: AccountTag | null;
   status?: "active" | "quiet" | "inactive";
   foregroundColor?: string;
+}
+
+/** Faint diagonal bands behind the initials — the founding-member "STARTER" mark. */
+function StarterPrint({ size }: { size: number }) {
+  return (
+    <Svg
+      height={size}
+      pointerEvents="none"
+      style={StyleSheet.absoluteFill}
+      width={size}
+    >
+      {[0, 1, 2, 3, 4].map((i) => (
+        <Rect
+          key={i}
+          x={size * (i * 0.3 - 0.35)}
+          y={-size}
+          width={size * 0.14}
+          height={size * 3}
+          fill={Colors.accent}
+          opacity={i % 2 === 0 ? 0.22 : 0.1}
+          transform={`rotate(38 ${size / 2} ${size / 2})`}
+        />
+      ))}
+    </Svg>
+  );
 }
 
 export function PlayerAvatar({
@@ -30,12 +61,15 @@ export function PlayerAvatar({
   accent = false,
   ranked = false,
   friend = false,
+  tag = null,
   status = "quiet",
   foregroundColor,
 }: PlayerAvatarProps) {
   const highlighted = accent || ranked;
   const displayInitials = normalizePlayerInitials(name || initials || playerId);
   const inactive = status === "inactive";
+  const printed = (tag === "FOUNDER" || tag === "STARTER") && !inactive;
+  const appleMark = tag === "REVIEWER" && !inactive;
   const bg = inactive
     ? Colors.surface
     : invert
@@ -63,24 +97,39 @@ export function PlayerAvatar({
             height: size,
             backgroundColor: bg,
             borderRadius: radius,
-            borderColor: inactive ? Colors.borderSubtle : Colors.border,
+            borderColor: printed
+              ? Colors.accentBorder
+              : inactive
+                ? Colors.borderSubtle
+                : Colors.border,
+            overflow: "hidden",
           },
           highlighted ? styles.highlighted : null,
           style,
         ]}
       >
-        <Text
-          style={[
-            styles.initials,
-            highlighted && styles.highlightedInitials,
-            {
-              fontSize: size * 0.33,
-              color: foregroundColor ?? (highlighted ? Colors.text : textColor),
-            },
-          ]}
-        >
-          {displayInitials}
-        </Text>
+        {printed ? <StarterPrint size={size} /> : null}
+        {appleMark ? (
+          <FontAwesome
+            name="apple"
+            size={size * 0.5}
+            color={foregroundColor ?? (highlighted ? Colors.text : textColor)}
+          />
+        ) : (
+          <Text
+            style={[
+              styles.initials,
+              highlighted && styles.highlightedInitials,
+              {
+                fontSize: size * 0.33,
+                color:
+                  foregroundColor ?? (highlighted ? Colors.text : textColor),
+              },
+            ]}
+          >
+            {displayInitials}
+          </Text>
+        )}
       </View>
       {friend ? (
         <View style={[styles.friendBadge, {

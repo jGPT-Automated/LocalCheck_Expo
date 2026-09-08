@@ -34,6 +34,7 @@ import { RunCard } from "@/components/RunCard";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { FormSheet } from "@/components/sheet/FormSheet";
 import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
+import { SearchField } from "@/components/ui/SearchField";
 import { SpeedDialFab } from "@/components/ui/SpeedDialFab";
 import {
   scheduleSlotIndex,
@@ -206,19 +207,14 @@ function CourtField({
   const trimmed = query.trim();
   return (
     <View>
-      <View style={styles.courtSearchBox}>
-        <Feather name="search" size={14} color={Colors.muted} />
-        <TextInput
-          style={styles.courtSearchInput}
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Search courts"
-          placeholderTextColor={Colors.mutedDark}
-          autoCorrect={false}
-          autoCapitalize="none"
-          testID="court-search-input"
-        />
-      </View>
+      <SearchField
+        style={styles.courtSearchBox}
+        placeholder="Search courts"
+        value={query}
+        onChangeText={setQuery}
+        onClear={() => setQuery("")}
+        testID="court-search-input"
+      />
       {trimmed.length >= 2 && (
         <View style={styles.courtResults}>
           {results.map((c) => (
@@ -2588,13 +2584,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.xs,
     paddingHorizontal: 12,
     minHeight: 48,
-  },
-  courtSearchInput: {
-    flex: 1,
-    color: Colors.text,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 13,
-    paddingVertical: 12,
   },
   courtResults: {
     borderWidth: 1,
