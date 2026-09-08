@@ -10,6 +10,7 @@ import React, {
 import { Platform } from "react-native";
 
 import { supabase } from "@/lib/supabase";
+import type { AccountTag } from "@/constants/data";
 
 import type { Session, User } from "@supabase/supabase-js";
 
@@ -43,8 +44,10 @@ export interface UserProfile {
   visibility?: "public" | "friends" | "private";
   created_at: string;
   updated_at: string;
+  /** Account classification tag — FOUNDER | STARTER | REVIEWER | TEST | null.
+   *  Source of truth: profiles.account_tag. See docs/runbooks/ACCOUNT_TAGS.md. */
+  account_tag?: AccountTag | null;
   // PR #43 additions — absent until the founding/referral migration is applied.
-  is_founding_member?: boolean;
   referral_code?: string | null;
   recruited_by?: string | null;
   recruits_count?: number;

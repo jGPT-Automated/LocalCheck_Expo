@@ -1,5 +1,5 @@
 import { LocalPlusFlags } from "@/constants/flags";
-import { CourtSport, getEloTier, Player } from "@/constants/data";
+import { AccountTag, CourtSport, getEloTier, Player } from "@/constants/data";
 import { supabase } from "@/lib/supabase";
 import {
   canLoadLeaderboardScope,
@@ -31,7 +31,9 @@ export interface SupabaseProfile {
   preferred_sport: string | null;
   postal_code: string | null;
   is_pro?: boolean;
-  is_test?: boolean;
+  /** Account classification — see docs/runbooks/ACCOUNT_TAGS.md. Absent until the
+   *  account-tags migration is applied; null for an ordinary player. */
+  account_tag?: AccountTag | null;
   visibility?: "public" | "friends" | "private";
   created_at: string;
   updated_at: string;
@@ -74,6 +76,7 @@ export function mapProfileToPlayer(
     username: row.username ?? undefined,
     elo,
     tier: getEloTier(elo),
+    tag: row.account_tag ?? null,
     avatar: initials,
     wins,
     losses,
@@ -407,14 +410,20 @@ async function fetchRankedProfileRows(
  * yourself so the app can render a "you, hidden" row.
  */
 function isLeaderboardVisible(
-  row: { id: string; is_pro?: boolean; is_test?: boolean; visibility?: string | null },
+  row: {
+    id: string;
+    is_pro?: boolean;
+    account_tag?: AccountTag | null;
+    visibility?: string | null;
+  },
   viewerId: string | undefined,
   friendIds: Set<string>,
 ): boolean {
   if (viewerId && row.id === viewerId) return true;
-  // QA/burner accounts never rank on anyone else's board (they still see
-  // their own row via the check above).
-  if (row.is_test) return false;
+  // TEST (QA/burner) and REVIEWER (Apple) accounts never rank on anyone else's
+  // board — they still see their own row via the check above.
+  // See docs/runbooks/ACCOUNT_TAGS.md.
+  if (row.account_tag === "TEST" || row.account_tag === "REVIEWER") return false;
   if (LocalPlusFlags.gateLeaderboard && !row.is_pro) return false;
   if (row.visibility === "private") return false;
   if (row.visibility === "friends") return friendIds.has(row.id);
@@ -527,7 +536,7 @@ export async function fetchLeaderboard(
             row as {
               id: string;
               is_pro?: boolean;
-              is_test?: boolean;
+              account_tag?: AccountTag | null;
               visibility?: string | null;
             },
             viewerId,

@@ -1,8 +1,9 @@
 import React from "react";
-import { Feather } from "@expo/vector-icons";
+import { Feather, FontAwesome } from "@expo/vector-icons";
 import { Platform, StyleSheet, Text, View, ViewStyle } from "react-native";
 import Svg, { Rect } from "react-native-svg";
 
+import { AccountTag } from "@/constants/data";
 import { Colors } from "@/constants/colors";
 import { Typography } from "@/constants/typography";
 import { normalizePlayerInitials } from "@/components/ui/playerIdentity";
@@ -17,8 +18,10 @@ interface PlayerAvatarProps {
   accent?: boolean;
   ranked?: boolean;
   friend?: boolean;
-  /** Founding-cohort ("STARTER") treatment — a faint diagonal accent print. */
-  starter?: boolean;
+  /** Account tag treatment — see docs/runbooks/ACCOUNT_TAGS.md. FOUNDER/STARTER get the
+   *  faint diagonal accent print; REVIEWER shows the Apple mark in place of
+   *  initials. */
+  tag?: AccountTag | null;
   status?: "active" | "quiet" | "inactive";
   foregroundColor?: string;
 }
@@ -58,13 +61,15 @@ export function PlayerAvatar({
   accent = false,
   ranked = false,
   friend = false,
-  starter = false,
+  tag = null,
   status = "quiet",
   foregroundColor,
 }: PlayerAvatarProps) {
   const highlighted = accent || ranked;
   const displayInitials = normalizePlayerInitials(name || initials || playerId);
   const inactive = status === "inactive";
+  const printed = (tag === "FOUNDER" || tag === "STARTER") && !inactive;
+  const appleMark = tag === "REVIEWER" && !inactive;
   const bg = inactive
     ? Colors.surface
     : invert
@@ -92,7 +97,7 @@ export function PlayerAvatar({
             height: size,
             backgroundColor: bg,
             borderRadius: radius,
-            borderColor: starter
+            borderColor: printed
               ? Colors.accentBorder
               : inactive
                 ? Colors.borderSubtle
@@ -103,19 +108,28 @@ export function PlayerAvatar({
           style,
         ]}
       >
-        {starter && !inactive ? <StarterPrint size={size} /> : null}
-        <Text
-          style={[
-            styles.initials,
-            highlighted && styles.highlightedInitials,
-            {
-              fontSize: size * 0.33,
-              color: foregroundColor ?? (highlighted ? Colors.text : textColor),
-            },
-          ]}
-        >
-          {displayInitials}
-        </Text>
+        {printed ? <StarterPrint size={size} /> : null}
+        {appleMark ? (
+          <FontAwesome
+            name="apple"
+            size={size * 0.5}
+            color={foregroundColor ?? (highlighted ? Colors.text : textColor)}
+          />
+        ) : (
+          <Text
+            style={[
+              styles.initials,
+              highlighted && styles.highlightedInitials,
+              {
+                fontSize: size * 0.33,
+                color:
+                  foregroundColor ?? (highlighted ? Colors.text : textColor),
+              },
+            ]}
+          >
+            {displayInitials}
+          </Text>
+        )}
       </View>
       {friend ? (
         <View style={[styles.friendBadge, {

@@ -9,16 +9,23 @@ evidence only; it does not replace the production checkpoint below.
 
 ## Production checkpoint
 
-- iOS/TestFlight checkpoint: app `1.0.2`, build `14`, runtime `1.0.2`, source
-  commit `bc1507f6cff43b0d6af67e6dd34016b3079ff7bb`.
-- Latest production OTA: `Enable first-time push notification registration`,
-  update `019ff2db-faca-700f-82be-9e0b1b0c249e`, group
-  `e7ed1d7d-0d91-458c-adf1-941d807ce84d`, published 2026-08-11.
+- iOS/TestFlight checkpoint: app `1.0.2`, build `21`, runtime `1.0.2`, source
+  commit `8bdb4011a7f81e7270c18c10b80a814a3c5cc5b1` (PR #44 merge). EAS build
+  `a1f15238-803a-49b6-8901-ac2bb32ec070`, FINISHED 2026-09-06.
+- Open PR #45 (`codex/camera-lifecycle-release`) stacks on that: camera
+  lifecycle, unified `profiles.visibility` privacy, FRIENDS leaderboard,
+  launch polish, and account tags. Not yet built.
 - EAS project: `agenticjess-os/localcheck`
   (`9c906173-0258-45a9-a3fe-786cda373c66`).
 - Supabase production project: `qkrnmyexzvaxiqfxwwfb`.
 - Installed binaries use EAS Update with `runtimeVersion.policy = appVersion`.
 - Production OTA rollback remains available through EAS Update republish.
+- Applied to LocalCheckProd on 2026-09-07/08, ahead of PR #45's build:
+  `pr43_founding_localplus_referral_cooldown` (referral codes + 7-day
+  local-court cooldown; **no** founding grant — deferred to launch day),
+  `profile_is_test_flag` then superseded by `account_tags`
+  (`profiles.account_tag`; see `docs/runbooks/ACCOUNT_TAGS.md`).
+  `profile_visibility` is still source-only, lands with PR #45.
 
 ## Current product contract
 
@@ -34,6 +41,12 @@ evidence only; it does not replace the production checkpoint below.
   inbox notifications, production push delivery, and reversible block/report
   safety controls managed from Settings.
 - Competition: sport-specific ELO and reviewed match lifecycle.
+- Account tags: `profiles.account_tag` is the single account classification —
+  `FOUNDER` / `STARTER` / `REVIEWER` / `TEST` / null. It drives leaderboard
+  visibility (`TEST` and `REVIEWER` are hidden from other users), the LocalPlus
+  grant (`FOUNDER` / `STARTER`), the avatar treatment, and the ME-tab title.
+  Server-managed, changed only via `docs/runbooks/ACCOUNT_TAGS.md`. Replaced the
+  earlier `is_test` / `is_founding_member` booleans.
 - Realtime: private scoped Broadcast invalidation followed by authoritative
   refetch.
 

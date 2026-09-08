@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeedCard } from "@/components/FeedCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors, Radius } from "@/constants/colors";
-import { CourtSport, formatTierLabel, Player } from "@/constants/data";
+import { CourtSport, Player, playerRankLabel } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { fetchLeaderboard } from "@/services/profileService";
@@ -163,7 +163,9 @@ export default function FeedScreen() {
             </View>
           ) : (
             leaderboardPlayers.map((player, index) => {
-              const tierColor = TIER_COLORS[player.tier] ?? Colors.muted;
+              const tierColor = player.tag
+                ? Colors.accent
+                : (TIER_COLORS[player.tier] ?? Colors.muted);
               const isTop3 = index < 3;
               return (
                 <View
@@ -176,13 +178,13 @@ export default function FeedScreen() {
                     </Text>
                   </View>
 
-                  <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={40} />
+                  <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={40} tag={player.tag} />
 
                   <View style={styles.leaderInfo}>
                     <Text style={styles.leaderName}>{player.name}</Text>
                     <View style={styles.leaderMeta}>
                       <View style={[styles.tierBadge, { borderColor: tierColor + "60" }]}>
-                        <Text style={[styles.tierText, { color: tierColor }]}>{formatTierLabel(player.tier)}</Text>
+                        <Text style={[styles.tierText, { color: tierColor }]}>{playerRankLabel(player)}</Text>
                       </View>
                       <Text style={styles.wlText}>
                         {player.wins}W · {player.losses}L

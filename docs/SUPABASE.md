@@ -124,6 +124,38 @@ live migration ledger. Push delivery has physical evidence; the safety schema
 and new court contract have read-only live-schema evidence. Recheck the live
 ledger and function list before asserting future status.
 
+## 2026-09 launch migrations
+
+Applied to LocalCheckProd on 2026-09-07/08 via the connected Supabase migration
+tool, verified with read-only queries:
+
+- `20260906103003_pr43_founding_localplus_referral_cooldown.sql` — `referral_code`
+  (+ generator + insert trigger), `recruited_by`, `recruits_count`,
+  `local_court_changed_at` (+ stamp trigger), `redeem_referral_code(text)` RPC.
+  The `is_founding_member` column shipped here too but is **dropped** by
+  `20260907120000` below. **The founding-cohort backfill and the
+  `founding_year_grant` promo subscriptions were removed from this file** — every
+  pre-launch account is a test account, so the real grant is a launch-day
+  migration (see `docs/runbooks/ACCOUNT_TAGS.md`).
+- `20260906180000_profile_is_test_flag.sql` — added `profiles.is_test`.
+  Superseded the same week by `account_tag`; the column is dropped by
+  `20260907120000`.
+- `20260907120000_account_tags.sql` — `profiles.account_tag text CHECK (in
+  'FOUNDER','STARTER','REVIEWER','TEST')`, nullable, **no** `authenticated`
+  UPDATE grant. Backfilled `TEST` from `is_test`, then dropped both `is_test`
+  and `is_founding_member`. This column is the single account classification;
+  its runbook is `docs/runbooks/ACCOUNT_TAGS.md` and the `AccountTag` union in
+  `constants/data.ts` must match its CHECK.
+
+Source-only, lands with PR #45:
+
+- `20260906160414_profile_visibility.sql` — `profiles.visibility`
+  (`public` / `friends` / `private`), backfilled from each user's last
+  non-public check-in, `grant update (visibility) to authenticated`.
+
+No RevenueCat webhook function exists yet. `profiles.is_pro` is still the only
+entitlement field, trigger-derived from `public.subscriptions`.
+
 ## Realtime and API safety
 
 Realtime schema access is locked down; LocalCheck uses private scoped Broadcast

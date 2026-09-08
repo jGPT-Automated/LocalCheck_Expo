@@ -236,14 +236,14 @@ export default function MeScreen() {
     return () => clearTimeout(timer);
   }, [currentUser.id, friendQuery]);
 
-  // Founding cohort — everyone who exists before the migration backfills the
-  // real flag; drives the "STARTER" screen title and the avatar print.
-  const isStarter = profile?.is_founding_member ?? true;
+  // Account tag drives the screen title and the avatar treatment.
+  // See docs/runbooks/ACCOUNT_TAGS.md. null → an ordinary "PROFILE".
+  const accountTag = profile?.account_tag ?? null;
 
   return (
     <View style={styles.screen}>
       <ScreenHeader
-        title={isStarter ? "STARTER" : "PROFILE"}
+        title={accountTag ?? "PROFILE"}
         right={
           <HeaderIconAction
             accessibilityLabel="Open settings"
@@ -263,7 +263,7 @@ export default function MeScreen() {
           name={currentUser.name}
           onOpenQr={() => setQrVisible(true)}
           playerId={currentUser.id}
-          starter={isStarter}
+          tag={accountTag}
           sportLabel={
             (preferredSport || localCourt?.sport) === "BASKETBALL"
               ? "BB"

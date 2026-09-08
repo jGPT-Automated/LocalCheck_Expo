@@ -291,9 +291,11 @@ export default function SettingsScreen() {
             label={hasLocalPlus ? "LOCALPLUS ACTIVE" : "UPGRADE TO LOCALPLUS"}
             detail={
               hasLocalPlus
-                ? profile?.is_founding_member
-                  ? "Founding member — free for your first year"
-                  : "Leaderboard, full history, and travel court insights"
+                ? profile?.account_tag === "FOUNDER"
+                  ? "Founder — LocalPlus is on the house"
+                  : profile?.account_tag === "STARTER"
+                    ? "Starter — free for your first year"
+                    : "Leaderboard, full history, and travel court insights"
                 : "Leaderboard, full history, and travel court insights"
             }
             onPress={() => router.push("/localplus" as Href)}

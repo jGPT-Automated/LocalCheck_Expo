@@ -36,10 +36,10 @@ import { Colors, Radius } from "@/constants/colors";
 import {
   Court,
   CourtSport,
-  formatTierLabel,
   getSportColor,
   getTierColor,
   Player,
+  playerRankLabel,
 } from "@/constants/data";
 import { TextStyles, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
@@ -449,6 +449,7 @@ function LeaderboardView({
                 name={player.name}
                 playerId={player.id}
                 size={40}
+                tag={player.tag}
                 foregroundColor={rank === 1 ? Colors.black : undefined}
                 friend={isFriend(player.id)}
                 style={rank === 1 ? styles.leaderAvatarFirst : undefined}
@@ -463,10 +464,14 @@ function LeaderboardView({
                   <Text
                     style={[
                       styles.tierText,
-                      { color: getTierColor(player.tier) },
+                      {
+                        color: player.tag
+                          ? Colors.accent
+                          : getTierColor(player.tier),
+                      },
                     ]}
                   >
-                    {formatTierLabel(player.tier)}
+                    {playerRankLabel(player)}
                   </Text>
                   <Text style={styles.wlText}>
                     {player.wins}W · {player.losses}L
@@ -1270,13 +1275,14 @@ function LogGameView({
               name={suggestion.name}
               playerId={suggestion.id}
               size={26}
+              tag={suggestion.tag}
             />
             <View style={styles.opponentOptionInfo}>
               <Text numberOfLines={1} style={styles.opponentOptionName}>
                 {suggestion.name.toUpperCase()}
               </Text>
               <Text style={styles.opponentOptionMeta}>
-                {formatTierLabel(suggestion.tier)} · {suggestion.elo} ELO
+                {playerRankLabel(suggestion)} · {suggestion.elo} ELO
               </Text>
             </View>
             {isFriend(suggestion.id) ? (

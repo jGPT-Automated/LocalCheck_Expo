@@ -18,6 +18,10 @@ its Supabase source of truth. Read this file before changing anything.
    landed in. Read this before starting any UI/polish task and update it as
    part of the same change.
 8. For product or visual work, read the relevant files under `docs/product/`.
+9. `docs/runbooks/` — one self-contained file per repeatable operation
+   (currently `docs/runbooks/ACCOUNT_TAGS.md`). If a task is one of these
+   operations, that file is the whole procedure — do not re-derive it from the
+   codebase.
 
 ## Repository authority
 
@@ -67,6 +71,14 @@ force-push shared branches, or include unrelated user changes.
 - Keep updates concrete: name what changed, what was proven, what remains
   unproven, and the next check. Do not represent source presence or a passing
   static check as deployed runtime behavior.
+- End every turn that changed the repo or the backend with an explicit,
+  clickable trail so Jesse can confirm without hunting:
+  - each changed file as a repo-relative path (`services/foo.ts:42`);
+  - each authority/runbook doc you updated, by path;
+  - for a backend change, the migration file path **and** the Supabase project
+    link `https://supabase.com/dashboard/project/qkrnmyexzvaxiqfxwwfb`
+    (SQL editor: `.../project/qkrnmyexzvaxiqfxwwfb/sql/new`);
+  - for a release action, the EAS build id or PR URL.
 
 ## Required implementation rules
 
@@ -167,10 +179,30 @@ and TestFlight submission. Treat the merge itself as the release authorization:
 the PR must state device coverage, native risk, and any App Store Connect step
 still required. Production OTA remains manual.
 
+## Repeatable operations
+
+Some tasks recur: reclassifying accounts, granting a cohort, rotating a flag.
+Each one has exactly one file under `docs/runbooks/` that is the *complete*
+procedure — the meaning, every code touchpoint (the blast radius), and
+copy-paste SQL. When a task matches a runbook:
+
+- follow that file; do not re-explore the codebase to reconstruct the steps;
+- if reality has drifted from the runbook, fix the runbook in the same change;
+- a runbook, its code touchpoints, and any DB constraint it names must always
+  agree, and land together in one pull request.
+
+Current runbooks:
+
+- `docs/runbooks/ACCOUNT_TAGS.md` — `profiles.account_tag`
+  (`FOUNDER` / `STARTER` / `REVIEWER` / `TEST` / null): add, change, or remove a
+  tag; the launch-day STARTER grant; adding a new tag value.
+
 ## Documentation discipline
 
 Keep documentation small and current. Update an existing authority file when a
 durable contract changes. Feature exploration belongs in `docs/plans/` until it
 is implemented; it must not be presented as current behavior. Do not create
 activity logs, duplicate runbooks, machine inventories, or competing sources of
-truth.
+truth. After any change to the repo or backend, bring the affected authority
+file (`docs/CURRENT_STATE.md`, `docs/SUPABASE.md`, `docs/FEEDBACK_TRACKER.md`,
+the relevant runbook) to current in the same pull request.
