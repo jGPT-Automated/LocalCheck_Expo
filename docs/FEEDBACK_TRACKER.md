@@ -39,6 +39,21 @@ point.
 
 ✅ done — committed on the branch · 🚧 in progress · ⬜ backlog, not started
 
+## 2026-09-09 — Setting a local court with none set crashes the app
+
+Jesse: 100% reproducible on TestFlight and web — any account with **no local
+court currently set** crashes the moment it sets one (from `court/[id]` or
+Settings). After the first one sticks (via reload), setting/unsetting is fine.
+It's the null↔court transition.
+
+| Item | Status |
+|------|--------|
+| **Root cause** — `HomeScreen` had two `useMemo` calls (`groupedCourtFeed`, `recentArrivalCount`) *below* the `if (!localCourt) return <NoCourtState/>` early return. null→court flips the hook count → React "Rendered fewer hooks than expected" → ErrorBoundary. | ✅ found via web repro + console |
+| **Fix** — moved `courtFeed` + both `useMemo`s above the early return; `courtFeed` uses `localCourt?.id` (null-safe). | ✅ `components/HomeScreen.tsx` |
+| Verified on web: before → first toggle "CRASHED"; after → toggled through null 3× + Home render, no crash. | ✅ |
+| Crash reporting — the `ErrorBoundary`'s `onError` was never wired, so every crash lost its stack. Added `services/errorReportService.ts` + a global JS handler → best-effort insert into `public.client_errors` (migration `20260909180000`, applied). | ✅ |
+| `RealtimeHub is disposed` fired as a *secondary* error during the boundary's tree teardown. Should stop now the root crash is fixed — watch for it. | ⬜ watch |
+
 ## 2026-09-09 — Add Court flow (first real court added: Kasmiersky Park)
 
 Jesse ran the flow on a real court and flagged the exits.

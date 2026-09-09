@@ -12,7 +12,7 @@ import {
   Oswald_700Bold,
 } from "@expo-google-fonts/oswald";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack, usePathname, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
@@ -31,8 +31,14 @@ import { CourtPresenceProvider } from "@/context/CourtPresenceContext";
 import { DeviceLocationProvider } from "@/context/DeviceLocationContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { RealtimeHubProvider } from "@/context/RealtimeHubContext";
+import {
+  installGlobalErrorHandler,
+  reportClientError,
+  setCurrentRoute,
+} from "@/services/errorReportService";
 
 SplashScreen.preventAutoHideAsync();
+installGlobalErrorHandler();
 
 // Already-signed-in cold open has no real async work to tie the spinner to
 // — there's nothing to await — so this starts loading, flips it off on the
@@ -145,6 +151,10 @@ function DataProviders({ children }: { children: React.ReactNode }) {
 }
 
 function RootLayoutNav() {
+  const pathname = usePathname();
+  useEffect(() => {
+    setCurrentRoute(pathname);
+  }, [pathname]);
   return (
     <AuthGate>
       {/* `contentStyle` is what sits behind a card while it is being dragged.
@@ -193,7 +203,11 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ErrorBoundary>
+      <ErrorBoundary
+        onError={(error, componentStack) =>
+          void reportClientError(error, { componentStack })
+        }
+      >
         <QueryClientProvider client={queryClient}>
           {/* Paints the root native view dark so nothing light is ever exposed
               behind a card mid-gesture or between screen transitions. */}

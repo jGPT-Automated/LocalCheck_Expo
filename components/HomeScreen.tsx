@@ -99,6 +99,23 @@ export function HomeScreen() {
     [isFriend, roster],
   );
 
+  // Kept above the no-court early return so the hook count never changes
+  // between renders — the "Rendered fewer hooks than expected" crash a brand-new
+  // account hit the first time it set a local court. `courtFeed` is null-safe.
+  const courtFeed = feed.filter((item) => item.courtId === localCourt?.id);
+  const groupedCourtFeed = useMemo(
+    () => groupCheckinBursts(courtFeed),
+    [courtFeed],
+  );
+  const recentArrivalCount = useMemo(() => {
+    const hourAgo = Date.now() - 60 * 60_000;
+    return courtFeed.filter(
+      (item) =>
+        item.type === "checkin" &&
+        new Date(item.occurredAtIso).getTime() >= hourAgo,
+    ).length;
+  }, [courtFeed]);
+
   if (!localCourt) {
     return <NoCourtState isSignedIn={Boolean(user)} />;
   }
@@ -113,20 +130,6 @@ export function HomeScreen() {
     ({ player }) => !hereNowIds.has(player.id),
   );
   const privateLocalCount = Math.max(0, localCount - locals.length);
-
-  const courtFeed = feed.filter((item) => item.courtId === localCourt.id);
-  const groupedCourtFeed = useMemo(
-    () => groupCheckinBursts(courtFeed),
-    [courtFeed],
-  );
-  const recentArrivalCount = useMemo(() => {
-    const hourAgo = Date.now() - 60 * 60_000;
-    return courtFeed.filter(
-      (item) =>
-        item.type === "checkin" &&
-        new Date(item.occurredAtIso).getTime() >= hourAgo,
-    ).length;
-  }, [courtFeed]);
 
   const handleCheckIn = async () => {
     if (isChecking) return;

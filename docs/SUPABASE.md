@@ -153,7 +153,15 @@ tool, verified with read-only queries:
   `grant update (visibility) to authenticated`. Verified: column present,
   default `public`, 2 rows backfilled to `private`.
 
-All four 2026-09 migrations are applied to LocalCheckProd; none are pending.
+- `20260909180000_client_error_log.sql` — **applied 2026-09-09**. `public.client_errors`
+  (message / error_stack / component_stack / route / source / platform /
+  app_version). RLS: `anon` + `authenticated` may INSERT only, **no SELECT
+  policy** (clients can never read it). Written best-effort by the RN
+  `ErrorBoundary` `onError` and a global JS handler
+  (`services/errorReportService.ts`). Inspect from the SQL console:
+  `select created_at, route, message, error_stack, component_stack from public.client_errors order by created_at desc limit 50;`
+
+All 2026-09 migrations are applied to LocalCheckProd; none are pending.
 `account_tag` is cosmetic — it does not gate the leaderboard or LocalPlus; the
 only functional switch is the client flag `LeaderboardFlags.hideTaggedAccounts`
 (off). No RevenueCat webhook function exists yet. `profiles.is_pro` is still the
