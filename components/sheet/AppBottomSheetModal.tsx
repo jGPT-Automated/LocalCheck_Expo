@@ -19,9 +19,20 @@ export const AppBottomSheetModal = forwardRef<
     index?: number;
     onDismiss?: () => void;
     snapPoints: Array<string | number>;
+    /** Size to content instead of the fixed detents. */
+    dynamic?: boolean;
+    maxDynamicContentSize?: number;
   }
 >(function AppBottomSheetModal(
-  { backdropOpacity = 0.72, children, index = 0, onDismiss, snapPoints },
+  {
+    backdropOpacity = 0.72,
+    children,
+    index = 0,
+    onDismiss,
+    snapPoints,
+    dynamic = false,
+    maxDynamicContentSize,
+  },
   ref,
 ) {
   const renderBackdrop = useCallback(
@@ -42,8 +53,9 @@ export const AppBottomSheetModal = forwardRef<
       <BottomSheetModal
         ref={ref}
         index={index}
-        snapPoints={snapPoints}
-        enableDynamicSizing={false}
+        snapPoints={dynamic ? undefined : snapPoints}
+        enableDynamicSizing={dynamic}
+        maxDynamicContentSize={maxDynamicContentSize}
         enablePanDownToClose
         backdropComponent={renderBackdrop}
         backgroundStyle={styles.background}

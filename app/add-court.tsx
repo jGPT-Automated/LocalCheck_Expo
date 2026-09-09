@@ -335,6 +335,7 @@ export default function AddCourtRoute() {
       {screen === "success" && result?.court ? (
         <SuccessState
           result={result}
+          photoUri={photoUri}
           onCheckIn={() => router.replace(`/court/${result.court!.id}`)}
           onExplore={explore}
         />
@@ -420,7 +421,9 @@ function CameraFrameOverlay() {
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <View style={styles.frameScrimTop}>
-        <Text style={styles.frameHint}>Frame the full court</Text>
+        <Text style={styles.frameHint}>
+          Hold your phone upright · fit the whole court
+        </Text>
       </View>
       <View style={styles.frameRow}>
         <View style={styles.frameScrimSide} />
@@ -459,7 +462,7 @@ function Details({
     <ScrollView
       contentContainerStyle={[
         styles.detailsContent,
-        { paddingBottom: bottom + 44 },
+        { paddingBottom: bottom + 24 },
       ]}
       keyboardShouldPersistTaps="handled"
     >
@@ -596,10 +599,12 @@ function CenteredState({
 }
 function SuccessState({
   result,
+  photoUri,
   onCheckIn,
   onExplore,
 }: {
   result: Result;
+  photoUri: string | null;
   onCheckIn: () => void;
   onExplore: () => void;
 }) {
@@ -613,6 +618,13 @@ function SuccessState({
       <Text style={styles.stateBody}>
         {court.shortName || court.name} is now live on LocalCheck
       </Text>
+      {photoUri ? (
+        <Image
+          source={{ uri: photoUri }}
+          style={styles.successPhoto}
+          resizeMode="cover"
+        />
+      ) : null}
       <View style={styles.courtCard}>
         <Text style={styles.courtCardTitle}>
           {(court.shortName || court.name).toUpperCase()}
@@ -788,7 +800,7 @@ function PermissionState({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   header: {
-    height: 96,
+    height: 68,
     flexDirection: "row",
     alignItems: "center",
     gap: Space.md,
@@ -834,16 +846,17 @@ const styles = StyleSheet.create({
   cameraShade: { flex: 1 },
   cameraBody: { flex: 1 },
   frameScrimTop: {
-    flex: 1,
+    flex: 0.8,
     backgroundColor: "rgba(0,0,0,0.5)",
     alignItems: "center",
     justifyContent: "flex-end",
-    paddingBottom: 16,
+    paddingBottom: 14,
+    paddingHorizontal: 24,
   },
   frameRow: { flexDirection: "row", alignItems: "stretch" },
   frameScrimSide: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)" },
-  frameWindow: { width: "88%", aspectRatio: 4 / 3 },
-  frameScrimBottom: { flex: 1.35, backgroundColor: "rgba(0,0,0,0.5)" },
+  frameWindow: { width: "76%", aspectRatio: 3 / 4 },
+  frameScrimBottom: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)" },
   frameCorner: {
     position: "absolute",
     width: 26,
@@ -895,7 +908,10 @@ const styles = StyleSheet.create({
   shutterInner: { flex: 1, borderRadius: 28, backgroundColor: Colors.white },
   detailsContent: { padding: Layout.screenGutter, gap: 10 },
   photoPreview: {
-    height: 148,
+    width: "52%",
+    aspectRatio: 3 / 4,
+    maxHeight: 188,
+    alignSelf: "center",
     overflow: "hidden",
     borderRadius: Radius.card,
     borderWidth: 1,
@@ -935,7 +951,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
   },
   nameInputWrap: {
-    minHeight: 52,
+    minHeight: 48,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
@@ -949,17 +965,17 @@ const styles = StyleSheet.create({
     flex: 1,
     color: Colors.text,
     fontFamily: Typography.heading,
-    fontSize: 17,
+    fontSize: 15,
     letterSpacing: 0.5,
   },
   fieldHelp: { color: Colors.muted, fontFamily: Typography.body, fontSize: 11 },
   sportRow: { flexDirection: "row", gap: 10 },
   sportCard: {
     flex: 1,
-    height: 88,
+    height: 70,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 7,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radius.card,
@@ -972,12 +988,12 @@ const styles = StyleSheet.create({
   sportText: {
     color: Colors.muted,
     fontFamily: Typography.heading,
-    fontSize: 13,
+    fontSize: 12,
     letterSpacing: 0.6,
   },
   sportTextSelected: { color: Colors.accent },
   addressBox: {
-    minHeight: 52,
+    minHeight: 48,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -991,7 +1007,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: Colors.textSecondary,
     fontFamily: Typography.body,
-    fontSize: 13,
+    fontSize: 12,
   },
   centered: {
     flex: 1,
@@ -1001,8 +1017,8 @@ const styles = StyleSheet.create({
     gap: Space.lg,
   },
   stateIcon: {
-    width: 56,
-    height: 56,
+    width: 48,
+    height: 48,
     borderRadius: Radius.lg,
     alignItems: "center",
     justifyContent: "center",
@@ -1044,10 +1060,19 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent,
   },
   waitText: { ...TextStyles.caption, color: Colors.muted },
+  successPhoto: {
+    width: 118,
+    aspectRatio: 3 / 4,
+    alignSelf: "center",
+    borderRadius: Radius.card,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surfaceDark,
+  },
   courtCard: {
     width: "100%",
-    gap: 14,
-    padding: 25,
+    gap: 10,
+    padding: 18,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radius.card,
@@ -1056,21 +1081,23 @@ const styles = StyleSheet.create({
   courtCardTitle: {
     color: Colors.text,
     fontFamily: Typography.heading,
-    fontSize: 29,
-    letterSpacing: 0.8,
+    fontSize: 20,
+    lineHeight: 26,
+    letterSpacing: 0.6,
   },
   courtCardAddress: {
     color: Colors.textSecondary,
     fontFamily: Typography.body,
-    fontSize: 15,
+    fontSize: 13,
   },
-  tags: { flexDirection: "row", gap: 10 },
+  tags: { flexDirection: "row", gap: 8 },
   tag: {
     color: Colors.textSecondary,
     fontFamily: Typography.bodyMedium,
-    fontSize: 13,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    fontSize: 10,
+    letterSpacing: 0.5,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
     borderWidth: 1,
     borderColor: Colors.borderLight,
     borderRadius: Radius.sm,
@@ -1079,44 +1106,44 @@ const styles = StyleSheet.create({
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    gap: 17,
-    padding: 22,
+    gap: 14,
+    padding: 16,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radius.card,
     backgroundColor: Colors.surface,
   },
-  dotRow: { flexDirection: "row", gap: 10 },
+  dotRow: { flexDirection: "row", gap: 8 },
   dot: {
-    width: 15,
-    height: 15,
-    borderRadius: 8,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: Colors.borderLight,
   },
   dotUsed: { backgroundColor: Colors.loss },
   attemptText: {
     color: Colors.textSecondary,
     fontFamily: Typography.body,
-    fontSize: 17,
+    fontSize: 13,
   },
   attemptBold: { color: Colors.text, fontFamily: Typography.bodyBold },
   cooldownTimer: { flexDirection: "row", alignItems: "center", gap: 18 },
   timerValue: {
     color: Colors.text,
     fontFamily: Typography.heading,
-    fontSize: 70,
-    lineHeight: 75,
+    fontSize: 52,
+    lineHeight: 56,
   },
   timerUnit: {
     color: Colors.muted,
     fontFamily: Typography.bodyBold,
-    fontSize: 13,
+    fontSize: 12,
     letterSpacing: 2,
     textAlign: "center",
   },
   timerColon: {
     color: Colors.muted,
     fontFamily: Typography.heading,
-    fontSize: 52,
+    fontSize: 40,
   },
 });

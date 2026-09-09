@@ -1,7 +1,11 @@
-import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import {
+  BottomSheetModal,
+  BottomSheetScrollView,
+  BottomSheetView,
+} from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors } from "@/constants/colors";
@@ -21,6 +25,7 @@ export function RunFlowSheet({
   bottomClearance = 0,
   contentBottomPadding = 44,
   snapPoints: providedSnapPoints,
+  dynamic = false,
   children,
 }: {
   visible: boolean;
@@ -34,6 +39,9 @@ export function RunFlowSheet({
   contentBottomPadding?: number;
   /** Compact task drawers may opt into a smaller fixed detent. Schedule keeps 88%. */
   snapPoints?: Array<string | number>;
+  /** Size the sheet to its content — no fixed detent, no inner scroll. For
+   *  short single-action forms (Add Court steps). */
+  dynamic?: boolean;
   children: React.ReactNode;
 }) {
   const modalRef = useRef<BottomSheetModal>(null);
@@ -53,46 +61,55 @@ export function RunFlowSheet({
     }
   }, [visible]);
 
+  const paddingBottom = Math.max(contentBottomPadding, bottom + bottomClearance);
+
+  const header = (
+    <View style={styles.header}>
+      <View style={styles.headingCopy}>
+        {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
+        <Text style={styles.title}>{title}</Text>
+      </View>
+      <Pressable
+        accessibilityLabel="Close"
+        accessibilityRole="button"
+        hitSlop={10}
+        onPress={() => modalRef.current?.dismiss()}
+        style={styles.close}
+      >
+        <Feather name="x" size={20} color={Colors.textSecondary} />
+      </Pressable>
+    </View>
+  );
+
   return (
     <AppBottomSheetModal
       ref={modalRef}
       snapPoints={snapPoints}
+      dynamic={dynamic}
+      maxDynamicContentSize={Dimensions.get("window").height * 0.82}
       backdropOpacity={backdropOpacity}
       onDismiss={() => {
         presentedRef.current = false;
         onClose();
       }}
     >
-      <View style={styles.header}>
-        <View style={styles.headingCopy}>
-          {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-          <Text style={styles.title}>{title}</Text>
-        </View>
-        <Pressable
-          accessibilityLabel="Close"
-          accessibilityRole="button"
-          hitSlop={10}
-          onPress={() => modalRef.current?.dismiss()}
-          style={styles.close}
-        >
-          <Feather name="x" size={20} color={Colors.textSecondary} />
-        </Pressable>
-      </View>
-      <BottomSheetScrollView
-        contentContainerStyle={[
-          styles.content,
-          {
-            paddingBottom: Math.max(
-              contentBottomPadding,
-              bottom + bottomClearance,
-            ),
-          },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {children}
-      </BottomSheetScrollView>
+      {dynamic ? (
+        <BottomSheetView style={{ paddingBottom }}>
+          {header}
+          <View style={styles.content}>{children}</View>
+        </BottomSheetView>
+      ) : (
+        <>
+          {header}
+          <BottomSheetScrollView
+            contentContainerStyle={[styles.content, { paddingBottom }]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {children}
+          </BottomSheetScrollView>
+        </>
+      )}
     </AppBottomSheetModal>
   );
 }

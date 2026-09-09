@@ -62,9 +62,9 @@ export function AddCourtLocationSheet({
       onClose={onClose}
       title="ADD A COURT"
       eyebrow="STEP 1 OF 3 · LOCATION"
-      snapPoints={["34%"]}
+      dynamic
       bottomClearance={Layout.tabBarClearance}
-      contentBottomPadding={12}
+      contentBottomPadding={Space.lg}
       backdropOpacity={0}
     >
       <View style={styles.content}>
