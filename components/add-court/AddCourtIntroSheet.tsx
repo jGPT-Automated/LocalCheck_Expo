@@ -23,9 +23,9 @@ export function AddCourtIntroSheet({
       visible={visible}
       onClose={onClose}
       title="ADD A COURT"
-      snapPoints={["64%"]}
+      dynamic
       bottomClearance={Layout.tabBarClearance}
-      contentBottomPadding={12}
+      contentBottomPadding={Space.lg}
     >
       <View style={styles.content}>
         <Text style={styles.body}>

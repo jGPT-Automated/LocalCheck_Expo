@@ -2,6 +2,21 @@
 
 Status: Current MVP decisions. Newer dated decisions supersede older entries.
 
+## 2026-09-09 — Add Court steps size to their content; camera is portrait
+
+**Decision confirmed by Jesse (after adding the first real court):** the Add
+Court step drawers use `RunFlowSheet`'s `dynamic` mode — the sheet is exactly as
+tall as its content, with the primary button held above the tab bar
+(`bottomClearance`). No fixed detent, no inner scroll. The camera capture window
+is 3:4 portrait, not 4:3 landscape — people hold the phone upright, and a
+"sideways court" frame produced bad photos. The captured photo is shown portrait
+and contained (not a cropped landscape sliver) on the details and summary steps.
+Add Court screen chrome (header height, card titles, sport cards, inputs) is
+sized to the app's normal scale, not larger.
+
+**Why:** the flow's drawers were opening at 64% / 34% with buttons that scrolled
+under the nav; the landscape frame guided users into landscape photos.
+
 ## 2026-09-08 — LocalPlus ships as one monthly plan
 
 **Decision confirmed by Jesse:** LocalPlus launches with a **single** product —

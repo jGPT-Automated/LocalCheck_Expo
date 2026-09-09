@@ -39,6 +39,23 @@ point.
 
 ✅ done — committed on the branch · 🚧 in progress · ⬜ backlog, not started
 
+## 2026-09-09 — Add Court flow (first real court added: Kasmiersky Park)
+
+Jesse ran the flow on a real court and flagged the exits.
+
+| Note | Status |
+|------|--------|
+| Intro drawer opens too tall (64% detent, big empty area below the button) | ✅ `RunFlowSheet` `dynamic` mode — sizes to content, no scroll |
+| Step-1 (location) drawer button scrolls under the tab bar | ✅ same — content-sized, button sits above nav |
+| The two step drawers should be the same height | ✅ both content-sized |
+| Camera framed 4:3 landscape ("sideways court"); hint said to frame it that way | ✅ 3:4 portrait window + "hold your phone upright" hint |
+| Cropped photo on CONFIRM DETAILS looked weird (landscape sliver) | ✅ portrait 3:4, contained |
+| No photo on the COURT ADDED summary | ✅ portrait thumbnail added |
+| Buttons/text on Add Court screens bigger than the rest of the app | ✅ header 96→68, card title 29→20, sport cards 88→70, name input 17→15, cooldown timer 70→52, etc. |
+| Sport-specific lo-fi court/hoop/net outline in the frame | ⬜ deferred — custom one-off SVG conflicts with the "no inline drawings" rule; portrait frame used instead |
+| Expandable/lightbox photo on the summary | ⬜ deferred — thumbnail only for now |
+| Auto check-out when you leave the court area (geofence) | ⬜ needs background location (new Info.plist "always" key + TaskManager + a new build + App Review scrutiny). Foreground-only "you've left — check out?" nudge is the cheap first step. Not started. |
+
 ## 2026-09-08 — account tags, not deletion
 
 Jesse: don't delete the 44 dev accounts (a mass delete would cascade-kill 22 of
