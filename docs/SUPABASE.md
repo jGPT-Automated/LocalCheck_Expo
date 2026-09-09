@@ -147,14 +147,17 @@ tool, verified with read-only queries:
   its runbook is `docs/runbooks/ACCOUNT_TAGS.md` and the `AccountTag` union in
   `constants/data.ts` must match its CHECK.
 
-Source-only, lands with PR #45:
+- `20260906160414_profile_visibility.sql` — **applied 2026-09-08** alongside the
+  PR #45 merge. `profiles.visibility` (`public` / `friends` / `private`),
+  backfilled from each user's last non-public check-in,
+  `grant update (visibility) to authenticated`. Verified: column present,
+  default `public`, 2 rows backfilled to `private`.
 
-- `20260906160414_profile_visibility.sql` — `profiles.visibility`
-  (`public` / `friends` / `private`), backfilled from each user's last
-  non-public check-in, `grant update (visibility) to authenticated`.
-
-No RevenueCat webhook function exists yet. `profiles.is_pro` is still the only
-entitlement field, trigger-derived from `public.subscriptions`.
+All four 2026-09 migrations are applied to LocalCheckProd; none are pending.
+`account_tag` is cosmetic — it does not gate the leaderboard or LocalPlus; the
+only functional switch is the client flag `LeaderboardFlags.hideTaggedAccounts`
+(off). No RevenueCat webhook function exists yet. `profiles.is_pro` is still the
+only entitlement field, trigger-derived from `public.subscriptions`.
 
 ## Realtime and API safety
 

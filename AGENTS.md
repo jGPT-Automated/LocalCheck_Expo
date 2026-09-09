@@ -194,8 +194,9 @@ copy-paste SQL. When a task matches a runbook:
 Current runbooks:
 
 - `docs/runbooks/ACCOUNT_TAGS.md` — `profiles.account_tag`
-  (`FOUNDER` / `STARTER` / `REVIEWER` / `TEST` / null): add, change, or remove a
-  tag; the launch-day STARTER grant; adding a new tag value.
+  (`FOUNDER` / `STARTER` / `REVIEWER` / `TEST` / null): a cosmetic label (row
+  label, avatar, ME title) plus one launch switch. Add / change / remove a tag;
+  the launch-day flag flip + FOUNDER/STARTER grant; adding a new tag value.
 
 ## Documentation discipline
 

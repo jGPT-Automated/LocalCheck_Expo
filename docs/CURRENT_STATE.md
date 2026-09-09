@@ -41,12 +41,17 @@ evidence only; it does not replace the production checkpoint below.
   inbox notifications, production push delivery, and reversible block/report
   safety controls managed from Settings.
 - Competition: sport-specific ELO and reviewed match lifecycle.
-- Account tags: `profiles.account_tag` is the single account classification —
-  `FOUNDER` / `STARTER` / `REVIEWER` / `TEST` / null. It drives leaderboard
-  visibility (`TEST` and `REVIEWER` are hidden from other users), the LocalPlus
-  grant (`FOUNDER` / `STARTER`), the avatar treatment, and the ME-tab title.
-  Server-managed, changed only via `docs/runbooks/ACCOUNT_TAGS.md`. Replaced the
-  earlier `is_test` / `is_founding_member` booleans.
+- Account tags: `profiles.account_tag`
+  (`FOUNDER` / `STARTER` / `REVIEWER` / `TEST` / null) is a **cosmetic** label —
+  the leaderboard row label, the avatar treatment, the ME-tab title. It does not
+  grant LocalPlus or change privacy. The only functional tie is a launch switch,
+  `LeaderboardFlags.hideTaggedAccounts` (**off** now), which hides `TEST` /
+  `REVIEWER` from other players' boards once flipped on. Server-managed, changed
+  only via `docs/runbooks/ACCOUNT_TAGS.md`. Replaced the `is_test` /
+  `is_founding_member` booleans.
+- Leaderboard membership: a profile is ranked in a sport only after ≥1 game in
+  that sport (`hasRankedGame`); privacy (`visibility`) and, when
+  `gateLeaderboard` is on, LocalPlus still gate on top.
 - Realtime: private scoped Broadcast invalidation followed by authoritative
   refetch.
 
@@ -58,17 +63,18 @@ development and testing.
 
 - **LocalPlus monetization is not built.** No `react-native-purchases`, no
   RevenueCat code, no webhook; `LOCALPLUS_DEV_DEFAULT = true` still grants Plus
-  to everyone in-app. Decision (Jesse, 2026-09-08): ship **one** plan —
-  **LocalPlus Monthly $4.99/mo**, no annual for v1; FOUNDER/STARTER are free via
-  a promo `subscriptions` row. The price is set in App Store Connect, not
-  RevenueCat. Entitlement string (`localplus` vs `localcheck_pro`) still to be
-  fixed in the shared manifest.
+  to everyone in-app. The plan and price are settled (see
+  `docs/product/DECISIONS.md` — one monthly plan, $4.99). Open: build the SDK +
+  webhook, flip the dev default, and reconcile the entitlement string
+  (`localplus` vs `localcheck_pro`) in the shared manifest. FOUNDER/STARTER free
+  access must come from a promo `subscriptions` row (which has an expiry), not
+  from `account_tag`.
 - Mapbox, push notifications, Apple Sign-In, and SecureStore require physical
   iOS verification; browser success does not prove them.
-- The signup screen (`app/auth.tsx`) does no email or password validation —
-  `lebron@test.com` / `123456` is accepted. Supabase Auth leaked-password
-  protection and a minimum length are dashboard toggles; inline form validation
-  is a code change. Both open.
+- `app/auth.tsx` rejects empty email/password and enforces a 6-character
+  minimum, but has **no email-format check and no password-strength rules**;
+  Supabase Auth leaked-password protection (HaveIBeenPwned) is also off — a
+  dashboard toggle. Client-side format/strength validation is the code gap.
 - The old Add Court modal that called a dead `/api` route remains retired. The
   2026-08-11 physical attempt failed because `verify-court` was absent from
   LocalCheckProd and returned HTTP 404. The authenticated function and its
@@ -133,9 +139,14 @@ specific missing behavior only after verifying it against current `main`.
   overflow. Signed-in browser QA remains the fast surface for focused follow-up
   changes; native-only acceptance remains on TestFlight.
 
-## Current focused follow-up
+## Focused follow-up — shipped
 
-- The current unmerged Profile/Compete branch implements the approved release
+Everything in this section landed on `main` via PRs #35, #41, #42, #44, and #45
+(see "Production checkpoint" above). It is kept as a record of what those
+changes covered; it is no longer pending and the "source-only / not production
+behavior" caveats in the bullets below are historical.
+
+- The Profile/Compete work implements the approved release
   references at 402×874 and 430×932 comparison viewports. Profile uses the
   canonical tab header, opens QR from the avatar, keeps Settings in the header, and
   separates actionable Inbox items from informational notifications. Compete
@@ -210,8 +221,8 @@ specific missing behavior only after verifying it against current `main`.
   otherwise the saved home court's sport is used; accounts with neither are
   excluded. Local and Regional return no rows when the viewer has no home court.
 - Home's no-court `EXPLORE COURTS` action returns to rectangular button geometry.
-- These follow-up source changes are not production behavior until reviewed and
-  released through the documented PR/OTA path.
+- (Historical) These were source-only when written; all are now released on
+  `main` per the PRs listed at the top of this section.
 
 ## Tracked launch feedback
 

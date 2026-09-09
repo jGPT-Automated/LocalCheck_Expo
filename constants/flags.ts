@@ -28,3 +28,15 @@ export const LocalPlusFlags = {
  * `false` to preview the locked states during development.
  */
 export const LOCALPLUS_DEV_DEFAULT = true;
+
+/**
+ * Leaderboard rollout switches. See docs/runbooks/ACCOUNT_TAGS.md.
+ */
+export const LeaderboardFlags = {
+  /** Hide TEST / REVIEWER accounts from *other* viewers' boards. Off for now so
+   *  the pre-launch board isn't a ghost town — every dev account is tagged, and
+   *  the tag still labels the row ("TEST" / "REVIEWER"). Turn on near public
+   *  launch so burner accounts don't clutter real players' rankings. A viewer
+   *  always sees their own row regardless. */
+  hideTaggedAccounts: false,
+} as const;

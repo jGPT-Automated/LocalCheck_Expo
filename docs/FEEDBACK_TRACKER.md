@@ -51,12 +51,25 @@ single file" — no future agent should have to explore the codebase to do it.
 | `profiles.account_tag` — single tag: `FOUNDER` / `STARTER` / `REVIEWER` / `TEST` / null; replaces `is_test` + `is_founding_member` | ✅ migration `20260907120000`, applied to prod |
 | Jesse's account → `FOUNDER`, username/display → `JESSE` | ✅ (id `8ea0f430…`) |
 | Apple review account `APPLE` (apple@test.com) → `REVIEWER`, Apple-mark avatar | ✅ tagged (id `069a0d4c…`); Jesse created the login, Claude cannot |
-| Other 43 dev accounts → `TEST` (hidden from other users' boards) | ✅ backfilled |
+| Other 43 dev accounts → `TEST` | ✅ backfilled |
 | First 100 real post-launch sign-ups → `STARTER` (1 free LocalPlus year each) | ⬜ launch-day SQL in the runbook |
 | `docs/runbooks/ACCOUNT_TAGS.md` — the whole procedure + blast radius + copy-paste SQL | ✅ new |
 | `AGENTS.md` — "Repeatable operations" section + per-turn "link the files + Supabase project" rule | ✅ |
-| Auth screen has zero email/password validation (`lebron@test.com` / `123456`) | ⬜ pre-submit, flagged only |
-| Future: multi-tag accolades (tournament wins, profile-square graphics) | ⬜ explicitly out of scope; separate `badges[]` later |
+| Future: multi-tag accolades (tournament wins, profile-square graphics) | ⬜ out of scope; separate `badges[]` later |
+
+**Correction (2026-09-08, later):** the tag was over-built — it was hiding
+`TEST`/`REVIEWER` from every board and driving `useLocalPlus()`, which made the
+board empty for tagged viewers and let a STARTER's free year never lapse.
+Jesse: the tag is **cosmetic**. Now:
+
+| Item | Status |
+|------|--------|
+| Tag no longer hides accounts by itself — behind flag `LeaderboardFlags.hideTaggedAccounts`, **off** now (all accounts visible, LA + Houston), **on** at launch | ✅ |
+| `useLocalPlus()` no longer reads `account_tag` — free year comes from a promo `subscriptions` row (with an expiry) | ✅ |
+| Rank requires ≥1 game in the sport (`hasRankedGame`) — a 1200 default isn't a rank | ✅ |
+| `$4.99/mo` monthly-only pricing recorded in `docs/product/DECISIONS.md` | ✅ |
+| PR #46 Codex review (5 findings: stale merged-branch status, visibility-migration status, STARTER expiry, auth-validation wording, pricing in wrong doc) | ✅ addressed |
+| Auth screen: rejects empty + 6-char min, but no email-format / password-strength / leaked-password check | ⬜ pre-submit |
 
 ## 2026-09-06 (polish round 4) — game card + score review, live markup
 
