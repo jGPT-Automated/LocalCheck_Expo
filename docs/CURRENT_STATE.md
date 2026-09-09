@@ -73,10 +73,13 @@ development and testing.
   from `account_tag`.
 - Mapbox, push notifications, Apple Sign-In, and SecureStore require physical
   iOS verification; browser success does not prove them.
-- Crash visibility: the RN `ErrorBoundary` now reports caught errors + a global
-  JS handler to `public.client_errors` (best-effort, insert-only). This is a
-  stopgap — a real crash/perf reporter (Sentry) is still recommended before
-  submit for native crashes and release-health.
+- Crash visibility: the RN `ErrorBoundary` + a global JS / unhandled-rejection
+  handler write best-effort to `public.client_errors` (authenticated INSERT
+  only, no user id, size-capped, 300/hr ceiling, no read access). **Submission
+  action:** `app.json` now declares Crash / Other-Diagnostic data (not linked,
+  not tracking) — the App Store Connect privacy answers must be set to match
+  before submit. Stopgap; a real reporter (Sentry) is still recommended for
+  native crashes and release-health.
 - `app/auth.tsx` rejects empty email/password and enforces a 6-character
   minimum, but has **no email-format check and no password-strength rules**;
   Supabase Auth leaked-password protection (HaveIBeenPwned) is also off — a

@@ -151,10 +151,12 @@ function DataProviders({ children }: { children: React.ReactNode }) {
 }
 
 function RootLayoutNav() {
-  const pathname = usePathname();
-  useEffect(() => {
-    setCurrentRoute(pathname);
-  }, [pathname]);
+  // Set during render, not in an effect: if navigating to a route makes that
+  // route's first render throw, an effect would never commit and the crash
+  // report would carry the *previous* pathname. This parent renders before the
+  // child screen, so the setter runs first. `setCurrentRoute` just assigns a
+  // module-level string — safe to call here.
+  setCurrentRoute(usePathname());
   return (
     <AuthGate>
       {/* `contentStyle` is what sits behind a card while it is being dragged.
