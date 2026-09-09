@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accentGhost,
   },
   statusText: { ...TextStyles.bodySmall, color: Colors.text, flex: 1 },
-  perks: { gap: Space.md },
+  perks: { gap: Space.lg },
   perk: { flexDirection: "row", gap: Space.md },
   perkIcon: {
     width: 34,
@@ -178,11 +178,13 @@ const styles = StyleSheet.create({
     borderColor: Colors.accentBorder,
     backgroundColor: Colors.accentGhost,
   },
-  perkCopy: { flex: 1, gap: 3 },
+  perkCopy: { flex: 1, gap: 5 },
   perkTitle: {
-    ...TextStyles.label,
+    fontFamily: Typography.heading,
+    fontSize: 17,
+    lineHeight: 21,
     color: Colors.text,
-    letterSpacing: 1.2,
+    letterSpacing: 0.8,
   },
   perkBody: {
     ...TextStyles.bodySmall,

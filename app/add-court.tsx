@@ -315,6 +315,11 @@ export default function AddCourtRoute() {
           address={displayAddress(address, city, state)}
           sport={sport}
           bottom={bottom}
+          onRetake={() => {
+            setPhotoUri(null);
+            setPhotoBase64(null);
+            setScreen("camera");
+          }}
           onNameChange={(next) => {
             setNameWasEdited(true);
             setCourtName(next);
@@ -445,6 +450,7 @@ function Details({
   address,
   sport,
   bottom,
+  onRetake,
   onNameChange,
   onSport,
   onSubmit,
@@ -454,6 +460,7 @@ function Details({
   address: string;
   sport: Sport;
   bottom: number;
+  onRetake: () => void;
   onNameChange: (value: string) => void;
   onSport: (value: Sport) => void;
   onSubmit: () => void;
@@ -466,18 +473,32 @@ function Details({
       ]}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.photoPreview}>
-        {photoUri ? (
-          <Image source={{ uri: photoUri }} style={StyleSheet.absoluteFill} />
-        ) : (
-          <View style={styles.photoPreviewEmpty}>
-            <Feather name="camera-off" size={20} color={Colors.muted} />
+      <View style={styles.photoBlock}>
+        <View style={styles.photoPreview}>
+          {photoUri ? (
+            <Image source={{ uri: photoUri }} style={StyleSheet.absoluteFill} />
+          ) : (
+            <View style={styles.photoPreviewEmpty}>
+              <Feather name="camera-off" size={20} color={Colors.muted} />
+            </View>
+          )}
+          <View style={styles.liveBadge}>
+            <Feather name="camera" size={13} color={Colors.text} />
+            <Text style={styles.liveBadgeText}>LIVE</Text>
           </View>
-        )}
-        <View style={styles.liveBadge}>
-          <Feather name="camera" size={13} color={Colors.text} />
-          <Text style={styles.liveBadgeText}>LIVE</Text>
         </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Retake photo"
+          onPress={onRetake}
+          style={({ pressed }) => [
+            styles.retakeButton,
+            pressed && { opacity: 0.6 },
+          ]}
+        >
+          <Feather name="rotate-ccw" size={13} color={Colors.textSecondary} />
+          <Text style={styles.retakeText}>RETAKE</Text>
+        </Pressable>
       </View>
       <Text style={styles.fieldLabel}>COURT NAME</Text>
       <View style={styles.nameInputWrap}>
@@ -800,7 +821,11 @@ function PermissionState({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   header: {
-    height: 68,
+    // No fixed height: `top != null` adds the notch inset as paddingTop, and a
+    // fixed height minus a ~59px inset left no room for the title (it collided
+    // with the progress bar).
+    paddingTop: 12,
+    paddingBottom: 10,
     flexDirection: "row",
     alignItems: "center",
     gap: Space.md,
@@ -824,6 +849,8 @@ const styles = StyleSheet.create({
   progress: {
     flexDirection: "row",
     gap: 8,
+    paddingTop: 2,
+    paddingBottom: 8,
     paddingHorizontal: Layout.screenGutter,
   },
   progressSegment: {
@@ -907,6 +934,24 @@ const styles = StyleSheet.create({
   },
   shutterInner: { flex: 1, borderRadius: 28, backgroundColor: Colors.white },
   detailsContent: { padding: Layout.screenGutter, gap: 10 },
+  photoBlock: { alignItems: "center", gap: 8 },
+  retakeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surface,
+  },
+  retakeText: {
+    color: Colors.textSecondary,
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    letterSpacing: 1.2,
+  },
   photoPreview: {
     width: "52%",
     aspectRatio: 3 / 4,

@@ -163,6 +163,9 @@ function GameContent({ item }: { item: FeedItem }) {
           (before that it lives in the participants' inbox), so the label just
           competed with the winner and score for attention. */}
       <View style={styles.gameHeader}>
+        <Text numberOfLines={1} style={styles.gameCourt}>
+          {item.courtName ?? ""}
+        </Text>
         <Text style={styles.time}>{item.timestamp}</Text>
       </View>
       <View style={styles.gameSide}>
@@ -180,13 +183,10 @@ function GameContent({ item }: { item: FeedItem }) {
         <Text numberOfLines={1} style={styles.gameName}>
           {formatMatchSide(losingSide)}
         </Text>
-        <Text style={styles.gameScore}>{losingScore}</Text>
+        <View style={styles.gameScoreGroup}>
+          <Text style={styles.gameScore}>{losingScore}</Text>
+        </View>
       </View>
-      {item.courtName ? (
-        <Text numberOfLines={1} style={styles.gameCourt}>
-          {item.courtName}
-        </Text>
-      ) : null}
     </View>
   );
 }
@@ -324,11 +324,13 @@ const styles = StyleSheet.create({
   },
 
   // ── Game — the notable event, score carries the weight ──
-  gameBlock: { paddingVertical: Space.sm, gap: 3 },
+  gameBlock: { paddingVertical: Space.sm, gap: 4 },
   gameHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-end",
+    justifyContent: "space-between",
+    gap: Space.sm,
+    marginBottom: 2,
   },
   gameSide: {
     flexDirection: "row",
@@ -344,7 +346,15 @@ const styles = StyleSheet.create({
     color: Colors.text,
     textTransform: "uppercase",
   },
-  gameScoreGroup: { flexDirection: "row", alignItems: "center", gap: 6 },
+  // Score right-aligns at the same x whether or not the WIN tag is present, so
+  // the winning and losing scores line up vertically.
+  gameScoreGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 6,
+    minWidth: 52,
+  },
   gameScore: {
     fontFamily: Typography.headingBold,
     fontSize: 18,
@@ -360,10 +370,13 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   gameCourt: {
-    marginTop: 2,
+    flex: 1,
+    minWidth: 0,
     fontFamily: Typography.bodyMedium,
     fontSize: 11,
     color: Colors.muted,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
   },
 
   // ── Visit / burst — medium weight, profile & grouped-arrival context ──
