@@ -1,9 +1,15 @@
 # Account tags — the one runbook
 
-`profiles.account_tag` is the **single** classification tag on an account. One
-tag per account, or `null` for an ordinary player. This file is the whole
-contract: what the tags mean, everywhere they are read, and the exact SQL to
-add / change / remove them. You should not need to read anything else.
+`profiles.account_tag` is a **cosmetic** label on an account — one tag, or
+`null` for an ordinary player. It sets the leaderboard row's label, the avatar
+treatment, and the ME-tab title. It does **not** grant LocalPlus, change
+privacy, or decide who is on the leaderboard. The single exception is one
+client switch, `LeaderboardFlags.hideTaggedAccounts` (in `constants/flags.ts`):
+when it is on, `TEST` and `REVIEWER` rows are dropped from *other* players'
+boards. It is **off** now so QA and App Review see every account.
+
+This file is the whole contract: what the tags mean, everywhere they are read,
+and the exact SQL to add / change / remove them.
 
 - Backend: Supabase `LocalCheckProd`, ref `qkrnmyexzvaxiqfxwwfb`
   → https://supabase.com/dashboard/project/qkrnmyexzvaxiqfxwwfb/sql/new
@@ -15,13 +21,21 @@ add / change / remove them. You should not need to read anything else.
 
 ## The tags
 
-| Tag | Meaning | Leaderboard | LocalPlus | Avatar | ME-tab title |
-|-----|---------|-------------|-----------|--------|--------------|
-| `FOUNDER` | The maker(s). | Shown & ranked everywhere | Yes, permanent | Diagonal accent print | `FOUNDER` |
-| `STARTER` | First 100 real sign-ups after public launch. | Shown & ranked everywhere | Yes, one year from the user's own `created_at` | Diagonal accent print | `STARTER` |
-| `REVIEWER` | Apple App Review's account. | Hidden from **other** users (still sees itself) | Follows real entitlement | Apple mark instead of initials | `REVIEWER` |
-| `TEST` | QA / burner account from development. | Hidden from **other** users (still sees itself) | Follows real entitlement | Normal initials | `TEST` |
-| `null` | An ordinary player. | Shown & ranked; row shows their earned ELO tier | Only if subscribed | Normal initials | `PROFILE` |
+| Tag | Meaning | Row label | Avatar | ME-tab title | On the board? |
+|-----|---------|-----------|--------|--------------|---------------|
+| `FOUNDER` | The maker(s). | `FOUNDER` | Diagonal accent print | `FOUNDER` | Yes |
+| `STARTER` | First 100 real sign-ups after public launch. | `STARTER` | Diagonal accent print | `STARTER` | Yes |
+| `REVIEWER` | Apple App Review's account. | `REVIEWER` | Apple mark instead of initials | `REVIEWER` | Yes now; hidden from others when `hideTaggedAccounts` is on |
+| `TEST` | QA / burner account. | `TEST` | Normal initials | `TEST` | Yes now; hidden from others when `hideTaggedAccounts` is on |
+| `null` | An ordinary player. | their earned ELO tier | Normal initials | `PROFILE` | Yes |
+
+Independent of the tag, a profile is only ranked in a sport after **≥1 game**
+in that sport (`hasRankedGame` in `services/profileService.ts`), and privacy
+(`profiles.visibility`) and the LocalPlus gate still apply.
+
+**LocalPlus is not a tag.** Free access for FOUNDER/STARTER comes from a promo
+row in `public.subscriptions` (→ `profiles.is_pro` via trigger), which has an
+expiry. `useLocalPlus()` reads `is_pro` only.
 
 ## Everywhere `account_tag` is read (the blast radius)
 
@@ -31,17 +45,18 @@ touch. Keep them in sync with the `CHECK` constraint above.
 | File | What it does with the tag |
 |------|---------------------------|
 | `constants/data.ts` | `AccountTag` union type; `playerRankLabel()` — tag wins over the ELO tier label. **The union must match the DB `CHECK`.** |
-| `services/profileService.ts` | `SupabaseProfile.account_tag`; `isLeaderboardVisible()` hides `TEST` + `REVIEWER`; `mapProfileToPlayer()` copies it onto `Player.tag`. |
+| `constants/flags.ts` | `LeaderboardFlags.hideTaggedAccounts` — the one functional switch (off now). |
+| `services/profileService.ts` | `SupabaseProfile.account_tag`; `isLeaderboardVisible()` drops `TEST` + `REVIEWER` **only when `hideTaggedAccounts` is on**; `mapProfileToPlayer()` copies it onto `Player.tag`. (`hasRankedGame()` — the ≥1-game rule — is separate, not tag-driven.) |
 | `context/AuthContext.tsx` | `UserProfile.account_tag` (from `select('*')`). |
-| `hooks/useLocalPlus.ts` | `FOUNDER` / `STARTER` ⇒ LocalPlus. |
 | `components/PlayerAvatar.tsx` | `FOUNDER`/`STARTER` ⇒ accent print; `REVIEWER` ⇒ Apple mark. |
 | `components/ui/ProfileHero.tsx` | passes `tag` through to `PlayerAvatar`. |
 | `app/(tabs)/elo.tsx` | screen title = `account_tag ?? "PROFILE"`; passes `tag` to `ProfileHero`. |
 | `app/(tabs)/compete.tsx`, `app/(tabs)/feed.tsx` | leaderboard rows: `playerRankLabel()` + tag on the avatar. |
-| `app/settings.tsx`, `app/localplus.tsx` | LocalPlus copy for `FOUNDER` / `STARTER`. |
+| `app/settings.tsx`, `app/localplus.tsx` | LocalPlus *copy* wording for `FOUNDER` / `STARTER` (gated by `useLocalPlus()`, not by the tag). |
 
-`profiles.is_pro` is **separate** — it is the real paid entitlement, derived by
-a DB trigger from `public.subscriptions`. A tag never writes `is_pro`.
+`useLocalPlus()` does **not** read `account_tag`. `profiles.is_pro` — the real
+entitlement, trigger-derived from `public.subscriptions` — is what it checks. A
+tag never writes `is_pro`.
 
 ## Operations — copy, paste, run
 
@@ -81,35 +96,53 @@ update public.profiles set account_tag = 'STARTER' where id = '…';  -- change
 update public.profiles set account_tag = null      where id = '…';  -- back to ordinary player
 ```
 
-### Launch day — grant STARTER to the first 100 real sign-ups
+### Launch day
 
-Run once, after public launch. `TEST` / `REVIEWER` accounts are skipped; each
-STARTER's free year runs from their own `created_at` (a promo `subscriptions`
-row is what actually drives `is_pro`).
+Three things, in order.
+
+**1. Hide the dev/review accounts from real players.** In `constants/flags.ts`,
+set `LeaderboardFlags.hideTaggedAccounts = true` and ship it (OTA or build).
+`TEST` and `REVIEWER` rows drop off everyone else's boards; they still see their
+own.
+
+**2. Grant STARTER to the first 100 real sign-ups.** Run once. `TEST` /
+`REVIEWER` / already-tagged accounts are skipped. Each free year runs from that
+user's own `created_at`; the promo `subscriptions` row (not the tag) drives
+`is_pro`, and it **expires** — after a year `is_pro` flips back to false.
 
 ```sql
 with first_100 as (
   select id, created_at
   from public.profiles
-  where account_tag is null            -- not TEST / REVIEWER / already tagged
+  where account_tag is null            -- not FOUNDER / TEST / REVIEWER / STARTER
   order by created_at
   limit 100
 )
 update public.profiles p
 set account_tag = 'STARTER'
 from first_100 f where f.id = p.id;
+```
 
+**3. Grant the free entitlement to FOUNDER + STARTER.** One promo row each.
+FOUNDER gets a long horizon (renew or drop the row later); STARTER gets one year
+from their own `created_at`.
+
+```sql
 insert into public.subscriptions (
   user_id, revenuecat_app_user_id, product_id, entitlement_id,
   status, billing_provider, current_period_starts_at, current_period_ends_at,
   expires_at, raw_payload)
-select p.id, p.id::text, 'starter_year_grant', 'localplus',
-  'active', 'promo', p.created_at, p.created_at + interval '1 year',
-  p.created_at + interval '1 year', jsonb_build_object('grant','starter')
+select p.id, p.id::text,
+  case p.account_tag when 'FOUNDER' then 'founder_grant' else 'starter_year_grant' end,
+  'localplus', 'active', 'promo',
+  p.created_at,
+  p.created_at + case p.account_tag when 'FOUNDER' then interval '100 years' else interval '1 year' end,
+  p.created_at + case p.account_tag when 'FOUNDER' then interval '100 years' else interval '1 year' end,
+  jsonb_build_object('grant', lower(p.account_tag))
 from public.profiles p
-where p.account_tag = 'STARTER'
+where p.account_tag in ('FOUNDER', 'STARTER')
   and not exists (select 1 from public.subscriptions s
-                  where s.user_id = p.id and s.product_id = 'starter_year_grant');
+                  where s.user_id = p.id and s.raw_payload->>'grant' = lower(p.account_tag));
 ```
 
 ### Add a brand-new tag value (e.g. `CHAMPION`)

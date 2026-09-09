@@ -1,4 +1,4 @@
-import { LocalPlusFlags } from "@/constants/flags";
+import { LeaderboardFlags, LocalPlusFlags } from "@/constants/flags";
 import { AccountTag, CourtSport, getEloTier, Player } from "@/constants/data";
 import { supabase } from "@/lib/supabase";
 import {
@@ -405,9 +405,11 @@ async function fetchRankedProfileRows(
  */
 /**
  * Whether a profile row belongs on a leaderboard the given viewer is looking
- * at. LocalPlus is the gate (flag-gated until the founding grant is applied);
- * `private` is never listed; `friends` only to a friend. You always see
- * yourself so the app can render a "you, hidden" row.
+ * at. `private` is never listed; `friends` only to a friend; LocalPlus is the
+ * gate once `gateLeaderboard` is on. `account_tag` is cosmetic — it only
+ * removes a row here when `LeaderboardFlags.hideTaggedAccounts` is on (a
+ * launch-day switch to keep TEST / REVIEWER accounts off real players' boards).
+ * See docs/runbooks/ACCOUNT_TAGS.md.
  */
 function isLeaderboardVisible(
   row: {
@@ -420,14 +422,31 @@ function isLeaderboardVisible(
   friendIds: Set<string>,
 ): boolean {
   if (viewerId && row.id === viewerId) return true;
-  // TEST (QA/burner) and REVIEWER (Apple) accounts never rank on anyone else's
-  // board — they still see their own row via the check above.
-  // See docs/runbooks/ACCOUNT_TAGS.md.
-  if (row.account_tag === "TEST" || row.account_tag === "REVIEWER") return false;
+  if (
+    LeaderboardFlags.hideTaggedAccounts &&
+    (row.account_tag === "TEST" || row.account_tag === "REVIEWER")
+  )
+    return false;
   if (LocalPlusFlags.gateLeaderboard && !row.is_pro) return false;
   if (row.visibility === "private") return false;
   if (row.visibility === "friends") return friendIds.has(row.id);
   return true;
+}
+
+/**
+ * A player only appears on a board once they've played at least one game in
+ * that sport. Otherwise a fresh account sits at the 1200 default above someone
+ * who has lost a game, which isn't a ranking.
+ */
+function hasRankedGame(
+  row: SupabaseProfile,
+  sport?: CourtSport | null,
+): boolean {
+  if (sport === "BASKETBALL")
+    return (row.basketball_wins ?? 0) + (row.basketball_losses ?? 0) > 0;
+  if (sport === "PICKLEBALL")
+    return (row.pickleball_wins ?? 0) + (row.pickleball_losses ?? 0) > 0;
+  return (row.wins ?? 0) + (row.losses ?? 0) > 0;
 }
 
 export async function fetchLeaderboard(
@@ -459,7 +478,11 @@ export async function fetchLeaderboard(
       if (res.error?.code === "42703") res = await run("elo_rating");
       if (res.error || !res.data) return [];
       return (res.data as SupabaseProfile[])
-        .filter((row) => isLeaderboardVisible(row, viewerId, friendIds))
+        .filter(
+          (row) =>
+            hasRankedGame(row, sport) &&
+            isLeaderboardVisible(row, viewerId, friendIds),
+        )
         .map((row) => mapProfileToPlayer(row, sport));
     }
 
@@ -531,17 +554,19 @@ export async function fetchLeaderboard(
       }
       if (result.error) return [];
       return result.data
-        .filter((row) =>
-          isLeaderboardVisible(
-            row as {
-              id: string;
-              is_pro?: boolean;
-              account_tag?: AccountTag | null;
-              visibility?: string | null;
-            },
-            viewerId,
-            friendIds,
-          ),
+        .filter(
+          (row) =>
+            hasRankedGame(row, sport) &&
+            isLeaderboardVisible(
+              row as {
+                id: string;
+                is_pro?: boolean;
+                account_tag?: AccountTag | null;
+                visibility?: string | null;
+              },
+              viewerId,
+              friendIds,
+            ),
         )
         .map((row) => mapProfileToPlayer(row, sport));
     }
@@ -561,7 +586,11 @@ export async function fetchLeaderboard(
     if (result.error?.code === "42703") result = await buildQuery("elo_rating");
     if (result.error || !result.data) return [];
     return (result.data as SupabaseProfile[])
-      .filter((row) => isLeaderboardVisible(row, viewerId, friendIds))
+      .filter(
+        (row) =>
+          hasRankedGame(row, sport) &&
+          isLeaderboardVisible(row, viewerId, friendIds),
+      )
       .map((row) => mapProfileToPlayer(row, sport));
   } catch {
     return [];

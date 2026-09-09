@@ -2,6 +2,42 @@
 
 Status: Current MVP decisions. Newer dated decisions supersede older entries.
 
+## 2026-09-08 — LocalPlus ships as one monthly plan
+
+**Decision confirmed by Jesse:** LocalPlus launches with a **single** product —
+**Monthly, $4.99/mo**. No annual plan for v1 (an annual option was considered at
+$3.99/mo-billed-annually and deliberately held back — a second price point
+muddies the free Starter offer). The price is set in App Store Connect; the app
+never hard-codes it. Add annual later as its own change.
+
+**Why:** Keep the first paid surface as simple as possible while the Starter
+cohort (first 100 real sign-ups, one free year) is the headline. Founders and
+Starters get LocalPlus free via a promo `subscriptions` row, not a product.
+
+## 2026-09-08 — `account_tag` is cosmetic
+
+**Decision confirmed by Jesse:** `profiles.account_tag`
+(`FOUNDER` / `STARTER` / `REVIEWER` / `TEST` / null) is a label only — it sets
+the leaderboard row's label text, the avatar treatment (diagonal print /
+Apple mark), and the ME-tab title. It does **not** grant LocalPlus, change
+privacy, or decide leaderboard membership. The one exception is a launch-day
+switch — `LeaderboardFlags.hideTaggedAccounts` — that removes `TEST` and
+`REVIEWER` rows from *other* players' boards once flipped on; it is **off**
+pre-launch so QA can see every account (LA and Houston) and so App Review sees a
+populated board. Runbook: `docs/runbooks/ACCOUNT_TAGS.md`.
+
+**Why:** The tags exist to make the dev/review accounts read nicely, nothing
+more. Wiring behaviour to them made the leaderboard empty for tagged viewers.
+
+## 2026-09-08 — A player needs one game to be ranked
+
+**Decision confirmed by Jesse:** A profile appears on a leaderboard (any scope)
+only after playing at least one game in that sport. A fresh account at the 1200
+default must not sit above someone who has lost a game.
+
+**Why:** 1200 is a starting value, not a rank. Zero-game accounts on the board
+aren't a ranking.
+
 ## 2026-08-13 — Home matches the established tab-header treatment
 
 **Decision confirmed by Jesse:** Home uses the same mark, title typography,
