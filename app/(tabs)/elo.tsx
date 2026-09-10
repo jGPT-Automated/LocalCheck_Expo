@@ -1039,7 +1039,7 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   requestGroup: { marginHorizontal: 20, marginBottom: 10 },
-  gameGroup: { marginHorizontal: 20, marginBottom: 16, gap: 12 },
+  gameGroup: { marginHorizontal: 20, marginTop: 16, marginBottom: 16, gap: 12 },
   requestGroupTitle: {
     fontFamily: Typography.bodySemiBold,
     fontSize: 11,

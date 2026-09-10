@@ -98,9 +98,9 @@ const styles = StyleSheet.create({
   value: {
     fontFamily: Typography.headingBold,
     fontSize: 20,
-    // Line height kept close to the glyph so the number sits centred in the
-    // cell instead of riding the top of an over-tall line box.
-    lineHeight: 22,
+    // Tight line box so the number and its label read as one pair, centred in
+    // the cell (Jesse: "closer together, then as a group centred in the box").
+    lineHeight: 20,
     textAlign: "center",
     includeFontPadding: false,
     color: Colors.text,
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   win: { color: Colors.win },
   loss: { color: Colors.loss },
   label: {
-    marginTop: 3,
+    marginTop: 1,
     fontFamily: Typography.bodyMedium,
     fontSize: 9,
     lineHeight: 11,

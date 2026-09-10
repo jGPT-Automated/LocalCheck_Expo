@@ -97,7 +97,6 @@ export function ProfileHero({
         <View style={styles.compactActions}>
           {actions || (
             <View accessibilityLabel={`${elo} ELO`} style={styles.compactElo}>
-              <Text style={styles.compactEloLabel}>ELO</Text>
               {eloAnimate ? (
                 <NumberFlow
                   format={ELO_NO_GROUPING}
@@ -114,17 +113,19 @@ export function ProfileHero({
                   {elo}
                 </Text>
               )}
-              {eloDelta != null ? (
-                <Text
-                  style={[
-                    styles.compactEloDelta,
-                    eloDelta < 0 && styles.compactEloDeltaNegative,
-                  ]}
-                >
-                  {eloDelta > 0 ? "▲ " : "▼ "}
-                  {Math.abs(eloDelta)}
-                </Text>
-              ) : null}
+              <View style={styles.compactEloMeta}>
+                <Text style={styles.compactEloLabel}>ELO</Text>
+                {eloDelta != null ? (
+                  <Text
+                    style={[
+                      styles.compactEloDelta,
+                      eloDelta < 0 && styles.compactEloDeltaNegative,
+                    ]}
+                  >
+                    {eloDelta > 0 ? "▲" : "▼"} {Math.abs(eloDelta)}
+                  </Text>
+                ) : null}
+              </View>
             </View>
           )}
         </View>
@@ -258,9 +259,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   compactElo: { minWidth: 72, alignItems: "flex-end" },
+  // Mirrors compactMeta under the name — same 3px gap, small muted text.
+  compactEloMeta: {
+    marginTop: 3,
+    flexDirection: "row",
+    alignItems: "center",
+    columnGap: 6,
+  },
   compactEloLabel: {
-    marginRight: 2,
-    marginBottom: 1,
     fontFamily: Typography.bodyMedium,
     fontSize: 11,
     lineHeight: 13,
@@ -270,12 +276,11 @@ const styles = StyleSheet.create({
   compactEloValue: {
     fontFamily: Typography.headingBold,
     fontSize: 30,
-    lineHeight: 33,
+    lineHeight: 30,
     color: Colors.text,
     textAlign: "right",
   },
   compactEloDelta: {
-    marginTop: 1,
     ...TextStyles.labelSmall,
     color: Colors.accent,
     letterSpacing: 0.4,
