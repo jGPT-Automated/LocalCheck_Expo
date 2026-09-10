@@ -251,7 +251,6 @@ export default function MeScreen() {
           compact
           courtLabel={localCourt?.shortName || localCourt?.name}
           elo={currentUser.elo}
-          eloAnimate
           headline={currentUser.name}
           initials={currentUser.avatar || "LC"}
           name={currentUser.name}
@@ -268,7 +267,6 @@ export default function MeScreen() {
           username={profile?.username || currentUser.username}
         />
         <ProfileStats
-          animateChanges
           compact
           metrics={[
             { value: currentUser.wins, label: "WINS" },

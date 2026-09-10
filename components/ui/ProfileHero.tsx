@@ -97,24 +97,22 @@ export function ProfileHero({
         <View style={styles.compactActions}>
           {actions || (
             <View accessibilityLabel={`${elo} ELO`} style={styles.compactElo}>
-              <View style={styles.compactEloValueRow}>
-                {eloAnimate ? (
-                  <NumberFlow
-                    format={ELO_NO_GROUPING}
-                    style={styles.compactEloValue}
-                    value={elo}
-                  />
-                ) : (
-                  <Text
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.82}
-                    numberOfLines={1}
-                    style={styles.compactEloValue}
-                  >
-                    {elo}
-                  </Text>
-                )}
-              </View>
+              {eloAnimate ? (
+                <NumberFlow
+                  format={ELO_NO_GROUPING}
+                  style={styles.compactEloValue}
+                  value={elo}
+                />
+              ) : (
+                <Text
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.82}
+                  numberOfLines={1}
+                  style={styles.compactEloValue}
+                >
+                  {elo}
+                </Text>
+              )}
               <View style={styles.compactEloMeta}>
                 <Text style={styles.compactEloLabel}>ELO</Text>
                 {eloDelta != null ? (
@@ -236,7 +234,6 @@ const styles = StyleSheet.create({
     ...TextStyles.title,
     fontSize: 21,
     lineHeight: 24,
-    height: 26,
     color: Colors.text,
     letterSpacing: 0.45,
     textTransform: "uppercase",
@@ -267,7 +264,6 @@ const styles = StyleSheet.create({
     marginTop: 3,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-end",
     columnGap: 6,
   },
   compactEloLabel: {
@@ -275,18 +271,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 13,
     color: Colors.muted,
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
   },
-  // Same 26px box as compactName so the value and its "ELO" caption sit on the
-  // exact lines as the name and its location caption beside them.
-  compactEloValueRow: {
-    height: 26,
-    justifyContent: "center",
-    alignItems: "flex-end",
-  },
+  // Same line box as compactName (21 / 24) so the value sits on the name's line
+  // and the "ELO" caption sits on the location caption's line — the block is a
+  // mirror of the identity block beside it, no clipping, no fixed heights.
   compactEloValue: {
     fontFamily: Typography.headingBold,
-    fontSize: 24,
+    fontSize: 22,
     lineHeight: 24,
     color: Colors.text,
     textAlign: "right",
