@@ -33,6 +33,19 @@ test("keeps every player visible in a team result", () => {
   assert.equal(formatMatchSide([]), "SIDE TBD");
 });
 
+test("abbreviates a 3+ player side to a lead name plus initials", () => {
+  assert.equal(
+    formatMatchSide([
+      { name: "Jesse Harrick" },
+      { name: "Mia Lopez" },
+      { name: "15CLAUDEFINAL" },
+    ]),
+    "Jesse Harrick + ML, 15",
+  );
+  // Solo side is untouched.
+  assert.equal(formatMatchSide([{ name: "Jesse" }]), "Jesse");
+});
+
 test("formats a game result as a human sports sentence without placeholder brackets", () => {
   assert.equal(
     formatGameResult({

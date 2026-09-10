@@ -23,21 +23,64 @@ point.
 
 ## Branch / PR status
 
-- **PRs #42, #44, and [#45](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/45)
-  are merged to `main`.** `origin/main` @ `f5f5b81` (PR #45 squash, 2026-09-08).
-  #45 = camera lifecycle, unified `profiles.visibility` privacy + FRIENDS
-  leaderboard, `profiles.account_tag`, one shared `SearchField`, launch polish.
-  The merge triggered EAS production **build 22**.
-- **All LocalCheckProd migrations applied; none pending:** referral/cooldown
-  plumbing, `account_tags` (`docs/runbooks/ACCOUNT_TAGS.md`), `profile_visibility`.
+- **PRs #42–#49 merged to `main`.** `origin/main` @ `67b6eca` (PR #49 squash,
+  2026-09-10). #48 = local-court crash fix + hardened `client_errors`; #49 = UI
+  polish half 1 (Add Court sheets/camera, LocalPlus copy, profile hero, activity
+  row). Merge queued an EAS production build from `67b6eca`.
+- **PR #50** (`docs/revenuecat-runbook`) — open, docs only:
+  `docs/runbooks/REVENUECAT.md`.
+- **`codex/ui-polish-batch-2`** — open: the 2026-09-10 quick-fix batch below.
+- **LocalCheckProd migrations:** all `20260909*` applied. **Pending (source
+  only, not applied):** `20260910000000_friendly_usernames.sql`.
 - **Release loop:** opening a PR against `main` auto-publishes a scannable Expo
-  Go preview; merging to `main` auto-triggers the TestFlight build. No manual
-  EAS step. See `docs/RELEASE.md`.
-- No feature branch open right now. Branch the next task from `origin/main`.
+  Go preview; merging to `main` auto-triggers the TestFlight build (ignores
+  `docs/**` / `**/*.md`). See `docs/RELEASE.md`.
 
 ## Status legend
 
 ✅ done — committed on the branch · 🚧 in progress · ⬜ backlog, not started
+
+## 2026-09-10 — quick-fix batch (post-#49 device testing)
+
+Jesse confirmed the map/no-court crash is fixed and Add Court looks good, then
+flagged a short list before screenshots + the RevenueCat paywall.
+
+| Item | Status |
+|------|--------|
+| Add Court **VERIFYING** screen: add a **DONE** button beside CANCEL — leave the flow, verification keeps running, result comes back as an alert ("… is live" / "Court not verified") | ✅ `app/add-court.tsx` — `verifyInBackground` ref; `announceBackgroundResult` |
+| ME tab hero: ELO cut off at the top, not aligned with the name; metrics too far from the text and cut off at the top. "The other-user profile page has it right — the Me tab deviates." | ✅ Root cause: only the Me tab passed `eloAnimate` / `animateChanges`, so its ELO **and** all three stat numbers rendered through `NumberFlow`, which clips inside `overflow:hidden` containers on iOS. Dropped both props (`app/(tabs)/elo.tsx`) → the Me tab now renders the exact plain-`<Text>` path as `app/player/[id].tsx`. Also `compactEloValue` 30→22 / lineHeight 24 to match `compactName`'s line box, so value ↔ name and "ELO" ↔ location sit on the same lines (verified on web: both captions top=152, both pages). No fixed heights. |
+| Trade-off: the Me tab ELO no longer digit-rolls on change. Bring it back once `NumberFlow`'s iOS layout is boxed so it can't clip. | ⬜ follow-up |
+| Auto-generated usernames are ugly: `mapcrash@test.com` → `@mapcrash_61f0edc6c8a64f62` (16-hex tail on every account) | 🚧 migration `20260910000000_friendly_usernames.sql` — clean base (`mapcrash`), numeric suffix only on collision, id-tail only on a race; backfills existing hex-tailed handles. **Source only — needs "apply" from Jesse.** Client fallback in `context/AuthContext.tsx` matched. |
+| Feed team games (player profile): "Name + INITIALS, INITIALS" instead of every full name joined with " + " | ✅ `components/home/homePresentation.ts` `formatMatchSide` — solo/pair unchanged; 3+ = lead name + initials. Test added. |
+| Team-game card (drawer + summary): WIN above the score "like standard"; team names not aligned; top/bottom padding not symmetric | ✅ `components/match/ScoreCard.tsx` — WIN pill moved above the score with a slot reserved on the losing side so scores + names share a baseline; `components/ui/GameResultModal.tsx` — card top→FINAL bar ≈ VIEW GAME→card bottom (verified on web: 26 vs 30) |
+| VERIFYING + DONE layout on device (camera flow can't be exercised on web) | ⬜ device check |
+
+### Regular-user (no-LocalPlus) flow — audit for testing on the next build
+
+Jesse: "make sure there's a UI flow for a regular user — someone who joins after
+the first 100 and won't have LocalPlus — I want to test that flow."
+
+| Surface | Non-Plus state | Status |
+|---------|----------------|--------|
+| `LOCALPLUS_DEV_DEFAULT` | Was `true` — every account without a real `is_pro` got Plus, so **no** locked state was reachable on any build. Flipped to **`false`** so a fresh account sees the real flow. | ✅ `constants/flags.ts` |
+| ME tab → history | Blurs games past the 10 most recent, "UNLOCK N MORE" card → `/localplus`. `gateHistory` on. | ✅ verified on web |
+| Settings | Row reads "UPGRADE TO LOCALPLUS" → `/localplus`. | ✅ |
+| `/localplus` screen | Perks list + **"SEE PLANS"** → `Alert("Almost there… subscriptions go live shortly")`. Non-functional purchase entry point. | ⚠️ dead-end until RevenueCat (Phase 3–4) |
+| Leaderboard | Own rank badge + row label read **"HIDDEN — LOCALPLUS"**. **But `gateLeaderboard` is `false`**, so a non-Plus player is *still in* everyone else's board — the "hidden" copy is inaccurate. Needs a product call: either turn `gateLeaderboard` on, or change the non-Plus copy while it's off. | ⬜ Jesse's call |
+| Court detail / "other courts" insights | `LocalPlusFlags.gateCourtInsights = true` **but nothing reads it** — `app/court/[id].tsx`, `CourtSheetContent`, `MetricDashboard` have zero Plus gating. A non-Plus user sees every court's insights in full. The "other courts details" paywall Jesse keeps referring to **does not exist yet**. | ⬜ not built |
+| **App Review risk** | With `LOCALPLUS_DEV_DEFAULT = false`, the reviewer sees "UPGRADE" everywhere and a dead "SEE PLANS". **Before submitting to App Review, either wire RevenueCat or flip this back to `true`.** | ⚠️ pre-submit gate |
+
+To give a specific test account Plus for A/B comparison (same mechanism as the
+launch-day STARTER grant), insert one promo `subscriptions` row:
+```sql
+insert into public.subscriptions
+  (user_id, revenuecat_app_user_id, status, billing_provider, entitlement_id,
+   current_period_starts_at, current_period_ends_at, expires_at)
+values
+  ('<user-uuid>', 'promo:<user-uuid>', 'active', 'promo', 'localplus',
+   now(), now() + interval '1 year', now() + interval '1 year');
+-- revoke:  delete from public.subscriptions where user_id = '<user-uuid>' and billing_provider = 'promo';
+```
 
 ## 2026-09-09 — Setting a local court with none set crashes the app
 

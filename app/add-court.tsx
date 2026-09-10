@@ -4,6 +4,7 @@ import * as Location from "expo-location";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import {
+  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -159,6 +160,10 @@ export default function AddCourtRoute() {
   const [photoUri, setPhotoUri] = React.useState<string | null>(null);
   const [photoBase64, setPhotoBase64] = React.useState<string | null>(null);
   const [result, setResult] = React.useState<Result | null>(null);
+  // Set when the submitter taps DONE on the VERIFYING screen: the request keeps
+  // running, but the result is delivered as an alert instead of a screen since
+  // they've already left the flow.
+  const verifyInBackground = React.useRef(false);
 
   const reverseGeocode = React.useCallback(
     async (latitude: number, longitude: number) => {
@@ -211,8 +216,30 @@ export default function AddCourtRoute() {
       setScreen("error");
     }
   };
+  // Verification resolved after the submitter tapped DONE and left — tell them
+  // how it went instead of pushing a screen they've navigated away from.
+  const announceBackgroundResult = (response: Result) => {
+    if (response.verified && response.court) {
+      const label = response.court.shortName || response.court.name;
+      Alert.alert(`${label} is live`, `Your court passed verification.`, [
+        { text: "Not now", style: "cancel" },
+        {
+          text: "View court",
+          onPress: () => router.push(`/court/${response.court!.id}`),
+        },
+      ]);
+    } else {
+      Alert.alert(
+        "Court not verified",
+        response.reason ||
+          "We couldn’t verify that photo. Open Add Court to try again.",
+      );
+    }
+  };
+
   const submit = async () => {
     if (lat == null || lng == null || !photoBase64 || !courtName.trim()) return;
+    verifyInBackground.current = false;
     setScreen("verifying");
     // Never let the screen hang on a stalled request — the CANCEL affordance
     // already lets the user out, and this converts a silent stall into a
@@ -249,6 +276,10 @@ export default function AddCourtRoute() {
       timeout,
     ])) as Result;
     setResult(response);
+    if (verifyInBackground.current) {
+      announceBackgroundResult(response);
+      return;
+    }
     if (response.verified && response.court) setScreen("success");
     else if (
       response.failureCode === "cooldown" ||
@@ -332,8 +363,12 @@ export default function AddCourtRoute() {
         <CenteredState
           icon="map-pin"
           title="VERIFYING COURT"
-          body="AI is checking your photo to confirm this is an actual court…"
+          body="AI is checking your photo to confirm this is an actual court. You can leave — we’ll let you know when it’s done."
           progress
+          onDone={() => {
+            verifyInBackground.current = true;
+            explore();
+          }}
           onCancel={() => setScreen("details")}
         />
       ) : null}
@@ -583,12 +618,15 @@ function CenteredState({
   title,
   body,
   progress = false,
+  onDone,
   onCancel,
 }: {
   icon: React.ComponentProps<typeof Feather>["name"];
   title: string;
   body: string;
   progress?: boolean;
+  /** Leave the flow now; the request keeps running and reports back by alert. */
+  onDone?: () => void;
   onCancel?: () => void;
 }) {
   return (
@@ -605,6 +643,15 @@ function CenteredState({
           </View>
           <Text style={styles.waitText}>This usually takes a few seconds</Text>
         </>
+      ) : null}
+      {onDone ? (
+        <BrutalistButton
+          label="DONE"
+          onPress={onDone}
+          variant="accent"
+          size="md"
+          style={styles.fullButton}
+        />
       ) : null}
       {onCancel ? (
         <Pressable

@@ -106,11 +106,15 @@ export default function MatchReviewScreen() {
       return;
     }
     await refreshAll();
-    // Approving a 1v1 confirms it and moves ELO. Send the player to their
-    // profile so they see the rating tick over.
+    // Approving a 1v1 confirms it and moves ELO. The card's ELO line animates
+    // in place (status flips to "confirmed" on the refresh above); hold a beat
+    // so that roll is seen, then hand off to the profile, where the same delta
+    // shows on the big number for the next few hours.
     if (decision === "approve") {
       const fresh = await fetchMatchReview(match.id);
-      if (fresh?.status === "confirmed") router.replace("/(tabs)/elo");
+      if (fresh?.status === "confirmed") {
+        setTimeout(() => router.replace("/(tabs)/elo"), 1900);
+      }
     }
   };
 

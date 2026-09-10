@@ -355,6 +355,47 @@ export async function fetchOpenMatchesForPlayer(
 }
 
 /**
+ * The ELO move from the player's most recently settled game — `elo_after -
+ * elo_before` for their `match_participants` row on the latest confirmed match,
+ * plus when it settled (`matches.updated_at`). `null` when there's no settled
+ * game or the rating didn't move. The Me tab shows the "▲ 12 / ▼ 8" delta
+ * beside ELO only while `settledAtMs` is recent, so approving a game (or opening
+ * its "game confirmed" notification) lands on a profile that shows what changed,
+ * and it clears itself after a few hours.
+ */
+export async function fetchLatestEloDelta(
+  userId: string,
+): Promise<{ delta: number; settledAtMs: number } | null> {
+  try {
+    const ids = await fetchParticipantMatchIds(userId);
+    if (ids.length === 0) return null;
+    const { data: latest } = await supabase
+      .from("matches")
+      .select("id,updated_at")
+      .in("id", ids)
+      .eq("status", "confirmed")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const latestRow = latest as { id: string; updated_at: string } | null;
+    if (!latestRow) return null;
+    const { data: p } = await supabase
+      .from("match_participants")
+      .select("elo_before,elo_after")
+      .eq("match_id", latestRow.id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    const row = p as { elo_before: number | null; elo_after: number | null } | null;
+    if (!row || row.elo_before == null || row.elo_after == null) return null;
+    const delta = row.elo_after - row.elo_before;
+    if (delta === 0) return null;
+    return { delta, settledAtMs: new Date(latestRow.updated_at).getTime() };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * The player's games that have already reached a terminal state — confirmed or
  * voided — most recently resolved first. Powers the Inbox "ALL" scope so a
  * player can see that a game was approved, and what it did to their rating,

@@ -137,8 +137,11 @@ const styles = StyleSheet.create({
   card: {
     marginHorizontal: Space.lg,
     paddingHorizontal: Space.md,
+    // Top and bottom insets match: card top → FINAL bar (this padding + grabber
+    // + its margin ≈ 24) ≈ "VIEW GAME" text → card bottom (its slack + this
+    // padding ≈ 25).
     paddingTop: Space.sm,
-    paddingBottom: Space.lg,
+    paddingBottom: Space.md,
     backgroundColor: Colors.surface,
     borderRadius: 26,
     borderWidth: 1,
@@ -153,7 +156,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.mutedDark,
   },
   viewGame: {
-    minHeight: 44,
+    minHeight: 40,
     marginTop: Space.md,
     flexDirection: "row",
     alignItems: "center",

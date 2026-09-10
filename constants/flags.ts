@@ -22,10 +22,16 @@ export const LocalPlusFlags = {
 } as const;
 
 /**
- * Fallback for `useLocalPlus()` before profiles.is_pro is populated for the
- * founding cohort (the migration inserts promo subscription rows). The whole
- * current user base gets a free year, so `true` is the honest default; flip to
- * `false` to preview the locked states during development.
+ * Fallback for `useLocalPlus()` when the viewer has no `profiles.is_pro` signal.
+ *
+ * `true` = blanket-unlock. Every pre-launch account (all test accounts, the
+ * Apple reviewer, Jesse's FOUNDER account) has LocalPlus, which is why the
+ * leaderboard is populated and nobody hits a paywall in the current build.
+ *
+ * Set to `false` for the real post-launch experience — a new account (past the
+ * first-100 STARTER cohort, no App Store purchase) sees the locked/paywalled
+ * states. Do NOT ship `false` until RevenueCat is wired: without it the
+ * `/localplus` "SEE PLANS" button is a dead alert.
  */
 export const LOCALPLUS_DEV_DEFAULT = true;
 

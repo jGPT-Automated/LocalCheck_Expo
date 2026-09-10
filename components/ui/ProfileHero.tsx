@@ -113,8 +113,9 @@ export function ProfileHero({
                   {elo}
                 </Text>
               )}
+              {/* "ELO" stays pinned to the right edge, directly under the
+                  number; the recent-change delta sits to its left. */}
               <View style={styles.compactEloMeta}>
-                <Text style={styles.compactEloLabel}>ELO</Text>
                 {eloDelta != null ? (
                   <Text
                     style={[
@@ -125,6 +126,7 @@ export function ProfileHero({
                     {eloDelta > 0 ? "▲" : "▼"} {Math.abs(eloDelta)}
                   </Text>
                 ) : null}
+                <Text style={styles.compactEloLabel}>ELO</Text>
               </View>
             </View>
           )}
@@ -271,12 +273,15 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 13,
     color: Colors.muted,
-    letterSpacing: 2,
+    letterSpacing: 1.2,
   },
+  // Same line box as compactName (21 / 24) so the value sits on the name's line
+  // and the "ELO" caption sits on the location caption's line — the block is a
+  // mirror of the identity block beside it, no clipping, no fixed heights.
   compactEloValue: {
     fontFamily: Typography.headingBold,
-    fontSize: 30,
-    lineHeight: 30,
+    fontSize: 22,
+    lineHeight: 24,
     color: Colors.text,
     textAlign: "right",
   },

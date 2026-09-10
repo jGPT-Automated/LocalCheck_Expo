@@ -28,6 +28,7 @@ import {
   searchPlayers,
 } from "@/services/profileService";
 import {
+  fetchLatestEloDelta,
   fetchOpenMatchesForPlayer,
   fetchRecentlySettledMatchesForPlayer,
 } from "@/services/gameService";
@@ -75,6 +76,9 @@ export default function MeScreen() {
   const [inboxScope, setInboxScope] = useState<InboxScope>("pending");
   const [inboxQuery, setInboxQuery] = useState("");
   const [activity, setActivity] = useState<FeedItem[]>([]);
+  // ELO move from the player's most recently settled game — shown as a "▲ 12"
+  // delta beside ELO in the hero so landing here after a game confirms reads.
+  const [recentEloDelta, setRecentEloDelta] = useState<number | null>(null);
 
   const friends = getFriendsList();
   const searchingFriends = friendQuery.trim().length >= 2;
@@ -177,6 +181,26 @@ export default function MeScreen() {
   // the per-user realtime broadcast for that isn't reliable. Re-pull the
   // authoritative profile + matches + activity every time this screen is
   // focused so the numbers and the feed are never stale here.
+  // The ELO delta beside the hero number is a transient "here's what just
+  // happened" badge: the most recent settled game's move, shown only for the
+  // first 6 hours after it settled. A newer game replaces it; after 6h it's
+  // gone. Re-checked on every focus so approving a game elsewhere shows here.
+  const ELO_DELTA_WINDOW_MS = 6 * 60 * 60_000;
+  const refreshEloDelta = useCallback(() => {
+    let cancelled = false;
+    void fetchLatestEloDelta(currentUser.id).then((latest) => {
+      if (cancelled) return;
+      setRecentEloDelta(
+        latest && Date.now() - latest.settledAtMs < ELO_DELTA_WINDOW_MS
+          ? latest.delta
+          : null,
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [ELO_DELTA_WINDOW_MS, currentUser.id]);
+
   useFocusEffect(
     useCallback(() => {
       void refreshProfile();
@@ -184,10 +208,12 @@ export default function MeScreen() {
       const stopActivity = refreshActivity();
       const stopMatches = refreshOpenMatches();
       const stopSettled = refreshSettledMatches();
+      const stopEloDelta = refreshEloDelta();
       return () => {
         stopActivity?.();
         stopMatches?.();
         stopSettled?.();
+        stopEloDelta?.();
       };
     }, [
       refreshProfile,
@@ -195,6 +221,7 @@ export default function MeScreen() {
       refreshActivity,
       refreshOpenMatches,
       refreshSettledMatches,
+      refreshEloDelta,
     ]),
   );
   useEffect(() => {
@@ -251,7 +278,7 @@ export default function MeScreen() {
           compact
           courtLabel={localCourt?.shortName || localCourt?.name}
           elo={currentUser.elo}
-          eloAnimate
+          eloDelta={recentEloDelta}
           headline={currentUser.name}
           initials={currentUser.avatar || "LC"}
           name={currentUser.name}
@@ -268,7 +295,6 @@ export default function MeScreen() {
           username={profile?.username || currentUser.username}
         />
         <ProfileStats
-          animateChanges
           compact
           metrics={[
             { value: currentUser.wins, label: "WINS" },

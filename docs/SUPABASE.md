@@ -169,7 +169,19 @@ tool, verified with read-only queries:
   intended replacement; fatal native crashes are not captured here. Inspect:
   `select created_at, route, update_id, message, error_stack, component_stack from public.client_errors order by created_at desc limit 50;`
 
-All 2026-09 migrations are applied to LocalCheckProd; none are pending.
+- `20260910000000_friendly_usernames.sql` — **SOURCE ONLY, NOT APPLIED.**
+  Rewrites `private.handle_new_user()` (via a new `private.generate_username`
+  helper) so an auto handle is the clean base (`mapcrash`), with a numeric
+  suffix only on collision (`mapcrash2`) and the old 16-hex UUID tail kept only
+  as a signup-race fallback. Includes a row-by-row backfill of existing
+  `<base>_<16 hex>` handles. No FK / RLS / grant changes; usernames are
+  display + ILIKE-search only. Client fallback in `context/AuthContext.tsx`
+  mirrors it. Apply through the Supabase migration tool on Jesse's go, then
+  verify: `select username from public.profiles where username ~ '_[0-9a-f]{16}$';`
+  should return 0 rows.
+
+All other 2026-09 migrations are applied to LocalCheckProd; only
+`20260910000000_friendly_usernames.sql` is pending.
 `account_tag` is cosmetic — it does not gate the leaderboard or LocalPlus; the
 only functional switch is the client flag `LeaderboardFlags.hideTaggedAccounts`
 (off). No RevenueCat webhook function exists yet. `profiles.is_pro` is still the
