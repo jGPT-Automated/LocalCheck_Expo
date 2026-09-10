@@ -20,12 +20,14 @@ evidence only; it does not replace the production checkpoint below.
 - Supabase production project: `qkrnmyexzvaxiqfxwwfb`.
 - Installed binaries use EAS Update with `runtimeVersion.policy = appVersion`.
 - Production OTA rollback remains available through EAS Update republish.
-- **All migrations applied to LocalCheckProd (2026-09-07/08); none pending:**
+- **All migrations applied to LocalCheckProd (through 2026-09-09); none pending:**
   `pr43_founding_localplus_referral_cooldown` (referral codes + 7-day
   local-court cooldown; founding grant deferred to a launch-day migration),
   `account_tags` (`profiles.account_tag` — replaces `is_test` /
   `is_founding_member`; runbook `docs/runbooks/ACCOUNT_TAGS.md`),
-  `profile_visibility` (`profiles.visibility` public/friends/private).
+  `profile_visibility` (`profiles.visibility` public/friends/private),
+  `client_error_log` (`public.client_errors` — insert-only crash capture; see
+  `docs/SUPABASE.md`).
 
 ## Current product contract
 
@@ -71,6 +73,13 @@ development and testing.
   from `account_tag`.
 - Mapbox, push notifications, Apple Sign-In, and SecureStore require physical
   iOS verification; browser success does not prove them.
+- Crash visibility: the RN `ErrorBoundary` + a global JS / unhandled-rejection
+  handler write best-effort to `public.client_errors` (authenticated INSERT
+  only, no user id, size-capped, 300/hr ceiling, no read access). **Submission
+  action:** `app.json` now declares Crash / Other-Diagnostic data (not linked,
+  not tracking) — the App Store Connect privacy answers must be set to match
+  before submit. Stopgap; a real reporter (Sentry) is still recommended for
+  native crashes and release-health.
 - `app/auth.tsx` rejects empty email/password and enforces a 6-character
   minimum, but has **no email-format check and no password-strength rules**;
   Supabase Auth leaked-password protection (HaveIBeenPwned) is also off — a

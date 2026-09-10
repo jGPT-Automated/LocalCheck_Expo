@@ -153,7 +153,23 @@ tool, verified with read-only queries:
   `grant update (visibility) to authenticated`. Verified: column present,
   default `public`, 2 rows backfilled to `private`.
 
-All four 2026-09 migrations are applied to LocalCheckProd; none are pending.
+- `20260909180000_client_error_log.sql` + `20260909190000_client_errors_harden.sql`
+  — **applied 2026-09-09**. `public.client_errors` (message / error_stack /
+  component_stack / route / source / platform / app_version / update_id /
+  channel / runtime_version). **No `user_id`** — crash diagnostics are a code
+  path, not user data, so the table is not identity-linked and nothing on a
+  direct insert can be spoofed to an account. RLS: **`authenticated` INSERT
+  only** (anon revoked), **no SELECT policy**, per-column length `CHECK`, and a
+  BEFORE-INSERT trigger `private.cap_client_errors` that silently drops rows
+  once >300 land in an hour. Written best-effort by the RN `ErrorBoundary`
+  `onError` + a global JS/unhandled-rejection handler
+  (`services/errorReportService.ts`). Declared in `app.json`'s privacy manifest
+  as Crash / Other-Diagnostic data, **not linked, not for tracking** — the App
+  Store privacy answers must match. A real reporter (Sentry) is still the
+  intended replacement; fatal native crashes are not captured here. Inspect:
+  `select created_at, route, update_id, message, error_stack, component_stack from public.client_errors order by created_at desc limit 50;`
+
+All 2026-09 migrations are applied to LocalCheckProd; none are pending.
 `account_tag` is cosmetic — it does not gate the leaderboard or LocalPlus; the
 only functional switch is the client flag `LeaderboardFlags.hideTaggedAccounts`
 (off). No RevenueCat webhook function exists yet. `profiles.is_pro` is still the
