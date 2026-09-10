@@ -55,6 +55,33 @@ flagged a short list before screenshots + the RevenueCat paywall.
 | Team-game card (drawer + summary): WIN above the score "like standard"; team names not aligned; top/bottom padding not symmetric | ✅ `components/match/ScoreCard.tsx` — WIN pill moved above the score with a slot reserved on the losing side so scores + names share a baseline; `components/ui/GameResultModal.tsx` — card top→FINAL bar ≈ VIEW GAME→card bottom (verified on web: 26 vs 30) |
 | VERIFYING + DONE layout on device (camera flow can't be exercised on web) | ⬜ device check |
 
+### Regular-user (no-LocalPlus) flow — audit for testing on the next build
+
+Jesse: "make sure there's a UI flow for a regular user — someone who joins after
+the first 100 and won't have LocalPlus — I want to test that flow."
+
+| Surface | Non-Plus state | Status |
+|---------|----------------|--------|
+| `LOCALPLUS_DEV_DEFAULT` | Was `true` — every account without a real `is_pro` got Plus, so **no** locked state was reachable on any build. Flipped to **`false`** so a fresh account sees the real flow. | ✅ `constants/flags.ts` |
+| ME tab → history | Blurs games past the 10 most recent, "UNLOCK N MORE" card → `/localplus`. `gateHistory` on. | ✅ verified on web |
+| Settings | Row reads "UPGRADE TO LOCALPLUS" → `/localplus`. | ✅ |
+| `/localplus` screen | Perks list + **"SEE PLANS"** → `Alert("Almost there… subscriptions go live shortly")`. Non-functional purchase entry point. | ⚠️ dead-end until RevenueCat (Phase 3–4) |
+| Leaderboard | Own rank badge + row label read **"HIDDEN — LOCALPLUS"**. **But `gateLeaderboard` is `false`**, so a non-Plus player is *still in* everyone else's board — the "hidden" copy is inaccurate. Needs a product call: either turn `gateLeaderboard` on, or change the non-Plus copy while it's off. | ⬜ Jesse's call |
+| Court detail / "other courts" insights | `LocalPlusFlags.gateCourtInsights = true` **but nothing reads it** — `app/court/[id].tsx`, `CourtSheetContent`, `MetricDashboard` have zero Plus gating. A non-Plus user sees every court's insights in full. The "other courts details" paywall Jesse keeps referring to **does not exist yet**. | ⬜ not built |
+| **App Review risk** | With `LOCALPLUS_DEV_DEFAULT = false`, the reviewer sees "UPGRADE" everywhere and a dead "SEE PLANS". **Before submitting to App Review, either wire RevenueCat or flip this back to `true`.** | ⚠️ pre-submit gate |
+
+To give a specific test account Plus for A/B comparison (same mechanism as the
+launch-day STARTER grant), insert one promo `subscriptions` row:
+```sql
+insert into public.subscriptions
+  (user_id, revenuecat_app_user_id, status, billing_provider, entitlement_id,
+   current_period_starts_at, current_period_ends_at, expires_at)
+values
+  ('<user-uuid>', 'promo:<user-uuid>', 'active', 'promo', 'localplus',
+   now(), now() + interval '1 year', now() + interval '1 year');
+-- revoke:  delete from public.subscriptions where user_id = '<user-uuid>' and billing_provider = 'promo';
+```
+
 ## 2026-09-09 — Setting a local court with none set crashes the app
 
 Jesse: 100% reproducible on TestFlight and web — any account with **no local
