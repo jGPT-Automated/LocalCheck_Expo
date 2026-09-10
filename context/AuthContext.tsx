@@ -126,18 +126,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         (meta.full_name as string) ||
         emailLocal ||
         "Player";
-      const base =
+      // Mirrors private.generate_username: prefer the clean handle, fall back to
+      // an id-tailed one only if it's taken. This path only runs when the DB
+      // trigger hasn't provisioned the row yet, so a 23505 usually just means
+      // the trigger won the race — reload and use its (friendly) handle.
+      const idTail = authUser.id.replace(/-/g, "");
+      let base =
         (displayName || "player")
           .toLowerCase()
           .replace(/[^a-z0-9_]+/g, "")
-          .slice(0, 23) || "player";
-      const username = `${base}_${authUser.id.replace(/-/g, "").slice(0, 8)}`;
+          .slice(0, 20) || "player";
+      if (base.length < 3) base = `${base}xxx`.slice(0, 20);
 
-      const { error: insertError } = await supabase.from("profiles").insert({
-        id: authUser.id,
-        display_name: displayName,
-        username,
-      });
+      const tryInsert = (username: string) =>
+        supabase.from("profiles").insert({
+          id: authUser.id,
+          display_name: displayName,
+          username,
+        });
+
+      let { error: insertError } = await tryInsert(base);
+      if (insertError && insertError.code === "23505") {
+        const created = await loadProfile(authUser.id);
+        if (created) {
+          setProfile(created);
+          return { error: null };
+        }
+        // Row still absent: the clash is on the handle, not the id — take a
+        // unique id-tailed handle.
+        ({ error: insertError } = await tryInsert(`${base}_${idTail.slice(0, 6)}`));
+      }
 
       if (!insertError || insertError.code === "23505") {
         const created = await loadProfile(authUser.id);

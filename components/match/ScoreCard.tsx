@@ -128,10 +128,19 @@ function formatPlayedOn(value: string): string {
 
 const firstName = (name: string) => name.split(" ")[0].toUpperCase();
 
-function WinBadge() {
+/**
+ * The WIN pill sits directly above the score, and its slot is rendered on the
+ * losing side too (empty) so both columns' scores and name lists stay on the
+ * same baseline.
+ */
+function WinBadgeSlot({ win }: { win: boolean }) {
   return (
-    <View style={styles.winBadge}>
-      <Text style={styles.winBadgeText}>WIN</Text>
+    <View style={styles.winBadgeSlot}>
+      {win ? (
+        <View style={styles.winBadge}>
+          <Text style={styles.winBadgeText}>WIN</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -298,8 +307,8 @@ function SideColumn({
             compact={compact}
           />
         ) : null}
+        <WinBadgeSlot win={winBadge} />
         {scoreEl}
-        {winBadge ? <WinBadge /> : null}
       </View>
     );
   }
@@ -309,8 +318,8 @@ function SideColumn({
       <Text numberOfLines={1} style={styles.sideLabel}>
         {teamLabel}
       </Text>
+      <WinBadgeSlot win={winBadge} />
       {scoreEl}
-      {winBadge ? <WinBadge /> : null}
       <View style={styles.sidePlayers}>
         {players.map((player, index) => (
           <View
@@ -600,8 +609,13 @@ const styles = StyleSheet.create({
   },
   sideScoreCompact: { fontSize: 30, lineHeight: 34 },
   sideScoreWin: { color: Colors.text },
+  // Reserved on both sides so the two scores and name lists share a baseline.
+  winBadgeSlot: {
+    minHeight: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   winBadge: {
-    marginTop: 2,
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: Radius.xs,

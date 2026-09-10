@@ -63,14 +63,30 @@ export function formatActivityCopy(item: ActivityCopyInput): {
   };
 }
 
+/** Two letters for a name in a tight roster line: first + last initial, or the
+ *  first two characters of a single-token handle. */
+function nameInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/**
+ * One side of a matchup on a feed row. A solo or pair reads with full names;
+ * a bigger team leads with the first name in full and abbreviates the rest to
+ * initials so a 5-a-side game still fits on one line
+ * ("JESSE + EL, MK, TW, RP").
+ */
 export function formatMatchSide(
   participants: Pick<FeedMatchParticipant, "name">[],
 ): string {
-  if (participants.length === 0) return "SIDE TBD";
-  return participants
+  const names = participants
     .map((participant) => participant.name.trim())
-    .filter(Boolean)
-    .join(" + ");
+    .filter(Boolean);
+  if (names.length === 0) return "SIDE TBD";
+  if (names.length <= 2) return names.join(" + ");
+  return `${names[0]} + ${names.slice(1).map(nameInitials).join(", ")}`;
 }
 
 export function formatGameResult(

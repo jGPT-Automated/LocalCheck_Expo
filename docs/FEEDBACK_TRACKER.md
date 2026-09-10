@@ -23,21 +23,36 @@ point.
 
 ## Branch / PR status
 
-- **PRs #42, #44, and [#45](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/45)
-  are merged to `main`.** `origin/main` @ `f5f5b81` (PR #45 squash, 2026-09-08).
-  #45 = camera lifecycle, unified `profiles.visibility` privacy + FRIENDS
-  leaderboard, `profiles.account_tag`, one shared `SearchField`, launch polish.
-  The merge triggered EAS production **build 22**.
-- **All LocalCheckProd migrations applied; none pending:** referral/cooldown
-  plumbing, `account_tags` (`docs/runbooks/ACCOUNT_TAGS.md`), `profile_visibility`.
+- **PRs #42–#49 merged to `main`.** `origin/main` @ `67b6eca` (PR #49 squash,
+  2026-09-10). #48 = local-court crash fix + hardened `client_errors`; #49 = UI
+  polish half 1 (Add Court sheets/camera, LocalPlus copy, profile hero, activity
+  row). Merge queued an EAS production build from `67b6eca`.
+- **PR #50** (`docs/revenuecat-runbook`) — open, docs only:
+  `docs/runbooks/REVENUECAT.md`.
+- **`codex/ui-polish-batch-2`** — open: the 2026-09-10 quick-fix batch below.
+- **LocalCheckProd migrations:** all `20260909*` applied. **Pending (source
+  only, not applied):** `20260910000000_friendly_usernames.sql`.
 - **Release loop:** opening a PR against `main` auto-publishes a scannable Expo
-  Go preview; merging to `main` auto-triggers the TestFlight build. No manual
-  EAS step. See `docs/RELEASE.md`.
-- No feature branch open right now. Branch the next task from `origin/main`.
+  Go preview; merging to `main` auto-triggers the TestFlight build (ignores
+  `docs/**` / `**/*.md`). See `docs/RELEASE.md`.
 
 ## Status legend
 
 ✅ done — committed on the branch · 🚧 in progress · ⬜ backlog, not started
+
+## 2026-09-10 — quick-fix batch (post-#49 device testing)
+
+Jesse confirmed the map/no-court crash is fixed and Add Court looks good, then
+flagged a short list before screenshots + the RevenueCat paywall.
+
+| Item | Status |
+|------|--------|
+| Add Court **VERIFYING** screen: add a **DONE** button beside CANCEL — leave the flow, verification keeps running, result comes back as an alert ("… is live" / "Court not verified") | ✅ `app/add-court.tsx` — `verifyInBackground` ref; `announceBackgroundResult` |
+| ME tab hero: ELO value + "ELO" caption not on the same lines as the name + location; felt off-centre | ✅ `components/ui/ProfileHero.tsx` — ELO value 30→24, name and value share a 26px line box so both captions align (verified on web, both captions top=153) |
+| Auto-generated usernames are ugly: `mapcrash@test.com` → `@mapcrash_61f0edc6c8a64f62` (16-hex tail on every account) | 🚧 migration `20260910000000_friendly_usernames.sql` — clean base (`mapcrash`), numeric suffix only on collision, id-tail only on a race; backfills existing hex-tailed handles. **Source only — needs "apply" from Jesse.** Client fallback in `context/AuthContext.tsx` matched. |
+| Feed team games (player profile): "Name + INITIALS, INITIALS" instead of every full name joined with " + " | ✅ `components/home/homePresentation.ts` `formatMatchSide` — solo/pair unchanged; 3+ = lead name + initials. Test added. |
+| Team-game card (drawer + summary): WIN above the score "like standard"; team names not aligned; top/bottom padding not symmetric | ✅ `components/match/ScoreCard.tsx` — WIN pill moved above the score with a slot reserved on the losing side so scores + names share a baseline; `components/ui/GameResultModal.tsx` — card top→FINAL bar ≈ VIEW GAME→card bottom (verified on web: 26 vs 30) |
+| VERIFYING + DONE layout on device (camera flow can't be exercised on web) | ⬜ device check |
 
 ## 2026-09-09 — Setting a local court with none set crashes the app
 
