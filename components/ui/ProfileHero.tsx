@@ -113,8 +113,9 @@ export function ProfileHero({
                   {elo}
                 </Text>
               )}
+              {/* "ELO" stays pinned to the right edge, directly under the
+                  number; the recent-change delta sits to its left. */}
               <View style={styles.compactEloMeta}>
-                <Text style={styles.compactEloLabel}>ELO</Text>
                 {eloDelta != null ? (
                   <Text
                     style={[
@@ -125,6 +126,7 @@ export function ProfileHero({
                     {eloDelta > 0 ? "▲" : "▼"} {Math.abs(eloDelta)}
                   </Text>
                 ) : null}
+                <Text style={styles.compactEloLabel}>ELO</Text>
               </View>
             </View>
           )}
