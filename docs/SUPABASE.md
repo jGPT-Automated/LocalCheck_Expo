@@ -172,8 +172,12 @@ tool, verified with read-only queries:
 All 2026-09 migrations are applied to LocalCheckProd; none are pending.
 `account_tag` is cosmetic — it does not gate the leaderboard or LocalPlus; the
 only functional switch is the client flag `LeaderboardFlags.hideTaggedAccounts`
-(off). No RevenueCat webhook function exists yet. `profiles.is_pro` is still the
-only entitlement field, trigger-derived from `public.subscriptions`.
+(off). No RevenueCat webhook function exists yet — when it is built it is
+`supabase/functions/revenuecat-webhook`, authorized by its own
+`REVENUECAT_WEBHOOK_AUTH_HEADER` secret (not the platform JWT), and upserts
+`public.subscriptions`; see `docs/runbooks/REVENUECAT.md` Phase 3.
+`profiles.is_pro` is still the only entitlement field, trigger-derived from
+`public.subscriptions`.
 
 ## Realtime and API safety
 
