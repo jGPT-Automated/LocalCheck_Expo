@@ -133,8 +133,11 @@ set account_tag = 'STARTER'
 from first_100 f where f.id = p.id;
 ```
 
-**3. Grant the free entitlement to FOUNDER.** One promo row, a long horizon
-(renew or drop the row later). **Not** for STARTER — their free year comes from
+**3. Grant the free entitlement to FOUNDER and REVIEWER.** One promo row each,
+a long horizon (renew or drop the row later). Both see the full unlocked app,
+permanently, with no purchase and no offer code — simplest to reason about,
+and a comped review account is normal, accepted practice (say so plainly in
+the App Review notes). **Not** for STARTER — their free year comes from
 redeeming an Apple offer code (a real, separate `billing_provider='app_store'`
 row the webhook writes; running this for STARTER too would leave them with two
 simultaneous lineages for no reason). The unique key is
@@ -146,14 +149,15 @@ insert into public.subscriptions (
   user_id, revenuecat_app_user_id, product_id, entitlement_id,
   status, billing_provider, current_period_starts_at, current_period_ends_at,
   expires_at, raw_payload)
-select p.id, p.id::text, 'founder_grant',
+select p.id, p.id::text,
+  lower(p.account_tag) || '_grant',
   'localplus', 'active', 'promo',
   p.created_at,
   p.created_at + interval '100 years',
   p.created_at + interval '100 years',
-  jsonb_build_object('grant', 'founder')
+  jsonb_build_object('grant', lower(p.account_tag))
 from public.profiles p
-where p.account_tag = 'FOUNDER'
+where p.account_tag in ('FOUNDER', 'REVIEWER')
 on conflict (user_id, billing_provider) do nothing;
 ```
 

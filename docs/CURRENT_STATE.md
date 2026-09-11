@@ -71,13 +71,15 @@ development and testing.
   (`20260911000000_subscriptions_webhook_support.sql`) is deployed/applied, and
   none of the app code has run on a real device yet — `react-native-purchases`
   needs a native build (not Expo Go, not web preview).
-  `LOCALPLUS_DEV_DEFAULT` is **flipped to `false` in code already** — the real
-  post-launch experience, correct now that RevenueCat is wired — but that
-  requires the FOUNDER promo-row grant (`docs/runbooks/ACCOUNT_TAGS.md` step 3)
-  to run first/alongside, or Jesse's own account loses LocalPlus with it. Full
-  status + remaining steps: `docs/runbooks/REVENUECAT.md`. Open: apply the
-  migration, deploy the webhook, run the FOUNDER grant, device-test a sandbox
-  purchase, set up the first-100 STARTER offer codes. **Not a submission
+  `useLocalPlus()` no longer has a blanket dev-unlock fallback — a fresh
+  account is genuinely locked unless a real `subscriptions` row says
+  otherwise, with one named exception (`account_tag === 'TEST'`, so Jesse's
+  QA fixtures stay usable). This requires the FOUNDER + REVIEWER promo-row
+  grant (`docs/runbooks/ACCOUNT_TAGS.md` step 3) to run first/alongside, or
+  those two accounts lose LocalPlus too.
+  Full status + remaining steps: `docs/runbooks/REVENUECAT.md`. Open: apply the
+  migration, deploy the webhook, run the FOUNDER + REVIEWER grant, device-test
+  a sandbox purchase, set up the first-100 STARTER offer codes. **Not a submission
   blocker either way** — the app can ship with the
   paywall behind the dev-default flag and the real purchase flow follows.
 - Mapbox, push notifications, Apple Sign-In, and SecureStore require physical

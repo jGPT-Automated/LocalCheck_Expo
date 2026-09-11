@@ -2,6 +2,25 @@
 
 Status: Current MVP decisions. Newer dated decisions supersede older entries.
 
+## 2026-09-11 — REVIEWER is comped like FOUNDER, not offer-code-tested
+
+**Decision confirmed by Jesse — supersedes this file's own earlier "leave the
+reviewer account plain, let it redeem an offer code" note from the same day.**
+FOUNDER and REVIEWER both get one permanent promo `subscriptions` row
+(`docs/runbooks/ACCOUNT_TAGS.md` step 3, now scoped to both tags) — full
+LocalPlus, no purchase or code involved, forever. A comped App Review account
+is normal, accepted practice; say so in the Review Notes. Simpler to reason
+about than making the reviewer exercise the offer-code flow, and one clean
+rule: **FOUNDER + REVIEWER are comped; every other account — including the
+first 100 STARTER real sign-ups — flows through the real RevenueCat purchase
+or offer-code redemption path.** No in-between cases.
+
+**Why:** the alternative (reviewer redeems a scarce STARTER code) added a
+second mechanism and a dependency on Phase 5 being live before Review could
+even start, for no real benefit — Apple doesn't require the reviewer to
+exercise a specific redemption UI, only that the subscription's behavior is
+described accurately.
+
 ## 2026-09-11 — STARTER's free year is an Apple offer code, not a promo row
 
 **Decision confirmed by Jesse — supersedes the 2026-09-09 entry's "promo row,

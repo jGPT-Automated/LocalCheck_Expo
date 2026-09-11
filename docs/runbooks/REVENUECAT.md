@@ -15,7 +15,7 @@ build as-is; the real paywall ships in the next one.
 | 3 — `revenuecat-webhook` | ✅ source written + tested, hardened after a second review pass (see below) — **not yet deployed**, and its migration (`20260911000000_subscriptions_webhook_support.sql`) is **not yet applied**. Both need one explicit go-ahead. |
 | 4 — App code (`react-native-purchases`) | ✅ source written (SDK init, identify/logout, real paywall purchase/restore/redeem-code on `/localplus`; purchase **and** offer-code redemption are both disabled until RevenueCat identification actually succeeds) — **untested on a real device**. Needs a new native build. `app.json` version bumped 1.0.2 → 1.0.3 for the new native module. |
 | 5 — Offer codes for the first-100 STARTER cohort | ⬜ not started |
-| Cutover (`LOCALPLUS_DEV_DEFAULT` → `false`) | ✅ **flipped in code** — this is the real post-launch experience: a fresh account with no grant now sees the actual locked/paywalled states instead of free access. Only correct once phase 3 is live, or nobody can actually complete a purchase. **Before merging:** run the FOUNDER promo-row grant (`docs/runbooks/ACCOUNT_TAGS.md` step 3) or Jesse's own account loses LocalPlus along with every TEST/REVIEWER account that only had it via this flag (expected for those — not for FOUNDER). Leaderboard membership is unaffected either way (`gateLeaderboard` is a separate, still-off switch). |
+| Cutover (`useLocalPlus()` real by default) | ✅ **done in code** — the blanket dev-unlock fallback (`LOCALPLUS_DEV_DEFAULT`) is removed entirely. A fresh account is genuinely locked unless a real `subscriptions` row says otherwise; the one named exception is `account_tag === 'TEST'` (Jesse's QA fixtures stay unlocked indefinitely, independent of any grant). Only correct once phase 3 is live, or nobody can actually complete a purchase. **Before merging:** run the FOUNDER + REVIEWER promo-row grant (`docs/runbooks/ACCOUNT_TAGS.md` step 3, now scoped to both) or those two accounts have no LocalPlus at all. Leaderboard membership is unaffected either way (`gateLeaderboard` is a separate, still-off switch). |
 
 ### A second review pass found 3 more real issues (fixed)
 
@@ -198,14 +198,16 @@ Offers / Offer Codes** (Apple's naming varies by ASC version — look for
 
 ## Cutover
 
-- **FOUNDER (Jesse)** needs a real entitlement before `LOCALPLUS_DEV_DEFAULT`
-  goes to `false`, or the account loses LocalPlus too — run the FOUNDER promo
-  row insert, `docs/runbooks/ACCOUNT_TAGS.md` step 3 (already scoped to
-  FOUNDER only).
-- **Apple reviewer** — do NOT comp this account. Give the reviewer one of the
-  100 STARTER offer codes to redeem during review instead: it's the real
-  purchase-adjacent flow Apple's guidelines expect exercised, and it doubles as
-  a live test of the redemption path.
-- Set `LOCALPLUS_DEV_DEFAULT = false` in `constants/flags.ts`.
+- **FOUNDER (Jesse) and REVIEWER (Apple)** each need a real entitlement — there
+  is no fallback covering them anymore — run the promo-row grant,
+  `docs/runbooks/ACCOUNT_TAGS.md` step 3 (now scoped to both tags). Both then
+  see the full unlocked app permanently, no purchase or code involved —
+  simplest to reason about. Say so plainly in the App Store Review notes (a
+  pre-unlocked reviewer account is normal, accepted practice).
+- **TEST accounts** stay unlocked automatically — `useLocalPlus()` grants
+  LocalPlus to any `account_tag === 'TEST'` profile, no per-account row needed.
+- Everyone else flows through real: a fresh sign-up sees the locked/paywalled
+  state; the first 100 real sign-ups (STARTER) redeem an Apple offer code for
+  their free year (Phase 5); anyone after that just subscribes.
 - Submit the paid subscription (`Add for Review`) with the app version that
   carries the paywall.
