@@ -11,6 +11,7 @@ import { Platform } from "react-native";
 
 import { supabase } from "@/lib/supabase";
 import type { AccountTag } from "@/constants/data";
+import { identifyPurchaser, resetPurchaser } from "@/services/purchasesService";
 
 import type { Session, User } from "@supabase/supabase-js";
 
@@ -39,6 +40,14 @@ export interface UserProfile {
   preferred_sport: string | null;
   postal_code: string | null;
   is_pro: boolean;
+  /** billing_provider of whichever row is currently granting is_pro
+   *  ('app_store' | 'play_store' | 'stripe' | 'promo' | 'unknown'), or null
+   *  when nothing is. NOT the same axis as account_tag — a STARTER who
+   *  redeemed their offer code has a real 'app_store' row despite the tag
+   *  never changing. Drives whether app/localplus.tsx shows a manage/cancel
+   *  link. Absent until the subscriptions-webhook-support migration is
+   *  applied. */
+  plus_billing_provider?: string | null;
   /** Persistent identity-level privacy: governs check-ins, schedule, and the
    *  leaderboard. Absent until the profile-visibility migration is applied. */
   visibility?: "public" | "friends" | "private";
@@ -211,6 +220,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, [waitForProfile]);
+
+  // Ties RevenueCat's app_user_id to the signed-in Supabase user, so the
+  // revenuecat-webhook can write purchases straight onto profiles.id. A
+  // dedicated effect (not the synchronous auth-state-change callback above,
+  // which must stay sync) so it fires once per real identity change, on both
+  // the cold-start restore and a live sign-in/out.
+  useEffect(() => {
+    if (user?.id) {
+      void identifyPurchaser(user.id);
+    } else {
+      void resetPurchaser();
+    }
+  }, [user?.id]);
 
   const signUpWithEmail = useCallback(
     async (email: string, password: string, displayName?: string) => {

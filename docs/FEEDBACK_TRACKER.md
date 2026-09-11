@@ -23,15 +23,17 @@ point.
 
 ## Branch / PR status
 
-- **PRs #42–#49 merged to `main`.** `origin/main` @ `67b6eca` (PR #49 squash,
-  2026-09-10). #48 = local-court crash fix + hardened `client_errors`; #49 = UI
-  polish half 1 (Add Court sheets/camera, LocalPlus copy, profile hero, activity
-  row). Merge queued an EAS production build from `67b6eca`.
-- **PR #50** (`docs/revenuecat-runbook`) — open, docs only:
-  `docs/runbooks/REVENUECAT.md`.
-- **`codex/ui-polish-batch-2`** — open: the 2026-09-10 quick-fix batch below.
+- **PRs #42–#51 and #50 merged to `main`.** `origin/main` @ `048acf9`. #51 = the
+  2026-09-10 quick-fix batch (Add Court DONE, Me hero + ELO delta, team-game
+  cards, friendly-usernames migration source); #50 = the RevenueCat runbook.
+  Each non-docs merge queues an EAS production build.
+- **`codex/revenuecat-integration`** — open: `revenuecat-webhook` edge function
+  (source, unit tested, not deployed) + the full `react-native-purchases`
+  app integration (source, not device-tested). See
+  `docs/runbooks/REVENUECAT.md` for the current phase-by-phase status.
 - **LocalCheckProd migrations:** all `20260909*` applied. **Pending (source
-  only, not applied):** `20260910000000_friendly_usernames.sql`.
+  only, not applied):** `20260910000000_friendly_usernames.sql`,
+  `20260911000000_subscriptions_webhook_support.sql`.
 - **Release loop:** opening a PR against `main` auto-publishes a scannable Expo
   Go preview; merging to `main` auto-triggers the TestFlight build (ignores
   `docs/**` / `**/*.md`). See `docs/RELEASE.md`.
@@ -39,6 +41,24 @@ point.
 ## Status legend
 
 ✅ done — committed on the branch · 🚧 in progress · ⬜ backlog, not started
+
+## 2026-09-11 — RevenueCat wired end to end
+
+Jesse handled the App Store Connect + RevenueCat dashboard side himself (with
+step-by-step guidance); Claude built the webhook + app integration.
+
+| Item | Status |
+|------|--------|
+| ASC subscription finished (price $4.99, US-only, localization) | ✅ Jesse |
+| A previous agent session downloaded the In-App Purchase key's `.p8`, then lost it, and separately swept the filesystem for key material — both that key and the App Store Connect API key EAS uses were revoked and regenerated. Neither key's private material passed through chat at any point. | ✅ rotated |
+| RevenueCat dashboard: real App Store app config, product imported, `localplus` entitlement attached, `default` offering (`$rc_monthly` only — no annual for v1), public SDK key set as EAS env `EXPO_PUBLIC_REVENUECAT_IOS_KEY` | ✅ Jesse |
+| `revenuecat-webhook` edge function — event mapping, idempotent upsert, out-of-order guard, unit tested | ✅ `supabase/functions/revenuecat-webhook`, ⬜ not deployed |
+| `20260911000000_subscriptions_webhook_support.sql` | ✅ written, ⬜ not applied |
+| App integration: SDK init, identify/logout, real purchase + restore + offer-code redemption on `/localplus`, same-device fast-path entitlement check | ✅ `services/purchasesService.ts`, `app/localplus.tsx`, `context/AuthContext.tsx`, `hooks/useLocalPlus.ts` — ⬜ **not run on a device** (needs a new native build) |
+| First-100 STARTER offer codes (100% off, 1 year, one-time codes) — converts to paid $4.99/mo after the free year unless cancelled; accepted per Jesse, not a bug | ⬜ pending |
+| FOUNDER + reviewer real entitlements before flipping `LOCALPLUS_DEV_DEFAULT` | ⬜ pending |
+
+Full sequence: `docs/runbooks/REVENUECAT.md`.
 
 ## 2026-09-10 — quick-fix batch (post-#49 device testing)
 

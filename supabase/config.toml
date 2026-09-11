@@ -47,6 +47,12 @@ verify_jwt = true
 # x-localcheck-webhook-secret header in the function body.
 verify_jwt = false
 
+[functions.revenuecat-webhook]
+# Server-to-server call from RevenueCat, not a user request — no platform JWT.
+# Authenticates the Authorization header against REVENUECAT_WEBHOOK_AUTH_HEADER
+# in the function body instead.
+verify_jwt = false
+
 [functions.verify-court]
 # Court submissions must carry an authenticated user JWT. The function also
 # calls getUser before invoking its service-role-only insertion RPC.

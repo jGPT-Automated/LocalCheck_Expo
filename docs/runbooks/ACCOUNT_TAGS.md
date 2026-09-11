@@ -33,9 +33,19 @@ Independent of the tag, a profile is only ranked in a sport after **≥1 game**
 in that sport (`hasRankedGame` in `services/profileService.ts`), and privacy
 (`profiles.visibility`) and the LocalPlus gate still apply.
 
-**LocalPlus is not a tag.** Free access for FOUNDER/STARTER comes from a promo
-row in `public.subscriptions` (→ `profiles.is_pro` via trigger), which has an
-expiry. `useLocalPlus()` reads `is_pro` only.
+**LocalPlus is not a tag.** `useLocalPlus()` reads `is_pro` only, which the
+`private.sync_profile_is_pro` trigger derives from `public.subscriptions` — the
+tag never grants anything by itself. The two cohorts get there differently:
+
+- **FOUNDER** — a promo row in `public.subscriptions`
+  (`billing_provider='promo'`), inserted directly (step 3 below).
+- **STARTER** — redeems one of the 100 first-100 Apple offer codes (see
+  `docs/runbooks/REVENUECAT.md` Phase 5). That's a **real App Store
+  subscription** (`billing_provider='app_store'`), reported through the
+  `revenuecat-webhook` like any other purchase — no manual SQL. It auto-renews
+  at $4.99/mo after the free year unless the user cancels; `account_tag` is
+  set at signup time (step 2 below) purely as the row label, independent of
+  when/whether they redeem a code.
 
 ## Everywhere `account_tag` is read (the blast radius)
 
@@ -123,9 +133,16 @@ set account_tag = 'STARTER'
 from first_100 f where f.id = p.id;
 ```
 
-**3. Grant the free entitlement to FOUNDER + STARTER.** One promo row each.
-FOUNDER gets a long horizon (renew or drop the row later); STARTER gets one year
-from their own `created_at`.
+**3. Grant the free entitlement to FOUNDER and REVIEWER.** One promo row each,
+a long horizon (renew or drop the row later). Both see the full unlocked app,
+permanently, with no purchase and no offer code — simplest to reason about,
+and a comped review account is normal, accepted practice (say so plainly in
+the App Review notes). **Not** for STARTER — their free year comes from
+redeeming an Apple offer code (a real, separate `billing_provider='app_store'`
+row the webhook writes; running this for STARTER too would leave them with two
+simultaneous lineages for no reason). The unique key is
+`(user_id, billing_provider)`, so this insert can never collide with a real
+subscription row on the same person either way.
 
 ```sql
 insert into public.subscriptions (
@@ -133,16 +150,15 @@ insert into public.subscriptions (
   status, billing_provider, current_period_starts_at, current_period_ends_at,
   expires_at, raw_payload)
 select p.id, p.id::text,
-  case p.account_tag when 'FOUNDER' then 'founder_grant' else 'starter_year_grant' end,
+  lower(p.account_tag) || '_grant',
   'localplus', 'active', 'promo',
   p.created_at,
-  p.created_at + case p.account_tag when 'FOUNDER' then interval '100 years' else interval '1 year' end,
-  p.created_at + case p.account_tag when 'FOUNDER' then interval '100 years' else interval '1 year' end,
+  p.created_at + interval '100 years',
+  p.created_at + interval '100 years',
   jsonb_build_object('grant', lower(p.account_tag))
 from public.profiles p
-where p.account_tag in ('FOUNDER', 'STARTER')
-  and not exists (select 1 from public.subscriptions s
-                  where s.user_id = p.id and s.raw_payload->>'grant' = lower(p.account_tag));
+where p.account_tag in ('FOUNDER', 'REVIEWER')
+on conflict (user_id, billing_provider) do nothing;
 ```
 
 ### Add a brand-new tag value (e.g. `CHAMPION`)

@@ -36,9 +36,11 @@ import {
   reportClientError,
   setCurrentRoute,
 } from "@/services/errorReportService";
+import { initPurchases } from "@/services/purchasesService";
 
 SplashScreen.preventAutoHideAsync();
 installGlobalErrorHandler();
+initPurchases();
 
 // Already-signed-in cold open has no real async work to tie the spinner to
 // — there's nothing to await — so this starts loading, flips it off on the
