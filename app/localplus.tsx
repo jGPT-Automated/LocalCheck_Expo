@@ -2,7 +2,6 @@ import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
-  ActivityIndicator,
   Alert,
   Linking,
   Pressable,
@@ -15,6 +14,7 @@ import type { PurchasesPackage } from "react-native-purchases";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { DetailHeader } from "@/components/ui/DetailHeader";
+import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { Colors, Radius } from "@/constants/colors";
 import { Layout, Space } from "@/constants/layout";
 import { TextStyles, Typography } from "@/constants/typography";
@@ -33,19 +33,19 @@ import {
 
 const PERKS: { icon: React.ComponentProps<typeof Feather>["name"]; title: string; body: string }[] = [
   {
+    icon: "users",
+    title: "COURT VISIBILITY",
+    body: "See the full locals list, schedule, and rankings at any court — not just your own.",
+  },
+  {
     icon: "bar-chart-2",
     title: "LEADERBOARD",
-    body: "Show up on the local, regional, and global boards. Free accounts stay unranked.",
+    body: "Show up on the local, regional, and global boards. LocalLite accounts stay unranked.",
   },
   {
     icon: "clock",
     title: "FULL MATCH HISTORY",
     body: `Every game on your profile, not just the last ${LocalPlusFlags.freeHistoryCount}. Older games always count toward your rating and stats either way.`,
-  },
-  {
-    icon: "map",
-    title: "TRAVEL COURT INSIGHTS",
-    body: "Open the players, schedule, and activity for any court — not only your local one.",
   },
   {
     icon: "award",
@@ -147,6 +147,20 @@ export default function LocalPlusScreen() {
     }
   };
 
+  const purchaseDisabled = purchasing || (identityState === "ready" && !pkg);
+  const purchaseLabel =
+    identityState === "pending"
+      ? "SIGNING YOU IN…"
+      : identityState === "error"
+        ? "COULDN'T VERIFY YOUR ACCOUNT — TAP TO RETRY"
+        : purchasing
+          ? "SUBSCRIBING…"
+          : pkg
+            ? `SUBSCRIBE — ${pkg.product.priceString}/MO`
+            : offeringChecked
+              ? "NOT AVAILABLE YET"
+              : "LOADING…";
+
   return (
     <View style={styles.screen}>
       <DetailHeader
@@ -156,9 +170,10 @@ export default function LocalPlusScreen() {
         title="LOCALPLUS"
       />
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={{
           padding: Layout.screenGutter,
-          paddingBottom: bottom + 32,
+          paddingBottom: Space.xl,
           gap: Space.lg,
         }}
         showsVerticalScrollIndicator={false}
@@ -174,12 +189,7 @@ export default function LocalPlusScreen() {
                   : "LocalPlus is active on this account."}
             </Text>
           </View>
-        ) : (
-          <Text style={styles.intro}>
-            LocalPlus is for players who take their runs seriously — the ranked
-            ladder, your whole history, and the read on courts beyond your own.
-          </Text>
-        )}
+        ) : null}
 
         <View style={styles.perks}>
           {PERKS.map((perk) => (
@@ -199,46 +209,9 @@ export default function LocalPlusScreen() {
           <View style={{ gap: Space.md }}>
             <Pressable
               accessibilityRole="button"
-              disabled={
-                purchasing || (identityState === "ready" && !pkg)
-              }
-              onPress={() => void handlePurchase()}
-              style={({ pressed }) => [
-                styles.cta,
-                identityState !== "error" &&
-                  (!pkg || purchasing) &&
-                  styles.ctaDisabled,
-                pressed && styles.ctaPressed,
-              ]}
-            >
-              {purchasing ? (
-                <ActivityIndicator color={Colors.black} />
-              ) : (
-                <Text
-                  style={[
-                    styles.ctaText,
-                    identityState !== "error" &&
-                      !pkg &&
-                      styles.ctaTextDisabled,
-                  ]}
-                >
-                  {identityState === "pending"
-                    ? "SIGNING YOU IN…"
-                    : identityState === "error"
-                      ? "COULDN'T VERIFY YOUR ACCOUNT — TAP TO RETRY"
-                      : pkg
-                        ? `SUBSCRIBE — ${pkg.product.priceString}/MO`
-                        : offeringChecked
-                          ? "NOT AVAILABLE YET"
-                          : "LOADING…"}
-                </Text>
-              )}
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
               disabled={restoring}
               onPress={() => void handleRestore()}
-              style={({ pressed }) => [pressed && styles.ctaPressed]}
+              style={({ pressed }) => [pressed && styles.linkPressed]}
             >
               <Text style={styles.restoreText}>
                 {restoring ? "RESTORING…" : "RESTORE PURCHASES"}
@@ -247,7 +220,7 @@ export default function LocalPlusScreen() {
             <Pressable
               accessibilityRole="button"
               onPress={() => void handleRedeemOfferCode()}
-              style={({ pressed }) => [pressed && styles.ctaPressed]}
+              style={({ pressed }) => [pressed && styles.linkPressed]}
             >
               <Text style={styles.restoreText}>
                 {identityState === "error"
@@ -264,40 +237,41 @@ export default function LocalPlusScreen() {
                 ? "Your Starter year is on us — there's no subscription to cancel. LocalPlus simply lapses at the end of the year unless you start one."
                 : "LocalPlus is active on this account — there's nothing to manage."}
           </Text>
-        ) : (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() =>
-              void Linking.openURL(
-                "https://apps.apple.com/account/subscriptions",
-              )
-            }
-            style={({ pressed }) => [
-              styles.manageButton,
-              pressed && styles.ctaPressed,
-            ]}
-          >
-            <Feather color={Colors.textSecondary} name="external-link" size={13} />
-            <Text style={styles.manageButtonText}>MANAGE / CANCEL SUBSCRIPTION</Text>
-          </Pressable>
-        )}
+        ) : null}
 
         <Text style={styles.fine}>
           Older games are only hidden from the profile feed — they still move
           your rating, your win-loss record, and every head-to-head.
         </Text>
       </ScrollView>
+
+      {!hasLocalPlus ? (
+        <StickyActionBar
+          bottomInset={bottom}
+          primary={{
+            label: purchaseLabel,
+            onPress: () => void handlePurchase(),
+            disabled: purchaseDisabled,
+          }}
+        />
+      ) : !isComped ? (
+        <StickyActionBar
+          bottomInset={bottom}
+          primary={{
+            label: "MANAGE / CANCEL SUBSCRIPTION",
+            icon: "external-link",
+            onPress: () =>
+              void Linking.openURL("https://apps.apple.com/account/subscriptions"),
+          }}
+        />
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
-  intro: {
-    ...TextStyles.body,
-    color: Colors.textSecondary,
-    lineHeight: 20,
-  },
+  scroll: { flex: 1 },
   statusBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -334,43 +308,12 @@ const styles = StyleSheet.create({
     color: Colors.muted,
     lineHeight: 17,
   },
-  cta: {
-    minHeight: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: Radius.md,
-    backgroundColor: Colors.accent,
-  },
-  ctaPressed: { opacity: 0.8 },
-  ctaDisabled: { backgroundColor: Colors.surfaceHigh },
-  ctaText: {
-    fontFamily: Typography.heading,
-    fontSize: 13,
-    letterSpacing: 1.6,
-    color: Colors.black,
-  },
-  ctaTextDisabled: { color: Colors.muted },
+  linkPressed: { opacity: 0.6 },
   restoreText: {
     fontFamily: Typography.bodyBold,
     fontSize: 11,
     letterSpacing: 1.2,
     textAlign: "center",
-    color: Colors.textSecondary,
-  },
-  manageButton: {
-    minHeight: 44,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  manageButtonText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    letterSpacing: 1.2,
     color: Colors.textSecondary,
   },
   manageNote: {

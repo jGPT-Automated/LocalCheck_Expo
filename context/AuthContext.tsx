@@ -85,6 +85,8 @@ interface AuthContextValue {
   signInWithApple: () => Promise<AuthResult>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updatePassword: (password: string) => Promise<AuthResult>;
+  updateUsername: (username: string) => Promise<AuthResult>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -318,12 +320,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
   }, []);
 
+  const updatePassword = useCallback(async (password: string): Promise<AuthResult> => {
+    const { error } = await supabase.auth.updateUser({ password });
+    return { error: error?.message ?? null };
+  }, []);
+
   // Re-read the profile row (e.g. after log_game updates elo/wins server-side).
   const refreshProfile = useCallback(async () => {
     if (!user?.id) return;
     const fresh = await loadProfile(user.id);
     if (fresh) setProfile(fresh);
   }, [user?.id, loadProfile]);
+
+  const updateUsername = useCallback(async (username: string): Promise<AuthResult> => {
+    const { error } = await supabase.rpc("update_username", { p_username: username });
+    if (error) return { error: error.message };
+    await refreshProfile();
+    return { error: null };
+  }, [refreshProfile]);
 
   return (
     <AuthContext.Provider
@@ -337,6 +351,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signInWithApple,
         signOut,
         refreshProfile,
+        updatePassword,
+        updateUsername,
       }}
     >
       {children}

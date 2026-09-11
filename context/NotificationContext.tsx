@@ -76,11 +76,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (!user || !profile) return;
     const preferenceEnabled = profile.push_notifications_enabled;
     let cancelled = false;
-    void syncPushRegistration(preferenceEnabled).then((result) => {
-      if (!cancelled && !preferenceEnabled && result?.ok) void refreshProfile();
-    });
+    // Staggered, not simultaneous: on a fresh sign-in this mounts the same
+    // instant the location permission prompt fires elsewhere (Home/Explore),
+    // and two native permission dialogs firing back to back read as one
+    // dialog stacked on another. A few seconds' delay lets location's prompt
+    // (and the user's response to it) land first.
+    const timer = setTimeout(() => {
+      if (cancelled) return;
+      void syncPushRegistration(preferenceEnabled).then((result) => {
+        if (!cancelled && !preferenceEnabled && result?.ok) void refreshProfile();
+      });
+    }, 2500);
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [profile?.push_notifications_enabled, refreshProfile, user]);
 
