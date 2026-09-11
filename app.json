@@ -9,11 +9,6 @@
     "scheme": "localcheck",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/brand/logo-mark.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#101010"
-    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.realjess.localcheck",
@@ -81,6 +76,15 @@
       "expo-secure-store",
       "expo-apple-authentication",
       "expo-notifications",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/brand/logo-mark.png",
+          "imageWidth": 88,
+          "resizeMode": "contain",
+          "backgroundColor": "#101010"
+        }
+      ],
       [
         "expo-image-picker",
         {
