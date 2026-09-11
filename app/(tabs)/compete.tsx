@@ -315,7 +315,7 @@ function LeaderboardView({
         rank: myRank,
       });
     }
-    return rows.map((row, index) => ({ ...row, rank: index + 1 }));
+    return rows;
   }, [currentUserId, myRank, players, showMyRank]);
 
   return (
