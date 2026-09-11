@@ -66,11 +66,15 @@ development and testing.
 - **LocalPlus monetization is not built.** No `react-native-purchases`, no
   RevenueCat code, no webhook; `LOCALPLUS_DEV_DEFAULT = true` still grants Plus
   to everyone in-app. The plan and price are settled (see
-  `docs/product/DECISIONS.md` — one monthly plan, $4.99). Open: build the SDK +
-  webhook, flip the dev default, and reconcile the entitlement string
-  (`localplus` vs `localcheck_pro`) in the shared manifest. FOUNDER/STARTER free
-  access must come from a promo `subscriptions` row (which has an expiry), not
-  from `account_tag`.
+  `docs/product/DECISIONS.md` — one monthly plan, $4.99, **US-only**). The full
+  setup + build procedure is `docs/runbooks/REVENUECAT.md`. Open: finish the App
+  Store Connect subscription (price / availability / localization), add the real
+  App Store config in RevenueCat, build the SDK + webhook, flip the dev default,
+  and reconcile the entitlement string (`localplus` vs `localcheck_pro`) in the
+  shared manifest. FOUNDER/STARTER free access must come from a promo
+  `subscriptions` row (which has an expiry), not from `account_tag`.
+  **Not a submission blocker** — the app ships with the current "SEE PLANS"
+  placeholder and the paywall follows in 1.0.1.
 - Mapbox, push notifications, Apple Sign-In, and SecureStore require physical
   iOS verification; browser success does not prove them.
 - Crash visibility: the RN `ErrorBoundary` + a global JS / unhandled-rejection

@@ -2,6 +2,28 @@
 
 Status: Current MVP decisions. Newer dated decisions supersede older entries.
 
+## 2026-09-09 — LocalPlus is US-only for v1; one owner for RC + App Connect
+
+**Decision confirmed by Jesse:** the paid release (LocalPlus, and any in-app
+purchase) is **United States only** at launch. The EU is deliberately excluded:
+the DSA requires a monetizing developer to publish a physical trader address on
+the store listing, and Jesse is not incorporating for v1. Revisit once
+monetization justifies incorporating. Price stays **$4.99/mo** (see 2026-09-08).
+
+The first-100 "free year" is a **promo `subscriptions` row** with a one-year
+expiry — *not* an Apple annual offer code — because there is no annual product to
+attach a code to. See `docs/runbooks/ACCOUNT_TAGS.md` for the launch-day grant.
+
+RevenueCat **and** App Store Connect subscription setup are owned by one agent
+(Claude), start to finish — no cross-agent handoff. The canonical procedure is
+`docs/runbooks/REVENUECAT.md`; it supersedes `launch/REVENUECAT_START_NOW.txt`
+wherever they disagree (the handoff still lists a $39.99/yr annual + annual offer
+codes — both dropped).
+
+**Why:** avoid the miscommunication risk of splitting a live-billing integration
+across agents, and keep the legal surface (DSA address disclosure) off the table
+until it's worth taking on.
+
 ## 2026-09-09 — Add Court steps size to their content; camera is portrait
 
 **Decision confirmed by Jesse (after adding the first real court):** the Add

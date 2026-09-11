@@ -197,6 +197,10 @@ Current runbooks:
   (`FOUNDER` / `STARTER` / `REVIEWER` / `TEST` / null): a cosmetic label (row
   label, avatar, ME title) plus one launch switch. Add / change / remove a tag;
   the launch-day flag flip + FOUNDER/STARTER grant; adding a new tag value.
+- `docs/runbooks/REVENUECAT.md` — LocalPlus monetization end to end: the locked
+  plan (monthly $4.99, US-only), the App Store Connect + RevenueCat setup steps
+  with a per-gate checklist, env var names, the webhook, and the app-code /
+  cutover phases. Supersedes `launch/REVENUECAT_START_NOW.txt`.
 
 ## Documentation discipline
 
