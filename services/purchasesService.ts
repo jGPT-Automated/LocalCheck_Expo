@@ -193,14 +193,34 @@ export async function restorePurchases(): Promise<PurchaseOutcome> {
   }
 }
 
+export type RedeemOfferCodeResult =
+  | { outcome: "presented" }
+  | { outcome: "unavailable"; message: string };
+
 /** Apple's native "redeem a code" sheet — for the first-100 STARTER offer
- * codes. iOS only; no-ops elsewhere. */
-export async function redeemOfferCode(): Promise<void> {
-  if (Platform.OS !== "ios" || !configured) return;
+ * codes. Gated on identity the same as purchaseLocalPlus, and for a sharper
+ * reason: offer codes are a scarce, one-time-use resource. A redemption while
+ * unidentified lands on RevenueCat's anonymous id, burning the code with no
+ * account to credit and no way to reissue it. */
+export async function redeemOfferCode(): Promise<RedeemOfferCodeResult> {
+  if (Platform.OS !== "ios" || !configured) {
+    return { outcome: "unavailable", message: "Not available on this device." };
+  }
+  if (identityState !== "ready") {
+    return {
+      outcome: "unavailable",
+      message: "Couldn't verify your account. Try again in a moment.",
+    };
+  }
   try {
     await Purchases.presentCodeRedemptionSheet();
+    return { outcome: "presented" };
   } catch (error) {
     console.warn("purchasesService: redemption sheet failed", error);
+    return {
+      outcome: "unavailable",
+      message: "Couldn't open the redemption sheet. Try again.",
+    };
   }
 }
 

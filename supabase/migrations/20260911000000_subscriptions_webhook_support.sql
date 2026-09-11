@@ -10,35 +10,65 @@
 -- The unique key is therefore (user_id, billing_provider), not user_id alone:
 -- a real purchase must never overwrite a promo row's expiry, and vice versa.
 --
--- last_event_id + last_event_ms guard against RevenueCat's webhook delivering
--- events out of order or twice. Per RevenueCat's own docs (event ordering +
--- error-handling guidance): a retried delivery carries the exact same event
--- id, so that's the dedup key for "is this literally the same event again?" —
--- event_timestamp_ms is documented as informational and BILLING_ISSUE /
--- CANCELLATION / EXPIRATION in particular can be dispatched with identical
--- timestamps for genuinely different events, so timestamp comparison alone
--- must not reject a same-instant event, only a strictly older/stale one. The
--- apply function makes the whole check-and-write one atomic statement —
--- checking in application code first and writing after is a race: two
--- concurrent deliveries can both read the same last_event_ms, both pass, and
--- whichever write lands last wins even if it's the older event.
+-- Verified against the live LocalCheckProd schema before writing this file:
+-- public.subscriptions already carried a unique index
+-- subscriptions_revenuecat_user_key on (revenuecat_app_user_id,
+-- coalesce(entitlement_id, '')) from the original v2_core_schema migration.
+-- Every row this project writes sets revenuecat_app_user_id = user_id and
+-- entitlement_id = 'localplus', so that index caps a person at ONE
+-- subscriptions row, full stop — it would silently block the dual-lineage
+-- design below (a promo grant and a real purchase coexisting) no matter what
+-- new index we add. It's dropped further down, in the same migration that
+-- introduces the design it contradicts.
+--
+-- private.revenuecat_processed_events + last_event_ms guard against
+-- RevenueCat's webhook delivering events out of order or twice. Per
+-- RevenueCat's own docs (event ordering + error-handling guidance): a
+-- retried delivery carries the exact same event id, and processed ids should
+-- be remembered so each is applied once — comparing only against "the last
+-- event we saw" isn't enough, because event_timestamp_ms is documented as
+-- informational and BILLING_ISSUE / CANCELLATION / EXPIRATION in particular
+-- can be dispatched with identical timestamps for genuinely different
+-- events: a retried delivery of an EARLIER same-timestamp event, arriving
+-- after a later one was already applied, would otherwise pass a
+-- "different id, timestamp not older" check and incorrectly re-apply. The
+-- apply function makes the whole dedup-check-and-write one atomic
+-- statement — checking in application code first and writing after is a
+-- race: two concurrent deliveries can both pass the same check and whichever
+-- write lands last wins even if it's the older event.
 
 begin;
 
 set local lock_timeout = '5s';
 set local statement_timeout = '60s';
 
+-- Drop the legacy one-row-per-person index — see the module comment above.
+drop index if exists public.subscriptions_revenuecat_user_key;
+
 alter table public.subscriptions
   add column if not exists last_event_ms bigint,
   add column if not exists last_event_id text;
 
 comment on column public.subscriptions.last_event_ms is
-  'event_timestamp_ms of the last RevenueCat webhook event applied to this row. Informational per RevenueCat''s own docs — used only to reject a strictly older/stale event, never to reject a same-instant distinct one.';
+  'event_timestamp_ms of the last RevenueCat webhook event applied to this row. Informational per RevenueCat''s own docs — used only to reject a strictly older/stale event, never a same-instant distinct one. NOT the dedup key — see private.revenuecat_processed_events.';
 comment on column public.subscriptions.last_event_id is
-  'RevenueCat event.id of the last event applied. A retried delivery carries this exact id again; matching it is what actually makes re-application a no-op (see RevenueCat''s webhook idempotency guidance).';
+  'RevenueCat event.id of the last event applied to this row. An audit trail column, not itself the dedup mechanism (see private.revenuecat_processed_events for that).';
 
 create unique index if not exists subscriptions_user_id_billing_provider_key
   on public.subscriptions (user_id, billing_provider);
+
+-- Every RevenueCat event id ever applied, across every subscriber — the real
+-- dedup key. See the module comment for why "just remember the last one"
+-- isn't sufficient. Low write volume expected (a handful of events per
+-- subscriber over its lifetime); no retention/cleanup job yet, deliberately —
+-- add one if this ever becomes a real storage concern.
+create table if not exists private.revenuecat_processed_events (
+  event_id text primary key,
+  received_at timestamptz not null default now()
+);
+
+revoke all on table private.revenuecat_processed_events
+  from public, anon, authenticated;
 
 -- Also expose, on profiles, which lineage is actually granting LocalPlus right
 -- now — the app needs this to decide whether to show "manage/cancel" (a real,
@@ -117,10 +147,11 @@ begin
 end
 $$;
 
--- Atomic "apply this webhook event, but only if it's newer than what's on the
--- row" — one INSERT ... ON CONFLICT ... WHERE, so the read (last_event_ms)
--- and the write happen under the same row lock. Returns true if the event was
--- applied, false if it was stale/duplicate and correctly ignored.
+-- Atomic "apply this webhook event, unless we've already processed it or it's
+-- stale" — the events-table dedup check and the state upsert both happen
+-- inside this one function call, under one row lock for the state write.
+-- Returns true if the event was applied, false if it was a duplicate or
+-- stale and correctly ignored.
 --
 -- public schema (not private): PostgREST/supabase-js .rpc() only resolves
 -- functions in the API-exposed schema, so the edge function's admin client
@@ -150,10 +181,26 @@ security definer
 set search_path = ''
 as $$
 declare
+  v_is_new_event boolean;
   v_applied boolean := false;
 begin
   if p_cancelled_at_mode not in ('now', 'clear', 'preserve') then
     raise exception 'invalid p_cancelled_at_mode: %', p_cancelled_at_mode;
+  end if;
+
+  -- True dedup: an event id already recorded — from any prior call, applied
+  -- in any order — is a no-op. This is what actually implements "process
+  -- each event once"; the timestamp check further down only guards against
+  -- a genuinely-new-to-us event being chronologically stale.
+  if p_event_id is not null then
+    insert into private.revenuecat_processed_events (event_id)
+    values (p_event_id)
+    on conflict (event_id) do nothing
+    returning true into v_is_new_event;
+
+    if not coalesce(v_is_new_event, false) then
+      return false;
+    end if;
   end if;
 
   with upserted as (
@@ -190,16 +237,14 @@ begin
       last_event_id = excluded.last_event_id,
       last_event_ms = excluded.last_event_ms,
       updated_at = now()
-    -- Never re-apply the exact same event twice (a retried delivery repeats
-    -- its id). Otherwise apply unless this event is strictly older than the
-    -- one already recorded — same-instant *distinct* events (RevenueCat notes
-    -- BILLING_ISSUE/CANCELLATION/EXPIRATION can share a timestamp) are still
-    -- allowed through.
-    where public.subscriptions.last_event_id is distinct from excluded.last_event_id
-      and (
-        public.subscriptions.last_event_ms is null
-        or public.subscriptions.last_event_ms <= excluded.last_event_ms
-      )
+    -- Dedup already happened above (revenuecat_processed_events). This only
+    -- rejects a genuinely-new-to-us event that is nonetheless chronologically
+    -- stale (an old, delayed delivery arriving after newer state is already
+    -- recorded). Ties are allowed through on purpose — RevenueCat documents
+    -- BILLING_ISSUE/CANCELLATION/EXPIRATION can share a timestamp for
+    -- genuinely different events.
+    where public.subscriptions.last_event_ms is null
+       or public.subscriptions.last_event_ms <= excluded.last_event_ms
     returning 1
   )
   select count(*) > 0 into v_applied from upserted;

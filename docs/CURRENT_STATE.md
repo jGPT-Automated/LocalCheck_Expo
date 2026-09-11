@@ -70,12 +70,15 @@ development and testing.
   is written and unit tested. Neither the webhook nor its migration
   (`20260911000000_subscriptions_webhook_support.sql`) is deployed/applied, and
   none of the app code has run on a real device yet — `react-native-purchases`
-  needs a native build (not Expo Go, not web preview). `LOCALPLUS_DEV_DEFAULT =
-  true` still grants Plus to everyone in-app until that verification happens.
-  Full status + remaining steps: `docs/runbooks/REVENUECAT.md`. Open: deploy
-  the webhook, device-test a sandbox purchase, set up the first-100 STARTER
-  offer codes, give the FOUNDER account a real entitlement, then flip the dev
-  default. **Not a submission blocker either way** — the app can ship with the
+  needs a native build (not Expo Go, not web preview).
+  `LOCALPLUS_DEV_DEFAULT` is **flipped to `false` in code already** — the real
+  post-launch experience, correct now that RevenueCat is wired — but that
+  requires the FOUNDER promo-row grant (`docs/runbooks/ACCOUNT_TAGS.md` step 3)
+  to run first/alongside, or Jesse's own account loses LocalPlus with it. Full
+  status + remaining steps: `docs/runbooks/REVENUECAT.md`. Open: apply the
+  migration, deploy the webhook, run the FOUNDER grant, device-test a sandbox
+  purchase, set up the first-100 STARTER offer codes. **Not a submission
+  blocker either way** — the app can ship with the
   paywall behind the dev-default flag and the real purchase flow follows.
 - Mapbox, push notifications, Apple Sign-In, and SecureStore require physical
   iOS verification; browser success does not prove them.

@@ -24,16 +24,24 @@ export const LocalPlusFlags = {
 /**
  * Fallback for `useLocalPlus()` when the viewer has no `profiles.is_pro` signal.
  *
- * `true` = blanket-unlock. Every pre-launch account (all test accounts, the
- * Apple reviewer, Jesse's FOUNDER account) has LocalPlus, which is why the
- * leaderboard is populated and nobody hits a paywall in the current build.
+ * `false` = the real experience: a fresh account with no purchase and no
+ * grant sees the locked/paywalled states and a working "SUBSCRIBE" button —
+ * exactly what a real person downloading the app sees. This is now correct to
+ * ship, because RevenueCat is wired (this PR): `/localplus` does a real
+ * purchase, not a dead alert.
  *
- * Set to `false` for the real post-launch experience — a new account (past the
- * first-100 STARTER cohort, no App Store purchase) sees the locked/paywalled
- * states. Do NOT ship `false` until RevenueCat is wired: without it the
- * `/localplus` "SEE PLANS" button is a dead alert.
+ * Flipping this to `false` costs LocalPlus for every account that was only
+ * "Plus" via this fallback and has no real subscriptions row — that's every
+ * TEST account and the Apple reviewer account (expected: neither should be
+ * comped going forward; the reviewer redeems a STARTER offer code or buys in
+ * sandbox instead) and, critically, **Jesse's own FOUNDER account**, unless
+ * its promo `subscriptions` row has been inserted first — see
+ * `docs/runbooks/ACCOUNT_TAGS.md` step 3, `docs/runbooks/REVENUECAT.md`
+ * Cutover. Do that grant before or in the same release as this flip, or
+ * FOUNDER loses LocalPlus too. Leaderboard membership is untouched either way
+ * — `LocalPlusFlags.gateLeaderboard` is a separate, still-`false` switch.
  */
-export const LOCALPLUS_DEV_DEFAULT = true;
+export const LOCALPLUS_DEV_DEFAULT = false;
 
 /**
  * Leaderboard rollout switches. See docs/runbooks/ACCOUNT_TAGS.md.

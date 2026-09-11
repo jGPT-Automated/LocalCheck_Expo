@@ -133,6 +133,20 @@ export default function LocalPlusScreen() {
     }
   };
 
+  const handleRedeemOfferCode = async () => {
+    // Same reasoning as handlePurchase, sharper stakes: offer codes are
+    // scarce and one-time-use — redeeming one while unidentified burns it
+    // with no account to credit.
+    if (identityState !== "ready") {
+      if (identityState === "error") void retryIdentifyPurchaser();
+      return;
+    }
+    const result = await redeemOfferCode();
+    if (result.outcome === "unavailable") {
+      Alert.alert("Couldn't open redemption", result.message);
+    }
+  };
+
   return (
     <View style={styles.screen}>
       <DetailHeader
@@ -232,10 +246,14 @@ export default function LocalPlusScreen() {
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              onPress={() => void redeemOfferCode()}
+              onPress={() => void handleRedeemOfferCode()}
               style={({ pressed }) => [pressed && styles.ctaPressed]}
             >
-              <Text style={styles.restoreText}>HAVE AN OFFER CODE?</Text>
+              <Text style={styles.restoreText}>
+                {identityState === "error"
+                  ? "COULDN'T VERIFY YOUR ACCOUNT — TAP TO RETRY"
+                  : "HAVE AN OFFER CODE?"}
+              </Text>
             </Pressable>
           </View>
         ) : isComped ? (
