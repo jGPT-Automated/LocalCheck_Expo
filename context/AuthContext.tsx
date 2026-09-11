@@ -40,6 +40,14 @@ export interface UserProfile {
   preferred_sport: string | null;
   postal_code: string | null;
   is_pro: boolean;
+  /** billing_provider of whichever row is currently granting is_pro
+   *  ('app_store' | 'play_store' | 'stripe' | 'promo' | 'unknown'), or null
+   *  when nothing is. NOT the same axis as account_tag — a STARTER who
+   *  redeemed their offer code has a real 'app_store' row despite the tag
+   *  never changing. Drives whether app/localplus.tsx shows a manage/cancel
+   *  link. Absent until the subscriptions-webhook-support migration is
+   *  applied. */
+  plus_billing_provider?: string | null;
   /** Persistent identity-level privacy: governs check-ins, schedule, and the
    *  leaderboard. Absent until the profile-visibility migration is applied. */
   visibility?: "public" | "friends" | "private";

@@ -13,7 +13,7 @@ build as-is; the real paywall ships in the next one.
 | 1c — In-App Purchase key | ✅ done — rotated once: the first key's `.p8` was downloaded by a since-retired agent session and lost, so it was revoked and regenerated. Same for the App Store Connect API key EAS uses to submit builds (a different key, also rotated after the same incident). Neither key's private material ever passed through chat. |
 | 2 — RevenueCat dashboard (app config, product, entitlement, offering, SDK key) | ✅ done |
 | 3 — `revenuecat-webhook` | ✅ source written + tested (`supabase/functions/revenuecat-webhook`) — **not yet deployed**, and the DB migration it needs (`20260911000000_subscriptions_webhook_support.sql`) is **not yet applied**. Both need one explicit go-ahead. |
-| 4 — App code (`react-native-purchases`) | ✅ source written (SDK init, identify/logout, real paywall purchase/restore/redeem-code on `/localplus`) — **untested on a real device**. Needs a new native build; Expo Go/web can't run it. |
+| 4 — App code (`react-native-purchases`) | ✅ source written (SDK init, identify/logout, real paywall purchase/restore/redeem-code on `/localplus`; the purchase button is disabled until RevenueCat identification actually succeeds, so nobody can be charged without an account to credit) — **untested on a real device**. Needs a new native build; Expo Go/web can't run it. `app.json` version bumped 1.0.2 → 1.0.3 so this native change gets its own runtime version, not an OTA to installed 1.0.2 binaries that don't have the module. |
 | 5 — Offer codes for the first-100 STARTER cohort | ⬜ not started |
 | Cutover (`LOCALPLUS_DEV_DEFAULT` → `false`) | ⬜ not yet — do this only after phases 3–4 are deployed and device-verified, and FOUNDER/reviewer entitlements are sorted (see below), or the paywall shows to everyone with no working purchase |
 
@@ -26,8 +26,9 @@ build as-is; the real paywall ships in the next one.
 | Entitlement | `localplus` (RevenueCat says already created, `entl99df860f0d`). NOT `localcheck_pro`. |
 | Offering | `default` — one package, `$rc_monthly` → `com.realjess.localcheck.localplus.monthly`. Remove any `$rc_annual`. |
 | ASC product | `com.realjess.localcheck.localplus.monthly` — created, price ($4.99), US availability, and localization all set. Status "Prepare for Submission" until submitted alongside an app version. |
-| First-100 free year | **Promo `subscriptions` row**, not Apple offer codes (there's no annual product to attach one to). Launch-day migration per `docs/runbooks/ACCOUNT_TAGS.md`: `account_tag='STARTER'` + a `billing_provider='promo'` row, `is_pro` for one year, no auto-renew, no charge. |
-| Grant reconciliation | The webhook only writes rows for real RC purchases. Promo rows are `billing_provider='promo'` — no double-grant. When a promo year expires the `sync_profile_is_pro` trigger flips `is_pro` false; a real purchase in the meantime keeps them active. No silent revocation. |
+| First-100 free year (STARTER) | **Apple offer codes** on the monthly product — 100 one-time codes, 100% off, 1 year, then **auto-converts to paid $4.99/mo** unless cancelled (Apple has no "free then just stop" mechanism). Accepted trade-off — see Phase 5. `account_tag='STARTER'` is set at signup as the row label; it grants nothing by itself. |
+| FOUNDER free access | **Promo `subscriptions` row** (`billing_provider='promo'`), inserted directly per `docs/runbooks/ACCOUNT_TAGS.md` — no App Store product involved, no expiry pressure. |
+| Grant reconciliation | The webhook only writes rows for real RC purchases, keyed `(user_id, billing_provider)` — a promo row and a real store row for the same person never overwrite each other. `sync_profile_is_pro` grants `is_pro` if *either* lineage is active/unexpired; the same trigger also sets `profiles.plus_billing_provider` so the app can tell "comped" from "a real subscription you can cancel." |
 
 ## Env var NAMES (values never in chat / repo / this file)
 
@@ -117,14 +118,24 @@ Store) → copy the **public** key (`appl_…`).
 
 `supabase/functions/revenuecat-webhook` — JWT off, its own `Authorization`
 header check, pure event-mapping logic in `webhookLogic.ts` (unit tested —
-`pnpm run test:backend`), idempotent upsert into `public.subscriptions` keyed
-on `user_id`, handles INITIAL_PURCHASE / RENEWAL / UNCANCELLATION /
+`pnpm run test:backend`), handles INITIAL_PURCHASE / RENEWAL / UNCANCELLATION /
 PRODUCT_CHANGE / NON_RENEWING_PURCHASE / CANCELLATION / BILLING_ISSUE /
-SUBSCRIPTION_PAUSED / EXPIRATION / REFUND, with out-of-order protection
-(`last_event_ms`). TRANSFER / SUBSCRIBER_ALIAS are logged and skipped (rare
-identity-merge events, handled manually if one ever occurs). Needs its
-migration (`20260911000000_subscriptions_webhook_support.sql` — adds
-`last_event_ms`, a unique index on `user_id`) applied first.
+SUBSCRIPTION_PAUSED / EXPIRATION / REFUND. TRANSFER / SUBSCRIBER_ALIAS are
+logged and skipped (rare identity-merge events, handled manually if one ever
+occurs). The actual write is one call to `public.apply_subscription_event` — a
+database function that does the dedup check and the upsert in a single atomic
+statement (keyed `(user_id, billing_provider)`, so a promo grant and a real
+purchase for the same person never collide), closing the race two concurrent
+webhook deliveries would otherwise have if the check and the write were
+separate round trips. Per RevenueCat's own webhook docs, dedup is by
+`event.id` (a retried delivery repeats it — that's the real "same event
+again?" signal), and `event_timestamp_ms` only rejects a strictly older/stale
+event — RevenueCat documents that BILLING_ISSUE/CANCELLATION/EXPIRATION can be
+dispatched with identical timestamps for genuinely different events, so a tie
+must still go through. Needs its migration
+(`20260911000000_subscriptions_webhook_support.sql` — adds `last_event_id`,
+`last_event_ms`, the composite unique index, `profiles.plus_billing_provider`,
+and the RPC itself) applied first.
 
 **To finish, in order:**
 1. Apply the migration through the Supabase migration tool.
@@ -181,13 +192,14 @@ Offers / Offer Codes** (Apple's naming varies by ASC version — look for
 
 ## Cutover
 
-- FOUNDER (Jesse) and the Apple reviewer account each need a real entitlement
-  before `LOCALPLUS_DEV_DEFAULT` goes to `false`, or they lose LocalPlus too:
-  either redeem a STARTER code, or grant a RevenueCat **promotional
-  entitlement** from the Customers view (no App Store purchase involved) — the
-  reviewer should generally NOT be comped this way, though; App Review is
-  supposed to exercise the real sandbox purchase, so leave that account plain
-  and let the reviewer buy it in sandbox.
+- **FOUNDER (Jesse)** needs a real entitlement before `LOCALPLUS_DEV_DEFAULT`
+  goes to `false`, or the account loses LocalPlus too — run the FOUNDER promo
+  row insert, `docs/runbooks/ACCOUNT_TAGS.md` step 3 (already scoped to
+  FOUNDER only).
+- **Apple reviewer** — do NOT comp this account. Give the reviewer one of the
+  100 STARTER offer codes to redeem during review instead: it's the real
+  purchase-adjacent flow Apple's guidelines expect exercised, and it doubles as
+  a live test of the redemption path.
 - Set `LOCALPLUS_DEV_DEFAULT = false` in `constants/flags.ts`.
 - Submit the paid subscription (`Add for Review`) with the app version that
   carries the paywall.

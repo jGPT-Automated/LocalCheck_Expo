@@ -23,9 +23,12 @@ import { useAuth } from "@/context/AuthContext";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
 import {
   fetchLocalPlusPackage,
+  getIdentityState,
   purchaseLocalPlus,
   redeemOfferCode,
   restorePurchases,
+  retryIdentifyPurchaser,
+  subscribeIdentityState,
 } from "@/services/purchasesService";
 
 const PERKS: { icon: React.ComponentProps<typeof Feather>["name"]; title: string; body: string }[] = [
@@ -56,16 +59,27 @@ export default function LocalPlusScreen() {
   const { bottom } = useSafeAreaInsets();
   const { profile, refreshProfile } = useAuth();
   const hasLocalPlus = useLocalPlus();
-  // FOUNDER / STARTER get LocalPlus at no cost — nothing to cancel.
-  // See docs/runbooks/ACCOUNT_TAGS.md.
   const tag = profile?.account_tag ?? null;
   const isFounder = tag === "FOUNDER";
-  const isComped = isFounder || tag === "STARTER";
+  // Which lineage is actually granting LocalPlus right now — NOT the same
+  // question as account_tag. A STARTER who redeemed their offer code has a
+  // real, billing 'app_store' row despite the tag never changing, and must
+  // see the manage/cancel link, not "nothing to manage." Falls back to the
+  // tag heuristic only until the migration that adds this column is applied.
+  const billingProvider = profile?.plus_billing_provider;
+  const hasRealSubscription = billingProvider != null && billingProvider !== "promo";
+  const isComped =
+    billingProvider !== undefined
+      ? hasLocalPlus && !hasRealSubscription
+      : isFounder || tag === "STARTER";
 
   const [pkg, setPkg] = React.useState<PurchasesPackage | null>(null);
   const [offeringChecked, setOfferingChecked] = React.useState(false);
   const [purchasing, setPurchasing] = React.useState(false);
   const [restoring, setRestoring] = React.useState(false);
+  const [identityState, setIdentityState] = React.useState(getIdentityState());
+
+  React.useEffect(() => subscribeIdentityState(setIdentityState), []);
 
   React.useEffect(() => {
     if (hasLocalPlus) return; // nothing to buy — skip the network round trip
@@ -82,7 +96,15 @@ export default function LocalPlusScreen() {
   }, [hasLocalPlus]);
 
   const handlePurchase = async () => {
-    if (!pkg || purchasing) return;
+    if (purchasing) return;
+    // Identification not ready — a purchase now would charge the App Store
+    // but land on RevenueCat's anonymous id with no account to credit. Retry
+    // identifying instead of buying.
+    if (identityState !== "ready") {
+      if (identityState === "error") void retryIdentifyPurchaser();
+      return;
+    }
+    if (!pkg) return;
     setPurchasing(true);
     const result = await purchaseLocalPlus(pkg);
     setPurchasing(false);
@@ -163,25 +185,38 @@ export default function LocalPlusScreen() {
           <View style={{ gap: Space.md }}>
             <Pressable
               accessibilityRole="button"
-              disabled={!pkg || purchasing}
+              disabled={
+                purchasing || (identityState === "ready" && !pkg)
+              }
               onPress={() => void handlePurchase()}
               style={({ pressed }) => [
                 styles.cta,
-                (!pkg || purchasing) && styles.ctaDisabled,
-                pressed && pkg && styles.ctaPressed,
+                identityState !== "error" &&
+                  (!pkg || purchasing) &&
+                  styles.ctaDisabled,
+                pressed && styles.ctaPressed,
               ]}
             >
               {purchasing ? (
                 <ActivityIndicator color={Colors.black} />
               ) : (
                 <Text
-                  style={[styles.ctaText, !pkg && styles.ctaTextDisabled]}
+                  style={[
+                    styles.ctaText,
+                    identityState !== "error" &&
+                      !pkg &&
+                      styles.ctaTextDisabled,
+                  ]}
                 >
-                  {pkg
-                    ? `SUBSCRIBE — ${pkg.product.priceString}/MO`
-                    : offeringChecked
-                      ? "NOT AVAILABLE YET"
-                      : "LOADING…"}
+                  {identityState === "pending"
+                    ? "SIGNING YOU IN…"
+                    : identityState === "error"
+                      ? "COULDN'T VERIFY YOUR ACCOUNT — TAP TO RETRY"
+                      : pkg
+                        ? `SUBSCRIBE — ${pkg.product.priceString}/MO`
+                        : offeringChecked
+                          ? "NOT AVAILABLE YET"
+                          : "LOADING…"}
                 </Text>
               )}
             </Pressable>
@@ -207,7 +242,9 @@ export default function LocalPlusScreen() {
           <Text style={styles.manageNote}>
             {isFounder
               ? "LocalPlus is comped on your account — there's nothing to manage."
-              : "Your Starter year is on us — there's no subscription to cancel. LocalPlus simply lapses at the end of the year unless you start one."}
+              : tag === "STARTER"
+                ? "Your Starter year is on us — there's no subscription to cancel. LocalPlus simply lapses at the end of the year unless you start one."
+                : "LocalPlus is active on this account — there's nothing to manage."}
           </Text>
         ) : (
           <Pressable

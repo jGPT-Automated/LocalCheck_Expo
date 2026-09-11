@@ -2,20 +2,28 @@
 //
 // RevenueCat POSTs one event per subscriber state change. This function is the
 // only writer of public.subscriptions from a real purchase; the launch-day
-// STARTER/FOUNDER grant writes the same table directly with billing_provider
-// = 'promo' (see docs/runbooks/ACCOUNT_TAGS.md) and never collides with this
-// path (a user has one row; a real purchase upsert simply supersedes the promo
-// one, per the trigger private.sync_profile_is_pro which only cares whether
-// *any* row is active/trialing and unexpired).
+// FOUNDER grant writes the same table directly with billing_provider = 'promo'
+// (see docs/runbooks/ACCOUNT_TAGS.md). The two never collide: they're keyed
+// (user_id, billing_provider), so a promo row and a real store row can coexist
+// for the same person, and private.sync_profile_is_pro grants is_pro if
+// *either* qualifies.
 //
 // Auth: RevenueCat is configured with a single Authorization header value
 // (Project settings -> Integrations -> Webhooks). No platform JWT — this is a
 // server-to-server webhook, not a user request. verify_jwt = false in
 // supabase/config.toml; this function checks its own secret instead.
 //
-// Ordering: RevenueCat delivers at-least-once and not-necessarily-in-order.
-// Each event carries event_timestamp_ms; we only apply an event newer than the
-// last one written for that subscriber (public.subscriptions.last_event_ms).
+// Ordering + races: RevenueCat delivers at-least-once (retries repeat the
+// same event.id) and not-necessarily-in-order; event_timestamp_ms is
+// documented as informational, and RevenueCat's own docs note
+// BILLING_ISSUE/CANCELLATION/EXPIRATION can be dispatched with identical
+// timestamps for genuinely different events. So dedup is by event id (an
+// exact retry is a no-op), and the timestamp only rejects a strictly
+// older/stale event, never a same-instant distinct one. The whole
+// check-and-set happens in ONE database statement
+// (public.apply_subscription_event) so it can't race with itself — doing the
+// read here and the write after would let two concurrent calls both read the
+// same last_event_ms/last_event_id and both pass.
 
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 
@@ -23,7 +31,6 @@ import {
   isSupabaseUserId,
   mapBillingProvider,
   msToIso,
-  resolveCancelledAt,
   verdictFor,
 } from "./webhookLogic.ts";
 
@@ -75,14 +82,6 @@ interface RevenueCatPayload {
   event?: RevenueCatEvent;
 }
 
-// Existing row fields this function reads back before merging, so an event
-// that doesn't speak to a field (e.g. a RENEWAL doesn't carry a cancellation
-// reason) doesn't clobber it.
-interface ExistingRow {
-  cancelled_at: string | null;
-  last_event_ms: number | null;
-}
-
 Deno.serve(async (request) => {
   if (request.method !== "POST") return json(405, { error: "Method not allowed" });
 
@@ -115,10 +114,16 @@ Deno.serve(async (request) => {
 
   const userId = event.app_user_id ?? "";
   if (!isSupabaseUserId(userId)) {
-    // The app always calls Purchases.logIn(<supabase user id>) before a
-    // purchase is possible, so a non-UUID app_user_id here means the SDK
-    // fired before login (or a sandbox tester used the anonymous id).
-    console.warn("revenuecat-webhook: app_user_id is not a Supabase user id", userId);
+    // The app requires Purchases.logIn(<supabase user id>) to succeed before
+    // it will let anyone tap "subscribe" (see services/purchasesService.ts),
+    // so a non-UUID app_user_id here means either a sandbox tester purchased
+    // before ever signing in, or identification failed in a way the client
+    // didn't catch. Either way there's no account to credit — log it loudly
+    // so it can be reconciled by hand rather than silently dropped.
+    console.error(
+      "revenuecat-webhook: app_user_id is not a Supabase user id — cannot credit this purchase",
+      { app_user_id: userId, event_type: event.type, product_id: event.product_id },
+    );
     return json(200, { ok: true, skipped: "non_user_app_user_id" });
   }
 
@@ -137,52 +142,31 @@ Deno.serve(async (request) => {
 
   const eventMs = event.event_timestamp_ms ?? Date.now();
 
-  const { data: existing, error: readError } = await admin
-    .from("subscriptions")
-    .select("cancelled_at,last_event_ms")
-    .eq("user_id", userId)
-    .maybeSingle<ExistingRow>();
-  if (readError) {
-    console.error("revenuecat-webhook: read failed", readError.message);
-    return json(500, { error: "Read failed" });
-  }
-
-  // Out-of-order / duplicate delivery guard.
-  if (existing?.last_event_ms != null && existing.last_event_ms >= eventMs) {
-    return json(200, { ok: true, skipped: "stale_event" });
-  }
-
-  const cancelledAt = resolveCancelledAt(verdict, existing?.cancelled_at ?? null);
-
-  const row = {
-    user_id: userId,
-    revenuecat_app_user_id: userId,
-    original_app_user_id: event.original_app_user_id ?? null,
-    product_id: event.product_id ?? null,
-    entitlement_id: event.entitlement_ids?.[0] ?? "localplus",
-    status: verdict.status,
-    billing_provider: mapBillingProvider(event.store),
-    will_renew: verdict.will_renew,
-    current_period_starts_at: msToIso(event.purchased_at_ms),
-    current_period_ends_at: msToIso(event.expiration_at_ms),
-    trial_ends_at:
+  const { data: applied, error: rpcError } = await admin.rpc("apply_subscription_event", {
+    p_user_id: userId,
+    p_revenuecat_app_user_id: userId,
+    p_original_app_user_id: event.original_app_user_id ?? null,
+    p_product_id: event.product_id ?? null,
+    p_entitlement_id: event.entitlement_ids?.[0] ?? "localplus",
+    p_status: verdict.status,
+    p_billing_provider: mapBillingProvider(event.store),
+    p_will_renew: verdict.will_renew,
+    p_current_period_starts_at: msToIso(event.purchased_at_ms),
+    p_current_period_ends_at: msToIso(event.expiration_at_ms),
+    p_trial_ends_at:
       (event.period_type ?? "").toUpperCase() === "TRIAL"
         ? msToIso(event.expiration_at_ms)
         : null,
-    cancelled_at: cancelledAt,
-    expires_at: msToIso(event.expiration_at_ms),
-    raw_payload: payload,
-    last_event_ms: eventMs,
-    updated_at: new Date().toISOString(),
-  };
-
-  const { error: writeError } = await admin
-    .from("subscriptions")
-    .upsert(row, { onConflict: "user_id" });
-  if (writeError) {
-    console.error("revenuecat-webhook: write failed", writeError.message);
+    p_cancelled_at_mode: verdict.cancelledAtMode,
+    p_expires_at: msToIso(event.expiration_at_ms),
+    p_raw_payload: payload,
+    p_event_id: event.id ?? null,
+    p_event_ms: eventMs,
+  });
+  if (rpcError) {
+    console.error("revenuecat-webhook: apply_subscription_event failed", rpcError.message);
     return json(500, { error: "Write failed" });
   }
 
-  return json(200, { ok: true });
+  return json(200, { ok: true, applied: Boolean(applied) });
 });

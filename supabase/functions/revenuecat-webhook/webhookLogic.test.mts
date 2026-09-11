@@ -5,7 +5,6 @@ import {
   isSupabaseUserId,
   mapBillingProvider,
   msToIso,
-  resolveCancelledAt,
   verdictFor,
 } from "./webhookLogic.ts";
 
@@ -38,7 +37,7 @@ test("a purchase or renewal grants access and clears any prior cancellation", ()
     const verdict = verdictFor(type, "NORMAL");
     assert.equal(verdict?.status, "active");
     assert.equal(verdict?.will_renew, true);
-    assert.equal(verdict?.clearsCancelledAt, true);
+    assert.equal(verdict?.cancelledAtMode, "clear");
   }
 });
 
@@ -51,34 +50,19 @@ test("cancellation keeps access (paid through period end) but stops renewal and 
   const verdict = verdictFor("CANCELLATION", "NORMAL");
   assert.equal(verdict?.status, "active");
   assert.equal(verdict?.will_renew, false);
-  assert.equal(verdict?.setsCancelledAtNow, true);
+  assert.equal(verdict?.cancelledAtMode, "now");
 });
 
 test("billing issues and expirations move status without touching cancelled_at", () => {
   assert.equal(verdictFor("BILLING_ISSUE", "NORMAL")?.status, "past_due");
   assert.equal(verdictFor("EXPIRATION", "NORMAL")?.status, "expired");
   assert.equal(verdictFor("REFUND", "NORMAL")?.status, "expired");
-  assert.equal(verdictFor("EXPIRATION", "NORMAL")?.clearsCancelledAt, false);
+  assert.equal(verdictFor("EXPIRATION", "NORMAL")?.cancelledAtMode, "preserve");
+  assert.equal(verdictFor("BILLING_ISSUE", "NORMAL")?.cancelledAtMode, "preserve");
 });
 
 test("unhandled event types (identity merges, unknown future types) return null", () => {
   assert.equal(verdictFor("TRANSFER", "NORMAL"), null);
   assert.equal(verdictFor("SUBSCRIBER_ALIAS", "NORMAL"), null);
   assert.equal(verdictFor("SOMETHING_NEW_APPLE_ADDS_LATER", "NORMAL"), null);
-});
-
-test("resolveCancelledAt preserves an existing cancellation across events that don't mention it", () => {
-  const billingIssue = verdictFor("BILLING_ISSUE", "NORMAL")!;
-  assert.equal(
-    resolveCancelledAt(billingIssue, "2026-09-01T00:00:00.000Z"),
-    "2026-09-01T00:00:00.000Z",
-  );
-
-  const renewal = verdictFor("RENEWAL", "NORMAL")!;
-  assert.equal(resolveCancelledAt(renewal, "2026-09-01T00:00:00.000Z"), null);
-
-  const cancellation = verdictFor("CANCELLATION", "NORMAL")!;
-  const stamped = resolveCancelledAt(cancellation, null);
-  assert.ok(stamped);
-  assert.ok(Math.abs(Date.now() - new Date(stamped!).getTime()) < 5_000);
 });

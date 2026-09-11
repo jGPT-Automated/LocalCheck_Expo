@@ -38,11 +38,17 @@ export type SubscriptionStatus =
   | "cancelled"
   | "expired";
 
+/** How this event affects the row's `cancelled_at` column. The actual
+ * read-modify-write (preserving whatever value is already there for
+ * "preserve") happens atomically in the database, inside
+ * public.apply_subscription_event — not here, and not in a prior SELECT —
+ * so two concurrent deliveries can't race each other onto the same row. */
+export type CancelledAtMode = "now" | "clear" | "preserve";
+
 export type Verdict = {
   status: SubscriptionStatus;
   will_renew: boolean | null;
-  clearsCancelledAt: boolean;
-  setsCancelledAtNow: boolean;
+  cancelledAtMode: CancelledAtMode;
 };
 
 /**
@@ -65,59 +71,41 @@ export function verdictFor(
       return {
         status: trial ? "trialing" : "active",
         will_renew: true,
-        clearsCancelledAt: true,
-        setsCancelledAtNow: false,
+        cancelledAtMode: "clear",
       };
     case "NON_RENEWING_PURCHASE":
       return {
         status: "active",
         will_renew: false,
-        clearsCancelledAt: true,
-        setsCancelledAtNow: false,
+        cancelledAtMode: "clear",
       };
     case "CANCELLATION":
       // Auto-renew turned off; the grant is still valid until expiration_at_ms.
       return {
         status: "active",
         will_renew: false,
-        clearsCancelledAt: false,
-        setsCancelledAtNow: true,
+        cancelledAtMode: "now",
       };
     case "BILLING_ISSUE":
       return {
         status: "past_due",
         will_renew: true,
-        clearsCancelledAt: false,
-        setsCancelledAtNow: false,
+        cancelledAtMode: "preserve",
       };
     case "SUBSCRIPTION_PAUSED":
       return {
         status: "inactive",
         will_renew: false,
-        clearsCancelledAt: false,
-        setsCancelledAtNow: false,
+        cancelledAtMode: "preserve",
       };
     case "EXPIRATION":
     case "REFUND":
       return {
         status: "expired",
         will_renew: false,
-        clearsCancelledAt: false,
-        setsCancelledAtNow: false,
+        cancelledAtMode: "preserve",
       };
     default:
       return null;
   }
-}
-
-/** Resolves the `cancelled_at` column for an upsert given the verdict and
- *  whatever the row already had (a RENEWAL, say, must not erase a prior
- *  cancellation timestamp it has no opinion on). */
-export function resolveCancelledAt(
-  verdict: Verdict,
-  existingCancelledAt: string | null,
-): string | null {
-  if (verdict.setsCancelledAtNow) return new Date().toISOString();
-  if (verdict.clearsCancelledAt) return null;
-  return existingCancelledAt;
 }
