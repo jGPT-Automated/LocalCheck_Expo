@@ -52,7 +52,8 @@ import {
   searchPlayers,
 } from "@/services/profileService";
 import { logGame, logTeamGame } from "@/services/gameService";
-import { searchCourts } from "@/services/courtService";
+import { fetchNearbyCourts, searchCourts } from "@/services/courtService";
+import { useDeviceLocation } from "@/context/DeviceLocationContext";
 
 // BACKEND NOTE:
 
@@ -98,6 +99,7 @@ export default function CompeteScreen() {
     null,
   );
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  const { coord: deviceCoord } = useDeviceLocation();
 
   useEffect(() => {
     if (params.tab === "log") setMode("LOG_GAME");
@@ -120,14 +122,27 @@ export default function CompeteScreen() {
   useEffect(() => {
     let mounted = true;
     setLeaderboardLoading(true);
-    fetchLeaderboard(
-      scope,
-      scope === "FRIENDS" ? null : localCourtId,
-      rankingSport,
-      {
+    // REGIONAL needs an anchor court to resolve its market — normally the
+    // local court, but a viewer without one set yet still has a resolved GPS
+    // fix (DeviceLocationContext), so fall back to whatever court is nearest
+    // to them rather than returning an empty board.
+    const resolveAnchor = async (): Promise<string | null> => {
+      if (scope === "FRIENDS") return null;
+      if (localCourtId) return localCourtId;
+      if (scope !== "REGIONAL" || !deviceCoord) return null;
+      const nearby = await fetchNearbyCourts(
+        deviceCoord.lat,
+        deviceCoord.lng,
+        rankingSport,
+        1,
+      );
+      return nearby[0]?.id ?? null;
+    };
+    void resolveAnchor().then((anchorCourtId) =>
+      fetchLeaderboard(scope, anchorCourtId, rankingSport, {
         viewerId: currentUser.id,
         friendIds: friendIdsKey ? friendIdsKey.split(",") : [],
-      },
+      }),
     )
       .then((players) => {
         if (!mounted) return;
@@ -139,7 +154,7 @@ export default function CompeteScreen() {
     return () => {
       mounted = false;
     };
-  }, [scope, localCourtId, rankingSport, currentUser.elo, currentUser.id, friendIdsKey]);
+  }, [scope, localCourtId, rankingSport, currentUser.elo, currentUser.id, friendIdsKey, deviceCoord]);
 
   // Profile/QR deep links are identity lookups, not leaderboard lookups. A
   // valid opponent can be outside the current local/regional/ranked scope.

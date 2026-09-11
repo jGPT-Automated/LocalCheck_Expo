@@ -12,6 +12,7 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -29,6 +30,7 @@ import { useApp, Visibility } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useNotifications } from "@/context/NotificationContext";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
+import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
 import { deleteCurrentAccount } from "@/services/accountService";
 import { searchCourts } from "@/services/courtService";
 
@@ -97,7 +99,7 @@ export default function SettingsScreen() {
     localCourt,
     setLocalCourt,
   } = useApp();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, updatePassword, updateUsername } = useAuth();
   const hasLocalPlus = useLocalPlus();
   const { bottom } = useSafeAreaInsets();
 
@@ -116,9 +118,12 @@ export default function SettingsScreen() {
   const [pushSaving, setPushSaving] = useState(false);
   const { pushEnabled, enablePush, disablePush } = useNotifications();
   const [pushValue, setPushValue] = useState(pushEnabled);
-  const [editor, setEditor] = useState<null | "privacy" | "sport" | "court">(
-    null,
-  );
+  const [editor, setEditor] = useState<
+    null | "privacy" | "sport" | "court" | "username" | "password"
+  >(null);
+  const usesApple =
+    user?.app_metadata?.provider === "apple" ||
+    user?.identities?.some((identity) => identity.provider === "apple");
 
   useEffect(() => {
     if (!pushSaving) setPushValue(pushEnabled);
@@ -240,7 +245,17 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title="SETTINGS" onBack={() => router.back()} />
+      <ScreenHeader
+        title="SETTINGS"
+        onBack={() => router.back()}
+        right={
+          <View style={[styles.tierBadge, hasLocalPlus && styles.tierBadgePlus]}>
+            <Text style={[styles.tierBadgeText, hasLocalPlus && styles.tierBadgeTextPlus]}>
+              {hasLocalPlus ? "LOCALPLUS" : "LOCALLITE"}
+            </Text>
+          </View>
+        }
+      />
 
       <KeyboardAwareScrollViewCompat
         bottomOffset={104}
@@ -263,7 +278,7 @@ export default function SettingsScreen() {
               {currentUser.name.toUpperCase()}
             </Text>
             <Text style={styles.profileMeta}>
-              @{profile?.username || "player"} · {currentUser.elo} ELO
+              @{profile?.username || "player"}
             </Text>
           </View>
         </View>
@@ -295,8 +310,8 @@ export default function SettingsScreen() {
                   ? "Founder — LocalPlus is on the house"
                   : profile?.account_tag === "STARTER"
                     ? "Starter — free for your first year"
-                    : "Leaderboard, full history, and travel court insights"
-                : "Leaderboard, full history, and travel court insights"
+                    : "Court visibility, leaderboard, and full history"
+                : "Court visibility, leaderboard, and full history"
             }
             onPress={() => router.push("/localplus" as Href)}
           />
@@ -314,6 +329,13 @@ export default function SettingsScreen() {
         </Section>
 
         <Section title="PROFILE">
+          <DrillRow
+            icon="at-sign"
+            label="USERNAME"
+            value={profile?.username ? `@${profile.username}` : "NOT SET"}
+            valueMuted={!profile?.username}
+            onPress={() => setEditor("username")}
+          />
           <DrillRow
             icon="eye"
             label="PRIVACY"
@@ -388,6 +410,17 @@ export default function SettingsScreen() {
           />
         </Section>
 
+        {!usesApple ? (
+          <Section title="ACCOUNT SECURITY">
+            <SettingsRow
+              icon="lock"
+              label="CHANGE PASSWORD"
+              onPress={() => setEditor("password")}
+              last
+            />
+          </Section>
+        ) : null}
+
         <Section title="ACCOUNT">
           <SettingsRow
             icon="log-out"
@@ -429,8 +462,20 @@ export default function SettingsScreen() {
       <LocalCourtEditorSheet
         visible={editor === "court"}
         current={localCourt}
+        cooldown={getLocalCourtCooldown(hasLocalPlus, profile?.local_court_changed_at)}
         onChoose={(court) => setLocalCourt(court.id, court)}
         onRemove={() => setLocalCourt(null)}
+        onClose={() => setEditor(null)}
+      />
+      <UsernameEditorSheet
+        visible={editor === "username"}
+        current={profile?.username ?? ""}
+        onSave={updateUsername}
+        onClose={() => setEditor(null)}
+      />
+      <PasswordEditorSheet
+        visible={editor === "password"}
+        onSave={updatePassword}
         onClose={() => setEditor(null)}
       />
     </View>
@@ -686,12 +731,14 @@ function SportEditorSheet({
 function LocalCourtEditorSheet({
   visible,
   current,
+  cooldown,
   onChoose,
   onRemove,
   onClose,
 }: {
   visible: boolean;
   current: Court | null;
+  cooldown: ReturnType<typeof getLocalCourtCooldown>;
   onChoose: (court: Court) => Promise<boolean>;
   onRemove: () => Promise<boolean>;
   onClose: () => void;
@@ -734,6 +781,13 @@ function LocalCourtEditorSheet({
 
   const pick = async (court: Court) => {
     if (busyId) return;
+    if (current && current.id !== court.id && cooldown.restricted) {
+      Alert.alert(
+        "Local court is locked",
+        `LocalPlus changes your local court anytime. On LocalLite, you can change it again in ${formatCooldownRemaining(cooldown.remainingMs)}.`,
+      );
+      return;
+    }
     setBusyId(court.id);
     const ok = await onChoose(court);
     setBusyId(null);
@@ -809,6 +863,14 @@ function LocalCourtEditorSheet({
         </View>
       ) : null}
 
+      {current && cooldown.restricted ? (
+        <Text style={styles.cooldownNote}>
+          <Feather color={Colors.mutedDark} name="clock" size={11} /> You can change
+          your local court again in {formatCooldownRemaining(cooldown.remainingMs)}
+          . LocalPlus removes this wait.
+        </Text>
+      ) : null}
+
       <SearchField
         style={styles.searchBox}
         accessibilityLabel="Search for a court"
@@ -880,6 +942,192 @@ function LocalCourtEditorSheet({
   );
 }
 
+function UsernameEditorSheet({
+  visible,
+  current,
+  onSave,
+  onClose,
+}: {
+  visible: boolean;
+  current: string;
+  onSave: (username: string) => Promise<{ error: string | null }>;
+  onClose: () => void;
+}) {
+  const [value, setValue] = useState(current);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (visible) {
+      setValue(current);
+      setError(null);
+    }
+  }, [visible, current]);
+
+  const save = async () => {
+    if (saving || value.trim() === current) {
+      onClose();
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    const result = await onSave(value.trim());
+    setSaving(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    onClose();
+  };
+
+  return (
+    <RunFlowSheet
+      visible={visible}
+      onClose={onClose}
+      title="USERNAME"
+      eyebrow="LETTERS, NUMBERS, AND UNDERSCORES"
+      snapPoints={["46%"]}
+    >
+      <View style={styles.field}>
+        <Text style={styles.fieldLabel}>USERNAME</Text>
+        <View style={styles.fieldRow}>
+          <Text style={styles.fieldPrefix}>@</Text>
+          <TextInput
+            autoCapitalize="none"
+            autoCorrect={false}
+            maxLength={32}
+            onChangeText={(text) => {
+              setValue(text.replace(/[^A-Za-z0-9_]/g, ""));
+              setError(null);
+            }}
+            placeholder="username"
+            placeholderTextColor={Colors.mutedDark}
+            style={styles.fieldInput}
+            value={value}
+          />
+        </View>
+      </View>
+      {error ? <Text style={styles.fieldError}>{error}</Text> : null}
+      <Pressable
+        disabled={saving || value.trim().length < 3}
+        onPress={() => void save()}
+        style={({ pressed }) => [
+          styles.saveButton,
+          (saving || value.trim().length < 3) && styles.saveButtonDisabled,
+          pressed && styles.pressed,
+        ]}
+      >
+        {saving ? (
+          <ActivityIndicator color={Colors.black} size="small" />
+        ) : (
+          <Text style={styles.saveButtonText}>SAVE</Text>
+        )}
+      </Pressable>
+    </RunFlowSheet>
+  );
+}
+
+function PasswordEditorSheet({
+  visible,
+  onSave,
+  onClose,
+}: {
+  visible: boolean;
+  onSave: (password: string) => Promise<{ error: string | null }>;
+  onClose: () => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (visible) {
+      setPassword("");
+      setConfirm("");
+      setError(null);
+    }
+  }, [visible]);
+
+  const save = async () => {
+    if (saving) return;
+    if (password.length < 8) {
+      setError("Use at least 8 characters.");
+      return;
+    }
+    if (password !== confirm) {
+      setError("Passwords don't match.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    const result = await onSave(password);
+    setSaving(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    onClose();
+  };
+
+  return (
+    <RunFlowSheet
+      visible={visible}
+      onClose={onClose}
+      title="CHANGE PASSWORD"
+      eyebrow="AT LEAST 8 CHARACTERS"
+      snapPoints={["52%"]}
+    >
+      <View style={styles.field}>
+        <Text style={styles.fieldLabel}>NEW PASSWORD</Text>
+        <TextInput
+          autoCapitalize="none"
+          onChangeText={(text) => {
+            setPassword(text);
+            setError(null);
+          }}
+          placeholder="••••••••"
+          placeholderTextColor={Colors.mutedDark}
+          secureTextEntry
+          style={styles.fieldInputFull}
+          value={password}
+        />
+      </View>
+      <View style={styles.field}>
+        <Text style={styles.fieldLabel}>CONFIRM PASSWORD</Text>
+        <TextInput
+          autoCapitalize="none"
+          onChangeText={(text) => {
+            setConfirm(text);
+            setError(null);
+          }}
+          placeholder="••••••••"
+          placeholderTextColor={Colors.mutedDark}
+          secureTextEntry
+          style={styles.fieldInputFull}
+          value={confirm}
+        />
+      </View>
+      {error ? <Text style={styles.fieldError}>{error}</Text> : null}
+      <Pressable
+        disabled={saving}
+        onPress={() => void save()}
+        style={({ pressed }) => [
+          styles.saveButton,
+          saving && styles.saveButtonDisabled,
+          pressed && styles.pressed,
+        ]}
+      >
+        {saving ? (
+          <ActivityIndicator color={Colors.black} size="small" />
+        ) : (
+          <Text style={styles.saveButtonText}>SAVE</Text>
+        )}
+      </Pressable>
+    </RunFlowSheet>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
   profileRow: {
@@ -890,6 +1138,25 @@ const styles = StyleSheet.create({
     gap: 13,
   },
   profileRowHidden: { opacity: 0.48 },
+  tierBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: "transparent",
+  },
+  tierBadgePlus: {
+    borderColor: Colors.accentBorder,
+    backgroundColor: Colors.accentDim,
+  },
+  tierBadgeText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.4,
+    color: Colors.muted,
+  },
+  tierBadgeTextPlus: { color: Colors.accent },
   profileName: {
     fontFamily: Typography.heading,
     fontSize: 20,
@@ -1111,6 +1378,12 @@ const styles = StyleSheet.create({
     marginTop: 12,
     lineHeight: 16,
   },
+  cooldownNote: {
+    ...TextStyles.caption,
+    color: Colors.mutedDark,
+    marginBottom: 10,
+    lineHeight: 15,
+  },
   results: {
     marginTop: 10,
     borderWidth: 1,
@@ -1141,5 +1414,69 @@ const styles = StyleSheet.create({
     ...TextStyles.metadata,
     color: Colors.muted,
     textAlign: "center",
+  },
+
+  // ── Username / password editor sheets ──
+  field: { marginBottom: Space.md },
+  fieldLabel: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.muted,
+    letterSpacing: 1.4,
+    marginBottom: 8,
+  },
+  fieldRow: {
+    minHeight: 46,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surface,
+  },
+  fieldPrefix: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 14,
+    color: Colors.muted,
+    marginRight: 2,
+  },
+  fieldInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 14,
+    color: Colors.text,
+  },
+  fieldInputFull: {
+    minHeight: 46,
+    paddingHorizontal: 12,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 14,
+    color: Colors.text,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surface,
+  },
+  fieldError: {
+    ...TextStyles.caption,
+    color: Colors.loss,
+    marginTop: -6,
+    marginBottom: Space.md,
+  },
+  saveButton: {
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: Radius.md,
+    backgroundColor: Colors.accent,
+  },
+  saveButtonDisabled: { backgroundColor: Colors.surfaceHigh },
+  saveButtonText: {
+    fontFamily: Typography.heading,
+    fontSize: 12,
+    letterSpacing: 1.4,
+    color: Colors.black,
   },
 });

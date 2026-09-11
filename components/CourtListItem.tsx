@@ -71,7 +71,14 @@ export function CourtListItem({
         {court.shortName || court.name}
       </Text>
       <Text numberOfLines={1} style={styles.meta}>
-        {court.city || court.market || court.neighborhood || "Court details"}
+        {[
+          court.city || court.market || court.neighborhood || "Court details",
+          court.distanceKm != null
+            ? `${(court.distanceKm * 0.621371).toFixed(1)} MI`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
       </Text>
 
       <View style={styles.separator} />

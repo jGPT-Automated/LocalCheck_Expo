@@ -53,7 +53,23 @@ evidence only; it does not replace the production checkpoint below.
   `is_founding_member` booleans.
 - Leaderboard membership: a profile is ranked in a sport only after ≥1 game in
   that sport (`hasRankedGame`); privacy (`visibility`) and, when
-  `gateLeaderboard` is on, LocalPlus still gate on top.
+  `gateLeaderboard` is on, LocalPlus still gate on top. REGIONAL falls back to
+  the nearest court to the viewer's live location when no local court is set
+  yet (`fetchNearbyCourts`, `app/(tabs)/compete.tsx`) — it used to return
+  empty in that case, since the market lookup was anchored on the local court
+  alone.
+- Court insights gate: `app/court/[id].tsx`'s LOCALS and SCHEDULE tabs are
+  blurred + locked (`CourtInsightsGate`, `expo-blur`) for any court that
+  isn't the viewer's own local court, unless they have LocalPlus. This is the
+  first real enforcement of that perk — `LocalPlusFlags.gateCourtInsights`
+  used to be declared and marketed ("Travel Court Insights") but never
+  consumed anywhere.
+- Local court change cooldown: `LocalPlusFlags.localCourtCooldownDays` (7)
+  is now actually read and shown (`lib/localCourtCooldown.ts`) — both on the
+  court insights gate and in Settings' local-court picker — and LocalPlus
+  bypasses it entirely. Enforcement is client-side only (the picker blocks
+  the change and shows the remaining time); there is no server-side
+  trigger yet, so it isn't hardened against a client that skips the UI.
 - Realtime: private scoped Broadcast invalidation followed by authoritative
   refetch.
 
@@ -63,25 +79,34 @@ development and testing.
 
 ## Known release risks
 
-- **LocalPlus monetization is built, not yet deployed or device-verified.**
-  `react-native-purchases` is wired end to end (`services/purchasesService.ts`,
-  a real purchase/restore/redeem-code paywall on `app/localplus.tsx`,
-  identify/logout tied to Supabase auth), and `supabase/functions/revenuecat-webhook`
-  is written and unit tested. Neither the webhook nor its migration
-  (`20260911000000_subscriptions_webhook_support.sql`) is deployed/applied, and
-  none of the app code has run on a real device yet — `react-native-purchases`
-  needs a native build (not Expo Go, not web preview).
-  `useLocalPlus()` no longer has a blanket dev-unlock fallback — a fresh
-  account is genuinely locked unless a real `subscriptions` row says
-  otherwise, with one named exception (`account_tag === 'TEST'`, so Jesse's
-  QA fixtures stay usable). This requires the FOUNDER + REVIEWER promo-row
-  grant (`docs/runbooks/ACCOUNT_TAGS.md` step 3) to run first/alongside, or
-  those two accounts lose LocalPlus too.
-  Full status + remaining steps: `docs/runbooks/REVENUECAT.md`. Open: apply the
-  migration, deploy the webhook, run the FOUNDER + REVIEWER grant, device-test
-  a sandbox purchase, set up the first-100 STARTER offer codes. **Not a submission
-  blocker either way** — the app can ship with the
-  paywall behind the dev-default flag and the real purchase flow follows.
+- **LocalPlus monetization is live and device-verified.** Migration applied,
+  `revenuecat-webhook` deployed with a working auth secret (confirmed via a
+  200 on RevenueCat's test event AND a real device sandbox purchase —
+  `apply_subscription_event` writes correctly), FOUNDER + REVIEWER promo
+  grants run. `app/localplus.tsx` was redesigned 2026-09-11: the primary
+  action is pinned to the screen bottom (`StickyActionBar`, not floating
+  mid-content), the redundant intro paragraph is gone, and perks lead with
+  COURT VISIBILITY (was "Travel Court Insights" — that name and the word
+  "travel" are retired everywhere, including `app/settings.tsx`'s LocalPlus
+  row). Free tier is branded **LocalLite** in copy that's been touched so
+  far — not yet swept across every surface.
+  `useLocalPlus()` has no blanket dev-unlock fallback — a fresh account is
+  genuinely locked unless a real `subscriptions` row says otherwise, with one
+  named exception (`account_tag === 'TEST'`).
+  Still open: the first-100 STARTER offer codes aren't set up in App Store
+  Connect yet. Full history: `docs/runbooks/REVENUECAT.md`.
+- **Settings gained self-service account changes (2026-09-11):** username
+  (`public.update_username` RPC — format + a denylist-based moderation check
+  + uniqueness, all server-side; not exhaustive, a starting baseline) and
+  password (`supabase.auth.updateUser`, hidden for Apple-only accounts, which
+  have no password). A tier badge (LOCALPLUS/LOCALLITE) now shows at the top
+  of Settings; ELO was dropped from the header (redundant with the ME tab).
+- **Fresh-install permission sequencing:** the push-notification permission
+  request (`context/NotificationContext.tsx`) now fires ~2.5s after mount
+  instead of immediately, so it doesn't visually stack with the location
+  permission prompt that fires around the same point in a cold, signed-in
+  launch. Both are still automatic on first launch — no onboarding carousel
+  exists to defer them to a later, feature-triggered moment.
 - Mapbox, push notifications, Apple Sign-In, and SecureStore require physical
   iOS verification; browser success does not prove them.
 - Crash visibility: the RN `ErrorBoundary` + a global JS / unhandled-rejection
