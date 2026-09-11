@@ -2,8 +2,20 @@
 
 LocalCheck owns this end to end (app + backend + dashboard). No handoff.
 
-**It is NOT a submission blocker.** The app can be submitted today with
-`app/localplus.tsx`'s "SEE PLANS" alert as-is; the paywall ships in 1.0.1.
+**It is NOT a submission blocker.** The app can be submitted with the current
+build as-is; the real paywall ships in the next one.
+
+## Status (2026-09-11)
+
+| Phase | State |
+|---|---|
+| 1 — ASC subscription (price/availability/localization) | ✅ done |
+| 1c — In-App Purchase key | ✅ done — rotated once: the first key's `.p8` was downloaded by a since-retired agent session and lost, so it was revoked and regenerated. Same for the App Store Connect API key EAS uses to submit builds (a different key, also rotated after the same incident). Neither key's private material ever passed through chat. |
+| 2 — RevenueCat dashboard (app config, product, entitlement, offering, SDK key) | ✅ done |
+| 3 — `revenuecat-webhook` | ✅ source written + tested (`supabase/functions/revenuecat-webhook`) — **not yet deployed**, and the DB migration it needs (`20260911000000_subscriptions_webhook_support.sql`) is **not yet applied**. Both need one explicit go-ahead. |
+| 4 — App code (`react-native-purchases`) | ✅ source written (SDK init, identify/logout, real paywall purchase/restore/redeem-code on `/localplus`) — **untested on a real device**. Needs a new native build; Expo Go/web can't run it. |
+| 5 — Offer codes for the first-100 STARTER cohort | ⬜ not started |
+| Cutover (`LOCALPLUS_DEV_DEFAULT` → `false`) | ⬜ not yet — do this only after phases 3–4 are deployed and device-verified, and FOUNDER/reviewer entitlements are sorted (see below), or the paywall shows to everyone with no working purchase |
 
 ## Plan — locked (supersedes `launch/REVENUECAT_START_NOW.txt` where they differ)
 
@@ -13,7 +25,7 @@ LocalCheck owns this end to end (app + backend + dashboard). No handoff.
 | Why US-only | EU/DSA requires a public trader address; Jesse is a non-trader. Revisit post-launch if monetization works. |
 | Entitlement | `localplus` (RevenueCat says already created, `entl99df860f0d`). NOT `localcheck_pro`. |
 | Offering | `default` — one package, `$rc_monthly` → `com.realjess.localcheck.localplus.monthly`. Remove any `$rc_annual`. |
-| ASC product | `com.realjess.localcheck.localplus.monthly` — **already created**, status "Prepare for Submission", missing price/availability/localization/review-screenshot. |
+| ASC product | `com.realjess.localcheck.localplus.monthly` — created, price ($4.99), US availability, and localization all set. Status "Prepare for Submission" until submitted alongside an app version. |
 | First-100 free year | **Promo `subscriptions` row**, not Apple offer codes (there's no annual product to attach one to). Launch-day migration per `docs/runbooks/ACCOUNT_TAGS.md`: `account_tag='STARTER'` + a `billing_provider='promo'` row, `is_pro` for one year, no auto-renew, no charge. |
 | Grant reconciliation | The webhook only writes rows for real RC purchases. Promo rows are `billing_provider='promo'` — no double-grant. When a promo year expires the `sync_profile_is_pro` trigger flips `is_pro` false; a real purchase in the meantime keeps them active. No silent revocation. |
 
@@ -101,32 +113,81 @@ Store) → copy the **public** key (`appl_…`).
 
 ---
 
-## Phase 3 — Webhook (Jesse + Claude)
+## Phase 3 — Webhook (built; deploy needs your go)
 
-- Claude deploys `supabase/functions/revenuecat-webhook` (JWT off, own
-  shared-secret header check, idempotent upsert into `public.subscriptions`,
-  handles INITIAL_PURCHASE / RENEWAL / CANCELLATION / EXPIRATION / BILLING_ISSUE
-  / PRODUCT_CHANGE / REFUND / SUBSCRIBER_ALIAS with out-of-order protection).
-- RC → **Project settings** → **Integrations** → **Webhooks** → **＋ New**:
-  - URL `https://qkrnmyexzvaxiqfxwwfb.functions.supabase.co/revenuecat-webhook`
-  - Authorization header value = a random secret you generate.
-- Jesse: Supabase dashboard → **Project settings → Edge Functions → Secrets** →
-  add `REVENUECAT_WEBHOOK_AUTH_HEADER` = that same value.
-- **Gate:** RC webhook shows **Active**; a RC "send test event" returns 2xx;
-  a matching row lands in `public.subscriptions`.
+`supabase/functions/revenuecat-webhook` — JWT off, its own `Authorization`
+header check, pure event-mapping logic in `webhookLogic.ts` (unit tested —
+`pnpm run test:backend`), idempotent upsert into `public.subscriptions` keyed
+on `user_id`, handles INITIAL_PURCHASE / RENEWAL / UNCANCELLATION /
+PRODUCT_CHANGE / NON_RENEWING_PURCHASE / CANCELLATION / BILLING_ISSUE /
+SUBSCRIPTION_PAUSED / EXPIRATION / REFUND, with out-of-order protection
+(`last_event_ms`). TRANSFER / SUBSCRIBER_ALIAS are logged and skipped (rare
+identity-merge events, handled manually if one ever occurs). Needs its
+migration (`20260911000000_subscriptions_webhook_support.sql` — adds
+`last_event_ms`, a unique index on `user_id`) applied first.
+
+**To finish, in order:**
+1. Apply the migration through the Supabase migration tool.
+2. Deploy the function.
+3. Jesse generates a random secret (e.g. `openssl rand -hex 32`), adds it as
+   `REVENUECAT_WEBHOOK_AUTH_HEADER` in Supabase → **Project settings → Edge
+   Functions → Secrets**.
+4. RC → **Project settings → Integrations → Webhooks → ＋ New**:
+   - URL `https://qkrnmyexzvaxiqfxwwfb.functions.supabase.co/revenuecat-webhook`
+   - Authorization header value = the same secret.
+5. **Gate:** RC webhook shows **Active**; its "Send test event" button returns
+   2xx (the function acknowledges `TEST` events without writing anything).
 
 ---
 
-## Phase 4 — App code (Claude)
+## Phase 4 — App code (built; needs a native build to verify)
 
-`react-native-purchases`, SDK init on `EXPO_PUBLIC_REVENUECAT_IOS_KEY`, identify
-by the Supabase user UUID, login/logout isolation, CustomerInfo refresh,
-purchase / restore / manage-subscription flows, failure + cancel UI. Flip
-`LOCALPLUS_DEV_DEFAULT` → `false`. A native dev build is required for real Apple
-sandbox testing — Expo Go is not evidence.
+`services/purchasesService.ts` — the only file that imports the SDK. Configures
+on `EXPO_PUBLIC_REVENUECAT_IOS_KEY` (iOS only), identifies/logs out with the
+Supabase user id (wired into `context/AuthContext.tsx`), and exposes
+purchase / restore / redeem-offer-code / a same-device "fast path" entitlement
+check so a purchase unlocks `useLocalPlus()` instantly instead of waiting on
+the webhook round trip. `app/localplus.tsx` now shows the real price from the
+package, purchases it, and has Restore Purchases + "Have an offer code?"
+buttons — App Review requires the restore button on any subscription screen.
 
-## Phase 5 — cutover
+**Not yet exercised on a device** — `react-native-purchases` has native code,
+so this needs a fresh EAS build (dev or production; not Expo Go, not the web
+preview) before it can be trusted. Verify: the price shown matches ASC, a
+sandbox purchase completes and flips `useLocalPlus()` true immediately, Restore
+works from a second install, and an offer code redeems.
 
-- Apply the launch-day STARTER migration (`docs/runbooks/ACCOUNT_TAGS.md`).
+## Phase 5 — First-100 STARTER offer codes
+
+ASC → your app → **Subscriptions → LocalPlus → LocalPlus Monthly → Promotional
+Offers / Offer Codes** (Apple's naming varies by ASC version — look for
+"Offer Codes" under the subscription).
+- **New Offer Code** → Reference name `STARTER-FIRST-100`.
+- Discount: **100% off**, duration **1 year**, one-time (not recurring at the
+  discounted rate).
+- Customer eligibility: **new subscribers**.
+- **Generate codes**: one-time-use, quantity **100**.
+- ⚠️ **Accepted per Jesse's call:** this converts to the normal $4.99/mo
+  auto-renewal after the free year unless the redeemer cancels — Apple offer
+  codes don't support "free, then just stop." That's the intended behavior
+  (free-year hype now, a real conversion path later), not a bug to route
+  around. If that ever needs to change, it's an `account_tag='STARTER'` +
+  promo `subscriptions` row per `docs/runbooks/ACCOUNT_TAGS.md` instead — a
+  different mechanism, not a variant of this one.
+- The redemption UI is `Purchases.presentCodeRedemptionSheet()` (already wired
+  behind "Have an offer code?" on `/localplus`), or Apple's own
+  Settings → \[name\] → Subscriptions → **Redeem** flow — both work with the
+  same codes.
+
+## Cutover
+
+- FOUNDER (Jesse) and the Apple reviewer account each need a real entitlement
+  before `LOCALPLUS_DEV_DEFAULT` goes to `false`, or they lose LocalPlus too:
+  either redeem a STARTER code, or grant a RevenueCat **promotional
+  entitlement** from the Customers view (no App Store purchase involved) — the
+  reviewer should generally NOT be comped this way, though; App Review is
+  supposed to exercise the real sandbox purchase, so leave that account plain
+  and let the reviewer buy it in sandbox.
+- Set `LOCALPLUS_DEV_DEFAULT = false` in `constants/flags.ts`.
 - Submit the paid subscription (`Add for Review`) with the app version that
-  carries the paywall (1.0.1).
+  carries the paywall.

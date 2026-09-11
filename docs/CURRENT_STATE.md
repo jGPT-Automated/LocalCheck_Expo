@@ -63,18 +63,20 @@ development and testing.
 
 ## Known release risks
 
-- **LocalPlus monetization is not built.** No `react-native-purchases`, no
-  RevenueCat code, no webhook; `LOCALPLUS_DEV_DEFAULT = true` still grants Plus
-  to everyone in-app. The plan and price are settled (see
-  `docs/product/DECISIONS.md` — one monthly plan, $4.99, **US-only**). The full
-  setup + build procedure is `docs/runbooks/REVENUECAT.md`. Open: finish the App
-  Store Connect subscription (price / availability / localization), add the real
-  App Store config in RevenueCat, build the SDK + webhook, flip the dev default,
-  and reconcile the entitlement string (`localplus` vs `localcheck_pro`) in the
-  shared manifest. FOUNDER/STARTER free access must come from a promo
-  `subscriptions` row (which has an expiry), not from `account_tag`.
-  **Not a submission blocker** — the app ships with the current "SEE PLANS"
-  placeholder and the paywall follows in 1.0.1.
+- **LocalPlus monetization is built, not yet deployed or device-verified.**
+  `react-native-purchases` is wired end to end (`services/purchasesService.ts`,
+  a real purchase/restore/redeem-code paywall on `app/localplus.tsx`,
+  identify/logout tied to Supabase auth), and `supabase/functions/revenuecat-webhook`
+  is written and unit tested. Neither the webhook nor its migration
+  (`20260911000000_subscriptions_webhook_support.sql`) is deployed/applied, and
+  none of the app code has run on a real device yet — `react-native-purchases`
+  needs a native build (not Expo Go, not web preview). `LOCALPLUS_DEV_DEFAULT =
+  true` still grants Plus to everyone in-app until that verification happens.
+  Full status + remaining steps: `docs/runbooks/REVENUECAT.md`. Open: deploy
+  the webhook, device-test a sandbox purchase, set up the first-100 STARTER
+  offer codes, give the FOUNDER account a real entitlement, then flip the dev
+  default. **Not a submission blocker either way** — the app can ship with the
+  paywall behind the dev-default flag and the real purchase flow follows.
 - Mapbox, push notifications, Apple Sign-In, and SecureStore require physical
   iOS verification; browser success does not prove them.
 - Crash visibility: the RN `ErrorBoundary` + a global JS / unhandled-rejection

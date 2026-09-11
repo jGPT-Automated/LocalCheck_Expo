@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
+  ActivityIndicator,
   Alert,
   Linking,
   Pressable,
@@ -10,6 +11,7 @@ import {
   Text,
   View,
 } from "react-native";
+import type { PurchasesPackage } from "react-native-purchases";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { DetailHeader } from "@/components/ui/DetailHeader";
@@ -19,6 +21,12 @@ import { TextStyles, Typography } from "@/constants/typography";
 import { LocalPlusFlags } from "@/constants/flags";
 import { useAuth } from "@/context/AuthContext";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
+import {
+  fetchLocalPlusPackage,
+  purchaseLocalPlus,
+  redeemOfferCode,
+  restorePurchases,
+} from "@/services/purchasesService";
 
 const PERKS: { icon: React.ComponentProps<typeof Feather>["name"]; title: string; body: string }[] = [
   {
@@ -46,13 +54,62 @@ const PERKS: { icon: React.ComponentProps<typeof Feather>["name"]; title: string
 export default function LocalPlusScreen() {
   const router = useRouter();
   const { bottom } = useSafeAreaInsets();
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const hasLocalPlus = useLocalPlus();
   // FOUNDER / STARTER get LocalPlus at no cost — nothing to cancel.
   // See docs/runbooks/ACCOUNT_TAGS.md.
   const tag = profile?.account_tag ?? null;
   const isFounder = tag === "FOUNDER";
   const isComped = isFounder || tag === "STARTER";
+
+  const [pkg, setPkg] = React.useState<PurchasesPackage | null>(null);
+  const [offeringChecked, setOfferingChecked] = React.useState(false);
+  const [purchasing, setPurchasing] = React.useState(false);
+  const [restoring, setRestoring] = React.useState(false);
+
+  React.useEffect(() => {
+    if (hasLocalPlus) return; // nothing to buy — skip the network round trip
+    let cancelled = false;
+    void fetchLocalPlusPackage().then((found) => {
+      if (!cancelled) {
+        setPkg(found);
+        setOfferingChecked(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [hasLocalPlus]);
+
+  const handlePurchase = async () => {
+    if (!pkg || purchasing) return;
+    setPurchasing(true);
+    const result = await purchaseLocalPlus(pkg);
+    setPurchasing(false);
+    if (result.outcome === "error") {
+      Alert.alert("Couldn't complete purchase", result.message);
+      return;
+    }
+    if (result.outcome === "purchased") {
+      void refreshProfile();
+    }
+  };
+
+  const handleRestore = async () => {
+    if (restoring) return;
+    setRestoring(true);
+    const result = await restorePurchases();
+    setRestoring(false);
+    if (result.outcome === "error") {
+      Alert.alert("Couldn't restore purchases", result.message);
+      return;
+    }
+    if (result.outcome === "purchased" && result.isLocalPlus) {
+      void refreshProfile();
+    } else {
+      Alert.alert("Nothing to restore", "No active LocalPlus purchase was found for this Apple ID.");
+    }
+  };
 
   return (
     <View style={styles.screen}>
@@ -103,18 +160,49 @@ export default function LocalPlusScreen() {
         </View>
 
         {!hasLocalPlus ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() =>
-              Alert.alert(
-                "Almost there",
-                "LocalPlus subscriptions go live shortly. Founding members already have it free for a year.",
-              )
-            }
-            style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
-          >
-            <Text style={styles.ctaText}>SEE PLANS</Text>
-          </Pressable>
+          <View style={{ gap: Space.md }}>
+            <Pressable
+              accessibilityRole="button"
+              disabled={!pkg || purchasing}
+              onPress={() => void handlePurchase()}
+              style={({ pressed }) => [
+                styles.cta,
+                (!pkg || purchasing) && styles.ctaDisabled,
+                pressed && pkg && styles.ctaPressed,
+              ]}
+            >
+              {purchasing ? (
+                <ActivityIndicator color={Colors.black} />
+              ) : (
+                <Text
+                  style={[styles.ctaText, !pkg && styles.ctaTextDisabled]}
+                >
+                  {pkg
+                    ? `SUBSCRIBE — ${pkg.product.priceString}/MO`
+                    : offeringChecked
+                      ? "NOT AVAILABLE YET"
+                      : "LOADING…"}
+                </Text>
+              )}
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              disabled={restoring}
+              onPress={() => void handleRestore()}
+              style={({ pressed }) => [pressed && styles.ctaPressed]}
+            >
+              <Text style={styles.restoreText}>
+                {restoring ? "RESTORING…" : "RESTORE PURCHASES"}
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void redeemOfferCode()}
+              style={({ pressed }) => [pressed && styles.ctaPressed]}
+            >
+              <Text style={styles.restoreText}>HAVE AN OFFER CODE?</Text>
+            </Pressable>
+          </View>
         ) : isComped ? (
           <Text style={styles.manageNote}>
             {isFounder
@@ -199,11 +287,20 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent,
   },
   ctaPressed: { opacity: 0.8 },
+  ctaDisabled: { backgroundColor: Colors.surfaceHigh },
   ctaText: {
     fontFamily: Typography.heading,
     fontSize: 13,
     letterSpacing: 1.6,
     color: Colors.black,
+  },
+  ctaTextDisabled: { color: Colors.muted },
+  restoreText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    letterSpacing: 1.2,
+    textAlign: "center",
+    color: Colors.textSecondary,
   },
   manageButton: {
     minHeight: 44,

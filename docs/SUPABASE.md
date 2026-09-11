@@ -180,14 +180,23 @@ tool, verified with read-only queries:
   verify: `select username from public.profiles where username ~ '_[0-9a-f]{16}$';`
   should return 0 rows.
 
-All other 2026-09 migrations are applied to LocalCheckProd; only
-`20260910000000_friendly_usernames.sql` is pending.
+- `20260911000000_subscriptions_webhook_support.sql` — **SOURCE ONLY, NOT
+  APPLIED.** Adds `public.subscriptions.last_event_ms` (out-of-order guard for
+  webhook events) and a unique index on `user_id` (one subscription lineage per
+  person, makes the webhook's upsert idempotent). 0 rows in the table today, so
+  this is a safe additive change whenever applied. Pairs with the
+  `revenuecat-webhook` function below — apply this first.
+
+All other 2026-09 migrations are applied to LocalCheckProd; two are pending:
+`20260910000000_friendly_usernames.sql` and
+`20260911000000_subscriptions_webhook_support.sql`.
 `account_tag` is cosmetic — it does not gate the leaderboard or LocalPlus; the
 only functional switch is the client flag `LeaderboardFlags.hideTaggedAccounts`
-(off). No RevenueCat webhook function exists yet — when it is built it is
-`supabase/functions/revenuecat-webhook`, authorized by its own
-`REVENUECAT_WEBHOOK_AUTH_HEADER` secret (not the platform JWT), and upserts
-`public.subscriptions`; see `docs/runbooks/REVENUECAT.md` Phase 3.
+(off). `supabase/functions/revenuecat-webhook` exists as source — **not yet
+deployed** — authorized by its own `REVENUECAT_WEBHOOK_AUTH_HEADER` secret (not
+the platform JWT), pure event-mapping logic in `webhookLogic.ts` (unit tested),
+upserts `public.subscriptions`; see `docs/runbooks/REVENUECAT.md` Phase 3 for
+the deploy sequence.
 `profiles.is_pro` is still the only entitlement field, trigger-derived from
 `public.subscriptions`.
 

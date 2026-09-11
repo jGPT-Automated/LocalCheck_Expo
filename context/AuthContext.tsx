@@ -11,6 +11,7 @@ import { Platform } from "react-native";
 
 import { supabase } from "@/lib/supabase";
 import type { AccountTag } from "@/constants/data";
+import { identifyPurchaser, resetPurchaser } from "@/services/purchasesService";
 
 import type { Session, User } from "@supabase/supabase-js";
 
@@ -211,6 +212,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, [waitForProfile]);
+
+  // Ties RevenueCat's app_user_id to the signed-in Supabase user, so the
+  // revenuecat-webhook can write purchases straight onto profiles.id. A
+  // dedicated effect (not the synchronous auth-state-change callback above,
+  // which must stay sync) so it fires once per real identity change, on both
+  // the cold-start restore and a live sign-in/out.
+  useEffect(() => {
+    if (user?.id) {
+      void identifyPurchaser(user.id);
+    } else {
+      void resetPurchaser();
+    }
+  }, [user?.id]);
 
   const signUpWithEmail = useCallback(
     async (email: string, password: string, displayName?: string) => {
