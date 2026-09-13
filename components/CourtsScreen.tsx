@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
   Platform,
   Pressable,
   StyleSheet,
@@ -77,6 +78,10 @@ export function CourtsScreen() {
 
   const openCourt = useCallback(
     (court: Court) => {
+      // Search leaves the keyboard focused on the search field — without
+      // dismissing it first, the sheet that presents next renders behind it
+      // until the keyboard is dismissed by hand.
+      Keyboard.dismiss();
       presentCourtSheet({
         courtId: court.id,
         distanceKm: court.distanceKm ?? undefined,
@@ -193,9 +198,15 @@ export function CourtsScreen() {
   );
 
   const localCourtLive = localCourt ? withLiveCounts(localCourt) : null;
-  const listSource = (isSearchMode ? searchResults : nearbyCourts)
-    .filter((court) => court.id !== localCourtId)
-    .map(withLiveCounts);
+  // The local court is pinned separately above this list — but only outside
+  // search mode (see `!isSearchMode && localCourtLive` below). Stripping it
+  // here unconditionally made it vanish from search results entirely, since
+  // search mode has no pinned card to fall back on.
+  const listSource = (
+    isSearchMode
+      ? searchResults
+      : nearbyCourts.filter((court) => court.id !== localCourtId)
+  ).map(withLiveCounts);
   const visibleCourts =
     isSearchMode || showAll ? listSource : listSource.slice(0, COLLAPSED_LIMIT);
 

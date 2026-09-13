@@ -3,9 +3,8 @@ import {
   BottomSheetScrollView,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
-import { Feather } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef } from "react";
-import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import { Dimensions, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors } from "@/constants/colors";
@@ -63,21 +62,14 @@ export function RunFlowSheet({
 
   const paddingBottom = Math.max(contentBottomPadding, bottom + bottomClearance);
 
+  // No close button — the sheet's own drag handle (swipe down) and tapping
+  // the backdrop already dismiss it; a redundant X was the odd one out.
   const header = (
     <View style={styles.header}>
       <View style={styles.headingCopy}>
-        {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
         <Text style={styles.title}>{title}</Text>
+        {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
       </View>
-      <Pressable
-        accessibilityLabel="Close"
-        accessibilityRole="button"
-        hitSlop={10}
-        onPress={() => modalRef.current?.dismiss()}
-        style={styles.close}
-      >
-        <Feather name="x" size={20} color={Colors.textSecondary} />
-      </Pressable>
     </View>
   );
 
@@ -135,12 +127,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
     letterSpacing: 1.4,
     textTransform: "uppercase",
-  },
-  close: {
-    width: 44,
-    height: 44,
-    alignItems: "flex-end",
-    justifyContent: "center",
   },
   content: { paddingHorizontal: 20, paddingTop: 18 },
 });

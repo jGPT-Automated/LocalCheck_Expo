@@ -266,6 +266,7 @@ export default function CompeteScreen() {
           }
           preselectedOpponent={deepLinkedOpponent}
           localCourtId={localCourtId}
+          onLogged={() => setMode("RANKINGS")}
         />
       )}
     </View>
@@ -753,6 +754,7 @@ function LogGameView({
   preselectedOpponent,
   localCourtId,
   inSheet = false,
+  onLogged,
 }: {
   currentUser: ReturnType<typeof useApp>["currentUser"];
   courts: ReturnType<typeof useApp>["courts"];
@@ -762,6 +764,8 @@ function LogGameView({
   preselectedOpponent: Player | null;
   localCourtId: string | null;
   inSheet?: boolean;
+  /** Fires once the post-submit confirmation has had its moment on screen. */
+  onLogged?: () => void;
 }) {
   const { isFriend, getFriendsList, localCourt } = useApp();
   const insets = useSafeAreaInsets();
@@ -1009,7 +1013,12 @@ function LogGameView({
     setSubmittedGame({ ...reviewGame });
     setReviewGame(null);
     setClientRequestId(Crypto.randomUUID());
-    setTimeout(() => setSubmittedGame(null), 5000);
+    // The leaderboard is the safe fallback after logging a game — never leave
+    // the viewer sitting on Log Game once the confirmation's had its moment.
+    setTimeout(() => {
+      setSubmittedGame(null);
+      onLogged?.();
+    }, 5000);
     setForm({
       sport: defaultSport,
       myScore: "",
