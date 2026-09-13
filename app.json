@@ -79,10 +79,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/brand/logo-mark.png",
-          "imageWidth": 88,
-          "resizeMode": "contain",
-          "backgroundColor": "#101010"
+          "backgroundColor": "#0D0D10"
         }
       ],
       [
