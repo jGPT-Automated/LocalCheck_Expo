@@ -49,7 +49,8 @@ import { usePresence } from "@/context/CourtPresenceContext";
 import {
   fetchLeaderboard,
   fetchProfile,
-  searchPlayersCheckedInToday,
+  searchCourtPlayersRecent,
+  searchPlayers,
 } from "@/services/profileService";
 import { logGame, logTeamGame } from "@/services/gameService";
 import { fetchNearbyCourts, searchCourts } from "@/services/courtService";
@@ -266,6 +267,7 @@ export default function CompeteScreen() {
           }
           preselectedOpponent={deepLinkedOpponent}
           localCourtId={localCourtId}
+          hasLocalPlus={isLocalPlus}
           onLogged={() => setMode("RANKINGS")}
         />
       )}
@@ -753,6 +755,7 @@ function LogGameView({
   preferredCourtId,
   preselectedOpponent,
   localCourtId,
+  hasLocalPlus,
   inSheet = false,
   onLogged,
 }: {
@@ -763,6 +766,10 @@ function LogGameView({
   preferredCourtId: string | null;
   preselectedOpponent: Player | null;
   localCourtId: string | null;
+  /** Discovery search (any name, any court) is a LocalPlus perk. LocalLite
+   * logging a game away from their own local court gets a narrower search
+   * instead — see the opponent-typeahead effect below. */
+  hasLocalPlus: boolean;
   inSheet?: boolean;
   /** Fires once the post-submit confirmation has had its moment on screen. */
   onLogged?: () => void;
@@ -1137,9 +1144,19 @@ function LogGameView({
     setScannerOpen(true);
   };
 
-  // Opponent typeahead: search real players via Supabase
+  // Opponent typeahead: search real players via Supabase.
+  // - No query yet: friends, always — not an ambient roster of whoever's at
+  //   the selected court, which needed zero typing to reveal who's active
+  //   somewhere that isn't even the viewer's own court.
+  // - Query typed, own local court or LocalPlus: broad, fuzzy discovery
+  //   across the whole player base — this is the actual LocalPlus perk
+  //   (or the always-free case at your own court).
+  // - Query typed, LocalLite at another court: narrowed to that specific
+  //   court's check-ins in the trailing 7 days (matches Log Game's own
+  //   daysBack={7} window) instead of open discovery-by-ELO.
   const friends = getFriendsList();
   const query = opponentQuery.toLowerCase().trim();
+  const isMyLocalCourt = selectedCourt?.id != null && selectedCourt.id === localCourtId;
   useEffect(() => {
     let mounted = true;
     const courtIds = new Set(courtPlayers.map((player) => player.id));
@@ -1161,19 +1178,23 @@ function LogGameView({
         .slice(0, 10);
     };
     if (query.length === 0) {
-      setOpponentSuggestions(
-        prioritize(courtPlayers.length > 0 ? courtPlayers : friends),
-      );
+      setOpponentSuggestions(prioritize(friends));
       return;
     }
-    searchPlayersCheckedInToday(query).then((results) => {
+    const search =
+      isMyLocalCourt || hasLocalPlus
+        ? searchPlayers(query)
+        : selectedCourt
+          ? searchCourtPlayersRecent(selectedCourt.id, query)
+          : Promise.resolve([]);
+    search.then((results) => {
       if (!mounted) return;
       setOpponentSuggestions(prioritize(results));
     });
     return () => {
       mounted = false;
     };
-  }, [query, friends, courtPlayers, currentUser.id]);
+  }, [query, friends, courtPlayers, currentUser.id, isMyLocalCourt, hasLocalPlus, selectedCourt]);
 
   const availableSuggestions = opponentSuggestions.filter(
     (player) => !chosenIds.includes(player.id),
@@ -1276,11 +1297,7 @@ function LogGameView({
           />
         </View>
         <Text style={styles.opponentSection}>
-          {query
-            ? "BEST MATCHES"
-            : selectedCourt && courtPlayers.length > 0
-              ? `AT ${selectedCourt.shortName ?? selectedCourt.name}`
-              : "YOUR FRIENDS"}
+          {query ? "BEST MATCHES" : "YOUR FRIENDS"}
         </Text>
         {availableSuggestions.map((suggestion) => (
           <Pressable

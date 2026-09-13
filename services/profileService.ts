@@ -267,31 +267,35 @@ export async function searchPlayers(query: string): Promise<Player[]> {
 }
 
 /**
- * Same literal name match as searchPlayers, but scoped to players who
- * checked in somewhere today — Log Game's opponent picker only. Typing any
- * two letters into a plain searchPlayers() call let anyone browse the whole
- * player base's ELO/rank regardless of court or LocalPlus; this narrows
- * results to people who plausibly could have actually been played against
- * today, which is also the only case logging a game needs.
+ * Same literal name match as searchPlayers, but scoped to one court and the
+ * trailing 7 days (the same window RecentDatePicker/Log Game's own
+ * daysBack={7} already uses — see app/(tabs)/compete.tsx) — for a LocalLite
+ * viewer logging a game at a court that isn't their local one. Discovery
+ * across the whole player base by ELO/rank is a LocalPlus perk; at your own
+ * local court, or with LocalPlus, the caller should use plain
+ * searchPlayers() instead — this is deliberately the narrower path.
  */
-export async function searchPlayersCheckedInToday(query: string): Promise<Player[]> {
+export async function searchCourtPlayersRecent(
+  courtId: string,
+  query: string,
+): Promise<Player[]> {
   const trimmed = query.trim().toLowerCase();
   if (trimmed.length < 2) return [];
   try {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60_000).toISOString();
     const { data: checkIns, error: checkInError } = await supabase
       .from("check_ins")
       .select("user_id")
-      .gte("checked_in_at", startOfToday.toISOString());
+      .eq("court_id", courtId)
+      .gte("checked_in_at", weekAgo);
     if (checkInError || !checkIns?.length) return [];
-    const todayIds = Array.from(
+    const recentIds = Array.from(
       new Set((checkIns as { user_id: string }[]).map((row) => row.user_id)),
     );
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
-      .in("id", todayIds)
+      .in("id", recentIds)
       .or(`display_name.ilike.%${trimmed}%,username.ilike.%${trimmed}%`)
       .limit(20);
     if (error || !data) return [];
