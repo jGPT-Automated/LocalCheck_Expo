@@ -204,18 +204,6 @@ export async function fetchLocalCount(courtId: string): Promise<number> {
 }
 
 /**
- * Update the signed-in user's local court in Supabase. Returns true only when
- * the row came back with the requested value — callers must roll back their
- * optimistic state on false, or the selection silently reverts on relaunch.
- */
-export async function updateLocalCourtId(
-  userId: string,
-  courtId: string | null,
-): Promise<boolean> {
-  return updateProfileFields(userId, { local_court_id: courtId });
-}
-
-/**
  * Persist profile preference fields to Supabase. Returns whether the write
  * verifiably persisted: Supabase reports failures in the resolved `error`
  * object (not by throwing), and an RLS-filtered update "succeeds" with zero

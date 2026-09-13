@@ -54,7 +54,7 @@ import {
   type CourtSubmissionResult,
   type VerifiedCourtSubmission,
 } from "@/services/courtService";
-import { updateLocalCourtId, updateProfileFields } from "@/services/profileService";
+import { updateProfileFields } from "@/services/profileService";
 import { useAuth } from "@/context/AuthContext";
 import { usePresenceRefresh } from "@/context/CourtPresenceContext";
 import { useDeviceLocation } from "@/context/DeviceLocationContext";
@@ -612,23 +612,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // error-swallowing path hid exactly that).
     const prevId = localCourtId;
     const prevObj = localCourt;
+    const prevSport = preferredSport;
     setLocalCourtId(courtId);
+    let sport: CourtSport | null = null;
     if (courtId === null) {
       setLocalCourtObj(null);
     } else if (courtObj) {
       setLocalCourtObj(courtObj);
+      sport = courtObj.sport;
     } else {
       const court = await fetchCourtById(courtId);
       setLocalCourtObj(court);
+      sport = court?.sport ?? null;
     }
+    // Setting a local court adopts its sport as the preferred sport too —
+    // Explore's map filter and the leaderboard both default off this same
+    // value, so without it a fresh local court left them on "not set".
+    // Clearing a local court (courtId === null) leaves the sport alone.
+    if (sport) setPreferredSportState(sport);
     if (!userId) return true;
-    const persisted = await updateLocalCourtId(userId, courtId);
+    const persisted = await updateProfileFields(userId, {
+      local_court_id: courtId,
+      ...(sport ? { preferred_sport: sport.toLowerCase() } : {}),
+    });
     if (!persisted) {
       setLocalCourtId(prevId);
       setLocalCourtObj(prevObj);
+      if (sport) setPreferredSportState(prevSport);
     }
     return persisted;
-  }, [userId, localCourtId, localCourt]);
+  }, [userId, localCourtId, localCourt, preferredSport]);
 
   const setVisibility = useCallback(async (v: Visibility) => {
     const prev = visibility;
