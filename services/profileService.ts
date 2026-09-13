@@ -267,6 +267,41 @@ export async function searchPlayers(query: string): Promise<Player[]> {
 }
 
 /**
+ * Same literal name match as searchPlayers, but scoped to players who
+ * checked in somewhere today — Log Game's opponent picker only. Typing any
+ * two letters into a plain searchPlayers() call let anyone browse the whole
+ * player base's ELO/rank regardless of court or LocalPlus; this narrows
+ * results to people who plausibly could have actually been played against
+ * today, which is also the only case logging a game needs.
+ */
+export async function searchPlayersCheckedInToday(query: string): Promise<Player[]> {
+  const trimmed = query.trim().toLowerCase();
+  if (trimmed.length < 2) return [];
+  try {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const { data: checkIns, error: checkInError } = await supabase
+      .from("check_ins")
+      .select("user_id")
+      .gte("checked_in_at", startOfToday.toISOString());
+    if (checkInError || !checkIns?.length) return [];
+    const todayIds = Array.from(
+      new Set((checkIns as { user_id: string }[]).map((row) => row.user_id)),
+    );
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .in("id", todayIds)
+      .or(`display_name.ilike.%${trimmed}%,username.ilike.%${trimmed}%`)
+      .limit(20);
+    if (error || !data) return [];
+    return (data as SupabaseProfile[]).map((row) => mapProfileToPlayer(row));
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Suggested friends prioritize people the viewer has shared a persisted match
  * with, then fill remaining slots with locals from their home court.
  */

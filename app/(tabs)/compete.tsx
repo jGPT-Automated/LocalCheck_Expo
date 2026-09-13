@@ -49,7 +49,7 @@ import { usePresence } from "@/context/CourtPresenceContext";
 import {
   fetchLeaderboard,
   fetchProfile,
-  searchPlayers,
+  searchPlayersCheckedInToday,
 } from "@/services/profileService";
 import { logGame, logTeamGame } from "@/services/gameService";
 import { fetchNearbyCourts, searchCourts } from "@/services/courtService";
@@ -1166,7 +1166,7 @@ function LogGameView({
       );
       return;
     }
-    searchPlayers(query).then((results) => {
+    searchPlayersCheckedInToday(query).then((results) => {
       if (!mounted) return;
       setOpponentSuggestions(prioritize(results));
     });
