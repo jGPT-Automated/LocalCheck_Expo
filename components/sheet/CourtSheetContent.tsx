@@ -179,7 +179,9 @@ export function CourtSheetContent({
         onPress={onExpand}
         accessibilityLabel="Expand for who's here and locals"
       >
-        <Text style={styles.swipeHintText}>SWIPE UP FOR WHO'S HERE + LOCALS</Text>
+        <Text style={styles.swipeHintText}>
+          {gated ? "SWIPE UP TO UNLOCK" : "SWIPE UP FOR WHO'S HERE + LOCALS"}
+        </Text>
         <Feather color={Colors.accent} name="chevron-up" size={15} />
       </Pressable>
       </View>
