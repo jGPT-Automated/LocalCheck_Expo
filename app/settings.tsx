@@ -22,6 +22,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
 import { SearchField } from "@/components/ui/SearchField";
+import { TierPill } from "@/components/ui/TierPill";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, CourtSport } from "@/constants/data";
 import { Space } from "@/constants/layout";
@@ -249,11 +250,9 @@ export default function SettingsScreen() {
         title="SETTINGS"
         onBack={() => router.back()}
         right={
-          <View style={[styles.tierBadge, hasLocalPlus && styles.tierBadgePlus]}>
-            <Text style={[styles.tierBadgeText, hasLocalPlus && styles.tierBadgeTextPlus]}>
-              {hasLocalPlus ? "LOCALPLUS" : "LOCALLITE"}
-            </Text>
-          </View>
+          <TierPill active={hasLocalPlus}>
+            {hasLocalPlus ? "LOCALPLUS" : "LOCALLITE"}
+          </TierPill>
         }
       />
 
@@ -1138,25 +1137,6 @@ const styles = StyleSheet.create({
     gap: 13,
   },
   profileRowHidden: { opacity: 0.48 },
-  tierBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: "transparent",
-  },
-  tierBadgePlus: {
-    borderColor: Colors.accentBorder,
-    backgroundColor: Colors.accentDim,
-  },
-  tierBadgeText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 10,
-    letterSpacing: 1.4,
-    color: Colors.muted,
-  },
-  tierBadgeTextPlus: { color: Colors.accent },
   profileName: {
     fontFamily: Typography.heading,
     fontSize: 20,

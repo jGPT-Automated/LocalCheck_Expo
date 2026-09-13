@@ -13,6 +13,7 @@ import { CourtMapPreview } from "@/components/ui/CourtMapPreview";
 import { DetailHeader } from "@/components/ui/DetailHeader";
 import { MetricDashboard, type DashboardMetric } from "@/components/ui/MetricDashboard";
 import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
+import { TierPill } from "@/components/ui/TierPill";
 import { Colors, Radius } from "@/constants/colors";
 import type { Court, FeedItem, FeedMatchSummary } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
@@ -183,28 +184,23 @@ export default function CourtProfileScreen() {
       <DetailHeader
         onBack={() => router.canGoBack() ? router.back() : router.replace("/(tabs)")}
         title={court.shortName || court.name}
-        right={<Pressable
-          accessibilityLabel={isMyLocal ? "Remove my local court" : "Set as my local court"}
-          accessibilityHint={isMyLocal ? "Removes this as your local court" : "Sets this as your local court"}
-          accessibilityRole="button"
-          accessibilityState={{ selected: isMyLocal }}
-          hitSlop={8}
-          onPress={() => void setLocalCourt(isMyLocal ? null : court.id, court)}
-          style={({ pressed }) => [
-            styles.localButton,
-            isMyLocal && styles.localButtonActive,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Ionicons
-            color={isMyLocal ? Colors.accent : Colors.textSecondary}
-            name={isMyLocal ? "star" : "star-outline"}
-            size={13}
-          />
-          <Text style={[styles.localButtonText, isMyLocal && styles.localButtonTextActive]}>
+        right={
+          <TierPill
+            accessibilityHint={isMyLocal ? "Removes this as your local court" : "Sets this as your local court"}
+            accessibilityLabel={isMyLocal ? "Remove my local court" : "Set as my local court"}
+            active={isMyLocal}
+            icon={
+              <Ionicons
+                color={isMyLocal ? Colors.accent : Colors.textSecondary}
+                name={isMyLocal ? "star" : "star-outline"}
+                size={13}
+              />
+            }
+            onPress={() => void setLocalCourt(isMyLocal ? null : court.id, court)}
+          >
             {isMyLocal ? "LOCAL" : "SET LOCAL"}
-          </Text>
-        </Pressable>}
+          </TierPill>
+        }
       />
       <MetricDashboard metrics={dashboard} />
       <CourtTabs active={activeTab} onChange={setActiveTab} />
@@ -465,10 +461,6 @@ const styles = StyleSheet.create({
   notFoundText: { fontFamily: Typography.heading, fontSize: 22, color: Colors.text },
   retryButton: { minHeight: 44, paddingHorizontal: Space.xl, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
   retryText: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.text, letterSpacing: 1.2 },
-  localButton: { minHeight: 30, paddingHorizontal: 10, paddingVertical: 5, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.sm, backgroundColor: "transparent" },
-  localButtonActive: { borderColor: Colors.accentBorder, backgroundColor: Colors.accentDim },
-  localButtonText: { ...TextStyles.labelSmall, color: Colors.textSecondary, letterSpacing: 1 },
-  localButtonTextActive: { color: Colors.accent },
   tabs: { minHeight: 44, paddingHorizontal: Layout.screenGutter, flexDirection: "row", borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Colors.border },
   tab: { flex: 1, alignItems: "center", justifyContent: "center", borderBottomWidth: 2, borderBottomColor: "transparent" },
   tabActive: { borderBottomColor: Colors.accent },
