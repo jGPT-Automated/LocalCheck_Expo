@@ -168,7 +168,7 @@ export function CourtSheetContent({
         />
         <BrutalistButton
           label="VIEW COURT"
-          onPress={() => go(`/court/${court.id}`)}
+          onPress={() => go(gated ? "/localplus" : `/court/${court.id}`)}
           variant="dark"
           style={styles.actionButton}
         />
@@ -190,6 +190,7 @@ export function CourtSheetContent({
         court={court}
         gated={gated}
         onSetLocal={() => void setLocalCourt(court.id, court)}
+        onUpgrade={() => go("/localplus")}
       >
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -314,12 +315,17 @@ function CourtDrawerGate({
   cooldown,
   gated,
   onSetLocal,
+  onUpgrade,
 }: {
   children: React.ReactNode;
   court: Court;
   cooldown: ReturnType<typeof getLocalCourtCooldown>;
   gated: boolean;
   onSetLocal: () => void;
+  /** Must dismiss this sheet before navigating — see `go()` above. A raw
+   * router.push from in here pushes /localplus behind the still-open
+   * modal, invisible, and stacks a new one on every repeat tap. */
+  onUpgrade: () => void;
 }) {
   if (!gated) return <>{children}</>;
   return (
@@ -330,16 +336,16 @@ function CourtDrawerGate({
       </View>
       <View style={[styles.gateOverlay, StyleSheet.absoluteFill]}>
         <View style={styles.gateIconRing}>
-          <Feather color={Colors.accent} name="lock" size={20} />
+          <Feather color={Colors.accent} name="zap" size={20} />
         </View>
         <Text style={styles.gateTitle}>UNLOCK WITH LOCALPLUS</Text>
         <Text style={styles.gateSubtitle}>
-          See who's here, the full locals list, and the schedule at{" "}
-          {court.shortName || court.name} — not only your own court.
+          Upgrade to LocalPlus to see {court.shortName || court.name}'s
+          community and activity.
         </Text>
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.push("/localplus")}
+          onPress={onUpgrade}
           style={({ pressed }) => [styles.gateCta, pressed && styles.pressed]}
         >
           <Text style={styles.gateCtaText}>UPGRADE TO LOCALPLUS</Text>
@@ -395,8 +401,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     position: "relative",
   },
-  headerCorner: { position: "absolute", left: 20, top: 12, maxWidth: "42%" },
-  headerCornerRight: { position: "absolute", right: 20, top: 12, maxWidth: "36%", alignItems: "flex-end", gap: 6 },
+  headerCorner: { position: "absolute", left: 20, top: 2, maxWidth: "42%" },
+  headerCornerRight: { position: "absolute", right: 20, top: 2, maxWidth: "36%", alignItems: "flex-end", gap: 6 },
   centerTitleWrap: { alignSelf: "center", width: "72%", alignItems: "center", paddingTop: 20 },
   sportTag: { flexDirection: "row", alignItems: "center", gap: 5 },
   sportText: {

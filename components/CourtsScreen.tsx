@@ -407,6 +407,10 @@ export function CourtsScreen() {
           }
         }}
         onContinue={(coordinate) => {
+          // Dismiss the sheet before pushing — otherwise /add-court renders
+          // behind this still-presented modal (same bug class as the court
+          // drawer's upgrade button: see CourtSheetContent.tsx).
+          setAddCourtLocationVisible(false);
           router.push({
             pathname: "/add-court",
             params: {
