@@ -1,5 +1,6 @@
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -14,9 +15,13 @@ import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
 import { SportEmblem } from "@/components/ui/SportEmblem";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, getSportColor } from "@/constants/data";
+import { Space } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
 import { usePresence } from "@/context/CourtPresenceContext";
+import { useLocalPlus } from "@/hooks/useLocalPlus";
+import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
 import { isInactiveLocal, relativeTime } from "@/lib/localPresence";
 import { fetchCourtById } from "@/services/courtService";
 import {
@@ -47,9 +52,11 @@ export function CourtSheetContent({
 }) {
   const {
     courts, localCourt, checkIn, checkOut, checkedInCourtId,
-    localCourtId, runs, plannedVisits, isFriend,
+    localCourtId, runs, plannedVisits, isFriend, setLocalCourt,
   } = useApp();
   const { bottom } = useSafeAreaInsets();
+  const { profile } = useAuth();
+  const hasLocalPlus = useLocalPlus();
 
   const cached =
     courts.find((c) => c.id === courtId) ??
@@ -81,6 +88,10 @@ export function CourtSheetContent({
 
   const isCheckedIn = checkedInCourtId === court.id;
   const isMyLocal = localCourtId === court.id;
+  // Same rule as app/court/[id].tsx's full-page gate — your own local court
+  // always stays free, every other court's player-level detail is LocalPlus.
+  const gated = !isMyLocal && !hasLocalPlus;
+  const cooldown = getLocalCourtCooldown(hasLocalPlus, profile?.local_court_changed_at);
   const sportColor = getSportColor(court.sport);
   const activeCount = roster.length;
   const courtRuns = runs.filter((r) => r.courtId === court.id);
@@ -174,6 +185,12 @@ export function CourtSheetContent({
       </View>
 
       {/* ── Full layer ── */}
+      <CourtDrawerGate
+        cooldown={cooldown}
+        court={court}
+        gated={gated}
+        onSetLocal={() => void setLocalCourt(court.id, court)}
+      >
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>WHO'S HERE</Text>
@@ -277,8 +294,93 @@ export function CourtSheetContent({
           ))}
         </View>
       )}
+      </CourtDrawerGate>
 
     </BottomSheetScrollView>
+  );
+}
+
+/**
+ * Same rule and visual language as app/court/[id].tsx's CourtInsightsGate —
+ * real content renders (blurred, non-interactive) underneath a lock panel,
+ * flat against the sheet rather than a modal on top of it. This is the
+ * drawer version: everyone reaches a court through this swipe-up sheet
+ * first, so gating only the full "VIEW COURT" page and not this left the
+ * paywall invisible in practice.
+ */
+function CourtDrawerGate({
+  children,
+  court,
+  cooldown,
+  gated,
+  onSetLocal,
+}: {
+  children: React.ReactNode;
+  court: Court;
+  cooldown: ReturnType<typeof getLocalCourtCooldown>;
+  gated: boolean;
+  onSetLocal: () => void;
+}) {
+  if (!gated) return <>{children}</>;
+  return (
+    <View style={styles.gateWrap}>
+      <View pointerEvents="none" style={styles.gateWrap}>
+        {children}
+        <BlurView intensity={22} style={StyleSheet.absoluteFill} tint="dark" />
+      </View>
+      <View style={[styles.gateOverlay, StyleSheet.absoluteFill]}>
+        <View style={styles.gateIconRing}>
+          <Feather color={Colors.accent} name="lock" size={20} />
+        </View>
+        <Text style={styles.gateTitle}>UNLOCK WITH LOCALPLUS</Text>
+        <Text style={styles.gateSubtitle}>
+          See who's here, the full locals list, and the schedule at{" "}
+          {court.shortName || court.name} — not only your own court.
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push("/localplus")}
+          style={({ pressed }) => [styles.gateCta, pressed && styles.pressed]}
+        >
+          <Text style={styles.gateCtaText}>UPGRADE TO LOCALPLUS</Text>
+        </Pressable>
+        <View style={styles.gateDividerRow}>
+          <View style={styles.gateDividerLine} />
+          <Text style={styles.gateDividerText}>OR</Text>
+          <View style={styles.gateDividerLine} />
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          disabled={cooldown.restricted}
+          onPress={onSetLocal}
+          style={({ pressed }) => [
+            styles.gateSecondary,
+            cooldown.restricted && styles.gateSecondaryDisabled,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Feather
+            color={cooldown.restricted ? Colors.muted : Colors.text}
+            name="star"
+            size={13}
+          />
+          <Text
+            style={[
+              styles.gateSecondaryText,
+              cooldown.restricted && styles.gateSecondaryTextDisabled,
+            ]}
+          >
+            SET AS LOCAL COURT
+          </Text>
+        </Pressable>
+        {cooldown.restricted ? (
+          <Text style={styles.gateCooldownText}>
+            You can change your local court in{" "}
+            {formatCooldownRemaining(cooldown.remainingMs)}.
+          </Text>
+        ) : null}
+      </View>
+    </View>
   );
 }
 
@@ -519,5 +621,98 @@ const styles = StyleSheet.create({
     fontFamily: Typography.heading,
     fontSize: 16,
     color: Colors.muted,
+  },
+
+  // ── Court insights gate (LocalPlus paywall) ──
+  gateWrap: { minHeight: 340 },
+  gateOverlay: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 36,
+  },
+  gateIconRing: {
+    width: 56,
+    height: 56,
+    marginBottom: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
+    backgroundColor: Colors.accentGhost,
+  },
+  gateTitle: {
+    fontFamily: Typography.heading,
+    fontSize: 16,
+    color: Colors.text,
+    letterSpacing: 1,
+    textAlign: "center",
+  },
+  gateSubtitle: {
+    marginTop: 8,
+    maxWidth: 280,
+    fontFamily: Typography.body,
+    fontSize: 12,
+    lineHeight: 17,
+    color: Colors.muted,
+    textAlign: "center",
+  },
+  gateCta: {
+    minHeight: 46,
+    minWidth: 220,
+    marginTop: 20,
+    paddingHorizontal: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: Radius.md,
+    backgroundColor: Colors.accent,
+  },
+  gateCtaText: {
+    fontFamily: Typography.heading,
+    fontSize: 12,
+    letterSpacing: 1.2,
+    color: Colors.black,
+  },
+  gateDividerRow: {
+    minWidth: 220,
+    marginTop: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  gateDividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
+  gateDividerText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.mutedDark,
+    letterSpacing: 1.4,
+  },
+  gateSecondary: {
+    minHeight: 44,
+    minWidth: 220,
+    marginTop: 16,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+  },
+  gateSecondaryDisabled: { opacity: 0.5 },
+  gateSecondaryText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    color: Colors.text,
+  },
+  gateSecondaryTextDisabled: { color: Colors.muted },
+  gateCooldownText: {
+    marginTop: 10,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 10,
+    color: Colors.mutedDark,
+    textAlign: "center",
   },
 });

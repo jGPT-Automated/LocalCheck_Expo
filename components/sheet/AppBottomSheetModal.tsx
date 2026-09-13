@@ -61,6 +61,9 @@ export const AppBottomSheetModal = forwardRef<
         backgroundStyle={styles.background}
         handleIndicatorStyle={styles.handle}
         onDismiss={onDismiss}
+        keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
+        android_keyboardInputMode="adjustResize"
       >
         {children}
       </BottomSheetModal>
