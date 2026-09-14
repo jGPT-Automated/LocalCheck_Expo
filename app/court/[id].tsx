@@ -1,5 +1,4 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import { router, useLocalSearchParams } from "expo-router";
 import React from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -13,6 +12,7 @@ import { CourtMapPreview } from "@/components/ui/CourtMapPreview";
 import { DetailHeader } from "@/components/ui/DetailHeader";
 import { MetricDashboard, type DashboardMetric } from "@/components/ui/MetricDashboard";
 import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
+import { TierPill } from "@/components/ui/TierPill";
 import { Colors, Radius } from "@/constants/colors";
 import type { Court, FeedItem, FeedMatchSummary } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
@@ -26,7 +26,6 @@ import { batchHasResource, type RealtimeTopic } from "@/lib/realtimeHub";
 import { openCourtInMaps } from "@/lib/openMaps";
 import { isInactiveLocal, relativeTime } from "@/lib/localPresence";
 import { groupCheckinBursts } from "@/lib/activityPresentation";
-import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
 import {
   fetchCourtActivityMetrics,
   fetchCourtById,
@@ -135,6 +134,22 @@ export default function CourtProfileScreen() {
     return () => { cancelled = true; };
   }, [court]);
 
+  // Full player-level detail is the headline LocalPlus perk — see
+  // docs/product/DECISIONS.md. Your own local court always stays free.
+  // This full page is a deeper drill-in, not the primary surface (the court
+  // drawer is — components/sheet/CourtSheetContent.tsx shows an in-place
+  // gate there instead). Redirecting straight to /localplus here, rather
+  // than building a second in-page gate, also makes this the single
+  // enforcement point for every path that can land on this route — the
+  // drawer's VIEW COURT button, a player's LOCAL COURT link, a deep link —
+  // so none of them can be gated individually and missed.
+  const isMyLocal = court ? localCourtId === court.id : false;
+  const gated = court ? !isMyLocal && !hasLocalPlus : false;
+
+  React.useEffect(() => {
+    if (gated) router.replace("/localplus");
+  }, [gated]);
+
   if (!court) {
     return (
       <View style={styles.notFound}>
@@ -148,15 +163,11 @@ export default function CourtProfileScreen() {
     );
   }
 
+  if (gated) return null;
+
   const statsActive = countMap[court.id]?.activeCount ?? court.activeCount ?? 0;
   const activeCount = Math.max(roster.length, statsActive);
   const hiddenCount = Math.max(0, activeCount - roster.length);
-  const isMyLocal = localCourtId === court.id;
-  // Full player-level detail (who's here, the locals list, schedule) is the
-  // headline LocalPlus perk — see docs/product/DECISIONS.md. Your own local
-  // court always stays free; the gate only applies elsewhere.
-  const gated = !isMyLocal && !hasLocalPlus;
-  const cooldown = getLocalCourtCooldown(hasLocalPlus, profile?.local_court_changed_at);
   const hereNowIds = new Set(roster.map((player) => player.id));
   const visibleLocals = locals.filter(({ player }) => !hereNowIds.has(player.id));
   const privateLocalCount = Math.max(0, localCount - locals.length);
@@ -183,28 +194,23 @@ export default function CourtProfileScreen() {
       <DetailHeader
         onBack={() => router.canGoBack() ? router.back() : router.replace("/(tabs)")}
         title={court.shortName || court.name}
-        right={<Pressable
-          accessibilityLabel={isMyLocal ? "Remove my local court" : "Set as my local court"}
-          accessibilityHint={isMyLocal ? "Removes this as your local court" : "Sets this as your local court"}
-          accessibilityRole="button"
-          accessibilityState={{ selected: isMyLocal }}
-          hitSlop={8}
-          onPress={() => void setLocalCourt(isMyLocal ? null : court.id, court)}
-          style={({ pressed }) => [
-            styles.localButton,
-            isMyLocal && styles.localButtonActive,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Ionicons
-            color={isMyLocal ? Colors.accent : Colors.textSecondary}
-            name={isMyLocal ? "star" : "star-outline"}
-            size={13}
-          />
-          <Text style={[styles.localButtonText, isMyLocal && styles.localButtonTextActive]}>
+        right={
+          <TierPill
+            accessibilityHint={isMyLocal ? "Removes this as your local court" : "Sets this as your local court"}
+            accessibilityLabel={isMyLocal ? "Remove my local court" : "Set as my local court"}
+            active={isMyLocal}
+            icon={
+              <Ionicons
+                color={isMyLocal ? Colors.accent : Colors.textSecondary}
+                name={isMyLocal ? "star" : "star-outline"}
+                size={13}
+              />
+            }
+            onPress={() => void setLocalCourt(isMyLocal ? null : court.id, court)}
+          >
             {isMyLocal ? "LOCAL" : "SET LOCAL"}
-          </Text>
-        </Pressable>}
+          </TierPill>
+        }
       />
       <MetricDashboard metrics={dashboard} />
       <CourtTabs active={activeTab} onChange={setActiveTab} />
@@ -236,12 +242,6 @@ export default function CourtProfileScreen() {
         ) : null}
 
         {activeTab === "locals" ? (
-          <CourtInsightsGate
-            court={court}
-            cooldown={cooldown}
-            gated={gated}
-            onSetLocal={() => void setLocalCourt(court.id, court)}
-          >
           <ScrollView contentContainerStyle={{ paddingBottom: bottomPad }} showsVerticalScrollIndicator={false}>
             <SectionHeader count={activeCount} title="Here now" />
             {roster.length > 0 ? roster.map((player) => {
@@ -275,16 +275,9 @@ export default function CourtProfileScreen() {
             )) : <EmptyState title="No visible local profiles" body="Locals appear here after choosing this as their home court." />}
             {privateLocalCount > 0 ? <Text style={styles.privateNote}>+{privateLocalCount} private {privateLocalCount === 1 ? "local" : "locals"}</Text> : null}
           </ScrollView>
-          </CourtInsightsGate>
         ) : null}
 
         {activeTab === "schedule" ? (
-          <CourtInsightsGate
-            court={court}
-            cooldown={cooldown}
-            gated={gated}
-            onSetLocal={() => void setLocalCourt(court.id, court)}
-          >
           <View style={styles.scheduleView}>
             <CourtSchedulePanel
               bottomInset={Platform.OS === "web" ? 16 : bottom + 12}
@@ -292,7 +285,6 @@ export default function CourtProfileScreen() {
               interactive={false}
             />
           </View>
-          </CourtInsightsGate>
         ) : null}
 
         {activeTab === "details" ? (
@@ -348,88 +340,6 @@ function CourtTabs({ active, onChange }: { active: CourtTab; onChange: (tab: Cou
   );
 }
 
-/**
- * Real content renders normally underneath (so what's showing through the
- * blur is the actual list, not a fake placeholder) and stays non-interactive
- * — only the lock panel on top is tappable. Flat, not a modal: same surface
- * as the tab content, no card/sheet chrome around it.
- */
-function CourtInsightsGate({
-  children,
-  court,
-  cooldown,
-  gated,
-  onSetLocal,
-}: {
-  children: React.ReactNode;
-  court: Court;
-  cooldown: ReturnType<typeof getLocalCourtCooldown>;
-  gated: boolean;
-  onSetLocal: () => void;
-}) {
-  if (!gated) return <>{children}</>;
-  return (
-    <View style={styles.gateWrap}>
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        {children}
-        <BlurView intensity={22} style={StyleSheet.absoluteFill} tint="dark" />
-      </View>
-      <View style={styles.gateOverlay}>
-        <View style={styles.gateIconRing}>
-          <Feather color={Colors.accent} name="lock" size={20} />
-        </View>
-        <Text style={styles.gateTitle}>UNLOCK WITH LOCALPLUS</Text>
-        <Text style={styles.gateSubtitle}>
-          See who's here, the full locals list, and the schedule at{" "}
-          {court.shortName || court.name} — not only your own court.
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push("/localplus")}
-          style={({ pressed }) => [styles.gateCta, pressed && styles.pressed]}
-        >
-          <Text style={styles.gateCtaText}>UPGRADE TO LOCALPLUS</Text>
-        </Pressable>
-        <View style={styles.gateDividerRow}>
-          <View style={styles.gateDividerLine} />
-          <Text style={styles.gateDividerText}>OR</Text>
-          <View style={styles.gateDividerLine} />
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          disabled={cooldown.restricted}
-          onPress={onSetLocal}
-          style={({ pressed }) => [
-            styles.gateSecondary,
-            cooldown.restricted && styles.gateSecondaryDisabled,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Feather
-            color={cooldown.restricted ? Colors.muted : Colors.text}
-            name="star"
-            size={13}
-          />
-          <Text
-            style={[
-              styles.gateSecondaryText,
-              cooldown.restricted && styles.gateSecondaryTextDisabled,
-            ]}
-          >
-            SET AS LOCAL COURT
-          </Text>
-        </Pressable>
-        {cooldown.restricted ? (
-          <Text style={styles.gateCooldownText}>
-            You can change your local court in{" "}
-            {formatCooldownRemaining(cooldown.remainingMs)}.
-          </Text>
-        ) : null}
-      </View>
-    </View>
-  );
-}
-
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.detailRow}>
@@ -465,10 +375,6 @@ const styles = StyleSheet.create({
   notFoundText: { fontFamily: Typography.heading, fontSize: 22, color: Colors.text },
   retryButton: { minHeight: 44, paddingHorizontal: Space.xl, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
   retryText: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.text, letterSpacing: 1.2 },
-  localButton: { minHeight: 30, paddingHorizontal: 10, paddingVertical: 5, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.sm, backgroundColor: "transparent" },
-  localButtonActive: { borderColor: Colors.accentBorder, backgroundColor: Colors.accentDim },
-  localButtonText: { ...TextStyles.labelSmall, color: Colors.textSecondary, letterSpacing: 1 },
-  localButtonTextActive: { color: Colors.accent },
   tabs: { minHeight: 44, paddingHorizontal: Layout.screenGutter, flexDirection: "row", borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Colors.border },
   tab: { flex: 1, alignItems: "center", justifyContent: "center", borderBottomWidth: 2, borderBottomColor: "transparent" },
   tabActive: { borderBottomColor: Colors.accent },
@@ -493,98 +399,4 @@ const styles = StyleSheet.create({
   emptyTitle: { fontFamily: Typography.heading, fontSize: 16, color: Colors.text, textAlign: "center" },
   emptyBody: { maxWidth: 300, marginTop: Space.sm, fontFamily: Typography.body, fontSize: 11, lineHeight: 17, color: Colors.muted, textAlign: "center" },
   pressed: { opacity: 0.72 },
-
-  // ── Court insights gate (LocalPlus paywall) ──
-  gateWrap: { flex: 1 },
-  gateOverlay: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 36,
-  },
-  gateIconRing: {
-    width: 56,
-    height: 56,
-    marginBottom: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: Colors.accentBorder,
-    backgroundColor: Colors.accentGhost,
-  },
-  gateTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 16,
-    color: Colors.text,
-    letterSpacing: 1,
-    textAlign: "center",
-  },
-  gateSubtitle: {
-    marginTop: 8,
-    maxWidth: 280,
-    fontFamily: Typography.body,
-    fontSize: 12,
-    lineHeight: 17,
-    color: Colors.muted,
-    textAlign: "center",
-  },
-  gateCta: {
-    minHeight: 46,
-    minWidth: 220,
-    marginTop: 20,
-    paddingHorizontal: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: Radius.md,
-    backgroundColor: Colors.accent,
-  },
-  gateCtaText: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
-    letterSpacing: 1.2,
-    color: Colors.black,
-  },
-  gateDividerRow: {
-    minWidth: 220,
-    marginTop: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  gateDividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
-  gateDividerText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.mutedDark,
-    letterSpacing: 1.4,
-  },
-  gateSecondary: {
-    minHeight: 44,
-    minWidth: 220,
-    marginTop: 16,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.md,
-  },
-  gateSecondaryDisabled: { opacity: 0.5 },
-  gateSecondaryText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    color: Colors.text,
-  },
-  gateSecondaryTextDisabled: { color: Colors.muted },
-  gateCooldownText: {
-    marginTop: 10,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 10,
-    color: Colors.mutedDark,
-    textAlign: "center",
-  },
 });

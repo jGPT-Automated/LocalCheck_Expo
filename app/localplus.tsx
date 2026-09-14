@@ -13,6 +13,7 @@ import {
 import type { PurchasesPackage } from "react-native-purchases";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { LogoMark } from "@/components/brand/LogoMark";
 import { DetailHeader } from "@/components/ui/DetailHeader";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { Colors, Radius } from "@/constants/colors";
@@ -178,6 +179,10 @@ export default function LocalPlusScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.hero}>
+          <LogoMark size={44} />
+        </View>
+
         {hasLocalPlus ? (
           <View style={styles.statusBanner}>
             <Feather color={Colors.accent} name="check-circle" size={15} />
@@ -222,11 +227,10 @@ export default function LocalPlusScreen() {
               onPress={() => void handleRedeemOfferCode()}
               style={({ pressed }) => [pressed && styles.linkPressed]}
             >
-              <Text style={styles.restoreText}>
-                {identityState === "error"
-                  ? "COULDN'T VERIFY YOUR ACCOUNT — TAP TO RETRY"
-                  : "HAVE AN OFFER CODE?"}
-              </Text>
+              {/* The primary button above already surfaces the identity
+                  error in full — repeating it here read as the same
+                  message shown twice. */}
+              <Text style={styles.restoreText}>HAVE AN OFFER CODE?</Text>
             </Pressable>
           </View>
         ) : isComped ? (
@@ -272,6 +276,7 @@ export default function LocalPlusScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
   scroll: { flex: 1 },
+  hero: { alignItems: "center", paddingTop: Space.sm },
   statusBanner: {
     flexDirection: "row",
     alignItems: "center",

@@ -61,6 +61,14 @@ export function CourtsScreen() {
   const [sportFilter, setSportFilter] = useState<SportFilter>(
     preferredSport ?? "ALL",
   );
+  // useState's initializer only runs once at mount — setting a local court
+  // later in the same session (which adopts that court's sport as the
+  // preferred one, see AppContext's setLocalCourt) wouldn't otherwise be
+  // reflected here if this screen was already mounted. Matches the same
+  // sync already done for compete.tsx's rankingSport.
+  useEffect(() => {
+    if (preferredSport) setSportFilter(preferredSport);
+  }, [preferredSport]);
   const [nearbyCourts, setNearbyCourts] = useState<Court[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
@@ -407,6 +415,10 @@ export function CourtsScreen() {
           }
         }}
         onContinue={(coordinate) => {
+          // Dismiss the sheet before pushing — otherwise /add-court renders
+          // behind this still-presented modal (same bug class as the court
+          // drawer's upgrade button: see CourtSheetContent.tsx).
+          setAddCourtLocationVisible(false);
           router.push({
             pathname: "/add-court",
             params: {

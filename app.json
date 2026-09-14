@@ -79,6 +79,9 @@
       [
         "expo-splash-screen",
         {
+          "image": "./assets/brand/logo-mark-splash-glow.png",
+          "imageWidth": 120,
+          "resizeMode": "contain",
           "backgroundColor": "#0D0D10"
         }
       ],
