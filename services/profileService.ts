@@ -218,6 +218,7 @@ export async function updateProfileFields(
     preferred_sport: string | null;
     postal_code: string | null;
     visibility: "public" | "friends" | "private";
+    onboarding_completed: boolean;
   }>,
 ): Promise<boolean> {
   try {

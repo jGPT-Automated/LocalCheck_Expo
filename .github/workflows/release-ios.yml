@@ -17,10 +17,17 @@ permissions:
   contents: read
 
 jobs:
-  queue-build:
-    name: Queue EAS build and TestFlight submission
+  release-build:
+    name: Build and submit to TestFlight
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # A green check here used to mean only "the build was queued" (--no-wait
+    # exits the moment EAS accepts the job) — the actual native build and
+    # ASC submission ran unobserved afterward, so a real failure there (bad
+    # credentials, a rejected binary, a stuck submission) never turned this
+    # check red. Waiting for the real outcome takes longer but makes the
+    # check trustworthy: green now means the build actually reached
+    # TestFlight.
+    timeout-minutes: 45
 
     steps:
       - name: Require Expo authentication
@@ -54,11 +61,10 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Queue production build and TestFlight submission
+      - name: Build and submit to TestFlight
         run: >-
           eas build
           --platform ios
           --profile production
           --auto-submit
           --non-interactive
-          --no-wait

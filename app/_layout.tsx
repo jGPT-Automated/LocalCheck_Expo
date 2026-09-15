@@ -31,6 +31,7 @@ import { CourtPresenceProvider } from "@/context/CourtPresenceContext";
 import { DeviceLocationProvider } from "@/context/DeviceLocationContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { RealtimeHubProvider } from "@/context/RealtimeHubContext";
+import { profileNeedsOnboarding } from "@/lib/onboardingGate";
 import {
   installGlobalErrorHandler,
   reportClientError,
@@ -73,7 +74,7 @@ const detailScreenOptions = {
  * to the auth screen and only render the tabs once a session exists.
  */
 function AuthGate({ children }: { children: React.ReactNode }) {
-  const { session, isLoading } = useAuth();
+  const { session, profile, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const [signedInLaunchDone, setSignedInLaunchDone] = useState(
@@ -87,12 +88,24 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
     const onAuthScreen = segments[0] === "auth";
+    const onOnboardingScreen = segments[0] === "onboarding";
     if (!session && !onAuthScreen) {
       router.replace("/auth");
-    } else if (session && onAuthScreen) {
+      return;
+    }
+    if (!session) return;
+    // A fresh signup lands on the tabs first (auth.tsx's own goHome), then
+    // gets corrected here once `profile` is known — same mechanism this
+    // effect already used for the auth-screen redirect above.
+    const needsOnboarding = profile ? profileNeedsOnboarding(profile) : false;
+    if (needsOnboarding && !onOnboardingScreen) {
+      router.replace("/onboarding");
+    } else if (!needsOnboarding && onOnboardingScreen) {
+      router.replace("/(tabs)");
+    } else if (!needsOnboarding && onAuthScreen) {
       router.replace("/(tabs)");
     }
-  }, [session, isLoading, segments, router]);
+  }, [session, profile, isLoading, segments, router]);
 
   // Boot screen shown while loading AND while redirecting a signed-out user —
   // tab routes must never render without a session: the data providers aren't
@@ -102,7 +115,10 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   // user. The LaunchTransition plays exactly once, only for an
   // already-signed-in session below.
   const onAuthScreen = segments[0] === "auth";
-  if (isLoading || (!session && !onAuthScreen)) {
+  const onOnboardingScreen = segments[0] === "onboarding";
+  const pendingOnboardingRedirect =
+    !!session && !!profile && profileNeedsOnboarding(profile) && !onOnboardingScreen;
+  if (isLoading || (!session && !onAuthScreen) || pendingOnboardingRedirect) {
     return (
       <View
         style={{
@@ -180,6 +196,7 @@ function RootLayoutNav() {
         <Stack.Screen name="localplus" options={detailScreenOptions} />
         <Stack.Screen name="add-court" options={{ ...detailScreenOptions, presentation: "fullScreenModal" }} />
         <Stack.Screen name="auth" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
       </Stack>
     </AuthGate>
   );

@@ -32,6 +32,13 @@ evidence only; it does not replace the production checkpoint below.
 ## Current product contract
 
 - Authentication: email/password and Apple Sign-In.
+- Onboarding: a fresh signup lands on `app/onboarding.tsx` (claim username +
+  pick a sport, then share location or enter a ZIP) before ever reaching the
+  tabs. Gated by `lib/onboardingGate.ts` on profile age (≤30 min) OR the
+  `profiles.onboarding_completed` flag — the age check alone guarantees no
+  existing account is ever routed into it, independent of whether that
+  column's migration (`20260914120000_profile_onboarding_completed.sql`,
+  source-only — see `docs/SUPABASE.md`) has been applied.
 - Discovery: court list/search plus native Mapbox map. Map viewport queries are
   location-driven across market boundaries; Explore narrows market results in
   expanding geographic windows before sorting by distance.

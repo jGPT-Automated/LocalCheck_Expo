@@ -51,6 +51,11 @@ export interface UserProfile {
   /** Persistent identity-level privacy: governs check-ins, schedule, and the
    *  leaderboard. Absent until the profile-visibility migration is applied. */
   visibility?: "public" | "friends" | "private";
+  /** Whether the post-signup onboarding flow (username + sport, then
+   *  location/ZIP) is done. Absent until the onboarding migration is
+   *  applied — the client also gates on profile age, so an absent/false
+   *  value on an existing account never re-triggers onboarding. */
+  onboarding_completed?: boolean;
   created_at: string;
   updated_at: string;
   /** Account classification tag — FOUNDER | STARTER | REVIEWER | TEST | null.
