@@ -13,22 +13,26 @@ export function OptionRow({
   description,
   icon,
   selected,
+  disabled,
   onPress,
 }: {
   label: string;
   description?: string;
   icon?: React.ReactNode;
   selected: boolean;
+  disabled?: boolean;
   onPress: () => void;
 }) {
   return (
     <Pressable
       accessibilityRole="radio"
-      accessibilityState={{ selected }}
+      accessibilityState={{ selected, disabled }}
+      disabled={disabled}
       style={({ pressed }) => [
         styles.option,
         selected && styles.optionSelected,
-        pressed && styles.pressed,
+        pressed && !disabled && styles.pressed,
+        disabled && styles.disabled,
       ]}
       onPress={onPress}
     >
@@ -62,6 +66,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accentDim,
   },
   pressed: { opacity: 0.65 },
+  disabled: { opacity: 0.5 },
   icon: { width: 22, alignItems: "center" },
   copy: { flex: 1, gap: 3 },
   label: {

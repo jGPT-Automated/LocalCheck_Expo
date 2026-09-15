@@ -100,6 +100,10 @@ export default function CompeteScreen() {
     null,
   );
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  // Only set when REGIONAL resolves its anchor from a live GPS fix rather
+  // than the saved local court — the label below needs to know which one,
+  // since "no local court" doesn't mean "no real region" here.
+  const [gpsAnchorCourt, setGpsAnchorCourt] = useState<Court | null>(null);
   const { coord: deviceCoord } = useDeviceLocation();
 
   useEffect(() => {
@@ -127,6 +131,7 @@ export default function CompeteScreen() {
     // local court, but a viewer without one set yet still has a resolved GPS
     // fix (DeviceLocationContext), so fall back to whatever court is nearest
     // to them rather than returning an empty board.
+    setGpsAnchorCourt(null);
     const resolveAnchor = async (): Promise<string | null> => {
       if (scope === "FRIENDS") return null;
       if (localCourtId) return localCourtId;
@@ -137,6 +142,7 @@ export default function CompeteScreen() {
         rankingSport,
         1,
       );
+      if (mounted) setGpsAnchorCourt(nearby[0] ?? null);
       return nearby[0]?.id ?? null;
     };
     void resolveAnchor().then((anchorCourtId) =>
@@ -252,6 +258,7 @@ export default function CompeteScreen() {
           sport={rankingSport}
           setSport={setRankingSport}
           localCourt={localCourt}
+          gpsAnchorCourt={gpsAnchorCourt}
           bottom={bottom}
           loading={leaderboardLoading}
         />
@@ -289,6 +296,7 @@ function LeaderboardView({
   sport,
   setSport,
   localCourt,
+  gpsAnchorCourt,
   bottom,
   loading,
 }: {
@@ -309,6 +317,10 @@ function LeaderboardView({
     sport: CourtSport;
     city: string;
   } | null;
+  // Only set once REGIONAL resolves its anchor from a live GPS fix rather
+  // than the saved local court — "no local court" doesn't mean "no real
+  // region" when a device fix found the nearest one.
+  gpsAnchorCourt: { city: string } | null;
   bottom: number;
   loading?: boolean;
 }) {
@@ -398,15 +410,16 @@ function LeaderboardView({
           </>
         ) : scope === "LOCAL" ? (
           <Text style={styles.scopeLabelText}>NO LOCAL COURT SET</Text>
-        ) : scope === "REGIONAL" && localCourt ? (
+        ) : scope === "REGIONAL" && (localCourt ?? gpsAnchorCourt) ? (
           <Text style={styles.scopeLabelText} numberOfLines={1}>
-            {(localCourt.city || "REGIONAL").toUpperCase()}
+            {((localCourt ?? gpsAnchorCourt)!.city || "REGIONAL").toUpperCase()}
           </Text>
         ) : scope === "FRIENDS" ? (
           <Text style={styles.scopeLabelText}>YOU + YOUR FRIENDS</Text>
         ) : (
-          // REGIONAL with no local court (and no nearby anchor) falls back to
-          // the same unscoped board GLOBAL would show — label it the same.
+          // REGIONAL with no local court AND no GPS-resolved anchor falls
+          // back to the same unscoped board GLOBAL would show — label it
+          // the same.
           <Text style={styles.scopeLabelText}>UNITED STATES</Text>
         )}
       </View>

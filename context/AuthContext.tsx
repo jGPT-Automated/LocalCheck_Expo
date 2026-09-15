@@ -81,6 +81,12 @@ interface AuthContextValue {
   user: User | null;
   profile: UserProfile | null;
   isLoading: boolean;
+  // Set only when waitForProfile exhausts every retry and its own
+  // client-side provisioning fallback — a real, terminal failure, not "still
+  // loading." Cleared as soon as a retry is attempted. AuthGate uses this to
+  // show a recoverable error instead of an unexplained, permanent spinner.
+  profileError: string | null;
+  retryProfileLoad: () => Promise<void>;
   signUpWithEmail: (
     email: string,
     password: string,
@@ -101,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   const loadProfile = useCallback(
     async (userId: string): Promise<UserProfile | null> => {
@@ -120,6 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // so a profile is always guaranteed.
   const waitForProfile = useCallback(
     async (authUser: User): Promise<{ error: string | null }> => {
+      setProfileError(null);
       const maxAttempts = 5;
       const retryDelayMs = 300;
 
@@ -182,7 +190,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setProfile(null);
-      return { error: "Could not set up your profile. Please try again." };
+      const message = "Could not set up your profile. Please try again.";
+      setProfileError(message);
+      return { error: message };
     },
     [loadProfile],
   );
@@ -337,6 +347,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (fresh) setProfile(fresh);
   }, [user?.id, loadProfile]);
 
+  // Re-runs the full retry + provisioning-fallback sequence for the signed-in
+  // user — the recovery path for AuthGate's "couldn't load your profile"
+  // state, not just a plain re-fetch (which would repeat the same failure if
+  // the row genuinely doesn't exist yet).
+  const retryProfileLoad = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
+    await waitForProfile(user);
+    setIsLoading(false);
+  }, [user, waitForProfile]);
+
   const updateUsername = useCallback(async (username: string): Promise<AuthResult> => {
     const { error } = await supabase.rpc("update_username", { p_username: username });
     if (error) return { error: error.message };
@@ -351,6 +372,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         profile,
         isLoading,
+        profileError,
+        retryProfileLoad,
         signUpWithEmail,
         signInWithEmail,
         signInWithApple,

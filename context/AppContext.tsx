@@ -271,7 +271,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const { coord: deviceCoord } = useDeviceLocation();
   const loadCourts = useCallback(async () => {
     if (!userId || !deviceCoord) {
-      if (!userId) setCourts([]);
+      // Also clears a signed-in user's stale list when location is revoked
+      // mid-session — otherwise consumers like the Log Game court picker
+      // keep offering courts from a location the shared source no longer has.
+      setCourts([]);
       return;
     }
     const nearby = await fetchNearbyCourts(deviceCoord.lat, deviceCoord.lng, preferredSport ?? null, 30);

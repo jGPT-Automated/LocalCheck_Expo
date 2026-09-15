@@ -176,6 +176,7 @@ export default function OnboardingScreen() {
               <TextInput
                 autoCapitalize="none"
                 autoCorrect={false}
+                editable={!savingStep1}
                 maxLength={32}
                 onChangeText={(text) => {
                   setUsername(text.replace(/[^A-Za-z0-9_]/g, ""));
@@ -183,7 +184,7 @@ export default function OnboardingScreen() {
                 }}
                 placeholder="username"
                 placeholderTextColor={Colors.mutedDark}
-                style={styles.input}
+                style={[styles.input, savingStep1 && styles.inputDisabled]}
                 value={username}
               />
               {usernameError ? (
@@ -197,6 +198,7 @@ export default function OnboardingScreen() {
                 {SPORT_ROWS.map((row) => (
                   <OptionRow
                     key={row.value}
+                    disabled={savingStep1}
                     icon={<SportEmblem sport={row.value} size={18} />}
                     label={row.label}
                     onPress={() => setSport(row.value)}
@@ -361,6 +363,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: Radius.md,
   },
+  inputDisabled: { opacity: 0.5 },
   fieldError: {
     fontFamily: Typography.body,
     fontSize: 12,
@@ -380,7 +383,14 @@ const styles = StyleSheet.create({
     color: Colors.muted,
     marginTop: Space.sm,
   },
-  zipLink: { marginTop: Space.lg, alignSelf: "center" },
+  zipLink: {
+    marginTop: Space.lg,
+    alignSelf: "center",
+    minHeight: Layout.minTouchTarget,
+    paddingHorizontal: Space.lg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   zipLinkText: {
     fontFamily: Typography.bodyMedium,
     fontSize: 12,

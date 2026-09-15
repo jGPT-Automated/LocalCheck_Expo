@@ -15,7 +15,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, usePathname, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useCallback, useEffect, useState } from "react";
-import { View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -24,7 +24,9 @@ import { LogoMark } from "@/components/brand/LogoMark";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LaunchTransition } from "@/components/onboarding/LaunchTransition";
 import { CourtSheetProvider } from "@/components/sheet/CourtSheetHost";
-import { Colors } from "@/constants/colors";
+import { Colors, Radius } from "@/constants/colors";
+import { Layout } from "@/constants/layout";
+import { Typography } from "@/constants/typography";
 import { AppProvider } from "@/context/AppContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { CourtPresenceProvider } from "@/context/CourtPresenceContext";
@@ -74,7 +76,7 @@ const detailScreenOptions = {
  * to the auth screen and only render the tabs once a session exists.
  */
 function AuthGate({ children }: { children: React.ReactNode }) {
-  const { session, profile, isLoading } = useAuth();
+  const { session, profile, isLoading, profileError, retryProfileLoad } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const [signedInLaunchDone, setSignedInLaunchDone] = useState(
@@ -125,6 +127,61 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   // could render with AppContext's EMPTY_PLAYER fallback — before the
   // profile, and therefore whether onboarding is needed, is even known.
   const profileUnresolved = !!session && profile === null;
+  // A terminal failure (retries + the client-side provisioning fallback both
+  // exhausted), not "still loading" — profileUnresolved alone can't tell
+  // those apart, and blocking on it forever with no way out is exactly the
+  // "stuck on a screen with no escape" pattern to avoid.
+  if (!isLoading && profileUnresolved && profileError) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: Colors.background,
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 16,
+          paddingHorizontal: 32,
+        }}
+      >
+        <LogoMark size={64} />
+        <Text
+          style={{
+            fontFamily: Typography.body,
+            fontSize: 14,
+            color: Colors.textSecondary,
+            textAlign: "center",
+          }}
+        >
+          {profileError}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => void retryProfileLoad()}
+          style={({ pressed }) => ({
+            minHeight: Layout.minTouchTarget,
+            paddingHorizontal: 24,
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: Radius.md,
+            backgroundColor: Colors.accent,
+            opacity: pressed ? 0.85 : 1,
+          })}
+        >
+          <Text
+            style={{
+              fontFamily: Typography.heading,
+              fontSize: 13,
+              letterSpacing: 1.5,
+              color: Colors.black,
+            }}
+          >
+            TRY AGAIN
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   if (
     isLoading ||
     (!session && !onAuthScreen) ||

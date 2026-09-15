@@ -446,7 +446,7 @@ export default function SettingsScreen() {
           {deleting ? (
             <ActivityIndicator color={Colors.loss} size="small" />
           ) : (
-            <Feather name="trash-2" size={13} color={Colors.mutedDark} />
+            <Feather name="trash-2" size={13} color={Colors.textSecondary} />
           )}
           <Text style={styles.deleteText}>
             {deleting ? "DELETING…" : "DELETE ACCOUNT"}
@@ -1211,9 +1211,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   deleteText: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 10,
-    color: Colors.mutedDark,
+    ...TextStyles.labelSmall,
+    color: Colors.textSecondary,
     letterSpacing: 1,
   },
   pressed: { opacity: 0.65 },
