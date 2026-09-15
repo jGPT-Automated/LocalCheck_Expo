@@ -16,7 +16,7 @@ import {
   View,
 } from "react-native";
 
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { CourtListItem } from "@/components/CourtListItem";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { MapScreen } from "@/components/MapScreen";
@@ -83,6 +83,19 @@ export function CourtsScreen() {
   const [searchResults, setSearchResults] = useState<Court[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Onboarding's ZIP-instead-of-location step hands off here: no device fix
+  // to anchor "nearby" on, so it seeds the existing search (which already
+  // matches courts by postal code) instead of guessing a coordinate.
+  const params = useLocalSearchParams<{ q?: string }>();
+  const seededQueryRef = useRef(false);
+  useEffect(() => {
+    if (seededQueryRef.current) return;
+    if (typeof params.q === "string" && params.q.trim()) {
+      seededQueryRef.current = true;
+      setSearchQuery(params.q.trim());
+    }
+  }, [params.q]);
 
   const openCourt = useCallback(
     (court: Court) => {
@@ -361,7 +374,9 @@ export function CourtsScreen() {
               <Text style={styles.emptyText}>
                 {isSearchMode
                   ? "NO COURTS MATCH THIS SEARCH"
-                  : "NO OTHER COURTS IN THIS SCOPE"}
+                  : !discoveryOrigin
+                    ? "SHARE YOUR LOCATION OR SEARCH BY CITY/ZIP TO FIND COURTS"
+                    : "NO OTHER COURTS IN THIS SCOPE"}
               </Text>
             )}
 

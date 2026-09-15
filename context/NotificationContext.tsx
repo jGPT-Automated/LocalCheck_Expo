@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRealtimeHub } from "@/context/RealtimeHubContext";
 import { batchHasResource, RealtimeTopic } from "@/lib/realtimeHub";
 import { getSafeNotificationRoute } from "@/lib/notificationRoutes";
+import { profileNeedsOnboarding } from "@/lib/onboardingGate";
 import {
   AppNotification,
   fetchNotifications,
@@ -74,6 +75,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     if (!user || !profile) return;
+    // A fresh signup still going through onboarding gets no automatic
+    // permission prompts at all — onboarding's own "Share location" button
+    // is the only thing allowed to trigger a native prompt there. This
+    // effect re-fires once `profile.onboarding_completed` flips (profile is
+    // already a dependency below), so push still prompts normally right
+    // after onboarding finishes.
+    if (profileNeedsOnboarding(profile)) return;
     const preferenceEnabled = profile.push_notifications_enabled;
     let cancelled = false;
     // Staggered, not simultaneous: on a fresh sign-in this mounts the same

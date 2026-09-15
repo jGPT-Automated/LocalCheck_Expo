@@ -19,12 +19,9 @@ import { useDeviceLocation } from "@/context/DeviceLocationContext";
 import { coordinateForLocationAction } from "@/context/deviceLocationModel";
 import { updateProfileFields } from "@/services/profileService";
 
-type SportChoice = "BASKETBALL" | "PICKLEBALL" | "BOTH";
-
-const SPORT_ROWS: { value: SportChoice; label: string }[] = [
+const SPORT_ROWS: { value: CourtSport; label: string }[] = [
   { value: "BASKETBALL", label: "Basketball" },
   { value: "PICKLEBALL", label: "Pickleball" },
-  { value: "BOTH", label: "Both" },
 ];
 
 export default function OnboardingScreen() {
@@ -38,7 +35,7 @@ export default function OnboardingScreen() {
   const [step, setStep] = React.useState<1 | 2>(1);
 
   const [username, setUsername] = React.useState(profile?.username ?? "");
-  const [sport, setSport] = React.useState<SportChoice | null>(null);
+  const [sport, setSport] = React.useState<CourtSport | null>(null);
   const [savingStep1, setSavingStep1] = React.useState(false);
   const [usernameError, setUsernameError] = React.useState<string | null>(null);
 
@@ -47,6 +44,7 @@ export default function OnboardingScreen() {
   const [zipMode, setZipMode] = React.useState(false);
   const [zip, setZip] = React.useState("");
   const [finishing, setFinishing] = React.useState(false);
+  const [finishError, setFinishError] = React.useState<string | null>(null);
 
   const usernameValid = username.trim().length >= 3;
   const step1Ready = usernameValid && sport !== null;
@@ -68,7 +66,7 @@ export default function OnboardingScreen() {
         return;
       }
     }
-    await setPreferredSport(sport === "BOTH" ? null : (sport as CourtSport));
+    await setPreferredSport(sport);
     setSavingStep1(false);
     setStep(2);
   }
@@ -86,16 +84,30 @@ export default function OnboardingScreen() {
   async function handleFinish() {
     if (!step2Ready || finishing || !profile) return;
     setFinishing(true);
+    setFinishError(null);
+    const usedZip = !hasLocation && zipValid;
     const fields: Parameters<typeof updateProfileFields>[1] = {
       onboarding_completed: true,
     };
-    if (!hasLocation && zipValid) {
+    if (usedZip) {
       fields.postal_code = zip.trim();
     }
-    await updateProfileFields(profile.id, fields);
+    const saved = await updateProfileFields(profile.id, fields);
+    if (!saved) {
+      setFinishing(false);
+      setFinishError("Couldn't save that — check your connection and try again.");
+      return;
+    }
     await refreshProfile();
     setFinishing(false);
-    router.replace("/(tabs)");
+    // No device fix to anchor Explore's "nearby" query on — hand the ZIP to
+    // its existing court search (already matches on postal code) instead of
+    // guessing a coordinate.
+    if (usedZip) {
+      router.replace({ pathname: "/(tabs)/explore", params: { q: zip.trim() } });
+    } else {
+      router.replace("/(tabs)");
+    }
   }
 
   return (
@@ -182,9 +194,7 @@ export default function OnboardingScreen() {
                       ]}
                     >
                       <View style={styles.sportIcon}>
-                        {row.value !== "BOTH" ? (
-                          <SportEmblem sport={row.value} size={18} />
-                        ) : null}
+                        <SportEmblem sport={row.value} size={18} />
                       </View>
                       <Text
                         style={[
@@ -252,6 +262,13 @@ export default function OnboardingScreen() {
                 />
               </View>
             )}
+
+            {finishError ? (
+              <View style={styles.errorBanner}>
+                <LogoMark size={18} />
+                <Text style={styles.errorBannerText}>{finishError}</Text>
+              </View>
+            ) : null}
           </>
         )}
       </KeyboardAwareScrollViewCompat>
@@ -266,7 +283,7 @@ export default function OnboardingScreen() {
                 disabled: !step1Ready || savingStep1,
               }
             : {
-                label: finishing ? "FINISHING…" : "CONTINUE",
+                label: finishing ? "FINISHING…" : finishError ? "RETRY" : "CONTINUE",
                 onPress: () => void handleFinish(),
                 disabled: !step2Ready || finishing,
               }
@@ -404,5 +421,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textSecondary,
     textDecorationLine: "underline",
+  },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Space.sm,
+    marginTop: Space.lg,
+    padding: Space.md,
+    borderWidth: 1,
+    borderColor: Colors.loss,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.lossDim,
+  },
+  errorBannerText: {
+    flex: 1,
+    fontFamily: Typography.body,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Colors.text,
   },
 });

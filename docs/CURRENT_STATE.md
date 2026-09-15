@@ -33,15 +33,26 @@ evidence only; it does not replace the production checkpoint below.
 
 - Authentication: email/password and Apple Sign-In.
 - Onboarding: a fresh signup lands on `app/onboarding.tsx` (claim username +
-  pick a sport, then share location or enter a ZIP) before ever reaching the
-  tabs. Gated by `lib/onboardingGate.ts` on profile age (≤30 min) OR the
-  `profiles.onboarding_completed` flag — the age check alone guarantees no
-  existing account is ever routed into it, independent of whether that
-  column's migration (`20260914120000_profile_onboarding_completed.sql`,
-  source-only — see `docs/SUPABASE.md`) has been applied.
+  pick a sport — Basketball or Pickleball, no "Both": the app has no
+  both-sports concept anywhere downstream — then share location or enter a
+  ZIP) before ever reaching the tabs. Gated by `lib/onboardingGate.ts` on
+  profile age (≤30 min) OR the `profiles.onboarding_completed` flag — the age
+  check alone guarantees no existing account is ever routed into it,
+  independent of whether that column's migration
+  (`20260914120000_profile_onboarding_completed.sql`, source-only — see
+  `docs/SUPABASE.md`) has been applied. Location and push-permission prompts
+  are suppressed app-wide while a profile still needs onboarding
+  (`DeviceLocationProvider`'s `autoResolve` prop, `NotificationContext`'s
+  push effect) — onboarding's own "Share location" button is the only thing
+  allowed to trigger the native prompt during that window.
 - Discovery: court list/search plus native Mapbox map. Map viewport queries are
   location-driven across market boundaries; Explore narrows market results in
-  expanding geographic windows before sorting by distance.
+  expanding geographic windows before sorting by distance. Denied/unavailable
+  device location resolves to `null`, never a substitute city — Explore falls
+  back to the saved local court, then an empty state prompting to share
+  location or search by city/ZIP; the REGIONAL leaderboard scope falls back
+  to the unscoped (GLOBAL-equivalent) board instead of anchoring on a wrong
+  city.
 - Presence: atomic check-in switching and server-driven expiration.
 - Privacy: changing check-in visibility updates the active row and projected
   activity before the selector changes; relaunch hydrates the persisted mode.

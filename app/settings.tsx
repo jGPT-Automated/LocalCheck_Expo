@@ -25,7 +25,7 @@ import { SearchField } from "@/components/ui/SearchField";
 import { TierPill } from "@/components/ui/TierPill";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, CourtSport } from "@/constants/data";
-import { Space } from "@/constants/layout";
+import { Layout, Space } from "@/constants/layout";
 import { TextStyles, Typography } from "@/constants/typography";
 import { useApp, Visibility } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
@@ -327,17 +327,10 @@ export default function SettingsScreen() {
           />
         </Section>
 
-        <Section title="PROFILE">
-          <DrillRow
-            icon="at-sign"
-            label="USERNAME"
-            value={profile?.username ? `@${profile.username}` : "NOT SET"}
-            valueMuted={!profile?.username}
-            onPress={() => setEditor("username")}
-          />
+        <Section title="PREFERENCES">
           <DrillRow
             icon="eye"
-            label="PRIVACY"
+            label="VISIBILITY"
             value={privacyLabel}
             onPress={() => setEditor("privacy")}
           />
@@ -380,6 +373,29 @@ export default function SettingsScreen() {
           />
         </Section>
 
+        {/* Grouped together, away from the profile header above, so this
+            reads as "your account," not "who you are" — deliberately
+            doesn't invite casual username changes the way sitting at the
+            top of the screen did. */}
+        <Section title="ACCOUNT DETAILS">
+          <DrillRow
+            icon="at-sign"
+            label="USERNAME"
+            value={profile?.username ? `@${profile.username}` : "NOT SET"}
+            valueMuted={!profile?.username}
+            onPress={() => setEditor("username")}
+            last={usesApple}
+          />
+          {!usesApple ? (
+            <SettingsRow
+              icon="lock"
+              label="CHANGE PASSWORD"
+              onPress={() => setEditor("password")}
+              last
+            />
+          ) : null}
+        </Section>
+
         <Section title="SAFETY">
           <SettingsRow
             icon="slash"
@@ -409,17 +425,6 @@ export default function SettingsScreen() {
           />
         </Section>
 
-        {!usesApple ? (
-          <Section title="ACCOUNT SECURITY">
-            <SettingsRow
-              icon="lock"
-              label="CHANGE PASSWORD"
-              onPress={() => setEditor("password")}
-              last
-            />
-          </Section>
-        ) : null}
-
         <Section title="ACCOUNT">
           <SettingsRow
             icon="log-out"
@@ -427,21 +432,25 @@ export default function SettingsScreen() {
             onPress={handleLogout}
             last
           />
-          <Pressable
-            style={({ pressed }) => [styles.deleteRow, pressed && styles.pressed]}
-            onPress={handleDeleteAccount}
-            disabled={deleting}
-          >
-            {deleting ? (
-              <ActivityIndicator color={Colors.loss} size="small" />
-            ) : (
-              <Feather name="trash-2" size={17} color={Colors.loss} />
-            )}
-            <Text style={styles.deleteText}>
-              {deleting ? "DELETING…" : "DELETE ACCOUNT"}
-            </Text>
-          </Pressable>
         </Section>
+
+        {/* Pulled out of the ACCOUNT box on purpose — a destructive, rarely
+            used action shouldn't share a bordered section (or visual weight)
+            with an everyday one like Log Out. */}
+        <Pressable
+          style={({ pressed }) => [styles.deleteRow, pressed && styles.pressed]}
+          onPress={handleDeleteAccount}
+          disabled={deleting}
+        >
+          {deleting ? (
+            <ActivityIndicator color={Colors.loss} size="small" />
+          ) : (
+            <Feather name="trash-2" size={13} color={Colors.mutedDark} />
+          )}
+          <Text style={styles.deleteText}>
+            {deleting ? "DELETING…" : "DELETE ACCOUNT"}
+          </Text>
+        </Pressable>
 
         <Text style={styles.version}>LOCALCHECK 1.0.0</Text>
       </KeyboardAwareScrollViewCompat>
@@ -1232,18 +1241,18 @@ const styles = StyleSheet.create({
     transform: [{ scale: Platform.OS === "ios" ? 0.82 : 1 }],
   },
   deleteRow: {
-    minHeight: 58,
-    paddingHorizontal: 14,
+    minHeight: Layout.minTouchTarget,
+    marginTop: Space.sm,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
+    gap: 6,
   },
   deleteText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    color: Colors.loss,
-    letterSpacing: 1.2,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 10,
+    color: Colors.mutedDark,
+    letterSpacing: 1,
   },
   pressed: { opacity: 0.65 },
   version: {

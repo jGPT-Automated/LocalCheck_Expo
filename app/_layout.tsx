@@ -151,13 +151,19 @@ function AuthGate({ children }: { children: React.ReactNode }) {
  * AppProvider lived outside the auth gate.
  */
 function DataProviders({ children }: { children: React.ReactNode }) {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   if (!session) return <>{children}</>;
+  // While a fresh signup still needs onboarding, neither location nor push
+  // permission should fire on their own — onboarding's own "Share location"
+  // button is the only thing allowed to trigger that native prompt, and
+  // NotificationProvider's own effect checks this same flag before its
+  // (staggered-after-location) push prompt.
+  const autoResolveLocation = profile ? !profileNeedsOnboarding(profile) : true;
   return (
     <RealtimeHubProvider>
       <NotificationProvider>
         <CourtPresenceProvider>
-          <DeviceLocationProvider>
+          <DeviceLocationProvider autoResolve={autoResolveLocation}>
             <AppProvider>
               <CourtSheetProvider>{children}</CourtSheetProvider>
             </AppProvider>

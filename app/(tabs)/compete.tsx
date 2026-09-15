@@ -396,13 +396,17 @@ function LeaderboardView({
               {(localCourt.shortName || localCourt.name).toUpperCase()}
             </Text>
           </>
-        ) : scope === "REGIONAL" ? (
+        ) : scope === "LOCAL" ? (
+          <Text style={styles.scopeLabelText}>NO LOCAL COURT SET</Text>
+        ) : scope === "REGIONAL" && localCourt ? (
           <Text style={styles.scopeLabelText} numberOfLines={1}>
-            {(localCourt?.city || "REGIONAL").toUpperCase()}
+            {(localCourt.city || "REGIONAL").toUpperCase()}
           </Text>
         ) : scope === "FRIENDS" ? (
           <Text style={styles.scopeLabelText}>YOU + YOUR FRIENDS</Text>
         ) : (
+          // REGIONAL with no local court (and no nearby anchor) falls back to
+          // the same unscoped board GLOBAL would show — label it the same.
           <Text style={styles.scopeLabelText}>UNITED STATES</Text>
         )}
       </View>

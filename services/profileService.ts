@@ -560,8 +560,13 @@ export async function fetchLeaderboard(
     const ratingColumn =
       sport === "PICKLEBALL" ? "elo_pickleball" : "elo_basketball";
     if (sport === "BASKETBALL" || sport === "PICKLEBALL") {
+      // REGIONAL with no resolvable anchor (no local court, no device fix)
+      // has nothing to scope to — null here means "no court filter," same as
+      // GLOBAL, so it shows the unscoped board instead of an empty one. An
+      // *empty* regionalCourtIds (an anchor resolved, but its market has no
+      // other courts) is a real, narrow scope and must stay [] on purpose.
       const scopeCourtIds =
-        scope === "GLOBAL"
+        scope === "GLOBAL" || (scope === "REGIONAL" && regionalCourtIds === null)
           ? null
           : scope === "LOCAL" && courtId
             ? [courtId]

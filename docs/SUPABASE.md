@@ -125,7 +125,21 @@ temporary delivery failure does not strand inbox rows.
   UPDATE grant. The client's onboarding gate (`lib/onboardingGate.ts`) also
   requires the profile to be freshly created (within 30 minutes), so shipping
   this ahead of the migration is safe — no existing account can be routed
-  into onboarding regardless of whether this column exists yet.
+  into onboarding regardless of whether this column exists yet. Confirmed via
+  a live read-only query (2026-09-15) that this column genuinely does not
+  exist on LocalCheckProd yet, and that a client write attempting it fails
+  and rolls back the whole update atomically (no partial-field writes) —
+  `app/onboarding.tsx` handles that failure with a visible retry rather than
+  silently proceeding.
+- `20260915000000_update_username_syncs_display_name.sql`: **SOURCE ONLY,
+  NOT APPLIED.** Redefines `public.update_username` (never edits
+  `20260911180000`, which is live) so a username change also sets
+  `display_name` to match — every player-facing surface (rosters, feed, game
+  cards, profile header) reads `display_name`, not `username`, so claiming a
+  username previously had no visible effect anywhere. Existing rows are NOT
+  backfilled — only future username changes sync going forward, since
+  backfilling would silently rename every existing account's displayed
+  identity.
 
 Source presence never proves deployment. `complete_push_delivery`,
 `add_user_safety_controls`, and `make_court_access_optional` are present in the
