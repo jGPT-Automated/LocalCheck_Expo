@@ -36,6 +36,12 @@ export interface DeviceLocationValue {
   // Callers that require real GPS must not confuse a denied/unavailable
   // display fallback with a permission-backed device fix.
   refresh: () => Promise<DeviceLocationResolution>;
+  // Skips the very next auto-resolve triggered by `autoResolve` turning on.
+  // Onboarding calls this when the user finishes via ZIP instead of "Share
+  // location" — completing onboarding flips autoResolve on for the rest of
+  // the app, and without this it would immediately fire the native prompt
+  // right after the user explicitly opted out of sharing location.
+  suppressNextAutoResolve: () => void;
 }
 
 const DeviceLocationContext = createContext<DeviceLocationValue | null>(null);
@@ -56,6 +62,10 @@ export function DeviceLocationProvider({
   const [coord, setCoord] = useState<DeviceLocationValue["coord"]>(null);
   const [status, setStatus] = useState<DeviceLocationStatus>("idle");
   const inFlight = useRef<Promise<DeviceLocationResolution> | null>(null);
+  const suppressNextRef = useRef(false);
+  const suppressNextAutoResolve = useCallback(() => {
+    suppressNextRef.current = true;
+  }, []);
 
   const resolve = useCallback(async () => {
     if (inFlight.current) return inFlight.current;
@@ -99,11 +109,18 @@ export function DeviceLocationProvider({
   }, []);
 
   useEffect(() => {
-    if (autoResolve) void resolve();
+    if (!autoResolve) return;
+    if (suppressNextRef.current) {
+      suppressNextRef.current = false;
+      return;
+    }
+    void resolve();
   }, [autoResolve, resolve]);
 
   return (
-    <DeviceLocationContext.Provider value={{ coord, status, refresh: resolve }}>
+    <DeviceLocationContext.Provider
+      value={{ coord, status, refresh: resolve, suppressNextAutoResolve }}
+    >
       {children}
     </DeviceLocationContext.Provider>
   );

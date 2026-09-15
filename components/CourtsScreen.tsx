@@ -138,7 +138,16 @@ export function CourtsScreen() {
   // fresh "where I am now" results with stale "my home city" ones.
   const discoverySeq = useRef(0);
   const loadDiscovery = useCallback(async () => {
-    if (!discoveryOrigin) return;
+    if (!discoveryOrigin) {
+      // No signal to discover from at all (denied/unavailable location, no
+      // local court) — nothing to fetch, but the initial `loading` state is
+      // `true`, so this must still clear it or the spinner (and the empty
+      // state below it) never resolves.
+      discoverySeq.current += 1;
+      setNearbyCourts([]);
+      setLoading(false);
+      return;
+    }
     const seq = ++discoverySeq.current;
     setLoading(true);
     try {

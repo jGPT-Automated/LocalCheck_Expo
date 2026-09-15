@@ -77,10 +77,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (!user || !profile) return;
     // A fresh signup still going through onboarding gets no automatic
     // permission prompts at all — onboarding's own "Share location" button
-    // is the only thing allowed to trigger a native prompt there. This
-    // effect re-fires once `profile.onboarding_completed` flips (profile is
-    // already a dependency below), so push still prompts normally right
-    // after onboarding finishes.
+    // is the only thing allowed to trigger a native prompt there.
+    // `profile?.onboarding_completed` is a dependency below specifically so
+    // this effect re-fires once it flips, letting push prompt normally right
+    // after onboarding finishes rather than staying skipped for the session.
     if (profileNeedsOnboarding(profile)) return;
     const preferenceEnabled = profile.push_notifications_enabled;
     let cancelled = false;
@@ -99,7 +99,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [profile?.push_notifications_enabled, refreshProfile, user]);
+  }, [profile?.push_notifications_enabled, profile?.onboarding_completed, refreshProfile, user]);
 
   useEffect(() => {
     if (Platform.OS !== "ios" && Platform.OS !== "android") return;

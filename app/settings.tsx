@@ -21,6 +21,7 @@ import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollV
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
+import { OptionRow } from "@/components/ui/OptionRow";
 import { SearchField } from "@/components/ui/SearchField";
 import { TierPill } from "@/components/ui/TierPill";
 import { Colors, Radius } from "@/constants/colors";
@@ -622,45 +623,6 @@ function ToggleSettingsRow({
 }
 
 // ─── Focused editors ─────────────────────────────────────────────────────────
-
-function OptionRow({
-  label,
-  description,
-  selected,
-  onPress,
-}: {
-  label: string;
-  description: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
-      style={({ pressed }) => [
-        styles.option,
-        selected && styles.optionSelected,
-        pressed && styles.pressed,
-      ]}
-      onPress={onPress}
-    >
-      <View style={styles.optionCopy}>
-        <Text
-          style={[styles.optionLabel, selected && styles.optionLabelSelected]}
-        >
-          {label}
-        </Text>
-        <Text style={styles.optionDescription}>{description}</Text>
-      </View>
-      <View style={[styles.radio, selected && styles.radioSelected]}>
-        {selected ? (
-          <Feather name="check" size={13} color={Colors.black} />
-        ) : null}
-      </View>
-    </Pressable>
-  );
-}
 
 function PrivacyEditorSheet({
   visible,
@@ -1266,47 +1228,6 @@ const styles = StyleSheet.create({
 
   // ── Editor sheets ──
   optionList: { gap: Space.sm },
-  option: {
-    minHeight: 64,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.surface,
-  },
-  optionSelected: {
-    borderColor: Colors.accentBorder,
-    backgroundColor: Colors.accentDim,
-  },
-  optionCopy: { flex: 1, gap: 3 },
-  optionLabel: {
-    ...TextStyles.label,
-    color: Colors.textSecondary,
-    letterSpacing: 1,
-  },
-  optionLabelSelected: { color: Colors.text },
-  optionDescription: {
-    ...TextStyles.caption,
-    color: Colors.muted,
-    lineHeight: 15,
-  },
-  radio: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  radioSelected: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.accent,
-  },
   currentCourtCard: {
     marginBottom: Space.md,
     padding: 14,

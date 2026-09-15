@@ -210,9 +210,11 @@ tool, verified with read-only queries:
   this is a safe additive change whenever applied. Pairs with the
   `revenuecat-webhook` function below — apply this first.
 
-All other 2026-09 migrations are applied to LocalCheckProd; two are pending:
-`20260910000000_friendly_usernames.sql` and
-`20260911000000_subscriptions_webhook_support.sql`.
+All other 2026-09 migrations are applied to LocalCheckProd; four are pending:
+`20260910000000_friendly_usernames.sql`,
+`20260911000000_subscriptions_webhook_support.sql`,
+`20260914120000_profile_onboarding_completed.sql`, and
+`20260915000000_update_username_syncs_display_name.sql`.
 `account_tag` is cosmetic — it does not gate the leaderboard or LocalPlus; the
 only functional switch is the client flag `LeaderboardFlags.hideTaggedAccounts`
 (off). `supabase/functions/revenuecat-webhook` exists as source — **not yet

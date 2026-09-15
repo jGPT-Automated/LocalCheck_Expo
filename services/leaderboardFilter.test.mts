@@ -7,12 +7,13 @@ import {
   chunkLeaderboardIds,
 } from "./leaderboardFilter.ts";
 
-test("local and regional rankings require the viewer's home court", () => {
+test("only LOCAL requires the viewer's home court — REGIONAL falls back to unscoped", () => {
   assert.equal(canLoadLeaderboardScope("LOCAL", null), false);
-  assert.equal(canLoadLeaderboardScope("REGIONAL", null), false);
+  assert.equal(canLoadLeaderboardScope("REGIONAL", null), true);
   assert.equal(canLoadLeaderboardScope("LOCAL", "court-1"), true);
   assert.equal(canLoadLeaderboardScope("REGIONAL", "court-1"), true);
   assert.equal(canLoadLeaderboardScope("GLOBAL", null), true);
+  assert.equal(canLoadLeaderboardScope("FRIENDS", null), true);
 });
 
 test("preferred sport wins and home-court sport is the null-preference fallback", () => {

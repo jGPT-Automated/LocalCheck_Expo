@@ -157,8 +157,11 @@ function DataProviders({ children }: { children: React.ReactNode }) {
   // permission should fire on their own — onboarding's own "Share location"
   // button is the only thing allowed to trigger that native prompt, and
   // NotificationProvider's own effect checks this same flag before its
-  // (staggered-after-location) push prompt.
-  const autoResolveLocation = profile ? !profileNeedsOnboarding(profile) : true;
+  // (staggered-after-location) push prompt. Defaults to false (not true)
+  // while `profile` itself hasn't loaded yet: session publishes before
+  // profile does, and eagerly resolving in that gap could fire the OS
+  // prompt before we even know whether this is a fresh signup.
+  const autoResolveLocation = profile ? !profileNeedsOnboarding(profile) : false;
   return (
     <RealtimeHubProvider>
       <NotificationProvider>

@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { LogoMark } from "@/components/brand/LogoMark";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
+import { OptionRow } from "@/components/ui/OptionRow";
 import { SportEmblem } from "@/components/ui/SportEmblem";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { Colors, Radius } from "@/constants/colors";
@@ -29,8 +30,12 @@ export default function OnboardingScreen() {
   const { top, bottom } = useSafeAreaInsets();
   const { profile, updateUsername, refreshProfile } = useAuth();
   const { setPreferredSport } = useApp();
-  const { coord: deviceCoord, status: locationStatus, refresh: refreshLocation } =
-    useDeviceLocation();
+  const {
+    coord: deviceCoord,
+    status: locationStatus,
+    refresh: refreshLocation,
+    suppressNextAutoResolve,
+  } = useDeviceLocation();
 
   const [step, setStep] = React.useState<1 | 2>(1);
 
@@ -38,6 +43,7 @@ export default function OnboardingScreen() {
   const [sport, setSport] = React.useState<CourtSport | null>(null);
   const [savingStep1, setSavingStep1] = React.useState(false);
   const [usernameError, setUsernameError] = React.useState<string | null>(null);
+  const [step1Error, setStep1Error] = React.useState<string | null>(null);
 
   const [locating, setLocating] = React.useState(false);
   const [locationNotice, setLocationNotice] = React.useState<string | null>(null);
@@ -57,6 +63,7 @@ export default function OnboardingScreen() {
     if (!step1Ready || savingStep1 || !profile) return;
     setSavingStep1(true);
     setUsernameError(null);
+    setStep1Error(null);
     const trimmed = username.trim();
     if (trimmed !== profile.username) {
       const { error } = await updateUsername(trimmed);
@@ -66,8 +73,12 @@ export default function OnboardingScreen() {
         return;
       }
     }
-    await setPreferredSport(sport);
+    const sportSaved = await setPreferredSport(sport);
     setSavingStep1(false);
+    if (!sportSaved) {
+      setStep1Error("Couldn't save your sport — check your connection and try again.");
+      return;
+    }
     setStep(2);
   }
 
@@ -98,6 +109,10 @@ export default function OnboardingScreen() {
       setFinishError("Couldn't save that — check your connection and try again.");
       return;
     }
+    // Completing onboarding flips autoResolve back on app-wide — without
+    // this, choosing ZIP here would immediately trigger the native location
+    // prompt anyway, right after explicitly opting out of sharing it.
+    if (usedZip) suppressNextAutoResolve();
     await refreshProfile();
     setFinishing(false);
     // No device fix to anchor Explore's "nearby" query on — hand the ZIP to
@@ -179,41 +194,24 @@ export default function OnboardingScreen() {
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>YOUR SPORT</Text>
               <View style={styles.sportList}>
-                {SPORT_ROWS.map((row) => {
-                  const selected = sport === row.value;
-                  return (
-                    <Pressable
-                      key={row.value}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected }}
-                      onPress={() => setSport(row.value)}
-                      style={({ pressed }) => [
-                        styles.sportRow,
-                        selected && styles.sportRowSelected,
-                        pressed && styles.pressed,
-                      ]}
-                    >
-                      <View style={styles.sportIcon}>
-                        <SportEmblem sport={row.value} size={18} />
-                      </View>
-                      <Text
-                        style={[
-                          styles.sportLabel,
-                          selected && styles.sportLabelSelected,
-                        ]}
-                      >
-                        {row.label}
-                      </Text>
-                      <View style={[styles.radio, selected && styles.radioSelected]}>
-                        {selected ? (
-                          <Feather color={Colors.black} name="check" size={13} />
-                        ) : null}
-                      </View>
-                    </Pressable>
-                  );
-                })}
+                {SPORT_ROWS.map((row) => (
+                  <OptionRow
+                    key={row.value}
+                    icon={<SportEmblem sport={row.value} size={18} />}
+                    label={row.label}
+                    onPress={() => setSport(row.value)}
+                    selected={sport === row.value}
+                  />
+                ))}
               </View>
             </View>
+
+            {step1Error ? (
+              <View style={styles.errorBanner}>
+                <LogoMark size={18} />
+                <Text style={styles.errorBannerText}>{step1Error}</Text>
+              </View>
+            ) : null}
           </>
         ) : (
           <>
@@ -278,7 +276,7 @@ export default function OnboardingScreen() {
         primary={
           step === 1
             ? {
-                label: savingStep1 ? "SAVING…" : "CONTINUE",
+                label: savingStep1 ? "SAVING…" : step1Error ? "RETRY" : "CONTINUE",
                 onPress: () => void handleContinueStep1(),
                 disabled: !step1Ready || savingStep1,
               }
@@ -369,39 +367,6 @@ const styles = StyleSheet.create({
     color: Colors.loss,
   },
   sportList: { gap: Space.sm },
-  sportRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Space.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.md,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-  },
-  sportRowSelected: {
-    borderColor: Colors.accentBorder,
-    backgroundColor: Colors.accentDim,
-  },
-  sportIcon: { width: 22, alignItems: "center" },
-  sportLabel: {
-    flex: 1,
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 16,
-    color: Colors.text,
-  },
-  sportLabelSelected: { color: Colors.text },
-  radio: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  radioSelected: { backgroundColor: Colors.accent, borderColor: Colors.accent },
   fullButton: { width: "100%", marginTop: Space.md },
   locationConfirmed: {
     fontFamily: Typography.bodyMedium,

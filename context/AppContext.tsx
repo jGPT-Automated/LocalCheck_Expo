@@ -112,7 +112,7 @@ interface AppContextValue {
   hypeItem: (feedId: string) => Promise<void>;
   setLocalCourt: (courtId: string | null, courtObj?: Court) => Promise<boolean>;
   setVisibility: (v: Visibility) => Promise<void>;
-  setPreferredSport: (sport: CourtSport | null) => Promise<void>;
+  setPreferredSport: (sport: CourtSport | null) => Promise<boolean>;
   setPreferredCourtId: (courtId: string | null) => Promise<void>;
   addFriend: (playerId: string) => Promise<void>;
   acceptFriendRequest: (playerId: string) => Promise<boolean>;
@@ -679,9 +679,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const setPreferredSport = useCallback(async (sport: CourtSport | null) => {
     setPreferredSportState(sport);
-    if (userId) {
-      await updateProfileFields(userId, { preferred_sport: sport ? sport.toLowerCase() : null });
-    }
+    if (!userId) return true;
+    return updateProfileFields(userId, { preferred_sport: sport ? sport.toLowerCase() : null });
   }, [userId]);
 
   const setPreferredCourtId = useCallback(async (courtId: string | null) => {
