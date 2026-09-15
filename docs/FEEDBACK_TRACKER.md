@@ -23,24 +23,50 @@ point.
 
 ## Branch / PR status
 
-- **PRs #42–#51 and #50 merged to `main`.** `origin/main` @ `048acf9`. #51 = the
-  2026-09-10 quick-fix batch (Add Court DONE, Me hero + ELO delta, team-game
-  cards, friendly-usernames migration source); #50 = the RevenueCat runbook.
-  Each non-docs merge queues an EAS production build.
-- **`codex/revenuecat-integration`** — open: `revenuecat-webhook` edge function
-  (source, unit tested, not deployed) + the full `react-native-purchases`
-  app integration (source, not device-tested). See
-  `docs/runbooks/REVENUECAT.md` for the current phase-by-phase status.
-- **LocalCheckProd migrations:** all `20260909*` applied. **Pending (source
-  only, not applied):** `20260910000000_friendly_usernames.sql`,
-  `20260911000000_subscriptions_webhook_support.sql`.
+- **PRs #42–#57 merged to `main`** (through the paywall UX / gate-architecture
+  / shared-TierPill batch). `codex/onboarding-flow` (**PR #58**, open) adds
+  the post-signup onboarding screen, a location-fallback rework, and a
+  Settings reorg — see the 2026-09-15 entry below.
+- **LocalCheckProd migrations pending (source only, not applied):**
+  `20260910000000_friendly_usernames.sql`,
+  `20260911000000_subscriptions_webhook_support.sql`,
+  `20260914120000_profile_onboarding_completed.sql`,
+  `20260915000000_update_username_syncs_display_name.sql`. See
+  `docs/SUPABASE.md` for what each does and why shipping ahead of them is
+  safe.
 - **Release loop:** opening a PR against `main` auto-publishes a scannable Expo
   Go preview; merging to `main` auto-triggers the TestFlight build (ignores
-  `docs/**` / `**/*.md`). See `docs/RELEASE.md`.
+  `docs/**` / `**/*.md`). The build+submit step used to report green the
+  instant EAS *accepted* the job, without waiting for the actual build or
+  App Store Connect submission to succeed — fixed on PR #58 (`release-ios.yml`
+  now waits for the real outcome). See `docs/RELEASE.md`.
 
 ## Status legend
 
 ✅ done — committed on the branch · 🚧 in progress · ⬜ backlog, not started
+
+## 2026-09-15 — post-signup onboarding, location fallback, Settings reorg
+
+Built from two mockup screens (CLAIM YOUR NAME / KNOW YOUR COURTS) plus a
+live walkthrough and voice-memo follow-up after the first autoreview pass.
+
+| Item | Status |
+|------|--------|
+| Two-step onboarding screen (username + sport, then location/ZIP) before a fresh signup ever reaches the tabs | ✅ `app/onboarding.tsx`, gated by `lib/onboardingGate.ts` |
+| "Both" sport option removed — no both-sports concept exists anywhere else in the app | ✅ |
+| Location/push permission prompts suppressed during onboarding; only the "Share location" button triggers the native prompt | ✅ `DeviceLocationContext.tsx` `autoResolve`, `NotificationContext.tsx` |
+| No LA fallback anywhere — denied/unavailable location resolves to nothing; Explore falls back to the saved local court, then an empty state prompting to share location or search | ✅ |
+| REGIONAL leaderboard falls back to the unscoped (GLOBAL-equivalent) board instead of one that matches nothing, when there's no local court or device fix | ✅ `services/leaderboardFilter.ts`, `services/profileService.ts` |
+| Username claims now update `display_name` too (the field every player surface actually reads) | ✅ new migration, ⬜ not applied |
+| Settings reorder: LocalPlus → Preferences (Visibility/Sport/Court) → Alerts → Account Details (username + password, moved off the profile header) → Safety → Legal → Log Out (alone) → Delete Account (pulled out, shrunk) | ✅ `app/settings.tsx` |
+| App crash screen (`ErrorFallback.tsx`) rebranded off Expo's generic default onto LocalCheck tokens/mark | ✅ |
+| Shared `OptionRow` extracted from Settings' page-local version so onboarding's sport picker doesn't drift from Settings' | ✅ `components/ui/OptionRow.tsx` |
+| Phone-number sign-in (mentioned as a "how hard would it be" aside) | ⬜ explicitly deferred — new auth provider, not folded into this PR |
+| Pioneer-page link from court verification | ⬜ waiting on a reference screenshot |
+| USERNAME vs display_name having been two separate, confusing fields at all | 🚧 the sync above stops them from drifting further apart; whether to collapse to one field (or add phone auth and drop display_name) is still open |
+
+Landed across `eabd93c`, `4132276`, and the commits addressing this
+autoreview round, all on `codex/onboarding-flow` (PR #58).
 
 ## 2026-09-11 — RevenueCat wired end to end
 

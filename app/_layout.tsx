@@ -118,7 +118,19 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const onOnboardingScreen = segments[0] === "onboarding";
   const pendingOnboardingRedirect =
     !!session && !!profile && profileNeedsOnboarding(profile) && !onOnboardingScreen;
-  if (isLoading || (!session && !onAuthScreen) || pendingOnboardingRedirect) {
+  // `isLoading` only reliably covers the very first session restore — a
+  // *live* sign-in event can publish `session` synchronously while leaving
+  // `isLoading` at whatever it already was (false, if the user was sitting
+  // on /auth). Without this, a route decision could be made — and (tabs)
+  // could render with AppContext's EMPTY_PLAYER fallback — before the
+  // profile, and therefore whether onboarding is needed, is even known.
+  const profileUnresolved = !!session && profile === null;
+  if (
+    isLoading ||
+    (!session && !onAuthScreen) ||
+    pendingOnboardingRedirect ||
+    profileUnresolved
+  ) {
     return (
       <View
         style={{

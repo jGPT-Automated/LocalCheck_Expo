@@ -3,29 +3,23 @@ import test from "node:test";
 
 import { profileNeedsOnboarding } from "./onboardingGate.ts";
 
-test("a brand-new profile needs onboarding", () => {
+test("no flag column (pre-migration): a brand-new profile needs onboarding", () => {
   const now = Date.parse("2026-09-14T12:00:00Z");
   assert.equal(
-    profileNeedsOnboarding(
-      { created_at: "2026-09-14T11:59:00Z" },
-      now,
-    ),
+    profileNeedsOnboarding({ created_at: "2026-09-14T11:59:00Z" }, now),
     true,
   );
 });
 
-test("an existing profile is never routed into onboarding, flag or not", () => {
+test("no flag column (pre-migration): an existing profile is protected by age alone", () => {
   const now = Date.parse("2026-09-14T12:00:00Z");
   assert.equal(
-    profileNeedsOnboarding(
-      { created_at: "2026-01-01T00:00:00Z", onboarding_completed: false },
-      now,
-    ),
+    profileNeedsOnboarding({ created_at: "2026-01-01T00:00:00Z" }, now),
     false,
   );
 });
 
-test("onboarding_completed short-circuits within the grace window", () => {
+test("flag present: true is authoritative regardless of age", () => {
   const now = Date.parse("2026-09-14T12:00:00Z");
   assert.equal(
     profileNeedsOnboarding(
@@ -33,6 +27,28 @@ test("onboarding_completed short-circuits within the grace window", () => {
       now,
     ),
     false,
+  );
+});
+
+test("flag present: an explicit false still needs onboarding past the grace window — the whole point of the flag is resuming an interrupted flow", () => {
+  const now = Date.parse("2026-09-14T12:00:00Z");
+  assert.equal(
+    profileNeedsOnboarding(
+      { created_at: "2026-09-14T11:00:00Z", onboarding_completed: false },
+      now,
+    ),
+    true,
+  );
+});
+
+test("flag present: false within the grace window also needs onboarding", () => {
+  const now = Date.parse("2026-09-14T12:00:00Z");
+  assert.equal(
+    profileNeedsOnboarding(
+      { created_at: "2026-09-14T11:59:00Z", onboarding_completed: false },
+      now,
+    ),
+    true,
   );
 });
 

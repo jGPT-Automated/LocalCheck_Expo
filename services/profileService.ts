@@ -550,7 +550,12 @@ export async function fetchLeaderboard(
       }
     }
 
-    if (scope === "GLOBAL" && sport) {
+    // Same treatment as the scopeCourtIds branch below: a no-anchor REGIONAL
+    // is a GLOBAL-equivalent board, so it needs GLOBAL's null-preference
+    // fallback too — otherwise a player with no preferred_sport whose local
+    // court matches this sport is on the real GLOBAL board but silently
+    // missing from this "unscoped REGIONAL" one.
+    if ((scope === "GLOBAL" || (scope === "REGIONAL" && regionalCourtIds === null)) && sport) {
       const sportCourts = await fetchAllLeaderboardCourts({
         sport: sport.toLowerCase(),
       });

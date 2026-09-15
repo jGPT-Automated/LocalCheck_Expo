@@ -93,7 +93,10 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
                   onPress={() => setIsModalVisible(false)}
                   accessibilityLabel="Close error details"
                   accessibilityRole="button"
-                  style={({ pressed }) => pressed && styles.pressed}
+                  style={({ pressed }) => [
+                    styles.closeButton,
+                    pressed && styles.pressed,
+                  ]}
                 >
                   <Feather name="x" size={24} color={Colors.text} />
                 </Pressable>
@@ -212,6 +215,12 @@ const styles = StyleSheet.create({
     fontFamily: Typography.headingSemiBold,
     fontSize: 17,
     color: Colors.text,
+  },
+  closeButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalScrollView: {
     flex: 1,
