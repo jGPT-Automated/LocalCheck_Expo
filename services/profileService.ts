@@ -218,6 +218,7 @@ export async function updateProfileFields(
     preferred_sport: string | null;
     postal_code: string | null;
     visibility: "public" | "friends" | "private";
+    onboarding_completed: boolean;
   }>,
 ): Promise<boolean> {
   try {
@@ -549,7 +550,12 @@ export async function fetchLeaderboard(
       }
     }
 
-    if (scope === "GLOBAL" && sport) {
+    // Same treatment as the scopeCourtIds branch below: a no-anchor REGIONAL
+    // is a GLOBAL-equivalent board, so it needs GLOBAL's null-preference
+    // fallback too — otherwise a player with no preferred_sport whose local
+    // court matches this sport is on the real GLOBAL board but silently
+    // missing from this "unscoped REGIONAL" one.
+    if ((scope === "GLOBAL" || (scope === "REGIONAL" && regionalCourtIds === null)) && sport) {
       const sportCourts = await fetchAllLeaderboardCourts({
         sport: sport.toLowerCase(),
       });
@@ -559,8 +565,13 @@ export async function fetchLeaderboard(
     const ratingColumn =
       sport === "PICKLEBALL" ? "elo_pickleball" : "elo_basketball";
     if (sport === "BASKETBALL" || sport === "PICKLEBALL") {
+      // REGIONAL with no resolvable anchor (no local court, no device fix)
+      // has nothing to scope to — null here means "no court filter," same as
+      // GLOBAL, so it shows the unscoped board instead of an empty one. An
+      // *empty* regionalCourtIds (an anchor resolved, but its market has no
+      // other courts) is a real, narrow scope and must stay [] on purpose.
       const scopeCourtIds =
-        scope === "GLOBAL"
+        scope === "GLOBAL" || (scope === "REGIONAL" && regionalCourtIds === null)
           ? null
           : scope === "LOCAL" && courtId
             ? [courtId]

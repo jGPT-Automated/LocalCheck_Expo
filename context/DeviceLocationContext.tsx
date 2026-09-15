@@ -20,13 +20,14 @@ export type { DeviceLocationStatus } from "./deviceLocationModel";
 // nearby-court fetch used to each run their own independent
 // requestForegroundPermissionsAsync/getCurrentPositionAsync call, so the
 // three surfaces could disagree — one could be sitting on a permanently
-// cached device fix while another was still on the LA fallback. Every
-// consumer now reads the same resolved coordinate and can call refresh() to
-// force a fresh read (used by "center on me" / "find nearest court").
+// cached device fix while another was still stale. Every consumer now reads
+// the same resolved coordinate and can call refresh() to force a fresh read
+// (used by "center on me" / "find nearest court").
 //
-// The LA fallback only applies once permission is truly denied or the device
-// is unavailable — never while a real fix is still in flight — so a slow
-// cold-start permission prompt can't get locked into LA for the session.
+// Denied/unavailable resolves to a null coordinate, never a substitute city —
+// every consumer already treats "no coordinate" as its own real state
+// (Explore falls back to the saved local court or an empty/prompt state;
+// nothing downstream ever assumed a coordinate was guaranteed).
 
 export interface DeviceLocationValue {
   coord: DeviceCoordinate | null;
@@ -35,16 +36,36 @@ export interface DeviceLocationValue {
   // Callers that require real GPS must not confuse a denied/unavailable
   // display fallback with a permission-backed device fix.
   refresh: () => Promise<DeviceLocationResolution>;
+  // Skips the very next auto-resolve triggered by `autoResolve` turning on.
+  // Onboarding calls this when the user finishes via ZIP instead of "Share
+  // location" — completing onboarding flips autoResolve on for the rest of
+  // the app, and without this it would immediately fire the native prompt
+  // right after the user explicitly opted out of sharing location.
+  suppressNextAutoResolve: () => void;
 }
-
-const LA_FALLBACK = { lat: 34.0522, lng: -118.2437 };
 
 const DeviceLocationContext = createContext<DeviceLocationValue | null>(null);
 
-export function DeviceLocationProvider({ children }: { children: React.ReactNode }) {
+export function DeviceLocationProvider({
+  children,
+  // Whether to request the permission/fix the moment this provider mounts.
+  // Onboarding wants this off: the OS prompt should only fire when the user
+  // actually taps "Share location" there, not silently during an earlier
+  // step. Every other session (onboarding already done) keeps the original
+  // eager behavior — flipping this back on later (once onboarding finishes)
+  // still resolves a fix for the first time.
+  autoResolve = true,
+}: {
+  children: React.ReactNode;
+  autoResolve?: boolean;
+}) {
   const [coord, setCoord] = useState<DeviceLocationValue["coord"]>(null);
   const [status, setStatus] = useState<DeviceLocationStatus>("idle");
   const inFlight = useRef<Promise<DeviceLocationResolution> | null>(null);
+  const suppressNextRef = useRef(false);
+  const suppressNextAutoResolve = useCallback(() => {
+    suppressNextRef.current = true;
+  }, []);
 
   const resolve = useCallback(async () => {
     if (inFlight.current) return inFlight.current;
@@ -53,9 +74,9 @@ export function DeviceLocationProvider({ children }: { children: React.ReactNode
       try {
         const { status: permission } = await Location.requestForegroundPermissionsAsync();
         if (permission !== "granted") {
-          setCoord(LA_FALLBACK);
+          setCoord(null);
           setStatus("denied");
-          return { coord: LA_FALLBACK, status: "denied" as const };
+          return { coord: null, status: "denied" as const };
         }
         const last = await Location.getLastKnownPositionAsync();
         if (last) {
@@ -69,9 +90,12 @@ export function DeviceLocationProvider({ children }: { children: React.ReactNode
         setStatus("granted");
         return { coord: resolved, status: "granted" as const };
       } catch {
+        // A transient error on a later refresh() shouldn't discard an
+        // already-resolved real fix — only a first-ever attempt has nothing
+        // to fall back to.
         let fallback: DeviceLocationValue["coord"] = null;
         setCoord((current) => {
-          fallback = current ?? LA_FALLBACK;
+          fallback = current;
           return fallback;
         });
         setStatus("unavailable");
@@ -85,11 +109,18 @@ export function DeviceLocationProvider({ children }: { children: React.ReactNode
   }, []);
 
   useEffect(() => {
+    if (!autoResolve) return;
+    if (suppressNextRef.current) {
+      suppressNextRef.current = false;
+      return;
+    }
     void resolve();
-  }, [resolve]);
+  }, [autoResolve, resolve]);
 
   return (
-    <DeviceLocationContext.Provider value={{ coord, status, refresh: resolve }}>
+    <DeviceLocationContext.Provider
+      value={{ coord, status, refresh: resolve, suppressNextAutoResolve }}
+    >
       {children}
     </DeviceLocationContext.Provider>
   );

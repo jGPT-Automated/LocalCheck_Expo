@@ -113,10 +113,33 @@ temporary delivery failure does not strand inbox rows.
   three-day approval / seven-day void deadlines. It must be applied after the
   participant-review and ad-hoc-team migrations and is not production behavior
   until the live ledger and two-account matrix prove it.
-- `20260829120000_add_profile_postal_code.sql`: source-only nullable five-digit
-  profile ZIP used to seed the Settings court typeahead when device location is
-  unavailable. It does not alter court coordinates or location permissions and
-  is not production behavior until the live ledger confirms deployment.
+- `20260829120000_add_profile_postal_code.sql` +
+  `20260830133000_grant_profile_postal_code_update.sql`: **APPLIED to
+  LocalCheckProd** (confirmed live 2026-09-15: `profiles.postal_code` exists,
+  nullable text, with an `authenticated` column UPDATE grant). Nullable
+  five-digit profile ZIP; the onboarding flow's "enter ZIP instead" path
+  writes it directly.
+- `20260914120000_profile_onboarding_completed.sql`: **SOURCE ONLY, NOT
+  APPLIED.** Adds `profiles.onboarding_completed boolean not null default
+  false` (existing rows backfilled `true` in the same migration) + the column
+  UPDATE grant. The client's onboarding gate (`lib/onboardingGate.ts`) also
+  requires the profile to be freshly created (within 30 minutes), so shipping
+  this ahead of the migration is safe — no existing account can be routed
+  into onboarding regardless of whether this column exists yet. Confirmed via
+  a live read-only query (2026-09-15) that this column genuinely does not
+  exist on LocalCheckProd yet, and that a client write attempting it fails
+  and rolls back the whole update atomically (no partial-field writes) —
+  `app/onboarding.tsx` handles that failure with a visible retry rather than
+  silently proceeding.
+- `20260915000000_update_username_syncs_display_name.sql`: **SOURCE ONLY,
+  NOT APPLIED.** Redefines `public.update_username` (never edits
+  `20260911180000`, which is live) so a username change also sets
+  `display_name` to match — every player-facing surface (rosters, feed, game
+  cards, profile header) reads `display_name`, not `username`, so claiming a
+  username previously had no visible effect anywhere. Existing rows are NOT
+  backfilled — only future username changes sync going forward, since
+  backfilling would silently rename every existing account's displayed
+  identity.
 
 Source presence never proves deployment. `complete_push_delivery`,
 `add_user_safety_controls`, and `make_court_access_optional` are present in the
@@ -187,9 +210,11 @@ tool, verified with read-only queries:
   this is a safe additive change whenever applied. Pairs with the
   `revenuecat-webhook` function below — apply this first.
 
-All other 2026-09 migrations are applied to LocalCheckProd; two are pending:
-`20260910000000_friendly_usernames.sql` and
-`20260911000000_subscriptions_webhook_support.sql`.
+All other 2026-09 migrations are applied to LocalCheckProd; four are pending:
+`20260910000000_friendly_usernames.sql`,
+`20260911000000_subscriptions_webhook_support.sql`,
+`20260914120000_profile_onboarding_completed.sql`, and
+`20260915000000_update_username_syncs_display_name.sql`.
 `account_tag` is cosmetic — it does not gate the leaderboard or LocalPlus; the
 only functional switch is the client flag `LeaderboardFlags.hideTaggedAccounts`
 (off). `supabase/functions/revenuecat-webhook` exists as source — **not yet

@@ -4,11 +4,15 @@ export type LeaderboardSport = "BASKETBALL" | "PICKLEBALL";
 export const LEADERBOARD_COURT_PAGE_SIZE = 500;
 export const LEADERBOARD_ID_CHUNK_SIZE = 100;
 
+// LOCAL has nothing to scope to without a home court. REGIONAL no longer
+// needs one either — with no anchor it falls back to the unscoped
+// (GLOBAL-equivalent) board rather than returning nothing, so it's loadable
+// the same as FRIENDS/GLOBAL.
 export function canLoadLeaderboardScope(
   scope: LeaderboardScope,
   homeCourtId: string | null,
 ): boolean {
-  return scope === "GLOBAL" || scope === "FRIENDS" || Boolean(homeCourtId);
+  return scope !== "LOCAL" || Boolean(homeCourtId);
 }
 
 /**

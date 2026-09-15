@@ -16,7 +16,7 @@ import {
   View,
 } from "react-native";
 
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { CourtListItem } from "@/components/CourtListItem";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { MapScreen } from "@/components/MapScreen";
@@ -84,6 +84,19 @@ export function CourtsScreen() {
   const [searchLoading, setSearchLoading] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Onboarding's ZIP-instead-of-location step hands off here: no device fix
+  // to anchor "nearby" on, so it seeds the existing search (which already
+  // matches courts by postal code) instead of guessing a coordinate.
+  const params = useLocalSearchParams<{ q?: string }>();
+  const seededQueryRef = useRef(false);
+  useEffect(() => {
+    if (seededQueryRef.current) return;
+    if (typeof params.q === "string" && params.q.trim()) {
+      seededQueryRef.current = true;
+      setSearchQuery(params.q.trim());
+    }
+  }, [params.q]);
+
   const openCourt = useCallback(
     (court: Court) => {
       // Search leaves the keyboard focused on the search field — without
@@ -125,7 +138,16 @@ export function CourtsScreen() {
   // fresh "where I am now" results with stale "my home city" ones.
   const discoverySeq = useRef(0);
   const loadDiscovery = useCallback(async () => {
-    if (!discoveryOrigin) return;
+    if (!discoveryOrigin) {
+      // No signal to discover from at all (denied/unavailable location, no
+      // local court) — nothing to fetch, but the initial `loading` state is
+      // `true`, so this must still clear it or the spinner (and the empty
+      // state below it) never resolves.
+      discoverySeq.current += 1;
+      setNearbyCourts([]);
+      setLoading(false);
+      return;
+    }
     const seq = ++discoverySeq.current;
     setLoading(true);
     try {
@@ -361,7 +383,9 @@ export function CourtsScreen() {
               <Text style={styles.emptyText}>
                 {isSearchMode
                   ? "NO COURTS MATCH THIS SEARCH"
-                  : "NO OTHER COURTS IN THIS SCOPE"}
+                  : !discoveryOrigin
+                    ? "SHARE YOUR LOCATION OR SEARCH BY CITY/ZIP TO FIND COURTS"
+                    : "NO OTHER COURTS IN THIS SCOPE"}
               </Text>
             )}
 

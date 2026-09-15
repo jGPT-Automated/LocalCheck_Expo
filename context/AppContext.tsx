@@ -112,7 +112,7 @@ interface AppContextValue {
   hypeItem: (feedId: string) => Promise<void>;
   setLocalCourt: (courtId: string | null, courtObj?: Court) => Promise<boolean>;
   setVisibility: (v: Visibility) => Promise<void>;
-  setPreferredSport: (sport: CourtSport | null) => Promise<void>;
+  setPreferredSport: (sport: CourtSport | null) => Promise<boolean>;
   setPreferredCourtId: (courtId: string | null) => Promise<void>;
   addFriend: (playerId: string) => Promise<void>;
   acceptFriendRequest: (playerId: string) => Promise<boolean>;
@@ -271,7 +271,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const { coord: deviceCoord } = useDeviceLocation();
   const loadCourts = useCallback(async () => {
     if (!userId || !deviceCoord) {
-      if (!userId) setCourts([]);
+      // Also clears a signed-in user's stale list when location is revoked
+      // mid-session — otherwise consumers like the Log Game court picker
+      // keep offering courts from a location the shared source no longer has.
+      setCourts([]);
       return;
     }
     const nearby = await fetchNearbyCourts(deviceCoord.lat, deviceCoord.lng, preferredSport ?? null, 30);
@@ -679,9 +682,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const setPreferredSport = useCallback(async (sport: CourtSport | null) => {
     setPreferredSportState(sport);
-    if (userId) {
-      await updateProfileFields(userId, { preferred_sport: sport ? sport.toLowerCase() : null });
-    }
+    if (!userId) return true;
+    return updateProfileFields(userId, { preferred_sport: sport ? sport.toLowerCase() : null });
   }, [userId]);
 
   const setPreferredCourtId = useCallback(async (courtId: string | null) => {
