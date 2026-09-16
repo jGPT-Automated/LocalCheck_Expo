@@ -5,7 +5,12 @@ cd "$CI_WORKSPACE"
 
 # Xcode Cloud images don't include Node.js by default.
 # https://www.richinfante.com/2024/11/18/running-expo-prebuild-in-xcode-cloud
-brew install node
+# node@20, not plain "node": Corepack was removed entirely starting Node 25
+# (https://socket.dev/blog/node-js-tsc-votes-to-stop-distributing-corepack),
+# and Homebrew's unversioned "node" installs latest (26.x), which has no
+# corepack binary at all.
+brew install node@20
+brew link node@20 --force --overwrite
 
 corepack enable
 corepack prepare pnpm@10.13.1 --activate
