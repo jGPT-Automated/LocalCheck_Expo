@@ -11,7 +11,12 @@ web-build/
 expo-env.d.ts
 
 # Native
-ios/
+ios/*
+!ios/LocalCheck.xcodeproj
+!ios/LocalCheck.xcworkspace
+!ios/ci_scripts
+ios/LocalCheck.xcodeproj/xcuserdata
+ios/LocalCheck.xcworkspace/xcuserdata
 android/
 *.orig.*
 *.jks
