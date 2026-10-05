@@ -11,7 +11,8 @@
         "simulator": false,
         "image": "macos-sequoia-15.6-xcode-26.0"
       },
-      "channel": "development"
+      "channel": "development",
+      "environment": "development"
     },
     "preview": {
       "distribution": "internal",
@@ -19,14 +20,16 @@
         "simulator": false,
         "image": "macos-sequoia-15.6-xcode-26.0"
       },
-      "channel": "preview"
+      "channel": "preview",
+      "environment": "preview"
     },
     "production": {
       "autoIncrement": true,
       "channel": "production",
       "ios": {
         "image": "macos-sequoia-15.6-xcode-26.0"
-      }
+      },
+      "environment": "production"
     }
   },
   "submit": {
