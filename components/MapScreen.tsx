@@ -18,4 +18,4 @@ function ExpoGoMap(_props: MapScreenProps) {
 export const MapScreen: React.ComponentType<MapScreenProps> = runningInExpoGo
   ? ExpoGoMap
   : // eslint-disable-next-line @typescript-eslint/no-require-imports
-    (require("@/components/NativeMapScreen") as { MapScreen: React.ComponentType<MapScreenProps> }).MapScreen;
+    (require("./NativeMapScreen") as { MapScreen: React.ComponentType<MapScreenProps> }).MapScreen;
