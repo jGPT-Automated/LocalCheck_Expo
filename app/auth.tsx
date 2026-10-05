@@ -20,6 +20,14 @@ import { LaunchTransition } from "@/components/onboarding/LaunchTransition";
 import { Colors } from "@/constants/colors";
 import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
+import {
+  RESET_CODE_LENGTH,
+  humanizeResetError,
+  normalizeEmail,
+  normalizeResetCode,
+  resetCodeError,
+  resetEmailError,
+} from "@/lib/passwordReset";
 
 // Swap the sign-in artwork by replacing assets/brand/auth-graphic.png —
 // same modular contract as the logo (see DESIGN.md §Brand assets).
@@ -47,7 +55,17 @@ function humanizeAuthError(raw: string): string {
 
 export default function AuthScreen() {
   const router = useRouter();
-  const { user, profile, signInWithEmail, signUpWithEmail, signInWithApple, signOut, isLoading } = useAuth();
+  const {
+    user,
+    profile,
+    signInWithEmail,
+    signUpWithEmail,
+    signInWithApple,
+    signOut,
+    requestPasswordReset,
+    resetPasswordWithCode,
+    isLoading,
+  } = useAuth();
   const { top, bottom } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : top;
 
@@ -60,6 +78,27 @@ export default function AuthScreen() {
   // doubles as its `loading` prop: the corner sweep runs for exactly as long
   // as the real request is in flight, then resolves once busy flips false.
   const [showTransition, setShowTransition] = useState(false);
+  // Forgot password lives in this same panel: request a code, then enter the
+  // code with a new password. Verifying the code signs the user in, so both
+  // happen in one submit — AuthGate leaves /auth as soon as a session exists.
+  const [mode, setMode] = useState<"signIn" | "resetRequest" | "resetVerify">("signIn");
+  const [resetCode, setResetCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [notice, setNotice] = useState<string | null>(null);
+
+  function openReset() {
+    setErrorMsg(null);
+    setNotice(null);
+    setResetCode("");
+    setNewPassword("");
+    setMode("resetRequest");
+  }
+
+  function backToSignIn() {
+    setErrorMsg(null);
+    setNotice(null);
+    setMode("signIn");
+  }
 
   function goHome() {
     router.replace("/(tabs)");
@@ -92,6 +131,43 @@ export default function AuthScreen() {
     const { error } = await signInWithApple();
     if (error) { setBusy(false); setShowTransition(false); setErrorMsg(humanizeAuthError(error)); }
     else { setBusy(false); }
+  }
+
+  async function handleSendResetCode() {
+    const invalid = resetEmailError(email);
+    if (invalid) { setErrorMsg(invalid); return; }
+    const address = normalizeEmail(email);
+    setBusy(true); setErrorMsg(null);
+    const { error } = await requestPasswordReset(address);
+    setBusy(false);
+    if (error) { setErrorMsg(humanizeResetError(error)); return; }
+    setEmail(address);
+    setNotice(`If ${address} has a LocalCheck account, a ${RESET_CODE_LENGTH}-digit code is on its way. It expires in 1 hour.`);
+    setMode("resetVerify");
+  }
+
+  async function handleResetPassword() {
+    const invalid = resetCodeError(resetCode, newPassword);
+    if (invalid) { setErrorMsg(invalid); return; }
+    setBusy(true); setErrorMsg(null); setShowTransition(true);
+    const { error, signedIn } = await resetPasswordWithCode(
+      normalizeEmail(email),
+      normalizeResetCode(resetCode),
+      newPassword,
+    );
+    setBusy(false);
+    if (!error) return; // LaunchTransition → home, same as a normal sign-in
+    if (signedIn) {
+      // The code worked, so they're in; only the new password didn't save.
+      // An Alert survives the redirect AuthGate makes now that a session exists.
+      Alert.alert(
+        "You're signed in",
+        `Your new password wasn't saved (${humanizeResetError(error)}). Change it in Settings, under Password.`,
+      );
+      return;
+    }
+    setShowTransition(false);
+    setErrorMsg(humanizeResetError(error));
   }
 
   async function handleSignOut() {
@@ -162,14 +238,14 @@ export default function AuthScreen() {
                 </View>
               )}
 
-              {!user && (
-                <>
-                  {errorMsg && (
-                    <View style={styles.errorBox}>
-                      <Text style={styles.errorText}>{errorMsg}</Text>
-                    </View>
-                  )}
+              {!user && (errorMsg || notice) && (
+                <View style={errorMsg ? styles.errorBox : styles.noticeBox}>
+                  <Text style={errorMsg ? styles.errorText : styles.noticeText}>{errorMsg ?? notice}</Text>
+                </View>
+              )}
 
+              {!user && mode === "signIn" && (
+                <>
                   <View style={styles.field}>
                     <Text style={styles.label}>EMAIL</Text>
                     <TextInput
@@ -197,6 +273,15 @@ export default function AuthScreen() {
                     />
                   </View>
 
+                  <Pressable
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    onPress={openReset}
+                    style={styles.linkRow}
+                  >
+                    <Text style={styles.linkText}>FORGOT PASSWORD?</Text>
+                  </Pressable>
+
                   <View style={styles.actions}>
                     <Pressable style={[styles.btn, busy && styles.btnDisabled]} onPress={handleSignIn} disabled={busy}>
                       {busy ? <ActivityIndicator color={Colors.black} size="small" /> : <Text style={styles.btnText}>SIGN IN</Text>}
@@ -216,6 +301,91 @@ export default function AuthScreen() {
                       />
                     )}
                   </View>
+                </>
+              )}
+
+              {!user && mode === "resetRequest" && (
+                <>
+                  <Text style={styles.resetTitle}>RESET YOUR PASSWORD</Text>
+                  <Text style={styles.resetBody}>
+                    Enter your account email. We'll send a {RESET_CODE_LENGTH}-digit code.
+                  </Text>
+                  <View style={styles.field}>
+                    <Text style={styles.label}>EMAIL</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={email}
+                      onChangeText={setEmail}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      autoComplete="email"
+                      keyboardType="email-address"
+                      textContentType="emailAddress"
+                      placeholder="you@example.com"
+                      placeholderTextColor={Colors.mutedDark}
+                    />
+                  </View>
+                  <View style={styles.actions}>
+                    <Pressable
+                      style={[styles.btn, busy && styles.btnDisabled]}
+                      onPress={handleSendResetCode}
+                      disabled={busy}
+                    >
+                      {busy ? <ActivityIndicator color={Colors.black} size="small" /> : <Text style={styles.btnText}>SEND CODE</Text>}
+                    </Pressable>
+                    <Pressable style={[styles.btn, styles.btnOutline]} onPress={backToSignIn} disabled={busy}>
+                      <Text style={styles.btnTextOutline}>BACK TO SIGN IN</Text>
+                    </Pressable>
+                  </View>
+                </>
+              )}
+
+              {!user && mode === "resetVerify" && (
+                <>
+                  <Text style={styles.resetTitle}>ENTER YOUR CODE</Text>
+                  <View style={styles.field}>
+                    <Text style={styles.label}>{RESET_CODE_LENGTH}-DIGIT CODE</Text>
+                    <TextInput
+                      style={[styles.input, styles.codeInput]}
+                      value={resetCode}
+                      onChangeText={(value) => setResetCode(normalizeResetCode(value))}
+                      keyboardType="number-pad"
+                      textContentType="oneTimeCode"
+                      autoComplete="one-time-code"
+                      maxLength={RESET_CODE_LENGTH}
+                      placeholder={"0".repeat(RESET_CODE_LENGTH)}
+                      placeholderTextColor={Colors.mutedDark}
+                    />
+                  </View>
+                  <View style={styles.field}>
+                    <Text style={styles.label}>NEW PASSWORD</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={newPassword}
+                      onChangeText={setNewPassword}
+                      secureTextEntry
+                      autoCapitalize="none"
+                      textContentType="newPassword"
+                      autoComplete="new-password"
+                      placeholder="At least 6 characters"
+                      placeholderTextColor={Colors.mutedDark}
+                    />
+                  </View>
+                  <View style={styles.actions}>
+                    <Pressable
+                      style={[styles.btn, busy && styles.btnDisabled]}
+                      onPress={handleResetPassword}
+                      disabled={busy}
+                    >
+                      {busy ? <ActivityIndicator color={Colors.black} size="small" /> : <Text style={styles.btnText}>SET NEW PASSWORD</Text>}
+                    </Pressable>
+                    <Pressable style={[styles.btn, styles.btnOutline]} onPress={handleSendResetCode} disabled={busy}>
+                      <Text style={styles.btnTextOutline}>SEND A NEW CODE</Text>
+                    </Pressable>
+                  </View>
+                  <Pressable accessibilityRole="button" hitSlop={8} onPress={backToSignIn} style={styles.linkRowCenter}>
+                    <Text style={styles.linkText}>BACK TO SIGN IN</Text>
+                  </Pressable>
                 </>
               )}
 
@@ -343,6 +513,58 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.loss,
     letterSpacing: 0.5,
+  },
+  noticeBox: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    padding: 12,
+    marginBottom: 16,
+  },
+  noticeText: {
+    fontFamily: Typography.body,
+    fontSize: 12,
+    color: Colors.text,
+    letterSpacing: 0.3,
+    lineHeight: 17,
+  },
+  resetTitle: {
+    fontFamily: Typography.heading,
+    fontSize: 18,
+    color: Colors.text,
+    letterSpacing: 1.4,
+    marginBottom: 6,
+  },
+  resetBody: {
+    fontFamily: Typography.body,
+    fontSize: 12,
+    color: Colors.muted,
+    lineHeight: 17,
+    marginBottom: 14,
+  },
+  codeInput: {
+    fontFamily: Typography.heading,
+    fontSize: 20,
+    letterSpacing: 8,
+  },
+  linkRow: {
+    alignSelf: "flex-end",
+    marginTop: -4,
+    marginBottom: 12,
+    minHeight: 24,
+    justifyContent: "center",
+  },
+  linkRowCenter: {
+    alignSelf: "center",
+    marginBottom: 10,
+    minHeight: 24,
+    justifyContent: "center",
+  },
+  linkText: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 10,
+    color: Colors.muted,
+    letterSpacing: 2,
   },
   field: { marginBottom: 12 },
   label: {
