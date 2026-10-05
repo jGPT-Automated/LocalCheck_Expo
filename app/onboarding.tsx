@@ -27,7 +27,7 @@ import {
   ONBOARDING_STEPS,
 } from "@/lib/onboardingModel";
 import { coordinateForPlace } from "@/lib/placeLocation";
-import { fetchNearbyCourts } from "@/services/courtService";
+import { fetchClosestCourts } from "@/services/courtService";
 import { redeemInviter, updateProfileFields } from "@/services/profileService";
 
 const SPORT_ROWS: { value: CourtSport; label: string }[] = [
@@ -131,7 +131,7 @@ export default function OnboardingScreen() {
   }
 
   async function loadCourtsNear(lookup: number, lat: number, lng: number) {
-    const courts = await fetchNearbyCourts(lat, lng, sport, 8);
+    const courts = await fetchClosestCourts(lat, lng, sport, 5);
     if (lookup !== lookupRef.current) return;
     setCourtOptions(courts);
     setCourtsSport(sport);
@@ -404,7 +404,7 @@ export default function OnboardingScreen() {
             ) : searched ? (
               courtOptions.length > 0 ? (
                 <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>COURTS NEAR YOU</Text>
+                  <Text style={styles.fieldLabel}>CLOSEST COURTS</Text>
                   <View style={styles.sportList}>
                     {courtOptions.map((court) => (
                       <OptionRow
@@ -421,7 +421,7 @@ export default function OnboardingScreen() {
                 </View>
               ) : (
                 <Text style={styles.locationNotice}>
-                  No courts near you yet. You can add your court after setup.
+                  No courts found yet. You can add your court after setup.
                 </Text>
               )
             ) : null}

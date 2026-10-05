@@ -269,6 +269,44 @@ export async function fetchCourtsInBounds(
 }
 
 /**
+ * The `limit` courts closest to a point, however far away they are: a city
+ * with no courts still gets the nearest ones elsewhere instead of an empty
+ * list (onboarding's court picker). Widens the search box step by step and
+ * finally drops it.
+ */
+export async function fetchClosestCourts(
+  lat: number,
+  lng: number,
+  sport?: CourtSport | "ALL" | null,
+  limit = 5,
+): Promise<Court[]> {
+  const withDistance = (courts: Court[]) =>
+    courts
+      .map((c) => ({ ...c, distanceKm: haversineKm(lat, lng, c.latitude, c.longitude) }))
+      .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
+      .slice(0, limit);
+  try {
+    const lngScale = Math.max(0.2, Math.cos((lat * Math.PI) / 180));
+    for (const radiusDeg of [0.5, 2.5, 10, 30]) {
+      const courts = await fetchCourtsInBounds(
+        lat - radiusDeg,
+        lng - radiusDeg / lngScale,
+        lat + radiusDeg,
+        lng + radiusDeg / lngScale,
+        sport,
+        400,
+      );
+      if (courts.length >= limit) return withDistance(courts);
+    }
+    // Still short: take every court (fine at today's size) and sort.
+    const all = await fetchCourtsInBounds(-90, -180, 90, 180, sport, 2000);
+    return withDistance(all);
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Fetch up to `limit` courts nearest to the given coordinates.
  *
  * Uses an expanding bounding-box prefilter (±0.5° ≈ 55 km, then ±2.5°) so
