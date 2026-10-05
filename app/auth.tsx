@@ -176,6 +176,15 @@ export default function AuthScreen() {
     setBusy(false);
   }
 
+  // The hero heading follows the step, so the screen only ever has one title.
+  const hero = user
+    ? { title: "WELCOME BACK", subtitle: "YOUR LOCAL GAME IS WAITING." }
+    : mode === "resetRequest"
+      ? { title: "RESET PASSWORD.", subtitle: `WE'LL EMAIL YOU A ${RESET_CODE_LENGTH}-DIGIT CODE.` }
+      : mode === "resetVerify"
+        ? { title: "CHECK YOUR EMAIL.", subtitle: `ENTER THE ${RESET_CODE_LENGTH}-DIGIT CODE WE SENT.` }
+        : { title: "KNOW BEFORE YOU GO.", subtitle: "SEE WHO'S PLAYING. SHOW UP READY." };
+
   // LaunchTransition renders once, at a single stable position in this tree,
   // regardless of what else is happening — no separate early-return branch
   // for it, so nothing can unmount/remount it mid-animation. It only mounts
@@ -210,10 +219,8 @@ export default function AuthScreen() {
                 <LogoLockup width={184} />
               </View>
               <View style={styles.heroCopy}>
-                <Text style={styles.title}>{user ? "WELCOME BACK" : "KNOW BEFORE YOU GO."}</Text>
-                <Text style={styles.subtitle}>
-                  {user ? "YOUR LOCAL GAME IS WAITING." : "SEE WHO'S PLAYING. SHOW UP READY."}
-                </Text>
+                <Text style={styles.title}>{hero.title}</Text>
+                <Text style={styles.subtitle}>{hero.subtitle}</Text>
               </View>
             </View>
 
@@ -306,10 +313,6 @@ export default function AuthScreen() {
 
               {!user && mode === "resetRequest" && (
                 <>
-                  <Text style={styles.resetTitle}>RESET YOUR PASSWORD</Text>
-                  <Text style={styles.resetBody}>
-                    Enter your account email. We'll send a {RESET_CODE_LENGTH}-digit code.
-                  </Text>
                   <View style={styles.field}>
                     <Text style={styles.label}>EMAIL</Text>
                     <TextInput
@@ -342,18 +345,17 @@ export default function AuthScreen() {
 
               {!user && mode === "resetVerify" && (
                 <>
-                  <Text style={styles.resetTitle}>ENTER YOUR CODE</Text>
                   <View style={styles.field}>
                     <Text style={styles.label}>{RESET_CODE_LENGTH}-DIGIT CODE</Text>
                     <TextInput
-                      style={[styles.input, styles.codeInput]}
+                      style={styles.input}
                       value={resetCode}
                       onChangeText={(value) => setResetCode(normalizeResetCode(value))}
                       keyboardType="number-pad"
                       textContentType="oneTimeCode"
                       autoComplete="one-time-code"
                       maxLength={RESET_CODE_LENGTH}
-                      placeholder={"0".repeat(RESET_CODE_LENGTH)}
+                      placeholder="123456"
                       placeholderTextColor={Colors.mutedDark}
                     />
                   </View>
@@ -527,25 +529,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
     letterSpacing: 0.3,
     lineHeight: 17,
-  },
-  resetTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 18,
-    color: Colors.text,
-    letterSpacing: 1.4,
-    marginBottom: 6,
-  },
-  resetBody: {
-    fontFamily: Typography.body,
-    fontSize: 12,
-    color: Colors.muted,
-    lineHeight: 17,
-    marginBottom: 14,
-  },
-  codeInput: {
-    fontFamily: Typography.heading,
-    fontSize: 20,
-    letterSpacing: 8,
   },
   linkRow: {
     alignSelf: "flex-end",
