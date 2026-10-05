@@ -138,13 +138,19 @@ export async function resetPurchaser(): Promise<void> {
   }
 }
 
-/** The one package LocalPlus sells. Null if offerings aren't configured yet
- * (e.g. the App Store subscription is still missing price/availability). */
-export async function fetchLocalPlusPackage(): Promise<PurchasesPackage | null> {
+export type LocalPlusPlan = "monthly" | "yearly";
+
+/** A LocalPlus package from RevenueCat's current offering ($rc_monthly or
+ * $rc_annual). Null if purchases aren't configured or the offering isn't set
+ * up yet (e.g. the App Store subscription is missing price/availability). */
+export async function fetchLocalPlusPackage(
+  plan: LocalPlusPlan = "monthly",
+): Promise<PurchasesPackage | null> {
   if (!configured) return null;
   try {
     const offerings = await Purchases.getOfferings();
-    return offerings.current?.monthly ?? null;
+    const current = offerings.current;
+    return (plan === "yearly" ? current?.annual : current?.monthly) ?? null;
   } catch (error) {
     console.warn("purchasesService: getOfferings failed", error);
     return null;
