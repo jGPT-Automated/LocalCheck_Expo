@@ -2,7 +2,7 @@
 
 LocalCheck keeps the MVP release path intentionally small: required PR checks,
 an easy phone preview, a manual production OTA for compatible changes, and one
-automatic TestFlight workflow after an approved merge to `main`.
+TestFlight workflow that only runs when started by hand (merges never build).
 
 ## Before merge
 
