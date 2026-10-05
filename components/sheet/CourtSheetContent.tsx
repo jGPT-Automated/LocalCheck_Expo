@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AnimatedEntry } from "@/components/AnimatedEntry";
 import { BrutalistButton } from "@/components/BrutalistButton";
+import { LogoMark } from "@/components/brand/LogoMark";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { StatBlock } from "@/components/StatBlock";
 import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
@@ -206,7 +207,7 @@ export function CourtSheetContent({
         accessibilityLabel="Expand for who's here and locals"
       >
         <Text style={styles.swipeHintText}>
-          {gated ? "SWIPE UP TO UNLOCK" : "SWIPE UP FOR WHO'S HERE + LOCALS"}
+          SWIPE UP FOR WHO'S HERE + LOCALS
         </Text>
         <Feather color={Colors.accent} name="chevron-up" size={15} />
       </Pressable>
@@ -383,20 +384,30 @@ function CourtDrawerGate({
     if (yearly.available) void yearly.buy();
     else onOpenLocalPlus();
   };
+  const courtName = court.shortName || court.name;
   return (
     <View style={styles.gateWrap}>
       <View pointerEvents="none" style={styles.gateWrap}>
         {children}
-        <BlurView intensity={22} style={StyleSheet.absoluteFill} tint="dark" />
+        <BlurView intensity={28} style={StyleSheet.absoluteFill} tint="dark" />
+        {/* Soft edges instead of a hard blur line at the top and bottom. */}
+        <LinearGradient
+          colors={[Colors.background, "rgba(0,0,0,0)"]}
+          style={styles.gateFadeTop}
+        />
+        <LinearGradient
+          colors={["rgba(0,0,0,0)", Colors.background]}
+          style={styles.gateFadeBottom}
+        />
       </View>
       <View style={[styles.gateOverlay, StyleSheet.absoluteFill]}>
-        <View style={styles.gateIconRing}>
-          <Feather color={Colors.accent} name="zap" size={20} />
+        <View style={styles.gateBadge}>
+          <LogoMark size={18} />
+          <Text style={styles.gateBadgeText}>LOCALPLUS</Text>
         </View>
-        <Text style={styles.gateTitle}>UNLOCK WITH LOCALPLUS</Text>
+        <Text style={styles.gateTitle}>SEE WHO PLAYS HERE</Text>
         <Text style={styles.gateSubtitle}>
-          Upgrade to LocalPlus to see {court.shortName || court.name}'s
-          community and activity.
+          Locals, who's on court now, and upcoming runs at {courtName}.
         </Text>
         <Pressable
           accessibilityRole="button"
@@ -408,48 +419,31 @@ function CourtDrawerGate({
             <ActivityIndicator color={Colors.black} size="small" />
           ) : (
             <Text style={styles.gateCtaText}>
-              {yearly.priceString ? `UPGRADE · ${yearly.priceString}/YEAR` : "UPGRADE TO LOCALPLUS"}
+              {yearly.priceString ? `GET LOCALPLUS · ${yearly.priceString}/YR` : "GET LOCALPLUS"}
             </Text>
           )}
         </Pressable>
         {yearly.priceString ? (
           <Text style={styles.gateTerms}>Renews yearly until you cancel.</Text>
         ) : null}
-        <View style={styles.gateDividerRow}>
-          <View style={styles.gateDividerLine} />
-          <Text style={styles.gateDividerText}>OR</Text>
-          <View style={styles.gateDividerLine} />
-        </View>
         <Pressable
           accessibilityRole="button"
           disabled={cooldown.restricted}
+          hitSlop={8}
           onPress={onSetLocal}
-          style={({ pressed }) => [
-            styles.gateSecondary,
-            cooldown.restricted && styles.gateSecondaryDisabled,
-            pressed && styles.pressed,
-          ]}
+          style={({ pressed }) => [styles.gateLocalLink, pressed && styles.gateLinkPressed]}
         >
           <Feather
-            color={cooldown.restricted ? Colors.muted : Colors.text}
+            color={cooldown.restricted ? Colors.mutedDark : Colors.textSecondary}
             name="star"
-            size={13}
+            size={12}
           />
-          <Text
-            style={[
-              styles.gateSecondaryText,
-              cooldown.restricted && styles.gateSecondaryTextDisabled,
-            ]}
-          >
-            SET AS LOCAL COURT
+          <Text style={[styles.gateLocalText, cooldown.restricted && styles.gateLocalTextDisabled]}>
+            {cooldown.restricted
+              ? `You can switch local courts in ${formatCooldownRemaining(cooldown.remainingMs)}`
+              : "Or make it your local court, free"}
           </Text>
         </Pressable>
-        {cooldown.restricted ? (
-          <Text style={styles.gateCooldownText}>
-            You can change your local court in{" "}
-            {formatCooldownRemaining(cooldown.remainingMs)}.
-          </Text>
-        ) : null}
       </View>
     </View>
   );
@@ -723,39 +717,42 @@ const styles = StyleSheet.create({
   gateOverlay: {
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 36,
+    paddingHorizontal: 32,
   },
-  gateIconRing: {
-    width: 56,
-    height: 56,
-    marginBottom: 14,
+  gateFadeTop: { position: "absolute", left: 0, right: 0, top: 0, height: 28 },
+  gateFadeBottom: { position: "absolute", left: 0, right: 0, bottom: 0, height: 72 },
+  gateBadge: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: Colors.accentBorder,
-    backgroundColor: Colors.accentGhost,
+    gap: 8,
+    marginBottom: 12,
+  },
+  gateBadgeText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    letterSpacing: 2,
+    color: Colors.accent,
   },
   gateTitle: {
     fontFamily: Typography.heading,
-    fontSize: 16,
+    fontSize: 22,
     color: Colors.text,
-    letterSpacing: 1,
+    letterSpacing: 0.6,
     textAlign: "center",
   },
   gateSubtitle: {
-    marginTop: 8,
+    marginTop: 6,
     maxWidth: 280,
     fontFamily: Typography.body,
-    fontSize: 12,
-    lineHeight: 17,
-    color: Colors.muted,
+    fontSize: 13,
+    lineHeight: 18,
+    color: Colors.textSecondary,
     textAlign: "center",
   },
   gateCta: {
-    minHeight: 46,
-    minWidth: 220,
-    marginTop: 20,
+    minHeight: 48,
+    alignSelf: "stretch",
+    marginTop: 18,
     paddingHorizontal: 24,
     alignItems: "center",
     justifyContent: "center",
@@ -764,50 +761,24 @@ const styles = StyleSheet.create({
   },
   gateCtaText: {
     fontFamily: Typography.heading,
-    fontSize: 12,
+    fontSize: 13,
     letterSpacing: 1.2,
     color: Colors.black,
   },
-  gateDividerRow: {
-    minWidth: 220,
-    marginTop: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  gateDividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
-  gateDividerText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.mutedDark,
-    letterSpacing: 1.4,
-  },
-  gateSecondary: {
+  gateLocalLink: {
     minHeight: 44,
-    minWidth: 220,
-    marginTop: 16,
-    paddingHorizontal: 20,
+    marginTop: 6,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.md,
+    gap: 6,
+    paddingHorizontal: 12,
   },
-  gateSecondaryDisabled: { opacity: 0.5 },
-  gateSecondaryText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    color: Colors.text,
-  },
-  gateSecondaryTextDisabled: { color: Colors.muted },
-  gateCooldownText: {
-    marginTop: 10,
+  gateLinkPressed: { opacity: 0.6 },
+  gateLocalText: {
     fontFamily: Typography.bodyMedium,
-    fontSize: 10,
-    color: Colors.mutedDark,
-    textAlign: "center",
+    fontSize: 12,
+    color: Colors.textSecondary,
   },
+  gateLocalTextDisabled: { color: Colors.mutedDark },
 });
