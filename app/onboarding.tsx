@@ -22,11 +22,11 @@ import { useNotifications } from "@/context/NotificationContext";
 import {
   courtPickerDetail,
   inviteErrorMessage,
-  isZip,
+  isCityQuery,
   normalizeInviter,
   ONBOARDING_STEPS,
 } from "@/lib/onboardingModel";
-import { coordinateForZip } from "@/lib/zipLocation";
+import { coordinateForPlace } from "@/lib/placeLocation";
 import { fetchNearbyCourts } from "@/services/courtService";
 import { redeemInviter, updateProfileFields } from "@/services/profileService";
 
@@ -61,9 +61,13 @@ export default function OnboardingScreen() {
   // Step 2: local court
   const [locating, setLocating] = React.useState(false);
   const [locationNotice, setLocationNotice] = React.useState<string | null>(null);
-  const [zipMode, setZipMode] = React.useState(false);
-  const [zip, setZip] = React.useState("");
-  const [usedZip, setUsedZip] = React.useState(false);
+  const [cityMode, setCityMode] = React.useState(false);
+  const [city, setCity] = React.useState("");
+  const [usedCity, setUsedCity] = React.useState(false);
+  // Only the newest lookup may fill the picker (an older, slower one is dropped).
+  const lookupRef = React.useRef(0);
+  // The sport the current court list was loaded for.
+  const [courtsSport, setCourtsSport] = React.useState<CourtSport | null>(null);
   const [searching, setSearching] = React.useState(false);
   const [searched, setSearched] = React.useState(false);
   const [courtOptions, setCourtOptions] = React.useState<Court[]>([]);
@@ -115,46 +119,64 @@ export default function OnboardingScreen() {
       setInviterSaved(true);
     }
     setSavingStep1(false);
+    // A different sport makes the loaded courts (and any pick) stale.
+    if (courtsSport !== null && courtsSport !== sport) {
+      lookupRef.current += 1;
+      setCourtOptions([]);
+      setSelectedCourt(null);
+      setSearched(false);
+      setCourtsSport(null);
+    }
     setStep(2);
   }
 
-  async function loadCourtsNear(lat: number, lng: number) {
-    setSearching(true);
-    setSelectedCourt(null);
+  async function loadCourtsNear(lookup: number, lat: number, lng: number) {
     const courts = await fetchNearbyCourts(lat, lng, sport, 8);
+    if (lookup !== lookupRef.current) return;
     setCourtOptions(courts);
+    setCourtsSport(sport);
     setSearched(true);
     setSearching(false);
   }
 
-  async function handleUseLocation() {
+  function startLookup(): number {
+    lookupRef.current += 1;
+    setSearching(true);
+    setSelectedCourt(null);
     setLocationNotice(null);
-    setLocating(true);
-    const result = await refreshLocation();
-    setLocating(false);
-    const coord = coordinateForLocationAction(result.status, result.coord);
-    if (!coord) {
-      setLocationNotice("Location access is off. Turn it on in Settings, or enter your ZIP instead.");
-      return;
-    }
-    setUsedZip(false);
-    await loadCourtsNear(coord.lat, coord.lng);
+    return lookupRef.current;
   }
 
-  async function handleZipChange(text: string) {
-    const digits = text.replace(/[^0-9]/g, "");
-    setZip(digits);
-    setLocationNotice(null);
-    if (!isZip(digits)) return;
-    setSearching(true);
-    const coord = await coordinateForZip(digits);
+  async function handleUseLocation() {
+    setLocating(true);
+    const lookup = startLookup();
+    const result = await refreshLocation();
+    setLocating(false);
+    if (lookup !== lookupRef.current) return;
+    const coord = coordinateForLocationAction(result.status, result.coord);
     if (!coord) {
       setSearching(false);
-      setLocationNotice("Couldn't find that ZIP. Check it and try again.");
+      setLocationNotice("Location access is off. Turn it on in Settings, or search by city instead.");
       return;
     }
-    setUsedZip(true);
-    await loadCourtsNear(coord.lat, coord.lng);
+    setUsedCity(false);
+    await loadCourtsNear(lookup, coord.lat, coord.lng);
+  }
+
+  // Runs on the keyboard's Search key or the FIND COURTS button, never per
+  // keystroke.
+  async function handleFindCity() {
+    if (!isCityQuery(city) || searching) return;
+    const lookup = startLookup();
+    const coord = await coordinateForPlace(city);
+    if (lookup !== lookupRef.current) return;
+    if (!coord) {
+      setSearching(false);
+      setLocationNotice("Couldn't find that city. Try \"City, State\".");
+      return;
+    }
+    setUsedCity(true);
+    await loadCourtsNear(lookup, coord.lat, coord.lng);
   }
 
   async function handleContinueStep2() {
@@ -168,9 +190,6 @@ export default function OnboardingScreen() {
         setStep2Error("Couldn't save your court. Check your connection and try again.");
         return;
       }
-    }
-    if (usedZip && isZip(zip)) {
-      await updateProfileFields(profile.id, { postal_code: zip.trim() });
     }
     setSavingStep2(false);
     setStep(3);
@@ -189,8 +208,8 @@ export default function OnboardingScreen() {
       return;
     }
     // Finishing turns automatic location back on app-wide. Someone who chose
-    // a ZIP instead of sharing location shouldn't get the native prompt now.
-    if (usedZip) suppressNextAutoResolve();
+    // a city instead of sharing location shouldn't get the native prompt now.
+    if (usedCity) suppressNextAutoResolve();
     await refreshProfile();
     setFinishing(false);
     router.replace("/(tabs)");
@@ -346,25 +365,34 @@ export default function OnboardingScreen() {
               variant="accent"
             />
 
-            {!zipMode ? (
+            {!cityMode ? (
               <Pressable
                 accessibilityRole="button"
-                onPress={() => setZipMode(true)}
+                onPress={() => setCityMode(true)}
                 style={({ pressed }) => [styles.zipLink, pressed && styles.pressed]}
               >
-                <Text style={styles.zipLinkText}>Enter ZIP code instead</Text>
+                <Text style={styles.zipLinkText}>Search by city instead</Text>
               </Pressable>
             ) : (
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>ZIP CODE</Text>
+                <Text style={styles.fieldLabel}>CITY</Text>
                 <TextInput
-                  keyboardType="number-pad"
-                  maxLength={5}
-                  onChangeText={(text) => void handleZipChange(text)}
-                  placeholder="77304"
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  onChangeText={setCity}
+                  onSubmitEditing={() => void handleFindCity()}
+                  placeholder="Conroe, TX"
                   placeholderTextColor={Colors.mutedDark}
+                  returnKeyType="search"
                   style={styles.input}
-                  value={zip}
+                  value={city}
+                />
+                <BrutalistButton
+                  disabled={!isCityQuery(city) || searching}
+                  label="FIND COURTS"
+                  onPress={() => void handleFindCity()}
+                  style={styles.fullButton}
+                  variant="outline"
                 />
               </View>
             )}

@@ -27,8 +27,9 @@ export function inviteErrorMessage(result: InviteResult): string | null {
   }
 }
 
-export function isZip(raw: string): boolean {
-  return /^\d{5}$/.test(raw.trim());
+/** Enough to search: at least two letters ("LA" counts). */
+export function isCityQuery(raw: string): boolean {
+  return (raw.match(/[A-Za-z]/g)?.length ?? 0) >= 2;
 }
 
 /** "0.8 mi" — one decimal under 10 miles, whole miles beyond. */

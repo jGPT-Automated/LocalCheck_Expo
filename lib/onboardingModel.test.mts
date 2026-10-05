@@ -5,7 +5,7 @@ import {
   courtPickerDetail,
   formatMiles,
   inviteErrorMessage,
-  isZip,
+  isCityQuery,
   normalizeInviter,
 } from "./onboardingModel.ts";
 
@@ -25,11 +25,11 @@ test("unknown or own username explains what to do", () => {
   assert.match(inviteErrorMessage({ ok: false, reason: "error" }) ?? "", /Try again/);
 });
 
-test("ZIP must be exactly five digits", () => {
-  assert.equal(isZip("77304"), true);
-  assert.equal(isZip(" 77304 "), true);
-  assert.equal(isZip("7730"), false);
-  assert.equal(isZip("77304-1234"), false);
+test("city search needs at least two letters", () => {
+  assert.equal(isCityQuery("Conroe, TX"), true);
+  assert.equal(isCityQuery("LA"), true);
+  assert.equal(isCityQuery("a"), false);
+  assert.equal(isCityQuery("77304"), false);
 });
 
 test("miles: one decimal close by, whole miles far away", () => {

@@ -7,15 +7,17 @@ export interface Coordinate {
 }
 
 /**
- * Center of a US ZIP code. On iPhone this uses Apple's geocoder (no location
- * permission needed); if that fails, or on web, Mapbox's geocoder with the
- * app's public token. Returns null when neither finds it.
+ * Center of a US city ("Conroe" or "Conroe, TX"). On iPhone this uses Apple's
+ * geocoder (no location permission needed); if that fails, or on web,
+ * Mapbox's geocoder with the app's public token. Returns null when neither
+ * finds it.
  */
-export async function coordinateForZip(zip: string): Promise<Coordinate | null> {
-  const code = zip.trim();
+export async function coordinateForPlace(query: string): Promise<Coordinate | null> {
+  const text = query.trim();
+  if (!text) return null;
   if (Platform.OS !== "web") {
     try {
-      const [hit] = await Location.geocodeAsync(`${code}, United States`);
+      const [hit] = await Location.geocodeAsync(`${text}, United States`);
       if (hit) return { lat: hit.latitude, lng: hit.longitude };
     } catch {
       /* fall through to Mapbox */
@@ -25,8 +27,8 @@ export async function coordinateForZip(zip: string): Promise<Coordinate | null> 
   if (!token) return null;
   try {
     const url =
-      `https://api.mapbox.com/search/geocode/v6/forward?q=${encodeURIComponent(code)}` +
-      `&country=us&types=postcode&limit=1&access_token=${token}`;
+      `https://api.mapbox.com/search/geocode/v6/forward?q=${encodeURIComponent(text)}` +
+      `&country=us&types=place,locality&limit=1&access_token=${token}`;
     const res = await fetch(url);
     if (!res.ok) return null;
     const json = (await res.json()) as {
