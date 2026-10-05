@@ -73,7 +73,15 @@ export function hasActiveEntitlement(info: CustomerInfo): boolean {
  * call repeatedly; safe on platforms/builds with no key (no-ops). */
 export function initPurchases(): void {
   if (configured || Platform.OS !== "ios" || !IOS_API_KEY) return;
-  Purchases.configure({ apiKey: IOS_API_KEY });
+  try {
+    Purchases.configure({ apiKey: IOS_API_KEY });
+  } catch (error) {
+    // Expo Go only accepts a RevenueCat Test Store key (test_...). A wrong key
+    // throws synchronously here, at app start, which used to blank the whole
+    // app. Purchases stay off instead; everything else still runs.
+    console.warn("[purchases] configure failed; purchases disabled", error);
+    return;
+  }
   configured = true;
   Purchases.addCustomerInfoUpdateListener((info) =>
     notifyFastPath(hasActiveEntitlement(info)),
