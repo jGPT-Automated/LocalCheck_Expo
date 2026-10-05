@@ -22,6 +22,8 @@ export const AppBottomSheetModal = forwardRef<
     /** Size to content instead of the fixed detents. */
     dynamic?: boolean;
     maxDynamicContentSize?: number;
+    /** Tighter grabber row, so content can start near the top edge. */
+    compactHandle?: boolean;
   }
 >(function AppBottomSheetModal(
   {
@@ -32,6 +34,7 @@ export const AppBottomSheetModal = forwardRef<
     snapPoints,
     dynamic = false,
     maxDynamicContentSize,
+    compactHandle = false,
   },
   ref,
 ) {
@@ -60,6 +63,7 @@ export const AppBottomSheetModal = forwardRef<
         backdropComponent={renderBackdrop}
         backgroundStyle={styles.background}
         handleIndicatorStyle={styles.handle}
+        handleStyle={compactHandle ? styles.handleRowCompact : undefined}
         onDismiss={onDismiss}
         keyboardBehavior="interactive"
         keyboardBlurBehavior="restore"
@@ -77,6 +81,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: Radius.card,
     borderTopRightRadius: Radius.card,
   },
+  // 8 above the 4pt grabber, nothing below: a 12pt row (DRAWER_HANDLE_HEIGHT).
+  handleRowCompact: { paddingTop: 8, paddingBottom: 0 },
   handle: {
     width: 38,
     height: 4,

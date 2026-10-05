@@ -109,7 +109,7 @@ export default function SettingsScreen() {
   const inviteFriends = async () => {
     const code = profile?.referral_code;
     const message = code
-      ? `Come play pickup on LocalCheck. When you sign up, put ${code} under "Invited by". ${APP_STORE_URL}`
+      ? `Come play pickup on LocalCheck. My invite code is "${code}". Enter it when you sign up: ${APP_STORE_URL}`
       : `Come play pickup on LocalCheck. ${APP_STORE_URL}`;
     try {
       await Share.share({ message });

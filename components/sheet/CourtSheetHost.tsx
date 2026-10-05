@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { DRAWER_HANDLE_HEIGHT } from "@/lib/courtDrawerLayout";
 import { AppBottomSheetModal } from "./AppBottomSheetModal";
 import { CourtSheetContent } from "./CourtSheetContent";
 
@@ -47,7 +48,7 @@ export function CourtSheetProvider({
 }) {
   const modalRef = useRef<BottomSheetModal>(null);
   const [args, setArgs] = useState<OpenArgs | null>(null);
-  const [peekHeight, setPeekHeight] = useState(332);
+  const [peekHeight, setPeekHeight] = useState(320);
 
   const openCourtSheet = useCallback((next: OpenArgs) => {
     setArgs(next);
@@ -83,6 +84,7 @@ export function CourtSheetProvider({
       <AppBottomSheetModal
         ref={modalRef}
         snapPoints={snapPoints}
+        compactHandle
         onDismiss={() => setArgs(null)}
       >
         {args && (
@@ -91,7 +93,7 @@ export function CourtSheetProvider({
             distanceKm={args.distanceKm}
             onNavigate={closeCourtSheet}
             onExpand={expandCourtSheet}
-            onPeekHeight={(height) => setPeekHeight(Math.ceil(height + 24))}
+            onPeekHeight={(height) => setPeekHeight(Math.ceil(height + DRAWER_HANDLE_HEIGHT))}
           />
         )}
       </AppBottomSheetModal>

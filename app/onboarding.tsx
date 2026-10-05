@@ -327,7 +327,7 @@ export default function OnboardingScreen() {
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>INVITED BY (OPTIONAL)</Text>
+              <Text style={styles.fieldLabel}>INVITE CODE (OPTIONAL)</Text>
               <TextInput
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -337,7 +337,7 @@ export default function OnboardingScreen() {
                   setInviter(normalizeInviter(text));
                   setInviterError(null);
                 }}
-                placeholder="their username"
+                placeholder="friend's code or username"
                 placeholderTextColor={Colors.mutedDark}
                 style={[styles.input, (savingStep1 || inviterSaved) && styles.inputDisabled]}
                 value={inviter}

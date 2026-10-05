@@ -221,31 +221,31 @@ export function LogoMark({
   variant = "mark",
 }: {
   size?: number;
-  variant?: "mark" | "back";
+  /** "plus" is the LocalPlus mark: the same corner frame around an orange plus. */
+  variant?: "mark" | "back" | "plus";
 }) {
   return (
     <View
-      accessibilityElementsHidden={variant === "back"}
-      importantForAccessibility={variant === "back" ? "no" : "auto"}
+      accessibilityElementsHidden={variant !== "mark"}
+      importantForAccessibility={variant !== "mark" ? "no" : "auto"}
       style={{ height: size, width: size }}
     >
       <Svg
         accessibilityLabel={variant === "mark" ? "LocalCheck" : undefined}
         height={size}
         preserveAspectRatio="xMidYMid meet"
-        viewBox={variant === "back" ? "0 0 250 240" : "0 0 210 202"}
+        viewBox={variant === "mark" ? "0 0 210 202" : "0 0 250 240"}
         width={size}
       >
-        {variant === "back" ? (
+        {variant === "plus" ? (
           <>
-            <Rect fill={Colors.white} height="18" width="76" x="0" y="0" />
-            <Rect fill={Colors.white} height="76" width="18" x="0" y="0" />
-            <Rect fill={Colors.white} height="18" width="76" x="174" y="0" />
-            <Rect fill={Colors.white} height="76" width="18" x="232" y="0" />
-            <Rect fill={Colors.white} height="18" width="76" x="0" y="222" />
-            <Rect fill={Colors.white} height="76" width="18" x="0" y="164" />
-            <Rect fill={Colors.white} height="18" width="76" x="174" y="222" />
-            <Rect fill={Colors.white} height="76" width="18" x="232" y="164" />
+            <FrameCorners />
+            <Rect fill={Colors.brandMark} height="24" width="132" x="59" y="108" />
+            <Rect fill={Colors.brandMark} height="124" width="24" x="113" y="58" />
+          </>
+        ) : variant === "back" ? (
+          <>
+            <FrameCorners />
             <Polygon fill={Colors.brandMark} points="123,59 62,122 125,184 138,170 91,122 138,73" />
           </>
         ) : (
@@ -253,6 +253,22 @@ export function LogoMark({
         )}
       </Svg>
     </View>
+  );
+}
+
+/** Corner brackets shared by the back and plus marks (250 x 240 box). */
+function FrameCorners() {
+  return (
+    <>
+      <Rect fill={Colors.white} height="18" width="76" x="0" y="0" />
+      <Rect fill={Colors.white} height="76" width="18" x="0" y="0" />
+      <Rect fill={Colors.white} height="18" width="76" x="174" y="0" />
+      <Rect fill={Colors.white} height="76" width="18" x="232" y="0" />
+      <Rect fill={Colors.white} height="18" width="76" x="0" y="222" />
+      <Rect fill={Colors.white} height="76" width="18" x="0" y="164" />
+      <Rect fill={Colors.white} height="18" width="76" x="174" y="222" />
+      <Rect fill={Colors.white} height="76" width="18" x="232" y="164" />
+    </>
   );
 }
 

@@ -172,15 +172,11 @@ export default function LocalPlusScreen() {
       />
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={{
-          padding: Layout.screenGutter,
-          paddingBottom: Space.xl,
-          gap: Space.lg,
-        }}
+        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.hero}>
-          <LogoMark size={44} />
+          <LogoMark size={56} variant="plus" />
         </View>
 
         {hasLocalPlus ? (
@@ -210,11 +206,18 @@ export default function LocalPlusScreen() {
           ))}
         </View>
 
+        <Text style={styles.fine}>
+          Older games are only hidden from the profile feed — they still move
+          your rating, your win-loss record, and every head-to-head.
+        </Text>
+
+        {/* Pinned to the bottom of the screen, right above the button. */}
         {!hasLocalPlus ? (
-          <View style={{ gap: Space.md }}>
+          <View style={styles.footerLinks}>
             <Pressable
               accessibilityRole="button"
               disabled={restoring}
+              hitSlop={10}
               onPress={() => void handleRestore()}
               style={({ pressed }) => [pressed && styles.linkPressed]}
             >
@@ -222,19 +225,20 @@ export default function LocalPlusScreen() {
                 {restoring ? "RESTORING…" : "RESTORE PURCHASES"}
               </Text>
             </Pressable>
+            <View style={styles.footerDivider} />
             <Pressable
               accessibilityRole="button"
+              hitSlop={10}
               onPress={() => void handleRedeemOfferCode()}
               style={({ pressed }) => [pressed && styles.linkPressed]}
             >
-              {/* The primary button above already surfaces the identity
-                  error in full — repeating it here read as the same
-                  message shown twice. */}
+              {/* The primary button already surfaces the identity error in
+                  full — repeating it here read as the same message twice. */}
               <Text style={styles.restoreText}>HAVE AN OFFER CODE?</Text>
             </Pressable>
           </View>
         ) : isComped ? (
-          <Text style={styles.manageNote}>
+          <Text style={[styles.manageNote, styles.footerNote]}>
             {isFounder
               ? "LocalPlus is comped on your account — there's nothing to manage."
               : tag === "STARTER"
@@ -242,11 +246,6 @@ export default function LocalPlusScreen() {
                 : "LocalPlus is active on this account — there's nothing to manage."}
           </Text>
         ) : null}
-
-        <Text style={styles.fine}>
-          Older games are only hidden from the profile feed — they still move
-          your rating, your win-loss record, and every head-to-head.
-        </Text>
       </ScrollView>
 
       {!hasLocalPlus ? (
@@ -276,7 +275,16 @@ export default function LocalPlusScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
   scroll: { flex: 1 },
-  hero: { alignItems: "center", paddingTop: Space.sm },
+  // flexGrow lets the footer links sit at the bottom, next to the button,
+  // instead of leaving an empty band under the copy.
+  content: {
+    flexGrow: 1,
+    paddingHorizontal: Layout.screenGutter,
+    paddingTop: Space.xxl,
+    paddingBottom: Space.md,
+    gap: Space.lg,
+  },
+  hero: { alignItems: "center", paddingBottom: Space.md },
   statusBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -288,7 +296,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accentGhost,
   },
   statusText: { ...TextStyles.bodySmall, color: Colors.text, flex: 1 },
-  perks: { gap: Space.lg },
+  perks: { gap: Space.lg, paddingTop: Space.sm },
   perk: { flexDirection: "row", gap: Space.md },
   perkIcon: {
     width: 34,
@@ -314,6 +322,16 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   linkPressed: { opacity: 0.6 },
+  footerLinks: {
+    marginTop: "auto",
+    paddingTop: Space.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Space.md,
+  },
+  footerDivider: { width: 1, height: 12, backgroundColor: Colors.border },
+  footerNote: { marginTop: "auto" },
   restoreText: {
     fontFamily: Typography.bodyBold,
     fontSize: 11,
