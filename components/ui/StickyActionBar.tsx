@@ -11,19 +11,40 @@ interface StickyAction {
   onPress: () => void;
   icon?: React.ComponentProps<typeof Feather>["name"];
   disabled?: boolean;
+  /** "light" = white button with black text (Challenge). Default orange. */
+  tone?: "accent" | "light";
+}
+
+interface StickyIconAction {
+  icon: React.ComponentProps<typeof Feather>["name"];
+  accessibilityLabel: string;
+  onPress: () => void;
 }
 
 export function StickyActionBar({
   primary,
   secondary,
+  leading,
   bottomInset = 0,
 }: {
   primary: StickyAction;
   secondary?: StickyAction;
+  /** Square icon-only button on the far left (e.g. add / remove friend). */
+  leading?: StickyIconAction;
   bottomInset?: number;
 }) {
   return (
     <View style={[styles.bar, { paddingBottom: Math.max(bottomInset, Space.md) }]}>
+      {leading ? (
+        <Pressable
+          accessibilityLabel={leading.accessibilityLabel}
+          accessibilityRole="button"
+          onPress={leading.onPress}
+          style={({ pressed }) => [styles.iconAction, pressed && styles.pressed]}
+        >
+          <Feather color={Colors.textSecondary} name={leading.icon} size={18} />
+        </Pressable>
+      ) : null}
       {secondary ? <Action action={secondary} /> : null}
       <Action action={primary} primary />
     </View>
@@ -39,7 +60,7 @@ function Action({ action, primary = false }: { action: StickyAction; primary?: b
       onPress={action.onPress}
       style={({ pressed }) => [
         styles.action,
-        primary ? styles.primary : styles.secondary,
+        primary ? (action.tone === "light" ? styles.light : styles.primary) : styles.secondary,
         action.disabled && styles.disabled,
         pressed && styles.pressed,
       ]}
@@ -72,6 +93,17 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
   },
   primary: { backgroundColor: Colors.accent, borderWidth: 1, borderColor: Colors.accent },
+  light: { backgroundColor: Colors.text, borderWidth: 1, borderColor: Colors.text },
+  iconAction: {
+    width: 50,
+    minHeight: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
   secondary: { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
   label: { fontFamily: Typography.heading, fontSize: 11, color: Colors.text, letterSpacing: 1.25 },
   primaryLabel: { color: Colors.black },

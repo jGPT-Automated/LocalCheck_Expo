@@ -6,7 +6,8 @@ export type NotificationType =
   | "run_invite"
   | "match_review"
   | "match_confirmed"
-  | "match_rejected";
+  | "match_rejected"
+  | "challenge";
 
 export interface AppNotification {
   id: string;

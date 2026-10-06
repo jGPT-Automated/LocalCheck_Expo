@@ -1,4 +1,5 @@
 import { CourtSport, MatchResult } from "@/constants/data";
+import { type HeadToHeadGame, toHeadToHeadGame } from "@/lib/headToHead";
 import { supabase } from "@/lib/supabase";
 
 import { SupabaseProfile } from "./profileService";
@@ -485,6 +486,80 @@ export async function fetchHeadToHeadGames(
         areOpponentsInMatch(game.match_participants, currentUserId, opponentId),
       )
       .map((game) => mapMatchToResult(game, currentUserId));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Head-to-head games for the profile's HEAD TO HEAD tab: confirmed games where
+ * the two players were on opposite sides, newest first, with rosters and the
+ * viewer's ELO change so team games can say who played with whom.
+ */
+export async function fetchHeadToHead(
+  currentUserId: string,
+  opponentId: string,
+): Promise<HeadToHeadGame[]> {
+  try {
+    const [myIds, theirIds] = await Promise.all([
+      fetchParticipantMatchIds(currentUserId),
+      fetchParticipantMatchIds(opponentId),
+    ]);
+    const theirs = new Set(theirIds);
+    const shared = myIds.filter((id) => theirs.has(id));
+    if (shared.length === 0) return [];
+    const { data, error } = await supabase
+      .from("matches")
+      .select(
+        "*, courts(name, sport_type), match_participants(user_id, side, display_order, elo_before, elo_after, profiles(display_name, username))",
+      )
+      .in("id", shared)
+      .eq("status", "confirmed")
+      .order("played_at", { ascending: false })
+      .limit(50);
+    if (error || !data) {
+      if (error) console.warn("fetchHeadToHead failed", error.message);
+      return [];
+    }
+    type Row = SupabaseMatch & {
+      is_ranked?: boolean | null;
+      match_participants?: Array<{
+        user_id: string;
+        side: "a" | "b";
+        display_order?: number | null;
+        elo_before?: number | null;
+        elo_after?: number | null;
+        profiles: { display_name?: string | null; username?: string | null } | null;
+      }>;
+    };
+    return (data as unknown as Row[])
+      .filter((game) =>
+        areOpponentsInMatch(game.match_participants, currentUserId, opponentId),
+      )
+      .map((game) =>
+        toHeadToHeadGame(
+          {
+            id: game.id,
+            playedAtIso: game.played_at,
+            courtName: game.courts?.name ?? "Unknown court",
+            scoreA: game.score_a,
+            scoreB: game.score_b,
+            winnerSide: game.winner_side,
+            teamSize: game.team_size ?? 1,
+            ranked: game.is_ranked,
+            participants: (game.match_participants ?? []).map((p) => ({
+              userId: p.user_id,
+              side: p.side,
+              name: p.profiles?.display_name || p.profiles?.username || "Player",
+              displayOrder: p.display_order,
+              eloBefore: p.elo_before,
+              eloAfter: p.elo_after,
+            })),
+          },
+          currentUserId,
+        ),
+      )
+      .filter((game): game is HeadToHeadGame => game != null);
   } catch {
     return [];
   }

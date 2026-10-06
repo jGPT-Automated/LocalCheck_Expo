@@ -270,6 +270,7 @@ function RootLayoutNav() {
         <Stack.Screen name="player/[id]" options={detailScreenOptions} />
         <Stack.Screen name="notifications" options={detailScreenOptions} />
         <Stack.Screen name="match/[id]" options={detailScreenOptions} />
+        <Stack.Screen name="challenge/[id]" options={detailScreenOptions} />
         <Stack.Screen name="settings" options={detailScreenOptions} />
         <Stack.Screen name="localplus" options={detailScreenOptions} />
         <Stack.Screen name="add-court" options={{ ...detailScreenOptions, presentation: "fullScreenModal" }} />

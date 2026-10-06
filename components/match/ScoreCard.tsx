@@ -2,9 +2,10 @@ import { NumberFlow } from "number-flow-react-native";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors, Radius } from "@/constants/colors";
 import { Layout, Space } from "@/constants/layout";
-import { TextStyles } from "@/constants/typography";
+import { TextStyles, Typography } from "@/constants/typography";
 
 const ELO_NUMBER_FORMAT = { useGrouping: false } as const;
 
@@ -124,6 +125,13 @@ function formatPlayedOn(value: string): string {
   return date
     .toLocaleDateString("en-US", { month: "short", day: "numeric" })
     .toUpperCase();
+}
+
+/** "Sep 4" for the full card's subline. */
+function formatPlayedOnShort(value: string): string {
+  const date = value.length === 10 ? new Date(`${value}T12:00:00`) : new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 const firstName = (name: string) => name.split(" ")[0].toUpperCase();
@@ -345,6 +353,183 @@ function SideColumn({
   );
 }
 
+function sideAverages(players: ScoreCardPlayer[]): { avg: number; delta: number } | null {
+  const rated = players.filter((p) => p.elo);
+  if (rated.length === 0 || rated.length !== players.length) return null;
+  const before = rated.reduce((sum, p) => sum + (p.elo as { before: number }).before, 0) / rated.length;
+  const after = rated.reduce((sum, p) => sum + (p.elo as { after: number }).after, 0) / rated.length;
+  return { avg: Math.round(before), delta: Math.round(after - before) };
+}
+
+/** 1v1 (mocks 3a/3b): two avatars face off, the score below, a margin bar. */
+function FaceoffBody({
+  left,
+  right,
+  leftScore,
+  rightScore,
+  leftWins,
+  rightWins,
+  onPlayerPress,
+}: {
+  left: ScoreCardPlayer;
+  right: ScoreCardPlayer;
+  leftScore: number | string;
+  rightScore: number | string;
+  leftWins: boolean;
+  rightWins: boolean;
+  onPlayerPress?: (playerId: string) => void;
+}) {
+  const l = Number(leftScore);
+  const r = Number(rightScore);
+  const total = Number.isFinite(l) && Number.isFinite(r) && l + r > 0 ? l + r : 0;
+  const share = total > 0 ? l / total : 0.5;
+  return (
+    <View>
+      <View style={styles.faceoff}>
+        <FaceoffPlayer onPlayerPress={onPlayerPress} player={left} win={leftWins} />
+        <Text style={styles.vs}>VS</Text>
+        <FaceoffPlayer onPlayerPress={onPlayerPress} player={right} win={rightWins} />
+      </View>
+      <View style={styles.bigScoreRow}>
+        <Text style={[styles.bigScore, leftWins && styles.bigScoreWin]}>{leftScore}</Text>
+        <Text style={styles.bigScoreDash}>–</Text>
+        <Text style={[styles.bigScore, rightWins && styles.bigScoreWin]}>{rightScore}</Text>
+      </View>
+      <View style={styles.marginBar}>
+        <View style={[styles.marginLeft, leftWins && styles.marginWin, { flex: Math.max(share, 0.001) }]} />
+        <View style={[styles.marginRight, rightWins && styles.marginWin, { flex: Math.max(1 - share, 0.001) }]} />
+      </View>
+    </View>
+  );
+}
+
+function FaceoffPlayer({
+  player,
+  win,
+  onPlayerPress,
+}: {
+  player: ScoreCardPlayer;
+  win: boolean;
+  onPlayerPress?: (playerId: string) => void;
+}) {
+  const onPress = player.id && onPlayerPress ? () => onPlayerPress(player.id as string) : undefined;
+  return (
+    <View style={styles.faceoffPlayer}>
+      <View style={[styles.faceoffAvatar, win && styles.faceoffAvatarWin]}>
+        <PlayerAvatar name={player.name} playerId={player.id} size={56} />
+      </View>
+      <PlayerName name={player.name} onPress={onPress} win={win} />
+      {player.elo ? <EloChangeLine after={player.elo.after} before={player.elo.before} /> : null}
+    </View>
+  );
+}
+
+/** Team games (mock 3c): two columns, each with its score, average ELO and
+ * roster. No head-to-head panel. */
+function TeamsBody({
+  leftLabel,
+  rightLabel,
+  leftScore,
+  rightScore,
+  leftPlayers,
+  rightPlayers,
+  leftWins,
+  rightWins,
+  settled,
+  onPlayerPress,
+}: {
+  leftLabel: string;
+  rightLabel: string;
+  leftScore: number | string;
+  rightScore: number | string;
+  leftPlayers: ScoreCardPlayer[];
+  rightPlayers: ScoreCardPlayer[];
+  leftWins: boolean;
+  rightWins: boolean;
+  settled: boolean;
+  onPlayerPress?: (playerId: string) => void;
+}) {
+  return (
+    <View style={styles.teams}>
+      <TeamColumn
+        align="left"
+        label={leftLabel}
+        onPlayerPress={onPlayerPress}
+        players={leftPlayers}
+        result={settled ? (leftWins ? "WON" : rightWins ? "LOST" : null) : null}
+        score={leftScore}
+        win={leftWins}
+      />
+      <View style={styles.teamsDivider} />
+      <TeamColumn
+        align="right"
+        label={rightLabel}
+        onPlayerPress={onPlayerPress}
+        players={rightPlayers}
+        result={settled ? (rightWins ? "WON" : leftWins ? "LOST" : null) : null}
+        score={rightScore}
+        win={rightWins}
+      />
+    </View>
+  );
+}
+
+function TeamColumn({
+  label,
+  result,
+  score,
+  players,
+  win,
+  align,
+  onPlayerPress,
+}: {
+  label: string;
+  result: "WON" | "LOST" | null;
+  score: number | string;
+  players: ScoreCardPlayer[];
+  win: boolean;
+  align: "left" | "right";
+  onPlayerPress?: (playerId: string) => void;
+}) {
+  const averages = sideAverages(players);
+  const right = align === "right";
+  return (
+    <View style={styles.teamCol}>
+      <Text numberOfLines={1} style={[styles.teamLabel, win && styles.teamLabelWin]}>
+        {result ? `${label} · ${result}` : label}
+      </Text>
+      <Text style={[styles.teamScore, win && styles.bigScoreWin]}>{score}</Text>
+      {averages ? (
+        <View style={[styles.avgPill, win && styles.avgPillWin]}>
+          <Text style={[styles.avgText, win && styles.avgTextWin]}>
+            {averages.avg} avg {averages.delta === 0 ? "" : averages.delta > 0 ? `+${averages.delta}` : `${averages.delta}`}
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.avgPillSpacer} />
+      )}
+      <View style={styles.roster}>
+        {players.map((player, index) => {
+          const onPress = player.id && onPlayerPress ? () => onPlayerPress(player.id as string) : undefined;
+          return (
+            <Pressable
+              disabled={!onPress}
+              key={player.id ?? `${player.name}-${index}`}
+              onPress={onPress}
+              style={({ pressed }) => [styles.rosterRow, right && styles.rosterRowRight, pressed && styles.namePressed]}
+            >
+              <PlayerAvatar name={player.name} playerId={player.id} size={30} />
+              <Text numberOfLines={1} style={[styles.rosterName, right && styles.rosterNameRight]}>
+                {player.name.split(" ")[0]}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 /**
  * The one score + status card. Log Game's review step, the Inbox, and the
  * FINAL SCORE screen all render this so a game reads the same everywhere.
@@ -437,11 +622,24 @@ export function ScoreCard({
         ) : null}
 
         <View style={[styles.cardBody, compact && styles.cardBodyCompact]}>
-          <Text numberOfLines={1} style={styles.contextLine}>
-            {courtName.toUpperCase()}
-            {format ? ` · ${format}` : ""} · {formatPlayedOn(playedOn)}
-            {rightMeta ? ` · ${rightMeta}` : ""}
-          </Text>
+          {compact ? (
+            <Text numberOfLines={1} style={styles.contextLine}>
+              {courtName.toUpperCase()}
+              {format ? ` · ${format}` : ""} · {formatPlayedOn(playedOn)}
+              {rightMeta ? ` · ${rightMeta}` : ""}
+            </Text>
+          ) : (
+            <View style={styles.titleBlock}>
+              <Text adjustsFontSizeToFit minimumFontScale={0.75} numberOfLines={2} style={styles.courtTitle}>
+                {courtName.toUpperCase()}
+              </Text>
+              <Text numberOfLines={1} style={styles.courtSub}>
+                {[format?.toLowerCase(), formatPlayedOnShort(playedOn), rightMeta]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </Text>
+            </View>
+          )}
 
           {compact ? (
             <View style={styles.compactRows}>
@@ -460,6 +658,29 @@ export function ScoreCard({
                 winner={decided && rightNum > leftNum}
               />
             </View>
+          ) : leftPlayers.length === 1 && rightPlayers.length === 1 ? (
+            <FaceoffBody
+              left={leftPlayers[0]}
+              leftScore={leftScore}
+              leftWins={decided && leftNum > rightNum}
+              onPlayerPress={namePress}
+              right={rightPlayers[0]}
+              rightScore={rightScore}
+              rightWins={decided && rightNum > leftNum}
+            />
+          ) : leftPlayers.length > 0 && rightPlayers.length > 0 ? (
+            <TeamsBody
+              leftLabel={leftLabel}
+              leftPlayers={leftPlayers}
+              leftScore={leftScore}
+              leftWins={decided && leftNum > rightNum}
+              onPlayerPress={namePress}
+              rightLabel={rightLabel}
+              rightPlayers={rightPlayers}
+              rightScore={rightScore}
+              rightWins={decided && rightNum > leftNum}
+              settled={status === "confirmed"}
+            />
           ) : (
             <View style={styles.matchup}>
               <SideColumn
@@ -661,6 +882,99 @@ const styles = StyleSheet.create({
   },
   eloDeltaCompact: { fontSize: 10 },
   eloDeltaNegative: { color: Colors.loss },
+  // ── Full card: court title (mocks 3a-3c) ──
+  titleBlock: { alignItems: "center", gap: 4, paddingTop: Space.xs },
+  courtTitle: {
+    fontFamily: Typography.heading,
+    fontSize: 22,
+    lineHeight: 28,
+    letterSpacing: 0.4,
+    color: Colors.text,
+    textAlign: "center",
+  },
+  courtSub: { ...TextStyles.metadata, color: Colors.muted, textAlign: "center" },
+
+  // ── 1v1 faceoff ──
+  faceoff: {
+    marginTop: Space.md,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-evenly",
+  },
+  faceoffPlayer: { flex: 1, minWidth: 0, alignItems: "center", gap: 6 },
+  faceoffAvatar: { padding: 3, borderRadius: Radius.card, borderWidth: 1.5, borderColor: Colors.surface },
+  faceoffAvatarWin: { borderColor: Colors.accent },
+  vs: {
+    marginTop: 30,
+    fontFamily: Typography.heading,
+    fontSize: 14,
+    letterSpacing: 1,
+    color: Colors.muted,
+  },
+  bigScoreRow: {
+    marginTop: Space.lg,
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "center",
+    gap: Space.md,
+  },
+  bigScore: {
+    fontFamily: Typography.headingBold,
+    fontSize: 64,
+    lineHeight: 74,
+    color: Colors.mutedDark,
+    fontVariant: ["tabular-nums"],
+  },
+  bigScoreWin: { color: Colors.accent },
+  bigScoreDash: { fontFamily: Typography.heading, fontSize: 28, color: Colors.mutedDark },
+  marginBar: {
+    height: 5,
+    marginTop: Space.sm,
+    marginHorizontal: Space.xl,
+    flexDirection: "row",
+    overflow: "hidden",
+    borderRadius: 3,
+    backgroundColor: Colors.surfaceHigh,
+  },
+  marginLeft: { backgroundColor: Colors.borderLight },
+  marginRight: { backgroundColor: Colors.surfaceHigh },
+  marginWin: { backgroundColor: Colors.accent },
+
+  // ── Team columns ──
+  teams: { marginTop: Space.md, flexDirection: "row", alignItems: "stretch" },
+  teamsDivider: { width: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
+  teamCol: { flex: 1, minWidth: 0, alignItems: "center", paddingHorizontal: Space.sm, gap: 6 },
+  teamLabel: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.4,
+    color: Colors.muted,
+  },
+  teamLabelWin: { color: Colors.accent },
+  teamScore: {
+    fontFamily: Typography.headingBold,
+    fontSize: 56,
+    lineHeight: 64,
+    color: Colors.mutedDark,
+    fontVariant: ["tabular-nums"],
+  },
+  avgPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  avgPillWin: { borderColor: Colors.accentBorder, backgroundColor: Colors.accentDim },
+  avgPillSpacer: { height: 0 },
+  avgText: { ...TextStyles.caption, fontFamily: Typography.bodySemiBold, color: Colors.textSecondary },
+  avgTextWin: { color: Colors.accent },
+  roster: { alignSelf: "stretch", marginTop: Space.md, gap: Space.sm },
+  rosterRow: { flexDirection: "row", alignItems: "center", gap: Space.sm },
+  rosterRowRight: { flexDirection: "row-reverse" },
+  rosterName: { ...TextStyles.label, flexShrink: 1, color: Colors.text },
+  rosterNameRight: { textAlign: "right" },
+
   note: {
     ...TextStyles.bodySmall,
     color: Colors.textSecondary,

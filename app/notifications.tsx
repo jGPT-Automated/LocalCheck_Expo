@@ -16,6 +16,7 @@ const ICONS: Record<NotificationType, React.ComponentProps<typeof Feather>["name
   match_review: "check-square",
   match_confirmed: "award",
   match_rejected: "alert-circle",
+  challenge: "zap",
 };
 
 function timeAgo(value: string): string {
