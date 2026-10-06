@@ -40,6 +40,7 @@ test("accepted: either player logs the score", () => {
   const c = { ...base, status: "accepted" as const };
   assert.equal(challengeAction(c, "me"), "log_score");
   assert.equal(challengeAction(c, "ty"), "log_score");
+  assert.equal(challengeStatusLine(c, "me"), "Game on with Tyler");
 });
 
 test("completed with a game links to it; closed otherwise", () => {

@@ -56,7 +56,7 @@ export function challengeStatusLine(challenge: Challenge, viewerId: string): str
         ? `${firstName(challenge.challenger.name)} challenged you`
         : `Waiting on ${other}`;
     case "accepted":
-      return "On. Log the score after you play.";
+      return `Game on with ${other}`;
     case "completed":
       return "Score logged";
     case "declined":
