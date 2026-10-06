@@ -561,7 +561,9 @@ const styles = StyleSheet.create({
     letterSpacing: 1.6,
   },
   profileTabTextActive: { color: Colors.text },
-  activityContent: { paddingHorizontal: Layout.screenGutter },
+  // Same width as the court page and your own profile: ActivityRow carries
+  // its own side padding, so no extra gutter here.
+  activityContent: {},
   detailsContent: { padding: Layout.screenGutter, gap: Space.lg },
   detailGroup: {
     overflow: "hidden",
