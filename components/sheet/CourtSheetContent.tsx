@@ -1,14 +1,25 @@
-import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { BottomSheetView } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AnimatedEntry } from "@/components/AnimatedEntry";
 import { BrutalistButton } from "@/components/BrutalistButton";
+import { LogoMark } from "@/components/brand/LogoMark";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { StatBlock } from "@/components/StatBlock";
 import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
@@ -21,8 +32,15 @@ import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { usePresence } from "@/context/CourtPresenceContext";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
+import { useLocalPlusPurchase } from "@/hooks/useLocalPlusPurchase";
 import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
 import { isInactiveLocal, relativeTime } from "@/lib/localPresence";
+import {
+  DRAWER_LOCALS_MAX,
+  drawerDetailHeight,
+  drawerFooterGap,
+  drawerLocalsThatFit,
+} from "@/lib/courtDrawerLayout";
 import { fetchCourtById } from "@/services/courtService";
 import {
   fetchLocalsWithLastCheckIn,
@@ -32,7 +50,10 @@ import {
 /**
  * Court drawer content, rendered inside the root BottomSheetModal
  * (see CourtSheetHost). Peek layer (40% snap): name, distance, live stats,
- * CHECK IN. Full (92%): WHO'S HERE roster, LOCALS list, pulling-up, runs.
+ * CHECK IN. Full (92%): WHO'S HERE roster and up to 4 LOCALS, in a
+ * fixed-height area that never scrolls and never cuts a row in half. VIEW ALL
+ * opens the full court page (locals, pulling up, runs). Gated courts show the
+ * LocalPlus panel over a blurred copy instead.
  *
  * `onNavigate` dismisses the sheet before any router.push so the pushed
  * screen isn't buried under the modal.
@@ -52,11 +73,15 @@ export function CourtSheetContent({
 }) {
   const {
     courts, localCourt, checkIn, checkOut, checkedInCourtId,
-    localCourtId, runs, plannedVisits, isFriend, setLocalCourt,
+    localCourtId, isFriend, setLocalCourt,
   } = useApp();
   const { bottom } = useSafeAreaInsets();
   const { profile } = useAuth();
   const hasLocalPlus = useLocalPlus();
+  const { height: windowHeight } = useWindowDimensions();
+  const [peekHeight, setPeekHeight] = useState(0);
+  const [localsListHeight, setLocalsListHeight] = useState(0);
+  const [localRowHeight, setLocalRowHeight] = useState(0);
 
   const cached =
     courts.find((c) => c.id === courtId) ??
@@ -91,13 +116,21 @@ export function CourtSheetContent({
   // Same rule as app/court/[id].tsx's full-page gate — your own local court
   // always stays free, every other court's player-level detail is LocalPlus.
   const gated = !isMyLocal && !hasLocalPlus;
+  // Same height for every court, sized to the expanded sheet.
+  const detailHeight = drawerDetailHeight({
+    windowHeight,
+    peekHeight,
+    bottomInset: bottom,
+    showViewAll: !gated,
+  });
   const cooldown = getLocalCourtCooldown(hasLocalPlus, profile?.local_court_changed_at);
   const sportColor = getSportColor(court.sport);
   const activeCount = roster.length;
-  const courtRuns = runs.filter((r) => r.courtId === court.id);
-  const todayStr = new Date().toDateString();
-  const courtVisitsToday = plannedVisits.filter(
-    (v) => v.courtId === court.id && new Date(v.plannedAtIso).toDateString() === todayStr
+  const shownLocals = locals.slice(
+    0,
+    localsListHeight > 0
+      ? drawerLocalsThatFit({ available: localsListHeight, rowHeight: localRowHeight, total: locals.length })
+      : DRAWER_LOCALS_MAX,
   );
   const distLabel = (() => {
     const km = court.distanceKm ?? distanceKm ?? null;
@@ -116,12 +149,15 @@ export function CourtSheetContent({
   };
 
   return (
-    <BottomSheetScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: bottom + 32 }}
-    >
+    <BottomSheetView>
       {/* ── Peek layer: its measured height owns the first sheet detent ── */}
-      <View onLayout={(event) => onPeekHeight(event.nativeEvent.layout.height)}>
+      <View
+        onLayout={(event) => {
+          const height = event.nativeEvent.layout.height;
+          setPeekHeight(height);
+          onPeekHeight(height);
+        }}
+      >
       <View style={styles.peekHeader}>
         <View style={styles.headerCorner}>
           <View style={styles.sportTag}>
@@ -180,19 +216,20 @@ export function CourtSheetContent({
         accessibilityLabel="Expand for who's here and locals"
       >
         <Text style={styles.swipeHintText}>
-          {gated ? "SWIPE UP TO UNLOCK" : "SWIPE UP FOR WHO'S HERE + LOCALS"}
+          SWIPE UP FOR WHO'S HERE + LOCALS
         </Text>
         <Feather color={Colors.accent} name="chevron-up" size={15} />
       </Pressable>
       </View>
 
-      {/* ── Full layer ── */}
+      {/* ── Full layer: fixed height, never scrolls ── */}
+      <View style={[styles.detailArea, { height: detailHeight }]}>
       <CourtDrawerGate
         cooldown={cooldown}
         court={court}
         gated={gated}
         onSetLocal={() => void setLocalCourt(court.id, court)}
-        onUpgrade={() => go("/localplus")}
+        onOpenLocalPlus={() => go("/localplus")}
       >
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -222,7 +259,7 @@ export function CourtSheetContent({
       </View>
 
       {/* ── Locals: username list with last check-in ── */}
-      <View style={styles.sectionBleed}>
+      <View style={[styles.sectionBleed, styles.localsSection]}>
         <View style={[styles.sectionHeader, styles.sectionInset]}>
           <Text style={styles.sectionTitle}>LOCALS</Text>
           <Text style={styles.sectionAccent}>{locals.length}</Text>
@@ -232,74 +269,55 @@ export function CourtSheetContent({
             NO ONE HAS CLAIMED THIS COURT YET
           </Text>
         ) : (
-          locals.map(({ player, lastCheckInAt, checkInCount }) => (
-            <PlayerSummaryRow
-              checkInCount={checkInCount}
-              detail={
-                lastCheckInAt
-                  ? `Last here · ${relativeTime(lastCheckInAt)}`
-                  : "No check-ins yet"
-              }
-              friend={isFriend(player.id)}
-              inactive={isInactiveLocal(lastCheckInAt)}
-              key={player.id}
-              onPress={() => go(`/player/${player.id}`)}
-              player={player}
-            />
-          ))
+          <View
+            onLayout={(event) => setLocalsListHeight(event.nativeEvent.layout.height)}
+            style={styles.localsList}
+          >
+            {shownLocals.map(({ player, lastCheckInAt, checkInCount }, index) => (
+              <View
+                key={player.id}
+                onLayout={
+                  index === 0
+                    ? (event) => setLocalRowHeight(event.nativeEvent.layout.height)
+                    : undefined
+                }
+              >
+                <PlayerSummaryRow
+                  checkInCount={checkInCount}
+                  detail={
+                    lastCheckInAt
+                      ? `Last here · ${relativeTime(lastCheckInAt)}`
+                      : "No check-ins yet"
+                  }
+                  friend={isFriend(player.id)}
+                  inactive={isInactiveLocal(lastCheckInAt)}
+                  onPress={() => go(`/player/${player.id}`)}
+                  player={player}
+                />
+              </View>
+            ))}
+          </View>
         )}
       </View>
 
-      {/* ── Pulling up today ── */}
-      {courtVisitsToday.length > 0 && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>PULLING UP TODAY</Text>
-            <Text style={styles.sectionAccent}>{courtVisitsToday.length} COMING</Text>
-          </View>
-          {courtVisitsToday.map((visit) => (
-            <Pressable
-              key={visit.id}
-              style={styles.visitRow}
-              onPress={() => go(`/player/${visit.userId}`)}
-            >
-              <Text style={styles.visitTime}>{visit.time}</Text>
-              <PlayerAvatar initials={visit.player.avatar} name={visit.player.name} playerId={visit.player.id} size={26} />
-              <Text style={styles.visitName}>{visit.player.name.split(" ")[0].toUpperCase()}</Text>
-              {visit.note != null && (
-                <Text style={styles.visitNote} numberOfLines={1}>{visit.note}</Text>
-              )}
-            </Pressable>
-          ))}
-        </View>
-      )}
-
-      {/* ── Next runs ── */}
-      {courtRuns.length > 0 && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>NEXT RUN</Text>
-          </View>
-          {courtRuns.slice(0, 2).map((run) => (
-            <Pressable
-              key={run.id}
-              style={({ pressed }) => [styles.runRow, pressed && styles.pressed]}
-              onPress={() => go(`/run/${run.id}`)}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={styles.runTitle}>{run.title}</Text>
-                <Text style={styles.runMeta}>{run.date} · {run.time}</Text>
-              </View>
-              <Text style={styles.runCount}>
-                {run.participants.length}/{run.maxPlayers}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
       </CourtDrawerGate>
+      </View>
 
-    </BottomSheetScrollView>
+      {!gated ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => go(`/court/${court.id}`)}
+          style={({ pressed }) => [
+            styles.viewAll,
+            { marginBottom: drawerFooterGap(bottom) },
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.viewAllText}>VIEW ALL</Text>
+          <Feather color={Colors.textSecondary} name="chevron-right" size={14} />
+        </Pressable>
+      ) : null}
+    </BottomSheetView>
   );
 }
 
@@ -317,76 +335,87 @@ function CourtDrawerGate({
   cooldown,
   gated,
   onSetLocal,
-  onUpgrade,
+  onOpenLocalPlus,
 }: {
   children: React.ReactNode;
   court: Court;
   cooldown: ReturnType<typeof getLocalCourtCooldown>;
   gated: boolean;
   onSetLocal: () => void;
-  /** Must dismiss this sheet before navigating — see `go()` above. A raw
-   * router.push from in here pushes /localplus behind the still-open
-   * modal, invisible, and stacks a new one on every repeat tap. */
-  onUpgrade: () => void;
+  /** Fallback when Apple's sheet can't be offered here. Must dismiss this
+   * sheet before navigating — see `go()` above. A raw router.push from in
+   * here pushes /localplus behind the still-open modal, invisible, and
+   * stacks a new one on every repeat tap. */
+  onOpenLocalPlus: () => void;
 }) {
+  // Upgrade opens Apple's purchase sheet for Yearly directly (decision D13).
+  // VIEW COURT still goes to the LocalPlus screen.
+  const yearly = useLocalPlusPurchase("yearly", gated);
   if (!gated) return <>{children}</>;
+  const onUpgrade = () => {
+    if (yearly.available) void yearly.buy();
+    else onOpenLocalPlus();
+  };
+  const courtName = court.shortName || court.name;
+  const courtPossessive = /s$/i.test(courtName) ? `${courtName}'` : `${courtName}'s`;
   return (
     <View style={styles.gateWrap}>
       <View pointerEvents="none" style={styles.gateWrap}>
         {children}
-        <BlurView intensity={22} style={StyleSheet.absoluteFill} tint="dark" />
+        <BlurView intensity={28} style={StyleSheet.absoluteFill} tint="dark" />
+        {/* Soft edges instead of a hard blur line at the top and bottom. */}
+        <LinearGradient
+          colors={[Colors.background, "rgba(0,0,0,0)"]}
+          style={styles.gateFadeTop}
+        />
+        <LinearGradient
+          colors={["rgba(0,0,0,0)", Colors.background]}
+          style={styles.gateFadeBottom}
+        />
       </View>
       <View style={[styles.gateOverlay, StyleSheet.absoluteFill]}>
-        <View style={styles.gateIconRing}>
-          <Feather color={Colors.accent} name="zap" size={20} />
+        <View style={styles.gateBadge}>
+          <LogoMark size={26} variant="plus" />
+          <Text style={styles.gateTitle}>LOCALPLUS</Text>
         </View>
-        <Text style={styles.gateTitle}>UNLOCK WITH LOCALPLUS</Text>
         <Text style={styles.gateSubtitle}>
-          Upgrade to LocalPlus to see {court.shortName || court.name}'s
-          community and activity.
+          You need LocalPlus to view {courtPossessive} court details.
         </Text>
         <Pressable
           accessibilityRole="button"
+          disabled={yearly.purchasing}
           onPress={onUpgrade}
           style={({ pressed }) => [styles.gateCta, pressed && styles.pressed]}
         >
-          <Text style={styles.gateCtaText}>UPGRADE TO LOCALPLUS</Text>
+          {yearly.purchasing ? (
+            <ActivityIndicator color={Colors.black} size="small" />
+          ) : (
+            <Text style={styles.gateCtaText}>
+              {yearly.priceString ? `GET LOCALPLUS · ${yearly.priceString}/YR` : "GET LOCALPLUS"}
+            </Text>
+          )}
         </Pressable>
-        <View style={styles.gateDividerRow}>
-          <View style={styles.gateDividerLine} />
-          <Text style={styles.gateDividerText}>OR</Text>
-          <View style={styles.gateDividerLine} />
-        </View>
+        {yearly.priceString ? (
+          <Text style={styles.gateTerms}>Renews yearly until you cancel.</Text>
+        ) : null}
         <Pressable
           accessibilityRole="button"
           disabled={cooldown.restricted}
+          hitSlop={8}
           onPress={onSetLocal}
-          style={({ pressed }) => [
-            styles.gateSecondary,
-            cooldown.restricted && styles.gateSecondaryDisabled,
-            pressed && styles.pressed,
-          ]}
+          style={({ pressed }) => [styles.gateLocalLink, pressed && styles.gateLinkPressed]}
         >
           <Feather
-            color={cooldown.restricted ? Colors.muted : Colors.text}
-            name="star"
-            size={13}
+            color={cooldown.restricted ? Colors.textSecondary : Colors.accent}
+            name={cooldown.restricted ? "clock" : "star"}
+            size={12}
           />
-          <Text
-            style={[
-              styles.gateSecondaryText,
-              cooldown.restricted && styles.gateSecondaryTextDisabled,
-            ]}
-          >
-            SET AS LOCAL COURT
+          <Text style={styles.gateLocalText}>
+            {cooldown.restricted
+              ? `You can switch local courts in ${formatCooldownRemaining(cooldown.remainingMs)}`
+              : "Or make it your local court, free"}
           </Text>
         </Pressable>
-        {cooldown.restricted ? (
-          <Text style={styles.gateCooldownText}>
-            You can change your local court in{" "}
-            {formatCooldownRemaining(cooldown.remainingMs)}.
-          </Text>
-        ) : null}
       </View>
     </View>
   );
@@ -403,8 +432,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     position: "relative",
   },
-  headerCorner: { position: "absolute", left: 20, top: 2, maxWidth: "42%" },
-  headerCornerRight: { position: "absolute", right: 20, top: 2, maxWidth: "36%", alignItems: "flex-end", gap: 6 },
+  headerCorner: { position: "absolute", left: 20, top: 0, maxWidth: "42%" },
+  headerCornerRight: { position: "absolute", right: 20, top: 0, maxWidth: "36%", alignItems: "flex-end", gap: 6 },
   centerTitleWrap: { alignSelf: "center", width: "72%", alignItems: "center", paddingTop: 20 },
   sportTag: { flexDirection: "row", alignItems: "center", gap: 5 },
   sportText: {
@@ -496,6 +525,8 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.border,
   },
   sectionInset: { paddingHorizontal: 20 },
+  localsSection: { flex: 1, paddingBottom: 0 },
+  localsList: { flex: 1 },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -550,63 +581,6 @@ const styles = StyleSheet.create({
 
   pressed: { backgroundColor: Colors.surfaceHigh },
 
-  visitRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 8,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.borderSubtle,
-  },
-  visitTime: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.text,
-    width: 48,
-    fontVariant: ["tabular-nums"] as any,
-  },
-  visitName: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    color: Colors.text,
-    letterSpacing: 0.5,
-  },
-  visitNote: {
-    flex: 1,
-    fontFamily: Typography.body,
-    fontSize: 10,
-    color: Colors.muted,
-  },
-
-  runRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-    padding: 14,
-    borderRadius: Radius.xs,
-    marginBottom: 8,
-  },
-  runTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.text,
-    letterSpacing: 0.3,
-  },
-  runMeta: {
-    fontFamily: Typography.body,
-    fontSize: 11,
-    color: Colors.muted,
-    marginTop: 2,
-  },
-  runCount: {
-    fontFamily: Typography.heading,
-    fontSize: 16,
-    color: Colors.text,
-  },
-
   profileLink: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -632,43 +606,61 @@ const styles = StyleSheet.create({
   },
 
   // ── Court insights gate (LocalPlus paywall) ──
-  gateWrap: { minHeight: 340 },
+  detailArea: { overflow: "hidden" },
+  viewAll: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
+  },
+  viewAllText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    letterSpacing: 1.4,
+    color: Colors.textSecondary,
+  },
+  gateWrap: { flex: 1 },
+  gateTerms: {
+    marginTop: 8,
+    fontFamily: Typography.body,
+    fontSize: 10,
+    color: Colors.mutedDark,
+    textAlign: "center",
+  },
   gateOverlay: {
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 36,
+    paddingHorizontal: 32,
   },
-  gateIconRing: {
-    width: 56,
-    height: 56,
-    marginBottom: 14,
+  gateFadeTop: { position: "absolute", left: 0, right: 0, top: 0, height: 28 },
+  gateFadeBottom: { position: "absolute", left: 0, right: 0, bottom: 0, height: 72 },
+  gateBadge: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: Colors.accentBorder,
-    backgroundColor: Colors.accentGhost,
+    gap: 10,
   },
   gateTitle: {
     fontFamily: Typography.heading,
-    fontSize: 16,
+    fontSize: 24,
     color: Colors.text,
-    letterSpacing: 1,
-    textAlign: "center",
+    letterSpacing: 1.2,
   },
   gateSubtitle: {
-    marginTop: 8,
+    marginTop: 10,
     maxWidth: 280,
     fontFamily: Typography.body,
-    fontSize: 12,
-    lineHeight: 17,
-    color: Colors.muted,
+    fontSize: 13,
+    lineHeight: 18,
+    color: Colors.textSecondary,
     textAlign: "center",
   },
   gateCta: {
-    minHeight: 46,
-    minWidth: 220,
-    marginTop: 20,
+    minHeight: 48,
+    alignSelf: "stretch",
+    marginTop: 18,
     paddingHorizontal: 24,
     alignItems: "center",
     justifyContent: "center",
@@ -677,50 +669,28 @@ const styles = StyleSheet.create({
   },
   gateCtaText: {
     fontFamily: Typography.heading,
-    fontSize: 12,
+    fontSize: 13,
     letterSpacing: 1.2,
     color: Colors.black,
   },
-  gateDividerRow: {
-    minWidth: 220,
-    marginTop: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  gateDividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
-  gateDividerText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.mutedDark,
-    letterSpacing: 1.4,
-  },
-  gateSecondary: {
-    minHeight: 44,
-    minWidth: 220,
-    marginTop: 16,
-    paddingHorizontal: 20,
+  // Solid backing so the line reads on top of the blur.
+  gateLocalLink: {
+    minHeight: 36,
+    marginTop: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    gap: 7,
+    paddingHorizontal: 14,
     borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderLight,
+    backgroundColor: Colors.surfaceHigh,
   },
-  gateSecondaryDisabled: { opacity: 0.5 },
-  gateSecondaryText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    color: Colors.text,
-  },
-  gateSecondaryTextDisabled: { color: Colors.muted },
-  gateCooldownText: {
-    marginTop: 10,
+  gateLinkPressed: { opacity: 0.6 },
+  gateLocalText: {
     fontFamily: Typography.bodyMedium,
-    fontSize: 10,
-    color: Colors.mutedDark,
-    textAlign: "center",
+    fontSize: 12,
+    color: Colors.text,
   },
 });

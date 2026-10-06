@@ -1,12 +1,9 @@
 name: Release iOS to TestFlight
 
+# Manual only (decision D22, Oct 5 2026): merges to main never build. Start a
+# TestFlight build from the Actions tab ("Run workflow") for big changes and
+# releases. Each run uses one of the Expo plan's monthly iOS builds.
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - ".github/**"
-      - "docs/**"
-      - "**/*.md"
   workflow_dispatch:
 
 concurrency:

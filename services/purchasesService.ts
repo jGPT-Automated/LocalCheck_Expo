@@ -73,7 +73,15 @@ export function hasActiveEntitlement(info: CustomerInfo): boolean {
  * call repeatedly; safe on platforms/builds with no key (no-ops). */
 export function initPurchases(): void {
   if (configured || Platform.OS !== "ios" || !IOS_API_KEY) return;
-  Purchases.configure({ apiKey: IOS_API_KEY });
+  try {
+    Purchases.configure({ apiKey: IOS_API_KEY });
+  } catch (error) {
+    // Expo Go only accepts a RevenueCat Test Store key (test_...). A wrong key
+    // throws synchronously here, at app start, which used to blank the whole
+    // app. Purchases stay off instead; everything else still runs.
+    console.warn("[purchases] configure failed; purchases disabled", error);
+    return;
+  }
   configured = true;
   Purchases.addCustomerInfoUpdateListener((info) =>
     notifyFastPath(hasActiveEntitlement(info)),
@@ -130,13 +138,19 @@ export async function resetPurchaser(): Promise<void> {
   }
 }
 
-/** The one package LocalPlus sells. Null if offerings aren't configured yet
- * (e.g. the App Store subscription is still missing price/availability). */
-export async function fetchLocalPlusPackage(): Promise<PurchasesPackage | null> {
+export type LocalPlusPlan = "monthly" | "yearly";
+
+/** A LocalPlus package from RevenueCat's current offering ($rc_monthly or
+ * $rc_annual). Null if purchases aren't configured or the offering isn't set
+ * up yet (e.g. the App Store subscription is missing price/availability). */
+export async function fetchLocalPlusPackage(
+  plan: LocalPlusPlan = "monthly",
+): Promise<PurchasesPackage | null> {
   if (!configured) return null;
   try {
     const offerings = await Purchases.getOfferings();
-    return offerings.current?.monthly ?? null;
+    const current = offerings.current;
+    return (plan === "yearly" ? current?.annual : current?.monthly) ?? null;
   } catch (error) {
     console.warn("purchasesService: getOfferings failed", error);
     return null;

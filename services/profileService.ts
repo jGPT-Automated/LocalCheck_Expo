@@ -1,5 +1,6 @@
 import { LeaderboardFlags, LocalPlusFlags } from "@/constants/flags";
 import { AccountTag, CourtSport, getEloTier, Player } from "@/constants/data";
+import type { InviteResult } from "@/lib/onboardingModel";
 import { supabase } from "@/lib/supabase";
 import {
   canLoadLeaderboardScope,
@@ -632,5 +633,25 @@ export async function fetchLeaderboard(
       .map((row) => mapProfileToPlayer(row, sport));
   } catch {
     return [];
+  }
+}
+
+/** Records who invited this account ("Invited by" in onboarding). Accepts the
+ *  inviter's frozen referral handle or their current username. */
+export async function redeemInviter(
+  name: string,
+): Promise<InviteResult> {
+  try {
+    const { data, error } = await supabase.rpc("redeem_referral_code", { p_code: name });
+    if (error) return { ok: false, reason: "error" };
+    const result = data as { ok?: boolean; reason?: string } | null;
+    if (result?.ok) return { ok: true };
+    const reason = result?.reason;
+    if (reason === "empty" || reason === "not_found" || reason === "self" || reason === "already_set") {
+      return { ok: false, reason };
+    }
+    return { ok: false, reason: "error" };
+  } catch {
+    return { ok: false, reason: "error" };
   }
 }

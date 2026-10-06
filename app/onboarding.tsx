@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrutalistButton } from "@/components/BrutalistButton";
@@ -11,14 +11,24 @@ import { OptionRow } from "@/components/ui/OptionRow";
 import { SportEmblem } from "@/components/ui/SportEmblem";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { Colors, Radius } from "@/constants/colors";
-import type { CourtSport } from "@/constants/data";
+import type { Court, CourtSport } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useDeviceLocation } from "@/context/DeviceLocationContext";
 import { coordinateForLocationAction } from "@/context/deviceLocationModel";
-import { updateProfileFields } from "@/services/profileService";
+import { useNotifications } from "@/context/NotificationContext";
+import {
+  courtPickerDetail,
+  inviteErrorMessage,
+  isCityQuery,
+  normalizeInviter,
+  ONBOARDING_STEPS,
+} from "@/lib/onboardingModel";
+import { coordinateForPlace } from "@/lib/placeLocation";
+import { fetchClosestCourts } from "@/services/courtService";
+import { redeemInviter, updateProfileFields } from "@/services/profileService";
 
 const SPORT_ROWS: { value: CourtSport; label: string }[] = [
   { value: "BASKETBALL", label: "Basketball" },
@@ -29,40 +39,60 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const { top, bottom } = useSafeAreaInsets();
   const { profile, updateUsername, refreshProfile } = useAuth();
-  const { setPreferredSport } = useApp();
+  const { setPreferredSport, setLocalCourt } = useApp();
+  const { enablePush } = useNotifications();
   const {
-    coord: deviceCoord,
-    status: locationStatus,
     refresh: refreshLocation,
     suppressNextAutoResolve,
   } = useDeviceLocation();
 
-  const [step, setStep] = React.useState<1 | 2>(1);
+  const [step, setStep] = React.useState<1 | 2 | 3>(1);
 
+  // Step 1: name, sport, inviter
   const [username, setUsername] = React.useState(profile?.username ?? "");
   const [sport, setSport] = React.useState<CourtSport | null>(null);
+  const [inviter, setInviter] = React.useState("");
+  const [inviterSaved, setInviterSaved] = React.useState(false);
   const [savingStep1, setSavingStep1] = React.useState(false);
   const [usernameError, setUsernameError] = React.useState<string | null>(null);
+  const [inviterError, setInviterError] = React.useState<string | null>(null);
   const [step1Error, setStep1Error] = React.useState<string | null>(null);
 
+  // Step 2: local court
   const [locating, setLocating] = React.useState(false);
   const [locationNotice, setLocationNotice] = React.useState<string | null>(null);
-  const [zipMode, setZipMode] = React.useState(false);
-  const [zip, setZip] = React.useState("");
+  const [cityMode, setCityMode] = React.useState(false);
+  const [city, setCity] = React.useState("");
+  const [usedCity, setUsedCity] = React.useState(false);
+  // Only the newest lookup may fill the picker (an older, slower one is dropped).
+  const lookupRef = React.useRef(0);
+  // The sport the current court list was loaded for.
+  const [courtsSport, setCourtsSport] = React.useState<CourtSport | null>(null);
+  const [searching, setSearching] = React.useState(false);
+  const [searched, setSearched] = React.useState(false);
+  const [courtOptions, setCourtOptions] = React.useState<Court[]>([]);
+  const [selectedCourt, setSelectedCourt] = React.useState<Court | null>(null);
+  const [savingStep2, setSavingStep2] = React.useState(false);
+  const [step2Error, setStep2Error] = React.useState<string | null>(null);
+
+  // Step 3: alerts, then finish
   const [finishing, setFinishing] = React.useState(false);
   const [finishError, setFinishError] = React.useState<string | null>(null);
 
+  React.useEffect(() => {
+    if (!username && profile?.username) setUsername(profile.username);
+  }, [profile?.username, username]);
+
   const usernameValid = username.trim().length >= 3;
   const step1Ready = usernameValid && sport !== null;
-
-  const hasLocation = coordinateForLocationAction(locationStatus, deviceCoord) !== null;
-  const zipValid = /^\d{5}$/.test(zip.trim());
-  const step2Ready = hasLocation || zipValid;
+  // No courts nearby yet is not a dead end: they can continue and add one later.
+  const step2Ready = selectedCourt !== null || (searched && courtOptions.length === 0);
 
   async function handleContinueStep1() {
     if (!step1Ready || savingStep1 || !profile) return;
     setSavingStep1(true);
     setUsernameError(null);
+    setInviterError(null);
     setStep1Error(null);
     const trimmed = username.trim();
     if (trimmed !== profile.username) {
@@ -74,56 +104,146 @@ export default function OnboardingScreen() {
       }
     }
     const sportSaved = await setPreferredSport(sport);
-    setSavingStep1(false);
     if (!sportSaved) {
-      setStep1Error("Couldn't save your sport — check your connection and try again.");
+      setSavingStep1(false);
+      setStep1Error("Couldn't save your sport. Check your connection and try again.");
       return;
+    }
+    if (inviter && !inviterSaved) {
+      const message = inviteErrorMessage(await redeemInviter(inviter));
+      if (message) {
+        setSavingStep1(false);
+        setInviterError(message);
+        return;
+      }
+      setInviterSaved(true);
+    }
+    setSavingStep1(false);
+    // A different sport makes the loaded courts (and any pick) stale.
+    if (courtsSport !== null && courtsSport !== sport) {
+      lookupRef.current += 1;
+      setCourtOptions([]);
+      setSelectedCourt(null);
+      setSearched(false);
+      setCourtsSport(null);
     }
     setStep(2);
   }
 
-  async function handleShareLocation() {
+  async function loadCourtsNear(lookup: number, lat: number, lng: number) {
+    const courts = await fetchClosestCourts(lat, lng, sport, 5);
+    if (lookup !== lookupRef.current) return;
+    setCourtOptions(courts);
+    setCourtsSport(sport);
+    setSearched(true);
+    setSearching(false);
+  }
+
+  function startLookup(): number {
+    lookupRef.current += 1;
+    setSearching(true);
+    setSelectedCourt(null);
     setLocationNotice(null);
+    return lookupRef.current;
+  }
+
+  async function handleUseLocation() {
     setLocating(true);
+    const lookup = startLookup();
     const result = await refreshLocation();
     setLocating(false);
-    if (coordinateForLocationAction(result.status, result.coord) === null) {
-      setLocationNotice("Location access is off. Turn it on, or enter your ZIP instead.");
+    if (lookup !== lookupRef.current) return;
+    const coord = coordinateForLocationAction(result.status, result.coord);
+    if (!coord) {
+      setSearching(false);
+      setLocationNotice("Location access is off. Turn it on in Settings, or search by city instead.");
+      return;
     }
+    setUsedCity(false);
+    await loadCourtsNear(lookup, coord.lat, coord.lng);
+  }
+
+  // Runs on the keyboard's Search key or the FIND COURTS button, never per
+  // keystroke.
+  async function handleFindCity() {
+    if (!isCityQuery(city) || searching) return;
+    const lookup = startLookup();
+    const coord = await coordinateForPlace(city);
+    if (lookup !== lookupRef.current) return;
+    if (!coord) {
+      setSearching(false);
+      setLocationNotice("Couldn't find that city. Try \"City, State\".");
+      return;
+    }
+    setUsedCity(true);
+    await loadCourtsNear(lookup, coord.lat, coord.lng);
+  }
+
+  async function handleContinueStep2() {
+    if (!step2Ready || savingStep2 || !profile) return;
+    setSavingStep2(true);
+    setStep2Error(null);
+    if (selectedCourt) {
+      const saved = await setLocalCourt(selectedCourt.id, selectedCourt);
+      if (!saved) {
+        setSavingStep2(false);
+        setStep2Error("Couldn't save your court. Check your connection and try again.");
+        return;
+      }
+    }
+    setSavingStep2(false);
+    setStep(3);
   }
 
   async function handleFinish() {
-    if (!step2Ready || finishing || !profile) return;
+    if (finishing || !profile) return;
     setFinishing(true);
     setFinishError(null);
-    const usedZip = !hasLocation && zipValid;
-    const fields: Parameters<typeof updateProfileFields>[1] = {
-      onboarding_completed: true,
-    };
-    if (usedZip) {
-      fields.postal_code = zip.trim();
-    }
-    const saved = await updateProfileFields(profile.id, fields);
+    // iOS shows its own Allow / Don't Allow; either answer continues.
+    await enablePush();
+    const saved = await updateProfileFields(profile.id, { onboarding_completed: true });
     if (!saved) {
       setFinishing(false);
-      setFinishError("Couldn't save that — check your connection and try again.");
+      setFinishError("Couldn't finish setup. Check your connection and try again.");
       return;
     }
-    // Completing onboarding flips autoResolve back on app-wide — without
-    // this, choosing ZIP here would immediately trigger the native location
-    // prompt anyway, right after explicitly opting out of sharing it.
-    if (usedZip) suppressNextAutoResolve();
+    // Finishing turns automatic location back on app-wide. Someone who chose
+    // a city instead of sharing location shouldn't get the native prompt now.
+    if (usedCity) suppressNextAutoResolve();
     await refreshProfile();
     setFinishing(false);
-    // No device fix to anchor Explore's "nearby" query on — hand the ZIP to
-    // its existing court search (already matches on postal code) instead of
-    // guessing a coordinate.
-    if (usedZip) {
-      router.replace({ pathname: "/(tabs)/explore", params: { q: zip.trim() } });
-    } else {
-      router.replace("/(tabs)");
-    }
+    router.replace("/(tabs)");
   }
+
+  function goBack() {
+    if (step === 3) setStep(2);
+    else if (step === 2) setStep(1);
+  }
+
+  const primary =
+    step === 1
+      ? {
+          label: savingStep1 ? "SAVING…" : step1Error ? "RETRY" : "CONTINUE",
+          onPress: () => void handleContinueStep1(),
+          disabled: !step1Ready || savingStep1,
+        }
+      : step === 2
+        ? {
+            label: savingStep2
+              ? "SAVING…"
+              : step2Error
+                ? "RETRY"
+                : selectedCourt || !searched
+                  ? "CONTINUE"
+                  : "CONTINUE WITHOUT A COURT",
+            onPress: () => void handleContinueStep2(),
+            disabled: !step2Ready || savingStep2,
+          }
+        : {
+            label: finishing ? "FINISHING…" : finishError ? "RETRY" : "TURN ON ALERTS",
+            onPress: () => void handleFinish(),
+            disabled: finishing,
+          };
 
   return (
     <View style={styles.screen}>
@@ -134,16 +254,13 @@ export default function OnboardingScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          {step === 2 ? (
+          {step > 1 ? (
             <Pressable
-              accessibilityHint="Back to claim your name"
+              accessibilityHint="Back to the previous step"
               accessibilityLabel="Back"
               accessibilityRole="button"
-              onPress={() => setStep(1)}
-              style={({ pressed }) => [
-                styles.backAction,
-                pressed && styles.pressed,
-              ]}
+              onPress={goBack}
+              style={({ pressed }) => [styles.backAction, pressed && styles.pressed]}
             >
               <LogoMark size={24} variant="back" />
             </Pressable>
@@ -153,19 +270,21 @@ export default function OnboardingScreen() {
             </View>
           )}
           <View style={styles.progressRow}>
-            <View style={[styles.progressSegment, styles.progressFilled]} />
-            <View
-              style={[
-                styles.progressSegment,
-                step === 2 && styles.progressFilled,
-              ]}
-            />
+            {Array.from({ length: ONBOARDING_STEPS }, (_, i) => (
+              <View
+                key={i}
+                style={[styles.progressSegment, i < step && styles.progressFilled]}
+              />
+            ))}
           </View>
         </View>
 
+        <Text style={styles.eyebrow}>
+          STEP {step} OF {ONBOARDING_STEPS}
+        </Text>
+
         {step === 1 ? (
           <>
-            <Text style={styles.eyebrow}>STEP 1 OF 2</Text>
             <Text style={styles.title}>
               CLAIM YOUR{"\n"}NAME<Text style={styles.titleDot}>.</Text>
             </Text>
@@ -187,9 +306,7 @@ export default function OnboardingScreen() {
                 style={[styles.input, savingStep1 && styles.inputDisabled]}
                 value={username}
               />
-              {usernameError ? (
-                <Text style={styles.fieldError}>{usernameError}</Text>
-              ) : null}
+              {usernameError ? <Text style={styles.fieldError}>{usernameError}</Text> : null}
             </View>
 
             <View style={styles.field}>
@@ -206,89 +323,135 @@ export default function OnboardingScreen() {
                   />
                 ))}
               </View>
+              <Text style={styles.fieldHint}>You can change this anytime in Settings.</Text>
             </View>
 
-            {step1Error ? (
-              <View style={styles.errorBanner}>
-                <LogoMark size={18} />
-                <Text style={styles.errorBannerText}>{step1Error}</Text>
-              </View>
-            ) : null}
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>INVITE CODE (OPTIONAL)</Text>
+              <TextInput
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!savingStep1 && !inviterSaved}
+                maxLength={32}
+                onChangeText={(text) => {
+                  setInviter(normalizeInviter(text));
+                  setInviterError(null);
+                }}
+                placeholder="friend's code or username"
+                placeholderTextColor={Colors.mutedDark}
+                style={[styles.input, (savingStep1 || inviterSaved) && styles.inputDisabled]}
+                value={inviter}
+              />
+              {inviterError ? <Text style={styles.fieldError}>{inviterError}</Text> : null}
+            </View>
+
+            {step1Error ? <ErrorBanner message={step1Error} /> : null}
           </>
-        ) : (
+        ) : step === 2 ? (
           <>
-            <Text style={styles.eyebrow}>STEP 2 OF 2</Text>
             <Text style={styles.title}>
-              KNOW YOUR{"\n"}COURTS<Text style={styles.titleDot}>.</Text>
+              PICK YOUR{"\n"}COURT<Text style={styles.titleDot}>.</Text>
             </Text>
-            <Text style={styles.subtitle}>See which ones have locals right now.</Text>
+            <Text style={styles.subtitle}>
+              Your home court. See who's there and who's coming.
+            </Text>
 
             <BrutalistButton
               icon={<Feather color={Colors.black} name="crosshair" size={15} />}
-              label="SHARE LOCATION"
+              label="USE MY LOCATION"
               loading={locating}
-              onPress={() => void handleShareLocation()}
+              onPress={() => void handleUseLocation()}
               style={styles.fullButton}
               variant="accent"
             />
-            {hasLocation ? (
-              <Text style={styles.locationConfirmed}>
-                <Feather color={Colors.accent} name="check-circle" size={12} /> Location
-                ready.
-              </Text>
-            ) : locationNotice ? (
-              <Text style={styles.locationNotice}>{locationNotice}</Text>
-            ) : null}
 
-            {!zipMode ? (
+            {!cityMode ? (
               <Pressable
                 accessibilityRole="button"
-                onPress={() => setZipMode(true)}
+                onPress={() => setCityMode(true)}
                 style={({ pressed }) => [styles.zipLink, pressed && styles.pressed]}
               >
-                <Text style={styles.zipLinkText}>Enter zip code instead</Text>
+                <Text style={styles.zipLinkText}>Search by city instead</Text>
               </Pressable>
             ) : (
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>ZIP CODE</Text>
+                <Text style={styles.fieldLabel}>CITY</Text>
                 <TextInput
-                  keyboardType="number-pad"
-                  maxLength={5}
-                  onChangeText={(text) => setZip(text.replace(/[^0-9]/g, ""))}
-                  placeholder="90001"
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  onChangeText={setCity}
+                  onSubmitEditing={() => void handleFindCity()}
+                  placeholder="Conroe, TX"
                   placeholderTextColor={Colors.mutedDark}
+                  returnKeyType="search"
                   style={styles.input}
-                  value={zip}
+                  value={city}
+                />
+                <BrutalistButton
+                  disabled={!isCityQuery(city) || searching}
+                  label="FIND COURTS"
+                  onPress={() => void handleFindCity()}
+                  style={styles.fullButton}
+                  variant="outline"
                 />
               </View>
             )}
 
-            {finishError ? (
-              <View style={styles.errorBanner}>
-                <LogoMark size={18} />
-                <Text style={styles.errorBannerText}>{finishError}</Text>
-              </View>
+            {locationNotice ? <Text style={styles.locationNotice}>{locationNotice}</Text> : null}
+
+            {searching ? (
+              <ActivityIndicator color={Colors.accent} style={styles.searching} />
+            ) : searched ? (
+              courtOptions.length > 0 ? (
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>CLOSEST COURTS</Text>
+                  <View style={styles.sportList}>
+                    {courtOptions.map((court) => (
+                      <OptionRow
+                        key={court.id}
+                        disabled={savingStep2}
+                        icon={<SportEmblem sport={court.sport} size={18} />}
+                        label={court.name}
+                        description={courtPickerDetail(court)}
+                        onPress={() => setSelectedCourt(court)}
+                        selected={selectedCourt?.id === court.id}
+                      />
+                    ))}
+                  </View>
+                </View>
+              ) : (
+                <Text style={styles.locationNotice}>
+                  No courts found yet. You can add your court after setup.
+                </Text>
+              )
             ) : null}
+
+            {step2Error ? <ErrorBanner message={step2Error} /> : null}
+          </>
+        ) : (
+          <>
+            <Text style={styles.title}>
+              GET GAME{"\n"}ALERTS<Text style={styles.titleDot}>.</Text>
+            </Text>
+            <Text style={styles.subtitle}>
+              Know when locals check in at your court, and when someone invites you to play.
+              Change it anytime in Settings.
+            </Text>
+            {finishError ? <ErrorBanner message={finishError} /> : null}
           </>
         )}
       </KeyboardAwareScrollViewCompat>
 
-      <StickyActionBar
-        bottomInset={bottom}
-        primary={
-          step === 1
-            ? {
-                label: savingStep1 ? "SAVING…" : step1Error ? "RETRY" : "CONTINUE",
-                onPress: () => void handleContinueStep1(),
-                disabled: !step1Ready || savingStep1,
-              }
-            : {
-                label: finishing ? "FINISHING…" : finishError ? "RETRY" : "CONTINUE",
-                onPress: () => void handleFinish(),
-                disabled: !step2Ready || finishing,
-              }
-        }
-      />
+      <StickyActionBar bottomInset={bottom} primary={primary} />
+    </View>
+  );
+}
+
+function ErrorBanner({ message }: { message: string }) {
+  return (
+    <View style={styles.errorBanner}>
+      <LogoMark size={18} />
+      <Text style={styles.errorBannerText}>{message}</Text>
     </View>
   );
 }
@@ -364,6 +527,11 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
   },
   inputDisabled: { opacity: 0.5 },
+  fieldHint: {
+    fontFamily: Typography.body,
+    fontSize: 12,
+    color: Colors.muted,
+  },
   fieldError: {
     fontFamily: Typography.body,
     fontSize: 12,
@@ -371,12 +539,7 @@ const styles = StyleSheet.create({
   },
   sportList: { gap: Space.sm },
   fullButton: { width: "100%", marginTop: Space.md },
-  locationConfirmed: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 12,
-    color: Colors.accent,
-    marginTop: Space.sm,
-  },
+  searching: { marginTop: Space.lg },
   locationNotice: {
     fontFamily: Typography.body,
     fontSize: 12,

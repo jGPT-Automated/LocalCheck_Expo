@@ -72,6 +72,12 @@ interface AuthResult {
   error: string | null;
 }
 
+interface PasswordResetResult extends AuthResult {
+  // True once the code was accepted: the user is signed in even if saving the
+  // new password then failed, so the UI must not ask for the code again.
+  signedIn: boolean;
+}
+
 interface SignUpResult extends AuthResult {
   needsEmailConfirmation: boolean;
 }
@@ -97,6 +103,14 @@ interface AuthContextValue {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updatePassword: (password: string) => Promise<AuthResult>;
+  /** Emails a one-time reset code. Succeeds even for unknown emails (by design). */
+  requestPasswordReset: (email: string) => Promise<AuthResult>;
+  /** Verifies the emailed code (signs the user in), then sets the new password. */
+  resetPasswordWithCode: (
+    email: string,
+    code: string,
+    newPassword: string,
+  ) => Promise<PasswordResetResult>;
   updateUsername: (username: string) => Promise<AuthResult>;
 }
 
@@ -340,6 +354,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null };
   }, []);
 
+  const requestPasswordReset = useCallback(async (email: string): Promise<AuthResult> => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    return { error: error?.message ?? null };
+  }, []);
+
+  const resetPasswordWithCode = useCallback(
+    async (email: string, code: string, newPassword: string): Promise<PasswordResetResult> => {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token: code,
+        type: "recovery",
+      });
+      if (error || !data.user) {
+        return { error: error?.message ?? "That code is wrong or expired.", signedIn: false };
+      }
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateError) return { error: updateError.message, signedIn: true };
+      const profileResult = await waitForProfile(data.user);
+      return { ...profileResult, signedIn: true };
+    },
+    [waitForProfile],
+  );
+
   // Re-read the profile row (e.g. after log_game updates elo/wins server-side).
   const refreshProfile = useCallback(async () => {
     if (!user?.id) return;
@@ -380,6 +417,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         refreshProfile,
         updatePassword,
+        requestPasswordReset,
+        resetPasswordWithCode,
         updateUsername,
       }}
     >

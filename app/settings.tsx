@@ -1,3 +1,4 @@
+import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Href, useRouter } from "expo-router";
@@ -12,7 +13,6 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,6 +21,7 @@ import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollV
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
+import { MIN_PASSWORD_LENGTH } from "@/lib/passwordReset";
 import { OptionRow } from "@/components/ui/OptionRow";
 import { SearchField } from "@/components/ui/SearchField";
 import { TierPill } from "@/components/ui/TierPill";
@@ -108,7 +109,7 @@ export default function SettingsScreen() {
   const inviteFriends = async () => {
     const code = profile?.referral_code;
     const message = code
-      ? `Come play pickup on LocalCheck. Use my code ${code} when you sign up. ${APP_STORE_URL}`
+      ? `Come play pickup on LocalCheck. My invite code is "${code}". Enter it when you sign up: ${APP_STORE_URL}`
       : `Come play pickup on LocalCheck. ${APP_STORE_URL}`;
     try {
       await Share.share({ message });
@@ -956,13 +957,13 @@ function UsernameEditorSheet({
       onClose={onClose}
       title="USERNAME"
       eyebrow="LETTERS, NUMBERS, AND UNDERSCORES"
-      snapPoints={["46%"]}
+      dynamic
     >
       <View style={styles.field}>
         <Text style={styles.fieldLabel}>USERNAME</Text>
         <View style={styles.fieldRow}>
           <Text style={styles.fieldPrefix}>@</Text>
-          <TextInput
+          <BottomSheetTextInput
             autoCapitalize="none"
             autoCorrect={false}
             maxLength={32}
@@ -1021,8 +1022,8 @@ function PasswordEditorSheet({
 
   const save = async () => {
     if (saving) return;
-    if (password.length < 8) {
-      setError("Use at least 8 characters.");
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Use at least ${MIN_PASSWORD_LENGTH} characters.`);
       return;
     }
     if (password !== confirm) {
@@ -1045,12 +1046,12 @@ function PasswordEditorSheet({
       visible={visible}
       onClose={onClose}
       title="CHANGE PASSWORD"
-      eyebrow="AT LEAST 8 CHARACTERS"
-      snapPoints={["52%"]}
+      eyebrow={`AT LEAST ${MIN_PASSWORD_LENGTH} CHARACTERS`}
+      dynamic
     >
       <View style={styles.field}>
         <Text style={styles.fieldLabel}>NEW PASSWORD</Text>
-        <TextInput
+        <BottomSheetTextInput
           autoCapitalize="none"
           onChangeText={(text) => {
             setPassword(text);
@@ -1065,7 +1066,7 @@ function PasswordEditorSheet({
       </View>
       <View style={styles.field}>
         <Text style={styles.fieldLabel}>CONFIRM PASSWORD</Text>
-        <TextInput
+        <BottomSheetTextInput
           autoCapitalize="none"
           onChangeText={(text) => {
             setConfirm(text);
