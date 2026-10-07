@@ -6,6 +6,7 @@ import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -34,6 +35,7 @@ import { useLocalPlus } from "@/hooks/useLocalPlus";
 import { useLocalPlusPurchase } from "@/hooks/useLocalPlusPurchase";
 import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
 import { isInactiveLocal, relativeTime } from "@/lib/localPresence";
+import { PRIVACY_URL, TERMS_URL } from "@/lib/planModel";
 import {
   DRAWER_LOCALS_MAX,
   drawerDetailHeight,
@@ -401,7 +403,16 @@ function CourtDrawerGate({
           )}
         </Pressable>
         {yearly.priceString ? (
-          <Text style={styles.gateTerms}>Renews yearly until you cancel.</Text>
+          // Apple wants the terms reachable wherever a subscription is sold.
+          <View style={styles.gateTermsRow}>
+            <Text style={styles.gateTerms}>Renews yearly until you cancel.</Text>
+            <Pressable accessibilityRole="link" hitSlop={10} onPress={() => void Linking.openURL(TERMS_URL)}>
+              <Text style={[styles.gateTerms, styles.gateTermsLink]}>Terms</Text>
+            </Pressable>
+            <Pressable accessibilityRole="link" hitSlop={10} onPress={() => void Linking.openURL(PRIVACY_URL)}>
+              <Text style={[styles.gateTerms, styles.gateTermsLink]}>Privacy</Text>
+            </Pressable>
+          </View>
         ) : null}
         <Pressable
           accessibilityRole="button"
@@ -628,8 +639,9 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   gateWrap: { flex: 1 },
+  gateTermsRow: { marginTop: 8, flexDirection: "row", alignItems: "center", gap: 8 },
+  gateTermsLink: { textDecorationLine: "underline", color: Colors.textSecondary },
   gateTerms: {
-    marginTop: 8,
     fontFamily: Typography.body,
     fontSize: 10,
     color: Colors.mutedDark,
