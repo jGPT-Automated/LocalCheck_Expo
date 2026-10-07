@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ChoiceChips } from "@/components/challenge/ChoiceChips";
+import { HideScoreToggle } from "@/components/match/HideScoreToggle";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { DetailHeader } from "@/components/ui/DetailHeader";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
@@ -37,6 +38,7 @@ import {
   logChallengeResult,
   respondToChallenge,
 } from "@/services/challengeService";
+import { setScoreHidden } from "@/services/gameService";
 
 const STATUS_LABEL: Record<Challenge["status"], string> = {
   pending: "PENDING",
@@ -63,6 +65,7 @@ export default function ChallengeScreen() {
   const [theirScore, setTheirScore] = useState("");
   const [courtChoice, setCourtChoice] = useState<string | null>(null);
   const [day, setDay] = useState<"today" | "yesterday">("today");
+  const [hideScore, setHideScore] = useState(false);
   const [requestId] = useState(() => Crypto.randomUUID());
   const [error, setError] = useState<string | null>(null);
 
@@ -154,6 +157,7 @@ export default function ChallengeScreen() {
       setError(result.message);
       return;
     }
+    if (hideScore) await setScoreHidden(result.value, true);
     router.replace(`/match/${result.value}`);
   };
 
@@ -265,6 +269,9 @@ export default function ChallengeScreen() {
               onChange={setDay}
               value={day}
             />
+            <View style={styles.hideRow}>
+              <HideScoreToggle disabled={busy} onChange={setHideScore} value={hideScore} />
+            </View>
             <Text style={styles.hint}>
               {firstName(other.name)} confirms or disputes it within 3 days.
               {challenge.ranked ? " ELO moves once it's confirmed." : " Casual: no ELO change."}
@@ -380,5 +387,6 @@ const styles = StyleSheet.create({
   scoreLabel: { fontFamily: Typography.bodyBold, fontSize: 10, letterSpacing: 1.4, color: Colors.textSecondary },
   dash: { fontFamily: Typography.heading, fontSize: 28, color: Colors.muted, marginBottom: 20 },
   hint: { ...TextStyles.metadata, marginTop: Space.md, color: Colors.textSecondary },
+  hideRow: { marginTop: Space.xl },
   error: { ...TextStyles.metadata, marginTop: Space.lg, color: Colors.loss },
 });

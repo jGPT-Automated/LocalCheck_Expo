@@ -131,6 +131,11 @@ function formatPlayedOn(value: string): string {
 function formatPlayedOnShort(value: string): string {
   const date = value.length === 10 ? new Date(`${value}T12:00:00`) : new Date(value);
   if (Number.isNaN(date.getTime())) return value;
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (date.toDateString() === today.toDateString()) return "Today";
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
@@ -392,13 +397,15 @@ function FaceoffBody({
       </View>
       <View style={styles.bigScoreRow}>
         <Text style={[styles.bigScore, leftWins && styles.bigScoreWin]}>{leftScore}</Text>
-        <Text style={styles.bigScoreDash}>–</Text>
+        <View style={styles.bigScoreDash} />
         <Text style={[styles.bigScore, rightWins && styles.bigScoreWin]}>{rightScore}</Text>
       </View>
+      {total > 0 ? (
       <View style={styles.marginBar}>
         <View style={[styles.marginLeft, leftWins && styles.marginWin, { flex: Math.max(share, 0.001) }]} />
         <View style={[styles.marginRight, rightWins && styles.marginWin, { flex: Math.max(1 - share, 0.001) }]} />
       </View>
+      ) : null}
     </View>
   );
 }
@@ -556,6 +563,9 @@ export function ScoreCard({
   compact = false,
   emphasis,
   onPlayerPress,
+  variant = "card",
+  footnote,
+  scoresHidden = false,
 }: {
   status: ScoreCardStatus;
   /** Viewer-aware override for the banner text ("YOUR APPROVAL", "WAITING ON
@@ -585,6 +595,14 @@ export function ScoreCard({
   compact?: boolean;
   /** Tapping a player's name calls this with their id. */
   onPlayerPress?: (playerId: string) => void;
+  /** "sheet": no box of its own and a one-line header ("Court · 1v1 · Today"),
+   * for the game popup that is already a card (mock 3a). */
+  variant?: "card" | "sheet";
+  /** Small line under the score, e.g. "You're 2–5 all-time vs Jesse". */
+  footnote?: string;
+  /** A player hid the score and the viewer wasn't in the game: show W / L
+   * instead of numbers (decision D30). */
+  scoresHidden?: boolean;
 }) {
   const tone =
     emphasis === "action"
@@ -600,12 +618,32 @@ export function ScoreCard({
   const rightNum = Number(rightScore);
   const decided =
     Number.isFinite(leftNum) && Number.isFinite(rightNum) && leftNum !== rightNum;
+  // Hidden scores: the winner still reads at a glance, the numbers don't.
+  const shownLeft = scoresHidden && decided ? (leftNum > rightNum ? "W" : "L") : leftScore;
+  const shownRight = scoresHidden && decided ? (rightNum > leftNum ? "W" : "L") : rightScore;
+  const shownFootnote = scoresHidden ? "Score hidden by a player" : footnote;
 
   return (
     <View style={styles.wrap}>
-      <View style={[styles.card, emphasis === "action" && styles.cardAction]}>
+      <View
+        style={[
+          styles.card,
+          variant === "sheet" && styles.cardSheet,
+          emphasis === "action" && styles.cardAction,
+        ]}
+      >
         {emphasis === "action" ? <View style={styles.actionSpine} /> : null}
-        {statusPlacement === "card" ? (
+        {statusPlacement === "card" && !compact ? (
+          <View style={styles.statusLine}>
+            <View style={[styles.statusDot, { backgroundColor: status === "confirmed" ? Colors.muted : tone.text }]} />
+            <Text
+              numberOfLines={1}
+              style={[styles.statusLineText, status !== "confirmed" && { color: tone.text }]}
+            >
+              {statusLabel ?? STATUS_LABEL[status]}
+            </Text>
+          </View>
+        ) : statusPlacement === "card" ? (
           <View
             style={[
               styles.statusBanner,
@@ -628,6 +666,12 @@ export function ScoreCard({
               {format ? ` · ${format}` : ""} · {formatPlayedOn(playedOn)}
               {rightMeta ? ` · ${rightMeta}` : ""}
             </Text>
+          ) : variant === "sheet" ? (
+            <Text numberOfLines={1} style={styles.sheetHeader}>
+              {[courtName, format?.toLowerCase(), formatPlayedOnShort(playedOn), rightMeta]
+                .filter(Boolean)
+                .join(" · ")}
+            </Text>
           ) : (
             <View style={styles.titleBlock}>
               <Text adjustsFontSizeToFit minimumFontScale={0.75} numberOfLines={2} style={styles.courtTitle}>
@@ -646,14 +690,14 @@ export function ScoreCard({
               <CompactRow
                 onPlayerPress={namePress}
                 players={leftPlayers}
-                score={leftScore}
+                score={shownLeft}
                 teamLabel={leftLabel}
                 winner={decided && leftNum > rightNum}
               />
               <CompactRow
                 onPlayerPress={namePress}
                 players={rightPlayers}
-                score={rightScore}
+                score={shownRight}
                 teamLabel={rightLabel}
                 winner={decided && rightNum > leftNum}
               />
@@ -661,23 +705,23 @@ export function ScoreCard({
           ) : leftPlayers.length === 1 && rightPlayers.length === 1 ? (
             <FaceoffBody
               left={leftPlayers[0]}
-              leftScore={leftScore}
+              leftScore={shownLeft}
               leftWins={decided && leftNum > rightNum}
               onPlayerPress={namePress}
               right={rightPlayers[0]}
-              rightScore={rightScore}
+              rightScore={shownRight}
               rightWins={decided && rightNum > leftNum}
             />
           ) : leftPlayers.length > 0 && rightPlayers.length > 0 ? (
             <TeamsBody
               leftLabel={leftLabel}
               leftPlayers={leftPlayers}
-              leftScore={leftScore}
+              leftScore={shownLeft}
               leftWins={decided && leftNum > rightNum}
               onPlayerPress={namePress}
               rightLabel={rightLabel}
               rightPlayers={rightPlayers}
-              rightScore={rightScore}
+              rightScore={shownRight}
               rightWins={decided && rightNum > leftNum}
               settled={status === "confirmed"}
             />
@@ -687,7 +731,7 @@ export function ScoreCard({
                 compact={compact}
                 onPlayerPress={namePress}
                 players={leftPlayers}
-                score={leftScore}
+                score={shownLeft}
                 teamLabel={leftLabel}
                 winBadge={
                   decided && leftNum > rightNum && status === "confirmed"
@@ -699,7 +743,7 @@ export function ScoreCard({
                 compact={compact}
                 onPlayerPress={namePress}
                 players={rightPlayers}
-                score={rightScore}
+                score={shownRight}
                 teamLabel={rightLabel}
                 winBadge={
                   decided && rightNum > leftNum && status === "confirmed"
@@ -709,6 +753,7 @@ export function ScoreCard({
             </View>
           )}
 
+          {shownFootnote && !compact ? <Text style={styles.footnote}>{shownFootnote}</Text> : null}
           {note ? (
             <Text style={[styles.note, compact && styles.noteCompact]}>
               {note}
@@ -734,6 +779,25 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   cardAction: { borderColor: Colors.accentBorder },
+  cardSheet: { borderWidth: 0, backgroundColor: "transparent" },
+  statusLine: {
+    minHeight: 34,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  statusDot: { width: 5, height: 5, borderRadius: 3 },
+  statusLineText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.8,
+    color: Colors.textSecondary,
+  },
+  sheetHeader: { ...TextStyles.metadata, textAlign: "center", color: Colors.textSecondary },
+  footnote: { ...TextStyles.metadata, textAlign: "center", color: Colors.muted },
   actionSpine: {
     position: "absolute",
     left: 0,
@@ -912,11 +976,11 @@ const styles = StyleSheet.create({
     color: Colors.muted,
   },
   bigScoreRow: {
-    marginTop: Space.lg,
+    marginTop: Space.md,
     flexDirection: "row",
-    alignItems: "baseline",
+    alignItems: "center",
     justifyContent: "center",
-    gap: Space.md,
+    gap: Space.lg,
   },
   bigScore: {
     fontFamily: Typography.headingBold,
@@ -926,7 +990,8 @@ const styles = StyleSheet.create({
     fontVariant: ["tabular-nums"],
   },
   bigScoreWin: { color: Colors.accent },
-  bigScoreDash: { fontFamily: Typography.heading, fontSize: 28, color: Colors.mutedDark },
+  // Drawn, so it sits on the numbers' middle line instead of the baseline.
+  bigScoreDash: { width: 16, height: 4, borderRadius: 2, backgroundColor: Colors.mutedDark },
   marginBar: {
     height: 5,
     marginTop: Space.sm,

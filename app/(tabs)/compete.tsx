@@ -32,6 +32,7 @@ import { ModeTabs } from "@/components/ui/ModeTabs";
 import { parsePlayerQrCode } from "@/components/ui/playerIdentity";
 import { RecentDatePicker } from "@/components/ui/RecentDatePicker";
 import { SearchField } from "@/components/ui/SearchField";
+import { HideScoreToggle } from "@/components/match/HideScoreToggle";
 import { ScoreCard } from "@/components/match/ScoreCard";
 import { Colors, Radius } from "@/constants/colors";
 import {
@@ -52,7 +53,7 @@ import {
   searchCourtPlayersRecent,
   searchPlayers,
 } from "@/services/profileService";
-import { logGame, logTeamGame } from "@/services/gameService";
+import { logGame, logTeamGame, setScoreHidden } from "@/services/gameService";
 import { fetchNearbyCourts, searchCourts } from "@/services/courtService";
 import { useDeviceLocation } from "@/context/DeviceLocationContext";
 
@@ -824,6 +825,7 @@ function LogGameView({
     opponents: [],
   });
   const [reviewGame, setReviewGame] = useState<GameLog | null>(null);
+  const [hideScore, setHideScore] = useState(false);
   const [submittedGame, setSubmittedGame] = useState<GameLog | null>(null);
   // The court picked from typeahead search may not be in the nearby `courts`
   // array — hold onto the full object so the field, the review card, and the
@@ -1032,6 +1034,10 @@ function LogGameView({
       setReviewGame(null);
       return;
     }
+    // Hide score (D30) is set right after the game exists; the game logs
+    // either way, so a failure here only leaves the score visible.
+    if (hideScore && result.matchId) void setScoreHidden(result.matchId, true);
+    setHideScore(false);
     // The score is pending. The opponent receives a review action; ratings and
     // public history remain unchanged until confirmation.
     setSubmittedGame({ ...reviewGame });
@@ -1381,6 +1387,7 @@ function LogGameView({
             onPlayerPress={(id) => router.push(`/player/${id}`)}
             {...gameCardProps(reviewGame)}
           />
+          <HideScoreToggle disabled={submitting} onChange={setHideScore} value={hideScore} />
         </ScrollView>
         <View style={styles.reviewActions}>
           <Pressable
@@ -2376,7 +2383,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   successScroll: { flex: 1, alignSelf: "stretch", marginTop: 4 },
-  successScrollContent: { paddingBottom: 12 },
+  successScrollContent: { paddingBottom: 12, gap: 12 },
   successCheck: { alignItems: "center", paddingVertical: 36 },
   successTitle: {
     fontFamily: Typography.heading,

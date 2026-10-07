@@ -1,4 +1,5 @@
 import { CourtSport, FeedItem } from "@/constants/data";
+import { scoresHiddenFor } from "@/lib/scoreVisibility";
 import { supabase } from "@/lib/supabase";
 
 import { mapProfileToPlayer, SupabaseProfile } from "./profileService";
@@ -32,6 +33,9 @@ interface SupabaseActivityEvent {
       user_id: string;
       side: "a" | "b";
       display_order: number;
+      elo_before?: number | null;
+      elo_after?: number | null;
+      hide_score?: boolean | null;
       profiles: SupabaseProfile | null;
     }>;
   } | null;
@@ -43,7 +47,7 @@ const EVENT_SELECT =
   " actor:profiles!activity_events_actor_id_fkey(*)," +
   " courts(id, name, sport_type)," +
   " matches(id, played_at, score_a, score_b, winner_side, status," +
-  " match_participants(user_id, side, display_order, profiles(*)))";
+  " match_participants(*, profiles(*)))";
 
 function normalizeSport(
   raw: string | null | undefined,
@@ -125,8 +129,17 @@ function mapEvent(
             : "Player",
           side: participant.side,
           displayOrder: participant.display_order,
+          elo:
+            participant.elo_before != null && participant.elo_after != null
+              ? { before: participant.elo_before, after: participant.elo_after }
+              : null,
+          hideScore: Boolean(participant.hide_score),
         }))
         .sort((a, b) => a.displayOrder - b.displayOrder);
+      const scoresHidden = scoresHiddenFor(
+        participants.map((p) => ({ userId: p.playerId, hideScore: p.hideScore })),
+        currentUserId,
+      );
       const sideA = participants.filter((participant) => participant.side === "a");
       const sideB = participants.filter((participant) => participant.side === "b");
       const winnerName = (m.winner_side === "a" ? sideA : sideB)
@@ -141,6 +154,7 @@ function mapEvent(
           scoreA: m.score_a,
           scoreB: m.score_b,
           winnerSide: m.winner_side,
+          scoresHidden,
         }),
         winnerName,
         match: {
@@ -152,6 +166,7 @@ function mapEvent(
           status: "confirmed",
           sideA,
           sideB,
+          scoresHidden,
         },
       };
     }

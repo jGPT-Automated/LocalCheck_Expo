@@ -17,6 +17,9 @@ import { Colors } from "@/constants/colors";
 import type { CourtSport, FeedMatchSummary } from "@/constants/data";
 import { Motion, Space } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
+import { useApp } from "@/context/AppContext";
+import { firstName, summarizeHeadToHead } from "@/lib/headToHead";
+import { fetchHeadToHead } from "@/services/gameService";
 
 export function GameResultModal({
   match,
@@ -35,6 +38,29 @@ export function GameResultModal({
   const router = useRouter();
   const progress = React.useRef(new Animated.Value(0)).current;
   const [mounted, setMounted] = React.useState(visible);
+  const { currentUser } = useApp();
+  const [allTime, setAllTime] = React.useState<string | null>(null);
+
+  // "You're 2–5 all-time vs Jesse" when you played in this 1v1.
+  const opponent =
+    match && match.sideA.length === 1 && match.sideB.length === 1
+      ? [match.sideA[0], match.sideB[0]].find((p) => p.playerId !== currentUser.id) ?? null
+      : null;
+  const viewerPlayed =
+    !!match && [...match.sideA, ...match.sideB].some((p) => p.playerId === currentUser.id);
+  React.useEffect(() => {
+    setAllTime(null);
+    if (!visible || !viewerPlayed || !opponent || !currentUser.id) return;
+    let cancelled = false;
+    void fetchHeadToHead(currentUser.id, opponent.playerId).then((games) => {
+      if (cancelled || games.length < 2) return;
+      const s = summarizeHeadToHead(games);
+      setAllTime(`You're ${s.myWins}–${s.theirWins} all-time vs ${firstName(opponent.name)}`);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, viewerPlayed, opponent?.playerId, currentUser.id]);
 
   React.useEffect(() => {
     if (visible) setMounted(true);
@@ -104,15 +130,18 @@ export function GameResultModal({
             courtName={courtName ?? "GAME"}
             format={`${teamSize}V${teamSize}`}
             leftLabel="TEAM A"
-            leftPlayers={match.sideA.map((p) => ({ id: p.playerId, name: p.name }))}
+            leftPlayers={match.sideA.map((p) => ({ id: p.playerId, name: p.name, elo: p.elo ?? null }))}
             leftScore={match.scoreA}
             onPlayerPress={openPlayer}
             playedOn={match.playedAt}
             rightLabel="TEAM B"
-            rightPlayers={match.sideB.map((p) => ({ id: p.playerId, name: p.name }))}
+            rightPlayers={match.sideB.map((p) => ({ id: p.playerId, name: p.name, elo: p.elo ?? null }))}
             rightScore={match.scoreB}
             status="confirmed"
             statusLabel="FINAL"
+            footnote={allTime ?? undefined}
+            scoresHidden={Boolean(match.scoresHidden)}
+            variant="sheet"
           />
           <Pressable
             accessibilityRole="button"

@@ -60,6 +60,8 @@ export interface MatchReviewParticipant {
   decision: "pending" | "approved" | "disputed";
   eloBefore?: number;
   eloAfter?: number;
+  /** This player hid the score for their side (decision D30). */
+  hideScore?: boolean;
 }
 
 export interface MatchReview {
@@ -86,6 +88,8 @@ export interface MatchReview {
   scoreB: number;
   runId?: string;
   teamSize: number;
+  /** False for casual games (no ELO change). */
+  isRanked: boolean;
   participants: MatchReviewParticipant[];
 }
 
@@ -565,6 +569,13 @@ export async function fetchHeadToHead(
   }
 }
 
+/** Show or hide the score for your own side of a game (decision D30). */
+export async function setScoreHidden(matchId: string, hidden: boolean): Promise<boolean> {
+  const { error } = await supabase.rpc("set_score_hidden", { p_match_id: matchId, p_hidden: hidden });
+  if (error) console.warn("setScoreHidden failed", error.message);
+  return !error;
+}
+
 export async function fetchRecentGames(limit = 20): Promise<MatchResult[]> {
   try {
     const { data, error } = await supabase
@@ -606,7 +617,9 @@ export async function fetchMatchReview(
       .maybeSingle(),
     supabase
       .from("match_participants")
-      .select("user_id,side,display_order,elo_before,elo_after")
+      // "*" so hide_score is read when present without breaking before the
+      // column exists.
+      .select("*")
       .eq("match_id", row.id),
     supabase
       .from("match_participant_reviews")
@@ -619,6 +632,7 @@ export async function fetchMatchReview(
     display_order: number | null;
     elo_before: number | null;
     elo_after: number | null;
+    hide_score?: boolean | null;
   }>;
   const profileIds = Array.from(
     new Set([
@@ -660,6 +674,7 @@ export async function fetchMatchReview(
         decision: decisions.get(participant.user_id) ?? "pending",
         eloBefore: participant.elo_before ?? undefined,
         eloAfter: participant.elo_after ?? undefined,
+        hideScore: Boolean(participant.hide_score),
       };
     });
   const creator = profiles.get(row.created_by);
@@ -706,6 +721,7 @@ export async function fetchMatchReview(
     scoreB: row.score_b,
     runId: row.run_id ?? undefined,
     teamSize: row.team_size ?? Math.max(1, Math.floor(participants.length / 2)),
+    isRanked: (row as SupabaseMatch & { is_ranked?: boolean | null }).is_ranked !== false,
     participants,
   };
 }

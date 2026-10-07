@@ -163,6 +163,10 @@ export interface FeedMatchParticipant {
   name: string;
   side: "a" | "b";
   displayOrder: number;
+  /** Rating before and after this game; absent for casual games and older rows. */
+  elo?: { before: number; after: number } | null;
+  /** This player hid the score for their side (decision D30). */
+  hideScore?: boolean;
 }
 
 export interface FeedMatchSummary {
@@ -174,6 +178,8 @@ export interface FeedMatchSummary {
   status: "confirmed";
   sideA: FeedMatchParticipant[];
   sideB: FeedMatchParticipant[];
+  /** True when a player hid the score and the viewer wasn't in the game. */
+  scoresHidden?: boolean;
 }
 
 // BACKEND NOTE: public.planned_visits — planned presence ("pulling up").
