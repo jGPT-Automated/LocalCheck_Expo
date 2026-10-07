@@ -3,6 +3,7 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { RollingNumber } from "@/components/ui/RollingNumber";
 import { Colors, Radius } from "@/constants/colors";
 import { Layout, Space } from "@/constants/layout";
 import { TextStyles, Typography } from "@/constants/typography";
@@ -396,9 +397,9 @@ function FaceoffBody({
         <FaceoffPlayer onPlayerPress={onPlayerPress} player={right} win={rightWins} />
       </View>
       <View style={styles.bigScoreRow}>
-        <Text style={[styles.bigScore, leftWins && styles.bigScoreWin]}>{leftScore}</Text>
+        <RollingNumber style={[styles.bigScore, leftWins ? styles.bigScoreWin : {}]} value={leftScore} />
         <View style={styles.bigScoreDash} />
-        <Text style={[styles.bigScore, rightWins && styles.bigScoreWin]}>{rightScore}</Text>
+        <RollingNumber style={[styles.bigScore, rightWins ? styles.bigScoreWin : {}]} value={rightScore} />
       </View>
       {total > 0 ? (
       <View style={styles.marginBar}>
@@ -510,7 +511,7 @@ function TeamColumn({
       <Text numberOfLines={1} style={[styles.teamLabel, win && styles.teamLabelWin]}>
         {result ? `${label} · ${result}` : label}
       </Text>
-      <Text style={[styles.teamScore, win && styles.bigScoreWin]}>{score}</Text>
+      <RollingNumber style={[styles.teamScore, win ? styles.bigScoreWin : {}]} value={score} />
       {averages ? (
         <View style={[styles.avgPill, win && styles.avgPillWin]}>
           <Text style={[styles.avgText, win && styles.avgTextWin]}>

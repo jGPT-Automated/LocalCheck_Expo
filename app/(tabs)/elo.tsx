@@ -18,6 +18,7 @@ import { ProfileHero } from "@/components/ui/ProfileHero";
 import { ProfileStats } from "@/components/ui/ProfileStats";
 import { SearchField } from "@/components/ui/SearchField";
 import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
+import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
 import { type FeedItem, type FeedMatchSummary } from "@/constants/data";
 import { Typography } from "@/constants/typography";
@@ -565,19 +566,18 @@ export default function MeScreen() {
                   {inboxScope === "all" ? "IN REVIEW" : "GAMES"}
                 </Text>
                 {visibleOpenMatches.map((match) => (
-                  <Pressable
+                  <PressableScale
                     accessibilityLabel={`Open game at ${match.courtName}`}
                     accessibilityRole="button"
                     key={match.id}
                     onPress={() => router.push(`/match/${match.id}`)}
-                    style={({ pressed }) => [pressed && styles.pressed]}
                   >
                     <MatchReviewCard
                       compact
                       match={match}
                       viewerId={currentUser.id}
                     />
-                  </Pressable>
+                  </PressableScale>
                 ))}
               </View>
             ) : null}
@@ -659,19 +659,18 @@ export default function MeScreen() {
               <View style={styles.gameGroup}>
                 <Text style={styles.requestGroupTitle}>RECENTLY SETTLED</Text>
                 {visibleSettledMatches.map((match) => (
-                  <Pressable
+                  <PressableScale
                     accessibilityLabel={`Open game at ${match.courtName}`}
                     accessibilityRole="button"
                     key={match.id}
                     onPress={() => router.push(`/match/${match.id}`)}
-                    style={({ pressed }) => [pressed && styles.pressed]}
                   >
                     <MatchReviewCard
                       compact
                       match={match}
                       viewerId={currentUser.id}
                     />
-                  </Pressable>
+                  </PressableScale>
                 ))}
               </View>
             ) : null}

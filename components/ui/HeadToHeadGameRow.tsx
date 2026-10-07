@@ -62,7 +62,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
   },
-  pressed: { opacity: 0.7 },
+  // Full-width row: highlight, don't scale (Design and motion rules).
+  pressed: { backgroundColor: Colors.surface },
   tile: {
     width: 44,
     height: 44,

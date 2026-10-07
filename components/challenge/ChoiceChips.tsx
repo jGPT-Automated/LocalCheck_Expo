@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   },
   chipFill: { flex: 1 },
   chipActive: { borderColor: Colors.accent, backgroundColor: Colors.accentDim },
-  pressed: { opacity: 0.72 },
+  pressed: { opacity: 0.8, transform: [{ scale: 0.97 }] },
   text: {
     fontFamily: Typography.heading,
     fontSize: 14,

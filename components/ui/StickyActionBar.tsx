@@ -1,6 +1,8 @@
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+
+import { PressableScale } from "@/components/ui/PressableScale";
 
 import { Colors, Radius } from "@/constants/colors";
 import { Layout, Space } from "@/constants/layout";
@@ -36,14 +38,14 @@ export function StickyActionBar({
   return (
     <View style={[styles.bar, { paddingBottom: Math.max(bottomInset, Space.md) }]}>
       {leading ? (
-        <Pressable
+        <PressableScale
           accessibilityLabel={leading.accessibilityLabel}
           accessibilityRole="button"
           onPress={leading.onPress}
-          style={({ pressed }) => [styles.iconAction, pressed && styles.pressed]}
+          style={styles.iconAction}
         >
           <Feather color={Colors.textSecondary} name={leading.icon} size={18} />
-        </Pressable>
+        </PressableScale>
       ) : null}
       {secondary ? <Action action={secondary} /> : null}
       <Action action={primary} primary />
@@ -53,23 +55,22 @@ export function StickyActionBar({
 
 function Action({ action, primary = false }: { action: StickyAction; primary?: boolean }) {
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityState={{ disabled: action.disabled }}
       disabled={action.disabled}
       onPress={action.onPress}
-      style={({ pressed }) => [
+      style={[
         styles.action,
         primary ? (action.tone === "light" ? styles.light : styles.primary) : styles.secondary,
         action.disabled && styles.disabled,
-        pressed && styles.pressed,
       ]}
     >
       {action.icon ? (
         <Feather color={primary ? Colors.black : Colors.text} name={action.icon} size={16} />
       ) : null}
       <Text style={[styles.label, primary && styles.primaryLabel]}>{action.label}</Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -108,5 +109,4 @@ const styles = StyleSheet.create({
   label: { fontFamily: Typography.heading, fontSize: 11, color: Colors.text, letterSpacing: 1.25 },
   primaryLabel: { color: Colors.black },
   disabled: { opacity: 0.45 },
-  pressed: { opacity: 0.74, transform: [{ scale: 0.985 }] },
 });

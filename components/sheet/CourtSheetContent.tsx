@@ -2,12 +2,10 @@ import { BottomSheetView } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -24,6 +22,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { StatBlock } from "@/components/StatBlock";
 import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
 import { SportEmblem } from "@/components/ui/SportEmblem";
+import { useToast } from "@/components/ui/Toast";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, getSportColor } from "@/constants/data";
 import { Space } from "@/constants/layout";
@@ -78,6 +77,7 @@ export function CourtSheetContent({
   const { bottom } = useSafeAreaInsets();
   const { profile } = useAuth();
   const hasLocalPlus = useLocalPlus();
+  const { showToast } = useToast();
   const { height: windowHeight } = useWindowDimensions();
   const [peekHeight, setPeekHeight] = useState(0);
   const [localsListHeight, setLocalsListHeight] = useState(0);
@@ -142,9 +142,14 @@ export function CourtSheetContent({
       await checkOut();
       return;
     }
-    await checkIn(court.id);
-    if (Platform.OS !== "web") {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const ok = await checkIn(court.id);
+    // The toast carries the success haptic.
+    if (ok) {
+      showToast({
+        title: `CHECKED IN · ${(court.shortName || court.name).toUpperCase()}`,
+        body: "Check out when you leave.",
+        icon: "map-pin",
+      });
     }
   };
 

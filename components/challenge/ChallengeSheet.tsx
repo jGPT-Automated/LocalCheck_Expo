@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text } from "react-native";
 
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";

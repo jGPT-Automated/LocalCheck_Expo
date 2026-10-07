@@ -24,6 +24,7 @@ import { LogoMark } from "@/components/brand/LogoMark";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LaunchTransition } from "@/components/onboarding/LaunchTransition";
 import { CourtSheetProvider } from "@/components/sheet/CourtSheetHost";
+import { ToastProvider } from "@/components/ui/Toast";
 import { Colors, Radius } from "@/constants/colors";
 import { Layout } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
@@ -237,7 +238,9 @@ function DataProviders({ children }: { children: React.ReactNode }) {
         <CourtPresenceProvider>
           <DeviceLocationProvider autoResolve={autoResolveLocation}>
             <AppProvider>
-              <CourtSheetProvider>{children}</CourtSheetProvider>
+              <ToastProvider>
+                <CourtSheetProvider>{children}</CourtSheetProvider>
+              </ToastProvider>
             </AppProvider>
           </DeviceLocationProvider>
         </CourtPresenceProvider>
