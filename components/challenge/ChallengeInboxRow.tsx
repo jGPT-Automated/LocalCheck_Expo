@@ -44,7 +44,7 @@ export function ChallengeInboxRow({
             {challengeStatusLine(challenge, viewerId)}
           </Text>
           <Text numberOfLines={1} style={styles.meta}>
-            {challenge.ranked ? "Ranked" : "Casual"} 1v1 · {challengePlaceLine(challenge)}
+            {challenge.ranked ? "Ranked 1v1" : "Casual · no score"} · {challengePlaceLine(challenge)}
           </Text>
         </View>
       </Pressable>

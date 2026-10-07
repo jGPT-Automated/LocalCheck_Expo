@@ -123,6 +123,12 @@ export async function respondToChallenge(id: string, accept: boolean): Promise<C
   return error ? { ok: false, message: challengeErrorMessage(error) } : { ok: true, value: null };
 }
 
+/** Close a casual plan after playing (casual challenges have no score). */
+export async function finishCasualChallenge(id: string): Promise<ChallengeResult<null>> {
+  const { error } = await supabase.rpc("finish_casual_challenge", { p_challenge_id: id });
+  return error ? { ok: false, message: challengeErrorMessage(error) } : { ok: true, value: null };
+}
+
 export async function cancelChallenge(id: string): Promise<ChallengeResult<null>> {
   const { error } = await supabase.rpc("cancel_challenge", { p_challenge_id: id });
   return error ? { ok: false, message: challengeErrorMessage(error) } : { ok: true, value: null };

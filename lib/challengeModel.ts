@@ -23,7 +23,15 @@ export type Challenge = {
   createdAt: string;
 };
 
-export type ChallengeAction = "accept_decline" | "waiting" | "log_score" | "view_game" | "closed";
+/** Casual challenges are only plans (D27 revised): no score, nothing counts,
+ * so an accepted casual challenge offers "we played" instead of a score. */
+export type ChallengeAction =
+  | "accept_decline"
+  | "waiting"
+  | "log_score"
+  | "casual_on"
+  | "view_game"
+  | "closed";
 
 export function isOpen(status: ChallengeStatus): boolean {
   return status === "pending" || status === "accepted";
@@ -39,7 +47,7 @@ export function challengeAction(challenge: Challenge, viewerId: string): Challen
     case "pending":
       return challenge.opponent.id === viewerId ? "accept_decline" : "waiting";
     case "accepted":
-      return "log_score";
+      return challenge.ranked ? "log_score" : "casual_on";
     case "completed":
       return challenge.matchId ? "view_game" : "closed";
     default:
@@ -58,7 +66,7 @@ export function challengeStatusLine(challenge: Challenge, viewerId: string): str
     case "accepted":
       return `Game on with ${other}`;
     case "completed":
-      return "Score logged";
+      return challenge.matchId ? "Score logged" : "Played";
     case "declined":
       return challenge.opponent.id === viewerId ? "You passed" : `${other} passed`;
     case "cancelled":

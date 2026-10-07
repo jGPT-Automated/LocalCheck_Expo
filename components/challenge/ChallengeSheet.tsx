@@ -101,8 +101,8 @@ export function ChallengeSheet({
       />
       <Text style={styles.hint}>
         {ranked === "ranked"
-          ? `ELO moves once ${name} confirms the score.`
-          : "Counts in your head to head. No ELO change."}
+          ? `Log the score after. ELO moves once ${name} confirms it.`
+          : "Just a time and place to play. No score, nothing counts."}
       </Text>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -113,7 +113,9 @@ export function ChallengeSheet({
         variant="accent"
       />
       <Text style={styles.footnote}>
-        {name} gets it in their inbox. After you play, either of you logs the score.
+        {ranked === "ranked"
+          ? `${name} gets it in their inbox. After you play, either of you logs the score.`
+          : `${name} gets it in their inbox.`}
       </Text>
     </RunFlowSheet>
   );

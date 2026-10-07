@@ -34,6 +34,7 @@ import {
 } from "@/lib/challengeModel";
 import {
   cancelChallenge,
+  finishCasualChallenge,
   fetchChallenge,
   logChallengeResult,
   respondToChallenge,
@@ -198,6 +199,18 @@ export default function ChallengeScreen() {
             secondary={{ label: "CALL IT OFF", disabled: busy, onPress: callOff }}
           />
         );
+      case "casual_on":
+        return (
+          <StickyActionBar
+            bottomInset={bottom}
+            primary={{
+              label: "WE PLAYED",
+              disabled: busy,
+              onPress: () => void run(() => finishCasualChallenge(challenge.id)),
+            }}
+            secondary={{ label: "CALL IT OFF", disabled: busy, onPress: callOff }}
+          />
+        );
       case "view_game":
         return (
           <StickyActionBar
@@ -224,7 +237,7 @@ export default function ChallengeScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
           <View style={styles.cardTop}>
-            <Text style={styles.format}>1V1 · {challenge.ranked ? "RANKED" : "CASUAL"}</Text>
+            <Text style={styles.format}>{challenge.ranked ? "1V1 · RANKED" : "CASUAL · NO SCORE"}</Text>
             <View style={[styles.status, challenge.status === "accepted" && styles.statusLive]}>
               <Text style={[styles.statusText, challenge.status === "accepted" && styles.statusTextLive]}>
                 {STATUS_LABEL[challenge.status]}

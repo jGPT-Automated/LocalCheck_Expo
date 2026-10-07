@@ -43,6 +43,13 @@ test("accepted: either player logs the score", () => {
   assert.equal(challengeStatusLine(c, "me"), "Game on with Tyler");
 });
 
+test("casual challenges are plans: no score, just 'we played'", () => {
+  const c = { ...base, status: "accepted" as const, ranked: false };
+  assert.equal(challengeAction(c, "me"), "casual_on");
+  assert.equal(challengeAction(c, "ty"), "casual_on");
+  assert.equal(challengeStatusLine({ ...c, status: "completed" }, "me"), "Played");
+});
+
 test("completed with a game links to it; closed otherwise", () => {
   assert.equal(challengeAction({ ...base, status: "completed", matchId: "m" }, "me"), "view_game");
   assert.equal(challengeAction({ ...base, status: "declined" }, "me"), "closed");
