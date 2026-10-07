@@ -423,7 +423,12 @@ function FaceoffPlayer({
   return (
     <View style={styles.faceoffPlayer}>
       <View style={[styles.faceoffAvatar, win && styles.faceoffAvatarWin]}>
-        <PlayerAvatar name={player.name} playerId={player.id} size={56} />
+        <PlayerAvatar
+          name={player.name}
+          playerId={player.id}
+          size={56}
+          style={win ? styles.avatarWinFill : undefined}
+        />
       </View>
       <PlayerName name={player.name} onPress={onPress} win={win} />
       {player.elo ? <EloChangeLine after={player.elo.after} before={player.elo.before} /> : null}
@@ -525,7 +530,12 @@ function TeamColumn({
               onPress={onPress}
               style={({ pressed }) => [styles.rosterRow, right && styles.rosterRowRight, pressed && styles.namePressed]}
             >
-              <PlayerAvatar name={player.name} playerId={player.id} size={30} />
+              <PlayerAvatar
+                name={player.name}
+                playerId={player.id}
+                size={30}
+                style={win ? styles.avatarWinFill : undefined}
+              />
               <Text numberOfLines={1} style={[styles.rosterName, right && styles.rosterNameRight]}>
                 {player.name.split(" ")[0]}
               </Text>
@@ -968,6 +978,8 @@ const styles = StyleSheet.create({
   faceoffPlayer: { flex: 1, minWidth: 0, alignItems: "center", gap: 6 },
   faceoffAvatar: { padding: 3, borderRadius: Radius.card, borderWidth: 1.5, borderColor: Colors.surface },
   faceoffAvatarWin: { borderColor: Colors.accent },
+  // Warm fill for the winning side's avatars (mocks 3b/3c).
+  avatarWinFill: { backgroundColor: Colors.accentDim, borderColor: Colors.accentBorder },
   vs: {
     marginTop: 30,
     fontFamily: Typography.heading,

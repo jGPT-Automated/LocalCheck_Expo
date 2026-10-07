@@ -10,7 +10,7 @@ export function CourtMapPreview({ court, onPress }: { court: Court; onPress: () 
   const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
   const validCoordinates = Number.isFinite(court.longitude) && Number.isFinite(court.latitude);
   const uri = token && validCoordinates
-    ? `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/pin-s+ff5500(${court.longitude},${court.latitude})/${court.longitude},${court.latitude},15,0/800x320@2x?access_token=${token}`
+    ? `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/pin-s+fc4c02(${court.longitude},${court.latitude})/${court.longitude},${court.latitude},15,0/800x320@2x?access_token=${token}`
     : null;
 
   return (
