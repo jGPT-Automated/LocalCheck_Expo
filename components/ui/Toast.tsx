@@ -82,9 +82,18 @@ function ToastView({ toast, onGone }: { toast: ToastInput; onGone: () => void })
     };
   }, [hide, opacity, reduced, y]);
 
+  // Plain RN-side functions; worklets hand off to them with scheduleOnRN.
+  const pauseTimer = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current);
+  }, []);
+  const restartTimer = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(hide, VISIBLE_MS);
+  }, [hide]);
+
   const pan = Gesture.Pan()
     .onBegin(() => {
-      if (timer.current) scheduleOnRN(clearTimeout, timer.current);
+      scheduleOnRN(pauseTimer);
     })
     .onUpdate((event) => {
       // Up moves freely; down resists.
@@ -95,9 +104,7 @@ function ToastView({ toast, onGone }: { toast: ToastInput; onGone: () => void })
         y.set(withTiming(HIDDEN_Y, { duration: 200, easing: Ease.out }, () => scheduleOnRN(onGone)));
       } else {
         y.set(withSpring(0, { ...Springs.snapBack, velocity: event.velocityY }));
-        scheduleOnRN(() => {
-          timer.current = setTimeout(hide, VISIBLE_MS);
-        });
+        scheduleOnRN(restartTimer);
       }
     });
 
