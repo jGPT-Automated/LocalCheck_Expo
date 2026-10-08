@@ -32,8 +32,10 @@ import { Layout, Space } from "@/constants/layout";
 import { TextStyles, Typography } from "@/constants/typography";
 import { useApp, Visibility } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
+import { useAutoCheckIn } from "@/context/AutoCheckInContext";
 import { useNotifications } from "@/context/NotificationContext";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
+import { autoCheckInDetail, autoCheckInSwitchValue } from "@/lib/autoCheckInModel";
 import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
 import { deleteCurrentAccount } from "@/services/accountService";
 import { searchCourts } from "@/services/courtService";
@@ -94,6 +96,7 @@ function sportLabel(sport: CourtSport | null): string {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const autoCheckIn = useAutoCheckIn();
   const {
     currentUser,
     visibility,
@@ -354,6 +357,18 @@ export default function SettingsScreen() {
             }
             valueMuted={!localCourt}
             onPress={() => setEditor("court")}
+          />
+          <ToggleSettingsRow
+            icon="navigation"
+            label="AUTO CHECK-IN"
+            detail={autoCheckInDetail(autoCheckIn.state, autoCheckIn.courtName)}
+            disabled={autoCheckIn.state === "unavailable" || autoCheckIn.state === "no_court" || autoCheckIn.busy}
+            onValueChange={(value) => {
+              if (!value) void autoCheckIn.turnOff();
+              else if (autoCheckIn.state === "needs_always") autoCheckIn.openSettings();
+              else autoCheckIn.offer();
+            }}
+            value={autoCheckInSwitchValue(autoCheckIn.state)}
             last
           />
         </Section>
@@ -593,6 +608,7 @@ function ToggleSettingsRow({
   detail,
   onValueChange,
   value,
+  last,
 }: {
   disabled?: boolean;
   icon: React.ComponentProps<typeof Feather>["name"];
@@ -600,9 +616,10 @@ function ToggleSettingsRow({
   detail?: string;
   onValueChange: (value: boolean) => void;
   value: boolean;
+  last?: boolean;
 }) {
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, last && styles.rowLast]}>
       <Feather name={icon} size={17} color={Colors.textSecondary} />
       <View style={{ flex: 1 }}>
         <Text style={styles.settingsLabel} numberOfLines={1}>

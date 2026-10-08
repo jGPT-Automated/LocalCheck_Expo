@@ -11,6 +11,7 @@ test("accepts LocalCheck notification destinations", () => {
   assert.equal(getSafeNotificationRoute(`/match/${id}`), `/match/${id}`);
   assert.equal(getSafeNotificationRoute(`/run/${id}`), `/run/${id}`);
   assert.equal(getSafeNotificationRoute(`/challenge/${id}`), `/challenge/${id}`);
+  assert.equal(getSafeNotificationRoute(`/court/${id}`), `/court/${id}`);
 });
 
 test("rejects malformed or unrelated destinations", () => {
@@ -18,5 +19,6 @@ test("rejects malformed or unrelated destinations", () => {
   assert.equal(getSafeNotificationRoute("/(tabs)/compete?admin=true"), null);
   assert.equal(getSafeNotificationRoute("/run/not-a-uuid"), null);
   assert.equal(getSafeNotificationRoute("/challenge/not-a-uuid"), null);
+  assert.equal(getSafeNotificationRoute("/court/not-a-uuid"), null);
   assert.equal(getSafeNotificationRoute(null), null);
 });

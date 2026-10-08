@@ -37,9 +37,19 @@ the old behavior:
 - One camera permission string covering player QR codes and court photos
   (`app.config.js`).
 - `expo-image-picker` removed (it was unused).
+- Auto check-in (D35): `expo-task-manager` added; the "Always" location purpose
+  string; the `location` background mode (`isIosBackgroundLocationEnabled`;
+  expo-task-manager also adds `fetch`, unused, harmless;
+  expo-location refuses to start geofencing without it). Geofencing can only
+  be tested on a real build, never in Expo Go. App Review notes must say:
+  background location is used only for opt-in auto check-in at the player's
+  one local court.
 
-Runtime version policy is `appVersion`. Both changes are additive-safe: an OTA
-for the current version still runs on the older build.
+Runtime version policy is `appVersion`. Auto check-in adds a native module
+(`expo-task-manager`), so its PR bumps the app version to **1.0.4**: OTAs for
+1.0.4 only reach builds that have the module, and the 1.0.3 build on phones
+keeps getting 1.0.3 updates only. Never publish 1.0.4 JavaScript to the 1.0.3
+build.
 
 ## Production OTA
 

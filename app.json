@@ -3,7 +3,7 @@
     "name": "LocalCheck",
     "slug": "localcheck",
     "owner": "agenticjess-os",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "localcheck",
@@ -88,7 +88,9 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "LocalCheck uses your location to find courts near you and show who's playing nearby."
+          "locationWhenInUsePermission": "LocalCheck uses your location to find courts near you and show who's playing nearby.",
+          "locationAlwaysAndWhenInUsePermission": "If you turn on auto check-in, LocalCheck uses your location in the background only to check you in and out of your local court.",
+          "isIosBackgroundLocationEnabled": true
         }
       ]
     ],

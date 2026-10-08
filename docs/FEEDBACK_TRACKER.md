@@ -21,6 +21,15 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-08 — Auto check-in (`codex/auto-check-in`)
+
+| Item | Status |
+|------|--------|
+| Opt-in sheet when a local court is picked + Settings switch with status | ✅ built, needs device check |
+| Geofence task: arrive (3-min hold), leave (check out), Undo notification | ✅ built, needs device check |
+| Session readable with the phone locked (keychain after first unlock) | ✅ |
+| Migration `20261009120000_auto_check_in.sql` | waiting on Jesse's Run |
+
 ## 2026-10-08 — PR #66 (`codex/profile-challenge`)
 
 | Item | Status |

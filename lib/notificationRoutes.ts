@@ -5,6 +5,7 @@ const SAFE_NOTIFICATION_ROUTES = [
   new RegExp(`^/match/${UUID}$`),
   new RegExp(`^/run/${UUID}$`),
   new RegExp(`^/challenge/${UUID}$`),
+  new RegExp(`^/court/${UUID}$`),
 ];
 
 /**

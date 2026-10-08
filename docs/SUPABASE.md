@@ -249,6 +249,11 @@ All applied by Jesse in the SQL editor, verified, and recorded:
 - `20261008120000_hide_test_accounts_and_courts.sql` — test accounts and test
   courts hidden from real players (D34). Runbook:
   `docs/runbooks/ACCOUNT_TAGS.md`.
+- `20261009120000_auto_check_in.sql` — auto check-in (D35, D36):
+  `check_ins.source` (manual / auto), `private.auto_check_in_arrivals` (3-minute
+  hold), RPCs `auto_check_in_arrive`, `auto_check_in_leave`,
+  `undo_auto_check_in`; cron `localcheck-promote-auto-check-ins` every minute;
+  the stale sweep keeps 45 minutes for manual and 3 hours for auto.
 
 ## Realtime and API safety
 

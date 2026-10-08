@@ -69,6 +69,13 @@ Last reconciled: 2026-10-08 against `origin/main` at `541632c` (#65), PR #66
   won. It still counts for ELO, rank, record and head-to-head.
 - Game visibility (D31): a game shows outside its players only if every
   player is Public.
+- Auto check-in (D35, D36; opt-in, real builds only): one 150 m geofence on the
+  player's local court. Arriving is held 3 minutes server-side (drive-bys never
+  post), then becomes a check-in with source `auto` and a "Checked in" local
+  notification with Undo; leaving checks out. Offered once when a local court
+  is picked (after onboarding) and in Settings → AUTO CHECK-IN. The auth
+  session is stored readable after first unlock so the background task can
+  call Supabase with the phone locked.
 - LocalPlus plans: Yearly $49.99 (preselected, "Save 17%") and Monthly $4.99,
   US only, with the auto-renew disclosure and Terms / Privacy links.
 - Leaderboard membership: a profile is ranked in a sport only after ≥1 game in

@@ -1,11 +1,13 @@
 import { Href, useRouter } from "expo-router";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { AppState, Platform } from "react-native";
+import { AppState, DeviceEventEmitter, Platform } from "react-native";
 
 import { useAuth } from "@/context/AuthContext";
 import { useRealtimeHub } from "@/context/RealtimeHubContext";
 import { batchHasResource, RealtimeTopic } from "@/lib/realtimeHub";
+import { AUTO_CHECK_IN_UNDO_ACTION, AUTO_CHECK_IN_UNDONE_EVENT } from "@/lib/autoCheckInModel";
 import { getSafeNotificationRoute } from "@/lib/notificationRoutes";
+import { undoAutoCheckIn } from "@/services/autoCheckInService";
 import { profileNeedsOnboarding } from "@/lib/onboardingGate";
 import {
   AppNotification,
@@ -113,7 +115,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         const identifier = response.notification.request.identifier;
         if (handledResponseIdRef.current === identifier) return;
         handledResponseIdRef.current = identifier;
-        const path = getSafeNotificationRoute(response.notification.request.content.data?.path);
+        const data = response.notification.request.content.data;
+        if (data?.kind === "auto_check_in" && response.actionIdentifier === AUTO_CHECK_IN_UNDO_ACTION) {
+          void undoAutoCheckIn().then((ok) => DeviceEventEmitter.emit(AUTO_CHECK_IN_UNDONE_EVENT, ok));
+        }
+        const path = getSafeNotificationRoute(data?.path);
         if (path) router.push(path as Href);
       };
       responseSubscription = Notifications.addNotificationResponseReceivedListener(handleResponse);

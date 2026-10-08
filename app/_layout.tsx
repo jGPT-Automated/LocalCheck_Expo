@@ -1,3 +1,7 @@
+// Defines the auto check-in geofence task at startup (iOS can launch the app
+// straight into it). Must stay a top-level import.
+import "@/services/autoCheckInService";
+
 import {
   Inter_200ExtraLight,
   Inter_400Regular,
@@ -29,6 +33,7 @@ import { Colors, Radius } from "@/constants/colors";
 import { Layout } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { AppProvider } from "@/context/AppContext";
+import { AutoCheckInProvider } from "@/context/AutoCheckInContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { CourtPresenceProvider } from "@/context/CourtPresenceContext";
 import { DeviceLocationProvider } from "@/context/DeviceLocationContext";
@@ -239,7 +244,9 @@ function DataProviders({ children }: { children: React.ReactNode }) {
           <DeviceLocationProvider autoResolve={autoResolveLocation}>
             <AppProvider>
               <ToastProvider>
-                <CourtSheetProvider>{children}</CourtSheetProvider>
+                <AutoCheckInProvider>
+                  <CourtSheetProvider>{children}</CourtSheetProvider>
+                </AutoCheckInProvider>
               </ToastProvider>
             </AppProvider>
           </DeviceLocationProvider>

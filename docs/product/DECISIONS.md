@@ -25,6 +25,10 @@ below wherever they disagree.
   change or a prompt for the website agent.
 - **D33 Mocks are a style reference:** Claude makes product and design calls;
   colors tuned to the mocks (`#FC4C02`, neutral greys).
+- **D35 Auto check-in in v1:** opt-in, one geofence on the local court only,
+  built on expo-location. **D36:** automatic with a 3-minute hold and an Undo
+  notification; leaving checks out; auto check-ins last until you leave
+  (3-hour backstop). Plan doc Spec 8.
 - **D34 Test data hidden at launch:** `TEST` / `REVIEWER` accounts and test
   courts are hidden from real players by RLS; `TEST` / `REVIEWER` / `FOUNDER`
   see everything. Four test courts (LA, Houston), Kasmiersky the one real
