@@ -20,7 +20,7 @@ import { SearchField } from "@/components/ui/SearchField";
 import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
-import { type FeedItem, type FeedMatchSummary } from "@/constants/data";
+import { displayTag, type FeedItem, type FeedMatchSummary } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
@@ -295,9 +295,9 @@ export default function MeScreen() {
     return () => clearTimeout(timer);
   }, [currentUser.id, friendQuery]);
 
-  // Account tag drives the screen title and the avatar treatment.
-  // See docs/runbooks/ACCOUNT_TAGS.md. null → an ordinary "PROFILE".
-  const accountTag = profile?.account_tag ?? null;
+  // FOUNDER / STARTER title the screen and print the avatar. TEST and
+  // REVIEWER read as a plain "PROFILE". See docs/runbooks/ACCOUNT_TAGS.md.
+  const accountTag = displayTag(profile?.account_tag);
 
   return (
     <View style={styles.screen}>
@@ -378,7 +378,7 @@ export default function MeScreen() {
           <SearchField
             variant="bare"
             accessibilityLabel="Search your inbox"
-            placeholder="Search inbox..."
+            placeholder="Search inbox…"
             value={inboxQuery}
             onChangeText={setInboxQuery}
             onClear={() => setInboxQuery("")}

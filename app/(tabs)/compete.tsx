@@ -1633,7 +1633,7 @@ function LogGameView({
             (!canSubmit || submitting) && styles.submitBtnTextDisabled,
           ]}
         >
-          {submitting ? "LOGGING..." : "LOG GAME"}
+          {submitting ? "LOGGING…" : "LOG GAME"}
         </Text>
       </Pressable>
     </KeyboardAwareScrollViewCompat>

@@ -63,7 +63,7 @@ const PERKS: { icon: React.ComponentProps<typeof Feather>["name"]; title: string
   {
     icon: "award",
     title: "FOUNDING SUPPORT",
-    body: "Back the app early and lock in the lowest price it will ever be.",
+    body: "Back LocalCheck early and help shape what gets built next.",
   },
 ];
 

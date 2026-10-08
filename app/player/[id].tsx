@@ -3,7 +3,6 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -140,8 +139,8 @@ export default function PlayerProfileScreen() {
   const router = useRouter();
   const { courts, currentUser, localCourt, isFriend, isFriendPending, incomingFriendRequests, acceptFriendRequest, addFriend, removeFriend } =
     useApp();
-  const { top, bottom } = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : top;
+  const { bottom } = useSafeAreaInsets();
+  const [safetyBusy, setSafetyBusy] = useState<"report" | "block" | null>(null);
 
   const [player, setPlayer] = useState<Player | null>(null);
   const [playerCourt, setPlayerCourt] = useState<Court | null>(null);
@@ -235,18 +234,13 @@ export default function PlayerProfileScreen() {
     return () => { mounted = false; };
   }, [id, currentUser.id, courts]);
 
-  if (loading) {
-    return (
-      <View style={[styles.container, { paddingTop: topPad + 20, alignItems: "center" }]}>
-        <Text style={styles.notFound}>LOADING…</Text>
-      </View>
-    );
-  }
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)"));
 
-  if (!player) {
+  if (loading || !player) {
     return (
-      <View style={[styles.container, { paddingTop: topPad + 20 }]}>
-        <Text style={styles.notFound}>PLAYER NOT FOUND</Text>
+      <View style={styles.container}>
+        <DetailHeader onBack={goBack} title="PROFILE" />
+        <Text style={styles.notFound}>{loading ? "LOADING…" : "PLAYER NOT FOUND"}</Text>
       </View>
     );
   }
@@ -317,7 +311,10 @@ export default function PlayerProfileScreen() {
     .map((court) => ({ id: court.id, name: court.shortName || court.name }));
 
   const submitReport = async (reason: ReportReason) => {
+    if (safetyBusy) return;
+    setSafetyBusy("report");
     const ok = await reportUser(player.id, reason);
+    setSafetyBusy(null);
     Alert.alert(
       ok ? "Report received" : "Report not sent",
       ok ? "Thanks. LocalCheck will review it." : "Please try again."
@@ -344,7 +341,10 @@ export default function PlayerProfileScreen() {
           text: "Block",
           style: "destructive",
           onPress: async () => {
+            if (safetyBusy) return;
+            setSafetyBusy("block");
             const ok = await blockUser(player.id);
+            setSafetyBusy(null);
             if (ok) router.canGoBack() ? router.back() : router.replace("/(tabs)");
             else Alert.alert("Could not block player", "Please try again.");
           },
@@ -356,7 +356,7 @@ export default function PlayerProfileScreen() {
   return (
     <View style={styles.container}>
       <DetailHeader
-        onBack={() => router.canGoBack() ? router.back() : router.replace("/(tabs)")}
+        onBack={goBack}
         title="PROFILE"
       />
 
@@ -461,13 +461,13 @@ export default function PlayerProfileScreen() {
               <View style={styles.safetySection}>
                 <Text style={styles.detailGroupTitle}>SAFETY</Text>
                 <View style={styles.safetyRow}>
-                  <Pressable accessibilityLabel={`Report ${player.name}`} accessibilityRole="button" onPress={handleReport} style={({ pressed }) => [styles.safetyButton, pressed && styles.safetyButtonPressed]}>
+                  <Pressable accessibilityLabel={`Report ${player.name}`} accessibilityRole="button" disabled={safetyBusy !== null} onPress={handleReport} style={({ pressed }) => [styles.safetyButton, pressed && styles.safetyButtonPressed]}>
                     <Feather color={Colors.textSecondary} name="flag" size={14} />
-                    <Text style={styles.safetyText}>REPORT PLAYER</Text>
+                    <Text style={styles.safetyText}>{safetyBusy === "report" ? "SENDING…" : "REPORT PLAYER"}</Text>
                   </Pressable>
-                  <Pressable accessibilityLabel={`Block ${player.name}`} accessibilityRole="button" onPress={handleBlock} style={({ pressed }) => [styles.safetyButton, pressed && styles.safetyButtonPressed]}>
+                  <Pressable accessibilityLabel={`Block ${player.name}`} accessibilityRole="button" disabled={safetyBusy !== null} onPress={handleBlock} style={({ pressed }) => [styles.safetyButton, pressed && styles.safetyButtonPressed]}>
                     <Feather color={Colors.loss} name="slash" size={14} />
-                    <Text style={[styles.safetyText, styles.safetyDanger]}>BLOCK PLAYER</Text>
+                    <Text style={[styles.safetyText, styles.safetyDanger]}>{safetyBusy === "block" ? "BLOCKING…" : "BLOCK PLAYER"}</Text>
                   </Pressable>
                 </View>
               </View>

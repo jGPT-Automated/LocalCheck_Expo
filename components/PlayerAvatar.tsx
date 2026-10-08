@@ -1,5 +1,5 @@
 import React from "react";
-import { Feather, FontAwesome } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { Platform, StyleSheet, Text, View, ViewStyle } from "react-native";
 import Svg, { Rect } from "react-native-svg";
 
@@ -19,8 +19,7 @@ interface PlayerAvatarProps {
   ranked?: boolean;
   friend?: boolean;
   /** Account tag treatment — see docs/runbooks/ACCOUNT_TAGS.md. FOUNDER/STARTER get the
-   *  faint diagonal accent print; REVIEWER shows the Apple mark in place of
-   *  initials. */
+   *  faint diagonal accent print. TEST and REVIEWER look like any player. */
   tag?: AccountTag | null;
   status?: "active" | "quiet" | "inactive";
   foregroundColor?: string;
@@ -69,7 +68,6 @@ export function PlayerAvatar({
   const displayInitials = normalizePlayerInitials(name || initials || playerId);
   const inactive = status === "inactive";
   const printed = (tag === "FOUNDER" || tag === "STARTER") && !inactive;
-  const appleMark = tag === "REVIEWER" && !inactive;
   const bg = inactive
     ? Colors.surface
     : invert
@@ -109,27 +107,19 @@ export function PlayerAvatar({
         ]}
       >
         {printed ? <StarterPrint size={size} /> : null}
-        {appleMark ? (
-          <FontAwesome
-            name="apple"
-            size={size * 0.5}
-            color={foregroundColor ?? (highlighted ? Colors.text : textColor)}
-          />
-        ) : (
-          <Text
-            style={[
-              styles.initials,
-              highlighted && styles.highlightedInitials,
-              {
-                fontSize: size * 0.33,
-                color:
-                  foregroundColor ?? (highlighted ? Colors.text : textColor),
-              },
-            ]}
-          >
-            {displayInitials}
-          </Text>
-        )}
+        <Text
+          style={[
+            styles.initials,
+            highlighted && styles.highlightedInitials,
+            {
+              fontSize: size * 0.33,
+              color:
+                foregroundColor ?? (highlighted ? Colors.text : textColor),
+            },
+          ]}
+        >
+          {displayInitials}
+        </Text>
       </View>
       {friend ? (
         <View style={[styles.friendBadge, {

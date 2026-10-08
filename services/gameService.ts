@@ -310,24 +310,6 @@ export async function logTeamGame(payload: {
   return matchId ? { ok: true, matchId } : { ok: false };
 }
 
-export async function fetchGamesByCourt(
-  courtId: string,
-): Promise<MatchResult[]> {
-  try {
-    const { data, error } = await supabase
-      .from("matches")
-      .select(MATCH_SELECT)
-      .eq("court_id", courtId)
-      .eq("status", "confirmed")
-      .order("played_at", { ascending: false })
-      .limit(50);
-    if (error || !data) return [];
-    return (data as unknown as SupabaseMatch[]).map((g) => mapMatchToResult(g));
-  } catch {
-    return [];
-  }
-}
-
 /**
  * The player's games that still need attention — pending review or on hold.
  * Drives the Me-tab inbox. Confirmed and voided games have already reached the
@@ -461,40 +443,6 @@ export async function fetchGamesByPlayer(
   }
 }
 
-/** Matches where both users participated, mapped from currentUserId's perspective. */
-export async function fetchHeadToHeadGames(
-  currentUserId: string,
-  opponentId: string,
-): Promise<MatchResult[]> {
-  try {
-    const [myIds, theirIds] = await Promise.all([
-      fetchParticipantMatchIds(currentUserId),
-      fetchParticipantMatchIds(opponentId),
-    ]);
-    const theirs = new Set(theirIds);
-    const shared = myIds.filter((id) => theirs.has(id));
-    if (shared.length === 0) return [];
-    const { data, error } = await supabase
-      .from("matches")
-      .select(MATCH_SELECT)
-      .in("id", shared)
-      .eq("status", "confirmed")
-      .order("played_at", { ascending: false })
-      .limit(50);
-    if (error || !data) {
-      if (error) console.warn("fetchHeadToHeadGames failed", error.message);
-      return [];
-    }
-    return (data as unknown as SupabaseMatch[])
-      .filter((game) =>
-        areOpponentsInMatch(game.match_participants, currentUserId, opponentId),
-      )
-      .map((game) => mapMatchToResult(game, currentUserId));
-  } catch {
-    return [];
-  }
-}
-
 /**
  * Head-to-head games for the profile's HEAD TO HEAD tab: confirmed games where
  * the two players were on opposite sides, newest first, with rosters and the
@@ -574,21 +522,6 @@ export async function setScoreHidden(matchId: string, hidden: boolean): Promise<
   const { error } = await supabase.rpc("set_score_hidden", { p_match_id: matchId, p_hidden: hidden });
   if (error) console.warn("setScoreHidden failed", error.message);
   return !error;
-}
-
-export async function fetchRecentGames(limit = 20): Promise<MatchResult[]> {
-  try {
-    const { data, error } = await supabase
-      .from("matches")
-      .select(MATCH_SELECT)
-      .eq("status", "confirmed")
-      .order("played_at", { ascending: false })
-      .limit(limit);
-    if (error || !data) return [];
-    return (data as unknown as SupabaseMatch[]).map((g) => mapMatchToResult(g));
-  } catch {
-    return [];
-  }
 }
 
 export async function fetchMatchReview(
@@ -724,56 +657,6 @@ export async function fetchMatchReview(
     isRanked: (row as SupabaseMatch & { is_ranked?: boolean | null }).is_ranked !== false,
     participants,
   };
-}
-
-export async function reviewTeamMatch(
-  matchId: string,
-  decision: "pending" | "approved" | "disputed",
-): Promise<boolean> {
-  const { error } = await supabase.rpc("review_team_match", {
-    p_match_id: matchId,
-    p_decision: decision,
-  });
-  if (error) {
-    console.warn("reviewTeamMatch failed", error.message);
-    return false;
-  }
-  return true;
-}
-
-export async function reviewScheduledMatch(
-  matchId: string,
-  decision: "pending" | "approved" | "disputed",
-): Promise<boolean> {
-  const { error } = await supabase.rpc("review_run_match", {
-    p_match_id: matchId,
-    p_decision: decision,
-  });
-  if (error) {
-    console.warn("reviewScheduledMatch failed", error.message);
-    return false;
-  }
-  return true;
-}
-
-export async function confirmMatch(matchId: string): Promise<boolean> {
-  const { data, error } = await supabase.rpc("confirm_match", {
-    p_match_id: matchId,
-  });
-  if (error) {
-    console.warn("confirmMatch failed", error.message);
-    return false;
-  }
-  return Boolean(data && (data as { id?: string }).id === matchId);
-}
-
-export async function rejectMatch(matchId: string): Promise<boolean> {
-  const { data, error } = await supabase.rpc("reject_match", { p_match_id: matchId });
-  if (error) {
-    console.warn("rejectMatch failed", error.message);
-    return false;
-  }
-  return Boolean(data && (data as { id?: string }).id === matchId);
 }
 
 export async function respondToMatch(

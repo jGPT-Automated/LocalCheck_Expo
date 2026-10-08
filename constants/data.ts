@@ -244,10 +244,17 @@ export function formatTierLabel(tier: EloTier | string): string {
   return String(tier);
 }
 
-/** The label to show for a player on a leaderboard row: their account tag when
- *  they have one, otherwise their earned ELO tier. */
+/** The label to show for a player on a leaderboard row: FOUNDER or STARTER
+ *  when they carry it, otherwise their earned ELO tier. TEST and REVIEWER are
+ *  never shown as labels: real players can't see those accounts at all, and
+ *  App Review shouldn't see "TEST" all over the boards. */
 export function playerRankLabel(player: Pick<Player, "tag" | "tier">): string {
-  return player.tag ?? formatTierLabel(player.tier);
+  return displayTag(player.tag) ?? formatTierLabel(player.tier);
+}
+
+/** The account tag a person is allowed to see on screen (FOUNDER / STARTER). */
+export function displayTag(tag: AccountTag | null | undefined): AccountTag | null {
+  return tag === "FOUNDER" || tag === "STARTER" ? tag : null;
 }
 
 export function getTierColor(tier: EloTier | string): string {

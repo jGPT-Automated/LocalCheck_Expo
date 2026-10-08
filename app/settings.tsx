@@ -1,3 +1,4 @@
+import Constants from "expo-constants";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
 import * as AppleAuthentication from "expo-apple-authentication";
@@ -454,7 +455,9 @@ export default function SettingsScreen() {
           </Text>
         </Pressable>
 
-        <Text style={styles.version}>LOCALCHECK 1.0.0</Text>
+        <Text style={styles.version}>
+          LOCALCHECK {Constants.expoConfig?.version ?? ""}
+        </Text>
       </KeyboardAwareScrollViewCompat>
 
       <PrivacyEditorSheet

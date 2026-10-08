@@ -7,9 +7,10 @@
  * migration is applied and RevenueCat is live so nobody is wrongly locked out.
  */
 export const LocalPlusFlags = {
-  /** Hide non-subscribers from the public leaderboard query. Needs the
-   *  founding-grant backfill applied first, or the board goes empty. */
-  gateLeaderboard: false,
+  /** Only LocalPlus players are ranked; LocalLite stays unranked (the
+   *  paywall's LEADERBOARD perk). FOUNDER and REVIEWER hold promo grants;
+   *  TEST accounts count as LocalPlus. */
+  gateLeaderboard: true,
   /** Profile activity blurs everything past the 10 most recent games. Safe to
    *  enable now — a non-founder simply sees the paywall prompt. */
   gateHistory: true,
@@ -19,16 +20,4 @@ export const LocalPlusFlags = {
   freeHistoryCount: 10,
   /** Days a local court is locked after being set. */
   localCourtCooldownDays: 7,
-} as const;
-
-/**
- * Leaderboard rollout switches. See docs/runbooks/ACCOUNT_TAGS.md.
- */
-export const LeaderboardFlags = {
-  /** Hide TEST / REVIEWER accounts from *other* viewers' boards. Off for now so
-   *  the pre-launch board isn't a ghost town — every dev account is tagged, and
-   *  the tag still labels the row ("TEST" / "REVIEWER"). Turn on near public
-   *  launch so burner accounts don't clutter real players' rankings. A viewer
-   *  always sees their own row regardless. */
-  hideTaggedAccounts: false,
 } as const;

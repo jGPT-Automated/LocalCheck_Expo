@@ -89,13 +89,16 @@ export function CourtSheetContent({
     courts.find((c) => c.id === courtId) ??
     (localCourt?.id === courtId ? localCourt : null);
   const [court, setCourt] = useState<Court | null>(cached);
+  const [courtMissing, setCourtMissing] = useState(false);
   const [locals, setLocals] = useState<LocalWithLastCheckIn[]>([]);
   const { roster, localCount } = usePresence(courtId || null);
 
   useEffect(() => {
     if (!courtId) return;
     if (!court) {
-      fetchCourtById(courtId).then((c) => c && setCourt(c));
+      fetchCourtById(courtId)
+        .then((c) => (c ? setCourt(c) : setCourtMissing(true)))
+        .catch(() => setCourtMissing(true));
     }
     fetchLocalsWithLastCheckIn(courtId).then(setLocals);
   }, [courtId, roster.length]); // re-pull locals when presence changes
@@ -108,7 +111,9 @@ export function CourtSheetContent({
   if (!court) {
     return (
       <View style={styles.loading}>
-        <Text style={styles.emptyText}>LOADING…</Text>
+        <Text style={styles.emptyText}>
+          {courtMissing ? "COULDN'T LOAD THIS COURT" : "LOADING…"}
+        </Text>
       </View>
     );
   }

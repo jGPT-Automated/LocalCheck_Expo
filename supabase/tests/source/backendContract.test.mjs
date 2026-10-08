@@ -62,8 +62,9 @@ test("new verified courts do not require a paid, free, or private access classif
     new URL("../../../services/courtService.ts", import.meta.url),
     "utf8",
   );
+  // The Add Court screen (the old AddCourtModal was removed as dead code).
   const modal = await readFile(
-    new URL("../../../components/AddCourtModal.tsx", import.meta.url),
+    new URL("../../../app/add-court.tsx", import.meta.url),
     "utf8",
   );
   for (const source of [verification, edgeFunction, courtService, modal]) {
