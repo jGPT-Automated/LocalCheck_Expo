@@ -114,10 +114,15 @@ begin
     return 'cancelled';
   end if;
 
+  -- Only auto check-ins: a check-in the player tapped is theirs to end
+  -- (or the 45-minute timer). iOS also reports "outside" whenever the app
+  -- opens away from the court, which lands here and closes a stale auto
+  -- check-in (for example after the phone died at the court).
   update public.check_ins
   set checked_out_at = now()
   where user_id = v_user_id
     and court_id = p_court_id
+    and source = 'auto'
     and checked_out_at is null;
   if found then
     return 'checked_out';

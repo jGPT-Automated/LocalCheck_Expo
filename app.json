@@ -97,7 +97,8 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "LocalCheck uses your location to find courts near you and show who's playing nearby.",
-          "locationAlwaysAndWhenInUsePermission": "If you turn on auto check-in, LocalCheck uses your location in the background only to check you in and out of your local court.",
+          "locationAlwaysAndWhenInUsePermission": "For auto check-in: when the app is closed, your iPhone tells LocalCheck only when you arrive at or leave your local court. Nothing else is tracked.",
+          "locationAlwaysPermission": "For auto check-in: when the app is closed, your iPhone tells LocalCheck only when you arrive at or leave your local court. Nothing else is tracked.",
           "isIosBackgroundLocationEnabled": true
         }
       ]
