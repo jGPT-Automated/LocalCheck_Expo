@@ -8,6 +8,8 @@ import {
   PushPermissionStatus,
 } from "./pushRegistrationPolicy";
 
+const PUSH_FAILED = "Alerts couldn't be turned on just now. Try again in a moment.";
+
 export interface PushSetupResult {
   ok: boolean;
   status: "enabled" | "denied" | "simulator" | "unsupported" | "error";
@@ -57,17 +59,18 @@ export async function registerPushNotifications(ask: boolean): Promise<PushSetup
     }
 
     const projectId = getProjectId();
-    if (!projectId) return { ok: false, status: "error", message: "The app project ID is missing." };
+    if (!projectId) return { ok: false, status: "error", message: PUSH_FAILED };
     const token = await Notifications.getExpoPushTokenAsync({ projectId });
     const saved = await savePushToken(token.data, Platform.OS);
     return saved
       ? { ok: true, status: "enabled" }
-      : { ok: false, status: "error", message: "The phone could not be registered." };
+      : { ok: false, status: "error", message: PUSH_FAILED };
   } catch (error) {
+    console.warn("push setup failed", error);
     return {
       ok: false,
       status: "error",
-      message: error instanceof Error ? error.message : "Push setup failed.",
+      message: PUSH_FAILED,
     };
   }
 }
@@ -99,11 +102,8 @@ export async function syncPushRegistration(
     if (action === "none") return null;
     return registerPushNotifications(action === "prompt");
   } catch (error) {
-    return {
-      ok: false,
-      status: "error",
-      message: error instanceof Error ? error.message : "Push setup failed.",
-    };
+    console.warn("push sync failed", error);
+    return { ok: false, status: "error", message: PUSH_FAILED };
   }
 }
 

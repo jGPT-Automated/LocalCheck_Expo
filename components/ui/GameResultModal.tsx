@@ -1,23 +1,25 @@
+import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import {
-  AccessibilityInfo,
-  Animated,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Dimensions, Pressable, StyleSheet, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ScoreCard } from "@/components/match/ScoreCard";
+import { AppBottomSheetModal } from "@/components/sheet/AppBottomSheetModal";
 import { Colors } from "@/constants/colors";
 import type { CourtSport, FeedMatchSummary } from "@/constants/data";
-import { Motion, Space } from "@/constants/layout";
+import { Space } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
+import { useApp } from "@/context/AppContext";
+import { firstName, summarizeHeadToHead } from "@/lib/headToHead";
+import { fetchHeadToHead } from "@/services/gameService";
 
+/**
+ * Final game result, opened from a feed row (mock 3a). A real bottom sheet:
+ * drag it down, tap the backdrop, or swipe it away. It used to be a Modal with
+ * a drawn-on handle that didn't move.
+ */
 export function GameResultModal({
   match,
   sport: _sport,
@@ -33,131 +35,104 @@ export function GameResultModal({
 }) {
   const { bottom } = useSafeAreaInsets();
   const router = useRouter();
-  const progress = React.useRef(new Animated.Value(0)).current;
-  const [mounted, setMounted] = React.useState(visible);
+  const sheetRef = React.useRef<BottomSheetModal>(null);
+  const presentedRef = React.useRef(false);
+  const { currentUser } = useApp();
+  const [allTime, setAllTime] = React.useState<string | null>(null);
+  // Keep showing the last game while the sheet slides away after the caller
+  // clears `match`.
+  const lastMatch = React.useRef<FeedMatchSummary | null>(match);
+  if (match) lastMatch.current = match;
+  const shown = match ?? lastMatch.current;
+
+  // "You're 2–5 all-time vs Jesse" when you played in this 1v1.
+  const opponent =
+    match && match.sideA.length === 1 && match.sideB.length === 1
+      ? [match.sideA[0], match.sideB[0]].find((p) => p.playerId !== currentUser.id) ?? null
+      : null;
+  const viewerPlayed =
+    !!match && [...match.sideA, ...match.sideB].some((p) => p.playerId === currentUser.id);
 
   React.useEffect(() => {
-    if (visible) setMounted(true);
+    setAllTime(null);
+    if (!visible || !viewerPlayed || !opponent || !currentUser.id) return;
     let cancelled = false;
-    void AccessibilityInfo.isReduceMotionEnabled().then((reduceMotion) => {
-      if (cancelled) return;
-      Animated.timing(progress, {
-        toValue: visible ? 1 : 0,
-        duration: reduceMotion ? 0 : visible ? Motion.deliberate : Motion.fast,
-        useNativeDriver: true,
-      }).start(({ finished }) => {
-        if (finished && !visible) setMounted(false);
-      });
+    void fetchHeadToHead(currentUser.id, opponent.playerId).then((games) => {
+      if (cancelled || games.length < 2) return;
+      const s = summarizeHeadToHead(games);
+      setAllTime(`You're ${s.myWins}–${s.theirWins} all-time vs ${firstName(opponent.name)}`);
     });
     return () => {
       cancelled = true;
     };
-  }, [progress, visible]);
+  }, [visible, viewerPlayed, opponent?.playerId, currentUser.id]);
 
-  if (!mounted || !match) return null;
+  React.useEffect(() => {
+    if (visible && match && !presentedRef.current) {
+      presentedRef.current = true;
+      requestAnimationFrame(() => sheetRef.current?.present());
+    } else if (!visible && presentedRef.current) {
+      sheetRef.current?.dismiss();
+    }
+  }, [visible, match]);
 
-  const translateY = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [24, 0],
-  });
-  const teamSize = Math.max(match.sideA.length, match.sideB.length);
-
-  const viewGame = () => {
+  const teamSize = shown ? Math.max(shown.sideA.length, shown.sideB.length) : 1;
+  const leave = (path: string) => {
+    sheetRef.current?.dismiss();
     onClose();
-    router.push(`/match/${match.id}`);
-  };
-  const openPlayer = (id: string) => {
-    onClose();
-    router.push(`/player/${id}`);
+    router.push(path as never);
   };
 
   return (
-    <Modal
-      animationType="none"
-      onRequestClose={onClose}
-      presentationStyle="overFullScreen"
-      statusBarTranslucent
-      transparent
-      visible={mounted}
+    <AppBottomSheetModal
+      dynamic
+      maxDynamicContentSize={Dimensions.get("window").height * 0.86}
+      onDismiss={() => {
+        presentedRef.current = false;
+        onClose();
+      }}
+      ref={sheetRef}
+      snapPoints={[]}
     >
-      <View accessibilityViewIsModal style={styles.layer}>
-        <Animated.View style={[styles.backdrop, { opacity: progress }]}>
-          <Pressable
-            accessibilityLabel="Close final game result"
-            onPress={onClose}
-            style={StyleSheet.absoluteFill}
-          />
-        </Animated.View>
-
-        <Animated.View
-          style={[
-            styles.card,
-            {
-              marginBottom: Math.max(bottom, 0) + Space.xl,
-              opacity: progress,
-              transform: [{ translateY }],
-            },
-          ]}
-        >
-          <View style={styles.handle} />
+      {shown ? (
+        <BottomSheetView style={[styles.content, { paddingBottom: Math.max(bottom, Space.md) + Space.sm }]}>
           <ScoreCard
-            courtName={courtName ?? "GAME"}
+            courtName={courtName ?? "Game"}
+            footnote={allTime ?? undefined}
             format={`${teamSize}V${teamSize}`}
             leftLabel="TEAM A"
-            leftPlayers={match.sideA.map((p) => ({ id: p.playerId, name: p.name }))}
-            leftScore={match.scoreA}
-            onPlayerPress={openPlayer}
-            playedOn={match.playedAt}
+            leftPlayers={shown.sideA.map((p) => ({ id: p.playerId, name: p.name, elo: p.elo ?? null }))}
+            leftScore={shown.scoreA}
+            onPlayerPress={(id) => leave(`/player/${id}`)}
+            playedOn={shown.playedAt}
             rightLabel="TEAM B"
-            rightPlayers={match.sideB.map((p) => ({ id: p.playerId, name: p.name }))}
-            rightScore={match.scoreB}
+            rightPlayers={shown.sideB.map((p) => ({ id: p.playerId, name: p.name, elo: p.elo ?? null }))}
+            rightScore={shown.scoreB}
+            scoresHidden={Boolean(shown.scoresHidden)}
             status="confirmed"
             statusLabel="FINAL"
+            variant="sheet"
           />
           <Pressable
             accessibilityRole="button"
-            onPress={viewGame}
+            hitSlop={8}
+            onPress={() => leave(`/match/${shown.id}`)}
             style={({ pressed }) => [styles.viewGame, pressed && styles.pressed]}
           >
             <Text style={styles.viewGameText}>VIEW GAME</Text>
             <Feather color={Colors.accent} name="arrow-right" size={13} />
           </Pressable>
-        </Animated.View>
-      </View>
-    </Modal>
+        </BottomSheetView>
+      ) : null}
+    </AppBottomSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  layer: { flex: 1, justifyContent: "flex-end" },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.overlay,
-  },
-  card: {
-    marginHorizontal: Space.lg,
-    paddingHorizontal: Space.md,
-    // Top and bottom insets match: card top → FINAL bar (this padding + grabber
-    // + its margin ≈ 24) ≈ "VIEW GAME" text → card bottom (its slack + this
-    // padding ≈ 25).
-    paddingTop: Space.sm,
-    paddingBottom: Space.md,
-    backgroundColor: Colors.surface,
-    borderRadius: 26,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-  },
-  handle: {
-    width: 44,
-    height: 4,
-    marginBottom: Space.md,
-    alignSelf: "center",
-    borderRadius: 2,
-    backgroundColor: Colors.mutedDark,
-  },
+  content: { paddingHorizontal: Space.lg },
   viewGame: {
-    minHeight: 40,
-    marginTop: Space.md,
+    minHeight: 44,
+    marginTop: Space.xs,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -165,9 +140,9 @@ const styles = StyleSheet.create({
   },
   viewGameText: {
     fontFamily: Typography.bodyBold,
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.accent,
-    letterSpacing: 1.2,
+    letterSpacing: 1.6,
   },
   pressed: { opacity: 0.72 },
 });

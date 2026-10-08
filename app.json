@@ -86,14 +86,6 @@
         }
       ],
       [
-        "expo-image-picker",
-        {
-          "photosPermission": "LocalCheck lets you choose a current court photo for verification.",
-          "cameraPermission": "LocalCheck uses the camera to verify the court you are adding.",
-          "microphonePermission": false
-        }
-      ],
-      [
         "expo-location",
         {
           "locationWhenInUsePermission": "LocalCheck uses your location to find courts near you and show who's playing nearby."

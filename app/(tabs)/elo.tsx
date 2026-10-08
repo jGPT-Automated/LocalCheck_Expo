@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { HeaderIconAction, ScreenHeader } from "@/components/ScreenHeader";
+import { ChallengeInboxRow } from "@/components/challenge/ChallengeInboxRow";
 import { MatchReviewCard } from "@/components/match/MatchReviewCard";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { CompactSelect } from "@/components/ui/CompactSelect";
@@ -17,8 +18,9 @@ import { ProfileHero } from "@/components/ui/ProfileHero";
 import { ProfileStats } from "@/components/ui/ProfileStats";
 import { SearchField } from "@/components/ui/SearchField";
 import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
+import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
-import { type FeedItem, type FeedMatchSummary } from "@/constants/data";
+import { displayTag, type FeedItem, type FeedMatchSummary } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
@@ -35,6 +37,8 @@ import {
 import type { MatchReview } from "@/services/gameService";
 import { fetchPlayerActivity } from "@/services/feedService";
 import { pairVisits } from "@/lib/activityPresentation";
+import type { Challenge } from "@/lib/challengeModel";
+import { fetchOpenChallenges, respondToChallenge } from "@/services/challengeService";
 import { LocalPlusFlags } from "@/constants/flags";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
 import type { Player } from "@/constants/data";
@@ -73,6 +77,8 @@ export default function MeScreen() {
   } | null>(null);
   const [openMatches, setOpenMatches] = useState<MatchReview[]>([]);
   const [settledMatches, setSettledMatches] = useState<MatchReview[]>([]);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [respondingId, setRespondingId] = useState<string | null>(null);
   const [inboxScope, setInboxScope] = useState<InboxScope>("pending");
   const [inboxQuery, setInboxQuery] = useState("");
   const [activity, setActivity] = useState<FeedItem[]>([]);
@@ -117,10 +123,17 @@ export default function MeScreen() {
       ),
     [notifications],
   );
+  // Challenges waiting on you: answer one sent to you, or log the score.
+  const challengeCount = challenges.filter(
+    (c) =>
+      (c.status === "pending" && c.opponent.id === currentUser.id) ||
+      c.status === "accepted",
+  ).length;
   const inboxCount =
     incomingFriendRequests.length +
     openMatches.length +
-    inboxNotifications.length;
+    inboxNotifications.length +
+    challengeCount;
 
   // Free-text filter over everything in the inbox — court, players, or the
   // notification copy. The dropdown scopes pending vs. everything; this
@@ -141,6 +154,13 @@ export default function MeScreen() {
         p.name.toLowerCase().includes(inboxQ),
       )
     : incomingFriendRequests;
+  const visibleChallenges = inboxQ
+    ? challenges.filter((c) =>
+        `${c.challenger.name} ${c.opponent.name} ${c.courtName ?? ""}`
+          .toLowerCase()
+          .includes(inboxQ),
+      )
+    : challenges;
   const visibleInboxNotifications = inboxQ
     ? inboxNotifications.filter((n) =>
         `${n.title} ${n.body}`.toLowerCase().includes(inboxQ),
@@ -160,6 +180,24 @@ export default function MeScreen() {
     refreshOpenMatches,
     [refreshOpenMatches, activeTab, notifications.length, matches.length],
   );
+  const refreshChallenges = useCallback(() => {
+    let cancelled = false;
+    void fetchOpenChallenges(currentUser.id).then((rows) => {
+      if (!cancelled) setChallenges(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser.id]);
+  useEffect(refreshChallenges, [refreshChallenges, activeTab, notifications.length]);
+  useFocusEffect(refreshChallenges);
+  const answerChallenge = async (challenge: Challenge, accept: boolean) => {
+    setRespondingId(challenge.id);
+    const result = await respondToChallenge(challenge.id, accept);
+    setRespondingId(null);
+    if (result.ok && accept) router.push(`/challenge/${challenge.id}`);
+    refreshChallenges();
+  };
   // The "ALL" inbox scope also shows games that have already settled — so a
   // player can see that a game was approved and what it did to their rating
   // without hunting the court feed. Only fetched when that scope is on.
@@ -257,9 +295,9 @@ export default function MeScreen() {
     return () => clearTimeout(timer);
   }, [currentUser.id, friendQuery]);
 
-  // Account tag drives the screen title and the avatar treatment.
-  // See docs/runbooks/ACCOUNT_TAGS.md. null → an ordinary "PROFILE".
-  const accountTag = profile?.account_tag ?? null;
+  // FOUNDER / STARTER title the screen and print the avatar. TEST and
+  // REVIEWER read as a plain "PROFILE". See docs/runbooks/ACCOUNT_TAGS.md.
+  const accountTag = displayTag(profile?.account_tag);
 
   return (
     <View style={styles.screen}>
@@ -340,7 +378,7 @@ export default function MeScreen() {
           <SearchField
             variant="bare"
             accessibilityLabel="Search your inbox"
-            placeholder="Search inbox..."
+            placeholder="Search inbox…"
             value={inboxQuery}
             onChangeText={setInboxQuery}
             onClear={() => setInboxQuery("")}
@@ -507,25 +545,39 @@ export default function MeScreen() {
           </View>
         ) : (
           <View style={styles.content}>
+            {visibleChallenges.length > 0 ? (
+              <View style={styles.requestGroup}>
+                <Text style={styles.requestGroupTitle}>CHALLENGES</Text>
+                {visibleChallenges.map((challenge) => (
+                  <ChallengeInboxRow
+                    busy={respondingId === challenge.id}
+                    challenge={challenge}
+                    key={challenge.id}
+                    onOpen={() => router.push(`/challenge/${challenge.id}`)}
+                    onRespond={(accept) => void answerChallenge(challenge, accept)}
+                    viewerId={currentUser.id}
+                  />
+                ))}
+              </View>
+            ) : null}
             {visibleOpenMatches.length > 0 ? (
               <View style={styles.gameGroup}>
                 <Text style={styles.requestGroupTitle}>
                   {inboxScope === "all" ? "IN REVIEW" : "GAMES"}
                 </Text>
                 {visibleOpenMatches.map((match) => (
-                  <Pressable
+                  <PressableScale
                     accessibilityLabel={`Open game at ${match.courtName}`}
                     accessibilityRole="button"
                     key={match.id}
                     onPress={() => router.push(`/match/${match.id}`)}
-                    style={({ pressed }) => [pressed && styles.pressed]}
                   >
                     <MatchReviewCard
                       compact
                       match={match}
                       viewerId={currentUser.id}
                     />
-                  </Pressable>
+                  </PressableScale>
                 ))}
               </View>
             ) : null}
@@ -607,24 +659,24 @@ export default function MeScreen() {
               <View style={styles.gameGroup}>
                 <Text style={styles.requestGroupTitle}>RECENTLY SETTLED</Text>
                 {visibleSettledMatches.map((match) => (
-                  <Pressable
+                  <PressableScale
                     accessibilityLabel={`Open game at ${match.courtName}`}
                     accessibilityRole="button"
                     key={match.id}
                     onPress={() => router.push(`/match/${match.id}`)}
-                    style={({ pressed }) => [pressed && styles.pressed]}
                   >
                     <MatchReviewCard
                       compact
                       match={match}
                       viewerId={currentUser.id}
                     />
-                  </Pressable>
+                  </PressableScale>
                 ))}
               </View>
             ) : null}
 
             {visibleOpenMatches.length === 0 &&
+            visibleChallenges.length === 0 &&
             visibleRequests.length === 0 &&
             visibleInboxNotifications.length === 0 &&
             !(inboxScope === "all" && visibleSettledMatches.length > 0) ? (

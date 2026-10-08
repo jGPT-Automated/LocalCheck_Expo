@@ -1,9 +1,8 @@
 import { Feather } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,12 +11,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ChallengeSheet } from "@/components/challenge/ChallengeSheet";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { DetailHeader } from "@/components/ui/DetailHeader";
 import { GameResultModal } from "@/components/ui/GameResultModal";
 import { PlayerQrModal } from "@/components/ui/PlayerQrModal";
 import { ProfileHero } from "@/components/ui/ProfileHero";
-import { ProfileMatchRow } from "@/components/ui/ProfileMatchRow";
+import { HeadToHeadGameRow } from "@/components/ui/HeadToHeadGameRow";
 import { ProfileStats } from "@/components/ui/ProfileStats";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { HeadToHeadSummary } from "@/components/ui/HeadToHeadSummary";
@@ -25,13 +25,15 @@ import { Colors, Radius } from "@/constants/colors";
 import {
   Court,
   type FeedItem,
-  MatchResult,
   Player,
 } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
 import { TextStyles, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
-import { fetchHeadToHeadGames } from "@/services/gameService";
+import { fetchHeadToHead } from "@/services/gameService";
+import { fetchOpenChallengeWith } from "@/services/challengeService";
+import type { Challenge } from "@/lib/challengeModel";
+import { type HeadToHeadGame, summarizeHeadToHead } from "@/lib/headToHead";
 import { fetchCourtById } from "@/services/courtService";
 import { fetchLeaderboard, fetchProfile } from "@/services/profileService";
 import { fetchPlayerActivity } from "@/services/feedService";
@@ -43,15 +45,6 @@ import {
   reportUser,
   safetyControlsAvailable,
 } from "@/services/safetyService";
-
-/** Deterministic head-to-head stats from persisted games both users played in. */
-function getHeadToHeadStats(sharedMatches: MatchResult[]) {
-  const wins = sharedMatches.filter((m) => m.result === "WIN").length;
-  const losses = sharedMatches.filter((m) => m.result === "LOSS").length;
-  const total = wins + losses;
-  const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
-  return { wins, losses, total, winRate, matches: sharedMatches };
-}
 
 function shortDate(value: string): string {
   return new Date(value).toLocaleDateString("en-US", {
@@ -144,20 +137,39 @@ function ActivityHeatmap({ counts }: { counts: number[] }) {
 export default function PlayerProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { courts, currentUser, isFriend, isFriendPending, incomingFriendRequests, acceptFriendRequest, addFriend, removeFriend } =
+  const { courts, currentUser, localCourt, isFriend, isFriendPending, incomingFriendRequests, acceptFriendRequest, addFriend, removeFriend } =
     useApp();
-  const { top, bottom } = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : top;
+  const { bottom } = useSafeAreaInsets();
+  const [safetyBusy, setSafetyBusy] = useState<"report" | "block" | null>(null);
 
   const [player, setPlayer] = useState<Player | null>(null);
   const [playerCourt, setPlayerCourt] = useState<Court | null>(null);
   const [activity, setActivity] = useState<FeedItem[]>([]);
-  const [sharedMatches, setSharedMatches] = useState<MatchResult[]>([]);
+  const [sharedGames, setSharedGames] = useState<HeadToHeadGame[]>([]);
   const [weekdayActivity, setWeekdayActivity] = useState<number[]>(Array(7).fill(0));
   const [playerRank, setPlayerRank] = useState<number | null>(null);
+  const [courtRank, setCourtRank] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<PlayerProfileTab>("versus");
   const [qrVisible, setQrVisible] = useState(false);
+  const [challengeOpen, setChallengeOpen] = useState(false);
+  const [openChallenge, setOpenChallenge] = useState<Challenge | null>(null);
+
+  // Re-checked on focus so coming back from the challenge screen updates
+  // the button (sent, accepted, called off).
+  useFocusEffect(
+    useCallback(() => {
+      let mounted = true;
+      if (currentUser.id && id && currentUser.id !== id) {
+        void fetchOpenChallengeWith(currentUser.id, id).then((row) => {
+          if (mounted) setOpenChallenge(row);
+        });
+      }
+      return () => {
+        mounted = false;
+      };
+    }, [currentUser.id, id]),
+  );
   const [showSafetyControls, setShowSafetyControls] = useState(false);
   const [selectedResult, setSelectedResult] = useState<{
     match: FeedItem["match"];
@@ -183,12 +195,13 @@ export default function PlayerProfileScreen() {
       setLoading(true);
       setActiveTab("versus");
       setPlayerRank(null);
+      setCourtRank(null);
       const [p, activityItems, shared, activityByDay] = await Promise.all([
         fetchProfile(id),
         fetchPlayerActivity(id, 20),
         currentUser.id && currentUser.id !== id
-          ? fetchHeadToHeadGames(currentUser.id, id)
-          : Promise.resolve([] as MatchResult[]),
+          ? fetchHeadToHead(currentUser.id, id)
+          : Promise.resolve([] as HeadToHeadGame[]),
         fetchPlayerActivityByWeekday(id),
       ]);
       if (!mounted) return;
@@ -199,7 +212,7 @@ export default function PlayerProfileScreen() {
       setPlayerCourt(resolvedCourt ?? null);
       // A profile tells a "visits + games" story, not raw system events.
       setActivity(pairVisits(activityItems));
-      setSharedMatches(shared);
+      setSharedGames(shared);
       setWeekdayActivity(activityByDay);
       setLoading(false);
       const rankingSport = p?.sport ?? resolvedCourt?.sport ?? null;
@@ -210,22 +223,24 @@ export default function PlayerProfileScreen() {
           setPlayerRank(rankIndex >= 0 ? rankIndex + 1 : null);
         });
       }
+      if (rankingSport && p?.courtId) {
+        void fetchLeaderboard("LOCAL", p.courtId, rankingSport).then((rankedPlayers) => {
+          if (!mounted) return;
+          const rankIndex = rankedPlayers.findIndex((rankedPlayer) => rankedPlayer.id === id);
+          setCourtRank(rankIndex >= 0 ? rankIndex + 1 : null);
+        });
+      }
     })();
     return () => { mounted = false; };
   }, [id, currentUser.id, courts]);
 
-  if (loading) {
-    return (
-      <View style={[styles.container, { paddingTop: topPad + 20, alignItems: "center" }]}>
-        <Text style={styles.notFound}>LOADING…</Text>
-      </View>
-    );
-  }
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)"));
 
-  if (!player) {
+  if (loading || !player) {
     return (
-      <View style={[styles.container, { paddingTop: topPad + 20 }]}>
-        <Text style={styles.notFound}>PLAYER NOT FOUND</Text>
+      <View style={styles.container}>
+        <DetailHeader onBack={goBack} title="PROFILE" />
+        <Text style={styles.notFound}>{loading ? "LOADING…" : "PLAYER NOT FOUND"}</Text>
       </View>
     );
   }
@@ -236,24 +251,70 @@ export default function PlayerProfileScreen() {
   const isRequestPending = isFriendPending(player.id);
   const isIncomingRequest = incomingFriendRequests.some((requester) => requester.id === player.id);
   const total = player.wins + player.losses;
-  // Head-to-head stats from persisted shared games
-  const h2h = getHeadToHeadStats(sharedMatches);
+  const winRate = total > 0 ? Math.round((player.wins / total) * 100) : 0;
+  const h2h = summarizeHeadToHead(sharedGames);
+  const courtName = playerCourt?.shortName || playerCourt?.name || null;
+  const sportName =
+    player.sport === "BASKETBALL" ? "Basketball" : player.sport === "PICKLEBALL" ? "Pickleball" : null;
+  const subline = [
+    courtName ? (courtRank ? `#${courtRank} at ${courtName}` : courtName) : "No local court",
+    sportName,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   const handleToggleFriend = () => {
     if (isIncomingRequest) {
       void acceptFriendRequest(player.id);
       return;
     }
-    // A pending request is withdrawn through the same remove_friendship RPC.
-    if (isFriendStatus || isRequestPending) {
-      removeFriend(player.id);
-    } else {
-      addFriend(player.id);
+    if (isFriendStatus) {
+      // Icon-only button now, so confirm before an accidental unfriend.
+      Alert.alert(`Remove ${player.name} as a friend?`, undefined, [
+        { text: "Cancel", style: "cancel" },
+        { text: "Remove", style: "destructive", onPress: () => removeFriend(player.id) },
+      ]);
+      return;
     }
+    // A pending request is withdrawn through the same remove_friendship RPC.
+    if (isRequestPending) removeFriend(player.id);
+    else addFriend(player.id);
   };
 
+  const handleChallenge = () => {
+    if (openChallenge) {
+      router.push(`/challenge/${openChallenge.id}`);
+      return;
+    }
+    if (!isFriendStatus) {
+      const first = player.name.split(" ")[0];
+      Alert.alert(
+        "Challenges are between friends",
+        isRequestPending
+          ? `Your friend request to ${first} is pending. You can challenge them once they accept.`
+          : `Add ${first} as a friend first. Once they accept, you can challenge them.`,
+        isRequestPending || isIncomingRequest
+          ? [{ text: "OK" }]
+          : [
+              { text: "Not now", style: "cancel" },
+              { text: "Add friend", onPress: () => addFriend(player.id) },
+            ],
+      );
+      return;
+    }
+    setChallengeOpen(true);
+  };
+
+  const challengeCourts = [localCourt, playerCourt]
+    .filter((court): court is Court => Boolean(court))
+    .filter((court, index, list) => list.findIndex((c) => c.id === court.id) === index)
+    .map((court) => ({ id: court.id, name: court.shortName || court.name }));
+
   const submitReport = async (reason: ReportReason) => {
+    if (safetyBusy) return;
+    setSafetyBusy("report");
     const ok = await reportUser(player.id, reason);
+    setSafetyBusy(null);
     Alert.alert(
       ok ? "Report received" : "Report not sent",
       ok ? "Thanks. LocalCheck will review it." : "Please try again."
@@ -280,7 +341,10 @@ export default function PlayerProfileScreen() {
           text: "Block",
           style: "destructive",
           onPress: async () => {
+            if (safetyBusy) return;
+            setSafetyBusy("block");
             const ok = await blockUser(player.id);
+            setSafetyBusy(null);
             if (ok) router.canGoBack() ? router.back() : router.replace("/(tabs)");
             else Alert.alert("Could not block player", "Please try again.");
           },
@@ -292,7 +356,7 @@ export default function PlayerProfileScreen() {
   return (
     <View style={styles.container}>
       <DetailHeader
-        onBack={() => router.canGoBack() ? router.back() : router.replace("/(tabs)")}
+        onBack={goBack}
         title="PROFILE"
       />
 
@@ -305,24 +369,18 @@ export default function PlayerProfileScreen() {
         name={player.name}
         onOpenQr={() => setQrVisible(true)}
         playerId={player.id}
-        sportLabel={
-          player.sport === "BASKETBALL"
-            ? "BB"
-            : player.sport === "PICKLEBALL"
-              ? "PB"
-              : player.sport
-        }
+        subline={subline}
         username={player.username}
       />
       <ProfileStats compact metrics={[
-        { value: player.wins, label: "WINS", tone: "win" },
-        { value: player.losses, label: "LOSSES", tone: "loss" },
-        { value: player.checkIns, label: "CHECK-INS" },
+        { value: `${player.wins}–${player.losses}`, label: "RECORD" },
+        { value: `${winRate}%`, label: "WIN RATE" },
         { value: total, label: "GAMES" },
+        { value: player.checkIns, label: "CHECK-INS" },
       ]} />
 
       <View accessibilityRole="tablist" style={styles.tabs}>
-        <ProfileTab label="VS YOU" active={activeTab === "versus"} onPress={() => setActiveTab("versus")} />
+        <ProfileTab label="HEAD TO HEAD" active={activeTab === "versus"} onPress={() => setActiveTab("versus")} />
         <ProfileTab label="ACTIVITY" active={activeTab === "activity"} onPress={() => setActiveTab("activity")} />
         <ProfileTab label="DETAILS" active={activeTab === "details"} onPress={() => setActiveTab("details")} />
       </View>
@@ -335,20 +393,29 @@ export default function PlayerProfileScreen() {
         {activeTab === "versus" ? (
           <>
             <HeadToHeadSummary
-              losses={h2h.losses}
-              matched={h2h.total}
-              opponentName={player.name}
-              winRate={h2h.winRate}
-              wins={h2h.wins}
+              me={{ id: currentUser.id, name: currentUser.name, initials: currentUser.avatar }}
+              summary={h2h}
+              them={{ id: player.id, name: player.name, initials: player.avatar }}
             />
-            {h2h.matches.length > 0 ? (
-              <View style={styles.section}>
-                <Text style={styles.subSectionTitle}>GAMES TOGETHER</Text>
-                {h2h.matches.slice(0, 5).map((match) => (
-                  <ProfileMatchRow key={match.id} match={match} opponentName={player.name} />
-                ))}
+            <View style={styles.gamesTogether}>
+              <View style={styles.gamesHeader}>
+                <Text style={styles.gamesTitle}>GAMES TOGETHER</Text>
+                {sharedGames.length > 0 ? <Text style={styles.gamesHint}>Your result</Text> : null}
               </View>
-            ) : null}
+              {sharedGames.length > 0 ? (
+                sharedGames.slice(0, 10).map((game) => (
+                  <HeadToHeadGameRow
+                    game={game}
+                    key={game.id}
+                    onPress={() => router.push(`/match/${game.id}`)}
+                  />
+                ))
+              ) : (
+                <Text style={styles.gamesEmpty}>
+                  No games against {player.name.split(" ")[0]} yet. Log one after you play.
+                </Text>
+              )}
+            </View>
           </>
         ) : activeTab === "activity" ? (
           <View style={styles.activityContent}>
@@ -394,13 +461,13 @@ export default function PlayerProfileScreen() {
               <View style={styles.safetySection}>
                 <Text style={styles.detailGroupTitle}>SAFETY</Text>
                 <View style={styles.safetyRow}>
-                  <Pressable accessibilityLabel={`Report ${player.name}`} accessibilityRole="button" onPress={handleReport} style={({ pressed }) => [styles.safetyButton, pressed && styles.safetyButtonPressed]}>
+                  <Pressable accessibilityLabel={`Report ${player.name}`} accessibilityRole="button" disabled={safetyBusy !== null} onPress={handleReport} style={({ pressed }) => [styles.safetyButton, pressed && styles.safetyButtonPressed]}>
                     <Feather color={Colors.textSecondary} name="flag" size={14} />
-                    <Text style={styles.safetyText}>REPORT PLAYER</Text>
+                    <Text style={styles.safetyText}>{safetyBusy === "report" ? "SENDING…" : "REPORT PLAYER"}</Text>
                   </Pressable>
-                  <Pressable accessibilityLabel={`Block ${player.name}`} accessibilityRole="button" onPress={handleBlock} style={({ pressed }) => [styles.safetyButton, pressed && styles.safetyButtonPressed]}>
+                  <Pressable accessibilityLabel={`Block ${player.name}`} accessibilityRole="button" disabled={safetyBusy !== null} onPress={handleBlock} style={({ pressed }) => [styles.safetyButton, pressed && styles.safetyButtonPressed]}>
                     <Feather color={Colors.loss} name="slash" size={14} />
-                    <Text style={[styles.safetyText, styles.safetyDanger]}>BLOCK PLAYER</Text>
+                    <Text style={[styles.safetyText, styles.safetyDanger]}>{safetyBusy === "block" ? "BLOCKING…" : "BLOCK PLAYER"}</Text>
                   </Pressable>
                 </View>
               </View>
@@ -411,23 +478,45 @@ export default function PlayerProfileScreen() {
       </ScrollView>
       <StickyActionBar
         bottomInset={bottom}
-        primary={{
-          label: "LOG GAME",
-          icon: "edit-3",
-          onPress: () => router.push(`/(tabs)/compete?tab=log&opponentId=${player.id}`),
-        }}
-        secondary={{
-          label: isFriendStatus
-            ? "REMOVE FRIEND"
+        leading={{
+          accessibilityLabel: isFriendStatus
+            ? "Remove friend"
             : isIncomingRequest
-              ? "ACCEPT REQUEST"
+              ? "Accept friend request"
               : isRequestPending
-                ? "CANCEL REQUEST"
-                : "ADD FRIEND",
-          icon: isFriendStatus ? "user-minus" : "user-plus",
+                ? "Cancel friend request"
+                : "Add friend",
+          icon: isFriendStatus
+            ? "user-minus"
+            : isIncomingRequest
+              ? "user-check"
+              : isRequestPending
+                ? "user-x"
+                : "user-plus",
           onPress: handleToggleFriend,
         }}
+        secondary={{
+          label: "LOG GAME",
+          onPress: () => router.push(`/(tabs)/compete?tab=log&opponentId=${player.id}`),
+        }}
+        primary={{
+          label: openChallenge ? "VIEW CHALLENGE" : "CHALLENGE",
+          tone: "light",
+          onPress: handleChallenge,
+        }}
       />
+      {challengeOpen ? (
+        <ChallengeSheet
+          courts={challengeCourts}
+          onClose={() => setChallengeOpen(false)}
+          onSent={(challengeId) => {
+            setChallengeOpen(false);
+            router.push(`/challenge/${challengeId}`);
+          }}
+          opponent={{ id: player.id, name: player.name }}
+          visible={challengeOpen}
+        />
+      ) : null}
       <PlayerQrModal
         onClose={() => setQrVisible(false)}
         playerId={player.id}
@@ -472,7 +561,9 @@ const styles = StyleSheet.create({
     letterSpacing: 1.6,
   },
   profileTabTextActive: { color: Colors.text },
-  activityContent: { paddingHorizontal: Layout.screenGutter },
+  // Same width as the court page and your own profile: ActivityRow carries
+  // its own side padding, so no extra gutter here.
+  activityContent: {},
   detailsContent: { padding: Layout.screenGutter, gap: Space.lg },
   detailGroup: {
     overflow: "hidden",
@@ -559,149 +650,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // Header
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  headerTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.text,
-    letterSpacing: 3,
-  },
   notFound: {
     fontFamily: Typography.heading,
     fontSize: 18,
     color: Colors.muted,
     textAlign: "center",
     padding: 40,
-  },
-
-  // Hero
-  hero: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    paddingHorizontal: 20,
-    paddingVertical: 22,
-    backgroundColor: Colors.black,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  avatarColumn: { alignItems: "center" },
-  heroCopy: { flex: 1, minWidth: 0 },
-  qrHint: { marginTop: 7, flexDirection: "row", alignItems: "center", gap: 4 },
-  qrHintText: { fontFamily: Typography.bodyBold, fontSize: 7, color: Colors.accent, letterSpacing: 1 },
-  playerName: {
-    fontFamily: Typography.heading,
-    fontSize: 24,
-    color: Colors.white,
-    letterSpacing: 1,
-  },
-  playerHandle: {
-    marginTop: 3,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 8,
-    color: Colors.muted,
-    letterSpacing: 1.2,
-  },
-  heroMeta: { marginTop: 8, flexDirection: "row", alignItems: "center", gap: 7 },
-  tierPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderColor: Colors.border,
-  },
-  tierDot: { width: 7, height: 7, borderRadius: 3.5 },
-  tierLabel: { fontFamily: Typography.heading, fontSize: 12, letterSpacing: 2 },
-  friendBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: Colors.win,
-  },
-  friendBadgeText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.win,
-    letterSpacing: 1.5,
-  },
-
-  // Stats
-  statsGrid: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-  },
-  statCell: { flex: 1, alignItems: "center", paddingVertical: 18 },
-  statCellBorder: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: Colors.border },
-  statVal: {
-    fontFamily: Typography.heading,
-    fontSize: 26,
-    color: Colors.text,
-    letterSpacing: 0.5,
-  },
-  statLbl: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 9,
-    color: Colors.muted,
-    letterSpacing: 2,
-    textTransform: "uppercase" as const,
-    marginTop: 3,
-  },
-
-  // Section
-  section: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
-    color: Colors.text,
-    letterSpacing: 3,
-    textTransform: "uppercase" as const,
-  },
-  lockBadge: {
-    padding: 4,
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginVertical: 14,
-  },
-  subSectionTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 10,
-    color: Colors.muted,
-    letterSpacing: 2,
-    textTransform: "uppercase" as const,
-    marginBottom: 10,
   },
   safetySection: {
     padding: Space.lg,
@@ -739,206 +693,19 @@ const styles = StyleSheet.create({
   },
   safetyDanger: { color: Colors.loss },
 
-  // H2H Grid
-  h2hGrid: {
-    flexDirection: "row",
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-  },
-  h2hCell: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 14,
-    borderRightWidth: 0.5,
-    borderColor: Colors.border,
-  },
-  h2hVal: {
-    fontFamily: Typography.heading,
-    fontSize: 22,
-    color: Colors.text,
-    letterSpacing: 0.5,
-  },
-  h2hLbl: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 8,
-    color: Colors.muted,
-    letterSpacing: 2,
-    textTransform: "uppercase" as const,
-    marginTop: 3,
-  },
-
-  h2hEmpty: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    color: Colors.muted,
-    marginTop: 12,
-    lineHeight: 16,
-  },
-
-  // H2H Paywall
-  h2hPaywall: {
+  gamesTogether: { paddingHorizontal: Layout.screenGutter, paddingTop: Space.xl },
+  gamesHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    padding: 16,
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
+    justifyContent: "space-between",
+    paddingBottom: Space.sm,
   },
-  h2hPaywallText: { flex: 1 },
-  h2hPaywallTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
-    color: Colors.text,
-    letterSpacing: 1,
-    marginBottom: 3,
-  },
-  h2hPaywallSub: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    color: Colors.muted,
-    lineHeight: 16,
-  },
-
-  // H2H Match rows
-  h2hMatchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 10,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  h2hMatchBar: { width: 2.5, height: 32, marginRight: 10, borderRadius: 1 },
-  h2hMatchContent: { flex: 1 },
-  h2hMatchCourt: {
+  gamesTitle: {
     fontFamily: Typography.bodyBold,
     fontSize: 12,
-    color: Colors.text,
-    letterSpacing: 0.3,
-  },
-  h2hMatchMeta: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 10,
-    color: Colors.muted,
-    marginTop: 2,
-  },
-  h2hMatchResult: { alignItems: "flex-end" },
-  h2hMatchResultText: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
-    letterSpacing: 1,
-  },
-  h2hMatchScore: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 10,
-    color: Colors.muted,
-    marginTop: 2,
-  },
-
-  // Action Buttons
-  actionRow: {
-    flexDirection: "row",
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
-  actionBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-  },
-  logGameBtn: {
-    flex: 1,
-  },
-  actionBtnDanger: {
-    borderColor: Colors.loss,
-  },
-  actionBtnText: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
-    color: Colors.text,
-    letterSpacing: 2,
-  },
-  actionBtnTextDanger: {
-    color: Colors.loss,
-  },
-
-  // Upgrade Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.75)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-  },
-  upgradeCard: {
-    width: "100%",
-    maxWidth: 340,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 20,
-    gap: 12,
-    alignItems: "center",
-  },
-  upgradeHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 4,
-  },
-  upgradeTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.accent,
-    letterSpacing: 2,
-  },
-  upgradeBody: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 12,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 18,
-  },
-  upgradeFeatures: {
-    width: "100%",
-    gap: 8,
-    paddingVertical: 8,
-  },
-  featureRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  featureText: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 12,
+    letterSpacing: 2.2,
     color: Colors.text,
   },
-  upgradeBtn: {
-    backgroundColor: Colors.accent,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    width: "100%",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  upgradeBtnText: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
-    color: Colors.black,
-    letterSpacing: 2,
-  },
-  upgradeSkip: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 12,
-    color: Colors.muted,
-    marginTop: 4,
-  },
+  gamesHint: { ...TextStyles.metadata, color: Colors.muted },
+  gamesEmpty: { ...TextStyles.metadata, paddingVertical: Space.lg, color: Colors.textSecondary },
 });

@@ -174,9 +174,11 @@ function GameContent({ item }: { item: FeedItem }) {
         </Text>
         <View style={styles.gameScoreGroup}>
           <Text style={styles.winTag}>WIN</Text>
-          <Text style={[styles.gameScore, styles.winnerScore]}>
-            {winningScore}
-          </Text>
+          {match.scoresHidden ? null : (
+            <Text style={[styles.gameScore, styles.winnerScore]}>
+              {winningScore}
+            </Text>
+          )}
         </View>
       </View>
       <View style={styles.gameSide}>
@@ -184,7 +186,7 @@ function GameContent({ item }: { item: FeedItem }) {
           {formatMatchSide(losingSide)}
         </Text>
         <View style={styles.gameScoreGroup}>
-          <Text style={styles.gameScore}>{losingScore}</Text>
+          {match.scoresHidden ? null : <Text style={styles.gameScore}>{losingScore}</Text>}
         </View>
       </View>
     </View>

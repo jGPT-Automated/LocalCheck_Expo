@@ -21,6 +21,7 @@ import { HomeCourtHero } from "@/components/ui/HomeCourtHero";
 import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
 import { PersonTile } from "@/components/ui/PersonTile";
 import { ScreenViewport } from "@/components/ui/ScreenViewport";
+import { useToast } from "@/components/ui/Toast";
 import { Colors, Radius } from "@/constants/colors";
 import type { FeedItem, FeedMatchSummary } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
@@ -131,15 +132,22 @@ export function HomeScreen() {
   );
   const privateLocalCount = Math.max(0, localCount - locals.length);
 
+  const { showToast } = useToast();
   const handleCheckIn = async () => {
     if (isChecking) return;
     setIsChecking(true);
     try {
-      if (Platform.OS !== "web") {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      if (isCheckedIn) {
+        if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        await checkOut();
+      } else if (await checkIn(localCourt.id)) {
+        // The toast carries the success haptic.
+        showToast({
+          title: `CHECKED IN · ${(localCourt.shortName || localCourt.name).toUpperCase()}`,
+          body: "Check out when you leave.",
+          icon: "map-pin",
+        });
       }
-      if (isCheckedIn) await checkOut();
-      else await checkIn(localCourt.id);
     } finally {
       setIsChecking(false);
     }

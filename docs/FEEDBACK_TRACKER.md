@@ -21,6 +21,22 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-08 — PR #66 (`codex/profile-challenge`)
+
+| Item | Status |
+|------|--------|
+| Other-player profile rebuilt: court rank subline, stats, HEAD TO HEAD / ACTIVITY / DETAILS, games together | ✅ |
+| Challenge flow: send, accept/decline, ranked score or casual plan, inbox group, notifications | ✅ |
+| Game card redesign (1v1 faceoff, teams), real swipeable game sheet | ✅ |
+| Hide score (D30) + game visibility (D31) | ✅ |
+| Motion/feedback: press scale, rolling numbers, toasts, shared springs | ✅ |
+| Colors tuned to the mocks | ✅ |
+| Yearly + Monthly picker, disclosure, Terms / Privacy links | ✅ |
+| Test accounts + test courts hidden from real players (D34) | ✅ `1e348c6` |
+| LocalLite unranked (`gateLeaderboard` on); no TEST / REVIEWER labels; no Apple-mark avatar | ✅ `1e348c6` |
+| Store-review fixes: camera string, image-picker removed, price copy, version, friendly errors, drawer load error, not-found back, report/block busy | ✅ `1e348c6` |
+| README, AGENTS.md, RELEASE, SUPABASE, DESIGN, runbooks current | ✅ |
+
 ## Branch / PR status
 
 - **PRs #42–#57 merged to `main`** (through the paywall UX / gate-architecture
@@ -185,7 +201,7 @@ Jesse: the tag is **cosmetic**. Now:
 
 | Item | Status |
 |------|--------|
-| Tag no longer hides accounts by itself — behind flag `LeaderboardFlags.hideTaggedAccounts`, **off** now (all accounts visible, LA + Houston), **on** at launch | ✅ |
+| Tag no longer hides accounts by itself — behind flag `LeaderboardFlags.hideTaggedAccounts`, **off** now (all accounts visible, LA + Houston), **on** at launch | ✅ (superseded 2026-10-08 by D34: RLS hides test data, flag removed) |
 | `useLocalPlus()` no longer reads `account_tag` — free year comes from a promo `subscriptions` row (with an expiry) | ✅ |
 | Rank requires ≥1 game in the sport (`hasRankedGame`) — a 1200 default isn't a rank | ✅ |
 | `$4.99/mo` monthly-only pricing recorded in `docs/product/DECISIONS.md` | ✅ |

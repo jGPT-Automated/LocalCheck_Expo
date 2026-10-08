@@ -11,6 +11,7 @@ import {
   matchStatusCopy,
 } from "@/services/matchReviewModel";
 
+import { scoresHiddenFor } from "@/lib/scoreVisibility";
 import { ScoreCard, scoreCardStatusLabel, scoreCardTone } from "./ScoreCard";
 
 /** Badge text from the viewer's seat: whose move it is, not a raw status. */
@@ -139,6 +140,7 @@ export function MatchReviewCard({
   // one so it stays a single clean height. Compact keeps the caption short;
   // the full screen names who left it.
   const captionExtras = [
+    match.isRanked ? null : "CASUAL",
     match.disputeCount > 0
       ? `DISPUTE ${Math.min(match.disputeCount, 2)} OF 2`
       : null,
@@ -175,6 +177,10 @@ export function MatchReviewCard({
         captionExtras.length > 0 ? captionExtras.join(" · ") : undefined
       }
       rightScore={secondScore}
+      scoresHidden={scoresHiddenFor(
+        match.participants.map((p) => ({ userId: p.id, hideScore: p.hideScore })),
+        viewerId,
+      )}
       status={match.status}
       statusLabel={statusText}
       statusPlacement={compact ? "card" : "none"}
@@ -186,12 +192,8 @@ export function MatchReviewCard({
   return (
     <View style={styles.wrap}>
       <View style={styles.header}>
-        <View
-          style={[
-            styles.statusBar,
-            { backgroundColor: tone.bg, borderColor: tone.border },
-          ]}
-        >
+        <View style={styles.statusBar}>
+          <View style={[styles.statusDot, { backgroundColor: tone.text }]} />
           <Text style={[styles.statusBarText, { color: tone.text }]}>
             {statusText}
           </Text>
@@ -224,13 +226,18 @@ export function MatchReviewCard({
 const styles = StyleSheet.create({
   wrap: { gap: Space.lg },
   header: { alignItems: "center", gap: Space.md },
+  // Quiet dot + label (mock 3b), not a filled bar.
   statusBar: {
     alignSelf: "stretch",
     paddingVertical: 10,
+    flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderRadius: 8,
+    justifyContent: "center",
+    gap: 7,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
   },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusBarText: { ...TextStyles.label, letterSpacing: 2 },
   timer: { alignItems: "center", gap: 2 },
   timerLabel: {

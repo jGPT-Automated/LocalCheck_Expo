@@ -22,8 +22,20 @@ import { TextStyles, Typography } from "@/constants/typography";
 import { LocalPlusFlags } from "@/constants/flags";
 import { useAuth } from "@/context/AuthContext";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
+import { PressableScale } from "@/components/ui/PressableScale";
 import {
-  fetchLocalPlusPackage,
+  buttonLabel,
+  introLine,
+  monthlyEquivalent,
+  type PlanId,
+  type PlanPrice,
+  PRIVACY_URL,
+  renewalDisclosure,
+  TERMS_URL,
+  yearlySavingsPercent,
+} from "@/lib/planModel";
+import {
+  fetchLocalPlusPackages,
   getIdentityState,
   purchaseLocalPlus,
   redeemOfferCode,
@@ -51,7 +63,7 @@ const PERKS: { icon: React.ComponentProps<typeof Feather>["name"]; title: string
   {
     icon: "award",
     title: "FOUNDING SUPPORT",
-    body: "Back the app early and lock in the lowest price it will ever be.",
+    body: "Back LocalCheck early and help shape what gets built next.",
   },
 ];
 
@@ -74,7 +86,13 @@ export default function LocalPlusScreen() {
       ? hasLocalPlus && !hasRealSubscription
       : isFounder || tag === "STARTER";
 
-  const [pkg, setPkg] = React.useState<PurchasesPackage | null>(null);
+  const [packages, setPackages] = React.useState<{
+    yearly: PurchasesPackage | null;
+    monthly: PurchasesPackage | null;
+  }>({ yearly: null, monthly: null });
+  // Yearly is preselected (decision D13 / plans spec).
+  const [plan, setPlan] = React.useState<PlanId>("yearly");
+  const pkg = packages[plan] ?? null;
   const [offeringChecked, setOfferingChecked] = React.useState(false);
   const [purchasing, setPurchasing] = React.useState(false);
   const [restoring, setRestoring] = React.useState(false);
@@ -85,9 +103,11 @@ export default function LocalPlusScreen() {
   React.useEffect(() => {
     if (hasLocalPlus) return; // nothing to buy — skip the network round trip
     let cancelled = false;
-    void fetchLocalPlusPackage().then((found) => {
+    void fetchLocalPlusPackages().then((found) => {
       if (!cancelled) {
-        setPkg(found);
+        setPackages(found);
+        // If only one plan exists in this store, select it.
+        if (!found.yearly && found.monthly) setPlan("monthly");
         setOfferingChecked(true);
       }
     });
@@ -157,10 +177,14 @@ export default function LocalPlusScreen() {
         : purchasing
           ? "SUBSCRIBING…"
           : pkg
-            ? `SUBSCRIBE — ${pkg.product.priceString}/MO`
+            ? buttonLabel(planPrice(pkg), plan)
             : offeringChecked
               ? "NOT AVAILABLE YET"
               : "LOADING…";
+  const yearlyPrice = packages.yearly ? planPrice(packages.yearly) : null;
+  const monthlyPrice = packages.monthly ? planPrice(packages.monthly) : null;
+  const savings = yearlyPrice && monthlyPrice ? yearlySavingsPercent(yearlyPrice, monthlyPrice) : null;
+  const selectedIntro = pkg ? introLine(planPrice(pkg), plan) : null;
 
   return (
     <View style={styles.screen}>
@@ -206,6 +230,44 @@ export default function LocalPlusScreen() {
           ))}
         </View>
 
+        {!hasLocalPlus && (yearlyPrice || monthlyPrice) ? (
+          <View style={styles.plans}>
+            <Text style={styles.plansLabel}>CHOOSE A PLAN</Text>
+            {yearlyPrice ? (
+              <PlanCard
+                badge="BEST VALUE"
+                detail={`${monthlyEquivalent(yearlyPrice)}/mo${savings ? ` · Save ${savings}%` : ""}`}
+                onPress={() => setPlan("yearly")}
+                price={`${yearlyPrice.priceString}/yr`}
+                selected={plan === "yearly"}
+                title="YEARLY"
+              />
+            ) : null}
+            {monthlyPrice ? (
+              <PlanCard
+                detail="Cancel anytime"
+                onPress={() => setPlan("monthly")}
+                price={`${monthlyPrice.priceString}/mo`}
+                selected={plan === "monthly"}
+                title="MONTHLY"
+              />
+            ) : null}
+            {selectedIntro ? <Text style={styles.intro}>{selectedIntro}</Text> : null}
+            <Text style={styles.disclosure}>
+              {renewalDisclosure(pkg ? planPrice(pkg) : null, plan)}
+            </Text>
+            <View style={styles.legalLinks}>
+              <Pressable accessibilityRole="link" hitSlop={12} onPress={() => void Linking.openURL(TERMS_URL)}>
+                <Text style={styles.legalLink}>Terms of Use</Text>
+              </Pressable>
+              <Text style={styles.legalDot}>·</Text>
+              <Pressable accessibilityRole="link" hitSlop={12} onPress={() => void Linking.openURL(PRIVACY_URL)}>
+                <Text style={styles.legalLink}>Privacy Policy</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
         <Text style={styles.fine}>
           Older games are only hidden from the profile feed — they still move
           your rating, your win-loss record, and every head-to-head.
@@ -242,7 +304,7 @@ export default function LocalPlusScreen() {
             {isFounder
               ? "LocalPlus is comped on your account — there's nothing to manage."
               : tag === "STARTER"
-                ? "Your Starter year is on us — there's no subscription to cancel. LocalPlus simply lapses at the end of the year unless you start one."
+                ? "Your Starter year is on us. It ends with no charge and never turns into a paid plan on its own; nothing to cancel."
                 : "LocalPlus is active on this account — there's nothing to manage."}
           </Text>
         ) : null}
@@ -272,7 +334,119 @@ export default function LocalPlusScreen() {
   );
 }
 
+function planPrice(pkg: PurchasesPackage): PlanPrice {
+  const product = pkg.product;
+  return {
+    price: product.price,
+    priceString: product.priceString,
+    currencyCode: product.currencyCode,
+    intro: product.introPrice
+      ? {
+          price: product.introPrice.price,
+          priceString: product.introPrice.priceString,
+          periodUnit: product.introPrice.periodUnit,
+          periodNumberOfUnits: product.introPrice.periodNumberOfUnits,
+        }
+      : null,
+  };
+}
+
+function PlanCard({
+  title,
+  price,
+  detail,
+  badge,
+  selected,
+  onPress,
+}: {
+  title: string;
+  price: string;
+  detail: string;
+  badge?: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <PressableScale
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={[styles.planCard, selected && styles.planCardSelected]}
+    >
+      <View style={[styles.radio, selected && styles.radioSelected]}>
+        {selected ? <View style={styles.radioDot} /> : null}
+      </View>
+      <View style={styles.planCopy}>
+        <View style={styles.planTitleRow}>
+          <Text style={styles.planTitle}>{title}</Text>
+          {badge ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{badge}</Text>
+            </View>
+          ) : null}
+        </View>
+        <Text style={styles.planDetail}>{detail}</Text>
+      </View>
+      <Text style={[styles.planPrice, selected && styles.planPriceSelected]}>{price}</Text>
+    </PressableScale>
+  );
+}
+
 const styles = StyleSheet.create({
+  plans: { gap: Space.sm, paddingTop: Space.md },
+  plansLabel: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    letterSpacing: 2,
+    color: Colors.muted,
+    marginBottom: 2,
+  },
+  planCard: {
+    minHeight: 72,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Space.md,
+    paddingHorizontal: Space.lg,
+    paddingVertical: Space.md,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  planCardSelected: { borderColor: Colors.accent, backgroundColor: Colors.accentGhost },
+  radio: {
+    width: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: Colors.borderLight,
+  },
+  radioSelected: { borderColor: Colors.accent },
+  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.accent },
+  planCopy: { flex: 1, minWidth: 0, gap: 3 },
+  planTitleRow: { flexDirection: "row", alignItems: "center", gap: Space.sm },
+  planTitle: { fontFamily: Typography.heading, fontSize: 17, letterSpacing: 0.8, color: Colors.text },
+  badge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.accent,
+  },
+  badgeText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.2, color: Colors.black },
+  planDetail: { ...TextStyles.caption, color: Colors.textSecondary },
+  planPrice: { fontFamily: Typography.headingBold, fontSize: 20, color: Colors.textSecondary },
+  planPriceSelected: { color: Colors.text },
+  intro: { ...TextStyles.bodySmall, color: Colors.accent, textAlign: "center", marginTop: Space.xs },
+  disclosure: { ...TextStyles.caption, lineHeight: 15, color: Colors.muted, marginTop: Space.xs },
+  legalLinks: { flexDirection: "row", justifyContent: "center", gap: Space.sm, marginTop: 2 },
+  legalLink: {
+    ...TextStyles.caption,
+    color: Colors.textSecondary,
+    textDecorationLine: "underline",
+  },
+  legalDot: { ...TextStyles.caption, color: Colors.muted },
   screen: { flex: 1, backgroundColor: Colors.background },
   scroll: { flex: 1 },
   // flexGrow lets the footer links sit at the bottom, next to the button,

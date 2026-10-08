@@ -94,7 +94,8 @@ interface AppContextValue {
   preferredSport: CourtSport | null;
   preferredCourtId: string | null;
   addCourt: (submission: VerifiedCourtSubmission) => Promise<CourtSubmissionResult>;
-  checkIn: (courtId: string) => Promise<void>;
+  /** Resolves true when the check-in saved. */
+  checkIn: (courtId: string) => Promise<boolean>;
   checkOut: () => Promise<void>;
   visitCourt: (courtId: string) => Promise<void>;
   joinRun: (runId: string, teamSide?: "a" | "b") => Promise<boolean>;
@@ -574,8 +575,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // ─── Actions ───────────────────────────────────────────────────────────────
   const checkIn = useCallback(
-    async (courtId: string) => {
-      if (!userId) return;
+    async (courtId: string): Promise<boolean> => {
+      if (!userId) return false;
       const prevCourtId = checkedInCourtId;
       const ok = await checkInToCourt(courtId, undefined, visibility);
       if (ok) {
@@ -589,6 +590,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       refreshPresence(courtId);
       if (prevCourtId && prevCourtId !== courtId) refreshPresence(prevCourtId);
       refreshFeed();
+      return Boolean(ok);
     },
     [userId, visibility, checkedInCourtId, refreshPresence, refreshFeed, refreshCheckInCount]
   );

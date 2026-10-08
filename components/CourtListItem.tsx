@@ -1,7 +1,9 @@
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+
+import { PressableScale } from "@/components/ui/PressableScale";
 
 import { Colors, Radius } from "@/constants/colors";
 import type { Court } from "@/constants/data";
@@ -41,16 +43,12 @@ export function CourtListItem({
     : Colors.basketballMeta;
 
   return (
-    <Pressable
+    <PressableScale
       accessibilityLabel={onPress ? `Open ${court.name}` : undefined}
       accessibilityRole={onPress ? "button" : undefined}
       disabled={!onPress}
       onPress={onPress ? () => onPress(court) : undefined}
-      style={({ pressed }) => [
-        styles.container,
-        featured && styles.featured,
-        pressed && styles.pressed,
-      ]}
+      style={[styles.container, featured && styles.featured]}
       testID={`court-${court.id}`}
     >
       <LinearGradient
@@ -104,7 +102,7 @@ export function CourtListItem({
           <Feather color={Colors.textSecondary} name="arrow-right" size={21} />
         </View>
       </View>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -125,7 +123,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 9 },
   },
   featured: { minHeight: 146 },
-  pressed: { opacity: 0.78, transform: [{ scale: 0.992 }] },
   topline: { minHeight: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   sportMeta: { flexDirection: "row", alignItems: "center", gap: 5 },
   sportText: { fontFamily: Typography.bodyMedium, fontSize: 9, letterSpacing: 1.5 },

@@ -23,7 +23,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { BrandCheck } from "@/components/brand/LogoMark";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { CompactSelect } from "@/components/ui/CompactSelect";
@@ -32,6 +31,8 @@ import { ModeTabs } from "@/components/ui/ModeTabs";
 import { parsePlayerQrCode } from "@/components/ui/playerIdentity";
 import { RecentDatePicker } from "@/components/ui/RecentDatePicker";
 import { SearchField } from "@/components/ui/SearchField";
+import { HideScoreToggle } from "@/components/match/HideScoreToggle";
+import { useToast } from "@/components/ui/Toast";
 import { ScoreCard } from "@/components/match/ScoreCard";
 import { Colors, Radius } from "@/constants/colors";
 import {
@@ -52,7 +53,7 @@ import {
   searchCourtPlayersRecent,
   searchPlayers,
 } from "@/services/profileService";
-import { logGame, logTeamGame } from "@/services/gameService";
+import { logGame, logTeamGame, setScoreHidden } from "@/services/gameService";
 import { fetchNearbyCourts, searchCourts } from "@/services/courtService";
 import { useDeviceLocation } from "@/context/DeviceLocationContext";
 
@@ -824,7 +825,8 @@ function LogGameView({
     opponents: [],
   });
   const [reviewGame, setReviewGame] = useState<GameLog | null>(null);
-  const [submittedGame, setSubmittedGame] = useState<GameLog | null>(null);
+  const [hideScore, setHideScore] = useState(false);
+  const { showToast } = useToast();
   // The court picked from typeahead search may not be in the nearby `courts`
   // array — hold onto the full object so the field, the review card, and the
   // submit all agree on which court is being logged.
@@ -1032,17 +1034,25 @@ function LogGameView({
       setReviewGame(null);
       return;
     }
+    // Hide score (D30) is set right after the game exists; the game logs
+    // either way, so a failure here only leaves the score visible.
+    if (hideScore && result.matchId) void setScoreHidden(result.matchId, true);
+    setHideScore(false);
     // The score is pending. The opponent receives a review action; ratings and
     // public history remain unchanged until confirmation.
-    setSubmittedGame({ ...reviewGame });
+    // A swipe-away toast instead of a 5-second confirmation screen; the
+    // viewer lands on the leaderboard right away.
+    const firstOpponent = reviewGame.opponents[0]?.name.split(" ")[0] ?? "Your opponent";
+    showToast({
+      title: "SCORE SENT",
+      body:
+        reviewGame.teamSize === 1
+          ? `${firstOpponent} confirms or disputes it. No rating change until then.`
+          : "Any player can confirm or dispute it. No rating change until then.",
+    });
     setReviewGame(null);
     setClientRequestId(Crypto.randomUUID());
-    // The leaderboard is the safe fallback after logging a game — never leave
-    // the viewer sitting on Log Game once the confirmation's had its moment.
-    setTimeout(() => {
-      setSubmittedGame(null);
-      onLogged?.();
-    }, 5000);
+    onLogged?.();
     setForm({
       sport: defaultSport,
       myScore: "",
@@ -1381,6 +1391,7 @@ function LogGameView({
             onPlayerPress={(id) => router.push(`/player/${id}`)}
             {...gameCardProps(reviewGame)}
           />
+          <HideScoreToggle disabled={submitting} onChange={setHideScore} value={hideScore} />
         </ScrollView>
         <View style={styles.reviewActions}>
           <Pressable
@@ -1405,39 +1416,6 @@ function LogGameView({
             </Text>
           </Pressable>
         </View>
-      </View>
-    );
-  }
-
-  if (submittedGame) {
-    return (
-      <View style={[styles.successState, { paddingBottom: successPadBottom }]}>
-        <Text style={styles.successTitle}>SCORE SENT FOR REVIEW</Text>
-        <Text style={styles.successSub}>
-          {submittedGame.teamSize === 1
-            ? "Your opponent can confirm or dispute it. No rating changes yet."
-            : "Any player can confirm or dispute it. No rating changes yet."}
-        </Text>
-        <ScrollView
-          contentContainerStyle={styles.successScrollContent}
-          showsVerticalScrollIndicator={false}
-          style={styles.successScroll}
-        >
-          <ScoreCard
-            compact
-            status="pending"
-            note={
-              submittedGame.teamSize === 1
-                ? "Waiting on your opponent, or it auto-confirms in 3 days."
-                : "Waiting on the other players, or it auto-confirms in 3 days."
-            }
-            onPlayerPress={(id) => router.push(`/player/${id}`)}
-            {...gameCardProps(submittedGame)}
-          />
-          <View style={styles.successCheck}>
-            <BrandCheck size={92} />
-          </View>
-        </ScrollView>
       </View>
     );
   }
@@ -1655,7 +1633,7 @@ function LogGameView({
             (!canSubmit || submitting) && styles.submitBtnTextDisabled,
           ]}
         >
-          {submitting ? "LOGGING..." : "LOG GAME"}
+          {submitting ? "LOGGING…" : "LOG GAME"}
         </Text>
       </Pressable>
     </KeyboardAwareScrollViewCompat>
@@ -2376,8 +2354,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   successScroll: { flex: 1, alignSelf: "stretch", marginTop: 4 },
-  successScrollContent: { paddingBottom: 12 },
-  successCheck: { alignItems: "center", paddingVertical: 36 },
+  successScrollContent: { paddingBottom: 12, gap: 12 },
   successTitle: {
     fontFamily: Typography.heading,
     fontSize: 24,

@@ -8,6 +8,7 @@ export function formatLegacyFeedResult(match: {
   scoreA: number;
   scoreB: number;
   winnerSide: "a" | "b";
+  scoresHidden?: boolean;
 }): string {
   const formatSide = (side: Array<{ name: string }>) =>
     side.map((participant) => participant.name.trim()).filter(Boolean).join(" + ") || "SIDE TBD";
@@ -15,6 +16,7 @@ export function formatLegacyFeedResult(match: {
   const loser = match.winnerSide === "a" ? match.sideB : match.sideA;
   const winnerScore = match.winnerSide === "a" ? match.scoreA : match.scoreB;
   const loserScore = match.winnerSide === "a" ? match.scoreB : match.scoreA;
+  if (match.scoresHidden) return `${formatSide(winner)} DEF. ${formatSide(loser)}`;
   return `${formatSide(winner)} DEF. ${formatSide(loser)} ${winnerScore}–${loserScore}`;
 }
 

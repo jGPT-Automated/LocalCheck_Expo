@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { MatchReviewCard } from "@/components/match/MatchReviewCard";
+import { HideScoreToggle } from "@/components/match/HideScoreToggle";
 import { MatchRevisionForm } from "@/components/match/MatchRevisionForm";
 import { DetailHeader } from "@/components/ui/DetailHeader";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
@@ -27,6 +28,7 @@ import {
   fetchMatchReview,
   type MatchReview,
   respondToMatch,
+  setScoreHidden,
   updateHeldMatch,
 } from "@/services/gameService";
 
@@ -64,6 +66,7 @@ export default function MatchReviewScreen() {
     "update",
   );
   const [policyExpanded, setPolicyExpanded] = React.useState(false);
+  const [hiddenOverride, setHiddenOverride] = React.useState<boolean | null>(null);
 
   const load = React.useCallback(async () => {
     if (!id) return;
@@ -241,6 +244,17 @@ export default function MatchReviewScreen() {
         showsVerticalScrollIndicator={false}
       >
         <MatchReviewCard match={match} viewerId={user?.id} />
+        {viewer && match.status !== "voided" ? (
+          <HideScoreToggle
+            onChange={(next) => {
+              setHiddenOverride(next);
+              void setScoreHidden(match.id, next).then((ok) => {
+                if (!ok) setHiddenOverride(!next);
+              });
+            }}
+            value={hiddenOverride ?? Boolean(viewer.hideScore)}
+          />
+        ) : null}
 
         <View style={styles.policy}>
           <Pressable

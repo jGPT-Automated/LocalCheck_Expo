@@ -2,6 +2,36 @@
 
 Status: Current MVP decisions. Newer dated decisions supersede older entries.
 
+## 2026-10 — Launch decisions (D0–D34, Jesse's plan doc)
+
+Numbers match Jesse's plan doc (Decisions tab). These supersede older entries
+below wherever they disagree.
+
+- **D0 Plans:** Yearly $49.99 and Monthly $4.99, US only. Yearly is
+  preselected on the LocalPlus screen; the drawer upgrade opens Apple's Yearly
+  sheet (D13). Supersedes "monthly only".
+- **D4 / D12 Starter:** free offers don't auto-renew. The first 100 accounts get
+  a free year automatically, server-side, no code (not built yet). Supersedes
+  "STARTER is an Apple offer code".
+- **D22 Builds:** TestFlight builds are manual only; merges never build.
+- **D25–D27r Challenges:** friends only; court and day optional; the challenger
+  picks ranked or casual. Casual is a plan, not a game: no score, counts
+  nowhere.
+- **D30 Hide score:** either player can hide the score for their side; outsiders
+  see only W / L; it still counts for ELO, rank, record and head-to-head.
+- **D31 Game visibility:** a game shows outside its players only if every
+  player is Public.
+- **D32 Website follows the app:** material app changes come with a website
+  change or a prompt for the website agent.
+- **D33 Mocks are a style reference:** Claude makes product and design calls;
+  colors tuned to the mocks (`#FC4C02`, neutral greys).
+- **D34 Test data hidden at launch:** `TEST` / `REVIEWER` accounts and test
+  courts are hidden from real players by RLS; `TEST` / `REVIEWER` / `FOUNDER`
+  see everything. Four test courts (LA, Houston), Kasmiersky the one real
+  court. Free (LocalLite) players stay unranked (`gateLeaderboard` on). Only
+  FOUNDER / STARTER show as labels. Supersedes "account_tag is cosmetic" and
+  the `hideTaggedAccounts` switch. Runbook: `docs/runbooks/ACCOUNT_TAGS.md`.
+
 ## 2026-09-11 — REVIEWER is comped like FOUNDER, not offer-code-tested
 
 **Decision confirmed by Jesse — supersedes this file's own earlier "leave the
