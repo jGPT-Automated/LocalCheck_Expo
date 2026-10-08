@@ -9,9 +9,8 @@ its Supabase source of truth. Read this file before changing anything.
 2. `docs/ARCHITECTURE.md` — code, data, Realtime, and native boundaries.
 3. `docs/DEVELOPMENT.md` — setup, branch, preview, and handoff workflow.
 4. `docs/TESTING.md` — required automated and multi-user verification.
-5. `docs/RELEASE.md` — the automatic PR-open → Expo Go preview and
-   merge-to-`main` → TestFlight build triggers, plus OTA and rollback
-   procedure.
+5. `docs/RELEASE.md` — PR → Expo Go preview (automatic), production OTA and
+   TestFlight builds (both manual, Jesse only), rollback.
 6. `docs/SUPABASE.md` — live-cloud grounding, migrations, functions, and deployment.
 7. `docs/FEEDBACK_TRACKER.md` — Jesse's screen-by-screen feedback, its
    done/in-progress/backlog status, and which commit/branch/PR each item
@@ -68,6 +67,10 @@ force-push shared branches, or include unrelated user changes.
   branch deletion require explicit authorization for that exact action.
 - Use the in-app Browser for connected preview work when requested. Do not
   substitute an external browser or computer-control workflow.
+- Talk to Jesse in plain language: the outcome and the action, no filler.
+  Ask him when a decision is his or quicker for him to answer; once he
+  answers, record it (`docs/product/DECISIONS.md` and his plan doc's Tracker)
+  and act on it.
 - Keep updates concrete: name what changed, what was proven, what remains
   unproven, and the next check. Do not represent source presence or a passing
   static check as deployed runtime behavior.
@@ -127,6 +130,13 @@ force-push shared branches, or include unrelated user changes.
 - Approved database RPCs own atomic behavior. Do not replace them with client
   write sequences.
 - Every schema change is a new immutable migration. Never edit an applied file.
+- Production SQL is run by Jesse in the Supabase SQL editor: the agent pastes
+  the migration there (byte-checked against the file), Jesse clicks Run, then
+  the agent verifies with read-only queries and a rolled-back test as an
+  allowed and a denied user, and records the row in
+  `supabase_migrations.schema_migrations`. Patch long live functions in place
+  with an anchor check (`pg_get_functiondef` + `replace`), never from memory.
+  See `docs/SUPABASE.md`.
 - RLS is part of the feature. Test the allowed user and at least one denied user.
 - Realtime carries scoped invalidations; the client refetches authoritative
   rows. Do not use sockets as presence or add global polling.
@@ -135,6 +145,18 @@ force-push shared branches, or include unrelated user changes.
 - Never claim success until Supabase confirms the write.
 - Client persistence is limited to Supabase's authentication-session adapter.
   Product data, counts, ELO, and feature state are never device/browser state.
+- PR previews run in **Expo Go on SDK 54**. Use only libraries Expo Go ships
+  (Reanimated 4, gesture-handler, `@gorhom/bottom-sheet`, expo-haptics,
+  expo-camera…). No dev-build-only packages (`@expo/ui`) or SDK 55+ APIs.
+- Motion and touch follow `docs/product/DESIGN.md` → *Motion and feedback*:
+  shared springs in `constants/motion.ts`, `PressableScale` for press
+  feedback, real swipeable sheets (`AppBottomSheetModal`), `useToast()` for
+  confirmations, Reduce Motion respected.
+- **Test data never reaches real players.** `TEST` / `REVIEWER` accounts and
+  test courts are hidden by RLS (`docs/runbooks/ACCOUNT_TAGS.md`). A new table
+  or policy that shows one player's content to another must apply the same
+  rule (`private.viewer_sees_test_data()`, `private.is_hidden_account()`,
+  `private.is_test_court()`), and its RLS test covers a real viewer.
 - Changes to Mapbox, notification native plugins/entitlements, Apple Sign-In,
   permissions, Expo plugins, and other native dependencies require a new
   development/TestFlight binary. JavaScript notification logic may ship by OTA
@@ -174,10 +196,10 @@ Do not merge with failing required checks or unresolved review conversations.
 Do not deploy a migration, OTA, TestFlight build, or production change unless
 the task explicitly authorizes that external action.
 
-An approved merge to `main` automatically starts the EAS production iOS build
-and TestFlight submission. Treat the merge itself as the release authorization:
-the PR must state device coverage, native risk, and any App Store Connect step
-still required. Production OTA remains manual.
+Only Jesse merges. A merge builds nothing: TestFlight builds and production
+OTAs are started by hand, by Jesse (`docs/RELEASE.md`). Each build spends one
+of the plan's monthly iOS builds, so protect that quota: never start a build,
+and say in the PR when a change needs one.
 
 ## Repeatable operations
 
@@ -194,11 +216,11 @@ copy-paste SQL. When a task matches a runbook:
 Current runbooks:
 
 - `docs/runbooks/ACCOUNT_TAGS.md` — `profiles.account_tag`
-  (`FOUNDER` / `STARTER` / `REVIEWER` / `TEST` / null): a cosmetic label (row
-  label, avatar, ME title) plus one launch switch. Add / change / remove a tag;
-  the launch-day flag flip + FOUNDER/STARTER grant; adding a new tag value.
-- `docs/runbooks/REVENUECAT.md` — LocalPlus monetization end to end: the locked
-  plan (monthly $4.99, US-only), the App Store Connect + RevenueCat setup steps
+  (`FOUNDER` / `STARTER` / `REVIEWER` / `TEST` / null) and `courts.is_test`:
+  who real players can see, who sees test data, the four test courts, making
+  a test account, launch checks, grants.
+- `docs/runbooks/REVENUECAT.md` — LocalPlus monetization end to end: the plans
+  (Yearly $49.99, Monthly $4.99, US only), the App Store Connect + RevenueCat setup steps
   with a per-gate checklist, env var names, the webhook, and the app-code /
   cutover phases. Supersedes `launch/REVENUECAT_START_NOW.txt`.
 
