@@ -50,4 +50,5 @@ test("notification fires 3 minutes after arrival, never in the past", () => {
   assert.equal(notifyAt("2026-10-08T11:00:00Z", now).toISOString(), "2026-10-08T12:00:05.000Z");
   assert.equal(notifyAt(null, now).toISOString(), "2026-10-08T12:03:00.000Z");
   assert.equal(checkedInNotification("Kasmiersky Park").title, "Checked in at Kasmiersky Park");
+  assert.match(checkedInNotification("Kasmiersky Park").body, /Not here/);
 });

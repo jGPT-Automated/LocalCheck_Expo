@@ -1,3 +1,4 @@
+import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
 import { BottomSheetView } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
@@ -221,6 +222,7 @@ export function CourtSheetContent({
           style={styles.actionButton}
         />
       </View>
+      <AutoCheckInNote courtId={court.id} />
 
       <Pressable
         style={styles.swipeHint}

@@ -77,6 +77,13 @@ After a build:
    (`https://localchecksports.com/support`, `/privacy`, `/terms`; support
    email `localchecksports@gmail.com`). Account deletion is in Settings.
 
+## Edge Function waiting for deploy
+
+- `send-notification`: passes `data.category` as `categoryId`, so the 3-hour
+  "You've been checked out" push shows Check back in / Got it (D38). Deploy
+  after #67 merges, with Jesse's OK. Until then the push still arrives, and
+  tapping it opens the court page.
+
 ## Backend order
 
 Apply additive database changes before the client that depends on them. Edge

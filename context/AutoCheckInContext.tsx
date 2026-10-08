@@ -7,6 +7,7 @@ import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { profileNeedsOnboarding } from "@/lib/onboardingGate";
 import {
+  AUTO_CHECK_IN_RESUMED_EVENT,
   AUTO_CHECK_IN_UNDONE_EVENT,
   type AutoCheckInCourt,
   type AutoCheckInState,
@@ -41,7 +42,7 @@ const AutoCheckInContext = createContext<AutoCheckInValue | null>(null);
  */
 export function AutoCheckInProvider({ children }: { children: React.ReactNode }) {
   const { user, profile, isLoading } = useAuth();
-  const { localCourt } = useApp();
+  const { localCourt, refreshCheckedIn } = useApp();
   const { showToast } = useToast();
   const [state, setState] = useState<AutoCheckInState>(isAutoCheckInAvailable() ? "off" : "unavailable");
   const [busy, setBusy] = useState(false);
@@ -137,12 +138,24 @@ export function AutoCheckInProvider({ children }: { children: React.ReactNode })
     const sub = DeviceEventEmitter.addListener(AUTO_CHECK_IN_UNDONE_EVENT, (ok: boolean) => {
       showToast(
         ok
-          ? { title: "UNDONE", body: "You're not checked in.", icon: "rotate-ccw" }
-          : { title: "COULDN'T UNDO", body: "Check out from the court page instead.", icon: "alert-circle" },
+          ? { title: "REMOVED", body: "You're not checked in.", icon: "rotate-ccw" }
+          : { title: "COULDN'T REMOVE", body: "Check out from the court page instead.", icon: "alert-circle" },
       );
+      void refreshCheckedIn();
     });
-    return () => sub.remove();
-  }, [showToast]);
+    const resumed = DeviceEventEmitter.addListener(AUTO_CHECK_IN_RESUMED_EVENT, (ok: boolean) => {
+      showToast(
+        ok
+          ? { title: "CHECKED BACK IN", body: "We'll check you out when you leave.", icon: "map-pin" }
+          : { title: "COULDN'T CHECK IN", body: "Tap CHECK IN on the court instead.", icon: "alert-circle" },
+      );
+      void refreshCheckedIn();
+    });
+    return () => {
+      sub.remove();
+      resumed.remove();
+    };
+  }, [showToast, refreshCheckedIn]);
 
   const openSettings = useCallback(() => {
     void Linking.openSettings();

@@ -5,9 +5,14 @@ import { AppState, DeviceEventEmitter, Platform } from "react-native";
 import { useAuth } from "@/context/AuthContext";
 import { useRealtimeHub } from "@/context/RealtimeHubContext";
 import { batchHasResource, RealtimeTopic } from "@/lib/realtimeHub";
-import { AUTO_CHECK_IN_UNDO_ACTION, AUTO_CHECK_IN_UNDONE_EVENT } from "@/lib/autoCheckInModel";
+import {
+  AUTO_CHECK_IN_RESUMED_EVENT,
+  AUTO_CHECK_IN_UNDO_ACTION,
+  AUTO_CHECK_IN_UNDONE_EVENT,
+  CHECK_BACK_IN_ACTION,
+} from "@/lib/autoCheckInModel";
 import { getSafeNotificationRoute } from "@/lib/notificationRoutes";
-import { undoAutoCheckIn } from "@/services/autoCheckInService";
+import { resumeAutoCheckIn, undoAutoCheckIn } from "@/services/autoCheckInService";
 import { profileNeedsOnboarding } from "@/lib/onboardingGate";
 import {
   AppNotification,
@@ -118,6 +123,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         const data = response.notification.request.content.data;
         if (data?.kind === "auto_check_in" && response.actionIdentifier === AUTO_CHECK_IN_UNDO_ACTION) {
           void undoAutoCheckIn().then((ok) => DeviceEventEmitter.emit(AUTO_CHECK_IN_UNDONE_EVENT, ok));
+        }
+        if (
+          data?.kind === "auto_check_out" &&
+          response.actionIdentifier === CHECK_BACK_IN_ACTION &&
+          typeof data.court_id === "string"
+        ) {
+          void resumeAutoCheckIn(data.court_id).then((ok) => DeviceEventEmitter.emit(AUTO_CHECK_IN_RESUMED_EVENT, ok));
         }
         const path = getSafeNotificationRoute(data?.path);
         if (path) router.push(path as Href);

@@ -75,7 +75,11 @@ Last reconciled: 2026-10-08 against `origin/main` at `541632c` (#65), PR #66
   notification with Undo; leaving checks out. Offered once when a local court
   is picked (after onboarding) and in Settings → AUTO CHECK-IN. The auth
   session is stored readable after first unlock so the background task can
-  call Supabase with the phone locked.
+  call Supabase with the phone locked. A "Checked in automatically · Not
+  here?" line sits under the check-in button on Home and the court drawer.
+  Friend alerts need both "Share my auto check-ins" (sender) and "Friends'
+  auto check-ins" (receiver) on, and never fire for Private (D37). The 3-hour
+  backstop sends "You've been checked out" with Check back in (D38).
 - LocalPlus plans: Yearly $49.99 (preselected, "Save 17%") and Monthly $4.99,
   US only, with the auto-renew disclosure and Terms / Privacy links.
 - Leaderboard membership: a profile is ranked in a sport only after ≥1 game in

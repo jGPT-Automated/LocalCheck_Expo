@@ -15,7 +15,7 @@ const POINTS: { icon: React.ComponentProps<typeof Feather>["name"]; text: string
     icon: "clock",
     text: `You show up after ${AUTO_CHECK_IN_HOLD_MINUTES} minutes, so walking or driving past never posts.`,
   },
-  { icon: "rotate-ccw", text: "You get a notification with Undo. Leaving checks you out." },
+  { icon: "rotate-ccw", text: "Not playing? Tap Not here and it's gone. Leaving checks you out." },
   { icon: "eye", text: "Uses your privacy setting. Turn it off anytime in Settings." },
 ];
 

@@ -16,6 +16,13 @@
 --     after 3 hours as a backstop (manual check-ins keep 45 minutes).
 --   * Changing local court drops a held arrival and closes an open auto
 --     check-in at the old court (the old circle never reports "left").
+--   * Friend alerts (D37): when an auto check-in goes live, friends get a
+--     push only if the player has "Share my auto check-ins" on, the friend
+--     has "Friends' auto check-ins" on, and the check-in isn't Private.
+--     Either switch off and nothing is sent.
+--   * When the 3-hour backstop ends an auto check-in, the player gets
+--     "You've been checked out" with "Check back in" (D38);
+--     resume_auto_check_in does that.
 
 begin;
 
@@ -37,6 +44,50 @@ create table if not exists private.auto_check_in_arrivals (
 
 comment on table private.auto_check_in_arrivals is
   'Geofence arrivals held 3 minutes before they become a check-in (D36). One per player.';
+
+-- Friend alerts for auto check-ins (D37). Both must be on for a push to go.
+alter table public.profiles
+  add column if not exists share_auto_check_ins boolean not null default false,
+  add column if not exists notify_friend_check_ins boolean not null default true;
+
+comment on column public.profiles.share_auto_check_ins is
+  'Send: friends may get a push when this player is auto-checked in (never when Private). D37.';
+comment on column public.profiles.notify_friend_check_ins is
+  'Receive: get a push when a friend who shares is auto-checked in. D37.';
+
+alter table public.notifications drop constraint if exists notifications_type_check;
+alter table public.notifications add constraint notifications_type_check check (type in (
+  'friend_request', 'friend_accepted', 'run_invite',
+  'match_review', 'match_confirmed', 'match_rejected',
+  'challenge', 'friend_check_in', 'auto_check_out'
+));
+
+create or replace function public.set_auto_check_in_alerts(
+  p_share boolean default null,
+  p_receive boolean default null
+)
+returns public.profiles
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_row public.profiles;
+begin
+  if (select auth.uid()) is null then
+    raise exception 'not authenticated' using errcode = '42501';
+  end if;
+  update public.profiles
+  set share_auto_check_ins = coalesce(p_share, share_auto_check_ins),
+      notify_friend_check_ins = coalesce(p_receive, notify_friend_check_ins)
+  where id = (select auth.uid())
+  returning * into v_row;
+  return v_row;
+end
+$$;
+
+revoke execute on function public.set_auto_check_in_alerts(boolean, boolean) from public, anon;
+grant execute on function public.set_auto_check_in_alerts(boolean, boolean) to authenticated;
 
 -- ── Arrive ────────────────────────────────────────────────────────────────
 -- Returns {"status": "pending" | "already" | "not_local", "arrived_at", "court_name"}.
@@ -189,15 +240,21 @@ as $$
 declare
   v record;
   v_count integer := 0;
+  v_check_in uuid;
 begin
   -- Arrivals that sat too long without an exit (phone off, app removed).
   delete from private.auto_check_in_arrivals
   where arrived_at < now() - interval '3 hours';
 
   for v in
-    select a.user_id, a.court_id, coalesce(p.visibility, 'public') as visibility
+    select a.user_id, a.court_id,
+           coalesce(p.visibility, 'public') as visibility,
+           p.share_auto_check_ins as share,
+           coalesce(nullif(btrim(p.display_name), ''), p.username, 'A friend') as player_name,
+           coalesce(nullif(btrim(c.short_name), ''), c.name) as court_name
     from private.auto_check_in_arrivals a
     join public.profiles p on p.id = a.user_id
+    join public.courts c on c.id = a.court_id
     where a.arrived_at <= now() - interval '3 minutes'
     order by a.arrived_at
     for update of a skip locked
@@ -218,8 +275,40 @@ begin
     where user_id = v.user_id and checked_out_at is null;
 
     insert into public.check_ins (user_id, court_id, visibility, source)
-    values (v.user_id, v.court_id, v.visibility, 'auto');
+    values (v.user_id, v.court_id, v.visibility, 'auto')
+    returning id into v_check_in;
     v_count := v_count + 1;
+
+    -- Friend alerts (D37): sender shares, receiver wants them, not Private,
+    -- not blocked, test accounts only reach insiders (D34), at most one per
+    -- friend per 2 hours.
+    if v.share and v.visibility <> 'private' then
+      insert into public.notifications (user_id, type, actor_id, title, body, data, dedupe_key)
+      select fr.friend_id, 'friend_check_in', v.user_id,
+             left(v.player_name || ' is at ' || v.court_name, 80),
+             'Checked in just now.',
+             jsonb_build_object('path', '/court/' || v.court_id),
+             'friend_check_in:' || v_check_in || ':' || fr.friend_id
+      from (
+        select case when f.requester_id = v.user_id then f.addressee_id else f.requester_id end as friend_id
+        from public.friendships f
+        where f.status = 'accepted'
+          and (f.requester_id = v.user_id or f.addressee_id = v.user_id)
+      ) fr
+      join public.profiles fp on fp.id = fr.friend_id
+      where fp.notify_friend_check_ins
+        and not private.users_are_blocked(v.user_id, fr.friend_id)
+        and (not private.is_hidden_account(v.user_id)
+             or fp.account_tag in ('TEST', 'REVIEWER', 'FOUNDER'))
+        and not exists (
+          select 1 from public.notifications n
+          where n.user_id = fr.friend_id
+            and n.actor_id = v.user_id
+            and n.type = 'friend_check_in'
+            and n.created_at > now() - interval '2 hours'
+        )
+      on conflict (dedupe_key) do nothing;
+    end if;
   end loop;
 
   return v_count;
@@ -228,7 +317,7 @@ $$;
 
 revoke all on function private.promote_auto_check_ins() from public, anon, authenticated;
 
--- ── Stale sweep: auto check-ins last 3 hours, manual 45 minutes ───────────
+-- ── Stale sweep: auto 3 hours (then tell them, D38), manual 45 minutes ──
 create or replace function private.auto_checkout_stale_check_ins()
 returns integer
 language plpgsql
@@ -238,17 +327,88 @@ as $$
 declare
   v_closed integer;
 begin
-  update public.check_ins
-  set checked_out_at = checked_in_at
-    + case when source = 'auto' then interval '3 hours' else interval '45 minutes' end
-  where checked_out_at is null
-    and checked_in_at < now()
-      - case when source = 'auto' then interval '3 hours' else interval '45 minutes' end;
-
-  get diagnostics v_closed = row_count;
+  with closed as (
+    update public.check_ins
+    set checked_out_at = checked_in_at
+      + case when source = 'auto' then interval '3 hours' else interval '45 minutes' end
+    where checked_out_at is null
+      and checked_in_at < now()
+        - case when source = 'auto' then interval '3 hours' else interval '45 minutes' end
+    returning id, user_id, court_id, source
+  ), told as (
+    insert into public.notifications (id, user_id, type, title, body, data, dedupe_key)
+    select n.id, n.user_id, 'auto_check_out',
+           'You''ve been checked out',
+           left('Your auto check-in at ' || n.court_name || ' ended after 3 hours. Still playing?', 240),
+           jsonb_build_object(
+             'path', '/court/' || n.court_id,
+             'kind', 'auto_check_out',
+             'court_id', n.court_id,
+             'notification_id', n.id,
+             'category', 'auto-check-out'
+           ),
+           'auto_check_out:' || n.check_in_id
+    from (
+      select gen_random_uuid() as id, cl.id as check_in_id, cl.user_id, cl.court_id,
+             coalesce(nullif(btrim(c.short_name), ''), c.name) as court_name
+      from closed cl
+      join public.courts c on c.id = cl.court_id
+      where cl.source = 'auto'
+    ) n
+    on conflict (dedupe_key) do nothing
+    returning 1
+  )
+  select count(*) into v_closed from closed;
   return v_closed;
 end
 $$;
+
+-- ── "Check back in" from that notification (D38) ──────────────────────────
+-- Starts an auto check-in right away (no hold: they said they're there).
+-- Only at their local court; does nothing if they're already checked in there.
+create or replace function public.resume_auto_check_in(p_court_id uuid)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := (select auth.uid());
+  v_visibility text;
+begin
+  if v_user_id is null then
+    raise exception 'not authenticated' using errcode = '42501';
+  end if;
+
+  select coalesce(p.visibility, 'public') into v_visibility
+  from public.profiles p
+  where p.id = v_user_id and p.local_court_id = p_court_id
+  for update;
+  if not found or not exists (
+    select 1 from public.courts c where c.id = p_court_id and not c.is_archived
+  ) then
+    return 'not_local';
+  end if;
+
+  if exists (
+    select 1 from public.check_ins ci
+    where ci.user_id = v_user_id and ci.court_id = p_court_id and ci.checked_out_at is null
+  ) then
+    return 'already';
+  end if;
+
+  update public.check_ins
+  set checked_out_at = now()
+  where user_id = v_user_id and checked_out_at is null;
+
+  insert into public.check_ins (user_id, court_id, visibility, source)
+  values (v_user_id, p_court_id, v_visibility, 'auto');
+  return 'checked_in';
+end
+$$;
+
+revoke execute on function public.resume_auto_check_in(uuid) from public, anon;
+grant execute on function public.resume_auto_check_in(uuid) to authenticated;
 
 -- ── Local court changed: end what the old circle started ─────────────────
 -- The phone moves the circle to the new court, so the old court never sends

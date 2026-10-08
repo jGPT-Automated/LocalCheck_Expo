@@ -29,6 +29,12 @@ below wherever they disagree.
   built on expo-location. **D36:** automatic with a 3-minute hold and an Undo
   notification; leaving checks out; auto check-ins last until you leave
   (3-hour backstop). Plan doc Spec 8.
+- **D37 Friend alerts for auto check-ins:** auto check-ins use the main
+  privacy setting. Two switches: "Share my auto check-ins" (send, default off)
+  and "Friends' auto check-ins" (receive, default on). A friend gets a push
+  only when both are on and the check-in isn't Private; at most one per friend
+  per 2 hours. **D38:** when the 3-hour backstop ends an auto check-in, the
+  player gets "You've been checked out" with Check back in / Got it.
 - **D34 Test data hidden at launch:** `TEST` / `REVIEWER` accounts and test
   courts are hidden from real players by RLS; `TEST` / `REVIEWER` / `FOUNDER`
   see everything. Four test courts (LA, Houston), Kasmiersky the one real

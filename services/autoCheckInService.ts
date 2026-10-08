@@ -4,7 +4,10 @@ import * as TaskManager from "expo-task-manager";
 import { Platform } from "react-native";
 
 import {
+  AUTO_CHECK_OUT_CATEGORY,
   AUTO_CHECK_IN_CATEGORY,
+  CHECK_BACK_IN_ACTION,
+  GOT_IT_ACTION,
   AUTO_CHECK_IN_NOTIFICATION_ID,
   AUTO_CHECK_IN_TASK,
   AUTO_CHECK_IN_UNDO_ACTION,
@@ -166,21 +169,60 @@ export async function syncAutoCheckIn(court: AutoCheckInCourt | null): Promise<v
   }
 }
 
-/** The "Undo" button on the "Checked in" notification. */
+/**
+ * Notification buttons: "Not here" on "Checked in at …" (D36), and
+ * "Check back in" / "Got it" on the 3-hour "You've been checked out" push
+ * (D38).
+ */
 export async function registerUndoAction(): Promise<void> {
-  if (!isAutoCheckInAvailable()) return;
+  if (Platform.OS !== "ios") return;
   try {
     const Notifications = await notifications();
     await Notifications.setNotificationCategoryAsync(AUTO_CHECK_IN_CATEGORY, [
       {
         identifier: AUTO_CHECK_IN_UNDO_ACTION,
-        buttonTitle: "Undo",
-        options: { opensAppToForeground: true, isDestructive: true },
+        buttonTitle: "Not here",
+        options: { opensAppToForeground: true },
+      },
+    ]);
+    await Notifications.setNotificationCategoryAsync(AUTO_CHECK_OUT_CATEGORY, [
+      {
+        identifier: CHECK_BACK_IN_ACTION,
+        buttonTitle: "Check back in",
+        options: { opensAppToForeground: true },
+      },
+      {
+        identifier: GOT_IT_ACTION,
+        buttonTitle: "Got it",
+        options: { opensAppToForeground: false },
       },
     ]);
   } catch (error) {
-    console.warn("register undo action failed", error);
+    console.warn("register notification actions failed", error);
   }
+}
+
+/** "Check back in" on the 3-hour notice: auto check-in again, right away. */
+export async function resumeAutoCheckIn(courtId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc("resume_auto_check_in", { p_court_id: courtId });
+  if (error) {
+    console.warn("resume auto check-in failed", error.message);
+    return false;
+  }
+  return data === "checked_in" || data === "already";
+}
+
+/** The two friend-alert switches (D37). */
+export async function setAutoCheckInAlerts(prefs: { share?: boolean; receive?: boolean }): Promise<boolean> {
+  const { error } = await supabase.rpc("set_auto_check_in_alerts", {
+    p_share: prefs.share ?? null,
+    p_receive: prefs.receive ?? null,
+  });
+  if (error) {
+    console.warn("set auto check-in alerts failed", error.message);
+    return false;
+  }
+  return true;
 }
 
 /** Remove the latest auto check-in (or a held arrival) as if it never happened. */

@@ -255,7 +255,14 @@ All applied by Jesse in the SQL editor, verified, and recorded:
   `undo_auto_check_in`; cron `localcheck-promote-auto-check-ins` every minute;
   the stale sweep keeps 45 minutes for manual and 3 hours for auto; a
   `profiles` trigger ends the held arrival and any open auto check-in at the
-  old court when the local court changes.
+  old court when the local court changes. Also (D37, D38):
+  `profiles.share_auto_check_ins` / `notify_friend_check_ins` +
+  `set_auto_check_in_alerts`; notification types `friend_check_in` and
+  `auto_check_out`; `resume_auto_check_in`. Needs
+  `20261008120000_hide_test_accounts_and_courts.sql` first
+  (`private.is_hidden_account`). `send-notification` passes
+  `data.category` as the push's `categoryId` (action buttons) — redeploy
+  after merge, with Jesse's OK.
 
 ## Realtime and API safety
 

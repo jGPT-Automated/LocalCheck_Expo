@@ -17,6 +17,12 @@ export const AUTO_CHECK_IN_CATEGORY = "auto-check-in";
 export const AUTO_CHECK_IN_UNDO_ACTION = "undo";
 /** Emitted after the notification's Undo runs (payload: boolean ok). */
 export const AUTO_CHECK_IN_UNDONE_EVENT = "localcheck:auto-check-in-undone";
+/** The 3-hour "You've been checked out" push (D38) and its buttons. */
+export const AUTO_CHECK_OUT_CATEGORY = "auto-check-out";
+export const CHECK_BACK_IN_ACTION = "check_back_in";
+export const GOT_IT_ACTION = "got_it";
+/** Emitted after "Check back in" runs (payload: boolean ok). */
+export const AUTO_CHECK_IN_RESUMED_EVENT = "localcheck:auto-check-in-resumed";
 
 export type AutoCheckInCourt = {
   id: string;
@@ -105,6 +111,6 @@ export function notifyAt(arrivedAtIso: string | null | undefined, now: Date = ne
 export function checkedInNotification(courtName: string): { title: string; body: string } {
   return {
     title: `Checked in at ${courtName}`,
-    body: "Auto check-in. Tap Undo if you're not playing.",
+    body: "Auto check-in. Not playing? Tap Not here.",
   };
 }

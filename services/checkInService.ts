@@ -183,6 +183,8 @@ export async function fetchWeeklyActiveCount(courtId: string): Promise<number> {
 export interface ActiveCheckInState {
   courtId: string;
   visibility: "public" | "friends" | "private";
+  /** true = started by the local-court geofence (D35). */
+  auto: boolean;
 }
 
 /** Get the user's fresh active check-in and its persisted privacy mode. */
@@ -192,7 +194,7 @@ export async function fetchActiveCheckInState(
   try {
     const { data, error } = await supabase
       .from("check_ins")
-      .select("court_id,visibility")
+      .select("court_id,visibility,source")
       .eq("user_id", userId)
       .is("checked_out_at", null)
       .or(freshFilter())
@@ -200,8 +202,8 @@ export async function fetchActiveCheckInState(
       .limit(1)
       .maybeSingle();
     if (error || !data) return null;
-    const row = data as { court_id: string; visibility: ActiveCheckInState["visibility"] };
-    return { courtId: row.court_id, visibility: row.visibility };
+    const row = data as { court_id: string; visibility: ActiveCheckInState["visibility"]; source?: string };
+    return { courtId: row.court_id, visibility: row.visibility, auto: row.source === "auto" };
   } catch {
     return null;
   }
