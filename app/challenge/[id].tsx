@@ -47,6 +47,7 @@ const STATUS_LABEL: Record<Challenge["status"], string> = {
   completed: "SCORE LOGGED",
   declined: "DECLINED",
   cancelled: "CALLED OFF",
+  expired: "EXPIRED",
 };
 
 /**
@@ -255,8 +256,10 @@ export default function ChallengeScreen() {
               onPress={() => router.push(`/player/${other.id}`)}
             />
           </View>
-          <Text style={styles.place}>{challengePlaceLine(challenge)}</Text>
-          <Text style={styles.statusLine}>{challengeStatusLine(challenge, viewerId)}</Text>
+          <View style={styles.info}>
+            <Text numberOfLines={2} style={styles.place}>{challengePlaceLine(challenge)}</Text>
+            <Text numberOfLines={2} style={styles.statusLine}>{challengeStatusLine(challenge, viewerId)}</Text>
+          </View>
         </View>
 
         {action === "log_score" ? (
@@ -316,7 +319,9 @@ function Side({
       <Pressable accessibilityLabel={`Open ${name}'s profile`} disabled={!onPress} onPress={onPress}>
         <PlayerAvatar initials={initials} name={name} playerId={id} size={64} />
       </Pressable>
-      <Text numberOfLines={1} style={styles.sideLabel}>{label}</Text>
+      <Text adjustsFontSizeToFit minimumFontScale={0.75} numberOfLines={1} style={styles.sideLabel}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -363,17 +368,36 @@ const styles = StyleSheet.create({
   statusLive: { borderColor: Colors.accentBorderStrong, backgroundColor: Colors.accentDim },
   statusText: { fontFamily: Typography.bodyBold, fontSize: 10, letterSpacing: 1.4, color: Colors.textSecondary },
   statusTextLive: { color: Colors.accent },
+  // Two equal columns around a fixed "VS", so a 24-character name on either
+  // side can only shrink its own label, never push into the other player.
   faceoff: {
     marginTop: Space.xl,
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-around",
+    alignItems: "flex-start",
   },
-  side: { alignItems: "center", gap: Space.sm, maxWidth: 120 },
-  sideLabel: { fontFamily: Typography.heading, fontSize: 16, letterSpacing: 0.6, color: Colors.text },
-  vs: { fontFamily: Typography.heading, fontSize: 16, color: Colors.muted },
-  place: { ...TextStyles.label, marginTop: Space.xl, textAlign: "center", color: Colors.text },
-  statusLine: { ...TextStyles.metadata, marginTop: 4, textAlign: "center", color: Colors.textSecondary },
+  side: { flex: 1, minWidth: 0, alignItems: "center", gap: Space.sm },
+  sideLabel: {
+    alignSelf: "stretch",
+    textAlign: "center",
+    fontFamily: Typography.heading,
+    fontSize: 16,
+    letterSpacing: 0.6,
+    color: Colors.text,
+  },
+  // Centred on the avatars, not on the avatar + label stack.
+  vs: { width: 36, marginTop: 22, textAlign: "center", fontFamily: Typography.heading, fontSize: 16, color: Colors.muted },
+  // Where and what's next: its own row under a hairline, never in the
+  // face-off, so it can't collide with a player's name.
+  info: {
+    marginTop: Space.xl,
+    paddingTop: Space.lg,
+    alignItems: "center",
+    gap: Space.xs,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
+  },
+  place: { ...TextStyles.label, textAlign: "center", color: Colors.text },
+  statusLine: { ...TextStyles.metadata, textAlign: "center", color: Colors.textSecondary },
   scoreBlock: { marginTop: Space.lg },
   label: {
     marginTop: Space.xl,

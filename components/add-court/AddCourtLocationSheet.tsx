@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
 import { Colors, Radius } from "@/constants/colors";
-import { Layout, Space } from "@/constants/layout";
+import { Space } from "@/constants/layout";
 import { TextStyles } from "@/constants/typography";
 import { useDeviceLocation } from "@/context/DeviceLocationContext";
 import type { DeviceCoordinate } from "@/context/deviceLocationModel";
@@ -63,7 +63,6 @@ export function AddCourtLocationSheet({
       title="ADD A COURT"
       eyebrow="STEP 1 OF 3 · LOCATION"
       dynamic
-      bottomClearance={Layout.tabBarClearance}
       contentBottomPadding={Space.lg}
       backdropOpacity={0}
     >

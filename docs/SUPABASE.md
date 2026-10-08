@@ -264,6 +264,20 @@ All applied by Jesse in the SQL editor, verified, and recorded (the last two on 
   `data.category` as the push's `categoryId` (action buttons) — redeploy
   after merge, with Jesse's OK.
 
+### Written, not applied
+
+- `20261010120000_expire_stale_challenges.sql` (D39) — **written, not applied**.
+  Adds `expired` to `challenges_status_check`; `private.expire_stale_challenges()`
+  expires pending challenges whose `play_on` is before today (Central time) and
+  undated pending ones older than 7 days (accepted ones are left alone);
+  pg_cron job `localcheck-expire-challenges` every 15 minutes, plus one run at
+  the end of the migration. Patches `create_challenge` (expires the pair's own
+  stale pending challenge before the duplicate check) and `respond_to_challenge`
+  (new `LC112` "This challenge expired.") with anchor checks. Creates no tables,
+  so there is no RLS prompt. Needs the two challenge migrations above first. The
+  app already hides stale pending challenges on its own, so the order of
+  migration and app release doesn't matter.
+
 ## Realtime and API safety
 
 Realtime schema access is locked down; LocalCheck uses private scoped Broadcast

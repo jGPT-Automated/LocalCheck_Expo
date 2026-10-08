@@ -11,6 +11,7 @@ export type HeadToHeadParticipant = {
   displayOrder?: number | null;
   eloBefore?: number | null;
   eloAfter?: number | null;
+  hideScore?: boolean | null;
 };
 
 export type HeadToHeadSourceGame = {
@@ -41,6 +42,8 @@ export type HeadToHeadGame = {
   teammates: string[];
   /** The other side, first names, in roster order. */
   opponents: string[];
+  /** A player hid this game's score (D40): show W / L, never the numbers. */
+  scoresHidden: boolean;
 };
 
 export type HeadToHeadSummary = {
@@ -48,7 +51,8 @@ export type HeadToHeadSummary = {
   myWins: number;
   theirWins: number;
   leader: "you" | "them" | "even";
-  /** Average of (my score - their score); null with no games. */
+  /** Average of (my score - their score) over games whose score is shown;
+   *  null when there are none. */
   avgMargin: number | null;
   /** Sum of the viewer's ELO changes in these games; null when none recorded. */
   eloNet: number | null;
@@ -89,13 +93,15 @@ export function toHeadToHeadGame(
       .filter((p) => p.side === me.side && p.userId !== viewerId)
       .map((p) => firstName(p.name)),
     opponents: ordered.filter((p) => p.side !== me.side).map((p) => firstName(p.name)),
+    scoresHidden: game.participants.some((p) => p.hideScore),
   };
 }
 
 export function summarizeHeadToHead(games: HeadToHeadGame[]): HeadToHeadSummary {
   const myWins = games.filter((g) => g.won).length;
   const theirWins = games.length - myWins;
-  const margins = games.map((g) => g.myScore - g.theirScore);
+  // Hidden scores stay hidden in the average too.
+  const margins = games.filter((g) => !g.scoresHidden).map((g) => g.myScore - g.theirScore);
   const deltas = games
     .map((g) => g.myEloDelta)
     .filter((d): d is number => d != null);

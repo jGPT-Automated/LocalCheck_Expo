@@ -8,14 +8,17 @@ const players = [
   { userId: "b", hideScore: false },
 ];
 
-test("anyone outside the game sees no numbers when one player hid them", () => {
+test("a settled game with a hidden score shows W / L to everyone, players included", () => {
   assert.equal(scoresHiddenFor(players, "stranger"), true);
   assert.equal(scoresHiddenFor(players, null), true);
+  assert.equal(scoresHiddenFor(players, "a"), true);
+  assert.equal(scoresHiddenFor(players, "b", "confirmed"), true);
 });
 
-test("the players always see the score", () => {
-  assert.equal(scoresHiddenFor(players, "a"), false);
-  assert.equal(scoresHiddenFor(players, "b"), false);
+test("players still see the numbers while the game is in review", () => {
+  assert.equal(scoresHiddenFor(players, "a", "pending"), false);
+  assert.equal(scoresHiddenFor(players, "b", "held"), false);
+  assert.equal(scoresHiddenFor(players, "stranger", "pending"), true);
 });
 
 test("nobody hid it: everyone sees it", () => {

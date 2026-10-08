@@ -173,12 +173,11 @@ function GameContent({ item }: { item: FeedItem }) {
           {formatMatchSide(winningSide)}
         </Text>
         <View style={styles.gameScoreGroup}>
-          <Text style={styles.winTag}>WIN</Text>
-          {match.scoresHidden ? null : (
-            <Text style={[styles.gameScore, styles.winnerScore]}>
-              {winningScore}
-            </Text>
-          )}
+          {/* Hidden score (D40): W / L takes the numbers' place. */}
+          {match.scoresHidden ? null : <Text style={styles.winTag}>WIN</Text>}
+          <Text style={[styles.gameScore, styles.winnerScore]}>
+            {match.scoresHidden ? "W" : winningScore}
+          </Text>
         </View>
       </View>
       <View style={styles.gameSide}>
@@ -186,7 +185,7 @@ function GameContent({ item }: { item: FeedItem }) {
           {formatMatchSide(losingSide)}
         </Text>
         <View style={styles.gameScoreGroup}>
-          {match.scoresHidden ? null : <Text style={styles.gameScore}>{losingScore}</Text>}
+          <Text style={styles.gameScore}>{match.scoresHidden ? "L" : losingScore}</Text>
         </View>
       </View>
     </View>

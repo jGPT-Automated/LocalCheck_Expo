@@ -3,10 +3,9 @@ import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Dimensions, Pressable, StyleSheet, Text } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ScoreCard } from "@/components/match/ScoreCard";
-import { AppBottomSheetModal } from "@/components/sheet/AppBottomSheetModal";
+import { AppBottomSheetModal, useSheetBottomPadding } from "@/components/sheet/AppBottomSheetModal";
 import { Colors } from "@/constants/colors";
 import type { CourtSport, FeedMatchSummary } from "@/constants/data";
 import { Space } from "@/constants/layout";
@@ -33,7 +32,7 @@ export function GameResultModal({
   visible: boolean;
   onClose: () => void;
 }) {
-  const { bottom } = useSafeAreaInsets();
+  const bottomPadding = useSheetBottomPadding();
   const router = useRouter();
   const sheetRef = React.useRef<BottomSheetModal>(null);
   const presentedRef = React.useRef(false);
@@ -85,6 +84,7 @@ export function GameResultModal({
 
   return (
     <AppBottomSheetModal
+      compactHandle
       dynamic
       maxDynamicContentSize={Dimensions.get("window").height * 0.86}
       onDismiss={() => {
@@ -95,7 +95,7 @@ export function GameResultModal({
       snapPoints={[]}
     >
       {shown ? (
-        <BottomSheetView style={[styles.content, { paddingBottom: Math.max(bottom, Space.md) + Space.sm }]}>
+        <BottomSheetView style={[styles.content, { paddingBottom: bottomPadding }]}>
           <ScoreCard
             courtName={courtName ?? "Game"}
             footnote={allTime ?? undefined}

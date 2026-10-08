@@ -8,6 +8,9 @@ import {
   challengePlaceLine,
   challengeStatusLine,
   dayLabel,
+  inboxChallenges,
+  isOpen,
+  isStalePending,
   otherPlayer,
   scoreError,
   upcomingDays,
@@ -84,4 +87,58 @@ test("score entry", () => {
   assert.equal(scoreError("", "7"), "Enter both scores.");
   assert.equal(scoreError("11", "11"), "Games can't end in a tie.");
   assert.equal(scoreError("-1", "4"), "Scores are whole numbers.");
+});
+
+test("expired challenges are closed and read as expired", () => {
+  const c = { ...base, status: "expired" as const };
+  assert.equal(challengeAction(c, "ty"), "closed");
+  assert.equal(challengeAction(c, "me"), "closed");
+  assert.equal(challengeStatusLine(c, "me"), "Expired");
+  assert.equal(isOpen("expired"), false);
+});
+
+test("a status this build doesn't know is closed, not a crash", () => {
+  const c = { ...base, status: "mystery" as unknown as Challenge["status"] };
+  assert.equal(challengeAction(c, "ty"), "closed");
+  assert.equal(challengeStatusLine(c, "ty"), "Closed");
+});
+
+test("pending past its day is stale; today and later are not", () => {
+  const today = new Date(2026, 9, 8, 15);
+  assert.equal(isStalePending({ ...base, playOn: "2026-10-07" }, today), true);
+  assert.equal(isStalePending({ ...base, playOn: "2026-10-08" }, today), false);
+  assert.equal(isStalePending({ ...base, playOn: "2026-10-09" }, today), false);
+});
+
+test("pending with no day goes stale after 7 days", () => {
+  const today = new Date("2026-10-13T12:00:00Z");
+  assert.equal(isStalePending({ ...base, createdAt: "2026-10-06T12:00:00Z" }, today), false);
+  assert.equal(isStalePending({ ...base, createdAt: "2026-10-06T11:00:00Z" }, today), true);
+  assert.equal(isStalePending({ ...base, createdAt: "not a date" }, today), false);
+});
+
+test("accepted challenges never expire client-side", () => {
+  const today = new Date(2026, 9, 20, 9);
+  const c = { ...base, status: "accepted" as const, playOn: "2026-10-01" };
+  assert.equal(isStalePending(c, today), false);
+  assert.deepEqual(inboxChallenges([c], "pending", today), [c]);
+});
+
+test("inbox: PENDING hides stale pending, ALL shows it as expired", () => {
+  const today = new Date(2026, 9, 8, 9);
+  const stale = { ...base, id: "old", playOn: "2026-10-07" };
+  const todays = { ...base, id: "now", playOn: "2026-10-08" };
+  const undated = { ...base, id: "any", createdAt: new Date(today.getTime() - 3600_000).toISOString() };
+  const accepted = { ...base, id: "on", status: "accepted" as const, playOn: "2026-10-05" };
+  const all = [stale, todays, undated, accepted];
+
+  assert.deepEqual(
+    inboxChallenges(all, "pending", today).map((c) => c.id),
+    ["now", "any", "on"],
+  );
+  const shown = inboxChallenges(all, "all", today);
+  assert.deepEqual(shown.map((c) => c.id), ["old", "now", "any", "on"]);
+  assert.equal(shown[0].status, "expired");
+  assert.equal(shown[1].status, "pending");
+  assert.equal(stale.status, "pending", "input is not mutated");
 });

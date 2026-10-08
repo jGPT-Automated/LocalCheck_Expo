@@ -5,12 +5,11 @@ import {
 } from "@gorhom/bottom-sheet";
 import React, { useEffect, useMemo, useRef } from "react";
 import { Dimensions, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors } from "@/constants/colors";
 import { TextStyles } from "@/constants/typography";
 
-import { AppBottomSheetModal } from "./AppBottomSheetModal";
+import { AppBottomSheetModal, useSheetBottomPadding } from "./AppBottomSheetModal";
 
 /** Run-only task drawer. It deliberately replaces the old custom Modal for
  * this flow so swipe-down, backdrop close, and drag interruption are native to
@@ -21,7 +20,6 @@ export function RunFlowSheet({
   title,
   eyebrow,
   backdropOpacity,
-  bottomClearance = 0,
   contentBottomPadding = 44,
   snapPoints: providedSnapPoints,
   dynamic = false,
@@ -33,7 +31,6 @@ export function RunFlowSheet({
   eyebrow?: string;
   /** Keep the underlying surface visible when the drawer is part of it. */
   backdropOpacity?: number;
-  bottomClearance?: number;
   /** Minimum breathing room below the final action. */
   contentBottomPadding?: number;
   /** Compact task drawers may opt into a smaller fixed detent. Schedule keeps 88%. */
@@ -44,7 +41,7 @@ export function RunFlowSheet({
   children: React.ReactNode;
 }) {
   const modalRef = useRef<BottomSheetModal>(null);
-  const { bottom } = useSafeAreaInsets();
+  const floorPadding = useSheetBottomPadding();
   const presentedRef = useRef(false);
   const snapPoints = useMemo<Array<string | number>>(
     () => providedSnapPoints ?? ["88%"],
@@ -60,7 +57,9 @@ export function RunFlowSheet({
     }
   }, [visible]);
 
-  const paddingBottom = Math.max(contentBottomPadding, bottom + bottomClearance);
+  // The sheet itself clears the tab bar (AppBottomSheetModal); this only adds
+  // room below the last action.
+  const paddingBottom = Math.max(contentBottomPadding, floorPadding);
 
   // No close button — the sheet's own drag handle (swipe down) and tapping
   // the backdrop already dismiss it; a redundant X was the odd one out.

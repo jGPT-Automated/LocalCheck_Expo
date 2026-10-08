@@ -100,6 +100,9 @@ force-push shared branches, or include unrelated user changes.
   replacement is already known.
 - Study proven product patterns before inventing a new interaction, then adapt
   the pattern to LocalCheck's actual users, data, and accessibility needs.
+- Follow the hard layout rules in `docs/product/DESIGN.md` ("Layout rules"):
+  the tab bar is a floor nothing renders under, and every name/number row is
+  built for a 24-character username and four-digit values.
 - Reuse the canonical UI components listed in `docs/product/DESIGN.md`. Before
   adding a page-local avatar, selector, metric, activity row, court card, or
   floating action, search for its shared component and improve that source.

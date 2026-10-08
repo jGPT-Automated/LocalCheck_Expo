@@ -243,7 +243,7 @@ export default function MatchReviewScreen() {
         bounces={policyExpanded}
         showsVerticalScrollIndicator={false}
       >
-        <MatchReviewCard match={match} viewerId={user?.id} />
+        <MatchReviewCard match={match} viewerHideScore={hiddenOverride ?? undefined} viewerId={user?.id} />
         {viewer && match.status !== "voided" ? (
           <HideScoreToggle
             onChange={(next) => {
@@ -298,6 +298,10 @@ export default function MatchReviewScreen() {
               <PolicyRow
                 index="4"
                 text="A game can be disputed twice. A third dispute, or an unresolved 7-day hold, voids the game with no profile or ELO change."
+              />
+              <PolicyRow
+                index="5"
+                text="Any player can hide the score. Once the game is final, everyone, you included, sees only who won. It still counts for ELO, rank and record. Turn it off any time."
               />
             </View>
           ) : null}

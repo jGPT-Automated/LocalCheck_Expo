@@ -704,7 +704,7 @@ const styles = StyleSheet.create({
     fontFamily: Typography.bodyBold,
     fontSize: 12,
     letterSpacing: 2.2,
-    color: Colors.text,
+    color: Colors.accent,
   },
   gamesHint: { ...TextStyles.metadata, color: Colors.muted },
   gamesEmpty: { ...TextStyles.metadata, paddingVertical: Space.lg, color: Colors.textSecondary },

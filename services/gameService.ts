@@ -45,6 +45,7 @@ interface SupabaseMatch {
     display_order?: number;
     elo_before?: number | null;
     elo_after?: number | null;
+    hide_score?: boolean | null;
     profiles: SupabaseProfile | null;
   }>;
   match_participant_reviews?: Array<{
@@ -463,7 +464,7 @@ export async function fetchHeadToHead(
     const { data, error } = await supabase
       .from("matches")
       .select(
-        "*, courts(name, sport_type), match_participants(user_id, side, display_order, elo_before, elo_after, profiles(display_name, username))",
+        "*, courts(name, sport_type), match_participants(user_id, side, display_order, elo_before, elo_after, hide_score, profiles(display_name, username))",
       )
       .in("id", shared)
       .eq("status", "confirmed")
@@ -481,6 +482,7 @@ export async function fetchHeadToHead(
         display_order?: number | null;
         elo_before?: number | null;
         elo_after?: number | null;
+        hide_score?: boolean | null;
         profiles: { display_name?: string | null; username?: string | null } | null;
       }>;
     };
@@ -506,6 +508,7 @@ export async function fetchHeadToHead(
               displayOrder: p.display_order,
               eloBefore: p.elo_before,
               eloAfter: p.elo_after,
+              hideScore: p.hide_score,
             })),
           },
           currentUserId,

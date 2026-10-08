@@ -21,6 +21,20 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-08 — #67 Expo Go preview feedback (`codex/auto-check-in`)
+
+| Item | Status |
+|------|--------|
+| Tab bar is a hard floor: sheets rise from its top, VIEW GAME no longer hidden (D41) | ✅ needs device check |
+| Game sheet / Final Score: court name as a title, format chip + date, FINAL centred | ✅ |
+| ELO change: green/red chip pops in and counts up, rating rolls (no text arrows) | ✅ needs device check |
+| Hide score: W / L for everyone on every screen once final, animated; switch is just "Hide score"; explanation moved to How score review works (D40) | ✅ needs device check |
+| Head-to-head: long names, orange leader + bar, centred stats | ✅ |
+| Me → Inbox: CHALLENGES no longer under the filter row; one spacing rhythm | ✅ |
+| Challenge screen: names and "Waiting on" in their own rows | ✅ |
+| LocalPlus active: no void, footer follows content, active card | ✅ |
+| Pending challenges expire after their day (D39) | ✅ app; migration `20261010120000_expire_stale_challenges.sql` written, not applied |
+
 ## 2026-10-08 — Auto check-in (`codex/auto-check-in`)
 
 | Item | Status |

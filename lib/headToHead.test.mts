@@ -95,3 +95,17 @@ test("headline and signed numbers", () => {
   assert.equal(signed(-2), "-2");
   assert.equal(signed(0), "0");
 });
+
+test("a hidden score shows as hidden and stays out of the average margin", () => {
+  const hidden = toHeadToHeadGame(
+    { ...oneVOne, participants: oneVOne.participants.map((p, i) => ({ ...p, hideScore: i === 0 })) },
+    me,
+  )!;
+  const shown = toHeadToHeadGame(threeVThree, me)!;
+  assert.equal(hidden.scoresHidden, true);
+  assert.equal(shown.scoresHidden, false);
+  const s = summarizeHeadToHead([hidden, shown]);
+  assert.equal(s.avgMargin, 6);
+  assert.equal(summarizeHeadToHead([hidden]).avgMargin, null);
+  assert.equal(s.myWins, 1);
+});

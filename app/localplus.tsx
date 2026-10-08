@@ -196,7 +196,11 @@ export default function LocalPlusScreen() {
       />
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          // No action bar on the comped state, so clear the home indicator.
+          hasLocalPlus && isComped && { paddingBottom: bottom + Space.xl },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.hero}>
@@ -204,19 +208,25 @@ export default function LocalPlusScreen() {
         </View>
 
         {hasLocalPlus ? (
-          <View style={styles.statusBanner}>
-            <Feather color={Colors.accent} name="check-circle" size={15} />
-            <Text style={styles.statusText}>
-              {isFounder
-                ? "You're a founder — LocalPlus is on the house, for good."
-                : tag === "STARTER"
-                  ? "You're a Starter — LocalPlus is free for your first year."
-                  : "LocalPlus is active on this account."}
-            </Text>
+          <View style={styles.activeCard}>
+            <View style={styles.activeCheck}>
+              <Feather color={Colors.black} name="check" size={16} />
+            </View>
+            <View style={styles.activeCopy}>
+              <Text style={styles.activeEyebrow}>ACTIVE</Text>
+              <Text style={styles.activeText}>
+                {isFounder
+                  ? "You're a founder — LocalPlus is on the house, for good."
+                  : tag === "STARTER"
+                    ? "You're a Starter — LocalPlus is free for your first year."
+                    : "Everything below is unlocked on this account."}
+              </Text>
+            </View>
           </View>
         ) : null}
 
         <View style={styles.perks}>
+          {hasLocalPlus ? <Text style={styles.plansLabel}>WHAT&apos;S INCLUDED</Text> : null}
           {PERKS.map((perk) => (
             <View key={perk.title} style={styles.perk}>
               <View style={styles.perkIcon}>
@@ -273,7 +283,8 @@ export default function LocalPlusScreen() {
           your rating, your win-loss record, and every head-to-head.
         </Text>
 
-        {/* Pinned to the bottom of the screen, right above the button. */}
+        {/* Purchase links sit at the bottom, right above the button. The comped
+            note below just follows the content. */}
         {!hasLocalPlus ? (
           <View style={styles.footerLinks}>
             <Pressable
@@ -300,7 +311,7 @@ export default function LocalPlusScreen() {
             </Pressable>
           </View>
         ) : isComped ? (
-          <Text style={[styles.manageNote, styles.footerNote]}>
+          <Text style={styles.manageNote}>
             {isFounder
               ? "LocalPlus is comped on your account — there's nothing to manage."
               : tag === "STARTER"
@@ -459,17 +470,27 @@ const styles = StyleSheet.create({
     gap: Space.lg,
   },
   hero: { alignItems: "center", paddingBottom: Space.md },
-  statusBanner: {
+  activeCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 9,
-    padding: 13,
+    gap: Space.md,
+    padding: Space.lg,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
-    borderRadius: Radius.md,
+    borderColor: Colors.accentBorderStrong,
+    borderRadius: Radius.lg,
     backgroundColor: Colors.accentGhost,
   },
-  statusText: { ...TextStyles.bodySmall, color: Colors.text, flex: 1 },
+  activeCheck: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 16,
+    backgroundColor: Colors.accent,
+  },
+  activeCopy: { flex: 1, minWidth: 0, gap: 3 },
+  activeEyebrow: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.8, color: Colors.accent },
+  activeText: { ...TextStyles.bodySmall, color: Colors.text },
   perks: { gap: Space.lg, paddingTop: Space.sm },
   perk: { flexDirection: "row", gap: Space.md },
   perkIcon: {
@@ -505,7 +526,6 @@ const styles = StyleSheet.create({
     gap: Space.md,
   },
   footerDivider: { width: 1, height: 12, backgroundColor: Colors.border },
-  footerNote: { marginTop: "auto" },
   restoreText: {
     fontFamily: Typography.bodyBold,
     fontSize: 11,
@@ -517,6 +537,7 @@ const styles = StyleSheet.create({
     ...TextStyles.bodySmall,
     color: Colors.muted,
     lineHeight: 17,
+    textAlign: "center",
   },
   fine: {
     ...TextStyles.caption,

@@ -21,6 +21,7 @@ import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
 import { displayTag, type FeedItem, type FeedMatchSummary } from "@/constants/data";
+import { Space } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
@@ -37,7 +38,7 @@ import {
 import type { MatchReview } from "@/services/gameService";
 import { fetchPlayerActivity } from "@/services/feedService";
 import { pairVisits } from "@/lib/activityPresentation";
-import type { Challenge } from "@/lib/challengeModel";
+import { type Challenge, inboxChallenges } from "@/lib/challengeModel";
 import { fetchOpenChallenges, respondToChallenge } from "@/services/challengeService";
 import { LocalPlusFlags } from "@/constants/flags";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
@@ -77,9 +78,11 @@ export default function MeScreen() {
   } | null>(null);
   const [openMatches, setOpenMatches] = useState<MatchReview[]>([]);
   const [settledMatches, setSettledMatches] = useState<MatchReview[]>([]);
-  const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [rawChallenges, setChallenges] = useState<Challenge[]>([]);
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const [inboxScope, setInboxScope] = useState<InboxScope>("pending");
+  // Pending challenges whose day passed drop out of PENDING (D39).
+  const challenges = useMemo(() => inboxChallenges(rawChallenges, inboxScope), [rawChallenges, inboxScope]);
   const [inboxQuery, setInboxQuery] = useState("");
   const [activity, setActivity] = useState<FeedItem[]>([]);
   // ELO move from the player's most recently settled game — shown as a "▲ 12"
@@ -544,7 +547,7 @@ export default function MeScreen() {
             )}
           </View>
         ) : (
-          <View style={styles.content}>
+          <View style={styles.inboxContent}>
             {visibleChallenges.length > 0 ? (
               <View style={styles.requestGroup}>
                 <Text style={styles.requestGroupTitle}>CHALLENGES</Text>
@@ -565,12 +568,13 @@ export default function MeScreen() {
                 <Text style={styles.requestGroupTitle}>
                   {inboxScope === "all" ? "IN REVIEW" : "GAMES"}
                 </Text>
-                {visibleOpenMatches.map((match) => (
+                {visibleOpenMatches.map((match, index) => (
                   <PressableScale
                     accessibilityLabel={`Open game at ${match.courtName}`}
                     accessibilityRole="button"
                     key={match.id}
                     onPress={() => router.push(`/match/${match.id}`)}
+                    style={index < visibleOpenMatches.length - 1 ? styles.gameCard : undefined}
                   >
                     <MatchReviewCard
                       compact
@@ -596,8 +600,8 @@ export default function MeScreen() {
                         playerId={player.id}
                         size={38}
                       />
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.friendName}>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text numberOfLines={1} style={styles.friendName}>
                           {player.name.toUpperCase()}
                         </Text>
                         <Text style={styles.friendMeta}>{player.elo} ELO</Text>
@@ -658,12 +662,13 @@ export default function MeScreen() {
             {inboxScope === "all" && visibleSettledMatches.length > 0 ? (
               <View style={styles.gameGroup}>
                 <Text style={styles.requestGroupTitle}>RECENTLY SETTLED</Text>
-                {visibleSettledMatches.map((match) => (
+                {visibleSettledMatches.map((match, index) => (
                   <PressableScale
                     accessibilityLabel={`Open game at ${match.courtName}`}
                     accessibilityRole="button"
                     key={match.id}
                     onPress={() => router.push(`/match/${match.id}`)}
+                    style={index < visibleSettledMatches.length - 1 ? styles.gameCard : undefined}
                   >
                     <MatchReviewCard
                       compact
@@ -988,6 +993,10 @@ const styles = StyleSheet.create({
   },
   inboxSearchDivider: { width: 1, height: 18, backgroundColor: Colors.border },
   content: { paddingTop: 0 },
+  // One rhythm for every inbox section (CHALLENGES, GAMES / IN REVIEW,
+  // FRIEND REQUESTS, RECENTLY SETTLED): air under the search strip, a fixed
+  // gap from title to first row, a fixed gap between sections.
+  inboxContent: { paddingTop: Space.lg },
   activityContent: { paddingTop: 0 },
 
   // ── LocalPlus history gate — a slim note, then blurred games below it ──
@@ -1116,14 +1125,15 @@ const styles = StyleSheet.create({
     letterSpacing: 1.1,
     marginTop: 3,
   },
-  requestGroup: { marginHorizontal: 20, marginBottom: 10 },
-  gameGroup: { marginHorizontal: 20, marginTop: 16, marginBottom: 16, gap: 12 },
+  requestGroup: { marginHorizontal: 20, marginBottom: Space.xxl },
+  gameGroup: { marginHorizontal: 20, marginBottom: Space.xxl },
+  gameCard: { marginBottom: Space.md },
   requestGroupTitle: {
     fontFamily: Typography.bodySemiBold,
     fontSize: 11,
     color: Colors.accent,
     letterSpacing: 1.2,
-    marginBottom: 7,
+    marginBottom: Space.sm,
   },
   requestRow: {
     minHeight: 58,

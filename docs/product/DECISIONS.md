@@ -19,6 +19,7 @@ below wherever they disagree.
   nowhere.
 - **D30 Hide score:** either player can hide the score for their side; outsiders
   see only W / L; it still counts for ELO, rank, record and head-to-head.
+  Revised by D40: hidden for everyone, players included, once final.
 - **D31 Game visibility:** a game shows outside its players only if every
   player is Public.
 - **D32 Website follows the app:** material app changes come with a website
@@ -35,6 +36,22 @@ below wherever they disagree.
   only when both are on and the check-in isn't Private; at most one per friend
   per 2 hours. **D38:** when the 3-hour backstop ends an auto check-in, the
   player gets "You've been checked out" with Check back in / Got it.
+- **D39 Pending challenges expire after their day (Oct 8):** a pending
+  challenge whose day has passed (or, with no day, is over 7 days old) becomes
+  `expired` and leaves the inbox; a cron job on the server does it every 15
+  minutes and the app hides it at once. Accepted challenges stay, since players
+  may still log the result. Expiring frees the pair to challenge again. Before,
+  an unanswered challenge sat in the inbox forever.
+- **D40 Hide score means hidden for everyone (Oct 8, revises D30):** once any
+  player hides a game's score, everyone sees only W / L on every screen (feed,
+  profiles, head-to-head, the game sheet), the players included. Players still
+  see the numbers while the game is in review, to approve or dispute it. The
+  switch is just "Hide score"; what it does is explained in "How score review
+  works". Before, the players always saw the numbers, so hiding looked broken
+  from their own profile.
+- **D41 The tab bar is a hard floor (Oct 8):** no screen or sheet content
+  renders under the tab bar. Sheets inside a tab rise from its top edge
+  (`AppBottomSheetModal`), scroll content clears it (`useBottomFloor`).
 - **D34 Test data hidden at launch:** `TEST` / `REVIEWER` accounts and test
   courts are hidden from real players by RLS; `TEST` / `REVIEWER` / `FOUNDER`
   see everything. Four test courts (LA, Houston), Kasmiersky the one real

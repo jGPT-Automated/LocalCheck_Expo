@@ -1,6 +1,8 @@
+import { Feather } from "@expo/vector-icons";
 import { NumberFlow } from "number-flow-react-native";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, { ZoomIn } from "react-native-reanimated";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { RollingNumber } from "@/components/ui/RollingNumber";
@@ -10,8 +12,14 @@ import { TextStyles, Typography } from "@/constants/typography";
 
 const ELO_NUMBER_FORMAT = { useGrouping: false } as const;
 
-/** Plays the before -> after ELO transition once the row mounts. This is the
- * one deliberate place ELO animates: the moment a score is confirmed. */
+/** When the ELO moment starts: after the score has rolled into place. */
+const ELO_REVEAL_DELAY = 650;
+
+/**
+ * The ELO moment on a settled game: a green or red chip pops in once the score
+ * has landed and counts up the change, while the rating beside it rolls from
+ * before to after. One line, no arrows drawn from text, no "old → new".
+ */
 function EloChangeLine({
   before,
   after,
@@ -21,32 +29,56 @@ function EloChangeLine({
   after: number;
   compact?: boolean;
 }) {
-  const [display, setDisplay] = React.useState(before);
+  const [revealed, setRevealed] = React.useState(false);
   React.useEffect(() => {
-    const timer = setTimeout(() => setDisplay(after), 500);
+    const timer = setTimeout(() => setRevealed(true), ELO_REVEAL_DELAY);
     return () => clearTimeout(timer);
   }, [after]);
   const delta = after - before;
-  const down = delta < 0;
+  const tone = delta > 0 ? "up" : delta < 0 ? "down" : "even";
+  const color = tone === "up" ? Colors.win : tone === "down" ? Colors.loss : Colors.textSecondary;
   return (
-    <View style={styles.eloLine}>
-      {/* ELO is a rating, not a quantity — no thousands separator. */}
+    <View
+      accessibilityLabel={`ELO ${after}, ${delta >= 0 ? "up" : "down"} ${Math.abs(delta)}`}
+      accessible
+      style={styles.eloLine}
+    >
+      <Animated.View
+        entering={ZoomIn.delay(ELO_REVEAL_DELAY).springify().damping(14)}
+        style={[
+          styles.eloChip,
+          compact && styles.eloChipCompact,
+          tone === "up" ? styles.eloChipUp : tone === "down" ? styles.eloChipDown : styles.eloChipEven,
+        ]}
+      >
+        <Feather
+          color={color}
+          name={tone === "up" ? "arrow-up-right" : tone === "down" ? "arrow-down-right" : "minus"}
+          size={compact ? 10 : 12}
+        />
+        <NumberFlow
+          format={ELO_NUMBER_FORMAT}
+          style={StyleSheet.flatten([styles.eloChipText, compact && styles.eloChipTextCompact, { color }])}
+          value={revealed ? Math.abs(delta) : 0}
+        />
+      </Animated.View>
+      {/* ELO is a rating, not a quantity: no thousands separator. */}
       <NumberFlow
         format={ELO_NUMBER_FORMAT}
         style={compact ? styles.eloValueCompact : styles.eloValue}
-        value={display}
+        value={revealed ? after : before}
       />
-      {/* An arrow + colour so "my rating moved, and which way" reads at a
-          glance — nobody remembers their old number. */}
-      <Text
-        style={[
-          styles.eloDelta,
-          compact && styles.eloDeltaCompact,
-          down && styles.eloDeltaNegative,
-        ]}
-      >
-        {down ? "▼" : "▲"} {Math.abs(delta)}
-      </Text>
+    </View>
+  );
+}
+
+/** Inbox density: the ELO change as a small coloured arrow and number. */
+function CompactEloDelta({ delta }: { delta: number }) {
+  const color = delta < 0 ? Colors.loss : delta > 0 ? Colors.win : Colors.textSecondary;
+  return (
+    <View style={styles.compactEloRow}>
+      <Feather color={color} name={delta < 0 ? "arrow-down-right" : delta > 0 ? "arrow-up-right" : "minus"} size={10} />
+      <Text style={[styles.compactElo, { color }]}>{Math.abs(delta)}</Text>
     </View>
   );
 }
@@ -257,16 +289,7 @@ function CompactRow({
           </Text>
         </View>
       )}
-      {elo ? (
-        <Text
-          style={[
-            styles.compactElo,
-            eloDelta < 0 && styles.eloDeltaNegative,
-          ]}
-        >
-          {eloDelta < 0 ? "▼" : "▲"} {Math.abs(eloDelta)}
-        </Text>
-      ) : null}
+      {elo ? <CompactEloDelta delta={eloDelta} /> : null}
       <Text
         style={[styles.compactScore, winner && styles.sideScoreWin]}
       >
@@ -632,7 +655,7 @@ export function ScoreCard({
   // Hidden scores: the winner still reads at a glance, the numbers don't.
   const shownLeft = scoresHidden && decided ? (leftNum > rightNum ? "W" : "L") : leftScore;
   const shownRight = scoresHidden && decided ? (rightNum > leftNum ? "W" : "L") : rightScore;
-  const shownFootnote = scoresHidden ? "Score hidden by a player" : footnote;
+  const shownFootnote = [scoresHidden ? "Score hidden" : null, footnote].filter(Boolean).join(" · ") || undefined;
 
   return (
     <View style={styles.wrap}>
@@ -677,22 +700,21 @@ export function ScoreCard({
               {format ? ` · ${format}` : ""} · {formatPlayedOn(playedOn)}
               {rightMeta ? ` · ${rightMeta}` : ""}
             </Text>
-          ) : variant === "sheet" ? (
-            <Text numberOfLines={1} style={styles.sheetHeader}>
-              {[courtName, format?.toLowerCase(), formatPlayedOnShort(playedOn), rightMeta]
-                .filter(Boolean)
-                .join(" · ")}
-            </Text>
           ) : (
             <View style={styles.titleBlock}>
               <Text adjustsFontSizeToFit minimumFontScale={0.75} numberOfLines={2} style={styles.courtTitle}>
                 {courtName.toUpperCase()}
               </Text>
-              <Text numberOfLines={1} style={styles.courtSub}>
-                {[format?.toLowerCase(), formatPlayedOnShort(playedOn), rightMeta]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </Text>
+              <View style={styles.metaRow}>
+                {format ? (
+                  <View style={styles.formatChip}>
+                    <Text style={styles.formatChipText}>{format.toUpperCase()}</Text>
+                  </View>
+                ) : null}
+                <Text numberOfLines={1} style={styles.courtSub}>
+                  {[formatPlayedOnShort(playedOn), rightMeta].filter(Boolean).join(" · ").toUpperCase()}
+                </Text>
+              </View>
             </View>
           )}
 
@@ -791,8 +813,10 @@ const styles = StyleSheet.create({
   },
   cardAction: { borderColor: Colors.accentBorder },
   cardSheet: { borderWidth: 0, backgroundColor: "transparent" },
+  // Equal space above and below the label, so it sits centred between
+  // whatever is above the card (the sheet's grabber) and the divider.
   statusLine: {
-    minHeight: 34,
+    paddingVertical: Space.md,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -804,10 +828,10 @@ const styles = StyleSheet.create({
   statusLineText: {
     fontFamily: Typography.bodyBold,
     fontSize: 10,
+    lineHeight: 12,
     letterSpacing: 1.8,
     color: Colors.textSecondary,
   },
-  sheetHeader: { ...TextStyles.metadata, textAlign: "center", color: Colors.textSecondary },
   footnote: { ...TextStyles.metadata, textAlign: "center", color: Colors.muted },
   actionSpine: {
     position: "absolute",
@@ -844,11 +868,11 @@ const styles = StyleSheet.create({
   },
   // Per-game rating move on a settled inbox card — the "did my ELO go up"
   // answer, right where the game is.
+  compactEloRow: { flexDirection: "row", alignItems: "center", gap: 1 },
   compactElo: {
     ...TextStyles.labelSmall,
     fontFamily: TextStyles.label.fontFamily,
     fontSize: 10,
-    color: Colors.win,
     letterSpacing: 0.4,
     fontVariant: ["tabular-nums"],
   },
@@ -932,42 +956,60 @@ const styles = StyleSheet.create({
   playerText: { maxWidth: "100%", minWidth: 0, alignItems: "center" },
 
   eloLine: {
-    marginTop: 1,
+    marginTop: 2,
     flexDirection: "row",
-    alignItems: "baseline",
+    alignItems: "center",
     justifyContent: "center",
-    gap: 4,
+    gap: 6,
   },
+  eloChip: {
+    height: 22,
+    paddingHorizontal: 7,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    borderRadius: 11,
+  },
+  eloChipCompact: { height: 18, paddingHorizontal: 5, borderRadius: 9 },
+  eloChipUp: { backgroundColor: Colors.winDim },
+  eloChipDown: { backgroundColor: Colors.lossDim },
+  eloChipEven: { backgroundColor: Colors.surfaceHigh },
+  eloChipText: {
+    ...TextStyles.label,
+    fontFamily: Typography.bodyBold,
+    fontVariant: ["tabular-nums"],
+  },
+  eloChipTextCompact: { fontSize: 10, lineHeight: 12 },
   eloValue: {
     ...TextStyles.labelSmall,
-    color: Colors.textSecondary,
+    color: Colors.muted,
     fontVariant: ["tabular-nums"],
   },
   eloValueCompact: {
     ...TextStyles.labelSmall,
     fontSize: 9,
-    color: Colors.textSecondary,
+    color: Colors.muted,
     fontVariant: ["tabular-nums"],
   },
-  eloDelta: {
-    ...TextStyles.labelSmall,
-    fontFamily: TextStyles.label.fontFamily,
-    color: Colors.win,
-    letterSpacing: 0.4,
-  },
-  eloDeltaCompact: { fontSize: 10 },
-  eloDeltaNegative: { color: Colors.loss },
   // ── Full card: court title (mocks 3a-3c) ──
-  titleBlock: { alignItems: "center", gap: 4, paddingTop: Space.xs },
+  titleBlock: { alignItems: "center", gap: Space.sm, paddingTop: Space.xs },
   courtTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 22,
-    lineHeight: 28,
-    letterSpacing: 0.4,
+    ...TextStyles.title,
+    letterSpacing: 0.6,
     color: Colors.text,
     textAlign: "center",
   },
-  courtSub: { ...TextStyles.metadata, color: Colors.muted, textAlign: "center" },
+  metaRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Space.sm, maxWidth: "100%" },
+  formatChip: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: Radius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.accentBorder,
+    backgroundColor: Colors.accentDim,
+  },
+  formatChipText: { ...TextStyles.labelSmall, fontFamily: Typography.bodyBold, color: Colors.accent, letterSpacing: 1.2 },
+  courtSub: { ...TextStyles.labelSmall, flexShrink: 1, color: Colors.textSecondary, letterSpacing: 1.2 },
 
   // ── 1v1 faceoff ──
   faceoff: {

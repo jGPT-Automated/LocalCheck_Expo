@@ -124,6 +124,31 @@ Rules:
 - Sticky primary actions belong at the reachable bottom edge through `StickyActionBar` or `SpeedDialFab`.
 - Drawers use `@gorhom/bottom-sheet`; focused forms use the shared `FormSheet`.
 
+### Layout rules (hard)
+
+- **The tab bar is a floor (D41).** Nothing renders under it.
+  `components/ui/TabFloor.tsx` carries the real tab bar height (0 on stack
+  screens). `AppBottomSheetModal` sets the sheet's `bottomInset` from it, so a
+  sheet opened in a tab rises from the top of the tab bar. Sheet content pads
+  its bottom with `useSheetBottomPadding()`; scroll content with
+  `useBottomFloor(extra)`. Never add `Layout.tabBarClearance` or the safe area
+  by hand inside a sheet.
+- **No overlaps, no squish.** Every row that holds a name or number is built
+  for a 24-character username and four-digit values: the text child gets
+  `flexShrink: 1`, `minWidth: 0`, `numberOfLines={1}`; labels beside it get
+  `flexShrink: 0`; equal columns use `flex: 1, flexBasis: 0`. Numbers that line
+  up use `fontVariant: ["tabular-nums"]`.
+- **One rhythm per list.** Section header to first row `Space.sm`, between
+  sections `Space.xxl`, from a sticky filter row to the first header
+  `Space.lg`.
+- **Centre status labels optically.** A label between two edges gets equal
+  space on both sides (set `lineHeight` so the font's ascender doesn't shift
+  it).
+- **No box inside a box.** Controls inside a card (switches, links) are bare
+  rows; separate with hairlines and spacing.
+- **Hidden scores (D40)** render as W / L wherever a number would be, and the
+  change animates through `RollingNumber` (letters rise like digits roll).
+
 Canonical component ownership:
 
 | Product element                | Canonical component |
@@ -147,6 +172,8 @@ Canonical component ownership:
 | Reachable multi-action control | `SpeedDialFab`      |
 | Game/revision date             | `RecentDatePicker`  |
 | Bottom sheet (any drawer)      | `AppBottomSheetModal` |
+| Tab-bar floor / bottom padding | `TabFloor` (`useBottomFloor`, `useSheetBottomPadding`) |
+| Hide score switch              | `HideScoreToggle`   |
 | Press feedback                 | `PressableScale`    |
 | Confirmation after an action   | `useToast()` (`Toast.tsx`) |
 | Animated score / stat number   | `RollingNumber`     |

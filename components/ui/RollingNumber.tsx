@@ -11,7 +11,8 @@ import Animated, {
 /**
  * A score that rolls into place digit by digit (odometer), instead of popping
  * in. Pure transform animation, so it stays smooth while the screen loads.
- * Non-digits ("W", "-", "%") render as plain text. Reduce Motion: no roll.
+ * Letters ("W" / "L" for a hidden score) rise into the same window, so a
+ * score flipping to W / L moves like the digits do. Reduce Motion: no roll.
  *
  * `style` must set fontSize and lineHeight; lineHeight is the digit window.
  */
@@ -38,6 +39,8 @@ export function RollingNumber({
             key={`${index}-${chars.length}`}
             style={flat}
           />
+        ) : /[A-Za-z]/.test(char) ? (
+          <Glyph char={char} delay={delay} height={height} key={`${index}-${char}`} style={flat} />
         ) : (
           <Text key={`${index}-${char}`} style={flat}>
             {char}
@@ -86,6 +89,40 @@ function Digit({
           </Text>
         ))}
       </Animated.View>
+    </View>
+  );
+}
+
+/** A letter that rises into its window from below, on the digits' spring. */
+function Glyph({
+  char,
+  height,
+  style,
+  delay,
+}: {
+  char: string;
+  height: number;
+  style: TextStyle;
+  delay: number;
+}) {
+  const reduced = useReducedMotion();
+  const offset = useSharedValue(reduced ? 0 : height);
+
+  useEffect(() => {
+    if (reduced) {
+      offset.set(0);
+      return;
+    }
+    offset.set(withDelay(delay, withSpring(0, { duration: 700, dampingRatio: 0.9 })));
+  }, [delay, reduced, offset]);
+
+  const glyphStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: offset.get() }],
+  }));
+
+  return (
+    <View style={{ height, overflow: "hidden" }}>
+      <Animated.Text style={[style, glyphStyle]}>{char}</Animated.Text>
     </View>
   );
 }

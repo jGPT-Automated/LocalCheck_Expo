@@ -2,9 +2,16 @@
  * Challenge a player: pure rules for what each player sees and can do.
  * Backend: public.challenges + create_challenge / respond_to_challenge /
  * cancel_challenge / log_challenge_result (migration 20261006120000).
+ * Pending challenges expire after their day (D39, migration 20261010120000).
  */
 
-export type ChallengeStatus = "pending" | "accepted" | "declined" | "cancelled" | "completed";
+export type ChallengeStatus =
+  | "pending"
+  | "accepted"
+  | "declined"
+  | "cancelled"
+  | "completed"
+  | "expired";
 
 export type ChallengePlayer = { id: string; name: string; initials?: string };
 
@@ -50,6 +57,7 @@ export function challengeAction(challenge: Challenge, viewerId: string): Challen
       return challenge.ranked ? "log_score" : "casual_on";
     case "completed":
       return challenge.matchId ? "view_game" : "closed";
+    case "expired":
     default:
       return "closed";
   }
@@ -71,7 +79,48 @@ export function challengeStatusLine(challenge: Challenge, viewerId: string): str
       return challenge.opponent.id === viewerId ? "You passed" : `${other} passed`;
     case "cancelled":
       return challenge.cancelledBy === viewerId ? "You called it off" : `${other} called it off`;
+    case "expired":
+      return "Expired";
+    default:
+      // A status this build doesn't know yet.
+      return "Closed";
   }
+}
+
+/** A pending challenge with no date expires after this many days (matches the server). */
+export const UNDATED_CHALLENGE_DAYS = 7;
+
+/**
+ * True when a pending challenge's day has passed (or, with no day, it is over a
+ * week old). The server flips these to "expired" within 15 minutes; this makes
+ * the inbox drop them immediately. Accepted challenges never expire here.
+ */
+export function isStalePending(challenge: Challenge, today: Date = new Date()): boolean {
+  if (challenge.status !== "pending") return false;
+  if (challenge.playOn) return challenge.playOn < localDateValue(today);
+  const created = Date.parse(challenge.createdAt);
+  if (Number.isNaN(created)) return false;
+  return today.getTime() - created > UNDATED_CHALLENGE_DAYS * 24 * 60 * 60 * 1000;
+}
+
+/**
+ * What the inbox shows. "pending" hides stale pending challenges; "all" keeps
+ * them, relabelled as expired. Everything else passes through unchanged.
+ */
+export function inboxChallenges(
+  challenges: Challenge[],
+  scope: "pending" | "all",
+  today: Date = new Date(),
+): Challenge[] {
+  const out: Challenge[] = [];
+  for (const challenge of challenges) {
+    if (!isStalePending(challenge, today)) {
+      out.push(challenge);
+    } else if (scope === "all") {
+      out.push({ ...challenge, status: "expired" });
+    }
+  }
+  return out;
 }
 
 /** "Rancho Cienega · Today", "Any court · Sat, Oct 10", "Any court · Any day". */

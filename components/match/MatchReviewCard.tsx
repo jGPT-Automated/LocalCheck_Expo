@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { Colors } from "@/constants/colors";
-import { Space } from "@/constants/layout";
+import { Layout, Space } from "@/constants/layout";
 import { TextStyles } from "@/constants/typography";
 import type { MatchReview, MatchReviewParticipant } from "@/services/gameService";
 import {
@@ -69,10 +69,14 @@ export function MatchReviewCard({
   match,
   viewerId,
   compact = false,
+  viewerHideScore,
 }: {
   match: MatchReview;
   viewerId?: string;
   compact?: boolean;
+  /** The viewer's Hide score switch while their change is saving, so the
+   *  numbers flip to W / L the moment they tap it. */
+  viewerHideScore?: boolean;
 }) {
   const router = useRouter();
   const [now, setNow] = React.useState(Date.now());
@@ -178,8 +182,12 @@ export function MatchReviewCard({
       }
       rightScore={secondScore}
       scoresHidden={scoresHiddenFor(
-        match.participants.map((p) => ({ userId: p.id, hideScore: p.hideScore })),
+        match.participants.map((p) => ({
+          userId: p.id,
+          hideScore: p.id === viewerId && viewerHideScore != null ? viewerHideScore : p.hideScore,
+        })),
         viewerId,
+        match.status,
       )}
       status={match.status}
       statusLabel={statusText}
@@ -226,10 +234,13 @@ export function MatchReviewCard({
 const styles = StyleSheet.create({
   wrap: { gap: Space.lg },
   header: { alignItems: "center", gap: Space.md },
-  // Quiet dot + label (mock 3b), not a filled bar.
+  // Quiet dot + label (mock 3b), not a filled bar. It opens the Final Score
+  // screen, whose content padding (Layout.screenGutter) is the space above
+  // it; the same space below keeps it centred between the header and this
+  // divider.
   statusBar: {
     alignSelf: "stretch",
-    paddingVertical: 10,
+    paddingBottom: Layout.screenGutter,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -238,7 +249,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
   },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusBarText: { ...TextStyles.label, letterSpacing: 2 },
+  statusBarText: { ...TextStyles.label, lineHeight: 14, letterSpacing: 2 },
   timer: { alignItems: "center", gap: 2 },
   timerLabel: {
     ...TextStyles.labelSmall,

@@ -28,7 +28,7 @@ export function HeadToHeadGameRow({
       : null;
   return (
     <Pressable
-      accessibilityLabel={`${game.won ? "Win" : "Loss"} ${game.myScore} to ${game.theirScore}, ${teamsLine(game)}, ${place}`}
+      accessibilityLabel={`${game.won ? "Win" : "Loss"}${game.scoresHidden ? ", score hidden" : ` ${game.myScore} to ${game.theirScore}`}, ${teamsLine(game)}, ${place}`}
       accessibilityRole={onPress ? "button" : undefined}
       disabled={!onPress}
       onPress={onPress}
@@ -45,7 +45,11 @@ export function HeadToHeadGameRow({
         <Text numberOfLines={1} style={styles.place}>{place}</Text>
       </View>
       <View style={styles.result}>
-        <Text style={styles.score}>{game.myScore}–{game.theirScore}</Text>
+        {game.scoresHidden ? (
+          <Text style={styles.hidden}>SCORE HIDDEN</Text>
+        ) : (
+          <Text style={styles.score}>{game.myScore}–{game.theirScore}</Text>
+        )}
         {footnote ? <Text style={styles.footnote}>{footnote}</Text> : null}
       </View>
     </Pressable>
@@ -87,5 +91,6 @@ const styles = StyleSheet.create({
   },
   result: { alignItems: "flex-end" },
   score: { fontFamily: Typography.headingBold, fontSize: 24, lineHeight: 30, color: Colors.text },
+  hidden: { ...TextStyles.labelSmall, color: Colors.muted, letterSpacing: 1.2 },
   footnote: { ...TextStyles.metadata, color: Colors.textSecondary },
 });
