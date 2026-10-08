@@ -14,6 +14,8 @@
 --     it never happened.
 --   * Auto check-ins end when the player leaves; the stale sweep closes them
 --     after 3 hours as a backstop (manual check-ins keep 45 minutes).
+--   * Changing local court drops a held arrival and closes an open auto
+--     check-in at the old court (the old circle never reports "left").
 
 begin;
 
@@ -242,6 +244,36 @@ begin
   return v_closed;
 end
 $$;
+
+-- ── Local court changed: end what the old circle started ─────────────────
+-- The phone moves the circle to the new court, so the old court never sends
+-- a "left" event. Drop a held arrival and close an open auto check-in there.
+create or replace function private.end_auto_check_in_on_court_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if old.local_court_id is distinct from new.local_court_id then
+    delete from private.auto_check_in_arrivals where user_id = new.id;
+    if old.local_court_id is not null then
+      update public.check_ins
+      set checked_out_at = now()
+      where user_id = new.id
+        and court_id = old.local_court_id
+        and source = 'auto'
+        and checked_out_at is null;
+    end if;
+  end if;
+  return new;
+end
+$$;
+
+drop trigger if exists end_auto_check_in_on_court_change on public.profiles;
+create trigger end_auto_check_in_on_court_change
+  after update of local_court_id on public.profiles
+  for each row execute function private.end_auto_check_in_on_court_change();
 
 -- ── Schedule ──────────────────────────────────────────────────────────────
 do $cron$

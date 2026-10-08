@@ -44,6 +44,9 @@ the old behavior:
   harmless). Geofencing can only be tested on a real build, never in Expo Go.
   App Review notes must say background location is used only for opt-in auto
   check-in at the player's one local court.
+- Privacy manifest declares Precise Location (linked to the user, app
+  functionality, not tracking): a check-in records the player at a court.
+  The App Store Connect privacy answers must match.
 
 Runtime version policy is `appVersion`. Auto check-in adds a native module
 (`expo-task-manager`), so its PR bumps the app version to **1.0.4**: OTAs for

@@ -253,7 +253,9 @@ All applied by Jesse in the SQL editor, verified, and recorded:
   `check_ins.source` (manual / auto), `private.auto_check_in_arrivals` (3-minute
   hold), RPCs `auto_check_in_arrive`, `auto_check_in_leave`,
   `undo_auto_check_in`; cron `localcheck-promote-auto-check-ins` every minute;
-  the stale sweep keeps 45 minutes for manual and 3 hours for auto.
+  the stale sweep keeps 45 minutes for manual and 3 hours for auto; a
+  `profiles` trigger ends the held arrival and any open auto check-in at the
+  old court when the local court changes.
 
 ## Realtime and API safety
 

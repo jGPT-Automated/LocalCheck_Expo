@@ -40,7 +40,7 @@ const AutoCheckInContext = createContext<AutoCheckInValue | null>(null);
  * picks a local court, and shows the "Undone" toast.
  */
 export function AutoCheckInProvider({ children }: { children: React.ReactNode }) {
-  const { user, profile } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   const { localCourt } = useApp();
   const { showToast } = useToast();
   const [state, setState] = useState<AutoCheckInState>(isAutoCheckInAvailable() ? "off" : "unavailable");
@@ -85,19 +85,33 @@ export function AutoCheckInProvider({ children }: { children: React.ReactNode })
   }, [refresh]);
 
   // The circle follows the local court (keyed on id + position, not object
-  // identity, so routine refetches don't re-register it).
+  // identity, so routine refetches don't re-register it). Acts only on settled
+  // data: on a cold start (including iOS launching the app in the background
+  // for a geofence) the profile and court load a moment after the first
+  // render, and an early "no court" must not switch the geofence off.
+  const profileCourtId = profile ? (profile.local_court_id ?? null) : undefined;
   const courtKey = court ? `${court.id}:${court.latitude}:${court.longitude}` : "none";
   const courtRef = useRef(court);
   courtRef.current = court;
   useEffect(() => {
-    if (!user) return;
-    void syncAutoCheckIn(courtRef.current).then(refresh);
-  }, [courtKey, user, refresh]);
+    if (!user || profileCourtId === undefined) return;
+    if (profileCourtId === null) {
+      void syncAutoCheckIn(null).then(refresh); // local court removed: stop
+      return;
+    }
+    const current = courtRef.current;
+    if (!current || current.id !== profileCourtId) return; // court still loading
+    void syncAutoCheckIn(current).then(refresh);
+  }, [courtKey, profileCourtId, user, refresh]);
 
-  // Signed out: stop watching.
+  // Signed out (a real sign-out, not the empty first render): stop watching.
+  const lastUserId = useRef<string | null>(null);
   useEffect(() => {
-    if (!user) void disableAutoCheckIn().then(refresh);
-  }, [user, refresh]);
+    if (isLoading) return;
+    const id = user?.id ?? null;
+    if (lastUserId.current && !id) void disableAutoCheckIn().then(refresh);
+    lastUserId.current = id;
+  }, [isLoading, user, refresh]);
 
   // Offer it once when the player picks (or changes) a local court this session.
   const baselineCourt = useRef<string | null | undefined>(undefined);
