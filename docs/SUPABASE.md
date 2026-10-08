@@ -232,7 +232,7 @@ Functions are deployed: `delete-account`, `send-notification`,
 
 ## 2026-10 migrations
 
-All applied by Jesse in the SQL editor, verified, and recorded:
+All applied by Jesse in the SQL editor, verified, and recorded (the last two on Oct 8, with rolled-back tests as a real player, a tester, Jesse and APPLE):
 
 - `20261005120000_frozen_referral_handle.sql` — invite codes are the
   username at signup and never change.

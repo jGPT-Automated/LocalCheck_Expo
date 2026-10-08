@@ -28,7 +28,7 @@ point.
 | Opt-in sheet when a local court is picked + Settings switch with status | ✅ built, needs device check |
 | Geofence task: arrive (3-min hold), leave (check out), Undo notification | ✅ built, needs device check |
 | Session readable with the phone locked (keychain after first unlock) | ✅ |
-| Migration `20261009120000_auto_check_in.sql` | waiting on Jesse's Run |
+| Migration `20261009120000_auto_check_in.sql` | ✅ applied Oct 8, verified (rolled-back tests), recorded |
 
 ## 2026-10-08 — PR #66 (`codex/profile-challenge`)
 
