@@ -45,6 +45,10 @@ create table if not exists private.auto_check_in_arrivals (
 comment on table private.auto_check_in_arrivals is
   'Geofence arrivals held 3 minutes before they become a check-in (D36). One per player.';
 
+-- Server-only: the app never reads this table (it sits in the private schema,
+-- which the API doesn't serve). Spelled out so no default grant slips in.
+revoke all on table private.auto_check_in_arrivals from public, anon, authenticated;
+
 -- Friend alerts for auto check-ins (D37). Both must be on for a push to go.
 alter table public.profiles
   add column if not exists share_auto_check_ins boolean not null default false,
@@ -249,7 +253,7 @@ begin
   for v in
     select a.user_id, a.court_id,
            coalesce(p.visibility, 'public') as visibility,
-           p.share_auto_check_ins as share,
+           p.share_auto_check_ins as shares_alerts,
            coalesce(nullif(btrim(p.display_name), ''), p.username, 'A friend') as player_name,
            coalesce(nullif(btrim(c.short_name), ''), c.name) as court_name
     from private.auto_check_in_arrivals a
@@ -282,7 +286,7 @@ begin
     -- Friend alerts (D37): sender shares, receiver wants them, not Private,
     -- not blocked, test accounts only reach insiders (D34), at most one per
     -- friend per 2 hours.
-    if v.share and v.visibility <> 'private' then
+    if v.shares_alerts and v.visibility <> 'private' then
       insert into public.notifications (user_id, type, actor_id, title, body, data, dedupe_key)
       select fr.friend_id, 'friend_check_in', v.user_id,
              left(v.player_name || ' is at ' || v.court_name, 80),
