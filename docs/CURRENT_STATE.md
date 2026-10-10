@@ -1,23 +1,28 @@
 # Current state
 
-Last reconciled: 2026-10-08 against `origin/main` at `541632c` (#65), PR #66
-(`codex/profile-challenge`), and LocalCheckProd.
+Last reconciled: 2026-10-10 against `origin/main` at `541632c` (#65), PR #67
+(`codex/auto-check-in`, head `b846c97`), and LocalCheckProd.
 
 ## Production checkpoint
 
 - Source truth: `origin/main` @ `541632c` — #65 squash-merged (forgot
   password, onboarding, Expo Go previews, court drawer + Yearly upgrade).
-- PR #66 open: other-player profile, Challenges, hide score, game card and
-  real game sheet, motion/feedback pass, color tuning, Yearly + Monthly plan
-  picker, test-data hiding, store-review fixes, docs. It is the last or
-  second-to-last PR before App Store Connect work.
+- PR #67 open (base `main`, app version 1.0.4): everything from #66 (other-
+  player profile, Challenges, hide score, game card and real game sheet,
+  motion pass, Yearly + Monthly picker, test-data hiding, store-review fixes)
+  plus auto check-in (D35–D38) and the Oct 8 preview fixes (D39–D41). #66 is
+  superseded; close it when #67 merges.
+- Not yet applied: `20261010120000_expire_stale_challenges.sql` (D39; anchors
+  checked against live). Not yet deployed: `send-notification` (passes
+  `data.category` for the 3-hour notice buttons).
 - Installed TestFlight build: version `1.0.3`. Builds are manual only; none
   used in October so far (`docs/RELEASE.md`).
 - EAS project: `agenticjess-os/localcheck`
   (`9c906173-0258-45a9-a3fe-786cda373c66`).
 - Supabase production project: `qkrnmyexzvaxiqfxwwfb`. Every migration in
-  `supabase/migrations/` is applied and recorded; all four Edge Functions are
-  deployed (`docs/SUPABASE.md`).
+  `supabase/migrations/` is applied and recorded except the one above; Edge
+  Functions are deployed except the `send-notification` change above
+  (`docs/SUPABASE.md`).
 - Installed binaries use EAS Update with `runtimeVersion.policy = appVersion`.
 
 ## Current product contract

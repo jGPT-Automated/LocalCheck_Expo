@@ -3,6 +3,12 @@
 This repository is the complete LocalCheck product: one Expo application and
 its Supabase source of truth. Read this file before changing anything.
 
+Project management (what's next, decisions, log, learnings, Jesse's working
+preferences) lives outside the repo, in Jesse's folder
+`~/Documents/LocalCheck_Oct2026/` (start at its `AGENTS.md`) and the plan doc
+https://claude.ai/code/artifact/7748ed30-34b0-408d-ba7f-2eef59fae0f5. If the
+session isn't linked to his Mac, use the plan doc and `docs/CURRENT_STATE.md`.
+
 ## Read order
 
 1. `docs/CURRENT_STATE.md` — what is actually shipped, live, and blocked.
