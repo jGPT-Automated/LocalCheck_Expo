@@ -1,3 +1,4 @@
+import Constants from "expo-constants";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
 import * as AppleAuthentication from "expo-apple-authentication";
@@ -31,8 +32,11 @@ import { Layout, Space } from "@/constants/layout";
 import { TextStyles, Typography } from "@/constants/typography";
 import { useApp, Visibility } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
+import { useAutoCheckIn } from "@/context/AutoCheckInContext";
 import { useNotifications } from "@/context/NotificationContext";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
+import { autoCheckInDetail, autoCheckInSwitchValue } from "@/lib/autoCheckInModel";
+import { setAutoCheckInAlerts } from "@/services/autoCheckInService";
 import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
 import { deleteCurrentAccount } from "@/services/accountService";
 import { searchCourts } from "@/services/courtService";
@@ -93,6 +97,7 @@ function sportLabel(sport: CourtSport | null): string {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const autoCheckIn = useAutoCheckIn();
   const {
     currentUser,
     visibility,
@@ -102,7 +107,16 @@ export default function SettingsScreen() {
     localCourt,
     setLocalCourt,
   } = useApp();
-  const { user, profile, signOut, updatePassword, updateUsername } = useAuth();
+  const { user, profile, signOut, updatePassword, updateUsername, refreshProfile } = useAuth();
+  const [alertsSaving, setAlertsSaving] = useState(false);
+  const saveAutoCheckInAlerts = async (prefs: { share?: boolean; receive?: boolean }) => {
+    if (alertsSaving) return;
+    setAlertsSaving(true);
+    const ok = await setAutoCheckInAlerts(prefs);
+    if (ok) await refreshProfile();
+    setAlertsSaving(false);
+    if (!ok) Alert.alert("Not saved", "Try again in a moment.");
+  };
   const hasLocalPlus = useLocalPlus();
   const { bottom } = useSafeAreaInsets();
 
@@ -353,6 +367,18 @@ export default function SettingsScreen() {
             }
             valueMuted={!localCourt}
             onPress={() => setEditor("court")}
+          />
+          <ToggleSettingsRow
+            icon="navigation"
+            label="AUTO CHECK-IN"
+            detail={autoCheckInDetail(autoCheckIn.state, autoCheckIn.courtName)}
+            disabled={autoCheckIn.state === "unavailable" || autoCheckIn.state === "no_court" || autoCheckIn.busy}
+            onValueChange={(value) => {
+              if (!value) void autoCheckIn.turnOff();
+              else if (autoCheckIn.state === "needs_always") autoCheckIn.openSettings();
+              else autoCheckIn.offer();
+            }}
+            value={autoCheckInSwitchValue(autoCheckIn.state)}
             last
           />
         </Section>
@@ -365,6 +391,22 @@ export default function SettingsScreen() {
             disabled={pushSaving}
             onValueChange={(value) => void setPushNotifications(value)}
             value={pushValue}
+          />
+          <ToggleSettingsRow
+            icon="send"
+            label="SHARE MY AUTO CHECK-INS"
+            detail="Friends who turn on alerts get a heads-up when you're auto-checked in. Never when you're Private."
+            disabled={alertsSaving}
+            onValueChange={(value) => void saveAutoCheckInAlerts({ share: value })}
+            value={profile?.share_auto_check_ins === true}
+          />
+          <ToggleSettingsRow
+            icon="users"
+            label="FRIENDS' AUTO CHECK-INS"
+            detail="Get a heads-up when a friend who shares is auto-checked in"
+            disabled={alertsSaving}
+            onValueChange={(value) => void saveAutoCheckInAlerts({ receive: value })}
+            value={profile?.notify_friend_check_ins !== false}
           />
           <SettingsRow
             icon="inbox"
@@ -454,7 +496,9 @@ export default function SettingsScreen() {
           </Text>
         </Pressable>
 
-        <Text style={styles.version}>LOCALCHECK 1.0.0</Text>
+        <Text style={styles.version}>
+          LOCALCHECK {Constants.expoConfig?.version ?? ""}
+        </Text>
       </KeyboardAwareScrollViewCompat>
 
       <PrivacyEditorSheet
@@ -590,6 +634,7 @@ function ToggleSettingsRow({
   detail,
   onValueChange,
   value,
+  last,
 }: {
   disabled?: boolean;
   icon: React.ComponentProps<typeof Feather>["name"];
@@ -597,9 +642,10 @@ function ToggleSettingsRow({
   detail?: string;
   onValueChange: (value: boolean) => void;
   value: boolean;
+  last?: boolean;
 }) {
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, last && styles.rowLast]}>
       <Feather name={icon} size={17} color={Colors.textSecondary} />
       <View style={{ flex: 1 }}>
         <Text style={styles.settingsLabel} numberOfLines={1}>

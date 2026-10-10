@@ -21,6 +21,59 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-10 — #67 second design pass (`codex/auto-check-in`)
+
+| Item | Status |
+|------|--------|
+| One game card: state banner on top, "2V2 AT RANCHO", ELO change in each player's tile, scores at the ends of one line (D43) | ✅ needs device check |
+| Motion: nothing animates on open; only the line fills and live ELO counts (D42) | ✅ needs device check |
+| Short court names everywhere except court details | ✅ |
+| Activity feed: timeline kept, day headers, one marker size, games as cards, quiet check-in lines | ✅ |
+| Head-to-head: no avatar boxes, centred status, records on one line; games-together rows reworded | ✅ |
+| Inbox rows: name on its own line, equal ACCEPT / LOG SCORE buttons; challenge screen matches the game card | ✅ |
+| Auto check-in sheet: three short rows, matches other sheets | ✅ device-only to see |
+| Home court hero: court name centred, shared edges | ✅ |
+| Web preview (Vercel, every branch) | ✅ |
+
+## 2026-10-08 — #67 Expo Go preview feedback (`codex/auto-check-in`)
+
+| Item | Status |
+|------|--------|
+| Tab bar is a hard floor: sheets rise from its top, VIEW GAME no longer hidden (D41) | ✅ needs device check |
+| Game sheet / Final Score: court name as a title, format chip + date, FINAL centred | ✅ |
+| ELO change: green/red chip pops in and counts up, rating rolls (no text arrows) | ✅ needs device check |
+| Hide score: W / L for everyone on every screen once final, animated; switch is just "Hide score"; explanation moved to How score review works (D40) | ✅ needs device check |
+| Head-to-head: long names, orange leader + bar, centred stats | ✅ |
+| Me → Inbox: CHALLENGES no longer under the filter row; one spacing rhythm | ✅ |
+| Challenge screen: names and "Waiting on" in their own rows | ✅ |
+| LocalPlus active: no void, footer follows content, active card | ✅ |
+| Pending challenges expire after their day (D39) | ✅ app; migration `20261010120000_expire_stale_challenges.sql` written, not applied |
+
+## 2026-10-08 — Auto check-in (`codex/auto-check-in`)
+
+| Item | Status |
+|------|--------|
+| Opt-in sheet when a local court is picked + Settings switch with status | ✅ built, needs device check |
+| Geofence task: arrive (3-min hold), leave (check out), Undo notification | ✅ built, needs device check |
+| Session readable with the phone locked (keychain after first unlock) | ✅ |
+| Migration `20261009120000_auto_check_in.sql` | ✅ applied Oct 8, verified (rolled-back tests), recorded |
+
+## 2026-10-08 — PR #66 (`codex/profile-challenge`)
+
+| Item | Status |
+|------|--------|
+| Other-player profile rebuilt: court rank subline, stats, HEAD TO HEAD / ACTIVITY / DETAILS, games together | ✅ |
+| Challenge flow: send, accept/decline, ranked score or casual plan, inbox group, notifications | ✅ |
+| Game card redesign (1v1 faceoff, teams), real swipeable game sheet | ✅ |
+| Hide score (D30) + game visibility (D31) | ✅ |
+| Motion/feedback: press scale, rolling numbers, toasts, shared springs | ✅ |
+| Colors tuned to the mocks | ✅ |
+| Yearly + Monthly picker, disclosure, Terms / Privacy links | ✅ |
+| Test accounts + test courts hidden from real players (D34) | ✅ `1e348c6` |
+| LocalLite unranked (`gateLeaderboard` on); no TEST / REVIEWER labels; no Apple-mark avatar | ✅ `1e348c6` |
+| Store-review fixes: camera string, image-picker removed, price copy, version, friendly errors, drawer load error, not-found back, report/block busy | ✅ `1e348c6` |
+| README, AGENTS.md, RELEASE, SUPABASE, DESIGN, runbooks current | ✅ |
+
 ## Branch / PR status
 
 - **PRs #42–#57 merged to `main`** (through the paywall UX / gate-architecture
@@ -185,7 +238,7 @@ Jesse: the tag is **cosmetic**. Now:
 
 | Item | Status |
 |------|--------|
-| Tag no longer hides accounts by itself — behind flag `LeaderboardFlags.hideTaggedAccounts`, **off** now (all accounts visible, LA + Houston), **on** at launch | ✅ |
+| Tag no longer hides accounts by itself — behind flag `LeaderboardFlags.hideTaggedAccounts`, **off** now (all accounts visible, LA + Houston), **on** at launch | ✅ (superseded 2026-10-08 by D34: RLS hides test data, flag removed) |
 | `useLocalPlus()` no longer reads `account_tag` — free year comes from a promo `subscriptions` row (with an expiry) | ✅ |
 | Rank requires ≥1 game in the sport (`hasRankedGame`) — a 1200 default isn't a rank | ✅ |
 | `$4.99/mo` monthly-only pricing recorded in `docs/product/DECISIONS.md` | ✅ |

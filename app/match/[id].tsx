@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { MatchReviewCard } from "@/components/match/MatchReviewCard";
+import { HideScoreToggle } from "@/components/match/HideScoreToggle";
 import { MatchRevisionForm } from "@/components/match/MatchRevisionForm";
 import { DetailHeader } from "@/components/ui/DetailHeader";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
@@ -27,6 +28,7 @@ import {
   fetchMatchReview,
   type MatchReview,
   respondToMatch,
+  setScoreHidden,
   updateHeldMatch,
 } from "@/services/gameService";
 
@@ -64,6 +66,7 @@ export default function MatchReviewScreen() {
     "update",
   );
   const [policyExpanded, setPolicyExpanded] = React.useState(false);
+  const [hiddenOverride, setHiddenOverride] = React.useState<boolean | null>(null);
 
   const load = React.useCallback(async () => {
     if (!id) return;
@@ -106,9 +109,9 @@ export default function MatchReviewScreen() {
       return;
     }
     await refreshAll();
-    // Approving a 1v1 confirms it and moves ELO. The card's ELO line animates
+    // Approving a 1v1 confirms it and moves ELO. The card's rating tiles count
     // in place (status flips to "confirmed" on the refresh above); hold a beat
-    // so that roll is seen, then hand off to the profile, where the same delta
+    // so that count is seen, then hand off to the profile, where the same delta
     // shows on the big number for the next few hours.
     if (decision === "approve") {
       const fresh = await fetchMatchReview(match.id);
@@ -240,7 +243,18 @@ export default function MatchReviewScreen() {
         bounces={policyExpanded}
         showsVerticalScrollIndicator={false}
       >
-        <MatchReviewCard match={match} viewerId={user?.id} />
+        <MatchReviewCard match={match} viewerHideScore={hiddenOverride ?? undefined} viewerId={user?.id} />
+        {viewer && match.status !== "voided" ? (
+          <HideScoreToggle
+            onChange={(next) => {
+              setHiddenOverride(next);
+              void setScoreHidden(match.id, next).then((ok) => {
+                if (!ok) setHiddenOverride(!next);
+              });
+            }}
+            value={hiddenOverride ?? Boolean(viewer.hideScore)}
+          />
+        ) : null}
 
         <View style={styles.policy}>
           <Pressable
@@ -251,7 +265,7 @@ export default function MatchReviewScreen() {
             style={styles.policyHeader}
           >
             <View style={styles.policyHeaderCopy}>
-              <Feather color={Colors.accent} name="info" size={17} />
+              <Feather color={Colors.textSecondary} name="info" size={17} />
               <View style={styles.policyTitleCopy}>
                 <Text style={styles.policyTitle}>HOW SCORE REVIEW WORKS</Text>
                 {!policyExpanded ? (
@@ -284,6 +298,10 @@ export default function MatchReviewScreen() {
               <PolicyRow
                 index="4"
                 text="A game can be disputed twice. A third dispute, or an unresolved 7-day hold, voids the game with no profile or ELO change."
+              />
+              <PolicyRow
+                index="5"
+                text="Any player can hide the score. Once the game is final, everyone, you included, sees only who won. It still counts for ELO, rank and record. Turn it off any time."
               />
             </View>
           ) : null}
@@ -433,7 +451,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: Colors.surfaceHigh,
   },
-  policyIndexText: { ...TextStyles.labelSmall, color: Colors.accent },
+  policyIndexText: { ...TextStyles.labelSmall, color: Colors.textSecondary },
   policyText: { ...TextStyles.bodySmall, flex: 1, color: Colors.textSecondary },
   singleAction: {
     paddingTop: Space.md,

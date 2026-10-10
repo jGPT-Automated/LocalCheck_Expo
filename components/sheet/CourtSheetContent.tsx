@@ -1,13 +1,13 @@
+import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
 import { BottomSheetView } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Platform,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -24,6 +24,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { StatBlock } from "@/components/StatBlock";
 import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
 import { SportEmblem } from "@/components/ui/SportEmblem";
+import { useToast } from "@/components/ui/Toast";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, getSportColor } from "@/constants/data";
 import { Space } from "@/constants/layout";
@@ -35,6 +36,7 @@ import { useLocalPlus } from "@/hooks/useLocalPlus";
 import { useLocalPlusPurchase } from "@/hooks/useLocalPlusPurchase";
 import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
 import { isInactiveLocal, relativeTime } from "@/lib/localPresence";
+import { PRIVACY_URL, TERMS_URL } from "@/lib/planModel";
 import {
   DRAWER_LOCALS_MAX,
   drawerDetailHeight,
@@ -78,6 +80,7 @@ export function CourtSheetContent({
   const { bottom } = useSafeAreaInsets();
   const { profile } = useAuth();
   const hasLocalPlus = useLocalPlus();
+  const { showToast } = useToast();
   const { height: windowHeight } = useWindowDimensions();
   const [peekHeight, setPeekHeight] = useState(0);
   const [localsListHeight, setLocalsListHeight] = useState(0);
@@ -87,13 +90,16 @@ export function CourtSheetContent({
     courts.find((c) => c.id === courtId) ??
     (localCourt?.id === courtId ? localCourt : null);
   const [court, setCourt] = useState<Court | null>(cached);
+  const [courtMissing, setCourtMissing] = useState(false);
   const [locals, setLocals] = useState<LocalWithLastCheckIn[]>([]);
   const { roster, localCount } = usePresence(courtId || null);
 
   useEffect(() => {
     if (!courtId) return;
     if (!court) {
-      fetchCourtById(courtId).then((c) => c && setCourt(c));
+      fetchCourtById(courtId)
+        .then((c) => (c ? setCourt(c) : setCourtMissing(true)))
+        .catch(() => setCourtMissing(true));
     }
     fetchLocalsWithLastCheckIn(courtId).then(setLocals);
   }, [courtId, roster.length]); // re-pull locals when presence changes
@@ -106,7 +112,9 @@ export function CourtSheetContent({
   if (!court) {
     return (
       <View style={styles.loading}>
-        <Text style={styles.emptyText}>LOADING…</Text>
+        <Text style={styles.emptyText}>
+          {courtMissing ? "COULDN'T LOAD THIS COURT" : "LOADING…"}
+        </Text>
       </View>
     );
   }
@@ -142,9 +150,14 @@ export function CourtSheetContent({
       await checkOut();
       return;
     }
-    await checkIn(court.id);
-    if (Platform.OS !== "web") {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const ok = await checkIn(court.id);
+    // The toast carries the success haptic.
+    if (ok) {
+      showToast({
+        title: `CHECKED IN · ${(court.shortName || court.name).toUpperCase()}`,
+        body: "Check out when you leave.",
+        icon: "map-pin",
+      });
     }
   };
 
@@ -209,6 +222,7 @@ export function CourtSheetContent({
           style={styles.actionButton}
         />
       </View>
+      <AutoCheckInNote courtId={court.id} />
 
       <Pressable
         style={styles.swipeHint}
@@ -396,7 +410,16 @@ function CourtDrawerGate({
           )}
         </Pressable>
         {yearly.priceString ? (
-          <Text style={styles.gateTerms}>Renews yearly until you cancel.</Text>
+          // Apple wants the terms reachable wherever a subscription is sold.
+          <View style={styles.gateTermsRow}>
+            <Text style={styles.gateTerms}>Renews yearly until you cancel.</Text>
+            <Pressable accessibilityRole="link" hitSlop={10} onPress={() => void Linking.openURL(TERMS_URL)}>
+              <Text style={[styles.gateTerms, styles.gateTermsLink]}>Terms</Text>
+            </Pressable>
+            <Pressable accessibilityRole="link" hitSlop={10} onPress={() => void Linking.openURL(PRIVACY_URL)}>
+              <Text style={[styles.gateTerms, styles.gateTermsLink]}>Privacy</Text>
+            </Pressable>
+          </View>
         ) : null}
         <Pressable
           accessibilityRole="button"
@@ -623,8 +646,9 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   gateWrap: { flex: 1 },
+  gateTermsRow: { marginTop: 8, flexDirection: "row", alignItems: "center", gap: 8 },
+  gateTermsLink: { textDecorationLine: "underline", color: Colors.textSecondary },
   gateTerms: {
-    marginTop: 8,
     fontFamily: Typography.body,
     fontSize: 10,
     color: Colors.mutedDark,

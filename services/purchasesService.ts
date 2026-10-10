@@ -157,6 +157,22 @@ export async function fetchLocalPlusPackage(
   }
 }
 
+/** Both plans from the current offering, for the plan picker. */
+export async function fetchLocalPlusPackages(): Promise<{
+  yearly: PurchasesPackage | null;
+  monthly: PurchasesPackage | null;
+}> {
+  if (!configured) return { yearly: null, monthly: null };
+  try {
+    const offerings = await Purchases.getOfferings();
+    const current = offerings.current;
+    return { yearly: current?.annual ?? null, monthly: current?.monthly ?? null };
+  } catch (error) {
+    console.warn("purchasesService: getOfferings failed", error);
+    return { yearly: null, monthly: null };
+  }
+}
+
 export type PurchaseOutcome =
   | { outcome: "purchased"; isLocalPlus: boolean }
   | { outcome: "cancelled" }

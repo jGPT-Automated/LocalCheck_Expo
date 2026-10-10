@@ -1,16 +1,23 @@
 import { Player } from "@/constants/data";
+import { AUTO_CHECK_IN_MAX_HOURS } from "@/lib/autoCheckInModel";
 import { supabase } from "@/lib/supabase";
 
 import { mapProfileToPlayer, SupabaseProfile } from "./profileService";
 
-// Players are auto-checked-out after 45 minutes. A pg_cron job closes stale
-// rows server-side every 5 minutes; reads ALSO filter to the last 45 minutes
-// so presence is exact between cron runs. Keep in sync with the
-// auto_checkout_stale_checkins migration.
+// Manual check-ins end after 45 minutes; auto check-ins (the local-court
+// geofence, D35) end when the player leaves, with a 3-hour backstop. A
+// pg_cron job closes stale rows every 5 minutes; reads ALSO apply the same
+// windows so presence is exact between runs. Keep in sync with
+// private.auto_checkout_stale_check_ins (migration 20261009120000).
 export const AUTO_CHECKOUT_MINUTES = 45;
+const AUTO_SOURCE_MAX_MINUTES = AUTO_CHECK_IN_MAX_HOURS * 60;
 
-function freshCutoffIso(): string {
-  return new Date(Date.now() - AUTO_CHECKOUT_MINUTES * 60_000).toISOString();
+/** PostgREST `or` filter: still inside its window, by source. */
+function freshFilter(): string {
+  const now = Date.now();
+  const manual = new Date(now - AUTO_CHECKOUT_MINUTES * 60_000).toISOString();
+  const auto = new Date(now - AUTO_SOURCE_MAX_MINUTES * 60_000).toISOString();
+  return `checked_in_at.gte.${manual},and(source.eq.auto,checked_in_at.gte.${auto})`;
 }
 
 // ─── Public API ─────────────────────────────────────────────────────────────
@@ -84,7 +91,7 @@ export async function fetchActiveCheckIns(courtId: string): Promise<Player[]> {
       .select("user_id, profiles(*)")
       .eq("court_id", courtId)
       .is("checked_out_at", null)
-      .gte("checked_in_at", freshCutoffIso())
+      .or(freshFilter())
       .order("checked_in_at", { ascending: false });
 
     if (error || !data) return [];
@@ -108,7 +115,7 @@ export async function fetchActiveCheckInCount(courtId: string): Promise<number> 
       .select("*", { count: "exact", head: true })
       .eq("court_id", courtId)
       .is("checked_out_at", null)
-      .gte("checked_in_at", freshCutoffIso());
+      .or(freshFilter());
     if (error || count == null) return 0;
     return count;
   } catch {
@@ -176,6 +183,8 @@ export async function fetchWeeklyActiveCount(courtId: string): Promise<number> {
 export interface ActiveCheckInState {
   courtId: string;
   visibility: "public" | "friends" | "private";
+  /** true = started by the local-court geofence (D35). */
+  auto: boolean;
 }
 
 /** Get the user's fresh active check-in and its persisted privacy mode. */
@@ -185,16 +194,16 @@ export async function fetchActiveCheckInState(
   try {
     const { data, error } = await supabase
       .from("check_ins")
-      .select("court_id,visibility")
+      .select("court_id,visibility,source")
       .eq("user_id", userId)
       .is("checked_out_at", null)
-      .gte("checked_in_at", freshCutoffIso())
+      .or(freshFilter())
       .order("checked_in_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (error || !data) return null;
-    const row = data as { court_id: string; visibility: ActiveCheckInState["visibility"] };
-    return { courtId: row.court_id, visibility: row.visibility };
+    const row = data as { court_id: string; visibility: ActiveCheckInState["visibility"]; source?: string };
+    return { courtId: row.court_id, visibility: row.visibility, auto: row.source === "auto" };
   } catch {
     return null;
   }

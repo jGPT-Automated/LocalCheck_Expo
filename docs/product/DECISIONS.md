@@ -2,6 +2,75 @@
 
 Status: Current MVP decisions. Newer dated decisions supersede older entries.
 
+## 2026-10 — Launch decisions (D0–D34, Jesse's plan doc)
+
+Numbers match Jesse's plan doc (Decisions tab). These supersede older entries
+below wherever they disagree.
+
+- **D0 Plans:** Yearly $49.99 and Monthly $4.99, US only. Yearly is
+  preselected on the LocalPlus screen; the drawer upgrade opens Apple's Yearly
+  sheet (D13). Supersedes "monthly only".
+- **D4 / D12 Starter:** free offers don't auto-renew. The first 100 accounts get
+  a free year automatically, server-side, no code (not built yet). Supersedes
+  "STARTER is an Apple offer code".
+- **D22 Builds:** TestFlight builds are manual only; merges never build.
+- **D25–D27r Challenges:** friends only; court and day optional; the challenger
+  picks ranked or casual. Casual is a plan, not a game: no score, counts
+  nowhere.
+- **D30 Hide score:** either player can hide the score for their side; outsiders
+  see only W / L; it still counts for ELO, rank, record and head-to-head.
+  Revised by D40: hidden for everyone, players included, once final.
+- **D31 Game visibility:** a game shows outside its players only if every
+  player is Public.
+- **D32 Website follows the app:** material app changes come with a website
+  change or a prompt for the website agent.
+- **D33 Mocks are a style reference:** Claude makes product and design calls;
+  colors tuned to the mocks (`#FC4C02`, neutral greys).
+- **D35 Auto check-in in v1:** opt-in, one geofence on the local court only,
+  built on expo-location. **D36:** automatic with a 3-minute hold and an Undo
+  notification; leaving checks out; auto check-ins last until you leave
+  (3-hour backstop). Plan doc Spec 8.
+- **D37 Friend alerts for auto check-ins:** auto check-ins use the main
+  privacy setting. Two switches: "Share my auto check-ins" (send, default off)
+  and "Friends' auto check-ins" (receive, default on). A friend gets a push
+  only when both are on and the check-in isn't Private; at most one per friend
+  per 2 hours. **D38:** when the 3-hour backstop ends an auto check-in, the
+  player gets "You've been checked out" with Check back in / Got it.
+- **D39 Pending challenges expire after their day (Oct 8):** a pending
+  challenge whose day has passed (or, with no day, is over 7 days old) becomes
+  `expired` and leaves the inbox; a cron job on the server does it every 15
+  minutes and the app hides it at once. Accepted challenges stay, since players
+  may still log the result. Expiring frees the pair to challenge again. Before,
+  an unanswered challenge sat in the inbox forever.
+- **D40 Hide score means hidden for everyone (Oct 8, revises D30):** once any
+  player hides a game's score, everyone sees only W / L on every screen (feed,
+  profiles, head-to-head, the game sheet), the players included. Players still
+  see the numbers while the game is in review, to approve or dispute it. The
+  switch is just "Hide score"; what it does is explained in "How score review
+  works". Before, the players always saw the numbers, so hiding looked broken
+  from their own profile.
+- **D42 Motion is intentional (Oct 10):** opening a sheet or screen doesn't
+  animate its content. The only motion: a margin/series line (`ShareLine`)
+  fills once; an ELO change counts up when it happens while you watch; a value
+  the user changes (hide score) animates. Nothing bounces or pops.
+- **D43 One game card, one state banner, short court names (Oct 10):** every
+  game card (inbox, game sheet, Final Score) has the state banner on top
+  (needs you = orange, waiting = grey, FINAL = green, disputed = orange
+  outline, voided = muted), "2V2 AT RANCHO" title, ELO change inside each
+  player's tile. Court short names everywhere except court details. The
+  activity feed keeps its timeline (day headers, one marker size, games as
+  cards, check-ins as quiet lines); games-together rows and head-to-head use
+  the row/line style.
+- **D41 The tab bar is a hard floor (Oct 8):** no screen or sheet content
+  renders under the tab bar. Sheets inside a tab rise from its top edge
+  (`AppBottomSheetModal`), scroll content clears it (`useBottomFloor`).
+- **D34 Test data hidden at launch:** `TEST` / `REVIEWER` accounts and test
+  courts are hidden from real players by RLS; `TEST` / `REVIEWER` / `FOUNDER`
+  see everything. Four test courts (LA, Houston), Kasmiersky the one real
+  court. Free (LocalLite) players stay unranked (`gateLeaderboard` on). Only
+  FOUNDER / STARTER show as labels. Supersedes "account_tag is cosmetic" and
+  the `hideTaggedAccounts` switch. Runbook: `docs/runbooks/ACCOUNT_TAGS.md`.
+
 ## 2026-09-11 — REVIEWER is comped like FOUNDER, not offer-code-tested
 
 **Decision confirmed by Jesse — supersedes this file's own earlier "leave the

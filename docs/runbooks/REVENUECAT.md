@@ -27,12 +27,12 @@ build as-is; the real paywall ships in the next one.
 
 | Thing | Value |
 |---|---|
-| Plans | **Monthly only, $4.99, United States only.** No annual for v1. No annual offer codes. |
+| Plans | **Yearly $49.99 and Monthly $4.99, United States only** (D0, Oct 2026). Yearly is preselected; the court drawer's upgrade opens Apple's Yearly sheet. |
 | Why US-only | EU/DSA requires a public trader address; Jesse is a non-trader. Revisit post-launch if monetization works. |
 | Entitlement | `localplus` (RevenueCat says already created, `entl99df860f0d`). NOT `localcheck_pro`. |
-| Offering | `default` — one package, `$rc_monthly` → `com.realjess.localcheck.localplus.monthly`. Remove any `$rc_annual`. |
-| ASC product | `com.realjess.localcheck.localplus.monthly` — created, price ($4.99), US availability, and localization all set. Status "Prepare for Submission" until submitted alongside an app version. |
-| First-100 free year (STARTER) | **Apple offer codes** on the monthly product — 100 one-time codes, 100% off, 1 year, then **auto-converts to paid $4.99/mo** unless cancelled (Apple has no "free then just stop" mechanism). Accepted trade-off — see Phase 5. `account_tag='STARTER'` is set at signup as the row label; it grants nothing by itself. |
+| Offering | `default` — two packages: `$rc_annual` (Yearly, $49.99) and `$rc_monthly` → `com.realjess.localcheck.localplus.monthly`. The app reads `current.annual` / `current.monthly` (`services/purchasesService.ts`). |
+| ASC products | Monthly `com.realjess.localcheck.localplus.monthly` ($4.99) and Yearly ($49.99), both US-only, in the LocalPlus group. Status "Prepare for Submission" until **both are attached to the app version** at submission. |
+| First-100 free year (STARTER) | **Automatic, server-side** (D12, Oct 2026; supersedes offer codes): the first 100 accounts are tagged STARTER with a one-year `promo` row, no code, **no auto-renew** (D4). Not built yet. The Phase 5 offer-code notes below are history. |
 | FOUNDER free access | **Promo `subscriptions` row** (`billing_provider='promo'`), inserted directly per `docs/runbooks/ACCOUNT_TAGS.md` — no App Store product involved, no expiry pressure. |
 | Grant reconciliation | The webhook only writes rows for real RC purchases, keyed `(user_id, billing_provider)` — a promo row and a real store row for the same person never overwrite each other. `sync_profile_is_pro` grants `is_pro` if *either* lineage is active/unexpired; the same trigger also sets `profiles.plus_billing_provider` so the app can tell "comped" from "a real subscription you can cancel." |
 

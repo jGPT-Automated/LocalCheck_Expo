@@ -80,6 +80,8 @@ interface AppContextValue {
   currentUser: Player;
   courts: Court[];
   checkedInCourtId: string | null;
+  /** The active check-in came from auto check-in (D35): show "Not here?". */
+  checkedInAuto: boolean;
   lastVisitedCourtId: string | null;
   localCourtId: string | null;
   localCourt: Court | null;
@@ -94,7 +96,8 @@ interface AppContextValue {
   preferredSport: CourtSport | null;
   preferredCourtId: string | null;
   addCourt: (submission: VerifiedCourtSubmission) => Promise<CourtSubmissionResult>;
-  checkIn: (courtId: string) => Promise<void>;
+  /** Resolves true when the check-in saved. */
+  checkIn: (courtId: string) => Promise<boolean>;
   checkOut: () => Promise<void>;
   visitCourt: (courtId: string) => Promise<void>;
   joinRun: (runId: string, teamSide?: "a" | "b") => Promise<boolean>;
@@ -200,6 +203,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [courts, setCourts] = useState<Court[]>([]);
   const [localCourt, setLocalCourtObj] = useState<Court | null>(null);
   const [checkedInCourtId, setCheckedInCourtId] = useState<string | null>(null);
+  const [checkedInAuto, setCheckedInAuto] = useState(false);
   const [lastVisitedCourtId, setLastVisitedCourtId] = useState<string | null>(null);
   const [localCourtId, setLocalCourtId] = useState<string | null>(null);
   const [runs, setRuns] = useState<GameRun[]>([]);
@@ -332,6 +336,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!userId) return;
     const active = await fetchActiveCheckInState(userId);
     setCheckedInCourtId(active?.courtId ?? null);
+    setCheckedInAuto(active?.auto ?? false);
     // Visibility is the profile-level setting now (see the profile effect),
     // not whatever the active check-in row happened to store.
   }, [userId]);
@@ -574,12 +579,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // ─── Actions ───────────────────────────────────────────────────────────────
   const checkIn = useCallback(
-    async (courtId: string) => {
-      if (!userId) return;
+    async (courtId: string): Promise<boolean> => {
+      if (!userId) return false;
       const prevCourtId = checkedInCourtId;
       const ok = await checkInToCourt(courtId, undefined, visibility);
       if (ok) {
         setCheckedInCourtId(courtId);
+        setCheckedInAuto(false);
         setLastVisitedCourtId(courtId);
         void refreshCheckInCount();
       }
@@ -589,6 +595,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       refreshPresence(courtId);
       if (prevCourtId && prevCourtId !== courtId) refreshPresence(prevCourtId);
       refreshFeed();
+      return Boolean(ok);
     },
     [userId, visibility, checkedInCourtId, refreshPresence, refreshFeed, refreshCheckInCount]
   );
@@ -864,6 +871,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         currentUser,
         courts,
         checkedInCourtId,
+        checkedInAuto,
         lastVisitedCourtId,
         localCourtId,
         localCourt,

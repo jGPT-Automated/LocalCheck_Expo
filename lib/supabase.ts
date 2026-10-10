@@ -4,16 +4,26 @@ import { createClient } from "@supabase/supabase-js";
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
-// SecureStore adapter for Supabase auth session persistence
+// SecureStore adapter for Supabase auth session persistence.
+//
+// Readable after the first unlock, not only while unlocked: auto check-in
+// (D35) runs when iOS wakes the app for a geofence, usually with the phone
+// locked in a pocket, and it needs the session to call Supabase.
+// SecureStore only sets accessibility when an item is created (an update
+// keeps the old setting), so writes delete first. Existing sessions move
+// over at their next token refresh.
+const KEYCHAIN = { keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK };
+
 const ExpoSecureStoreAdapter = {
   getItem: (key: string): string | null | Promise<string | null> => {
-    return SecureStore.getItemAsync(key);
+    return SecureStore.getItemAsync(key, KEYCHAIN);
   },
-  setItem: (key: string, value: string): void | Promise<void> => {
-    return SecureStore.setItemAsync(key, value);
+  setItem: async (key: string, value: string): Promise<void> => {
+    await SecureStore.deleteItemAsync(key, KEYCHAIN);
+    await SecureStore.setItemAsync(key, value, KEYCHAIN);
   },
   removeItem: (key: string): void | Promise<void> => {
-    return SecureStore.deleteItemAsync(key);
+    return SecureStore.deleteItemAsync(key, KEYCHAIN);
   },
 };
 

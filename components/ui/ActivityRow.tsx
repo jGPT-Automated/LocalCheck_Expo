@@ -1,244 +1,184 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import {
-  formatActivityCopy,
-  formatMatchSide,
-} from "@/components/home/homePresentation";
-import { Colors } from "@/constants/colors";
+import { Colors, Radius } from "@/constants/colors";
 import type { FeedItem } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
-import { Typography } from "@/constants/typography";
-import { formatDurationMinutes, formatRelativeDay } from "@/lib/activityPresentation";
+import { TextStyles, Typography } from "@/constants/typography";
+import {
+  describeTimelineItem,
+  formatDayLabel,
+  type GameLine,
+  type LineSegment,
+  startsNewDay,
+  type TimelineMarker,
+} from "@/lib/activityPresentation";
+
+const RAIL = 20;
+const MARKER = 10;
 
 /**
- * The one shared activity-timeline row. Presence (checkin/checkout, or a
- * collapsed visit on a profile) stays compact and quiet — it's the ambient
- * signal. A game is the notable event and gets real visual weight: bigger,
- * score-forward, still on the same rail. See lib/activityPresentation.ts for
- * how raw events become "visit" and "checkin_burst" items upstream of this
- * component — it only decides how each type reads once it exists.
+ * The one shared activity-timeline row: a rail with one marker per item, a day
+ * header whenever the day changes, and two weights on the same rail. A game is
+ * the notable event, a small card hanging off the rail; check-ins, check-outs
+ * and visits stay single quiet lines. Every marker is the same circle; the
+ * type is told by fill (game: orange; check-in: outlined; the rest: grey).
+ *
+ * Pass `previous` (the item above this one) so the row can start a new day and
+ * know it is first; `isLast` ends the rail. See lib/activityPresentation.ts
+ * for how raw events become "visit" and "checkin_burst" items upstream.
  */
 export function ActivityRow({
   item,
-  isFirst = false,
+  previous,
   isLast = false,
-  quietRail = false,
+  showActor = false,
   onPress,
   onActorPress,
 }: {
   item: FeedItem;
-  isFirst?: boolean;
+  previous?: FeedItem;
   isLast?: boolean;
-  quietRail?: boolean;
+  /** Lists that mix players (the court feed) lead each line with the name. */
+  showActor?: boolean;
   onPress?: () => void;
   onActorPress?: () => void;
 }) {
   const [burstExpanded, setBurstExpanded] = React.useState(false);
-  const isGame = item.type === "game_result" && Boolean(item.match);
-  const isPresence =
-    item.type === "checkin" || item.type === "checkout";
-
-  const nodeStyle = isGame
-    ? styles.gameNode
-    : item.type === "visit"
-      ? styles.visitNode
-      : item.type === "checkin_burst"
-        ? styles.checkInNode
-        : quietRail && isPresence
-          ? styles.quietNode
-          : item.type === "checkin"
-            ? styles.checkInNode
-            : item.type === "checkout"
-              ? styles.checkOutNode
-              : styles.neutralNode;
-  const nodeSize = item.type === "visit" ? styles.nodeLarge : null;
-
-  const rowHeight = isGame
-    ? styles.rowGame
-    : item.type === "visit" || item.type === "checkin_burst"
-      ? styles.rowMedium
-      : styles.rowCompact;
-
-  const handlePress = () => {
-    if (item.type === "checkin_burst") {
-      setBurstExpanded((expanded) => !expanded);
-      return;
-    }
-    onPress?.();
-  };
-  const canPress = Boolean(onPress) || item.type === "checkin_burst";
+  const model = describeTimelineItem(item, { showActor });
+  const isFirst = !previous;
+  const isBurst = item.type === "checkin_burst";
+  const handlePress = isBurst ? () => setBurstExpanded((open) => !open) : onPress;
+  const canPress = Boolean(handlePress);
 
   return (
-    <View style={[styles.row, rowHeight]}>
-      <View style={styles.rail}>
-        {/* Top and bottom segments are the same box; only the colour is
-            dropped on a cap. That keeps the node on the row's exact centre
-            for the first and last rows too — previously the first row's cap
-            had no min-height, so its dot floated a couple px high. */}
-        <View
-          style={[
-            styles.railSegment,
-            styles.railSegmentTop,
-            isFirst ? styles.railSegmentHidden : quietRail && styles.quietLine,
-          ]}
-        />
-        <View style={[styles.node, nodeStyle, nodeSize]} />
-        <View
-          style={[
-            styles.railSegment,
-            styles.railSegmentBottom,
-            isLast ? styles.railSegmentHidden : quietRail && styles.quietLine,
-          ]}
-        />
+    <View>
+      {startsNewDay(item, previous) ? (
+        <DayHeader first={isFirst} label={formatDayLabel(item.occurredAtIso)} />
+      ) : null}
+      <View style={styles.row}>
+        <View style={styles.rail}>
+          <View style={[styles.railSegment, isFirst && styles.railHidden]} />
+          <View style={[styles.marker, markerStyle[model.marker]]} />
+          <View style={[styles.railSegment, isLast && styles.railHidden]} />
+        </View>
+        <View style={styles.copy}>
+          <Pressable
+            accessibilityHint={
+              model.kind === "game"
+                ? "Opens the final game result"
+                : isBurst
+                  ? "Shows who checked in"
+                  : "Opens the related detail"
+            }
+            accessibilityLabel={model.accessibilityLabel}
+            accessibilityRole={canPress ? "button" : undefined}
+            disabled={!canPress}
+            onPress={handlePress}
+            style={({ pressed }) => [
+              model.kind === "game" ? styles.card : styles.line,
+              pressed && canPress && (model.kind === "game" ? styles.cardPressed : styles.linePressed),
+            ]}
+          >
+            {model.kind === "game" ? (
+              <>
+                <GameLineView line={model.lines[0]} />
+                <GameLineView line={model.lines[1]} />
+                <Text numberOfLines={1} style={styles.caption}>
+                  {model.caption}
+                </Text>
+              </>
+            ) : (
+              <>
+                <View style={styles.lineContent}>
+                  {model.segments
+                    .filter((segment) => segment.text)
+                    .map((segment, index) => (
+                      <SegmentText
+                        key={index}
+                        onActorPress={onActorPress}
+                        segment={segment}
+                      />
+                    ))}
+                </View>
+                {burstExpanded && model.expandedText ? (
+                  <Text style={styles.expanded}>{model.expandedText}</Text>
+                ) : null}
+              </>
+            )}
+          </Pressable>
+        </View>
       </View>
-
-      <Pressable
-        accessibilityHint={
-          isGame ? "Opens the final game result" : "Opens the related detail"
-        }
-        accessibilityLabel={`${item.message}, ${item.timestamp}`}
-        accessibilityRole={canPress ? "button" : undefined}
-        disabled={!canPress}
-        onPress={handlePress}
-        style={({ pressed }) => [
-          styles.copy,
-          rowHeight,
-          pressed && canPress && styles.pressed,
-        ]}
-      >
-        {isGame && item.match ? (
-          <GameContent item={item} />
-        ) : item.type === "visit" ? (
-          <VisitContent item={item} />
-        ) : item.type === "checkin_burst" ? (
-          <BurstContent expanded={burstExpanded} item={item} />
-        ) : (
-          <PresenceContent item={item} onActorPress={onActorPress} />
-        )}
-      </Pressable>
     </View>
   );
 }
 
-function PresenceContent({
-  item,
+function DayHeader({ label, first }: { label: string; first: boolean }) {
+  return (
+    <View style={styles.headerRow}>
+      <View style={styles.rail}>
+        <View style={[styles.railSegment, first && styles.railHidden]} />
+      </View>
+      <Text accessibilityRole="header" style={[styles.headerText, first && styles.headerFirst]}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function SegmentText({
+  segment,
   onActorPress,
 }: {
-  item: FeedItem;
+  segment: LineSegment;
   onActorPress?: () => void;
 }) {
-  const copy = formatActivityCopy(item);
   return (
-    <View style={styles.presenceLine}>
-      <Text numberOfLines={1} style={styles.sentence}>
-        <Text
-          onPress={onActorPress}
-          suppressHighlighting={false}
-          style={styles.actor}
-        >
-          {copy.actor}
-        </Text>
-        <Text style={styles.action}>
-          {" "}
-          {sentenceAction(item.type, copy.action)}
-        </Text>
-      </Text>
-      <Text style={styles.time}>{item.timestamp}</Text>
-    </View>
+    <Text
+      numberOfLines={1}
+      onPress={segment.actor ? onActorPress : undefined}
+      style={[
+        segment.tone === "name"
+          ? styles.segmentName
+          : segment.tone === "time"
+            ? styles.segmentTime
+            : styles.segmentText,
+        segment.shrink ? styles.shrink : styles.fixed,
+      ]}
+    >
+      {segment.text}
+    </Text>
   );
 }
 
-function GameContent({ item }: { item: FeedItem }) {
-  const match = item.match!;
-  const winningSide = match.winnerSide === "a" ? match.sideA : match.sideB;
-  const losingSide = match.winnerSide === "a" ? match.sideB : match.sideA;
-  const winningScore =
-    match.winnerSide === "a" ? match.scoreA : match.scoreB;
-  const losingScore = match.winnerSide === "a" ? match.scoreB : match.scoreA;
-
+function GameLineView({ line }: { line: GameLine }) {
   return (
-    <View style={styles.gameBlock}>
-      {/* No "GAME · FINAL" kicker: a game only reaches a feed once it's final
-          (before that it lives in the participants' inbox), so the label just
-          competed with the winner and score for attention. */}
-      <View style={styles.gameHeader}>
-        <Text numberOfLines={1} style={styles.gameCourt}>
-          {item.courtName ?? ""}
-        </Text>
-        <Text style={styles.time}>{item.timestamp}</Text>
-      </View>
-      <View style={styles.gameSide}>
-        <Text numberOfLines={1} style={[styles.gameName, styles.winnerName]}>
-          {formatMatchSide(winningSide)}
-        </Text>
-        <View style={styles.gameScoreGroup}>
-          <Text style={styles.winTag}>WIN</Text>
-          <Text style={[styles.gameScore, styles.winnerScore]}>
-            {winningScore}
-          </Text>
-        </View>
-      </View>
-      <View style={styles.gameSide}>
-        <Text numberOfLines={1} style={styles.gameName}>
-          {formatMatchSide(losingSide)}
-        </Text>
-        <View style={styles.gameScoreGroup}>
-          <Text style={styles.gameScore}>{losingScore}</Text>
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function VisitContent({ item }: { item: FeedItem }) {
-  const duration = formatDurationMinutes(item.visit?.durationMinutes ?? null);
-  const day = item.visit ? formatRelativeDay(item.visit.checkOutIso) : "";
-  return (
-    <View style={styles.visitBlock}>
-      <Text style={styles.visitLabel}>VISIT</Text>
-      <Text numberOfLines={1} style={styles.visitCourt}>
-        {item.courtName ?? "A court"}
+    <View style={styles.gameLine}>
+      <Text
+        numberOfLines={1}
+        style={[styles.gameName, line.winner ? styles.winnerText : styles.loserText]}
+      >
+        {line.name}
       </Text>
-      <Text style={styles.visitMeta}>
-        {duration}
-        {day ? ` · ${day}` : ""}
+      <Text style={[styles.gameScore, line.winner ? styles.winnerText : styles.loserText]}>
+        {line.score}
       </Text>
     </View>
   );
 }
 
-function BurstContent({
-  item,
-  expanded,
-}: {
-  item: FeedItem;
-  expanded: boolean;
-}) {
-  const burst = item.burst;
-  const names = burst?.playerNames ?? [];
-  const preview =
-    names.length > 3
-      ? `${names.slice(0, 3).join(", ")} +${names.length - 3}`
-      : names.join(", ");
-  return (
-    <View style={styles.visitBlock}>
-      <Text style={styles.visitLabel}>{burst?.count ?? 0} PEOPLE CHECKED IN</Text>
-      <Text numberOfLines={expanded ? undefined : 1} style={styles.visitCourt}>
-        {expanded ? names.join(", ") : preview}
-      </Text>
-      <Text style={styles.visitMeta}>{item.timestamp}</Text>
-    </View>
-  );
-}
-
-function sentenceAction(type: FeedItem["type"], fallback: string): string {
-  if (type === "checkin") return "checked in";
-  if (type === "checkout") return "checked out";
-  if (type === "run_started") return "scheduled a game";
-  if (type === "new_court") return "added a court";
-  return fallback.toLocaleLowerCase();
-}
+const markerStyle = StyleSheet.create({
+  // Game: the notable event, filled orange.
+  game: { backgroundColor: Colors.accent },
+  // Check-in: outlined, so it reads as lighter than a game.
+  checkin: {
+    backgroundColor: Colors.background,
+    borderWidth: 1.5,
+    borderColor: Colors.textSecondary,
+  },
+  // Check-out, visit, other: quiet grey.
+  quiet: { backgroundColor: Colors.mutedDark },
+} satisfies Record<TimelineMarker, object>);
 
 const styles = StyleSheet.create({
   row: {
@@ -246,155 +186,80 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "stretch",
   },
-  rowCompact: { minHeight: 56 },
-  rowMedium: { minHeight: 72 },
-  rowGame: { minHeight: 96 },
-  rail: { width: 20, alignItems: "center", justifyContent: "center" },
-  node: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    zIndex: 1,
-  },
-  nodeLarge: { width: 11, height: 11, borderRadius: 5.5 },
-  checkInNode: {
-    backgroundColor: Colors.textSecondary,
-    borderWidth: 1,
-    borderColor: Colors.textSecondary,
-  },
-  checkOutNode: {
-    backgroundColor: Colors.background,
-    borderWidth: 1,
-    borderColor: Colors.mutedDark,
-  },
-  visitNode: {
-    backgroundColor: Colors.background,
-    borderWidth: 1.5,
-    borderColor: Colors.textSecondary,
-  },
-  quietNode: {
-    width: 6,
-    height: 6,
-    backgroundColor: Colors.muted,
-    borderWidth: 0,
-  },
-  gameNode: {
-    backgroundColor: Colors.accent,
-    borderWidth: 1,
-    borderColor: Colors.accent,
-  },
-  neutralNode: {
-    backgroundColor: Colors.surfaceHigh,
-    borderWidth: 1,
-    borderColor: Colors.muted,
-  },
+  rail: { width: RAIL, alignItems: "center", justifyContent: "center" },
   railSegment: {
     flex: 1,
     width: StyleSheet.hairlineWidth,
-    minHeight: 14,
-    backgroundColor: Colors.border,
+    backgroundColor: Colors.borderLight,
   },
-  railSegmentTop: { marginBottom: 4 },
-  railSegmentBottom: { marginTop: 4 },
-  railSegmentHidden: { backgroundColor: "transparent" },
-  quietLine: { backgroundColor: Colors.mutedDark },
+  railHidden: { backgroundColor: "transparent" },
+  marker: {
+    width: MARKER,
+    height: MARKER,
+    marginVertical: Space.xs,
+    borderRadius: MARKER / 2,
+  },
   copy: {
     flex: 1,
     minWidth: 0,
     marginLeft: Space.sm,
     paddingRight: Layout.screenGutter,
     justifyContent: "center",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.borderSubtle,
   },
-  pressed: { backgroundColor: Colors.surfacePressed },
 
-  // ── Presence (checkin/checkout) — compact, no card, ambient ──
-  presenceLine: { flexDirection: "row", alignItems: "center", gap: Space.sm },
-  sentence: { flex: 1, minWidth: 0, fontSize: 13, lineHeight: 18 },
-  actor: { fontFamily: Typography.bodySemiBold, color: Colors.text },
-  action: { fontFamily: Typography.body, color: Colors.textSecondary },
-  time: {
-    flexShrink: 0,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
+  // ── Day header ──
+  headerRow: {
+    paddingLeft: Layout.screenGutter,
+    flexDirection: "row",
+    alignItems: "stretch",
+  },
+  headerText: {
+    ...TextStyles.labelSmall,
+    marginLeft: Space.sm,
+    paddingTop: Space.xl,
+    paddingBottom: Space.xs,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
     color: Colors.muted,
-    letterSpacing: 0,
-    textTransform: "uppercase",
   },
+  headerFirst: { paddingTop: Space.sm },
 
-  // ── Game — the notable event, score carries the weight ──
-  gameBlock: { paddingVertical: Space.sm, gap: 4 },
-  gameHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: Space.sm,
-    marginBottom: 2,
+  // ── Quiet single line (check-in, check-out, visit) ──
+  line: {
+    minHeight: 44,
+    justifyContent: "center",
+    borderRadius: Radius.lg,
   },
-  gameSide: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: Space.sm,
+  linePressed: { backgroundColor: Colors.surfacePressed },
+  lineContent: { flexDirection: "row", alignItems: "center", gap: Space.xs },
+  shrink: { flexShrink: 1, minWidth: 0 },
+  fixed: { flexShrink: 0 },
+  segmentName: { ...TextStyles.bodySmall, fontFamily: Typography.bodySemiBold, color: Colors.text },
+  segmentText: { ...TextStyles.bodySmall, color: Colors.textSecondary },
+  segmentTime: { ...TextStyles.bodySmall, color: Colors.muted },
+  expanded: { ...TextStyles.metadata, paddingBottom: Space.sm, color: Colors.textSecondary },
+
+  // ── Game card hanging off the rail ──
+  card: {
+    marginVertical: Space.xs,
+    paddingHorizontal: Space.md,
+    paddingVertical: Space.md,
+    gap: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.surface,
   },
-  gameName: {
-    flex: 1,
-    minWidth: 0,
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 13,
-    color: Colors.text,
-    textTransform: "uppercase",
-  },
-  // Score right-aligns at the same x whether or not the WIN tag is present, so
-  // the winning and losing scores line up vertically.
-  gameScoreGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 6,
-    minWidth: 52,
-  },
+  cardPressed: { backgroundColor: Colors.surfacePressed },
+  gameLine: { flexDirection: "row", alignItems: "center", gap: Space.md },
+  gameName: { ...TextStyles.listName, flex: 1, minWidth: 0 },
   gameScore: {
-    fontFamily: Typography.headingBold,
-    fontSize: 18,
-    color: Colors.textSecondary,
+    ...TextStyles.statSmall,
+    minWidth: 28,
+    textAlign: "right",
     fontVariant: ["tabular-nums"],
   },
-  winnerScore: { color: Colors.accent },
-  winnerName: { color: Colors.accent },
-  winTag: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.accent,
-    letterSpacing: 1,
-  },
-  gameCourt: {
-    flex: 1,
-    minWidth: 0,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    color: Colors.muted,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-
-  // ── Visit / burst — medium weight, profile & grouped-arrival context ──
-  visitBlock: { paddingVertical: Space.xs, gap: 2 },
-  visitLabel: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 10,
-    color: Colors.textSecondary,
-    letterSpacing: 1.2,
-  },
-  visitCourt: {
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 13,
-    color: Colors.text,
-  },
-  visitMeta: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    color: Colors.muted,
-  },
+  winnerText: { color: Colors.text },
+  loserText: { color: Colors.textSecondary },
+  caption: { ...TextStyles.labelSmall, marginTop: Space.xs, color: Colors.muted },
 });

@@ -1,53 +1,34 @@
+import { Feather } from "@expo/vector-icons";
 import { NumberFlow } from "number-flow-react-native";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { RollingNumber } from "@/components/ui/RollingNumber";
+import { ShareLine } from "@/components/ui/ShareLine";
 import { Colors, Radius } from "@/constants/colors";
-import { Layout, Space } from "@/constants/layout";
+import { Space } from "@/constants/layout";
 import { TextStyles } from "@/constants/typography";
+
+import { GameStateBanner } from "./GameStateBanner";
+import {
+  bannerTrailing,
+  cardTitle,
+  eloDelta,
+  formatCardDate,
+  gameBannerKind,
+  marginSplit,
+  sideEloDelta,
+} from "./gameCardModel";
 
 const ELO_NUMBER_FORMAT = { useGrouping: false } as const;
 
-/** Plays the before -> after ELO transition once the row mounts. This is the
- * one deliberate place ELO animates: the moment a score is confirmed. */
-function EloChangeLine({
-  before,
-  after,
-  compact,
-}: {
-  before: number;
-  after: number;
-  compact?: boolean;
-}) {
-  const [display, setDisplay] = React.useState(before);
-  React.useEffect(() => {
-    const timer = setTimeout(() => setDisplay(after), 500);
-    return () => clearTimeout(timer);
-  }, [after]);
-  const delta = after - before;
-  const down = delta < 0;
-  return (
-    <View style={styles.eloLine}>
-      {/* ELO is a rating, not a quantity — no thousands separator. */}
-      <NumberFlow
-        format={ELO_NUMBER_FORMAT}
-        style={compact ? styles.eloValueCompact : styles.eloValue}
-        value={display}
-      />
-      {/* An arrow + colour so "my rating moved, and which way" reads at a
-          glance — nobody remembers their old number. */}
-      <Text
-        style={[
-          styles.eloDelta,
-          compact && styles.eloDeltaCompact,
-          down && styles.eloDeltaNegative,
-        ]}
-      >
-        {down ? "▼" : "▲"} {Math.abs(delta)}
-      </Text>
-    </View>
-  );
-}
+/** 1v1 faceoff avatar edge. */
+const FACEOFF_AVATAR = 56;
+/** Gap between the two faceoff players ("VS"); the score row keeps it too. */
+const VERSUS_WIDTH = 32;
+/** Roster avatar edge: five rows a side still fit at 375. */
+const ROSTER_AVATAR = 24;
 
 export type ScoreCardStatus =
   | "draft"
@@ -60,49 +41,8 @@ export type ScoreCardRole = "you" | "opponent" | null;
 export type ScoreCardPlayer = {
   id?: string;
   name: string;
-  /** Rendered with an animated transition only when the game is confirmed. */
+  /** Shown as the player's rating move once the game is settled. */
   elo?: { before: number; after: number } | null;
-};
-
-export type ScoreCardTone = { bg: string; border: string; text: string };
-
-/** Shared status colour so a screen-level status banner (statusPlacement
- * "none") matches the one the card would have drawn. */
-export function scoreCardTone(status: ScoreCardStatus): ScoreCardTone {
-  return TONE[status];
-}
-
-/** Pending, but not the viewer's move — a status to monitor, not act on.
- *  Deliberately the quiet neutral treatment so the "YOUR APPROVAL" card
- *  next to it in the Inbox is the only one wearing accent. */
-const WAITING_TONE: ScoreCardTone = {
-  bg: Colors.surfaceHigh,
-  border: Colors.borderLight,
-  text: Colors.textSecondary,
-};
-
-const TONE: Record<ScoreCardStatus, ScoreCardTone> = {
-  draft: {
-    bg: Colors.surfaceHigh,
-    border: Colors.borderLight,
-    text: Colors.textSecondary,
-  },
-  pending: {
-    bg: Colors.accentDim,
-    border: Colors.accentBorder,
-    text: Colors.accent,
-  },
-  held: {
-    bg: Colors.accentDim,
-    border: Colors.accentBorder,
-    text: Colors.accent,
-  },
-  confirmed: { bg: Colors.winDim, border: Colors.win, text: Colors.win },
-  voided: {
-    bg: Colors.surfaceHigh,
-    border: Colors.borderLight,
-    text: Colors.textSecondary,
-  },
 };
 
 const STATUS_LABEL: Record<ScoreCardStatus, string> = {
@@ -117,241 +57,402 @@ export function scoreCardStatusLabel(status: ScoreCardStatus): string {
   return STATUS_LABEL[status];
 }
 
-function formatPlayedOn(value: string): string {
-  const date =
-    value.length === 10 ? new Date(`${value}T12:00:00`) : new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date
-    .toLocaleDateString("en-US", { month: "short", day: "numeric" })
-    .toUpperCase();
+const firstName = (name: string) => (name.trim().split(/\s+/)[0] ?? "").toUpperCase();
+
+// ── Rating move ─────────────────────────────────────────────────────────────
+
+function eloTone(delta: number) {
+  return {
+    color: delta < 0 ? Colors.loss : delta > 0 ? Colors.win : Colors.textSecondary,
+    icon: (delta < 0 ? "arrow-down-right" : delta > 0 ? "arrow-up-right" : "minus") as
+      | "arrow-down-right"
+      | "arrow-up-right"
+      | "minus",
+  };
 }
 
-const firstName = (name: string) => name.split(" ")[0].toUpperCase();
+/** Starts at `from` and settles on `to`, so a count only runs when the value
+ *  arrives while the card is open; a card opened on a settled game shows `to`. */
+function useSettled(from: number, to: number, countUp: boolean): number {
+  const [shown, setShown] = React.useState(countUp ? from : to);
+  React.useEffect(() => {
+    setShown(to);
+  }, [to]);
+  return shown;
+}
 
 /**
- * The WIN pill sits directly above the score, and its slot is rendered on the
- * losing side too (empty) so both columns' scores and name lists stay on the
- * same baseline.
+ * The player's rating move: a green up arrow and the points gained, a red down
+ * arrow and the points lost. The count only runs when the change appears while
+ * the card is open (the viewer just approved the game).
  */
-function WinBadgeSlot({ win }: { win: boolean }) {
+function EloDelta({ delta, countUp }: { delta: number; countUp: boolean }) {
+  const { color, icon } = eloTone(delta);
+  const abs = Math.abs(delta);
+  const shown = useSettled(0, abs, countUp);
+  const textStyle = StyleSheet.flatten([TextStyles.label, styles.eloText, { color }]);
   return (
-    <View style={styles.winBadgeSlot}>
-      {win ? (
-        <View style={styles.winBadge}>
-          <Text style={styles.winBadgeText}>WIN</Text>
-        </View>
+    <View
+      accessibilityLabel={`Rating ${delta > 0 ? "up" : delta < 0 ? "down" : "unchanged"} ${abs}`}
+      accessible
+      style={styles.eloDelta}
+    >
+      <Feather color={color} name={icon} size={12} />
+      {delta === 0 ? (
+        <Text style={textStyle}>0</Text>
+      ) : (
+        <NumberFlow
+          animated={countUp}
+          format={ELO_NUMBER_FORMAT}
+          respectMotionPreference
+          style={textStyle}
+          value={shown}
+        />
+      )}
+    </View>
+  );
+}
+
+/** 1v1: the rating, then its move beside it. */
+function EloLine({
+  elo,
+  countUp,
+}: {
+  elo: { before: number; after: number };
+  countUp: boolean;
+}) {
+  const rating = useSettled(elo.before, elo.after, countUp);
+  const textStyle = StyleSheet.flatten([TextStyles.label, styles.eloText, styles.eloRating]);
+  return (
+    <View style={styles.eloLine}>
+      <NumberFlow
+        animated={countUp}
+        format={ELO_NUMBER_FORMAT}
+        respectMotionPreference
+        style={textStyle}
+        value={rating}
+      />
+      <EloDelta countUp={countUp} delta={elo.after - elo.before} />
+    </View>
+  );
+}
+
+// ── Scores and the margin line ──────────────────────────────────────────────
+
+function ScoreText({
+  value,
+  win,
+}: {
+  value: number | string;
+  win: boolean;
+}) {
+  return (
+    <RollingNumber
+      delay={0}
+      rollOnMount={false}
+      style={[styles.score, win ? styles.scoreWin : styles.scoreLose]}
+      value={value}
+    />
+  );
+}
+
+/** Where the line would be when the score is hidden: say so, quietly. */
+function HiddenScoreNote() {
+  return (
+    <View style={styles.hiddenNote}>
+      <Feather color={Colors.muted} name="eye-off" size={13} />
+      <Text numberOfLines={1} style={styles.hiddenNoteText}>
+        Score hidden
+      </Text>
+    </View>
+  );
+}
+
+/** The line under the scores, or a quiet note in its place. Same height either
+ *  way, so hiding the score does not move the card. */
+function MarginSlot({
+  hidden,
+  split,
+}: {
+  hidden: boolean;
+  split: ReturnType<typeof marginSplit>;
+}) {
+  return (
+    <View style={styles.lineSlot}>
+      {hidden ? (
+        <HiddenScoreNote />
+      ) : split ? (
+        <ShareLine leader={split.leader} leftShare={split.share} />
       ) : null}
     </View>
   );
 }
 
-/**
- * One side of the matchup, centred in its half. Name-first, no avatars:
- *  - 1v1: the player's name, their ELO move, then the score.
- *  - team: `teamLabel` over the score, then a name + ELO row per member.
- * "YOU / OPPONENT" is never spelled out — the viewer-aware status banner
- * and the score carry that.
- */
-function PlayerName({
-  name,
+// ── 1v1: two players facing off ─────────────────────────────────────────────
+
+function FaceoffPlayer({
+  player,
   win,
+  countUp,
   onPress,
 }: {
-  name: string;
+  player: ScoreCardPlayer;
   win: boolean;
+  countUp: boolean;
   onPress?: () => void;
 }) {
-  // No handler → plain text. A disabled Pressable still swallows the tap that
-  // should reach the card wrapper (which opens the match), so it must not be
-  // in the tree at all in list contexts.
-  if (!onPress) {
-    return (
-      <Text
-        numberOfLines={1}
-        style={[styles.sideName, win && styles.sideNameWin]}
-      >
-        {firstName(name)}
+  const content = (
+    <>
+      <PlayerAvatar name={player.name} playerId={player.id} size={FACEOFF_AVATAR} />
+      <Text numberOfLines={1} style={[styles.faceoffName, win ? styles.nameWin : null]}>
+        {firstName(player.name)}
       </Text>
-    );
-  }
+      {player.elo ? <EloLine countUp={countUp} elo={player.elo} /> : null}
+    </>
+  );
+  if (!onPress) return <View style={styles.faceoffPlayer}>{content}</View>;
   return (
     <Pressable
       accessibilityHint="Opens this player's profile"
+      accessibilityLabel={player.name}
       accessibilityRole="link"
       onPress={onPress}
+      style={({ pressed }) => [styles.faceoffPlayer, pressed ? styles.pressed : null]}
     >
-      {({ pressed }) => (
-        <Text
-          numberOfLines={1}
-          style={[
-            styles.sideName,
-            win && styles.sideNameWin,
-            pressed ? styles.namePressed : null,
-          ]}
-        >
-          {firstName(name)}
-        </Text>
-      )}
+      {content}
     </Pressable>
   );
 }
 
-/** Inbox / list density: one line per side — name(s) left, score right. */
+function Faceoff({
+  left,
+  right,
+  leftScore,
+  rightScore,
+  leftStrong,
+  rightStrong,
+  hidden,
+  split,
+  countUp,
+  onPlayerPress,
+}: {
+  left: ScoreCardPlayer;
+  right: ScoreCardPlayer;
+  leftScore: number | string;
+  rightScore: number | string;
+  leftStrong: boolean;
+  rightStrong: boolean;
+  hidden: boolean;
+  split: ReturnType<typeof marginSplit>;
+  countUp: boolean;
+  onPlayerPress?: (playerId: string) => void;
+}) {
+  const press = (player: ScoreCardPlayer) =>
+    player.id && onPlayerPress ? () => onPlayerPress(player.id as string) : undefined;
+  return (
+    <View style={styles.faceoffBlock}>
+      <View style={styles.faceoff}>
+        <FaceoffPlayer countUp={countUp} onPress={press(left)} player={left} win={leftStrong} />
+        <View style={styles.versus}>
+          <Text style={styles.versusText}>VS</Text>
+        </View>
+        <FaceoffPlayer countUp={countUp} onPress={press(right)} player={right} win={rightStrong} />
+      </View>
+      <View style={styles.faceoff}>
+        <View style={styles.faceoffScore}>
+          <ScoreText value={leftScore} win={leftStrong} />
+        </View>
+        <View style={styles.versus} />
+        <View style={styles.faceoffScore}>
+          <ScoreText value={rightScore} win={rightStrong} />
+        </View>
+      </View>
+      <MarginSlot hidden={hidden} split={split} />
+    </View>
+  );
+}
+
+// ── Teams: two columns, a roster each ───────────────────────────────────────
+
+function RosterRow({
+  player,
+  win,
+  countUp,
+  onPress,
+}: {
+  player: ScoreCardPlayer;
+  win: boolean;
+  countUp: boolean;
+  onPress?: () => void;
+}) {
+  const delta = eloDelta(player.elo);
+  const content = (
+    <>
+      <PlayerAvatar name={player.name} playerId={player.id} size={ROSTER_AVATAR} />
+      <Text numberOfLines={1} style={[styles.rosterName, win ? styles.nameWin : null]}>
+        {player.name.trim().split(/\s+/)[0] ?? player.name}
+      </Text>
+      {delta != null ? <EloDelta countUp={countUp} delta={delta} /> : null}
+    </>
+  );
+  if (!onPress) return <View style={styles.rosterRow}>{content}</View>;
+  return (
+    <Pressable
+      accessibilityHint="Opens this player's profile"
+      accessibilityLabel={player.name}
+      accessibilityRole="link"
+      onPress={onPress}
+      style={({ pressed }) => [styles.rosterRow, pressed ? styles.pressed : null]}
+    >
+      {content}
+    </Pressable>
+  );
+}
+
+function Roster({
+  players,
+  win,
+  countUp,
+  onPlayerPress,
+}: {
+  players: ScoreCardPlayer[];
+  win: boolean;
+  countUp: boolean;
+  onPlayerPress?: (playerId: string) => void;
+}) {
+  return (
+    <View style={styles.roster}>
+      {players.map((player, index) => (
+        <RosterRow
+          countUp={countUp}
+          key={player.id ?? `${player.name}-${index}`}
+          onPress={
+            player.id && onPlayerPress ? () => onPlayerPress(player.id as string) : undefined
+          }
+          player={player}
+          win={win}
+        />
+      ))}
+    </View>
+  );
+}
+
+function Teams({
+  leftPlayers,
+  rightPlayers,
+  leftScore,
+  rightScore,
+  leftStrong,
+  rightStrong,
+  hidden,
+  split,
+  countUp,
+  onPlayerPress,
+}: {
+  leftPlayers: ScoreCardPlayer[];
+  rightPlayers: ScoreCardPlayer[];
+  leftScore: number | string;
+  rightScore: number | string;
+  leftStrong: boolean;
+  rightStrong: boolean;
+  hidden: boolean;
+  split: ReturnType<typeof marginSplit>;
+  countUp: boolean;
+  onPlayerPress?: (playerId: string) => void;
+}) {
+  return (
+    <View style={styles.teams}>
+      <View style={styles.teamColumns}>
+        <View style={styles.teamScore}>
+          <ScoreText value={leftScore} win={leftStrong} />
+        </View>
+        <View style={styles.teamScore}>
+          <ScoreText value={rightScore} win={rightStrong} />
+        </View>
+      </View>
+      <MarginSlot hidden={hidden} split={split} />
+      <View style={styles.teamColumns}>
+        <Roster
+          countUp={countUp}
+          onPlayerPress={onPlayerPress}
+          players={leftPlayers}
+          win={leftStrong}
+        />
+        <Roster
+          countUp={countUp}
+          onPlayerPress={onPlayerPress}
+          players={rightPlayers}
+          win={rightStrong}
+        />
+        <View pointerEvents="none" style={styles.teamDivider} />
+      </View>
+    </View>
+  );
+}
+
+// ── Compact (inbox) ─────────────────────────────────────────────────────────
+
+function CompactEloDelta({ delta }: { delta: number }) {
+  const { color, icon } = eloTone(delta);
+  return (
+    <View style={styles.compactEloRow}>
+      <Feather color={color} name={icon} size={11} />
+      <Text style={[styles.compactElo, { color }]}>{Math.abs(delta)}</Text>
+    </View>
+  );
+}
+
+/** One line per side: name(s) left, rating move, score right. */
 function CompactRow({
-  teamLabel,
+  fallbackLabel,
   score,
   players,
   winner,
-  onPlayerPress,
 }: {
-  teamLabel: string;
+  fallbackLabel: string;
   score: number | string;
   players: ScoreCardPlayer[];
   winner: boolean;
-  onPlayerPress?: (playerId: string) => void;
 }) {
-  const solo = players.length === 1 ? players[0] : null;
-  const name = solo ? firstName(solo.name) : teamLabel;
-  const onPress =
-    solo?.id && onPlayerPress ? () => onPlayerPress(solo.id as string) : undefined;
-  const elo = solo?.elo ?? null;
-  const eloDelta = elo ? elo.after - elo.before : 0;
+  const name =
+    players.length > 0
+      ? players.map((player) => firstName(player.name)).join(" & ")
+      : fallbackLabel;
+  const delta = sideEloDelta(players);
   return (
     <View style={styles.compactRow}>
-      {onPress ? (
-        <Pressable onPress={onPress} style={styles.compactNameWrap}>
-          {({ pressed }) => (
-            <Text
-              numberOfLines={1}
-              style={[
-                styles.compactName,
-                winner && styles.sideNameWin,
-                pressed ? styles.namePressed : null,
-              ]}
-            >
-              {name}
-            </Text>
-          )}
-        </Pressable>
-      ) : (
-        <View style={styles.compactNameWrap}>
-          <Text
-            numberOfLines={1}
-            style={[styles.compactName, winner && styles.sideNameWin]}
-          >
-            {name}
-          </Text>
-        </View>
-      )}
-      {elo ? (
-        <Text
-          style={[
-            styles.compactElo,
-            eloDelta < 0 && styles.eloDeltaNegative,
-          ]}
-        >
-          {eloDelta < 0 ? "▼" : "▲"} {Math.abs(eloDelta)}
-        </Text>
-      ) : null}
       <Text
-        style={[styles.compactScore, winner && styles.sideScoreWin]}
+        numberOfLines={1}
+        style={[styles.compactName, winner ? styles.compactNameWin : null]}
       >
+        {name}
+      </Text>
+      <View style={styles.compactEloSlot}>
+        {delta != null ? <CompactEloDelta delta={delta} /> : null}
+      </View>
+      <Text style={[styles.compactScore, winner ? styles.compactScoreWin : null]}>
         {score}
       </Text>
     </View>
   );
 }
 
-function SideColumn({
-  teamLabel,
-  score,
-  players,
-  winner,
-  winBadge,
-  compact,
-  onPlayerPress,
-}: {
-  teamLabel: string;
-  score: number | string;
-  players: ScoreCardPlayer[];
-  winner: boolean;
-  winBadge: boolean;
-  compact: boolean;
-  onPlayerPress?: (playerId: string) => void;
-}) {
-  const solo = players.length === 1 ? players[0] : null;
-  const press = (player: ScoreCardPlayer) =>
-    player.id && onPlayerPress
-      ? () => onPlayerPress(player.id as string)
-      : undefined;
-  const scoreEl = (
-    <Text
-      style={[
-        styles.sideScore,
-        compact && styles.sideScoreCompact,
-        winner && styles.sideScoreWin,
-      ]}
-    >
-      {score}
-    </Text>
-  );
-
-  if (solo) {
-    return (
-      <View style={styles.sideCol}>
-        <PlayerName name={solo.name} onPress={press(solo)} win={winner} />
-        {solo.elo ? (
-          <EloChangeLine
-            after={solo.elo.after}
-            before={solo.elo.before}
-            compact={compact}
-          />
-        ) : null}
-        <WinBadgeSlot win={winBadge} />
-        {scoreEl}
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.sideCol}>
-      <Text numberOfLines={1} style={styles.sideLabel}>
-        {teamLabel}
-      </Text>
-      <WinBadgeSlot win={winBadge} />
-      {scoreEl}
-      <View style={styles.sidePlayers}>
-        {players.map((player, index) => (
-          <View
-            key={player.id ?? `${player.name}-${index}`}
-            style={styles.playerText}
-          >
-            <PlayerName
-              name={player.name}
-              onPress={press(player)}
-              win={winner}
-            />
-            {player.elo ? (
-              <EloChangeLine
-                after={player.elo.after}
-                before={player.elo.before}
-                compact={compact}
-              />
-            ) : null}
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-}
+// ── The card ────────────────────────────────────────────────────────────────
 
 /**
- * The one score + status card. Log Game's review step, the Inbox, and the
- * FINAL SCORE screen all render this so a game reads the same everywhere.
+ * The one score + state card. Log Game's review step, the Inbox, the game
+ * drawer and the Final Score screen all render this, so a game reads the same
+ * everywhere:
  *
- * `statusPlacement`: "card" draws a thin status banner across the card's top
- * edge; "none" leaves the status (and any timer / explainer) to the screen
- * above the card, so the card is only the game.
+ *  - a state banner across the top edge, with the date: "FINAL · SEP 6"
+ *  - "2V2 AT RANCHO" on one line
+ *  - 1v1: the two players facing off (avatar, name, rating and its move), the
+ *    scores under them, the margin line under that
+ *  - teams: two columns, each with its score on top and a roster of players
+ *    with their rating moves; the margin line between scores and rosters
+ *
+ * `compact` is the inbox density: caption + one line per side.
+ * `statusPlacement="none"` leaves the banner to the screen.
  */
 export function ScoreCard({
   status,
@@ -371,141 +472,171 @@ export function ScoreCard({
   compact = false,
   emphasis,
   onPlayerPress,
+  footnote,
+  scoresHidden = false,
 }: {
   status: ScoreCardStatus;
-  /** Viewer-aware override for the banner text ("YOUR APPROVAL", "WAITING ON
-   * JESSE"…). Tone still comes from `status`. Falls back to STATUS_LABEL. */
+  /** Viewer-aware override for the banner text ("WAITING ON YOU", "WAITING ON
+   * JESSE"…). Colour comes from `status` and `emphasis`. Falls back to
+   * STATUS_LABEL. */
   statusLabel?: string;
-  /** Inbox-list emphasis, independent of `status`: "action" = the viewer has
-   * to do something (loud accent banner + a left accent spine so it stands
-   * out in a stack); "waiting" = pending someone else (quiet neutral). Omit
-   * and the tone comes straight from `status`. */
+  /** The viewer's seat on a pending game: "action" = their move (accent
+   * banner), "waiting" = pending someone else (neutral). Omit for the tone
+   * `status` alone gives. */
   emphasis?: "action" | "waiting";
   statusPlacement?: "card" | "none";
-  /** Court short slug — a caption, not a headline. */
+  /** Court short slug. */
   courtName: string;
-  /** "1V1", "2V2"… shown next to the court on the caption line. */
+  /** "1V1", "2V2"… the title reads "2V2 AT RANCHO". */
   format?: string;
   playedOn: string;
-  /** Team label shown above a multi-player side ("YOUR TEAM" / "OTHER TEAM").
-   * A solo side uses the player's name instead. */
+  /** Names a side only when it has no players to show (compact fallback). */
   leftLabel: string;
   rightLabel: string;
   leftScore: number | string;
   rightScore: number | string;
   leftPlayers?: ScoreCardPlayer[];
   rightPlayers?: ScoreCardPlayer[];
+  /** A short line under the card body: the countdown, what happens next. */
   note?: string;
+  /** Extra caption text after the date ("CASUAL"). */
   rightMeta?: string;
   compact?: boolean;
-  /** Tapping a player's name calls this with their id. */
+  /** Tapping a player calls this with their id (full card only). */
   onPlayerPress?: (playerId: string) => void;
+  /** Kept for callers that still pass it; the card has one look. */
+  variant?: "card" | "sheet";
+  /** Quiet line under the scores, e.g. "You're 2–5 all-time vs Jesse". */
+  footnote?: string;
+  /** A player hid the score: W / L instead of numbers, no margin line (D40). */
+  scoresHidden?: boolean;
 }) {
-  const tone =
-    emphasis === "action"
-      ? TONE.pending
-      : emphasis === "waiting"
-        ? WAITING_TONE
-        : TONE[status];
-  // In compact / list contexts the whole card is one tap target — it opens the
-  // match. A profile link on the name inside it just steals that tap, so names
-  // are only links on the full (non-compact) card.
+  // In list contexts the whole card is one tap target (it opens the match), so
+  // players are only links on the full card.
   const namePress = compact ? undefined : onPlayerPress;
   const leftNum = Number(leftScore);
   const rightNum = Number(rightScore);
   const decided =
     Number.isFinite(leftNum) && Number.isFinite(rightNum) && leftNum !== rightNum;
+  const leftWins = decided && leftNum > rightNum;
+  const rightWins = decided && rightNum > leftNum;
+  // Hidden scores: the winner still reads at a glance, the numbers don't.
+  const shownLeft = scoresHidden && decided ? (leftWins ? "W" : "L") : leftScore;
+  const shownRight = scoresHidden && decided ? (rightWins ? "W" : "L") : rightScore;
+  // Both sides read as winners on a tie, so neither is dimmed.
+  const leftStrong = leftWins || !decided;
+  const rightStrong = rightWins || !decided;
 
-  return (
-    <View style={styles.wrap}>
-      <View style={[styles.card, emphasis === "action" && styles.cardAction]}>
-        {emphasis === "action" ? <View style={styles.actionSpine} /> : null}
-        {statusPlacement === "card" ? (
-          <View
-            style={[
-              styles.statusBanner,
-              { backgroundColor: tone.bg, borderBottomColor: tone.border },
-            ]}
-          >
-            <Text
-              numberOfLines={1}
-              style={[styles.statusBannerText, { color: tone.text }]}
-            >
-              {statusLabel ?? STATUS_LABEL[status]}
-            </Text>
-          </View>
-        ) : null}
+  const hasElo = [...leftPlayers, ...rightPlayers].some((player) => player.elo);
+  // A change that is already there when the card opens is shown, not counted.
+  const [hadEloAtOpen] = React.useState(hasElo);
+  const countUp = !hadEloAtOpen;
 
-        <View style={[styles.cardBody, compact && styles.cardBodyCompact]}>
-          <Text numberOfLines={1} style={styles.contextLine}>
-            {courtName.toUpperCase()}
-            {format ? ` · ${format}` : ""} · {formatPlayedOn(playedOn)}
-            {rightMeta ? ` · ${rightMeta}` : ""}
+  const split = scoresHidden ? null : marginSplit(leftScore, rightScore);
+  const kind = gameBannerKind(status, emphasis);
+  const banner =
+    statusPlacement === "card" ? (
+      <GameStateBanner
+        kind={kind}
+        label={statusLabel ?? STATUS_LABEL[status]}
+        trailing={compact ? undefined : bannerTrailing(playedOn, rightMeta)}
+      />
+    ) : null;
+
+  if (compact) {
+    const caption = [formatCardDate(playedOn), rightMeta].filter(Boolean).join(" · ");
+    return (
+      <View style={[styles.card, kind === "action" ? styles.cardAction : null]}>
+        {banner}
+        <View style={styles.compactBody}>
+          <Text numberOfLines={1} style={styles.compactCaption}>
+            {[cardTitle(format, courtName), caption].join(" · ")}
           </Text>
-
-          {compact ? (
-            <View style={styles.compactRows}>
-              <CompactRow
-                onPlayerPress={namePress}
-                players={leftPlayers}
-                score={leftScore}
-                teamLabel={leftLabel}
-                winner={decided && leftNum > rightNum}
-              />
-              <CompactRow
-                onPlayerPress={namePress}
-                players={rightPlayers}
-                score={rightScore}
-                teamLabel={rightLabel}
-                winner={decided && rightNum > leftNum}
-              />
-            </View>
-          ) : (
-            <View style={styles.matchup}>
-              <SideColumn
-                compact={compact}
-                onPlayerPress={namePress}
-                players={leftPlayers}
-                score={leftScore}
-                teamLabel={leftLabel}
-                winBadge={
-                  decided && leftNum > rightNum && status === "confirmed"
-                }
-                winner={decided && leftNum > rightNum}
-              />
-              <View style={styles.sideDivider} />
-              <SideColumn
-                compact={compact}
-                onPlayerPress={namePress}
-                players={rightPlayers}
-                score={rightScore}
-                teamLabel={rightLabel}
-                winBadge={
-                  decided && rightNum > leftNum && status === "confirmed"
-                }
-                winner={decided && rightNum > leftNum}
-              />
-            </View>
-          )}
-
+          <View style={styles.compactRows}>
+            <CompactRow
+              fallbackLabel={leftLabel}
+              players={leftPlayers}
+              score={shownLeft}
+              winner={leftWins}
+            />
+            <CompactRow
+              fallbackLabel={rightLabel}
+              players={rightPlayers}
+              score={shownRight}
+              winner={rightWins}
+            />
+          </View>
           {note ? (
-            <Text style={[styles.note, compact && styles.noteCompact]}>
+            <Text numberOfLines={1} style={styles.compactNote}>
               {note}
             </Text>
           ) : null}
         </View>
+      </View>
+    );
+  }
+
+  const solo = leftPlayers.length === 1 && rightPlayers.length === 1;
+
+  return (
+    <View style={[styles.card, kind === "action" ? styles.cardAction : null]}>
+      {banner}
+      <View style={styles.body}>
+        <Text
+          adjustsFontSizeToFit
+          minimumFontScale={0.75}
+          numberOfLines={1}
+          style={styles.title}
+        >
+          {cardTitle(format, courtName)}
+        </Text>
+
+        {solo ? (
+          <Faceoff
+            countUp={countUp}
+            hidden={scoresHidden}
+            left={leftPlayers[0]}
+            leftScore={shownLeft}
+            leftStrong={leftStrong}
+            onPlayerPress={namePress}
+            right={rightPlayers[0]}
+            rightScore={shownRight}
+            rightStrong={rightStrong}
+            split={split}
+          />
+        ) : (
+          <Teams
+            countUp={countUp}
+            hidden={scoresHidden}
+            leftPlayers={leftPlayers}
+            leftScore={shownLeft}
+            leftStrong={leftStrong}
+            onPlayerPress={namePress}
+            rightPlayers={rightPlayers}
+            rightScore={shownRight}
+            rightStrong={rightStrong}
+            split={split}
+          />
+        )}
+
+        {note || footnote ? (
+          <View style={styles.footer}>
+            {note ? <Text style={styles.note}>{note}</Text> : null}
+            {footnote ? (
+              <Text numberOfLines={1} style={styles.footnote}>
+                {footnote}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    width: "100%",
-    maxWidth: Layout.maxContentWidth,
-    alignSelf: "center",
-  },
   card: {
+    width: "100%",
     borderWidth: 1,
     borderColor: Colors.borderLight,
     borderRadius: Radius.card,
@@ -513,159 +644,110 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   cardAction: { borderColor: Colors.accentBorder },
-  actionSpine: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 3,
-    backgroundColor: Colors.accent,
-    zIndex: 2,
-  },
-  cardBody: { padding: Space.lg, gap: Space.md },
-  cardBodyCompact: { padding: Space.md, gap: 6 },
+  pressed: { opacity: 0.55 },
 
-  // ── Compact: one line per side ──
-  compactRows: { marginTop: 2, gap: 2 },
-  compactRow: {
-    minHeight: 28,
+  // ── Full card ──
+  body: { padding: Space.lg, gap: Space.lg },
+  title: {
+    ...TextStyles.title,
+    alignSelf: "stretch",
+    color: Colors.text,
+    letterSpacing: 0.6,
+    textAlign: "center",
+  },
+
+  // Rating move: arrow + points, in green or red.
+  eloLine: { flexDirection: "row", alignItems: "center", gap: Space.sm },
+  eloDelta: { flexDirection: "row", alignItems: "center", gap: 2 },
+  eloText: { fontVariant: ["tabular-nums"] },
+  eloRating: { color: Colors.textSecondary },
+
+  // Scores: the winner reads at full strength, the loser steps back.
+  score: { ...TextStyles.displayLarge, fontVariant: ["tabular-nums"] },
+  scoreWin: { color: Colors.text },
+  scoreLose: { color: Colors.textSecondary },
+  nameWin: { color: Colors.text },
+  lineSlot: { minHeight: 16, justifyContent: "center" },
+  hiddenNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Space.xs + 2,
+  },
+  hiddenNoteText: { ...TextStyles.metadata, color: Colors.muted },
+
+  // 1v1: avatars facing off, the scores centred under each, the line below.
+  faceoffBlock: { gap: Space.md },
+  faceoff: { flexDirection: "row", alignItems: "flex-start" },
+  faceoffPlayer: { flex: 1, minWidth: 0, alignItems: "center", gap: Space.xs + 2 },
+  faceoffName: {
+    ...TextStyles.label,
+    alignSelf: "stretch",
+    color: Colors.textSecondary,
+    textAlign: "center",
+  },
+  faceoffScore: { flex: 1, minWidth: 0, alignItems: "center" },
+  versus: {
+    width: VERSUS_WIDTH,
+    height: FACEOFF_AVATAR,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  versusText: { ...TextStyles.labelSmall, color: Colors.muted, letterSpacing: 1.2 },
+
+  // Teams: score on top of each column, the line, then the rosters.
+  teams: { gap: Space.md },
+  teamColumns: { flexDirection: "row", gap: Space.lg },
+  teamScore: { flex: 1, minWidth: 0, alignItems: "flex-start" },
+  roster: { flex: 1, minWidth: 0, gap: Space.sm },
+  rosterRow: {
+    minHeight: ROSTER_AVATAR + Space.xs,
     flexDirection: "row",
     alignItems: "center",
     gap: Space.sm,
   },
-  compactNameWrap: { flex: 1, minWidth: 0 },
-  compactName: {
+  rosterName: {
     ...TextStyles.label,
-    fontSize: 12,
-    color: Colors.text,
-  },
-  compactScore: {
-    fontFamily: TextStyles.displayLarge.fontFamily,
-    fontSize: 20,
-    lineHeight: 22,
-    color: Colors.textSecondary,
-    fontVariant: ["tabular-nums"],
-  },
-  // Per-game rating move on a settled inbox card — the "did my ELO go up"
-  // answer, right where the game is.
-  compactElo: {
-    ...TextStyles.labelSmall,
-    fontFamily: TextStyles.label.fontFamily,
-    fontSize: 10,
-    color: Colors.win,
-    letterSpacing: 0.4,
-    fontVariant: ["tabular-nums"],
-  },
-
-  // ── Status: a thin bar across the card's top edge, not a pill ──
-  statusBanner: {
-    paddingVertical: 6,
-    paddingHorizontal: Space.lg,
-    borderBottomWidth: 1,
-    alignItems: "center",
-  },
-  statusBannerText: { ...TextStyles.labelSmall, letterSpacing: 1.6 },
-  contextLine: {
-    fontFamily: TextStyles.metadata.fontFamily,
-    fontSize: 10,
-    letterSpacing: 0.6,
-    color: Colors.muted,
-  },
-
-  // ── Matchup: two side-by-side columns, no box — sits on the card ──
-  matchup: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-  sideDivider: { width: 1, alignSelf: "stretch", backgroundColor: Colors.border },
-  sideCol: {
     flex: 1,
     minWidth: 0,
-    paddingVertical: Space.sm,
-    paddingHorizontal: Space.sm,
-    alignItems: "center",
-    gap: 5,
-  },
-  sideLabel: {
-    ...TextStyles.labelSmall,
     color: Colors.textSecondary,
-    letterSpacing: 1.4,
-    textAlign: "center",
   },
-  sideName: {
-    ...TextStyles.label,
-    color: Colors.text,
-    textAlign: "center",
+  teamDivider: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: "50%",
+    width: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.borderLight,
   },
-  sideNameWin: { color: Colors.accent },
-  namePressed: { opacity: 0.55 },
-  sideScore: {
-    fontFamily: TextStyles.displayLarge.fontFamily,
-    fontSize: 40,
-    lineHeight: 44,
-    color: Colors.textSecondary,
-    fontVariant: ["tabular-nums"],
-    textAlign: "center",
-  },
-  sideScoreCompact: { fontSize: 30, lineHeight: 34 },
-  sideScoreWin: { color: Colors.text },
-  // Reserved on both sides so the two scores and name lists share a baseline.
-  winBadgeSlot: {
-    minHeight: 18,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  winBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.accent,
-  },
-  winBadgeText: {
-    fontFamily: TextStyles.labelSmall.fontFamily,
-    fontSize: 8,
-    letterSpacing: 1.4,
-    color: Colors.black,
-  },
-  sidePlayers: {
-    marginTop: Space.xs,
-    alignSelf: "stretch",
-    alignItems: "center",
-    gap: Space.sm,
-  },
-  playerText: { maxWidth: "100%", minWidth: 0, alignItems: "center" },
 
-  eloLine: {
-    marginTop: 1,
-    flexDirection: "row",
-    alignItems: "baseline",
-    justifyContent: "center",
-    gap: 4,
-  },
-  eloValue: {
-    ...TextStyles.labelSmall,
-    color: Colors.textSecondary,
-    fontVariant: ["tabular-nums"],
-  },
-  eloValueCompact: {
-    ...TextStyles.labelSmall,
-    fontSize: 9,
-    color: Colors.textSecondary,
-    fontVariant: ["tabular-nums"],
-  },
-  eloDelta: {
-    ...TextStyles.labelSmall,
-    fontFamily: TextStyles.label.fontFamily,
-    color: Colors.win,
-    letterSpacing: 0.4,
-  },
-  eloDeltaCompact: { fontSize: 10 },
-  eloDeltaNegative: { color: Colors.loss },
-  note: {
-    ...TextStyles.bodySmall,
-    color: Colors.textSecondary,
+  footer: { alignItems: "center", gap: Space.xs },
+  note: { ...TextStyles.bodySmall, color: Colors.textSecondary, textAlign: "center" },
+  footnote: {
+    ...TextStyles.metadata,
+    alignSelf: "stretch",
+    color: Colors.muted,
     textAlign: "center",
   },
-  // Denser in the inbox — the countdown is a footnote, not a headline.
-  noteCompact: { fontSize: 10, lineHeight: 14, color: Colors.muted },
+
+  // ── Compact (inbox) ──
+  compactBody: { padding: Space.md, gap: Space.sm },
+  compactCaption: { ...TextStyles.labelSmall, color: Colors.muted, letterSpacing: 0.8 },
+  compactRows: { gap: Space.xs },
+  compactRow: { minHeight: 28, flexDirection: "row", alignItems: "center", gap: Space.sm },
+  compactName: { ...TextStyles.label, flex: 1, minWidth: 0, color: Colors.textSecondary },
+  compactNameWin: { color: Colors.text },
+  // Fixed width so the two rows' rating moves line up under each other.
+  compactEloSlot: { width: 40, alignItems: "flex-end" },
+  compactEloRow: { flexDirection: "row", alignItems: "center", gap: 2 },
+  compactElo: { ...TextStyles.labelSmall, fontVariant: ["tabular-nums"] },
+  compactScore: {
+    ...TextStyles.statSmall,
+    minWidth: 40,
+    color: Colors.textSecondary,
+    fontVariant: ["tabular-nums"],
+    textAlign: "right",
+  },
+  compactScoreWin: { color: Colors.text },
+  compactNote: { ...TextStyles.metadata, color: Colors.muted },
 });

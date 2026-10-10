@@ -5,9 +5,10 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { HeaderIconAction, ScreenHeader } from "@/components/ScreenHeader";
+import { ChallengeInboxRow } from "@/components/challenge/ChallengeInboxRow";
+import { InboxActionRow } from "@/components/challenge/InboxActionRow";
 import { MatchReviewCard } from "@/components/match/MatchReviewCard";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { CompactSelect } from "@/components/ui/CompactSelect";
@@ -17,8 +18,10 @@ import { ProfileHero } from "@/components/ui/ProfileHero";
 import { ProfileStats } from "@/components/ui/ProfileStats";
 import { SearchField } from "@/components/ui/SearchField";
 import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
+import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
-import { type FeedItem, type FeedMatchSummary } from "@/constants/data";
+import { displayTag, type FeedItem, type FeedMatchSummary } from "@/constants/data";
+import { Space } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
@@ -35,6 +38,8 @@ import {
 import type { MatchReview } from "@/services/gameService";
 import { fetchPlayerActivity } from "@/services/feedService";
 import { pairVisits } from "@/lib/activityPresentation";
+import { type Challenge, inboxChallenges } from "@/lib/challengeModel";
+import { fetchOpenChallenges, respondToChallenge } from "@/services/challengeService";
 import { LocalPlusFlags } from "@/constants/flags";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
 import type { Player } from "@/constants/data";
@@ -73,7 +78,11 @@ export default function MeScreen() {
   } | null>(null);
   const [openMatches, setOpenMatches] = useState<MatchReview[]>([]);
   const [settledMatches, setSettledMatches] = useState<MatchReview[]>([]);
+  const [rawChallenges, setChallenges] = useState<Challenge[]>([]);
+  const [respondingId, setRespondingId] = useState<string | null>(null);
   const [inboxScope, setInboxScope] = useState<InboxScope>("pending");
+  // Pending challenges whose day passed drop out of PENDING (D39).
+  const challenges = useMemo(() => inboxChallenges(rawChallenges, inboxScope), [rawChallenges, inboxScope]);
   const [inboxQuery, setInboxQuery] = useState("");
   const [activity, setActivity] = useState<FeedItem[]>([]);
   // ELO move from the player's most recently settled game — shown as a "▲ 12"
@@ -117,10 +126,17 @@ export default function MeScreen() {
       ),
     [notifications],
   );
+  // Challenges waiting on you: answer one sent to you, or log the score.
+  const challengeCount = challenges.filter(
+    (c) =>
+      (c.status === "pending" && c.opponent.id === currentUser.id) ||
+      c.status === "accepted",
+  ).length;
   const inboxCount =
     incomingFriendRequests.length +
     openMatches.length +
-    inboxNotifications.length;
+    inboxNotifications.length +
+    challengeCount;
 
   // Free-text filter over everything in the inbox — court, players, or the
   // notification copy. The dropdown scopes pending vs. everything; this
@@ -141,6 +157,13 @@ export default function MeScreen() {
         p.name.toLowerCase().includes(inboxQ),
       )
     : incomingFriendRequests;
+  const visibleChallenges = inboxQ
+    ? challenges.filter((c) =>
+        `${c.challenger.name} ${c.opponent.name} ${c.courtName ?? ""}`
+          .toLowerCase()
+          .includes(inboxQ),
+      )
+    : challenges;
   const visibleInboxNotifications = inboxQ
     ? inboxNotifications.filter((n) =>
         `${n.title} ${n.body}`.toLowerCase().includes(inboxQ),
@@ -160,6 +183,24 @@ export default function MeScreen() {
     refreshOpenMatches,
     [refreshOpenMatches, activeTab, notifications.length, matches.length],
   );
+  const refreshChallenges = useCallback(() => {
+    let cancelled = false;
+    void fetchOpenChallenges(currentUser.id).then((rows) => {
+      if (!cancelled) setChallenges(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser.id]);
+  useEffect(refreshChallenges, [refreshChallenges, activeTab, notifications.length]);
+  useFocusEffect(refreshChallenges);
+  const answerChallenge = async (challenge: Challenge, accept: boolean) => {
+    setRespondingId(challenge.id);
+    const result = await respondToChallenge(challenge.id, accept);
+    setRespondingId(null);
+    if (result.ok && accept) router.push(`/challenge/${challenge.id}`);
+    refreshChallenges();
+  };
   // The "ALL" inbox scope also shows games that have already settled — so a
   // player can see that a game was approved and what it did to their rating
   // without hunting the court feed. Only fetched when that scope is on.
@@ -257,9 +298,9 @@ export default function MeScreen() {
     return () => clearTimeout(timer);
   }, [currentUser.id, friendQuery]);
 
-  // Account tag drives the screen title and the avatar treatment.
-  // See docs/runbooks/ACCOUNT_TAGS.md. null → an ordinary "PROFILE".
-  const accountTag = profile?.account_tag ?? null;
+  // FOUNDER / STARTER title the screen and print the avatar. TEST and
+  // REVIEWER read as a plain "PROFILE". See docs/runbooks/ACCOUNT_TAGS.md.
+  const accountTag = displayTag(profile?.account_tag);
 
   return (
     <View style={styles.screen}>
@@ -340,7 +381,7 @@ export default function MeScreen() {
           <SearchField
             variant="bare"
             accessibilityLabel="Search your inbox"
-            placeholder="Search inbox..."
+            placeholder="Search inbox…"
             value={inboxQuery}
             onChangeText={setInboxQuery}
             onClear={() => setInboxQuery("")}
@@ -368,13 +409,10 @@ export default function MeScreen() {
                   isLast: boolean,
                 ) => (
                   <ActivityRow
-                    isFirst={index === 0}
                     isLast={isLast}
                     item={item}
                     key={item.id}
-                    quietRail={
-                      item.type === "checkin" || item.type === "checkout"
-                    }
+                    previous={activity[index - 1]}
                     onActorPress={
                       item.playerId
                         ? () => router.push(`/player/${item.playerId}`)
@@ -506,26 +544,41 @@ export default function MeScreen() {
             )}
           </View>
         ) : (
-          <View style={styles.content}>
+          <View style={styles.inboxContent}>
+            {visibleChallenges.length > 0 ? (
+              <View style={styles.requestGroup}>
+                <Text style={styles.requestGroupTitle}>CHALLENGES</Text>
+                {visibleChallenges.map((challenge) => (
+                  <ChallengeInboxRow
+                    busy={respondingId === challenge.id}
+                    challenge={challenge}
+                    key={challenge.id}
+                    onOpen={() => router.push(`/challenge/${challenge.id}`)}
+                    onRespond={(accept) => void answerChallenge(challenge, accept)}
+                    viewerId={currentUser.id}
+                  />
+                ))}
+              </View>
+            ) : null}
             {visibleOpenMatches.length > 0 ? (
               <View style={styles.gameGroup}>
                 <Text style={styles.requestGroupTitle}>
                   {inboxScope === "all" ? "IN REVIEW" : "GAMES"}
                 </Text>
-                {visibleOpenMatches.map((match) => (
-                  <Pressable
+                {visibleOpenMatches.map((match, index) => (
+                  <PressableScale
                     accessibilityLabel={`Open game at ${match.courtName}`}
                     accessibilityRole="button"
                     key={match.id}
                     onPress={() => router.push(`/match/${match.id}`)}
-                    style={({ pressed }) => [pressed && styles.pressed]}
+                    style={index < visibleOpenMatches.length - 1 ? styles.gameCard : undefined}
                   >
                     <MatchReviewCard
                       compact
                       match={match}
                       viewerId={currentUser.id}
                     />
-                  </Pressable>
+                  </PressableScale>
                 ))}
               </View>
             ) : null}
@@ -533,41 +586,22 @@ export default function MeScreen() {
               <View style={styles.requestGroup}>
                 <Text style={styles.requestGroupTitle}>FRIEND REQUESTS</Text>
                 {visibleRequests.map((player) => (
-                  <View key={player.id} style={styles.requestRow}>
-                    <Pressable
-                      onPress={() => router.push(`/player/${player.id}`)}
-                      style={styles.requestIdentity}
-                    >
-                      <PlayerAvatar
-                        initials={player.avatar}
-                        name={player.name}
-                        playerId={player.id}
-                        size={38}
-                      />
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.friendName}>
-                          {player.name.toUpperCase()}
-                        </Text>
-                        <Text style={styles.friendMeta}>{player.elo} ELO</Text>
-                      </View>
-                    </Pressable>
-                    <Pressable
-                      accessibilityLabel={`Accept ${player.name}'s friend request`}
-                      accessibilityRole="button"
-                      onPress={() => void acceptFriendRequest(player.id)}
-                      style={styles.acceptRequest}
-                    >
-                      <Text style={styles.acceptRequestText}>ACCEPT</Text>
-                    </Pressable>
-                    <Pressable
-                      accessibilityLabel={`Decline ${player.name}'s friend request`}
-                      accessibilityRole="button"
-                      onPress={() => void removeFriend(player.id)}
-                      style={styles.declineRequest}
-                    >
-                      <Feather name="x" size={14} color={Colors.muted} />
-                    </Pressable>
-                  </View>
+                  <InboxActionRow
+                    decline={{
+                      label: `Decline ${player.name}'s friend request`,
+                      onPress: () => void removeFriend(player.id),
+                    }}
+                    key={player.id}
+                    onOpen={() => router.push(`/player/${player.id}`)}
+                    openLabel={`Open ${player.name}'s profile`}
+                    player={{ id: player.id, name: player.name, initials: player.avatar }}
+                    primary={{
+                      label: "ACCEPT",
+                      onPress: () => void acceptFriendRequest(player.id),
+                    }}
+                    subtitle={`${player.elo} ELO`}
+                    title={player.name}
+                  />
                 ))}
               </View>
             ) : null}
@@ -606,25 +640,26 @@ export default function MeScreen() {
             {inboxScope === "all" && visibleSettledMatches.length > 0 ? (
               <View style={styles.gameGroup}>
                 <Text style={styles.requestGroupTitle}>RECENTLY SETTLED</Text>
-                {visibleSettledMatches.map((match) => (
-                  <Pressable
+                {visibleSettledMatches.map((match, index) => (
+                  <PressableScale
                     accessibilityLabel={`Open game at ${match.courtName}`}
                     accessibilityRole="button"
                     key={match.id}
                     onPress={() => router.push(`/match/${match.id}`)}
-                    style={({ pressed }) => [pressed && styles.pressed]}
+                    style={index < visibleSettledMatches.length - 1 ? styles.gameCard : undefined}
                   >
                     <MatchReviewCard
                       compact
                       match={match}
                       viewerId={currentUser.id}
                     />
-                  </Pressable>
+                  </PressableScale>
                 ))}
               </View>
             ) : null}
 
             {visibleOpenMatches.length === 0 &&
+            visibleChallenges.length === 0 &&
             visibleRequests.length === 0 &&
             visibleInboxNotifications.length === 0 &&
             !(inboxScope === "all" && visibleSettledMatches.length > 0) ? (
@@ -936,6 +971,10 @@ const styles = StyleSheet.create({
   },
   inboxSearchDivider: { width: 1, height: 18, backgroundColor: Colors.border },
   content: { paddingTop: 0 },
+  // One rhythm for every inbox section (CHALLENGES, GAMES / IN REVIEW,
+  // FRIEND REQUESTS, RECENTLY SETTLED): air under the search strip, a fixed
+  // gap from title to first row, a fixed gap between sections.
+  inboxContent: { paddingTop: Space.lg },
   activityContent: { paddingTop: 0 },
 
   // ── LocalPlus history gate — a slim note, then blurred games below it ──
@@ -1051,64 +1090,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderSubtle,
   },
-  friendName: {
-    fontFamily: Typography.heading,
-    fontSize: 15,
-    color: Colors.text,
-    letterSpacing: 0.4,
-  },
-  friendMeta: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 8,
-    color: Colors.muted,
-    letterSpacing: 1.1,
-    marginTop: 3,
-  },
-  requestGroup: { marginHorizontal: 20, marginBottom: 10 },
-  gameGroup: { marginHorizontal: 20, marginTop: 16, marginBottom: 16, gap: 12 },
+  requestGroup: { marginHorizontal: 20, marginBottom: Space.xxl },
+  gameGroup: { marginHorizontal: 20, marginBottom: Space.xxl },
+  gameCard: { marginBottom: Space.md },
   requestGroupTitle: {
     fontFamily: Typography.bodySemiBold,
     fontSize: 11,
-    color: Colors.accent,
+    color: Colors.muted,
     letterSpacing: 1.2,
-    marginBottom: 7,
-  },
-  requestRow: {
-    minHeight: 58,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderSubtle,
-  },
-  requestIdentity: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  acceptRequest: {
-    minHeight: 44,
-    justifyContent: "center",
-    paddingHorizontal: 10,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.accent,
-  },
-  acceptRequestText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    color: Colors.black,
-    letterSpacing: 1,
-  },
-  declineRequest: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    marginBottom: Space.xs,
   },
   searchWrap: {
     minHeight: 46,

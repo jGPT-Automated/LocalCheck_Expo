@@ -96,12 +96,14 @@ export function formatGameResult(
     scoreA: number;
     scoreB: number;
     winnerSide: "a" | "b";
+    scoresHidden?: boolean;
   },
 ): string {
   const winner = match.winnerSide === "a" ? match.sideA : match.sideB;
   const loser = match.winnerSide === "a" ? match.sideB : match.sideA;
   const winningScore = match.winnerSide === "a" ? match.scoreA : match.scoreB;
   const losingScore = match.winnerSide === "a" ? match.scoreB : match.scoreA;
+  if (match.scoresHidden) return `${formatMatchSide(winner)} beat ${formatMatchSide(loser)}`;
   return `${formatMatchSide(winner)} beat ${formatMatchSide(loser)}, ${winningScore}–${losingScore}`;
 }
 

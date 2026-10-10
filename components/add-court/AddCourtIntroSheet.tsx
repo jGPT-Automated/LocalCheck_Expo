@@ -5,7 +5,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
 import { Colors, Radius } from "@/constants/colors";
-import { Layout, Space } from "@/constants/layout";
+import { Space } from "@/constants/layout";
 import { TextStyles } from "@/constants/typography";
 
 /** The Explore-owned Add Court entry. Schedule's exact task-drawer owner owns interaction. */
@@ -24,7 +24,6 @@ export function AddCourtIntroSheet({
       onClose={onClose}
       title="ADD A COURT"
       dynamic
-      bottomClearance={Layout.tabBarClearance}
       contentBottomPadding={Space.lg}
     >
       <View style={styles.content}>

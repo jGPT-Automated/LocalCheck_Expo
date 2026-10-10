@@ -1,3 +1,7 @@
+// Defines the auto check-in geofence task at startup (iOS can launch the app
+// straight into it). Must stay a top-level import.
+import "@/services/autoCheckInService";
+
 import {
   Inter_200ExtraLight,
   Inter_400Regular,
@@ -24,10 +28,12 @@ import { LogoMark } from "@/components/brand/LogoMark";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LaunchTransition } from "@/components/onboarding/LaunchTransition";
 import { CourtSheetProvider } from "@/components/sheet/CourtSheetHost";
+import { ToastProvider } from "@/components/ui/Toast";
 import { Colors, Radius } from "@/constants/colors";
 import { Layout } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { AppProvider } from "@/context/AppContext";
+import { AutoCheckInProvider } from "@/context/AutoCheckInContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { CourtPresenceProvider } from "@/context/CourtPresenceContext";
 import { DeviceLocationProvider } from "@/context/DeviceLocationContext";
@@ -237,7 +243,11 @@ function DataProviders({ children }: { children: React.ReactNode }) {
         <CourtPresenceProvider>
           <DeviceLocationProvider autoResolve={autoResolveLocation}>
             <AppProvider>
-              <CourtSheetProvider>{children}</CourtSheetProvider>
+              <ToastProvider>
+                <AutoCheckInProvider>
+                  <CourtSheetProvider>{children}</CourtSheetProvider>
+                </AutoCheckInProvider>
+              </ToastProvider>
             </AppProvider>
           </DeviceLocationProvider>
         </CourtPresenceProvider>
@@ -270,6 +280,7 @@ function RootLayoutNav() {
         <Stack.Screen name="player/[id]" options={detailScreenOptions} />
         <Stack.Screen name="notifications" options={detailScreenOptions} />
         <Stack.Screen name="match/[id]" options={detailScreenOptions} />
+        <Stack.Screen name="challenge/[id]" options={detailScreenOptions} />
         <Stack.Screen name="settings" options={detailScreenOptions} />
         <Stack.Screen name="localplus" options={detailScreenOptions} />
         <Stack.Screen name="add-court" options={{ ...detailScreenOptions, presentation: "fullScreenModal" }} />

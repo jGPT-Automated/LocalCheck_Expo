@@ -1,33 +1,29 @@
 # Current state
 
-Last reconciled: 2026-08-12 against `origin/main` at `3ca9c6f`, the production
-EAS Update channel, and LocalCheckProd.
-
-Focused branch reconciliation: 2026-08-29 on
-`codex/profile-app-store-polish`. This records source and connected-browser
-evidence only; it does not replace the production checkpoint below.
+Last reconciled: 2026-10-10 against `origin/main` at `541632c` (#65), PR #67
+(`codex/auto-check-in`, head `b846c97`), and LocalCheckProd.
 
 ## Production checkpoint
 
-- Source truth: `origin/main` @ `f5f5b81` — PR #45 squash-merged 2026-09-08
-  (camera lifecycle, unified `profiles.visibility` privacy, FRIENDS leaderboard,
-  account tags, one shared `SearchField`, launch polish). That merge triggered
-  EAS production **build 22**; TestFlight state to confirm on the EAS/ASC side.
-- Previous TestFlight checkpoint: `1.0.2 (21)`, commit `8bdb401` (PR #44), EAS
-  build `a1f15238-803a-49b6-8901-ac2bb32ec070`, FINISHED 2026-09-06.
+- Source truth: `origin/main` @ `541632c` — #65 squash-merged (forgot
+  password, onboarding, Expo Go previews, court drawer + Yearly upgrade).
+- PR #67 open (base `main`, app version 1.0.4): everything from #66 (other-
+  player profile, Challenges, hide score, game card and real game sheet,
+  motion pass, Yearly + Monthly picker, test-data hiding, store-review fixes)
+  plus auto check-in (D35–D38) and the Oct 8 preview fixes (D39–D41). #66 is
+  superseded; close it when #67 merges.
+- Not yet applied: `20261010120000_expire_stale_challenges.sql` (D39; anchors
+  checked against live). Not yet deployed: `send-notification` (passes
+  `data.category` for the 3-hour notice buttons).
+- Installed TestFlight build: version `1.0.3`. Builds are manual only; none
+  used in October so far (`docs/RELEASE.md`).
 - EAS project: `agenticjess-os/localcheck`
   (`9c906173-0258-45a9-a3fe-786cda373c66`).
-- Supabase production project: `qkrnmyexzvaxiqfxwwfb`.
+- Supabase production project: `qkrnmyexzvaxiqfxwwfb`. Every migration in
+  `supabase/migrations/` is applied and recorded except the one above; Edge
+  Functions are deployed except the `send-notification` change above
+  (`docs/SUPABASE.md`).
 - Installed binaries use EAS Update with `runtimeVersion.policy = appVersion`.
-- Production OTA rollback remains available through EAS Update republish.
-- **All migrations applied to LocalCheckProd (through 2026-09-09); none pending:**
-  `pr43_founding_localplus_referral_cooldown` (referral codes + 7-day
-  local-court cooldown; founding grant deferred to a launch-day migration),
-  `account_tags` (`profiles.account_tag` — replaces `is_test` /
-  `is_founding_member`; runbook `docs/runbooks/ACCOUNT_TAGS.md`),
-  `profile_visibility` (`profiles.visibility` public/friends/private),
-  `client_error_log` (`public.client_errors` — insert-only crash capture; see
-  `docs/SUPABASE.md`).
 
 ## Current product contract
 
@@ -38,9 +34,7 @@ evidence only; it does not replace the production checkpoint below.
   ZIP) before ever reaching the tabs. Gated by `lib/onboardingGate.ts` on
   profile age (≤30 min) OR the `profiles.onboarding_completed` flag — the age
   check alone guarantees no existing account is ever routed into it,
-  independent of whether that column's migration
-  (`20260914120000_profile_onboarding_completed.sql`, source-only — see
-  `docs/SUPABASE.md`) has been applied. Location and push-permission prompts
+  and the `onboarding_completed` column is live. Location and push-permission prompts
   are suppressed app-wide while a profile still needs onboarding
   (`DeviceLocationProvider`'s `autoResolve` prop, `NotificationContext`'s
   push effect) — onboarding's own "Share location" button is the only thing
@@ -61,17 +55,42 @@ evidence only; it does not replace the production checkpoint below.
   inbox notifications, production push delivery, and reversible block/report
   safety controls managed from Settings.
 - Competition: sport-specific ELO and reviewed match lifecycle.
-- Account tags: `profiles.account_tag`
-  (`FOUNDER` / `STARTER` / `REVIEWER` / `TEST` / null) is a **cosmetic** label —
-  the leaderboard row label, the avatar treatment, the ME-tab title. It does not
-  grant LocalPlus or change privacy. The only functional tie is a launch switch,
-  `LeaderboardFlags.hideTaggedAccounts` (**off** now), which hides `TEST` /
-  `REVIEWER` from other players' boards once flipped on. Server-managed, changed
-  only via `docs/runbooks/ACCOUNT_TAGS.md`. Replaced the `is_test` /
-  `is_founding_member` booleans.
+- Test data (D34): `TEST` and `REVIEWER` accounts, and test courts
+  (`courts.is_test`), are hidden by RLS from every ordinary player. `TEST`,
+  `REVIEWER` and `FOUNDER` see everything. Test courts: LA (Rancho Cienega,
+  Cheviot Hills) and Houston (Fonde Rec, Jaycee Park). Kasmiersky Park
+  (Conroe) is the one real court; other seeded courts are archived. Runbook:
+  `docs/runbooks/ACCOUNT_TAGS.md`.
+- Account tags: `profiles.account_tag` (`FOUNDER` / `STARTER` / `REVIEWER` /
+  `TEST` / null). Only FOUNDER / STARTER show as a label or ME title.
+  Server-managed.
+- Challenges (D25–D27r): friends only, from a player's profile. Court and day
+  optional. **Ranked**: either player logs the score after, it goes through
+  normal review and counts. **Casual**: just a time and place, no score,
+  counts nowhere; closes with "We played" or after its day. Inbox shows them
+  under CHALLENGES; notifications open `/challenge/<id>`.
+- Hide score (D30): each player can hide the score for their side when
+  logging, confirming, or later. Anyone outside the game then sees only who
+  won. It still counts for ELO, rank, record and head-to-head.
+- Game visibility (D31): a game shows outside its players only if every
+  player is Public.
+- Auto check-in (D35, D36; opt-in, real builds only): one 150 m geofence on the
+  player's local court. Arriving is held 3 minutes server-side (drive-bys never
+  post), then becomes a check-in with source `auto` and a "Checked in" local
+  notification with Undo; leaving checks out. Offered once when a local court
+  is picked (after onboarding) and in Settings → AUTO CHECK-IN. The auth
+  session is stored readable after first unlock so the background task can
+  call Supabase with the phone locked. A "Checked in automatically · Not
+  here?" line sits under the check-in button on Home and the court drawer.
+  Friend alerts need both "Share my auto check-ins" (sender) and "Friends'
+  auto check-ins" (receiver) on, and never fire for Private (D37). The 3-hour
+  backstop sends "You've been checked out" with Check back in (D38).
+- LocalPlus plans: Yearly $49.99 (preselected, "Save 17%") and Monthly $4.99,
+  US only, with the auto-renew disclosure and Terms / Privacy links.
 - Leaderboard membership: a profile is ranked in a sport only after ≥1 game in
-  that sport (`hasRankedGame`); privacy (`visibility`) and, when
-  `gateLeaderboard` is on, LocalPlus still gate on top. REGIONAL falls back to
+  that sport (`hasRankedGame`), only with LocalPlus (`gateLeaderboard` on;
+  LocalLite stays unranked, `TEST` counts as LocalPlus), and privacy
+  (`visibility`) applies. REGIONAL falls back to
   the nearest court to the viewer's live location when no local court is set
   yet (`fetchNearbyCourts`, `app/(tabs)/compete.tsx`) — it used to return
   empty in that case, since the market lookup was anchored on the local court
@@ -111,8 +130,8 @@ development and testing.
   `useLocalPlus()` has no blanket dev-unlock fallback — a fresh account is
   genuinely locked unless a real `subscriptions` row says otherwise, with one
   named exception (`account_tag === 'TEST'`).
-  Still open: the first-100 STARTER offer codes aren't set up in App Store
-  Connect yet. Full history: `docs/runbooks/REVENUECAT.md`.
+  Still open: Starter is automatic server-side per D12 (first 100 accounts,
+  free year, no code, no auto-renew) — not built yet. Full history: `docs/runbooks/REVENUECAT.md`.
 - **Settings gained self-service account changes (2026-09-11):** username
   (`public.update_username` RPC — format + a denylist-based moderation check
   + uniqueness, all server-side; not exhaustive, a starting baseline) and

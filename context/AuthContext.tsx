@@ -34,6 +34,9 @@ export interface UserProfile {
   total_court_time_minutes: number;
   apple_private_email: boolean;
   push_notifications_enabled: boolean;
+  /** D37 friend alerts for auto check-ins: send / receive. */
+  share_auto_check_ins?: boolean;
+  notify_friend_check_ins?: boolean;
   check_in_reminders_enabled: boolean;
   game_alerts_enabled: boolean;
   local_court_id: string | null;

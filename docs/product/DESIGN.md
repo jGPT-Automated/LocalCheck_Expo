@@ -53,17 +53,19 @@ The product should feel premium, athletic, editorial, local, and direct. It shou
 | Token             | Value     | Purpose                                           |
 | ----------------- | --------- | ------------------------------------------------- |
 | Background        | `#0D0D10` | App canvas                                        |
-| Surface           | `#151519` | Standard surface                                  |
-| Surface high      | `#1E1E26` | Selected or elevated surface                      |
-| Border            | `#28282F` | Hairlines and structure                           |
+| Surface           | `#17171C` | Standard surface                                  |
+| Surface high      | `#1F1F25` | Selected or elevated surface                      |
+| Border            | `#27272D` | Hairlines and structure                           |
 | Primary text      | `#F2F2F6` | Headlines and primary copy                        |
-| Secondary text    | `#9A9AAA` | Supporting copy                                   |
-| Muted text        | `#72728A` | Timestamps and metadata                           |
-| LocalCheck orange | `#FF5500` | Brand, live state, selected state, primary action |
+| Secondary text    | `#9C9CA6` | Supporting copy                                   |
+| Muted text        | `#6E6E7A` | Timestamps and metadata                           |
+| LocalCheck orange | `#FC4C02` | Brand, live state, selected state, primary action |
 | Win               | `#00E87A` | Positive result semantics only                    |
 | Loss              | `#FF3B5C` | Negative/destructive semantics only               |
 
-`#FF5500` remains the product action accent. The final supplied logo artwork
+`#FC4C02` is the product action accent (tuned to the mocks, D33; derived
+tints use `rgba(252,76,2,…)` through tokens only —
+`scripts/check-design-consistency.mjs` flags raw values). The final supplied logo artwork
 uses `#FD6A03` through the dedicated `Colors.brandMark` token; that value is
 reserved for the canonical logo geometry and is never a screen action color.
 
@@ -122,6 +124,37 @@ Rules:
 - Sticky primary actions belong at the reachable bottom edge through `StickyActionBar` or `SpeedDialFab`.
 - Drawers use `@gorhom/bottom-sheet`; focused forms use the shared `FormSheet`.
 
+### Layout rules (hard)
+
+- **The tab bar is a floor (D41).** Nothing renders under it.
+  `components/ui/TabFloor.tsx` carries the real tab bar height (0 on stack
+  screens). `AppBottomSheetModal` sets the sheet's `bottomInset` from it, so a
+  sheet opened in a tab rises from the top of the tab bar. Sheet content pads
+  its bottom with `useSheetBottomPadding()`; scroll content with
+  `useBottomFloor(extra)`. Never add `Layout.tabBarClearance` or the safe area
+  by hand inside a sheet.
+- **No overlaps, no squish.** Every row that holds a name or number is built
+  for a 24-character username and four-digit values: the text child gets
+  `flexShrink: 1`, `minWidth: 0`, `numberOfLines={1}`; labels beside it get
+  `flexShrink: 0`; equal columns use `flex: 1, flexBasis: 0`. Numbers that line
+  up use `fontVariant: ["tabular-nums"]`.
+- **One rhythm per list.** Section header to first row `Space.sm`, between
+  sections `Space.xxl`, from a sticky filter row to the first header
+  `Space.lg`.
+- **Centre status labels optically.** A label between two edges gets equal
+  space on both sides (set `lineHeight` so the font's ascender doesn't shift
+  it).
+- **No box inside a box.** Controls inside a card (switches, links) are bare
+  rows; separate with hairlines and spacing.
+- **Motion (D42):** nothing animates on open. Only `ShareLine` fills once,
+  an ELO change counts when it happens live, and user-changed values animate.
+- **Game state (D43):** state lives in `GameStateBanner` across the top of the
+  card, same colours everywhere. Court names use the short slug except in
+  court details. Names never go inside a sentence: name on its own line,
+  status on the next.
+- **Hidden scores (D40)** render as W / L wherever a number would be, and the
+  change animates through `RollingNumber` (letters rise like digits roll).
+
 Canonical component ownership:
 
 | Product element                | Canonical component |
@@ -143,7 +176,17 @@ Canonical component ownership:
 | Compact menu                   | `CompactSelect`     |
 | Primary two-mode switch        | `ModeTabs`          |
 | Reachable multi-action control | `SpeedDialFab`      |
-| Game/revision date             | `WeekDatePicker`    |
+| Game/revision date             | `RecentDatePicker`  |
+| Bottom sheet (any drawer)      | `AppBottomSheetModal` |
+| Tab-bar floor / bottom padding | `TabFloor` (`useBottomFloor`, `useSheetBottomPadding`) |
+| Hide score switch              | `HideScoreToggle`   |
+| Press feedback                 | `PressableScale`    |
+| Confirmation after an action   | `useToast()` (`Toast.tsx`) |
+| Animated score / stat number   | `RollingNumber`     |
+| Final score (1v1 and teams)    | `ScoreCard` (+ `GameStateBanner`) |
+| Margin / series line           | `ShareLine`         |
+| Inbox row with action          | `InboxActionRow`    |
+| Choice chips                   | `ChoiceChips`       |
 
 If one of these elements changes, update the canonical component and search the codebase for competing local implementations before finishing.
 
@@ -160,9 +203,8 @@ If one of these elements changes, update the canonical component and search the 
   actively checked in at the selected court and falls back to friends when the
   live roster is empty. Typed queries search all visible profiles while
   retaining court/friend relevance.
-- Large choice sets use typeahead or a contextual list. Date selection uses the
-  compact `WeekDatePicker`: this week is visible as one row, and swiping left
-  reveals prior weeks. Do not expose a free-typed date field on iOS.
+- Large choice sets use typeahead or a contextual list. Date selection uses
+  `RecentDatePicker`. Do not expose a free-typed date field on iOS.
 
 ## Court card treatment
 
@@ -284,26 +326,46 @@ The court detail page keeps the brand/detail header, six-metric court panel, and
   rating changes.
 - `MatchReviewCard` owns the status, countdown, game identity, players, and
   score hierarchy. `MatchRevisionSheet` owns corrections through the shared
-  `FormSheet`, `WeekDatePicker`, shared selector, and `StickyActionBar`.
+  `FormSheet`, `RecentDatePicker`, shared selector, and `StickyActionBar`.
   Status is communicated with text and structure, never color alone.
 - Actions follow one hierarchy: Approve or Update is the prominent action;
   Dispute is a clearly labeled secondary action. Every touch target remains at
   least 44 points. The countdown sits above the game card. The policy
   explanation sits below it, is collapsed by default, and expands in place.
 
-## Motion
+## Motion and feedback
 
-- Motion communicates hierarchy and confirmation; it is not decoration.
-- Standard transition: 180–320ms, ease-out.
-- Court metric detail tiles use the standard 220ms transition; Reduce Motion
-  replaces the 3D flip with a crossfade.
-- Check-in state may use a restrained spring confirmation.
-- Bottom sheets and speed dials use their established gesture/animation libraries.
-- Honor reduced-motion settings.
+Motion communicates hierarchy and confirmation; it is not decoration. Every
+value comes from `constants/motion.ts`:
+
+| Token | Value | Use |
+|-------|-------|-----|
+| `Springs.settle` | 400ms, damping 1 | Things coming to rest, no bounce |
+| `Springs.snapBack` | 400ms, damping 0.8 | Released drags returning |
+| `Springs.sheet` | 300ms, damping 0.8 | Toasts and sheet-like entrances |
+| `Ease.out` / `CssEase.out` | `cubic-bezier(0.23,1,0.32,1)` | Enter / state changes |
+| `Ease.inOut` | `cubic-bezier(0.77,0,0.175,1)` | Moves on screen |
+| `Durations` | press 120, small 180, ticker 600 | |
+| `PRESS_SCALE` | 0.97 | Press-down scale |
+
+Table stakes, checked on every UI change:
+
+- **Anything that looks like a drawer is a real drawer**: `AppBottomSheetModal`
+  (gorhom), swipe down and tap-out dismiss it. No faked modals.
+- **Every tappable card, row and button gives press feedback** through
+  `PressableScale` (or `BrutalistButton`, which uses it).
+- **Numbers that change roll** (`RollingNumber`): scores, ELO, stats.
+- **Actions confirm with a toast** (`useToast().showToast`), a success haptic,
+  swipe up or tap to dismiss, auto-hide at 3.5s. Check-in and score logging use
+  it.
+- Reduce Motion is honored everywhere (`useReducedMotion`): springs and rolls
+  collapse to the final state.
+- Only Expo Go-safe libraries (Reanimated 4 CSS transitions and springs,
+  worklets `scheduleOnRN`, gesture-handler, expo-haptics).
+- Court metric tiles: 220ms; Reduce Motion swaps the 3D flip for a crossfade.
 - Signed-in cold starts use a 1.6-second mark sequence: pin → W → check.
-- Signed-out cold starts give the approved artwork and LocalCheck lockup the
-  full reveal before the form becomes interactive. Reduce Motion collapses
-  both paths to the final static state.
+  Signed-out cold starts give the artwork and lockup the full reveal before
+  the form is interactive. Reduce Motion shows the final static state.
 
 ## Pattern provenance
 

@@ -42,10 +42,31 @@ Write one forward migration. Include RLS, grants, indexes, Realtime/publication
 effects, and recovery notes as part of the same pull request. Compare it with
 the verified live contract and migration ledger, run focused source/unit
 checks, and document the intended-user and denied-user acceptance cases. After
-explicit authorization, apply the reviewed file to `LocalCheckProd` through the
-connected Supabase migration tool, then verify the resulting cloud schema with
-read-only queries. Function deployment and production-secret changes remain
-separate explicitly authorized actions.
+explicit authorization, apply it as below. Function deployment and
+production-secret changes remain separate explicitly authorized actions.
+
+## Apply a change to production (the SQL editor flow)
+
+The connected migration tool's DDL calls are cancelled in this setup, so
+production SQL goes through Jesse:
+
+1. Write the migration file. Wrap it in `begin; … commit;` with
+   `set local lock_timeout = '5s'` and `statement_timeout = '60s'`.
+2. To change a long live function, patch it in place inside a `do` block:
+   read `pg_get_functiondef(...)`, assert the anchor text exists (fail loudly
+   if the definition drifted), skip if already applied, `execute replace(...)`.
+   Never retype a live function from memory.
+3. Paste the file into a new query in the Supabase SQL editor
+   (`/project/qkrnmyexzvaxiqfxwwfb/sql/new`) and confirm the editor's UTF-8
+   byte count equals `wc -c` of the file. Jesse clicks **Run**.
+4. Verify with read-only queries, then a rolled-back test: a `do` block that
+   sets `request.jwt.claims`, runs `set local role authenticated`, exercises an
+   allowed and a denied user, and ends with `raise exception 'RESULT …'` so
+   nothing persists.
+5. Record it: insert the version and name into
+   `supabase_migrations.schema_migrations`.
+
+Never run SQL written by Supabase's assistant.
 
 ## Edge Functions
 
@@ -119,20 +140,12 @@ temporary delivery failure does not strand inbox rows.
   nullable text, with an `authenticated` column UPDATE grant). Nullable
   five-digit profile ZIP; the onboarding flow's "enter ZIP instead" path
   writes it directly.
-- `20260914120000_profile_onboarding_completed.sql`: **SOURCE ONLY, NOT
-  APPLIED.** Adds `profiles.onboarding_completed boolean not null default
+- `20260914120000_profile_onboarding_completed.sql`: applied 2026-09-17. Adds `profiles.onboarding_completed boolean not null default
   false` (existing rows backfilled `true` in the same migration) + the column
   UPDATE grant. The client's onboarding gate (`lib/onboardingGate.ts`) also
   requires the profile to be freshly created (within 30 minutes), so shipping
-  this ahead of the migration is safe — no existing account can be routed
-  into onboarding regardless of whether this column exists yet. Confirmed via
-  a live read-only query (2026-09-15) that this column genuinely does not
-  exist on LocalCheckProd yet, and that a client write attempting it fails
-  and rolls back the whole update atomically (no partial-field writes) —
-  `app/onboarding.tsx` handles that failure with a visible retry rather than
-  silently proceeding.
-- `20260915000000_update_username_syncs_display_name.sql`: **SOURCE ONLY,
-  NOT APPLIED.** Redefines `public.update_username` (never edits
+  this ahead of the migration was safe.
+- `20260915000000_update_username_syncs_display_name.sql`: applied 2026-10-05. Redefines `public.update_username` (never edits
   `20260911180000`, which is live) so a username change also sets
   `display_name` to match — every player-facing surface (rosters, feed, game
   cards, profile header) reads `display_name`, not `username`, so claiming a
@@ -192,7 +205,7 @@ tool, verified with read-only queries:
   intended replacement; fatal native crashes are not captured here. Inspect:
   `select created_at, route, update_id, message, error_stack, component_stack from public.client_errors order by created_at desc limit 50;`
 
-- `20260910000000_friendly_usernames.sql` — **SOURCE ONLY, NOT APPLIED.**
+- `20260910000000_friendly_usernames.sql` — applied 2026-09-11.
   Rewrites `private.handle_new_user()` (via a new `private.generate_username`
   helper) so an auto handle is the clean base (`mapcrash`), with a numeric
   suffix only on collision (`mapcrash2`) and the old 16-hex UUID tail kept only
@@ -203,27 +216,67 @@ tool, verified with read-only queries:
   verify: `select username from public.profiles where username ~ '_[0-9a-f]{16}$';`
   should return 0 rows.
 
-- `20260911000000_subscriptions_webhook_support.sql` — **SOURCE ONLY, NOT
-  APPLIED.** Adds `public.subscriptions.last_event_ms` (out-of-order guard for
+- `20260911000000_subscriptions_webhook_support.sql` — applied 2026-09-11. Adds `public.subscriptions.last_event_ms` (out-of-order guard for
   webhook events) and a unique index on `user_id` (one subscription lineage per
   person, makes the webhook's upsert idempotent). 0 rows in the table today, so
   this is a safe additive change whenever applied. Pairs with the
   `revenuecat-webhook` function below — apply this first.
 
-All other 2026-09 migrations are applied to LocalCheckProd; four are pending:
-`20260910000000_friendly_usernames.sql`,
-`20260911000000_subscriptions_webhook_support.sql`,
-`20260914120000_profile_onboarding_completed.sql`, and
-`20260915000000_update_username_syncs_display_name.sql`.
-`account_tag` is cosmetic — it does not gate the leaderboard or LocalPlus; the
-only functional switch is the client flag `LeaderboardFlags.hideTaggedAccounts`
-(off). `supabase/functions/revenuecat-webhook` exists as source — **not yet
-deployed** — authorized by its own `REVENUECAT_WEBHOOK_AUTH_HEADER` secret (not
-the platform JWT), pure event-mapping logic in `webhookLogic.ts` (unit tested),
-upserts `public.subscriptions`; see `docs/runbooks/REVENUECAT.md` Phase 3 for
-the deploy sequence.
-`profiles.is_pro` is still the only entitlement field, trigger-derived from
+Every 2026-09 migration is applied to LocalCheckProd (the ledger stamps some
+with their apply time rather than the file's timestamp). All four Edge
+Functions are deployed: `delete-account`, `send-notification`,
+`verify-court`, `revenuecat-webhook` (authorized by its own
+`REVENUECAT_WEBHOOK_AUTH_HEADER` secret; see `docs/runbooks/REVENUECAT.md`).
+`profiles.is_pro` is the only entitlement field, trigger-derived from
 `public.subscriptions`.
+
+## 2026-10 migrations
+
+All applied by Jesse in the SQL editor, verified, and recorded (the last two on Oct 8, with rolled-back tests as a real player, a tester, Jesse and APPLE):
+
+- `20261005120000_frozen_referral_handle.sql` — invite codes are the
+  username at signup and never change.
+- `20261006120000_challenges.sql` — `public.challenges` (friends only, one
+  open per pair, 10 a day), `matches.is_ranked`, RPCs `create_challenge`,
+  `respond_to_challenge`, `cancel_challenge`, `log_challenge_result`;
+  notification type `challenge`.
+- `20261007120000_hide_score_and_game_visibility.sql` —
+  `match_participants.hide_score` + `set_score_hidden` (D30); a game shows
+  outside its players only when every player is Public (D31,
+  `private.match_all_public`).
+- `20261007150000_casual_challenges_no_score.sql` — casual challenges are plans
+  with no score (D27r): `finish_casual_challenge`, stale plans auto-close.
+- `20261008120000_hide_test_accounts_and_courts.sql` — test accounts and test
+  courts hidden from real players (D34). Runbook:
+  `docs/runbooks/ACCOUNT_TAGS.md`.
+- `20261009120000_auto_check_in.sql` — auto check-in (D35, D36):
+  `check_ins.source` (manual / auto), `private.auto_check_in_arrivals` (3-minute
+  hold), RPCs `auto_check_in_arrive`, `auto_check_in_leave`,
+  `undo_auto_check_in`; cron `localcheck-promote-auto-check-ins` every minute;
+  the stale sweep keeps 45 minutes for manual and 3 hours for auto; a
+  `profiles` trigger ends the held arrival and any open auto check-in at the
+  old court when the local court changes. Also (D37, D38):
+  `profiles.share_auto_check_ins` / `notify_friend_check_ins` +
+  `set_auto_check_in_alerts`; notification types `friend_check_in` and
+  `auto_check_out`; `resume_auto_check_in`. Needs
+  `20261008120000_hide_test_accounts_and_courts.sql` first
+  (`private.is_hidden_account`). `send-notification` passes
+  `data.category` as the push's `categoryId` (action buttons) — redeploy
+  after merge, with Jesse's OK.
+
+### Written, not applied
+
+- `20261010120000_expire_stale_challenges.sql` (D39) — **written, not applied**.
+  Adds `expired` to `challenges_status_check`; `private.expire_stale_challenges()`
+  expires pending challenges whose `play_on` is before today (Central time) and
+  undated pending ones older than 7 days (accepted ones are left alone);
+  pg_cron job `localcheck-expire-challenges` every 15 minutes, plus one run at
+  the end of the migration. Patches `create_challenge` (expires the pair's own
+  stale pending challenge before the duplicate check) and `respond_to_challenge`
+  (new `LC112` "This challenge expired.") with anchor checks. Creates no tables,
+  so there is no RLS prompt. Needs the two challenge migrations above first. The
+  app already hides stale pending challenges on its own, so the order of
+  migration and app release doesn't matter.
 
 ## Realtime and API safety
 

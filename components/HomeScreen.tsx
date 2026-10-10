@@ -21,6 +21,8 @@ import { HomeCourtHero } from "@/components/ui/HomeCourtHero";
 import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
 import { PersonTile } from "@/components/ui/PersonTile";
 import { ScreenViewport } from "@/components/ui/ScreenViewport";
+import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
+import { useToast } from "@/components/ui/Toast";
 import { Colors, Radius } from "@/constants/colors";
 import type { FeedItem, FeedMatchSummary } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
@@ -56,6 +58,7 @@ export function HomeScreen() {
   const [activeTab, setActiveTab] = useState<HomeTab>("feed");
   const [locals, setLocals] = useState<LocalWithLastCheckIn[]>([]);
   const [isChecking, setIsChecking] = useState(false);
+  const { showToast } = useToast();
   const [selectedResult, setSelectedResult] = useState<{
     match: FeedMatchSummary;
     sport: FeedItem["sport"];
@@ -135,11 +138,17 @@ export function HomeScreen() {
     if (isChecking) return;
     setIsChecking(true);
     try {
-      if (Platform.OS !== "web") {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      if (isCheckedIn) {
+        if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        await checkOut();
+      } else if (await checkIn(localCourt.id)) {
+        // The toast carries the success haptic.
+        showToast({
+          title: `CHECKED IN · ${(localCourt.shortName || localCourt.name).toUpperCase()}`,
+          body: "Check out when you leave.",
+          icon: "map-pin",
+        });
       }
-      if (isCheckedIn) await checkOut();
-      else await checkIn(localCourt.id);
     } finally {
       setIsChecking(false);
     }
@@ -178,6 +187,7 @@ export function HomeScreen() {
         onViewCourt={() => router.push(`/court/${localCourt.id}`)}
         visitCount={localCourt.ratingCount ?? 0}
       />
+      <AutoCheckInNote courtId={localCourt.id} />
 
       <HomeTabs active={activeTab} onChange={setActiveTab} />
 
@@ -234,10 +244,11 @@ export function HomeScreen() {
               {groupedCourtFeed.length > 0 ? (
                 groupedCourtFeed.map((item, index) => (
                   <ActivityRow
-                    isFirst={index === 0}
                     isLast={index === groupedCourtFeed.length - 1}
                     item={item}
                     key={item.id}
+                    previous={groupedCourtFeed[index - 1]}
+                    showActor
                     onActorPress={
                       item.playerId
                         ? () => router.push(`/player/${item.playerId}`)
