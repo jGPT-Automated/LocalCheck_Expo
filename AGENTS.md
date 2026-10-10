@@ -124,6 +124,12 @@ force-push shared branches, or include unrelated user changes.
 
 ### UI change gate
 
+- **Sign-off first (Oct 10).** A visible change (layout, colour, motion,
+  wording) is shown to Jesse as screenshots before it is built; build exactly
+  what he signed off (`~/Documents/LocalCheck_Oct2026/DESIGN_SIGNOFF.md`).
+- **No new wording.** Use words already in the app or Jesse's; any new phrase
+  goes on the sign-off board first.
+
 - Before editing a screen, use `rg` to find the existing component that owns the
   same interaction and the tokens it uses. Reuse that implementation. A new
   component that only resembles an existing header, sheet, card, button, or
