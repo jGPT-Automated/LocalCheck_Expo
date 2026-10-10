@@ -5,6 +5,7 @@ Three release paths, all started by hand. Nothing builds or ships on merge.
 | Path | Trigger | Cost | Use for |
 |------|---------|------|---------|
 | PR preview (Expo Go) | Opening or pushing a PR to `main` (`.github/workflows/expo-pr-preview.yml`) | EAS Update only | Every change. Jesse scans the QR on the PR. |
+| Web preview (browser) | Any push to any branch (Vercel project `localcheck-app-preview`, linked to this repo) | Free | A second "device": sign in as another account to test two-player flows (challenges, reviews); quick look before a PR. Link: the Vercel bot / deployment list for the branch. Real Supabase data. No map token, purchases or native features on web. |
 | Production OTA | `Publish production OTA` from the EAS dashboard (`.eas/workflows/publish-production-ota.yml`) | EAS Update only | JavaScript/asset changes compatible with the installed build. |
 | TestFlight build | `Release iOS to TestFlight`, "Run workflow" in GitHub Actions (`.github/workflows/release-ios.yml`) | **One of the plan's monthly iOS builds** | Native changes, the review build. Jesse starts it, no one else (D22). |
 
