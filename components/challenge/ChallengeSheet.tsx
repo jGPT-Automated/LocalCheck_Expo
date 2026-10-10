@@ -5,8 +5,8 @@ import { BrutalistButton } from "@/components/BrutalistButton";
 import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
 import { Colors } from "@/constants/colors";
 import { Space } from "@/constants/layout";
-import { TextStyles, Typography } from "@/constants/typography";
-import { dayLabel, firstName, upcomingDays } from "@/lib/challengeModel";
+import { TextStyles } from "@/constants/typography";
+import { dayLabel, upcomingDays } from "@/lib/challengeModel";
 import { createChallenge } from "@/services/challengeService";
 
 import { ChoiceChips } from "./ChoiceChips";
@@ -37,10 +37,9 @@ export function ChallengeSheet({
   const days = useMemo(() => upcomingDays(7), []);
   const [courtId, setCourtId] = useState<string>(courts[0]?.id ?? ANY);
   const [playOn, setPlayOn] = useState<string>(ANY);
-  const [ranked, setRanked] = useState<"ranked" | "casual">("ranked");
+  const [mode, setMode] = useState<"counts" | "casual">("counts");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const name = firstName(opponent.name);
 
   const send = async () => {
     if (sending) return;
@@ -50,7 +49,7 @@ export function ChallengeSheet({
       opponentId: opponent.id,
       courtId: courtId === ANY ? null : courtId,
       playOn: playOn === ANY ? null : playOn,
-      ranked: ranked === "ranked",
+      ranked: mode === "counts",
     });
     setSending(false);
     if (!result.ok) {
@@ -63,9 +62,9 @@ export function ChallengeSheet({
   return (
     <RunFlowSheet
       dynamic
-      eyebrow="1V1"
+      eyebrow={`1V1 · ${opponent.name.toUpperCase()}`}
       onClose={onClose}
-      title={`Challenge ${name}`}
+      title="CHALLENGE"
       visible={visible}
     >
       <Text style={styles.label}>COURT</Text>
@@ -93,15 +92,15 @@ export function ChallengeSheet({
       <Text style={styles.label}>GAME</Text>
       <ChoiceChips
         choices={[
-          { value: "ranked", label: "Ranked" },
+          { value: "counts", label: "Counts for ELO" },
           { value: "casual", label: "Casual" },
         ]}
-        onChange={setRanked}
-        value={ranked}
+        onChange={setMode}
+        value={mode}
       />
       <Text style={styles.hint}>
-        {ranked === "ranked"
-          ? `Log the score after. ELO moves once ${name} confirms it.`
+        {mode === "counts"
+          ? "Log the score after. ELO moves once they confirm it."
           : "Just a time and place to play. No score, nothing counts."}
       </Text>
 
@@ -113,9 +112,9 @@ export function ChallengeSheet({
         variant="accent"
       />
       <Text style={styles.footnote}>
-        {ranked === "ranked"
-          ? `${name} gets it in their inbox. After you play, either of you logs the score.`
-          : `${name} gets it in their inbox.`}
+        {mode === "counts"
+          ? "It lands in their inbox. Either of you logs the score."
+          : "It lands in their inbox."}
       </Text>
     </RunFlowSheet>
   );
@@ -125,9 +124,8 @@ const styles = StyleSheet.create({
   label: {
     marginTop: Space.xl,
     marginBottom: Space.sm,
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    letterSpacing: 2,
+    ...TextStyles.labelSmall,
+    letterSpacing: 1.4,
     color: Colors.muted,
   },
   hint: { ...TextStyles.metadata, marginTop: Space.sm, color: Colors.textSecondary },

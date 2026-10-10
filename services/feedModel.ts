@@ -2,6 +2,19 @@ export interface ActivityLikeIdentity {
   user_id: string;
 }
 
+/**
+ * The name a court wears everywhere except its own page and drawer: the short
+ * slug ("Rancho"), falling back to the full name when it has none.
+ */
+export function courtDisplayName(
+  court: { name?: string | null; short_name?: string | null } | null | undefined,
+): string | undefined {
+  const short = court?.short_name?.trim();
+  if (short) return short;
+  const full = court?.name?.trim();
+  return full || undefined;
+}
+
 export function formatLegacyFeedResult(match: {
   sideA: Array<{ name: string }>;
   sideB: Array<{ name: string }>;

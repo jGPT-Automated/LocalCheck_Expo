@@ -244,10 +244,11 @@ export function HomeScreen() {
               {groupedCourtFeed.length > 0 ? (
                 groupedCourtFeed.map((item, index) => (
                   <ActivityRow
-                    isFirst={index === 0}
                     isLast={index === groupedCourtFeed.length - 1}
                     item={item}
                     key={item.id}
+                    previous={groupedCourtFeed[index - 1]}
+                    showActor
                     onActorPress={
                       item.playerId
                         ? () => router.push(`/player/${item.playerId}`)

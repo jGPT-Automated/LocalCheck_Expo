@@ -109,9 +109,9 @@ export default function MatchReviewScreen() {
       return;
     }
     await refreshAll();
-    // Approving a 1v1 confirms it and moves ELO. The card's ELO line animates
+    // Approving a 1v1 confirms it and moves ELO. The card's rating tiles count
     // in place (status flips to "confirmed" on the refresh above); hold a beat
-    // so that roll is seen, then hand off to the profile, where the same delta
+    // so that count is seen, then hand off to the profile, where the same delta
     // shows on the big number for the next few hours.
     if (decision === "approve") {
       const fresh = await fetchMatchReview(match.id);
@@ -265,7 +265,7 @@ export default function MatchReviewScreen() {
             style={styles.policyHeader}
           >
             <View style={styles.policyHeaderCopy}>
-              <Feather color={Colors.accent} name="info" size={17} />
+              <Feather color={Colors.textSecondary} name="info" size={17} />
               <View style={styles.policyTitleCopy}>
                 <Text style={styles.policyTitle}>HOW SCORE REVIEW WORKS</Text>
                 {!policyExpanded ? (
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: Colors.surfaceHigh,
   },
-  policyIndexText: { ...TextStyles.labelSmall, color: Colors.accent },
+  policyIndexText: { ...TextStyles.labelSmall, color: Colors.textSecondary },
   policyText: { ...TextStyles.bodySmall, flex: 1, color: Colors.textSecondary },
   singleAction: {
     paddingTop: Space.md,

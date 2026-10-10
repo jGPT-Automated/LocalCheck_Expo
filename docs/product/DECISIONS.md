@@ -49,6 +49,18 @@ below wherever they disagree.
   switch is just "Hide score"; what it does is explained in "How score review
   works". Before, the players always saw the numbers, so hiding looked broken
   from their own profile.
+- **D42 Motion is intentional (Oct 10):** opening a sheet or screen doesn't
+  animate its content. The only motion: a margin/series line (`ShareLine`)
+  fills once; an ELO change counts up when it happens while you watch; a value
+  the user changes (hide score) animates. Nothing bounces or pops.
+- **D43 One game card, one state banner, short court names (Oct 10):** every
+  game card (inbox, game sheet, Final Score) has the state banner on top
+  (needs you = orange, waiting = grey, FINAL = green, disputed = orange
+  outline, voided = muted), "2V2 AT RANCHO" title, ELO change inside each
+  player's tile. Court short names everywhere except court details. The
+  activity feed keeps its timeline (day headers, one marker size, games as
+  cards, check-ins as quiet lines); games-together rows and head-to-head use
+  the row/line style.
 - **D41 The tab bar is a hard floor (Oct 8):** no screen or sheet content
   renders under the tab bar. Sheets inside a tab rise from its top edge
   (`AppBottomSheetModal`), scroll content clears it (`useBottomFloor`).

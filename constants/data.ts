@@ -180,6 +180,8 @@ export interface FeedMatchSummary {
   sideB: FeedMatchParticipant[];
   /** True when a player hid the score and the viewer wasn't in the game. */
   scoresHidden?: boolean;
+  /** False for a casual game (no ELO). Absent means ranked, the default. */
+  ranked?: boolean;
 }
 
 // BACKEND NOTE: public.planned_visits — planned presence ("pulling up").

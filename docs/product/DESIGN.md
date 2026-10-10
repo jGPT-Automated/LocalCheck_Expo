@@ -146,6 +146,12 @@ Rules:
   it).
 - **No box inside a box.** Controls inside a card (switches, links) are bare
   rows; separate with hairlines and spacing.
+- **Motion (D42):** nothing animates on open. Only `ShareLine` fills once,
+  an ELO change counts when it happens live, and user-changed values animate.
+- **Game state (D43):** state lives in `GameStateBanner` across the top of the
+  card, same colours everywhere. Court names use the short slug except in
+  court details. Names never go inside a sentence: name on its own line,
+  status on the next.
 - **Hidden scores (D40)** render as W / L wherever a number would be, and the
   change animates through `RollingNumber` (letters rise like digits roll).
 
@@ -177,7 +183,9 @@ Canonical component ownership:
 | Press feedback                 | `PressableScale`    |
 | Confirmation after an action   | `useToast()` (`Toast.tsx`) |
 | Animated score / stat number   | `RollingNumber`     |
-| Final score (1v1 and teams)    | `ScoreCard`         |
+| Final score (1v1 and teams)    | `ScoreCard` (+ `GameStateBanner`) |
+| Margin / series line           | `ShareLine`         |
+| Inbox row with action          | `InboxActionRow`    |
 | Choice chips                   | `ChoiceChips`       |
 
 If one of these elements changes, update the canonical component and search the codebase for competing local implementations before finishing.

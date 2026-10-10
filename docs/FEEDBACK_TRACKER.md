@@ -21,6 +21,20 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-10 — #67 second design pass (`codex/auto-check-in`)
+
+| Item | Status |
+|------|--------|
+| One game card: state banner on top, "2V2 AT RANCHO", ELO change in each player's tile, scores at the ends of one line (D43) | ✅ needs device check |
+| Motion: nothing animates on open; only the line fills and live ELO counts (D42) | ✅ needs device check |
+| Short court names everywhere except court details | ✅ |
+| Activity feed: timeline kept, day headers, one marker size, games as cards, quiet check-in lines | ✅ |
+| Head-to-head: no avatar boxes, centred status, records on one line; games-together rows reworded | ✅ |
+| Inbox rows: name on its own line, equal ACCEPT / LOG SCORE buttons; challenge screen matches the game card | ✅ |
+| Auto check-in sheet: three short rows, matches other sheets | ✅ device-only to see |
+| Home court hero: court name centred, shared edges | ✅ |
+| Web preview (Vercel, every branch) | ✅ |
+
 ## 2026-10-08 — #67 Expo Go preview feedback (`codex/auto-check-in`)
 
 | Item | Status |

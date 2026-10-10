@@ -221,10 +221,11 @@ export default function CourtProfileScreen() {
             {groupedCourtFeed.length > 0 ? (
               groupedCourtFeed.slice(0, feedVisible).map((item, index) => (
                 <ActivityRow
-                  isFirst={index === 0}
                   isLast={index === Math.min(feedVisible, groupedCourtFeed.length) - 1}
                   item={item}
                   key={item.id}
+                  previous={groupedCourtFeed[index - 1]}
+                  showActor
                   onActorPress={item.playerId ? () => router.push(`/player/${item.playerId}`) : undefined}
                   onPress={item.type === "game_result" && !item.match ? undefined : () => openActivity(item)}
                 />

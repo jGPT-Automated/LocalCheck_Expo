@@ -77,15 +77,15 @@ export function autoCheckInState(input: {
   return "on";
 }
 
-/** One line under the Settings switch. */
+/** One line under the Settings switch. The court is the row above, so only "on" names it. */
 export function autoCheckInDetail(state: AutoCheckInState, courtName?: string | null): string {
   switch (state) {
     case "on":
-      return `Checks you in and out at ${courtName ?? "your local court"}`;
+      return `On at ${courtName ?? "your local court"}`;
     case "off":
-      return `Get checked in when you arrive at ${courtName ?? "your local court"}`;
+      return "Checks you in when you arrive";
     case "needs_always":
-      return "Paused: set Location to Always for LocalCheck in iPhone Settings";
+      return "Paused. Set Location to Always in iPhone Settings";
     case "no_court":
       return "Pick a local court first";
     case "unavailable":

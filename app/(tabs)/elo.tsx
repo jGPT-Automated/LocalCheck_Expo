@@ -5,10 +5,10 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { HeaderIconAction, ScreenHeader } from "@/components/ScreenHeader";
 import { ChallengeInboxRow } from "@/components/challenge/ChallengeInboxRow";
+import { InboxActionRow } from "@/components/challenge/InboxActionRow";
 import { MatchReviewCard } from "@/components/match/MatchReviewCard";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { CompactSelect } from "@/components/ui/CompactSelect";
@@ -409,13 +409,10 @@ export default function MeScreen() {
                   isLast: boolean,
                 ) => (
                   <ActivityRow
-                    isFirst={index === 0}
                     isLast={isLast}
                     item={item}
                     key={item.id}
-                    quietRail={
-                      item.type === "checkin" || item.type === "checkout"
-                    }
+                    previous={activity[index - 1]}
                     onActorPress={
                       item.playerId
                         ? () => router.push(`/player/${item.playerId}`)
@@ -589,41 +586,22 @@ export default function MeScreen() {
               <View style={styles.requestGroup}>
                 <Text style={styles.requestGroupTitle}>FRIEND REQUESTS</Text>
                 {visibleRequests.map((player) => (
-                  <View key={player.id} style={styles.requestRow}>
-                    <Pressable
-                      onPress={() => router.push(`/player/${player.id}`)}
-                      style={styles.requestIdentity}
-                    >
-                      <PlayerAvatar
-                        initials={player.avatar}
-                        name={player.name}
-                        playerId={player.id}
-                        size={38}
-                      />
-                      <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text numberOfLines={1} style={styles.friendName}>
-                          {player.name.toUpperCase()}
-                        </Text>
-                        <Text style={styles.friendMeta}>{player.elo} ELO</Text>
-                      </View>
-                    </Pressable>
-                    <Pressable
-                      accessibilityLabel={`Accept ${player.name}'s friend request`}
-                      accessibilityRole="button"
-                      onPress={() => void acceptFriendRequest(player.id)}
-                      style={styles.acceptRequest}
-                    >
-                      <Text style={styles.acceptRequestText}>ACCEPT</Text>
-                    </Pressable>
-                    <Pressable
-                      accessibilityLabel={`Decline ${player.name}'s friend request`}
-                      accessibilityRole="button"
-                      onPress={() => void removeFriend(player.id)}
-                      style={styles.declineRequest}
-                    >
-                      <Feather name="x" size={14} color={Colors.muted} />
-                    </Pressable>
-                  </View>
+                  <InboxActionRow
+                    decline={{
+                      label: `Decline ${player.name}'s friend request`,
+                      onPress: () => void removeFriend(player.id),
+                    }}
+                    key={player.id}
+                    onOpen={() => router.push(`/player/${player.id}`)}
+                    openLabel={`Open ${player.name}'s profile`}
+                    player={{ id: player.id, name: player.name, initials: player.avatar }}
+                    primary={{
+                      label: "ACCEPT",
+                      onPress: () => void acceptFriendRequest(player.id),
+                    }}
+                    subtitle={`${player.elo} ELO`}
+                    title={player.name}
+                  />
                 ))}
               </View>
             ) : null}
@@ -1112,65 +1090,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderSubtle,
   },
-  friendName: {
-    fontFamily: Typography.heading,
-    fontSize: 15,
-    color: Colors.text,
-    letterSpacing: 0.4,
-  },
-  friendMeta: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 8,
-    color: Colors.muted,
-    letterSpacing: 1.1,
-    marginTop: 3,
-  },
   requestGroup: { marginHorizontal: 20, marginBottom: Space.xxl },
   gameGroup: { marginHorizontal: 20, marginBottom: Space.xxl },
   gameCard: { marginBottom: Space.md },
   requestGroupTitle: {
     fontFamily: Typography.bodySemiBold,
     fontSize: 11,
-    color: Colors.accent,
+    color: Colors.muted,
     letterSpacing: 1.2,
-    marginBottom: Space.sm,
-  },
-  requestRow: {
-    minHeight: 58,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderSubtle,
-  },
-  requestIdentity: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  acceptRequest: {
-    minHeight: 44,
-    justifyContent: "center",
-    paddingHorizontal: 10,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.accent,
-  },
-  acceptRequestText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    color: Colors.black,
-    letterSpacing: 1,
-  },
-  declineRequest: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    marginBottom: Space.xs,
   },
   searchWrap: {
     minHeight: 46,

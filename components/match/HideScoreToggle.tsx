@@ -23,7 +23,7 @@ export function HideScoreToggle({
 }) {
   return (
     <View style={styles.row}>
-      <Feather color={value ? Colors.accent : Colors.textSecondary} name={value ? "eye-off" : "eye"} size={17} />
+      <Feather color={Colors.textSecondary} name={value ? "eye-off" : "eye"} size={17} />
       <Text style={styles.label}>Hide score</Text>
       <Switch
         accessibilityHint="Everyone sees only who won. It still counts for ELO, rank and record."

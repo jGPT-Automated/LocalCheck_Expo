@@ -123,12 +123,33 @@ export function summarizeHeadToHead(games: HeadToHeadGame[]): HeadToHeadSummary 
   };
 }
 
-/** "SERIES / YOU LEAD", "SERIES / JESSE LEADS", "SERIES / TIED". */
+/**
+ * The series status above the records, split so a long opponent name can
+ * truncate on its own: { name: "MARCUS", text: "LEADS 3–1" }, { text: "YOU LEAD
+ * 3–1" }, { text: "TIED 2–2" }, { text: "FIRST GAME" }. The leader's record
+ * comes first.
+ */
+export function seriesStatus(
+  summary: HeadToHeadSummary,
+  opponentName: string,
+): { name?: string; text: string } {
+  if (summary.games === 0) return { text: "FIRST GAME" };
+  if (summary.leader === "you") {
+    return { text: `YOU LEAD ${summary.myWins}–${summary.theirWins}` };
+  }
+  if (summary.leader === "them") {
+    return {
+      name: firstName(opponentName).toUpperCase(),
+      text: `LEADS ${summary.theirWins}–${summary.myWins}`,
+    };
+  }
+  return { text: `TIED ${summary.myWins}–${summary.theirWins}` };
+}
+
+/** "YOU LEAD 3–1", "JESSE LEADS 3–1", "TIED 2–2", "FIRST GAME". */
 export function seriesHeadline(summary: HeadToHeadSummary, opponentName: string): string {
-  if (summary.games === 0) return "FIRST GAME";
-  if (summary.leader === "you") return "YOU LEAD";
-  if (summary.leader === "them") return `${firstName(opponentName).toUpperCase()} LEADS`;
-  return "TIED";
+  const { name, text } = seriesStatus(summary, opponentName);
+  return name ? `${name} ${text}` : text;
 }
 
 /** Signed number with one decimal at most: +3.7, -2, 0. */
@@ -140,13 +161,25 @@ export function signed(value: number): string {
   return "0";
 }
 
-/** "1v1 · Ranked", "3v3 · Casual". */
-export function gameFormatLabel(game: Pick<HeadToHeadGame, "teamSize" | "ranked">): string {
-  return `${game.teamSize}v${game.teamSize} · ${game.ranked ? "Ranked" : "Casual"}`;
+/** "1v1", "3v3". Ranked is the default, so it is never spelled out. */
+export function teamFormat(teamSize: number): string {
+  const size = Math.max(1, teamSize);
+  return `${size}v${size}`;
 }
 
-/** "Just you two" or "You, Marcus, Avery vs Jesse, RC2, Ben". */
-export function teamsLine(game: Pick<HeadToHeadGame, "teammates" | "opponents" | "teamSize">): string {
-  if (game.teamSize <= 1 && game.teammates.length === 0) return "Just you two";
-  return `${["You", ...game.teammates].join(", ")} vs ${game.opponents.join(", ")}`;
+/** "1v1", or "3v3 · Casual" when the game did not count. */
+export function gameFormatLabel(game: Pick<HeadToHeadGame, "teamSize" | "ranked">): string {
+  return game.ranked ? teamFormat(game.teamSize) : `${teamFormat(game.teamSize)} · Casual`;
+}
+
+/** "2v2 at Rancho": the row title. */
+export function gameTitle(game: Pick<HeadToHeadGame, "teamSize" | "courtName">): string {
+  const court = game.courtName.trim();
+  return court ? `${teamFormat(game.teamSize)} at ${court}` : teamFormat(game.teamSize);
+}
+
+/** "vs Jesse" or "with Marcus · vs Jesse, Ben". */
+export function teamsLine(game: Pick<HeadToHeadGame, "teammates" | "opponents">): string {
+  const against = `vs ${game.opponents.join(", ")}`;
+  return game.teammates.length > 0 ? `with ${game.teammates.join(", ")} · ${against}` : against;
 }

@@ -38,7 +38,7 @@ test("state follows what the phone allows", () => {
 });
 
 test("settings copy and switch", () => {
-  assert.equal(autoCheckInDetail("on", "Kasmiersky Park"), "Checks you in and out at Kasmiersky Park");
+  assert.equal(autoCheckInDetail("on", "Kasmiersky Park"), "On at Kasmiersky Park");
   assert.match(autoCheckInDetail("needs_always"), /Always/);
   assert.equal(autoCheckInSwitchValue("needs_always"), true);
   assert.equal(autoCheckInSwitchValue("off"), false);

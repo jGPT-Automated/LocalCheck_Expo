@@ -2,6 +2,7 @@ import { CourtSport, MatchResult } from "@/constants/data";
 import { type HeadToHeadGame, toHeadToHeadGame } from "@/lib/headToHead";
 import { supabase } from "@/lib/supabase";
 
+import { courtDisplayName } from "./feedModel";
 import { SupabaseProfile } from "./profileService";
 import {
   areOpponentsInMatch,
@@ -38,7 +39,7 @@ interface SupabaseMatch {
   notes: string | null;
   created_at: string;
   updated_at: string;
-  courts?: { name: string; sport_type: string } | null;
+  courts?: { name: string; short_name?: string | null; sport_type: string } | null;
   match_participants?: Array<{
     user_id: string;
     side: "a" | "b";
@@ -137,7 +138,7 @@ function mapMatchToResult(
     id: row.id,
     date: formatDate(row.played_at),
     playedAtIso: row.played_at,
-    courtName: row.courts?.name?.toUpperCase() ?? "UNKNOWN",
+    courtName: courtDisplayName(row.courts)?.toUpperCase() ?? "UNKNOWN",
     sport,
     result: won ? "WIN" : "LOSS",
     teamScore: String(myScore ?? 0),
@@ -146,7 +147,7 @@ function mapMatchToResult(
 }
 
 const MATCH_SELECT =
-  "*, courts(name, sport_type), match_participants(user_id, side, profiles(*))";
+  "*, courts(name, short_name, sport_type), match_participants(user_id, side, profiles(*))";
 
 /** Fetch the match ids a user participated in. */
 async function fetchParticipantMatchIds(userId: string): Promise<string[]> {
@@ -464,7 +465,7 @@ export async function fetchHeadToHead(
     const { data, error } = await supabase
       .from("matches")
       .select(
-        "*, courts(name, sport_type), match_participants(user_id, side, display_order, elo_before, elo_after, hide_score, profiles(display_name, username))",
+        "*, courts(name, short_name, sport_type), match_participants(user_id, side, display_order, elo_before, elo_after, hide_score, profiles(display_name, username))",
       )
       .in("id", shared)
       .eq("status", "confirmed")
@@ -495,7 +496,7 @@ export async function fetchHeadToHead(
           {
             id: game.id,
             playedAtIso: game.played_at,
-            courtName: game.courts?.name ?? "Unknown court",
+            courtName: courtDisplayName(game.courts) ?? "Unknown court",
             scoreA: game.score_a,
             scoreB: game.score_b,
             winnerSide: game.winner_side,
@@ -635,7 +636,7 @@ export async function fetchMatchReview(
   return {
     id: row.id,
     courtId: row.court_id,
-    courtName: court?.short_name || court?.name || "Unknown Court",
+    courtName: courtDisplayName(court) ?? "Unknown Court",
     createdBy: row.created_by,
     opponentId: row.opponent_id,
     creatorName: creator?.display_name || creator?.username || "Player",

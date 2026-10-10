@@ -1,34 +1,40 @@
+import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Colors, Radius } from "@/constants/colors";
-import { Space } from "@/constants/layout";
+import { Layout, Space } from "@/constants/layout";
 import { TextStyles, Typography } from "@/constants/typography";
-import {
-  gameFormatLabel,
-  type HeadToHeadGame,
-  signed,
-  teamsLine,
-} from "@/lib/headToHead";
+import { formatDayLabel } from "@/lib/activityPresentation";
+import { gameTitle, type HeadToHeadGame, teamsLine } from "@/lib/headToHead";
 
-/** One row of GAMES TOGETHER: W/L tile, format, who played, where, your score. */
+const TILE = 44;
+
+/**
+ * One row of GAMES TOGETHER: a W / L tile, "2v2 at Rancho", who played and
+ * when, and your score with your ELO change under it. The date and "Casual"
+ * never get cut: the names give way first.
+ */
 export function HeadToHeadGameRow({
   game,
+  isLast = false,
   onPress,
 }: {
   game: HeadToHeadGame;
+  isLast?: boolean;
   onPress?: () => void;
 }) {
-  const place = `${game.courtName} · ${new Date(game.playedAtIso)
-    .toLocaleDateString("en-US", { month: "short", day: "numeric" })}`.toUpperCase();
-  const footnote = !game.ranked
-    ? "Unranked"
-    : game.myEloDelta != null && game.myEloDelta !== 0
-      ? signed(game.myEloDelta)
-      : null;
+  const title = gameTitle(game);
+  const lead = teamsLine(game);
+  const day = formatDayLabel(game.playedAtIso);
+  const tail = `· ${day}${game.ranked ? "" : " · Casual"}`;
+  const delta = game.myEloDelta;
   return (
     <Pressable
-      accessibilityLabel={`${game.won ? "Win" : "Loss"}${game.scoresHidden ? ", score hidden" : ` ${game.myScore} to ${game.theirScore}`}, ${teamsLine(game)}, ${place}`}
+      accessibilityHint={onPress ? "Opens the final game result" : undefined}
+      accessibilityLabel={`${game.won ? "Win" : "Loss"}, ${title}, ${lead}, ${day}${
+        game.scoresHidden ? ", score hidden" : `, ${game.myScore} to ${game.theirScore}`
+      }`}
       accessibilityRole={onPress ? "button" : undefined}
       disabled={!onPress}
       onPress={onPress}
@@ -39,18 +45,45 @@ export function HeadToHeadGameRow({
           {game.won ? "W" : "L"}
         </Text>
       </View>
-      <View style={styles.copy}>
-        <Text numberOfLines={1} style={styles.format}>{gameFormatLabel(game)}</Text>
-        <Text numberOfLines={1} style={styles.teams}>{teamsLine(game)}</Text>
-        <Text numberOfLines={1} style={styles.place}>{place}</Text>
-      </View>
-      <View style={styles.result}>
+      <View style={[styles.body, !isLast && styles.separator]}>
+        <View style={styles.copy}>
+          <Text numberOfLines={1} style={styles.title}>
+            {title}
+          </Text>
+          <View style={styles.subtitleLine}>
+            <Text numberOfLines={1} style={[styles.subtitle, styles.shrink]}>
+              {lead}
+            </Text>
+            <Text numberOfLines={1} style={[styles.subtitle, styles.tail]}>
+              {tail}
+            </Text>
+          </View>
+        </View>
         {game.scoresHidden ? (
-          <Text style={styles.hidden}>SCORE HIDDEN</Text>
+          <Text numberOfLines={1} style={styles.hidden}>
+            Score hidden
+          </Text>
         ) : (
-          <Text style={styles.score}>{game.myScore}–{game.theirScore}</Text>
+          <View style={styles.result}>
+            <Text numberOfLines={1} style={styles.score}>
+              <Text style={game.won ? styles.scoreWinner : styles.scoreLoser}>{game.myScore}</Text>
+              <Text style={styles.scoreLoser}>–</Text>
+              <Text style={game.won ? styles.scoreLoser : styles.scoreWinner}>{game.theirScore}</Text>
+            </Text>
+            {delta ? (
+              <View style={styles.elo}>
+                <Feather
+                  color={delta > 0 ? Colors.win : Colors.loss}
+                  name={delta > 0 ? "arrow-up" : "arrow-down"}
+                  size={12}
+                />
+                <Text style={[styles.eloText, { color: delta > 0 ? Colors.win : Colors.loss }]}>
+                  {Math.abs(delta)}
+                </Text>
+              </View>
+            ) : null}
+          </View>
         )}
-        {footnote ? <Text style={styles.footnote}>{footnote}</Text> : null}
       </View>
     </Pressable>
   );
@@ -58,19 +91,16 @@ export function HeadToHeadGameRow({
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: 84,
-    paddingVertical: Space.md,
+    paddingLeft: Layout.screenGutter,
     flexDirection: "row",
     alignItems: "center",
-    gap: Space.lg,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
   },
   // Full-width row: highlight, don't scale (Design and motion rules).
   pressed: { backgroundColor: Colors.surface },
   tile: {
-    width: 44,
-    height: 44,
+    width: TILE,
+    height: TILE,
+    marginRight: Space.md,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: Radius.lg,
@@ -80,17 +110,35 @@ const styles = StyleSheet.create({
   tileText: { fontFamily: Typography.headingBold, fontSize: 20, lineHeight: 26 },
   tileTextWin: { color: Colors.black },
   tileTextLoss: { color: Colors.muted },
-  copy: { flex: 1, minWidth: 0, gap: 2 },
-  format: { ...TextStyles.listName, fontSize: 16, lineHeight: 21, color: Colors.text },
-  teams: { ...TextStyles.metadata, fontSize: 13, lineHeight: 18, color: Colors.textSecondary },
-  place: {
-    ...TextStyles.caption,
-    fontFamily: Typography.bodyMedium,
-    letterSpacing: 1.2,
-    color: Colors.muted,
+  body: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: TILE + Space.md * 2,
+    paddingVertical: Space.md,
+    paddingRight: Layout.screenGutter,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Space.md,
   },
-  result: { alignItems: "flex-end" },
-  score: { fontFamily: Typography.headingBold, fontSize: 24, lineHeight: 30, color: Colors.text },
-  hidden: { ...TextStyles.labelSmall, color: Colors.muted, letterSpacing: 1.2 },
-  footnote: { ...TextStyles.metadata, color: Colors.textSecondary },
+  separator: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  copy: { flex: 1, minWidth: 0, gap: 2 },
+  title: { ...TextStyles.listName, fontSize: 15, lineHeight: 20, color: Colors.text },
+  subtitleLine: { flexDirection: "row", alignItems: "center", gap: Space.xs },
+  subtitle: { ...TextStyles.metadata, color: Colors.textSecondary },
+  shrink: { flexShrink: 1, minWidth: 0 },
+  tail: { flexShrink: 0, color: Colors.muted },
+  result: { flexShrink: 0, alignItems: "flex-end", gap: 2 },
+  score: { ...TextStyles.stat, fontVariant: ["tabular-nums"] },
+  scoreWinner: { color: Colors.text },
+  scoreLoser: { color: Colors.textSecondary },
+  elo: { flexDirection: "row", alignItems: "center", gap: 2 },
+  eloText: {
+    ...TextStyles.metadata,
+    fontFamily: Typography.bodySemiBold,
+    fontVariant: ["tabular-nums"],
+  },
+  hidden: { ...TextStyles.metadata, flexShrink: 0, color: Colors.muted },
 });

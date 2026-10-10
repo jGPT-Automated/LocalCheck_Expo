@@ -4,8 +4,11 @@ import test from "node:test";
 import {
   type Challenge,
   challengeAction,
+  challengeBanner,
   challengeErrorMessage,
-  challengePlaceLine,
+  challengeSubtitle,
+  challengeTitle,
+  dayShort,
   challengeStatusLine,
   dayLabel,
   inboxChallenges,
@@ -34,8 +37,8 @@ const base: Challenge = {
 test("pending: opponent answers, challenger waits", () => {
   assert.equal(challengeAction(base, "ty"), "accept_decline");
   assert.equal(challengeAction(base, "me"), "waiting");
-  assert.equal(challengeStatusLine(base, "ty"), "Jesse challenged you");
-  assert.equal(challengeStatusLine(base, "me"), "Waiting on Tyler");
+  assert.equal(challengeStatusLine(base, "ty"), "Challenged you");
+  assert.equal(challengeStatusLine(base, "me"), "Waiting for a reply");
   assert.equal(otherPlayer(base, "me").id, "ty");
 });
 
@@ -43,7 +46,7 @@ test("accepted: either player logs the score", () => {
   const c = { ...base, status: "accepted" as const };
   assert.equal(challengeAction(c, "me"), "log_score");
   assert.equal(challengeAction(c, "ty"), "log_score");
-  assert.equal(challengeStatusLine(c, "me"), "Game on with Tyler");
+  assert.equal(challengeStatusLine(c, "me"), "Game on");
 });
 
 test("casual challenges are plans: no score, just 'we played'", () => {
@@ -56,7 +59,7 @@ test("casual challenges are plans: no score, just 'we played'", () => {
 test("completed with a game links to it; closed otherwise", () => {
   assert.equal(challengeAction({ ...base, status: "completed", matchId: "m" }, "me"), "view_game");
   assert.equal(challengeAction({ ...base, status: "declined" }, "me"), "closed");
-  assert.equal(challengeStatusLine({ ...base, status: "declined" }, "me"), "Tyler passed");
+  assert.equal(challengeStatusLine({ ...base, status: "declined" }, "me"), "Passed");
   assert.equal(
     challengeStatusLine({ ...base, status: "cancelled", cancelledBy: "me" }, "me"),
     "You called it off",
@@ -69,8 +72,27 @@ test("place and day labels", () => {
   assert.equal(dayLabel("2026-10-06", today), "Today");
   assert.equal(dayLabel("2026-10-07", today), "Tomorrow");
   assert.equal(dayLabel("2026-10-10", today), "Sat, Oct 10");
-  assert.equal(challengePlaceLine({ courtName: null, playOn: null }, today), "Any court · Any day");
+  assert.equal(dayShort(null, today), "Any day");
+  assert.equal(dayShort("2026-10-06", today), "Today");
+  assert.equal(dayShort("2026-10-07", today), "Tomorrow");
+  assert.equal(dayShort("2026-10-10", today), "Sat");
+  assert.equal(dayShort("2026-10-12", today), "Mon");
+  assert.equal(dayShort("2026-10-13", today), "Oct 13");
   assert.deepEqual(upcomingDays(3, today), ["2026-10-06", "2026-10-07", "2026-10-08"]);
+});
+
+test("inbox subtitle: status, court, day; Casual only when casual; no names", () => {
+  const today = new Date(2026, 9, 6, 9);
+  const rancho = { ...base, courtName: "Rancho", playOn: "2026-10-10" };
+  assert.equal(challengeSubtitle(rancho, "ty", today), "Challenged you · Rancho · Sat");
+  assert.equal(challengeSubtitle({ ...rancho, playOn: null }, "me", today), "Waiting for a reply · Rancho · Any day");
+  assert.equal(
+    challengeSubtitle({ ...rancho, status: "accepted", ranked: false }, "me", today),
+    "Game on · Casual · Rancho · Sat",
+  );
+  assert.equal(challengeSubtitle({ ...base, courtName: null }, "me", today), "Waiting for a reply · Any court · Any day");
+  assert.equal(challengeTitle(rancho), "1v1 at Rancho");
+  assert.equal(challengeTitle({ courtName: null }), "1v1, any court");
 });
 
 test("errors read as sentences", () => {
@@ -141,4 +163,12 @@ test("inbox: PENDING hides stale pending, ALL shows it as expired", () => {
   assert.equal(shown[0].status, "expired");
   assert.equal(shown[1].status, "pending");
   assert.equal(stale.status, "pending", "input is not mutated");
+});
+
+test("banner: accent only when it is the viewer's move", () => {
+  assert.deepEqual(challengeBanner(base, "ty"), { kind: "action", label: "WAITING ON YOU" });
+  assert.deepEqual(challengeBanner(base, "me"), { kind: "waiting", label: "WAITING FOR A REPLY" });
+  assert.deepEqual(challengeBanner({ ...base, status: "accepted" }, "me"), { kind: "waiting", label: "GAME ON" });
+  assert.equal(challengeBanner({ ...base, status: "declined" }, "me").kind, "voided");
+  assert.equal(challengeBanner({ ...base, status: "expired" }, "me").label, "EXPIRED");
 });

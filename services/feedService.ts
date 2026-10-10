@@ -3,7 +3,11 @@ import { scoresHiddenFor } from "@/lib/scoreVisibility";
 import { supabase } from "@/lib/supabase";
 
 import { mapProfileToPlayer, SupabaseProfile } from "./profileService";
-import { formatLegacyFeedResult, summarizeActivityHype } from "./feedModel";
+import {
+  courtDisplayName,
+  formatLegacyFeedResult,
+  summarizeActivityHype,
+} from "./feedModel";
 
 // ─── Backend ──────────────────────────────────────────────────────────────
 // Reads LocalCheckProd's `activity_events` table in ONE query. This replaces
@@ -21,13 +25,14 @@ interface SupabaseActivityEvent {
   payload: Record<string, unknown> | null;
   activity_event_likes: Array<{ user_id: string }> | null;
   actor: SupabaseProfile | null;
-  courts: { id: string; name: string; sport_type: string } | null;
+  courts: { id: string; name: string; short_name?: string | null; sport_type: string } | null;
   matches: {
     id: string;
     played_at: string;
     score_a: number;
     score_b: number;
     winner_side: "a" | "b" | null;
+    is_ranked?: boolean | null;
     status: "pending" | "held" | "confirmed" | "voided" | "rejected";
     match_participants: Array<{
       user_id: string;
@@ -45,8 +50,8 @@ const EVENT_SELECT =
   "id, event_type, occurred_at, court_id, visibility, payload," +
   " activity_event_likes(user_id)," +
   " actor:profiles!activity_events_actor_id_fkey(*)," +
-  " courts(id, name, sport_type)," +
-  " matches(id, played_at, score_a, score_b, winner_side, status," +
+  " courts(id, name, short_name, sport_type)," +
+  " matches(id, played_at, score_a, score_b, winner_side, status, is_ranked," +
   " match_participants(*, profiles(*)))";
 
 function normalizeSport(
@@ -85,13 +90,14 @@ function mapEvent(
   currentUserId?: string | null,
 ): FeedItem | null {
   const actorName = row.actor?.display_name ?? "Someone";
-  const courtName = row.courts?.name ?? "a court";
+  // Short slug everywhere but the court's own page.
+  const courtName = courtDisplayName(row.courts) ?? "a court";
   const sport = normalizeSport(row.courts?.sport_type);
   const base = {
     id: `ae-${row.id}`,
     playerId: row.actor?.id ?? "",
     playerName: actorName,
-    courtName: row.courts?.name,
+    courtName: courtDisplayName(row.courts),
     courtId: row.courts?.id,
     sport,
     timestamp: formatTimestamp(row.occurred_at),
@@ -164,6 +170,7 @@ function mapEvent(
           scoreB: m.score_b,
           winnerSide: m.winner_side,
           status: "confirmed",
+          ranked: m.is_ranked !== false,
           sideA,
           sideB,
           scoresHidden,

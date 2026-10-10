@@ -63,28 +63,78 @@ export function challengeAction(challenge: Challenge, viewerId: string): Challen
   }
 }
 
-/** Short status line for cards and the inbox. */
+/**
+ * Short status line for cards and the inbox. Never carries a player's name:
+ * a name is its own line, so a 24-character username can't break a sentence.
+ */
 export function challengeStatusLine(challenge: Challenge, viewerId: string): string {
-  const other = firstName(otherPlayer(challenge, viewerId).name);
   switch (challenge.status) {
     case "pending":
-      return challenge.opponent.id === viewerId
-        ? `${firstName(challenge.challenger.name)} challenged you`
-        : `Waiting on ${other}`;
+      return challenge.opponent.id === viewerId ? "Challenged you" : "Waiting for a reply";
     case "accepted":
-      return `Game on with ${other}`;
+      return "Game on";
     case "completed":
       return challenge.matchId ? "Score logged" : "Played";
     case "declined":
-      return challenge.opponent.id === viewerId ? "You passed" : `${other} passed`;
+      return challenge.opponent.id === viewerId ? "You passed" : "Passed";
     case "cancelled":
-      return challenge.cancelledBy === viewerId ? "You called it off" : `${other} called it off`;
+      return challenge.cancelledBy === viewerId ? "You called it off" : "Called off";
     case "expired":
       return "Expired";
     default:
       // A status this build doesn't know yet.
       return "Closed";
   }
+}
+
+/** Banner kinds match the game card's banner colours: accent = your move, neutral = waiting, muted = over. */
+export type ChallengeBannerKind = "action" | "waiting" | "voided";
+
+/** The state banner across the top of the challenge card. */
+export function challengeBanner(
+  challenge: Challenge,
+  viewerId: string,
+): { kind: ChallengeBannerKind; label: string } {
+  switch (challenge.status) {
+    case "pending":
+      return challenge.opponent.id === viewerId
+        ? { kind: "action", label: "WAITING ON YOU" }
+        : { kind: "waiting", label: "WAITING FOR A REPLY" };
+    case "accepted":
+      return { kind: "waiting", label: "GAME ON" };
+    case "completed":
+      return { kind: "waiting", label: challenge.matchId ? "SCORE LOGGED" : "PLAYED" };
+    case "declined":
+      return { kind: "voided", label: "DECLINED" };
+    case "cancelled":
+      return { kind: "voided", label: "CALLED OFF" };
+    default:
+      return { kind: "voided", label: "EXPIRED" };
+  }
+}
+
+/**
+ * The inbox subtitle: "Challenged you · Rancho · Sat". Ranked is the default
+ * and never written; "Casual" only appears when the plan is casual.
+ */
+export function challengeSubtitle(
+  challenge: Challenge,
+  viewerId: string,
+  today: Date = new Date(),
+): string {
+  return [
+    challengeStatusLine(challenge, viewerId),
+    challenge.ranked ? null : "Casual",
+    challenge.courtName || "Any court",
+    dayShort(challenge.playOn, today),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/** The challenge screen's title: "1v1 at Rancho" (the short court name). */
+export function challengeTitle(challenge: Pick<Challenge, "courtName">): string {
+  return challenge.courtName ? `1v1 at ${challenge.courtName}` : "1v1, any court";
 }
 
 /** A pending challenge with no date expires after this many days (matches the server). */
@@ -123,14 +173,6 @@ export function inboxChallenges(
   return out;
 }
 
-/** "Rancho Cienega · Today", "Any court · Sat, Oct 10", "Any court · Any day". */
-export function challengePlaceLine(
-  challenge: Pick<Challenge, "courtName" | "playOn">,
-  today: Date = new Date(),
-): string {
-  return `${challenge.courtName || "Any court"} · ${dayLabel(challenge.playOn, today)}`;
-}
-
 export function dayLabel(playOn: string | null, today: Date = new Date()): string {
   if (!playOn) return "Any day";
   const todayValue = localDateValue(today);
@@ -144,6 +186,20 @@ export function dayLabel(playOn: string | null, today: Date = new Date()): strin
     month: "short",
     day: "numeric",
   });
+}
+
+/** Compact day for rows: "Today", "Tomorrow", "Sat" within the week, else "Oct 17". */
+export function dayShort(playOn: string | null, today: Date = new Date()): string {
+  if (!playOn) return "Any day";
+  const label = dayLabel(playOn, today);
+  if (label === "Today" || label === "Tomorrow") return label;
+  const [y, m, d] = playOn.split("-").map(Number);
+  const date = new Date(y, m - 1, d, 12);
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12);
+  const days = Math.round((date.getTime() - start.getTime()) / 86_400_000);
+  return days > 0 && days < 7
+    ? date.toLocaleDateString("en-US", { weekday: "short" })
+    : date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export function localDateValue(date: Date): string {

@@ -3,7 +3,9 @@ import test from "node:test";
 
 import {
   gameFormatLabel,
+  gameTitle,
   seriesHeadline,
+  seriesStatus,
   signed,
   summarizeHeadToHead,
   teamsLine,
@@ -52,14 +54,16 @@ test("1v1 from the viewer's side", () => {
   assert.equal(g.myScore, 5);
   assert.equal(g.theirScore, 11);
   assert.equal(g.myEloDelta, -9);
-  assert.equal(teamsLine(g), "Just you two");
-  assert.equal(gameFormatLabel(g), "1v1 · Ranked");
+  assert.equal(teamsLine(g), "vs Jesse");
+  assert.equal(gameFormatLabel(g), "1v1");
+  assert.equal(gameTitle(g), "1v1 at RANCHO CIENEGA");
 });
 
 test("team game lists teammates and opponents by first name", () => {
   const g = toHeadToHeadGame(threeVThree, me)!;
   assert.equal(g.won, true);
-  assert.equal(teamsLine(g), "You, Marcus, Avery vs Jesse, RC2, Ben");
+  assert.equal(teamsLine(g), "with Marcus, Avery · vs Jesse, RC2, Ben");
+  assert.equal(gameTitle(g), "3v3 at RANCHO CIENEGA");
   assert.equal(g.myEloDelta, 11);
 });
 
@@ -67,6 +71,7 @@ test("casual games never count ELO", () => {
   const g = toHeadToHeadGame({ ...oneVOne, ranked: false }, me)!;
   assert.equal(g.myEloDelta, null);
   assert.equal(gameFormatLabel(g), "1v1 · Casual");
+  assert.ok(!gameFormatLabel(toHeadToHeadGame(oneVOne, me)!).includes("Ranked"));
 });
 
 test("viewer not in the game is skipped", () => {
@@ -82,7 +87,7 @@ test("summary: series, margin, ELO net, last played", () => {
   assert.equal(s.avgMargin, 0); // (-6 + 6) / 2
   assert.equal(s.eloNet, 2);
   assert.equal(s.lastPlayedIso, "2026-10-04T18:00:00Z");
-  assert.equal(seriesHeadline(s, "Jesse Harrick"), "TIED");
+  assert.equal(seriesHeadline(s, "Jesse Harrick"), "TIED 1–1");
 });
 
 test("headline and signed numbers", () => {
@@ -90,7 +95,15 @@ test("headline and signed numbers", () => {
   assert.equal(seriesHeadline(empty, "Jesse"), "FIRST GAME");
   assert.equal(empty.avgMargin, null);
   assert.equal(empty.eloNet, null);
-  assert.equal(seriesHeadline({ ...empty, games: 3, leader: "them" }, "jesse h"), "JESSE LEADS");
+  const theyLead = summarizeHeadToHead([
+    { ...toHeadToHeadGame(oneVOne, me)!, id: "a" },
+    { ...toHeadToHeadGame(oneVOne, me)!, id: "b" },
+    { ...toHeadToHeadGame(threeVThree, me)!, id: "c" },
+  ]);
+  assert.equal(seriesHeadline(theyLead, "jesse h"), "JESSE LEADS 2–1");
+  assert.deepEqual(seriesStatus(theyLead, "Jesse H"), { name: "JESSE", text: "LEADS 2–1" });
+  const youLead = summarizeHeadToHead([toHeadToHeadGame(threeVThree, me)!]);
+  assert.equal(seriesHeadline(youLead, "Jesse"), "YOU LEAD 1–0");
   assert.equal(signed(3.66), "+3.7");
   assert.equal(signed(-2), "-2");
   assert.equal(signed(0), "0");

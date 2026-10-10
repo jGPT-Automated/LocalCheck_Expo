@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ChoiceChips } from "@/components/challenge/ChoiceChips";
+import { GameStateBanner } from "@/components/match/GameStateBanner";
 import { HideScoreToggle } from "@/components/match/HideScoreToggle";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { DetailHeader } from "@/components/ui/DetailHeader";
@@ -25,8 +26,9 @@ import { useApp } from "@/context/AppContext";
 import {
   type Challenge,
   challengeAction,
-  challengePlaceLine,
-  challengeStatusLine,
+  challengeBanner,
+  challengeTitle,
+  dayLabel,
   firstName,
   localDateValue,
   otherPlayer,
@@ -40,15 +42,6 @@ import {
   respondToChallenge,
 } from "@/services/challengeService";
 import { setScoreHidden } from "@/services/gameService";
-
-const STATUS_LABEL: Record<Challenge["status"], string> = {
-  pending: "PENDING",
-  accepted: "ON",
-  completed: "SCORE LOGGED",
-  declined: "DECLINED",
-  cancelled: "CALLED OFF",
-  expired: "EXPIRED",
-};
 
 /**
  * One challenge, from either player's side. Pending: the opponent accepts or
@@ -114,6 +107,10 @@ export default function ChallengeScreen() {
   const other = otherPlayer(challenge, viewerId);
   const action = challengeAction(challenge, viewerId);
   const courtId = courtChoice ?? courtChoices[0]?.value ?? null;
+  const banner = challengeBanner(challenge, viewerId);
+  const caption = [dayLabel(challenge.playOn).toUpperCase(), challenge.ranked ? null : "CASUAL"]
+    .filter(Boolean)
+    .join(" · ");
 
   const run = async (task: () => Promise<{ ok: boolean; message?: string }>) => {
     if (busy) return;
@@ -126,7 +123,7 @@ export default function ChallengeScreen() {
   };
 
   const callOff = () =>
-    Alert.alert("Call off this challenge?", `${firstName(other.name)} will be told.`, [
+    Alert.alert("Call off this challenge?", "They'll be told.", [
       { text: "Keep it", style: "cancel" },
       { text: "Call it off", style: "destructive", onPress: () => void run(() => cancelChallenge(challenge.id)) },
     ]);
@@ -223,7 +220,7 @@ export default function ChallengeScreen() {
         return (
           <StickyActionBar
             bottomInset={bottom}
-            primary={{ label: `CHALLENGE ${firstName(other.name).toUpperCase()} AGAIN`, tone: "light", onPress: () => router.replace(`/player/${other.id}`) }}
+            primary={{ label: "CHALLENGE AGAIN", tone: "light", onPress: () => router.replace(`/player/${other.id}`) }}
           />
         );
     }
@@ -237,28 +234,27 @@ export default function ChallengeScreen() {
       />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
-          <View style={styles.cardTop}>
-            <Text style={styles.format}>{challenge.ranked ? "1V1 · RANKED" : "CASUAL · NO SCORE"}</Text>
-            <View style={[styles.status, challenge.status === "accepted" && styles.statusLive]}>
-              <Text style={[styles.statusText, challenge.status === "accepted" && styles.statusTextLive]}>
-                {STATUS_LABEL[challenge.status]}
+          <GameStateBanner kind={banner.kind} label={banner.label} />
+          <View style={styles.cardBody}>
+            <View style={styles.titleBlock}>
+              <Text numberOfLines={1} style={styles.caption}>
+                {caption}
+              </Text>
+              <Text numberOfLines={1} style={styles.title}>
+                {challengeTitle(challenge).toUpperCase()}
               </Text>
             </View>
-          </View>
-          <View style={styles.faceoff}>
-            <Side id={viewerId} initials={currentUser.avatar} label="YOU" name={currentUser.name} />
-            <Text style={styles.vs}>VS</Text>
-            <Side
-              id={other.id}
-              initials={other.initials}
-              label={firstName(other.name).toUpperCase()}
-              name={other.name}
-              onPress={() => router.push(`/player/${other.id}`)}
-            />
-          </View>
-          <View style={styles.info}>
-            <Text numberOfLines={2} style={styles.place}>{challengePlaceLine(challenge)}</Text>
-            <Text numberOfLines={2} style={styles.statusLine}>{challengeStatusLine(challenge, viewerId)}</Text>
+            <View style={styles.faceoff}>
+              <Side id={viewerId} initials={currentUser.avatar} label="You" name={currentUser.name} />
+              <Text style={styles.vs}>VS</Text>
+              <Side
+                id={other.id}
+                initials={other.initials}
+                label={other.name}
+                name={other.name}
+                onPress={() => router.push(`/player/${other.id}`)}
+              />
+            </View>
           </View>
         </View>
 
@@ -267,7 +263,6 @@ export default function ChallengeScreen() {
             <Text style={styles.label}>FINAL SCORE</Text>
             <View style={styles.scoreRow}>
               <ScoreField label="YOU" onChange={setMyScore} value={myScore} />
-              <Text style={styles.dash}>–</Text>
               <ScoreField label={firstName(other.name).toUpperCase()} onChange={setTheirScore} value={theirScore} />
             </View>
             {courtChoices.length > 1 || (!challenge.courtId && courtChoices.length > 0) ? (
@@ -289,8 +284,7 @@ export default function ChallengeScreen() {
               <HideScoreToggle disabled={busy} onChange={setHideScore} value={hideScore} />
             </View>
             <Text style={styles.hint}>
-              {firstName(other.name)} confirms or disputes it within 3 days.
-              {challenge.ranked ? " ELO moves once it's confirmed." : " Casual: no ELO change."}
+              They confirm or dispute it within 3 days. ELO moves once it's confirmed.
             </Text>
           </View>
         ) : null}
@@ -319,7 +313,7 @@ function Side({
       <Pressable accessibilityLabel={`Open ${name}'s profile`} disabled={!onPress} onPress={onPress}>
         <PlayerAvatar initials={initials} name={name} playerId={id} size={64} />
       </Pressable>
-      <Text adjustsFontSizeToFit minimumFontScale={0.75} numberOfLines={1} style={styles.sideLabel}>
+      <Text numberOfLines={1} style={styles.sideLabel}>
         {label}
       </Text>
     </View>
@@ -349,62 +343,44 @@ const styles = StyleSheet.create({
   loading: { marginTop: Space.xxxl },
   missing: { ...TextStyles.bodySmall, padding: Layout.screenGutter, color: Colors.textSecondary },
   content: { padding: Layout.screenGutter, paddingBottom: Space.xxxl },
+  // Same family as the game card: banner on top, caption + title, then the two sides.
   card: {
-    padding: Space.xl,
     borderRadius: Radius.card,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderLight,
-    backgroundColor: Colors.surface,
-  },
-  cardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  format: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.8, color: Colors.textSecondary },
-  status: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: Radius.md,
     borderWidth: 1,
     borderColor: Colors.borderLight,
+    backgroundColor: Colors.surface,
+    overflow: "hidden",
   },
-  statusLive: { borderColor: Colors.accentBorderStrong, backgroundColor: Colors.accentDim },
-  statusText: { fontFamily: Typography.bodyBold, fontSize: 10, letterSpacing: 1.4, color: Colors.textSecondary },
-  statusTextLive: { color: Colors.accent },
-  // Two equal columns around a fixed "VS", so a 24-character name on either
-  // side can only shrink its own label, never push into the other player.
-  faceoff: {
-    marginTop: Space.xl,
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-  side: { flex: 1, minWidth: 0, alignItems: "center", gap: Space.sm },
-  sideLabel: {
+  cardBody: { padding: Space.lg, gap: Space.lg },
+  titleBlock: { alignItems: "center", gap: Space.xs },
+  caption: { ...TextStyles.labelSmall, color: Colors.muted, letterSpacing: 1.2, textAlign: "center" },
+  title: {
+    ...TextStyles.title,
     alignSelf: "stretch",
-    textAlign: "center",
-    fontFamily: Typography.heading,
-    fontSize: 16,
-    letterSpacing: 0.6,
     color: Colors.text,
+    letterSpacing: 0.6,
+    textAlign: "center",
   },
-  // Centred on the avatars, not on the avatar + label stack.
-  vs: { width: 36, marginTop: 22, textAlign: "center", fontFamily: Typography.heading, fontSize: 16, color: Colors.muted },
-  // Where and what's next: its own row under a hairline, never in the
-  // face-off, so it can't collide with a player's name.
-  info: {
-    marginTop: Space.xl,
-    paddingTop: Space.lg,
-    alignItems: "center",
-    gap: Space.xs,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.border,
+  // Two equal columns around a fixed "VS", so a 24-character name on either
+  // side can only truncate its own line, never push into the other player.
+  faceoff: { flexDirection: "row", alignItems: "flex-start" },
+  side: { flex: 1, minWidth: 0, alignItems: "center", gap: Space.sm },
+  sideLabel: { ...TextStyles.label, alignSelf: "stretch", textAlign: "center", color: Colors.text },
+  // Centred on the 64pt tiles, not on the tile + name stack.
+  vs: {
+    ...TextStyles.labelSmall,
+    width: 36,
+    marginTop: (64 - TextStyles.labelSmall.lineHeight) / 2,
+    textAlign: "center",
+    color: Colors.muted,
+    letterSpacing: 1.2,
   },
-  place: { ...TextStyles.label, textAlign: "center", color: Colors.text },
-  statusLine: { ...TextStyles.metadata, textAlign: "center", color: Colors.textSecondary },
   scoreBlock: { marginTop: Space.lg },
   label: {
+    ...TextStyles.labelSmall,
     marginTop: Space.xl,
     marginBottom: Space.sm,
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    letterSpacing: 2,
+    letterSpacing: 1.4,
     color: Colors.muted,
   },
   scoreRow: { flexDirection: "row", alignItems: "center", gap: Space.md },
@@ -421,8 +397,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     textAlign: "center",
   },
-  scoreLabel: { fontFamily: Typography.bodyBold, fontSize: 10, letterSpacing: 1.4, color: Colors.textSecondary },
-  dash: { fontFamily: Typography.heading, fontSize: 28, color: Colors.muted, marginBottom: 20 },
+  scoreLabel: { ...TextStyles.labelSmall, alignSelf: "stretch", textAlign: "center", letterSpacing: 1.2, color: Colors.textSecondary },
   hint: { ...TextStyles.metadata, marginTop: Space.md, color: Colors.textSecondary },
   hideRow: { marginTop: Space.xl },
   error: { ...TextStyles.metadata, marginTop: Space.lg, color: Colors.loss },

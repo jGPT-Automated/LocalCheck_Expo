@@ -392,27 +392,24 @@ export default function PlayerProfileScreen() {
       >
         {activeTab === "versus" ? (
           <>
-            <HeadToHeadSummary
-              me={{ id: currentUser.id, name: currentUser.name, initials: currentUser.avatar }}
-              summary={h2h}
-              them={{ id: player.id, name: player.name, initials: player.avatar }}
-            />
+            <HeadToHeadSummary summary={h2h} themName={player.name} />
             <View style={styles.gamesTogether}>
               <View style={styles.gamesHeader}>
                 <Text style={styles.gamesTitle}>GAMES TOGETHER</Text>
                 {sharedGames.length > 0 ? <Text style={styles.gamesHint}>Your result</Text> : null}
               </View>
               {sharedGames.length > 0 ? (
-                sharedGames.slice(0, 10).map((game) => (
+                sharedGames.slice(0, 10).map((game, index, shown) => (
                   <HeadToHeadGameRow
                     game={game}
+                    isLast={index === shown.length - 1}
                     key={game.id}
                     onPress={() => router.push(`/match/${game.id}`)}
                   />
                 ))
               ) : (
                 <Text style={styles.gamesEmpty}>
-                  No games against {player.name.split(" ")[0]} yet. Log one after you play.
+                  No games together yet. Log one after you play.
                 </Text>
               )}
             </View>
@@ -422,11 +419,10 @@ export default function PlayerProfileScreen() {
             {activity.length > 0 ? (
               activity.map((item, index) => (
                 <ActivityRow
-                  isFirst={index === 0}
                   isLast={index === activity.length - 1}
                   item={item}
                   key={item.id}
-                  quietRail={item.type === "checkin" || item.type === "checkout"}
+                  previous={activity[index - 1]}
                   onActorPress={
                     item.playerId ? () => router.push(`/player/${item.playerId}`) : undefined
                   }
@@ -693,19 +689,25 @@ const styles = StyleSheet.create({
   },
   safetyDanger: { color: Colors.loss },
 
-  gamesTogether: { paddingHorizontal: Layout.screenGutter, paddingTop: Space.xl },
+  // The rows carry their own side gutter so a press highlights edge to edge.
+  gamesTogether: { paddingTop: Space.xl },
   gamesHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingBottom: Space.sm,
+    paddingHorizontal: Layout.screenGutter,
+    paddingBottom: Space.xs,
   },
   gamesTitle: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 12,
-    letterSpacing: 2.2,
-    color: Colors.accent,
+    ...TextStyles.labelSmall,
+    letterSpacing: 1.6,
+    color: Colors.textSecondary,
   },
   gamesHint: { ...TextStyles.metadata, color: Colors.muted },
-  gamesEmpty: { ...TextStyles.metadata, paddingVertical: Space.lg, color: Colors.textSecondary },
+  gamesEmpty: {
+    ...TextStyles.metadata,
+    paddingHorizontal: Layout.screenGutter,
+    paddingVertical: Space.lg,
+    color: Colors.textSecondary,
+  },
 });

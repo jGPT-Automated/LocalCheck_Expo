@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import React from "react";
 import { Dimensions, Pressable, StyleSheet, Text } from "react-native";
 
+import { shortFirstName } from "@/components/match/gameCardModel";
 import { ScoreCard } from "@/components/match/ScoreCard";
 import { AppBottomSheetModal, useSheetBottomPadding } from "@/components/sheet/AppBottomSheetModal";
 import { Colors } from "@/constants/colors";
@@ -11,7 +12,7 @@ import type { CourtSport, FeedMatchSummary } from "@/constants/data";
 import { Space } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
-import { firstName, summarizeHeadToHead } from "@/lib/headToHead";
+import { summarizeHeadToHead } from "@/lib/headToHead";
 import { fetchHeadToHead } from "@/services/gameService";
 
 /**
@@ -59,7 +60,7 @@ export function GameResultModal({
     void fetchHeadToHead(currentUser.id, opponent.playerId).then((games) => {
       if (cancelled || games.length < 2) return;
       const s = summarizeHeadToHead(games);
-      setAllTime(`You're ${s.myWins}–${s.theirWins} all-time vs ${firstName(opponent.name)}`);
+      setAllTime(`You're ${s.myWins}–${s.theirWins} all-time vs ${shortFirstName(opponent.name)}`);
     });
     return () => {
       cancelled = true;
@@ -97,7 +98,7 @@ export function GameResultModal({
       {shown ? (
         <BottomSheetView style={[styles.content, { paddingBottom: bottomPadding }]}>
           <ScoreCard
-            courtName={courtName ?? "Game"}
+            courtName={courtName ?? ""}
             footnote={allTime ?? undefined}
             format={`${teamSize}V${teamSize}`}
             leftLabel="TEAM A"
@@ -111,7 +112,6 @@ export function GameResultModal({
             scoresHidden={Boolean(shown.scoresHidden)}
             status="confirmed"
             statusLabel="FINAL"
-            variant="sheet"
           />
           <Pressable
             accessibilityRole="button"
@@ -129,7 +129,8 @@ export function GameResultModal({
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: Space.lg },
+  // The card starts a step under the sheet's grabber, not flush against it.
+  content: { paddingHorizontal: Space.lg, paddingTop: Space.sm },
   viewGame: {
     minHeight: 44,
     marginTop: Space.xs,
