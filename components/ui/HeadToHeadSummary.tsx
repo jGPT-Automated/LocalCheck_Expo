@@ -65,7 +65,6 @@ export function HeadToHeadSummary({
         <Text style={[styles.record, myTone]}>{summary.myWins}</Text>
         <View style={styles.line}>
           <ShareLine
-            empty={!played}
             leader={myLeads ? "left" : theyLead ? "right" : null}
             leftShare={played ? summary.myWins / summary.games : 0.5}
           />

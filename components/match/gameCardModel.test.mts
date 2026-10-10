@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  bannerText,
+  bannerTrailing,
   cardTitle,
   countdownText,
   eloDelta,
   formatCardDate,
-  formatEloDelta,
   gameBannerKind,
   marginSplit,
   shortFirstName,
@@ -36,6 +37,13 @@ test("banner kind follows status, then the viewer's seat", () => {
   assert.equal(gameBannerKind("draft"), "waiting");
 });
 
+test("the banner carries the date after the state", () => {
+  assert.equal(bannerTrailing("2026-09-06"), "SEP 6");
+  assert.equal(bannerTrailing("2026-09-06T18:00:00", "CASUAL"), "SEP 6 · CASUAL");
+  assert.equal(bannerText("FINAL", bannerTrailing("2026-09-06")), "FINAL · SEP 6");
+  assert.equal(bannerText("WAITING ON YOU", undefined), "WAITING ON YOU");
+});
+
 test("card title is one line: format at short court", () => {
   assert.equal(cardTitle("2V2", "Rancho"), "2V2 AT RANCHO");
   assert.equal(cardTitle("1v1", "Kasmiersky"), "1V1 AT KASMIERSKY");
@@ -56,10 +64,7 @@ test("margin split is the left share and who leads", () => {
   assert.equal(marginSplit("W", "L"), null);
 });
 
-test("rating tile text carries the sign", () => {
-  assert.equal(formatEloDelta(15), "+15");
-  assert.equal(formatEloDelta(-15), "-15");
-  assert.equal(formatEloDelta(0), "0");
+test("a rating move is after minus before, or nothing", () => {
   assert.equal(eloDelta({ before: 1500, after: 1515 }), 15);
   assert.equal(eloDelta(null), null);
 });

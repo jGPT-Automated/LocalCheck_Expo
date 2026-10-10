@@ -5,7 +5,7 @@ import { Colors } from "@/constants/colors";
 import { Space } from "@/constants/layout";
 import { TextStyles } from "@/constants/typography";
 
-import type { GameBannerKind } from "./gameCardModel";
+import { bannerText, type GameBannerKind } from "./gameCardModel";
 
 type BannerTone = { bg: string; border: string; text: string };
 
@@ -28,24 +28,28 @@ const TONES: Record<GameBannerKind, BannerTone> = {
 
 /**
  * The state of a game, as a thin band across the top edge of its card. The
- * card clips it to its rounded corners.
+ * card clips it to its rounded corners. `trailing` is quiet text after the
+ * state ("FINAL · SEP 6"); it is the first thing cut when the line is long.
  */
 export function GameStateBanner({
   kind,
   label,
+  trailing,
 }: {
   kind: GameBannerKind;
   label: string;
+  trailing?: string;
 }) {
   const tone = TONES[kind];
   return (
     <View
-      accessibilityLabel={label}
+      accessibilityLabel={bannerText(label, trailing)}
       accessibilityRole="header"
       style={[styles.banner, { backgroundColor: tone.bg, borderBottomColor: tone.border }]}
     >
       <Text numberOfLines={1} style={[styles.text, { color: tone.text }]}>
         {label}
+        {trailing ? <Text style={styles.trailing}>{` · ${trailing}`}</Text> : null}
       </Text>
     </View>
   );
@@ -59,4 +63,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   text: { ...TextStyles.labelSmall, letterSpacing: 1.6 },
+  trailing: { color: Colors.textSecondary },
 });

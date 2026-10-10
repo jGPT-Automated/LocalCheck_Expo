@@ -48,6 +48,19 @@ export function formatCardDate(value: string): string {
     .toUpperCase();
 }
 
+/**
+ * What trails the state in the banner: the date, then any extra tag
+ * ("SEP 6", "SEP 6 · CASUAL"). The banner reads "FINAL · SEP 6".
+ */
+export function bannerTrailing(playedOn: string, meta?: string): string {
+  return [formatCardDate(playedOn), meta].filter(Boolean).join(" · ");
+}
+
+/** The banner as one line of text: "FINAL · SEP 6". */
+export function bannerText(label: string, trailing?: string): string {
+  return trailing ? `${label} · ${trailing}` : label;
+}
+
 /** "2V2 AT RANCHO" - the card title. Format-less cards just show the court. */
 export function cardTitle(format: string | undefined, courtName: string): string {
   const court = courtName.trim().toUpperCase();
@@ -79,13 +92,6 @@ export function eloDelta(
   elo: { before: number; after: number } | null | undefined,
 ): number | null {
   return elo ? elo.after - elo.before : null;
-}
-
-/** "+15" / "-15" / "0": the text inside a rating tile. */
-export function formatEloDelta(delta: number): string {
-  if (delta > 0) return `+${delta}`;
-  if (delta < 0) return `-${Math.abs(delta)}`;
-  return "0";
 }
 
 /** One rating move for a whole side (the average, rounded), or null unless

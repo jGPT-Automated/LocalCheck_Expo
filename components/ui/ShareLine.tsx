@@ -11,27 +11,24 @@ import { Colors } from "@/constants/colors";
 import { Durations, Ease } from "@/constants/motion";
 
 const TRACK = 4;
-const DOT = 10;
 
 /**
  * One thin line that shows how two sides split a total (a series record, a
- * game's margin). The track is neutral; the leading side's share is orange
- * and runs in from that side's end; a small dot marks where the sides meet.
- * It fills once when it first appears and never again. Reduce Motion: it is
- * simply there.
+ * game's margin). Two segments: the leading side's share is orange and runs in
+ * from that side's end, the rest stays neutral. No marker on the join, so it
+ * never reads as a slider. It fills once when it first appears and never
+ * again. Reduce Motion: it is simply there.
  *
  * `leftShare` is the left side's fraction of the total (0 to 1). `leader`
  * says which side gets the orange; null (a tie, or nothing yet) leaves the
- * line neutral. `empty` draws the bare track with no dot.
+ * line neutral.
  */
 export function ShareLine({
   leftShare,
   leader,
-  empty = false,
 }: {
   leftShare: number;
   leader: "left" | "right" | null;
-  empty?: boolean;
 }) {
   const reduced = useReducedMotion();
   const [width, setWidth] = useState(0);
@@ -56,22 +53,9 @@ export function ShareLine({
     if (next !== width) setWidth(next);
   };
 
-  // Only transform animates: the fill grows from its end, the dot rides the
-  // growing edge.
+  // Only transform animates: the fill grows from its end.
   const fillStyle = useAnimatedStyle(() => ({
     transform: [{ scaleX: progress.value }],
-  }));
-  const dotStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateX:
-          leader === "right"
-            ? width * (1 - progress.value * fillFraction)
-            : leader === "left"
-              ? width * progress.value * fillFraction
-              : width * share,
-      },
-    ],
   }));
 
   return (
@@ -88,13 +72,12 @@ export function ShareLine({
           ]}
         />
       ) : null}
-      {empty ? null : <Animated.View style={[styles.dot, dotStyle]} />}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  line: { height: DOT, justifyContent: "center" },
+  line: { height: TRACK },
   track: {
     height: TRACK,
     borderRadius: TRACK / 2,
@@ -102,18 +85,9 @@ const styles = StyleSheet.create({
   },
   fill: {
     position: "absolute",
-    top: (DOT - TRACK) / 2,
+    top: 0,
     height: TRACK,
     borderRadius: TRACK / 2,
     backgroundColor: Colors.accent,
-  },
-  dot: {
-    position: "absolute",
-    left: -DOT / 2,
-    top: 0,
-    width: DOT,
-    height: DOT,
-    borderRadius: DOT / 2,
-    backgroundColor: Colors.text,
   },
 });
