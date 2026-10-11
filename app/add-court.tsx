@@ -25,6 +25,7 @@ import { Layout, Space } from "@/constants/layout";
 import { TextStyles, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import type { CourtSubmissionResult } from "@/services/courtService";
+import { reportClientError } from "@/services/errorReportService";
 
 type Screen =
   | "camera"
@@ -138,6 +139,18 @@ export default function AddCourtRoute() {
   // Drives CameraView's `active` prop so the capture camera is released the
   // instant this route loses focus, not just when it fully unmounts.
   const [routeFocused, setRouteFocused] = React.useState(true);
+  // A full-resolution phone photo is several MB of base64: slow to upload from
+  // a court on cellular and slow for the model. 1080p is plenty to verify.
+  const [pictureSize, setPictureSize] = React.useState<string | undefined>();
+  const choosePictureSize = React.useCallback(async () => {
+    try {
+      const sizes = (await liveCameraRef.current?.getAvailablePictureSizesAsync()) ?? [];
+      const preferred = ["1920x1080", "1280x720", "High"].find((size) => sizes.includes(size));
+      if (preferred) setPictureSize(preferred);
+    } catch {
+      // Keep the camera default.
+    }
+  }, []);
   useFocusEffect(
     React.useCallback(() => {
       setRouteFocused(true);
@@ -199,7 +212,7 @@ export default function AddCourtRoute() {
     try {
       const photo = await liveCameraRef.current?.takePictureAsync({
         base64: true,
-        quality: 0.85,
+        quality: 0.7,
         exif: false,
       });
       if (!photo?.base64) return;
@@ -254,7 +267,8 @@ export default function AddCourtRoute() {
               "Verification is taking too long. Check your connection and try again.",
             failureCode: "unavailable",
           } as Result),
-        30_000,
+        // Server gives the model 35s; leave room for the upload on cellular.
+        50_000,
       ),
     );
     const response = (await Promise.race([
@@ -276,6 +290,14 @@ export default function AddCourtRoute() {
       timeout,
     ])) as Result;
     setResult(response);
+    if (!response.verified) {
+      // Lands in client_errors (source "verify-court") so failures the server
+      // never saw — timeouts, no signal — show up next to the server logs.
+      void reportClientError(
+        new Error(`${response.failureCode ?? "unknown"}: ${response.reason}`),
+        { source: "verify-court" },
+      );
+    }
     if (verifyInBackground.current) {
       announceBackgroundResult(response);
       return;
@@ -307,6 +329,8 @@ export default function AddCourtRoute() {
         <CameraView
           ref={liveCameraRef}
           active={routeFocused && screen === "camera"}
+          onCameraReady={() => void choosePictureSize()}
+          pictureSize={pictureSize}
           style={StyleSheet.absoluteFill}
           facing="back"
         />
