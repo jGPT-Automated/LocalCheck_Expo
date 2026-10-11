@@ -6,7 +6,7 @@ import { Colors, Radius } from "@/constants/colors";
 import { Layout, Space } from "@/constants/layout";
 import { TextStyles, Typography } from "@/constants/typography";
 import { formatDayLabel } from "@/lib/activityPresentation";
-import { gameTitle, type HeadToHeadGame, teamsLine } from "@/lib/headToHead";
+import { type HeadToHeadGame, teamFormat } from "@/lib/headToHead";
 
 const TILE = 44;
 
@@ -24,10 +24,10 @@ export function HeadToHeadGameRow({
   isLast?: boolean;
   onPress?: () => void;
 }) {
-  const title = gameTitle(game);
-  const lead = teamsLine(game);
+  const title = teamFormat(game.teamSize);
   const day = formatDayLabel(game.playedAtIso);
-  const tail = `· ${day}${game.ranked ? "" : " · Casual"}`;
+  const lead = game.courtName.trim().toUpperCase();
+  const tail = `${lead ? " · " : ""}${day.toUpperCase()}`;
   const delta = game.myEloDelta;
   return (
     <Pressable
@@ -70,7 +70,9 @@ export function HeadToHeadGameRow({
               <Text style={styles.scoreLoser}>–</Text>
               <Text style={game.won ? styles.scoreLoser : styles.scoreWinner}>{game.theirScore}</Text>
             </Text>
-            {delta ? (
+            {!game.ranked ? (
+              <Text style={styles.casual}>Casual</Text>
+            ) : delta ? (
               <View style={styles.elo}>
                 <Feather
                   color={delta > 0 ? Colors.win : Colors.loss}
@@ -90,6 +92,7 @@ export function HeadToHeadGameRow({
 }
 
 const styles = StyleSheet.create({
+  casual: { ...TextStyles.metadata, color: Colors.muted },
   row: {
     paddingLeft: Layout.screenGutter,
     flexDirection: "row",

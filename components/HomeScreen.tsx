@@ -31,7 +31,7 @@ import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
 import { isInactiveLocal, relativeTime } from "@/lib/localPresence";
-import { groupCheckinBursts } from "@/lib/activityPresentation";
+import { groupCheckinBursts, pairVisits } from "@/lib/activityPresentation";
 import {
   fetchLocalsWithLastCheckIn,
   type LocalWithLastCheckIn,
@@ -107,7 +107,7 @@ export function HomeScreen() {
   // account hit the first time it set a local court. `courtFeed` is null-safe.
   const courtFeed = feed.filter((item) => item.courtId === localCourt?.id);
   const groupedCourtFeed = useMemo(
-    () => groupCheckinBursts(courtFeed),
+    () => groupCheckinBursts(pairVisits(courtFeed)),
     [courtFeed],
   );
   const recentArrivalCount = useMemo(() => {

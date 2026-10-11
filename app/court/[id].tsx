@@ -25,7 +25,7 @@ import { useRealtimeHub } from "@/context/RealtimeHubContext";
 import { batchHasResource, type RealtimeTopic } from "@/lib/realtimeHub";
 import { openCourtInMaps } from "@/lib/openMaps";
 import { isInactiveLocal, relativeTime } from "@/lib/localPresence";
-import { groupCheckinBursts } from "@/lib/activityPresentation";
+import { groupCheckinBursts, pairVisits } from "@/lib/activityPresentation";
 import {
   fetchCourtActivityMetrics,
   fetchCourtById,
@@ -64,7 +64,7 @@ export default function CourtProfileScreen() {
   const [locals, setLocals] = React.useState<LocalWithLastCheckIn[]>([]);
   const [courtFeed, setCourtFeed] = React.useState<Awaited<ReturnType<typeof fetchFeed>>>([]);
   const groupedCourtFeed = React.useMemo(
-    () => groupCheckinBursts(courtFeed),
+    () => groupCheckinBursts(pairVisits(courtFeed)),
     [courtFeed],
   );
   const [rankedIds, setRankedIds] = React.useState<Set<string>>(new Set());

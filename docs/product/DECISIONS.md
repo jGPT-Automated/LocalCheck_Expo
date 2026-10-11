@@ -61,6 +61,18 @@ below wherever they disagree.
   activity feed keeps its timeline (day headers, one marker size, games as
   cards, check-ins as quiet lines); games-together rows and head-to-head use
   the row/line style.
+- **D44 Sheets open in front of the tab bar (Oct 11, revises D41 for sheets):**
+  one app-wide sheet host above the navigator (CourtSheetHost), so every
+  sheet covers the tab bar and pads only for the home indicator. Screens still
+  never draw content under the tab bar.
+- **D45 Game card and timeline, signed off (Oct 11):** the game sheet shows no
+  FINAL banner (a coloured banner only while a game is in someone's queue);
+  one layout for 1v1 and teams: big scores (winner orange, loser grey) with a
+  rating pill, the orange line, then the players mirrored below it (1v1 gets
+  bigger boxes); no box inside the sheet. ELO changes are orange up, grey down,
+  never green or red. Timeline: day headers carry the date, no times; game
+  boxes show the court on top only on profiles; check-in + check-out become
+  one visit line ("1h 20m · Jesse") with an empty circle, on court pages too.
 - **D41 The tab bar is a hard floor (Oct 8):** no screen or sheet content
   renders under the tab bar. Sheets inside a tab rise from its top edge
   (`AppBottomSheetModal`), scroll content clears it (`useBottomFloor`).

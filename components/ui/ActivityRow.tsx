@@ -82,11 +82,15 @@ export function ActivityRow({
           >
             {model.kind === "game" ? (
               <>
+                {/* Where it was sits on top (profiles only; a court's own
+                    feed leaves it out), the date is the day header. */}
+                {model.caption ? (
+                  <Text numberOfLines={1} style={styles.caption}>
+                    {model.caption}
+                  </Text>
+                ) : null}
                 <GameLineView line={model.lines[0]} />
                 <GameLineView line={model.lines[1]} />
-                <Text numberOfLines={1} style={styles.caption}>
-                  {model.caption}
-                </Text>
               </>
             ) : (
               <>
@@ -119,9 +123,12 @@ function DayHeader({ label, first }: { label: string; first: boolean }) {
       <View style={styles.rail}>
         <View style={[styles.railSegment, first && styles.railHidden]} />
       </View>
-      <Text accessibilityRole="header" style={[styles.headerText, first && styles.headerFirst]}>
-        {label}
-      </Text>
+      <View style={[styles.headerLabel, first && styles.headerFirst]}>
+        <Text accessibilityRole="header" style={styles.headerText}>
+          {label}
+        </Text>
+        <View style={styles.headerRule} />
+      </View>
     </View>
   );
 }
@@ -213,20 +220,30 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "stretch",
   },
-  headerText: {
-    ...TextStyles.labelSmall,
+  // The day opens a group: a clear label with a rule running to the edge.
+  headerLabel: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Space.sm,
     marginLeft: Space.sm,
-    paddingTop: Space.xl,
-    paddingBottom: Space.xs,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    color: Colors.muted,
+    paddingRight: Layout.screenGutter,
+    paddingTop: Space.xxl,
+    paddingBottom: Space.sm,
   },
-  headerFirst: { paddingTop: Space.sm },
+  headerText: {
+    ...TextStyles.label,
+    letterSpacing: 1.4,
+    textTransform: "uppercase",
+    color: Colors.textSecondary,
+  },
+  headerRule: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
+  headerFirst: { paddingTop: Space.md },
 
   // ── Quiet single line (check-in, check-out, visit) ──
   line: {
     minHeight: 44,
+    paddingHorizontal: Space.md,
     justifyContent: "center",
     borderRadius: Radius.lg,
   },
@@ -259,7 +276,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
     fontVariant: ["tabular-nums"],
   },
-  winnerText: { color: Colors.text },
+  winnerText: { color: Colors.accent },
   loserText: { color: Colors.textSecondary },
-  caption: { ...TextStyles.labelSmall, marginTop: Space.xs, color: Colors.muted },
+  caption: { ...TextStyles.labelSmall, marginBottom: Space.xs, letterSpacing: 1, textTransform: "uppercase", color: Colors.muted },
 });

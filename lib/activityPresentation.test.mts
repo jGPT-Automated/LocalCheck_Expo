@@ -194,7 +194,11 @@ test("a game is a winner line, a loser line and a short caption", () => {
   if (model.kind !== "game") return;
   assert.deepEqual(model.lines[0], { name: "Ben & Eli", score: "21", winner: true });
   assert.deepEqual(model.lines[1], { name: "Jesse & Marcus", score: "15", winner: false });
-  assert.equal(model.caption, "2v2 at Rancho · 6:00 PM");
+  assert.equal(model.caption, "Rancho");
+  // A court's own feed drops the court too.
+  const onCourt = describeTimelineItem(gameItem(), { showActor: true });
+  if (onCourt.kind !== "game") throw new Error("expected a game");
+  assert.equal(onCourt.caption, "");
 });
 
 test("a hidden score shows W / L and a casual game says so", () => {
@@ -203,7 +207,7 @@ test("a hidden score shows W / L and a casual game says so", () => {
   if (model.kind !== "game") return;
   assert.equal(model.lines[0].score, "W");
   assert.equal(model.lines[1].score, "L");
-  assert.equal(model.caption, "2v2 at Rancho · 6:00 PM · Casual");
+  assert.equal(model.caption, "Rancho · Casual");
   assert.ok(!model.accessibilityLabel.includes("21"));
 });
 
@@ -219,7 +223,7 @@ test("a team of three joins names with commas and an ampersand", () => {
   assert.equal(model.lines[0].name, "Marcus, Ben & Eli");
 });
 
-test("check-in is one quiet line with the time; the name leads in a mixed list", () => {
+test("check-in is one quiet line, no time; the name leads in a mixed list", () => {
   const checkin = item({
     id: "c1",
     type: "checkin",
@@ -231,21 +235,20 @@ test("check-in is one quiet line with the time; the name leads in a mixed list",
   assert.equal(own.kind, "line");
   if (own.kind !== "line") return;
   assert.equal(own.marker, "checkin");
-  assert.deepEqual(own.segments.map((s) => s.text), ["Checked in at Rancho", "· 6:00 PM"]);
+  assert.deepEqual(own.segments.map((s) => s.text), ["Checked in at Rancho"]);
 
   const mixed = describeTimelineItem(checkin, { showActor: true });
   if (mixed.kind !== "line") throw new Error("expected a line");
   assert.deepEqual(mixed.segments.map((s) => s.text), [
     "MAXIMILIANO_RODRIGUEZ_JR",
     "checked in",
-    "· 6:00 PM",
   ]);
-  // The name is what gives way, never the verb or the time.
+  // The name is what gives way, never the verb.
   assert.equal(mixed.segments[0].shrink, true);
   assert.equal(mixed.segments[1].shrink, undefined);
 });
 
-test("visit and check-out are quiet grey lines", () => {
+test("a visit leads with its length on an empty circle; check-out is quiet grey", () => {
   const visit = describeTimelineItem(
     item({
       id: "v1",
@@ -256,8 +259,8 @@ test("visit and check-out are quiet grey lines", () => {
     }),
   );
   if (visit.kind !== "line") throw new Error("expected a line");
-  assert.equal(visit.marker, "quiet");
-  assert.equal(visit.segments[0].text, "1h 20m at Rancho");
+  assert.equal(visit.marker, "checkin");
+  assert.deepEqual(visit.segments.map((s) => s.text), ["1h 20m", "· Rancho"]);
   const out = describeTimelineItem(
     item({ id: "o1", type: "checkout", occurredAtIso: noon(8), courtName: "Rancho" }),
   );

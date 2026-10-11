@@ -126,7 +126,11 @@ Rules:
 
 ### Layout rules (hard)
 
-- **The tab bar is a floor (D41).** Nothing renders under it.
+- **The tab bar is a floor for screens (D41); sheets open in front of it
+  (D44).** One sheet host at the app root (CourtSheetHost) means every
+  `AppBottomSheetModal` covers the tab bar; sheet content pads with
+  `useSheetBottomPadding()` (home indicator only).
+- **Tab bar floor, details.** Nothing on a screen renders under it.
   `components/ui/TabFloor.tsx` carries the real tab bar height (0 on stack
   screens). `AppBottomSheetModal` sets the sheet's `bottomInset` from it, so a
   sheet opened in a tab rises from the top of the tab bar. Sheet content pads

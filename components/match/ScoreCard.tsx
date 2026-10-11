@@ -29,6 +29,7 @@ const FACEOFF_AVATAR = 56;
 const VERSUS_WIDTH = 32;
 /** Roster avatar edge: five rows a side still fit at 375. */
 const ROSTER_AVATAR = 24;
+const SOLO_AVATAR = 40;
 
 export type ScoreCardStatus =
   | "draft"
@@ -63,7 +64,8 @@ const firstName = (name: string) => (name.trim().split(/\s+/)[0] ?? "").toUpperC
 
 function eloTone(delta: number) {
   return {
-    color: delta < 0 ? Colors.loss : delta > 0 ? Colors.win : Colors.textSecondary,
+    // Orange up, grey down: no green or red (Jesse, Oct 11).
+    color: delta > 0 ? Colors.accent : Colors.textSecondary,
     icon: (delta < 0 ? "arrow-down-right" : delta > 0 ? "arrow-up-right" : "minus") as
       | "arrow-down-right"
       | "arrow-up-right"
@@ -277,32 +279,42 @@ function Faceoff({
 function RosterRow({
   player,
   win,
-  countUp,
+  mirrored,
+  solo = false,
   onPress,
 }: {
   player: ScoreCardPlayer;
   win: boolean;
-  countUp: boolean;
+  mirrored: boolean;
+  /** 1v1: one player a side, so the box and name get more room. */
+  solo?: boolean;
   onPress?: () => void;
 }) {
-  const delta = eloDelta(player.elo);
   const content = (
     <>
-      <PlayerAvatar name={player.name} playerId={player.id} size={ROSTER_AVATAR} />
-      <Text numberOfLines={1} style={[styles.rosterName, win ? styles.nameWin : null]}>
+      <PlayerAvatar name={player.name} playerId={player.id} size={solo ? SOLO_AVATAR : ROSTER_AVATAR} />
+      <Text
+        numberOfLines={1}
+        style={[
+          styles.rosterName,
+          solo ? styles.rosterNameSolo : null,
+          win ? styles.nameWin : null,
+          mirrored ? styles.rosterNameMirrored : null,
+        ]}
+      >
         {player.name.trim().split(/\s+/)[0] ?? player.name}
       </Text>
-      {delta != null ? <EloDelta countUp={countUp} delta={delta} /> : null}
     </>
   );
-  if (!onPress) return <View style={styles.rosterRow}>{content}</View>;
+  const rowStyle = [styles.rosterRow, mirrored ? styles.rosterRowMirrored : null];
+  if (!onPress) return <View style={rowStyle}>{content}</View>;
   return (
     <Pressable
       accessibilityHint="Opens this player's profile"
       accessibilityLabel={player.name}
       accessibilityRole="link"
       onPress={onPress}
-      style={({ pressed }) => [styles.rosterRow, pressed ? styles.pressed : null]}
+      style={({ pressed }) => [...rowStyle, pressed ? styles.pressed : null]}
     >
       {content}
     </Pressable>
@@ -312,19 +324,20 @@ function RosterRow({
 function Roster({
   players,
   win,
-  countUp,
+  mirrored,
   onPlayerPress,
 }: {
   players: ScoreCardPlayer[];
   win: boolean;
-  countUp: boolean;
+  mirrored: boolean;
   onPlayerPress?: (playerId: string) => void;
 }) {
   return (
     <View style={styles.roster}>
       {players.map((player, index) => (
         <RosterRow
-          countUp={countUp}
+          mirrored={mirrored}
+          solo={players.length === 1}
           key={player.id ?? `${player.name}-${index}`}
           onPress={
             player.id && onPlayerPress ? () => onPlayerPress(player.id as string) : undefined
@@ -333,6 +346,23 @@ function Roster({
           win={win}
         />
       ))}
+    </View>
+  );
+}
+
+/** One ELO change for the whole team (everyone on a side moves the same). */
+function TeamEloPill({ players }: { players: ScoreCardPlayer[] }) {
+  const rated = players.filter((p) => p.elo);
+  if (rated.length === 0 || rated.length !== players.length) return null;
+  const avg = Math.round(rated.reduce((sum, p) => sum + p.elo!.before, 0) / rated.length);
+  const delta = Math.round(rated.reduce((sum, p) => sum + (p.elo!.after - p.elo!.before), 0) / rated.length);
+  const up = delta > 0;
+  return (
+    <View style={styles.teamPill}>
+      <Text style={styles.teamPillAvg}>{players.length > 1 ? `${avg} avg` : avg}</Text>
+      <Text style={[styles.teamPillDelta, { color: up ? Colors.accent : Colors.textSecondary }]}>
+        {delta > 0 ? `+${delta}` : `${delta}`}
+      </Text>
     </View>
   );
 }
@@ -365,25 +395,17 @@ function Teams({
       <View style={styles.teamColumns}>
         <View style={styles.teamScore}>
           <ScoreText value={leftScore} win={leftStrong} />
+          <TeamEloPill players={leftPlayers} />
         </View>
         <View style={styles.teamScore}>
           <ScoreText value={rightScore} win={rightStrong} />
+          <TeamEloPill players={rightPlayers} />
         </View>
       </View>
       <MarginSlot hidden={hidden} split={split} />
       <View style={styles.teamColumns}>
-        <Roster
-          countUp={countUp}
-          onPlayerPress={onPlayerPress}
-          players={leftPlayers}
-          win={leftStrong}
-        />
-        <Roster
-          countUp={countUp}
-          onPlayerPress={onPlayerPress}
-          players={rightPlayers}
-          win={rightStrong}
-        />
+        <Roster mirrored={false} onPlayerPress={onPlayerPress} players={leftPlayers} win={leftStrong} />
+        <Roster mirrored onPlayerPress={onPlayerPress} players={rightPlayers} win={rightStrong} />
         <View pointerEvents="none" style={styles.teamDivider} />
       </View>
     </View>
@@ -474,6 +496,7 @@ export function ScoreCard({
   onPlayerPress,
   footnote,
   scoresHidden = false,
+  variant = "card",
 }: {
   status: ScoreCardStatus;
   /** Viewer-aware override for the banner text ("WAITING ON YOU", "WAITING ON
@@ -539,9 +562,11 @@ export function ScoreCard({
       <GameStateBanner
         kind={kind}
         label={statusLabel ?? STATUS_LABEL[status]}
-        trailing={compact ? undefined : bannerTrailing(playedOn, rightMeta)}
       />
     ) : null;
+  // A settled game needs no banner on the full card: it's final by the time
+  // anyone opens it. Colour is only for games still in someone's queue.
+  const fullBanner = status === "confirmed" ? null : banner;
 
   if (compact) {
     const caption = [formatCardDate(playedOn), rightMeta].filter(Boolean).join(" · ");
@@ -576,11 +601,15 @@ export function ScoreCard({
     );
   }
 
-  const solo = leftPlayers.length === 1 && rightPlayers.length === 1;
-
   return (
-    <View style={[styles.card, kind === "action" ? styles.cardAction : null]}>
-      {banner}
+    <View
+      style={[
+        styles.card,
+        variant === "sheet" ? styles.cardSheet : null,
+        kind === "action" ? styles.cardAction : null,
+      ]}
+    >
+      {fullBanner}
       <View style={styles.body}>
         <Text
           adjustsFontSizeToFit
@@ -590,21 +619,11 @@ export function ScoreCard({
         >
           {cardTitle(format, courtName)}
         </Text>
+        <Text numberOfLines={1} style={styles.dateLine}>
+          {[formatCardDate(playedOn), rightMeta].filter(Boolean).join(" · ")}
+        </Text>
 
-        {solo ? (
-          <Faceoff
-            countUp={countUp}
-            hidden={scoresHidden}
-            left={leftPlayers[0]}
-            leftScore={shownLeft}
-            leftStrong={leftStrong}
-            onPlayerPress={namePress}
-            right={rightPlayers[0]}
-            rightScore={shownRight}
-            rightStrong={rightStrong}
-            split={split}
-          />
-        ) : (
+        {(
           <Teams
             countUp={countUp}
             hidden={scoresHidden}
@@ -644,6 +663,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   cardAction: { borderColor: Colors.accentBorder },
+  // In the game sheet the sheet itself is the surface: no box inside it.
+  cardSheet: { borderWidth: 0, borderRadius: 0, backgroundColor: "transparent" },
   pressed: { opacity: 0.55 },
 
   // ── Full card ──
@@ -663,9 +684,10 @@ const styles = StyleSheet.create({
   eloRating: { color: Colors.textSecondary },
 
   // Scores: the winner reads at full strength, the loser steps back.
-  score: { ...TextStyles.displayLarge, fontVariant: ["tabular-nums"] },
-  scoreWin: { color: Colors.text },
-  scoreLose: { color: Colors.textSecondary },
+  score: { fontFamily: TextStyles.displayLarge.fontFamily, fontSize: 52, lineHeight: 60, fontVariant: ["tabular-nums"] },
+  scoreWin: { color: Colors.accent },
+  scoreLose: { color: Colors.mutedDark },
+  dateLine: { ...TextStyles.labelSmall, marginTop: -Space.sm, textAlign: "center", letterSpacing: 1.2, color: Colors.muted },
   nameWin: { color: Colors.text },
   lineSlot: { minHeight: 16, justifyContent: "center" },
   hiddenNote: {
@@ -698,7 +720,12 @@ const styles = StyleSheet.create({
   // Teams: score on top of each column, the line, then the rosters.
   teams: { gap: Space.md },
   teamColumns: { flexDirection: "row", gap: Space.lg },
-  teamScore: { flex: 1, minWidth: 0, alignItems: "flex-start" },
+  teamScore: { flex: 1, minWidth: 0, alignItems: "center", gap: Space.sm },
+  teamPill: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderLight },
+  teamPillAvg: { ...TextStyles.caption, color: Colors.textSecondary },
+  teamPillDelta: { ...TextStyles.caption, fontFamily: TextStyles.label.fontFamily, fontVariant: ["tabular-nums"] },
+  rosterRowMirrored: { flexDirection: "row-reverse" },
+  rosterNameMirrored: { textAlign: "right" },
   roster: { flex: 1, minWidth: 0, gap: Space.sm },
   rosterRow: {
     minHeight: ROSTER_AVATAR + Space.xs,
@@ -712,6 +739,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     color: Colors.textSecondary,
   },
+  rosterNameSolo: { ...TextStyles.listName, fontSize: 15, lineHeight: 20 },
   teamDivider: {
     position: "absolute",
     top: 0,

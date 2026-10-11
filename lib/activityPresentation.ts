@@ -222,7 +222,7 @@ export function startsNewDay(item: FeedItem, previous?: FeedItem): boolean {
   );
 }
 
-function describeGame(item: FeedItem): TimelineModel | null {
+function describeGame(item: FeedItem, showActor: boolean): TimelineModel | null {
   const match = item.match;
   if (!match) return null;
   const winners = match.winnerSide === "a" ? match.sideA : match.sideB;
@@ -232,15 +232,10 @@ function describeGame(item: FeedItem): TimelineModel | null {
   const hidden = Boolean(match.scoresHidden);
   const winnerName = joinTeam(winners.map((p) => firstName(p.name))) || "Winners";
   const loserName = joinTeam(losers.map((p) => firstName(p.name))) || "Opponents";
-  const format = `${Math.max(1, match.sideA.length)}v${Math.max(1, match.sideB.length)}`;
-  const court = item.courtName?.trim();
-  const caption = [
-    court ? `${format} at ${court}` : format,
-    formatClock(match.playedAt || item.occurredAtIso),
-    match.ranked === false ? "Casual" : "",
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  // The day header carries the date, so no time here; no "1v1" (the names
+  // show it); no court on a court's own feed.
+  const court = showActor ? "" : item.courtName?.trim();
+  const caption = [court, match.ranked === false ? "Casual" : ""].filter(Boolean).join(" · ");
   return {
     kind: "game",
     marker: "game",
@@ -249,7 +244,7 @@ function describeGame(item: FeedItem): TimelineModel | null {
       { name: loserName, score: hidden ? "L" : String(loseScore), winner: false },
     ],
     caption,
-    accessibilityLabel: `${winnerName} beat ${loserName}${hidden ? "" : `, ${winScore} to ${loseScore}`}, ${caption}`,
+    accessibilityLabel: `${winnerName} beat ${loserName}${hidden ? "" : `, ${winScore} to ${loseScore}`}${caption ? `, ${caption}` : ""}`,
   };
 }
 
@@ -265,10 +260,9 @@ export function describeTimelineItem(
   const { showActor = false } = options;
   const court = item.courtName?.trim();
   const actor = item.playerName.trim() || "Someone";
-  const clock = formatClock(item.occurredAtIso);
 
   if (item.type === "game_result") {
-    const game = describeGame(item);
+    const game = describeGame(item, showActor);
     if (game) return game;
   }
 
@@ -288,17 +282,13 @@ export function describeTimelineItem(
       ? [
           { text: actor, tone: "name", shrink: true, actor: true },
           { text, tone: "text" },
-          { text: `· ${clock}`, tone: "time" },
         ]
-      : [
-          { text, tone: "text", shrink: true },
-          { text: `· ${clock}`, tone: "time" },
-        ];
+      : [{ text, tone: "text", shrink: true }];
     return {
       kind: "line",
       marker,
       segments,
-      accessibilityLabel: `${showActor ? `${actor} ${text}` : text}, ${clock}`,
+      accessibilityLabel: showActor ? `${actor} ${text}` : text,
     };
   };
 
@@ -312,13 +302,20 @@ export function describeTimelineItem(
     case "new_court":
       return presence("quiet", "Added a court", "at");
     case "visit": {
+      // Duration first so the day reads as a list of visits: "1h 20m · Jesse"
+      // on a court's feed, "1h 20m · Rancho" on a profile.
       const duration = formatDurationMinutes(item.visit?.durationMinutes ?? null);
-      const text = court ? `${duration} at ${court}` : duration;
+      const who = showActor ? actor : court;
       return {
         kind: "line",
-        marker: "quiet",
-        segments: [{ text, tone: "text", shrink: true }],
-        accessibilityLabel: `Visit, ${text}`,
+        marker: "checkin",
+        segments: [
+          { text: duration, tone: "time" },
+          who
+            ? { text: `· ${who}`, tone: showActor ? "name" : "text", shrink: true, actor: showActor }
+            : { text: "", tone: "text" },
+        ],
+        accessibilityLabel: `${duration}${who ? `, ${who}` : ""}`,
       };
     }
     case "checkin_burst": {
@@ -334,10 +331,9 @@ export function describeTimelineItem(
         segments: [
           { text: `${count} people checked in`, tone: "name" },
           { text: preview ? `· ${preview}` : "", tone: "text", shrink: true },
-          { text: `· ${clock}`, tone: "time" },
         ],
         expandedText: names.join(", "),
-        accessibilityLabel: `${count} people checked in, ${clock}`,
+        accessibilityLabel: `${count} people checked in`,
       };
     }
     default: {
@@ -353,9 +349,8 @@ export function describeTimelineItem(
         segments: [
           { text: actor, tone: "name", shrink: true, actor: true },
           { text: stripped || "shared an update", tone: "text" },
-          { text: `· ${clock}`, tone: "time" },
         ],
-        accessibilityLabel: `${actor} ${stripped}, ${clock}`,
+        accessibilityLabel: `${actor} ${stripped}`,
       };
     }
   }

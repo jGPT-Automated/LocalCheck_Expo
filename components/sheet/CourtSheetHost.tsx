@@ -8,6 +8,8 @@ import React, {
   useState,
 } from "react";
 import { DRAWER_HANDLE_HEIGHT } from "@/lib/courtDrawerLayout";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+
 import { AppBottomSheetModal } from "./AppBottomSheetModal";
 import { CourtSheetContent } from "./CourtSheetContent";
 
@@ -80,23 +82,29 @@ export function CourtSheetProvider({
 
   return (
     <CourtSheetContext.Provider value={api}>
-      {children}
-      <AppBottomSheetModal
-        ref={modalRef}
-        snapPoints={snapPoints}
-        compactHandle
-        onDismiss={() => setArgs(null)}
-      >
-        {args && (
-          <CourtSheetContent
-            courtId={args.courtId}
-            distanceKm={args.distanceKm}
-            onNavigate={closeCourtSheet}
-            onExpand={expandCourtSheet}
-            onPeekHeight={(height) => setPeekHeight(Math.ceil(height + DRAWER_HANDLE_HEIGHT))}
-          />
-        )}
-      </AppBottomSheetModal>
+      {/* One modal host for the whole app, above the navigator: every sheet
+          opens in front of the tab bar (Jesse, Oct 11). */}
+      <BottomSheetModalProvider>
+        {children}
+        <AppBottomSheetModal
+          ref={modalRef}
+          snapPoints={snapPoints}
+          compactHandle
+          onDismiss={() => setArgs(null)}
+        >
+          {args && (
+            <CourtSheetContent
+              courtId={args.courtId}
+              distanceKm={args.distanceKm}
+              onNavigate={closeCourtSheet}
+              onExpand={expandCourtSheet}
+              onPeekHeight={(height) =>
+                setPeekHeight(Math.ceil(height + DRAWER_HANDLE_HEIGHT))
+              }
+            />
+          )}
+        </AppBottomSheetModal>
+      </BottomSheetModalProvider>
     </CourtSheetContext.Provider>
   );
 }

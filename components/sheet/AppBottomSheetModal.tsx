@@ -2,32 +2,28 @@ import {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
   BottomSheetModal,
-  BottomSheetModalProvider,
 } from "@gorhom/bottom-sheet";
 import React, { forwardRef, useCallback } from "react";
 import { StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { TabFloorProvider, useTabFloor } from "@/components/ui/TabFloor";
 import { Colors, Radius } from "@/constants/colors";
 import { Space } from "@/constants/layout";
 
 /**
- * Bottom padding for content inside an AppBottomSheetModal. In a tab the sheet
- * already sits on top of the tab bar, so it only needs breathing room; above
- * the tabs it also clears the home indicator. Use this instead of the safe
- * area or Layout.tabBarClearance.
+ * Bottom padding for content inside an AppBottomSheetModal. Sheets open in
+ * front of the tab bar (one host at the app root), so content only clears the
+ * home indicator. Use this instead of the safe area or Layout.tabBarClearance.
  */
 export function useSheetBottomPadding(): number {
-  const tabFloor = useTabFloor();
   const { bottom } = useSafeAreaInsets();
-  return tabFloor > 0 ? Space.lg : Math.max(bottom, Space.md) + Space.sm;
+  return Math.max(bottom, Space.md) + Space.sm;
 }
 
 /** Shared LocalCheck drawer shell. Flows own their height and content; this
- * component owns the gesture, backdrop, surface, and grabber treatment, and
- * the tab-bar floor: inside a tab the sheet rises from the top of the tab bar,
- * never behind it. */
+ * component owns the gesture, backdrop, surface, and grabber treatment. It
+ * renders through the app-wide BottomSheetModalProvider (CourtSheetHost), so
+ * every sheet opens in front of the tab bar. */
 export const AppBottomSheetModal = forwardRef<
   BottomSheetModal,
   {
@@ -55,7 +51,6 @@ export const AppBottomSheetModal = forwardRef<
   },
   ref,
 ) {
-  const tabFloor = useTabFloor();
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
       <BottomSheetBackdrop
@@ -70,11 +65,9 @@ export const AppBottomSheetModal = forwardRef<
   );
 
   return (
-    <BottomSheetModalProvider>
       <BottomSheetModal
         ref={ref}
         index={index}
-        bottomInset={tabFloor}
         snapPoints={dynamic ? undefined : snapPoints}
         enableDynamicSizing={dynamic}
         maxDynamicContentSize={maxDynamicContentSize}
@@ -88,10 +81,8 @@ export const AppBottomSheetModal = forwardRef<
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
       >
-        {/* Re-provided because sheet content renders through a portal. */}
-        <TabFloorProvider height={tabFloor}>{children}</TabFloorProvider>
+        {children}
       </BottomSheetModal>
-    </BottomSheetModalProvider>
   );
 });
 

@@ -112,6 +112,7 @@ export function GameResultModal({
             scoresHidden={Boolean(shown.scoresHidden)}
             status="confirmed"
             statusLabel="FINAL"
+            variant="sheet"
           />
           <Pressable
             accessibilityRole="button"
