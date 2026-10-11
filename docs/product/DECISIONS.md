@@ -61,8 +61,16 @@ below wherever they disagree.
   activity feed keeps its timeline (day headers, one marker size, games as
   cards, check-ins as quiet lines); games-together rows and head-to-head use
   the row/line style.
+- **D46 Player names are a first name, 10 characters max (Oct 11):** the name
+  shown everywhere (feed, game cards, inbox, profiles) is the player's handle,
+  built from their first name plus a short tail only to make it unique
+  (default: last initial, then a number only if taken, e.g. ChrisJ, ChrisJ2).
+  One clean string: letters and numbers, no spaces or periods, 10 characters
+  max; search ignores capitals. Signup asks first and last name (email gives
+  none); the last name is never shown. The box shows the initials. Existing
+  players are asked once. Nobody sees a full name.
 - **D44 Sheets open in front of the tab bar (Oct 11, revises D41 for sheets):**
-  one app-wide sheet host above the navigator (CourtSheetHost), so every
+  one app-wide sheet host above the navigator (app/_layout.tsx), so every
   sheet covers the tab bar and pads only for the home indicator. Screens still
   never draw content under the tab bar.
 - **D45 Game card and timeline, signed off (Oct 11):** the game sheet shows no
