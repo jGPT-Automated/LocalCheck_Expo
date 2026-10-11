@@ -124,32 +124,14 @@ export function summarizeHeadToHead(games: HeadToHeadGame[]): HeadToHeadSummary 
 }
 
 /**
- * The series status above the records, split so a long opponent name can
- * truncate on its own: { name: "MARCUS", text: "LEADS 3–1" }, { text: "YOU LEAD
- * 3–1" }, { text: "TIED 2–2" }, { text: "FIRST GAME" }. The leader's record
- * comes first.
+ * The series status centred above the records. The score is not repeated: the
+ * records beside the avatars already carry it.
  */
-export function seriesStatus(
-  summary: HeadToHeadSummary,
-  opponentName: string,
-): { name?: string; text: string } {
-  if (summary.games === 0) return { text: "FIRST GAME" };
-  if (summary.leader === "you") {
-    return { text: `YOU LEAD ${summary.myWins}–${summary.theirWins}` };
-  }
-  if (summary.leader === "them") {
-    return {
-      name: firstName(opponentName).toUpperCase(),
-      text: `LEADS ${summary.theirWins}–${summary.myWins}`,
-    };
-  }
-  return { text: `TIED ${summary.myWins}–${summary.theirWins}` };
-}
-
-/** "YOU LEAD 3–1", "JESSE LEADS 3–1", "TIED 2–2", "FIRST GAME". */
-export function seriesHeadline(summary: HeadToHeadSummary, opponentName: string): string {
-  const { name, text } = seriesStatus(summary, opponentName);
-  return name ? `${name} ${text}` : text;
+export function seriesStatus(summary: HeadToHeadSummary): string {
+  if (summary.games === 0) return "FIRST GAME";
+  if (summary.leader === "you") return "YOU'RE UP";
+  if (summary.leader === "them") return "YOU'RE DOWN";
+  return "TIED";
 }
 
 /** Signed number with one decimal at most: +3.7, -2, 0. */

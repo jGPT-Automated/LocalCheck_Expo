@@ -251,7 +251,6 @@ export default function PlayerProfileScreen() {
   const isRequestPending = isFriendPending(player.id);
   const isIncomingRequest = incomingFriendRequests.some((requester) => requester.id === player.id);
   const total = player.wins + player.losses;
-  const winRate = total > 0 ? Math.round((player.wins / total) * 100) : 0;
   const h2h = summarizeHeadToHead(sharedGames);
   const courtName = playerCourt?.shortName || playerCourt?.name || null;
   const sportName =
@@ -374,7 +373,6 @@ export default function PlayerProfileScreen() {
       />
       <ProfileStats compact metrics={[
         { value: `${player.wins}–${player.losses}`, label: "RECORD" },
-        { value: `${winRate}%`, label: "WIN RATE" },
         { value: total, label: "GAMES" },
         { value: player.checkIns, label: "CHECK-INS" },
       ]} />
@@ -392,11 +390,19 @@ export default function PlayerProfileScreen() {
       >
         {activeTab === "versus" ? (
           <>
-            <HeadToHeadSummary summary={h2h} themName={player.name} />
+            <HeadToHeadSummary
+              me={{
+                id: currentUser.id,
+                name: currentUser.name,
+                initials: currentUser.avatar,
+                elo: currentUser.elo,
+              }}
+              summary={h2h}
+              them={{ id: player.id, name: player.name, initials: player.avatar, elo: player.elo }}
+            />
             <View style={styles.gamesTogether}>
               <View style={styles.gamesHeader}>
                 <Text style={styles.gamesTitle}>GAMES TOGETHER</Text>
-                {sharedGames.length > 0 ? <Text style={styles.gamesHint}>Your result</Text> : null}
               </View>
               {sharedGames.length > 0 ? (
                 sharedGames.slice(0, 10).map((game, index, shown) => (
@@ -703,7 +709,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.6,
     color: Colors.textSecondary,
   },
-  gamesHint: { ...TextStyles.metadata, color: Colors.muted },
   gamesEmpty: {
     ...TextStyles.metadata,
     paddingHorizontal: Layout.screenGutter,

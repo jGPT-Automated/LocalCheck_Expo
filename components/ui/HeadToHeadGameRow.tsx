@@ -11,9 +11,9 @@ import { type HeadToHeadGame, teamFormat } from "@/lib/headToHead";
 const TILE = 44;
 
 /**
- * One row of GAMES TOGETHER: a W / L tile, "2v2 at Rancho", who played and
- * when, and your score with your ELO change under it. The date and "Casual"
- * never get cut: the names give way first.
+ * One row of GAMES TOGETHER: a W / L tile, "2v2" over "RANCHO · OCT 1", and
+ * your score with your ELO change under it (orange up, grey down) or "Casual".
+ * The date never gets cut: the court name gives way first.
  */
 export function HeadToHeadGameRow({
   game,
@@ -75,11 +75,11 @@ export function HeadToHeadGameRow({
             ) : delta ? (
               <View style={styles.elo}>
                 <Feather
-                  color={delta > 0 ? Colors.win : Colors.loss}
+                  color={delta > 0 ? Colors.accent : Colors.textSecondary}
                   name={delta > 0 ? "arrow-up" : "arrow-down"}
                   size={12}
                 />
-                <Text style={[styles.eloText, { color: delta > 0 ? Colors.win : Colors.loss }]}>
+                <Text style={[styles.eloText, delta > 0 ? styles.eloUp : styles.eloDown]}>
                   {Math.abs(delta)}
                 </Text>
               </View>
@@ -143,5 +143,7 @@ const styles = StyleSheet.create({
     fontFamily: Typography.bodySemiBold,
     fontVariant: ["tabular-nums"],
   },
+  eloUp: { color: Colors.accent },
+  eloDown: { color: Colors.textSecondary },
   hidden: { ...TextStyles.metadata, flexShrink: 0, color: Colors.muted },
 });

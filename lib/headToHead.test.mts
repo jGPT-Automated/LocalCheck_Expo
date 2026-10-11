@@ -4,7 +4,6 @@ import test from "node:test";
 import {
   gameFormatLabel,
   gameTitle,
-  seriesHeadline,
   seriesStatus,
   signed,
   summarizeHeadToHead,
@@ -87,12 +86,12 @@ test("summary: series, margin, ELO net, last played", () => {
   assert.equal(s.avgMargin, 0); // (-6 + 6) / 2
   assert.equal(s.eloNet, 2);
   assert.equal(s.lastPlayedIso, "2026-10-04T18:00:00Z");
-  assert.equal(seriesHeadline(s, "Jesse Harrick"), "TIED 1–1");
+  assert.equal(seriesStatus(s), "TIED");
 });
 
 test("headline and signed numbers", () => {
   const empty = summarizeHeadToHead([]);
-  assert.equal(seriesHeadline(empty, "Jesse"), "FIRST GAME");
+  assert.equal(seriesStatus(empty), "FIRST GAME");
   assert.equal(empty.avgMargin, null);
   assert.equal(empty.eloNet, null);
   const theyLead = summarizeHeadToHead([
@@ -100,10 +99,9 @@ test("headline and signed numbers", () => {
     { ...toHeadToHeadGame(oneVOne, me)!, id: "b" },
     { ...toHeadToHeadGame(threeVThree, me)!, id: "c" },
   ]);
-  assert.equal(seriesHeadline(theyLead, "jesse h"), "JESSE LEADS 2–1");
-  assert.deepEqual(seriesStatus(theyLead, "Jesse H"), { name: "JESSE", text: "LEADS 2–1" });
+  assert.equal(seriesStatus(theyLead), "YOU'RE DOWN");
   const youLead = summarizeHeadToHead([toHeadToHeadGame(threeVThree, me)!]);
-  assert.equal(seriesHeadline(youLead, "Jesse"), "YOU LEAD 1–0");
+  assert.equal(seriesStatus(youLead), "YOU'RE UP");
   assert.equal(signed(3.66), "+3.7");
   assert.equal(signed(-2), "-2");
   assert.equal(signed(0), "0");
