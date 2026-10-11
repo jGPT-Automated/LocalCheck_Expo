@@ -22,7 +22,7 @@ export function useSheetBottomPadding(): number {
 
 /** Shared LocalCheck drawer shell. Flows own their height and content; this
  * component owns the gesture, backdrop, surface, and grabber treatment. It
- * renders through the app-wide BottomSheetModalProvider (CourtSheetHost), so
+ * renders through the app-wide BottomSheetModalProvider (app/_layout.tsx DataProviders), so
  * every sheet opens in front of the tab bar. */
 export const AppBottomSheetModal = forwardRef<
   BottomSheetModal,

@@ -15,6 +15,7 @@ import {
   Oswald_600SemiBold,
   Oswald_700Bold,
 } from "@expo-google-fonts/oswald";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, usePathname, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -227,7 +228,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
  */
 function DataProviders({ children }: { children: React.ReactNode }) {
   const { session, profile } = useAuth();
-  if (!session) return <>{children}</>;
+  if (!session) return <BottomSheetModalProvider>{children}</BottomSheetModalProvider>;
   // While a fresh signup still needs onboarding, neither location nor push
   // permission should fire on their own — onboarding's own "Share location"
   // button is the only thing allowed to trigger that native prompt, and
@@ -244,9 +245,16 @@ function DataProviders({ children }: { children: React.ReactNode }) {
           <DeviceLocationProvider autoResolve={autoResolveLocation}>
             <AppProvider>
               <ToastProvider>
-                <AutoCheckInProvider>
-                  <CourtSheetProvider>{children}</CourtSheetProvider>
-                </AutoCheckInProvider>
+                {/* One modal host for every sheet in the app, above the
+                    navigator and above AutoCheckInProvider (which mounts its
+                    own sheet), so sheets open in front of the tab bar (D44).
+                    It must sit below the data providers: sheet content is
+                    portalled here and only sees contexts above this point. */}
+                <BottomSheetModalProvider>
+                  <AutoCheckInProvider>
+                    <CourtSheetProvider>{children}</CourtSheetProvider>
+                  </AutoCheckInProvider>
+                </BottomSheetModalProvider>
               </ToastProvider>
             </AppProvider>
           </DeviceLocationProvider>
