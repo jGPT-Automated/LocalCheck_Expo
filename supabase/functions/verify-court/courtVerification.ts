@@ -38,7 +38,12 @@ export interface GeminiCourtResult {
   rejectionCode: RejectionCode;
   nameOkay: boolean;
   nameCode: NameCode;
+  /** The model's own one-line explanation, shown to the submitter while we
+   * collect real-world results (Jesse, Oct 11). Empty when it gave none. */
+  note: string;
 }
+
+export const NOTE_MAX_LENGTH = 140;
 
 export interface ValidCourtSubmission {
   sourceOfficialName: string;
@@ -130,6 +135,7 @@ export function normalizeGeminiResult(payload: unknown): GeminiCourtResult | nul
     rejectionCode: candidate.verified === true ? "none" : rejectionCode,
     nameOkay: candidate.name_okay,
     nameCode: candidate.name_okay ? "none" : nameCode,
+    note: cleanText(candidate.reason, NOTE_MAX_LENGTH),
   };
 }
 
@@ -206,6 +212,21 @@ export function acceptsVerifiedCourt(analysis: GeminiCourtResult): boolean {
     && analysis.confidence >= 80
     && supportedSports.has(analysis.sport)
     && supportedSettings.has(analysis.setting);
+}
+
+/**
+ * "Wrong sport" only when the photo really is a court for another sport: the
+ * model said so, or it saw a supported court that isn't the one picked. A
+ * living room (sport "unclear") is "not a court", never "wrong sport".
+ */
+export function isWrongSport(
+  analysis: GeminiCourtResult,
+  requestedSport: ValidCourtSubmission["requestedSport"],
+): boolean {
+  if (analysis.rejectionCode === "wrong_sport") return true;
+  return requestedSport != null
+    && supportedSports.has(analysis.sport)
+    && analysis.sport !== requestedSport;
 }
 
 export function matchesRequestedSport(

@@ -2,8 +2,10 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   acceptsVerifiedCourt,
   type GeminiCourtResult,
+  isWrongSport,
   matchesRequestedSport,
   NAME_CODES,
+  NOTE_MAX_LENGTH,
   normalizeGeminiResult,
   outputText,
   REJECTION_CODES,
@@ -162,6 +164,7 @@ async function analyzeCourtPhoto(
               requestedSport
                 ? `The submitter selected ${requestedSport}; independently identify the visible sport so the server can reject a mismatch.`
                 : "This request came from an older client with no selected sport; independently identify the visible sport.",
+              `Finally, in reason, write one short plain sentence (under ${NOTE_MAX_LENGTH - 20} characters) to the submitter saying what the photo shows and why it was or wasn't accepted, e.g. "This looks like a living room, not a court." Never repeat the court labels, never include links or instructions beyond retaking the photo.`,
             ].join(" "),
           },
           { type: "image", data: imageBase64, mime_type: imageMimeType },
@@ -180,6 +183,7 @@ async function analyzeCourtPhoto(
               rejection_code: { type: "string", enum: [...REJECTION_CODES] },
               name_okay: { type: "boolean" },
               name_code: { type: "string", enum: [...NAME_CODES] },
+              reason: { type: "string", maxLength: NOTE_MAX_LENGTH },
             },
             required: [
               "verified",
@@ -189,6 +193,7 @@ async function analyzeCourtPhoto(
               "rejection_code",
               "name_okay",
               "name_code",
+              "reason",
             ],
           },
         },
@@ -228,14 +233,20 @@ async function analyzeCourtPhoto(
   return result;
 }
 
-function rejectionReason(
+function rejectionCode(
   analysis: GeminiCourtResult,
   requestedSport: "basketball" | "pickleball" | null,
 ): string {
-  if (!matchesRequestedSport(analysis, requestedSport)) {
-    return REJECTION_COPY.wrong_sport;
-  }
-  return REJECTION_COPY[analysis.rejectionCode] ?? REJECTION_COPY.too_unclear;
+  if (isWrongSport(analysis, requestedSport)) return "wrong_sport";
+  // verified=true but below the bar (low confidence, unclear setting...) or a
+  // court of no supported sport: the model's own code, else too_unclear.
+  return analysis.rejectionCode === "none" ? "too_unclear" : analysis.rejectionCode;
+}
+
+// For now (testing, Oct 11) the submitter sees the model's own sentence;
+// the fixed copy is the fallback when it gave none.
+function rejectionReason(code: string, analysis: GeminiCourtResult): string {
+  return analysis.note || REJECTION_COPY[code] || REJECTION_COPY.too_unclear;
 }
 
 Deno.serve(async (request) => {
@@ -384,6 +395,7 @@ Deno.serve(async (request) => {
     rejection: analysis.rejectionCode,
     nameOkay: analysis.nameOkay,
     nameCode: analysis.nameCode,
+    note: analysis.note,
     accepted: acceptsVerifiedCourt(analysis) && matchesRequestedSport(analysis, requestedSport),
   });
 
@@ -404,15 +416,14 @@ Deno.serve(async (request) => {
     }
     const rejectedState = rejectedAttempt as AttemptStateRow;
     const inCooldown = typeof rejectedState.cooldown_until === "string";
-    log("rejected", { user, attemptsUsed: rejectedState.attempts_used, inCooldown });
+    const code = rejectionCode(analysis, requestedSport);
+    log("rejected", { user, code, attemptsUsed: rejectedState.attempts_used, inCooldown });
     return json(200, {
       verified: false,
       confidence: analysis.confidence,
       sport: supportedSports.has(analysis.sport) ? analysis.sport : undefined,
-      rejectionCode: !matchesRequestedSport(analysis, requestedSport)
-        ? "wrong_sport"
-        : analysis.rejectionCode,
-      reason: rejectionReason(analysis, requestedSport),
+      rejectionCode: code,
+      reason: rejectionReason(code, analysis),
       failureCode: inCooldown ? "cooldown" : "not_a_court",
       ...attemptPayload(rejectedState),
     });
@@ -426,7 +437,7 @@ Deno.serve(async (request) => {
       confidence: analysis.confidence,
       sport: analysis.sport,
       rejectionCode: "name",
-      reason: NAME_COPY[analysis.nameCode] ?? NAME_COPY.not_a_name,
+      reason: analysis.note || (NAME_COPY[analysis.nameCode] ?? NAME_COPY.not_a_name),
       failureCode: "invalid",
       ...attemptPayload(attempt),
     });
