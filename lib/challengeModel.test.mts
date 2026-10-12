@@ -11,7 +11,15 @@ import {
   dayShort,
   challengeStatusLine,
   dayLabel,
+  challengeCardLines,
+  defaultSlot,
   inboxChallenges,
+  isPastSlot,
+  isUnknownRpcSignature,
+  relativeDay,
+  toPlayAt,
+  wheelDays,
+  wheelTimes,
   isOpen,
   isStalePending,
   otherPlayer,
@@ -171,4 +179,65 @@ test("banner: accent only when it is the viewer's move", () => {
   assert.deepEqual(challengeBanner({ ...base, status: "accepted" }, "me"), { kind: "waiting", label: "GAME ON" });
   assert.equal(challengeBanner({ ...base, status: "declined" }, "me").kind, "voided");
   assert.equal(challengeBanner({ ...base, status: "expired" }, "me").label, "EXPIRED");
+});
+
+test("relative days for the inbox card", () => {
+  const today = new Date(2026, 9, 11, 9);
+  assert.equal(relativeDay(null, today), "");
+  assert.equal(relativeDay("2026-10-11", today), "Today");
+  assert.equal(relativeDay("2026-10-12", today), "Tomorrow");
+  assert.equal(relativeDay("2026-10-14", today), "In 3 days");
+  assert.equal(relativeDay("2026-10-10", today), "Today");
+});
+
+test("challenge card: game type, then who, where and when", () => {
+  const today = new Date(2026, 9, 11, 9);
+  const c = { ...base, courtName: "Rancho Courts", playOn: "2026-10-14" };
+  assert.deepEqual(challengeCardLines(c, "ty", today), {
+    title: "Ranked game",
+    subtitle: "Jesse Harrick · Rancho Courts · In 3 days",
+  });
+  assert.deepEqual(challengeCardLines({ ...c, ranked: false, playOn: "2026-10-12" }, "me", today), {
+    title: "Casual game",
+    subtitle: "Tyler B · Rancho Courts · Tomorrow",
+  });
+  assert.equal(challengeCardLines({ ...c, courtName: null, playOn: null }, "me", today).subtitle, "Tyler B");
+});
+
+test("wheel: today plus four days, 15-minute steps", () => {
+  const now = new Date(2026, 9, 11, 17, 5);
+  const days = wheelDays(now);
+  assert.equal(days.length, 5);
+  assert.deepEqual(days.slice(0, 2).map((d) => d.label), ["Today", "Tomorrow"]);
+  assert.equal(days[2].label, "Tue 13");
+  assert.equal(days[4].value, "2026-10-15");
+  const times = wheelTimes();
+  assert.equal(times.length, 96);
+  assert.equal(times[0].label, "12:00 AM");
+  assert.equal(times[73].label, "6:15 PM");
+  assert.equal(times[95].label, "11:45 PM");
+});
+
+test("wheel: times already past today are disabled, other days are open", () => {
+  const now = new Date(2026, 9, 11, 17, 5);
+  assert.equal(isPastSlot("2026-10-11", 17 * 60, now), true);
+  assert.equal(isPastSlot("2026-10-11", 17 * 60 + 15, now), false);
+  assert.equal(isPastSlot("2026-10-12", 0, now), false);
+});
+
+test("default slot: the next quarter hour, or noon tomorrow after 11:45 PM", () => {
+  assert.deepEqual(defaultSlot(new Date(2026, 9, 11, 17, 5)), { day: "2026-10-11", minutes: 17 * 60 + 15 });
+  assert.deepEqual(defaultSlot(new Date(2026, 9, 11, 17, 15)), { day: "2026-10-11", minutes: 17 * 60 + 30 });
+  assert.deepEqual(defaultSlot(new Date(2026, 9, 11, 23, 50)), { day: "2026-10-12", minutes: 12 * 60 });
+});
+
+test("play_at is the local day and time as an ISO timestamp", () => {
+  assert.equal(toPlayAt("2026-10-12", 18 * 60 + 30), new Date(2026, 9, 12, 18, 30).toISOString());
+});
+
+test("an RPC that does not know p_play_at is recognised so the old call can run", () => {
+  assert.equal(isUnknownRpcSignature({ code: "PGRST202", message: "Could not find the function" }), true);
+  assert.equal(isUnknownRpcSignature({ code: "42883", message: "function does not exist" }), true);
+  assert.equal(isUnknownRpcSignature({ code: "LC104", message: "You already have an open challenge" }), false);
+  assert.equal(isUnknownRpcSignature({ code: null, message: "network down" }), false);
 });

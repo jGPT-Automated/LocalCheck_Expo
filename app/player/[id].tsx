@@ -308,11 +308,6 @@ export default function PlayerProfileScreen() {
     setChallengeOpen(true);
   };
 
-  const challengeCourts = [localCourt, playerCourt]
-    .filter((court): court is Court => Boolean(court))
-    .filter((court, index, list) => list.findIndex((c) => c.id === court.id) === index)
-    .map((court) => ({ id: court.id, name: court.shortName || court.name }));
-
   const submitReport = async (reason: ReportReason) => {
     if (safetyBusy) return;
     setSafetyBusy("report");
@@ -539,7 +534,7 @@ export default function PlayerProfileScreen() {
       />
       {challengeOpen ? (
         <ChallengeSheet
-          courts={challengeCourts}
+          defaultCourt={playerCourt ?? localCourt}
           onClose={() => setChallengeOpen(false)}
           onSent={(challengeId) => {
             setChallengeOpen(false);

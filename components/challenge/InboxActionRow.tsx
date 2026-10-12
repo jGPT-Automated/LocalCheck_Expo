@@ -2,21 +2,60 @@ import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { BrutalistButton } from "@/components/BrutalistButton";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors, Radius } from "@/constants/colors";
 import { Space } from "@/constants/layout";
 import { TextStyles } from "@/constants/typography";
 
-/** Every inbox row's trailing grid: [primary 72] [gap 6] [32 slot]. */
-const PRIMARY_WIDTH = 72;
-const SLOT = 32;
+const ICON_BUTTON = 36;
 
 /**
- * One inbox row for a person (challenges, friend requests): 44 tile, a name
- * line, one subtitle line, and a trailing action grid. The name is always its
- * own truncating line. The grid is the same for every row, so ACCEPT and LOG
- * SCORE share one size and the decline X and chevron share one column.
+ * The answer to a request, as two compact icon buttons: a check to accept and
+ * an X to decline. Used on friend requests and on incoming challenge cards.
+ */
+export function InboxIconActions({
+  onAccept,
+  onDecline,
+  acceptLabel,
+  declineLabel,
+  busy = false,
+}: {
+  onAccept: () => void;
+  onDecline: () => void;
+  acceptLabel: string;
+  declineLabel: string;
+  busy?: boolean;
+}) {
+  return (
+    <View style={styles.actions}>
+      <Pressable
+        accessibilityLabel={acceptLabel}
+        accessibilityRole="button"
+        disabled={busy}
+        hitSlop={4}
+        onPress={onAccept}
+        style={({ pressed }) => [styles.icon, styles.iconAccept, pressed && styles.pressed]}
+      >
+        <Feather color={Colors.accent} name="check" size={16} />
+      </Pressable>
+      <Pressable
+        accessibilityLabel={declineLabel}
+        accessibilityRole="button"
+        disabled={busy}
+        hitSlop={4}
+        onPress={onDecline}
+        style={({ pressed }) => [styles.icon, styles.iconDecline, pressed && styles.pressed]}
+      >
+        <Feather color={Colors.muted} name="x" size={16} />
+      </Pressable>
+    </View>
+  );
+}
+
+/**
+ * One inbox row for a person (a friend request): a 44 tile, a name line, one
+ * detail line, and the check / X on the right. The name is always its own
+ * truncating line.
  */
 export function InboxActionRow({
   player,
@@ -24,8 +63,10 @@ export function InboxActionRow({
   subtitle,
   openLabel,
   onOpen,
-  primary,
-  decline,
+  onAccept,
+  onDecline,
+  acceptLabel,
+  declineLabel,
   busy = false,
 }: {
   player: { id: string; name: string; initials?: string };
@@ -33,10 +74,10 @@ export function InboxActionRow({
   subtitle: string;
   openLabel: string;
   onOpen: () => void;
-  /** The one thing the row asks of you (ACCEPT, LOG SCORE). */
-  primary?: { label: string; onPress: () => void };
-  /** Shows the 32x32 decline button in the slot; otherwise a chevron. */
-  decline?: { label: string; onPress: () => void };
+  onAccept: () => void;
+  onDecline: () => void;
+  acceptLabel: string;
+  declineLabel: string;
   busy?: boolean;
 }) {
   return (
@@ -57,40 +98,13 @@ export function InboxActionRow({
           </Text>
         </View>
       </Pressable>
-      <View style={styles.actions}>
-        {primary ? (
-          <BrutalistButton
-            disabled={busy}
-            label={primary.label}
-            onPress={primary.onPress}
-            size="sm"
-            style={styles.primary}
-            variant="accent"
-          />
-        ) : null}
-        {decline ? (
-          <Pressable
-            accessibilityLabel={decline.label}
-            accessibilityRole="button"
-            disabled={busy}
-            hitSlop={6}
-            onPress={decline.onPress}
-            style={({ pressed }) => [styles.slot, styles.declineSlot, pressed && styles.pressed]}
-          >
-            <Feather color={Colors.muted} name="x" size={14} />
-          </Pressable>
-        ) : (
-          <Pressable
-            accessibilityElementsHidden
-            hitSlop={6}
-            importantForAccessibility="no-hide-descendants"
-            onPress={onOpen}
-            style={styles.slot}
-          >
-            <Feather color={Colors.muted} name="chevron-right" size={16} />
-          </Pressable>
-        )}
-      </View>
+      <InboxIconActions
+        acceptLabel={acceptLabel}
+        busy={busy}
+        declineLabel={declineLabel}
+        onAccept={onAccept}
+        onDecline={onDecline}
+      />
     </View>
   );
 }
@@ -109,9 +123,16 @@ const styles = StyleSheet.create({
   copy: { flex: 1, minWidth: 0, gap: 2 },
   title: { ...TextStyles.listName, color: Colors.text },
   subtitle: { ...TextStyles.caption, color: Colors.muted },
-  actions: { flexDirection: "row", alignItems: "center", gap: 6 },
-  primary: { width: PRIMARY_WIDTH, height: SLOT, paddingVertical: 0, paddingHorizontal: 0 },
-  slot: { width: SLOT, height: SLOT, alignItems: "center", justifyContent: "center" },
-  declineSlot: { borderRadius: Radius.sm, borderWidth: 1, borderColor: Colors.border },
+  actions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  icon: {
+    width: ICON_BUTTON,
+    height: ICON_BUTTON,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+  },
+  iconAccept: { borderColor: Colors.accentBorder, backgroundColor: Colors.accentDim },
+  iconDecline: { borderColor: Colors.border },
   pressed: { opacity: 0.7 },
 });

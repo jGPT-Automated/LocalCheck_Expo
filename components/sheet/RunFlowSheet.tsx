@@ -6,7 +6,9 @@ import {
 import React, { useEffect, useMemo, useRef } from "react";
 import { Dimensions, StyleSheet, Text, View } from "react-native";
 
-import { Colors } from "@/constants/colors";
+import { Feather } from "@expo/vector-icons";
+
+import { Colors, Radius } from "@/constants/colors";
 import { TextStyles } from "@/constants/typography";
 
 import { AppBottomSheetModal, useSheetBottomPadding } from "./AppBottomSheetModal";
@@ -19,6 +21,8 @@ export function RunFlowSheet({
   onClose,
   title,
   eyebrow,
+  icon,
+  subtitle,
   backdropOpacity,
   contentBottomPadding = 44,
   snapPoints: providedSnapPoints,
@@ -29,6 +33,9 @@ export function RunFlowSheet({
   onClose: () => void;
   title: string;
   eyebrow?: string;
+  /** A Feather icon in an accent box before the title, with `subtitle` under it. */
+  icon?: React.ComponentProps<typeof Feather>["name"];
+  subtitle?: string;
   /** Keep the underlying surface visible when the drawer is part of it. */
   backdropOpacity?: number;
   /** Minimum breathing room below the final action. */
@@ -65,8 +72,20 @@ export function RunFlowSheet({
   // the backdrop already dismiss it; a redundant X was the odd one out.
   const header = (
     <View style={styles.header}>
+      {icon ? (
+        <View style={styles.iconBox}>
+          <Feather color={Colors.accent} name={icon} size={20} />
+        </View>
+      ) : null}
       <View style={styles.headingCopy}>
-        <Text style={styles.title}>{title}</Text>
+        <Text numberOfLines={1} style={styles.title}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text numberOfLines={1} style={styles.subtitle}>
+            {subtitle}
+          </Text>
+        ) : null}
         {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
       </View>
     </View>
@@ -115,7 +134,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
   },
-  headingCopy: { flex: 1, gap: 3 },
+  headingCopy: { flex: 1, minWidth: 0, gap: 3 },
+  iconBox: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.accentDim,
+  },
+  subtitle: { ...TextStyles.metadata, color: Colors.textSecondary },
   eyebrow: {
     ...TextStyles.labelSmall,
     color: Colors.accent,
