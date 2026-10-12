@@ -33,7 +33,7 @@ import { useApp } from "@/context/AppContext";
 import { fetchHeadToHead } from "@/services/gameService";
 import { fetchOpenChallengeWith } from "@/services/challengeService";
 import type { Challenge } from "@/lib/challengeModel";
-import { type HeadToHeadGame, summarizeHeadToHead } from "@/lib/headToHead";
+import { type HeadToHeadGame, seriesStatus, summarizeHeadToHead } from "@/lib/headToHead";
 import { fetchCourtById } from "@/services/courtService";
 import { fetchLeaderboard, fetchProfile } from "@/services/profileService";
 import { fetchPlayerActivity } from "@/services/feedService";
@@ -151,6 +151,10 @@ export default function PlayerProfileScreen() {
   const [courtRank, setCourtRank] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<PlayerProfileTab>("versus");
+  // Head-to-head collapses to one line that sticks at the top once the full
+  // summary scrolls away (D48).
+  const [summaryBottom, setSummaryBottom] = useState(0);
+  const [collapsed, setCollapsed] = useState(false);
   const [qrVisible, setQrVisible] = useState(false);
   const [challengeOpen, setChallengeOpen] = useState(false);
   const [openChallenge, setOpenChallenge] = useState<Challenge | null>(null);
@@ -383,13 +387,23 @@ export default function PlayerProfileScreen() {
         <ProfileTab label="DETAILS" active={activeTab === "details"} onPress={() => setActiveTab("details")} />
       </View>
 
+      <View style={styles.scroll}>
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 32 }}
+        onScroll={(event) => {
+          const next =
+            activeTab === "versus" &&
+            summaryBottom > 0 &&
+            event.nativeEvent.contentOffset.y > summaryBottom - 8;
+          if (next !== collapsed) setCollapsed(next);
+        }}
+        scrollEventThrottle={32}
       >
         {activeTab === "versus" ? (
           <>
+            <View onLayout={(event) => setSummaryBottom(event.nativeEvent.layout.y + event.nativeEvent.layout.height)}>
             <HeadToHeadSummary
               me={{
                 id: currentUser.id,
@@ -400,6 +414,7 @@ export default function PlayerProfileScreen() {
               summary={h2h}
               them={{ id: player.id, name: player.name, initials: player.avatar, elo: player.elo }}
             />
+            </View>
             <View style={styles.gamesTogether}>
               <View style={styles.gamesHeader}>
                 <Text style={styles.gamesTitle}>GAMES TOGETHER</Text>
@@ -478,6 +493,21 @@ export default function PlayerProfileScreen() {
         )}
 
       </ScrollView>
+      {activeTab === "versus" && collapsed ? (
+        <View accessibilityRole="summary" style={styles.stickyH2h}>
+          <Text numberOfLines={1} style={styles.stickyName}>YOU</Text>
+          <Text style={styles.stickyRecord}>
+            <Text style={h2h.leader === "you" ? styles.stickyLead : null}>{h2h.myWins}</Text>
+            {"–"}
+            <Text style={h2h.leader === "them" ? styles.stickyLead : null}>{h2h.theirWins}</Text>
+          </Text>
+          <Text numberOfLines={1} style={[styles.stickyName, styles.stickyNameRight]}>
+            {player.name.toUpperCase()}
+          </Text>
+          <Text numberOfLines={1} style={styles.stickyStatus}>{seriesStatus(h2h)}</Text>
+        </View>
+      ) : null}
+      </View>
       <StickyActionBar
         bottomInset={bottom}
         leading={{
@@ -539,6 +569,34 @@ export default function PlayerProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   scroll: { flex: 1 },
+  stickyH2h: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    minHeight: 44,
+    paddingHorizontal: Layout.screenGutter,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Space.sm,
+    backgroundColor: Colors.surfaceDark,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  stickyName: { ...TextStyles.labelSmall, color: Colors.textSecondary, letterSpacing: 1 },
+  stickyNameRight: { flexShrink: 1 },
+  stickyRecord: {
+    ...TextStyles.statSmall,
+    color: Colors.textSecondary,
+    fontVariant: ["tabular-nums"],
+  },
+  stickyLead: { color: Colors.accent },
+  stickyStatus: {
+    ...TextStyles.labelSmall,
+    marginLeft: "auto",
+    color: Colors.text,
+    letterSpacing: 1.2,
+  },
   pressed: { opacity: 0.68 },
   tabs: {
     minHeight: 48,
