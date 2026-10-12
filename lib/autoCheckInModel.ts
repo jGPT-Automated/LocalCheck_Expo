@@ -6,10 +6,13 @@
 
 /** iOS geofences use Wi-Fi and cell positioning; under ~100 m they misfire. */
 export const AUTO_CHECK_IN_RADIUS_M = 150;
-/** Arrivals stay hidden this long so driving past never posts (D36). */
-export const AUTO_CHECK_IN_HOLD_MINUTES = 3;
+/**
+ * Checked in privately on arrival; posted (court, feed, friends' alerts) this
+ * many minutes later unless the player hides it or leaves (Jesse, Oct 12).
+ */
+export const AUTO_CHECK_IN_HOLD_MINUTES = 5;
 /** Auto check-ins end when the player leaves; this is the backstop. */
-export const AUTO_CHECK_IN_MAX_HOURS = 3;
+export const AUTO_CHECK_IN_MAX_HOURS = 1.5;
 
 export const AUTO_CHECK_IN_TASK = "localcheck-auto-check-in";
 export const AUTO_CHECK_IN_NOTIFICATION_ID = "localcheck-auto-check-in";
@@ -17,11 +20,10 @@ export const AUTO_CHECK_IN_CATEGORY = "auto-check-in";
 export const AUTO_CHECK_IN_UNDO_ACTION = "undo";
 /** Emitted after the notification's Undo runs (payload: boolean ok). */
 export const AUTO_CHECK_IN_UNDONE_EVENT = "localcheck:auto-check-in-undone";
-/** The 3-hour "You've been checked out" push (D38) and its buttons. */
+/** The 1.5-hour "Auto checked out" push and its I'm still here button. */
 export const AUTO_CHECK_OUT_CATEGORY = "auto-check-out";
 export const CHECK_BACK_IN_ACTION = "check_back_in";
-export const GOT_IT_ACTION = "got_it";
-/** Emitted after "Check back in" runs (payload: boolean ok). */
+/** Emitted after "I'm still here" runs (payload: boolean ok). */
 export const AUTO_CHECK_IN_RESUMED_EVENT = "localcheck:auto-check-in-resumed";
 
 export type AutoCheckInCourt = {
@@ -113,20 +115,9 @@ export function autoCheckInSwitchValue(state: AutoCheckInState): boolean {
   return state === "on" || state === "needs_always";
 }
 
-/** When the "Checked in" notification should fire for a held arrival. */
-export function notifyAt(arrivedAtIso: string | null | undefined, now: Date = new Date()): Date {
-  const arrived = arrivedAtIso ? new Date(arrivedAtIso) : now;
-  const at = new Date(
-    (Number.isNaN(arrived.getTime()) ? now : arrived).getTime() +
-      AUTO_CHECK_IN_HOLD_MINUTES * 60_000,
-  );
-  // Never in the past: at least a few seconds out so iOS accepts it.
-  return at.getTime() < now.getTime() + 5_000 ? new Date(now.getTime() + 5_000) : at;
-}
-
 export function checkedInNotification(courtName: string): { title: string; body: string } {
   return {
     title: `Checked in at ${courtName}`,
-    body: "Auto check-in. Not playing? Tap Not here.",
+    body: `Posts in ${AUTO_CHECK_IN_HOLD_MINUTES} minutes. Not playing? Tap Hide.`,
   };
 }

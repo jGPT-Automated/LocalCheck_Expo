@@ -80,7 +80,7 @@ interface AppContextValue {
   currentUser: Player;
   courts: Court[];
   checkedInCourtId: string | null;
-  /** The active check-in came from auto check-in (D35): show "Not here?". */
+  /** The active check-in came from auto check-in (D35): show "Hide". */
   checkedInAuto: boolean;
   lastVisitedCourtId: string | null;
   localCourtId: string | null;

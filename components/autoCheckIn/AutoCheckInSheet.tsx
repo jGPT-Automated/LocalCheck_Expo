@@ -40,7 +40,7 @@ export function AutoCheckInSheet({
       <View style={styles.content}>
         <GeofenceVisual courtName={courtName} />
         <View style={styles.rows}>
-          <Point body="A few minutes after you arrive" icon="log-in" title="CHECKED IN" />
+          <Point body="When you arrive" icon="log-in" title="CHECKED IN" />
           <Point body="When you leave" icon="log-out" title="CHECKED OUT" />
           <Point body="Only this circle, nowhere else" icon="lock" title="PRIVATE" />
         </View>

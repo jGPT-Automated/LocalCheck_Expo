@@ -1,18 +1,19 @@
 -- Undo supabase/migrations/20261012180000_qstash_timers.sql.
 -- Only if needed. Paste into the Supabase SQL editor and Run.
 --
--- Puts back, exactly as they were before the migration ran (saved by the
--- migration in private.migration_backups):
---   - the 4 functions it replaced (create_challenge, respond_to_challenge,
---     expire_stale_challenges, remind_upcoming_challenges)
---   - the cron jobs (the 5 polling jobs and the original push job)
+-- Puts back, exactly as they were before the migration ran (from the copy it
+-- saved in private.migration_backups):
+--   - create_challenge and respond_to_challenge
+--   - the 5 repeating jobs (the push job was never changed)
+--   - the list of notification kinds; the "Check-in posted" notifications,
+--     which only exist because of the migration, are deleted first
 -- Stops new timers (drops the 4 triggers) and closes every open timer, so a
--- QStash message still in flight does nothing when it arrives.
--- Keeps private.timers and its functions for the record; they do nothing once
--- the triggers are gone and every timer is closed.
+-- QStash message still on its way does nothing when it arrives.
+-- Leaves private.timers, private.migration_backups and the new functions in
+-- place, unused, for the record.
 --
--- Note: the restored create_challenge allows 5 days ahead (the app in #67
--- offers 7), so a challenge for day 6 or 7 would be refused until it's redone.
+-- Note: the restored create_challenge allows 5 days ahead (the #67 app offers
+-- 7), and the restored jobs end auto check-ins after 3 hours (not 1.5).
 
 begin;
 
@@ -22,25 +23,31 @@ set local statement_timeout = '60s';
 do $check$
 begin
   if (select count(*) from private.migration_backups
-      where migration = '20261012180000' and kind = 'function') <> 4 then
-    raise exception 'Expected 4 saved functions in private.migration_backups; stopping.';
+      where migration = '20261012180000' and kind = 'function') <> 2 then
+    raise exception 'Expected 2 saved functions in private.migration_backups; stopping.';
   end if;
   if not exists (select 1 from private.migration_backups
-      where migration = '20261012180000' and kind = 'cron_job'
-        and name = 'localcheck-notification-dispatch') then
-    raise exception 'The saved push job is missing from private.migration_backups; stopping.';
+      where migration = '20261012180000' and kind = 'constraint'
+        and name = 'notifications_type_check') then
+    raise exception 'The saved notification kinds are missing; stopping.';
+  end if;
+  if (select count(*) from private.migration_backups
+      where migration = '20261012180000' and kind = 'cron_job') < 5 then
+    raise exception 'The saved repeating jobs are missing; stopping.';
   end if;
 end
 $check$;
 
 drop trigger if exists book_challenge_timers on public.challenges;
 drop trigger if exists book_check_in_timer on public.check_ins;
-drop trigger if exists book_auto_check_in_hold_timer on private.auto_check_in_arrivals;
+drop trigger if exists book_auto_check_in_post_timer on private.auto_check_in_arrivals;
 drop trigger if exists book_match_timer on public.matches;
 
 update private.timers
-set fired_at = now(), result = 'rolled_back'
+set fired_at = now(), result = 'undone'
 where fired_at is null;
+
+delete from public.notifications where type = 'auto_check_in';
 
 do $restore$
 declare
@@ -52,6 +59,11 @@ begin
   loop
     execute r.definition;
   end loop;
+
+  select definition into r from private.migration_backups
+  where migration = '20261012180000' and kind = 'constraint' and name = 'notifications_type_check';
+  alter table public.notifications drop constraint notifications_type_check;
+  execute 'alter table public.notifications add constraint notifications_type_check ' || r.definition;
 
   for r in
     select name, definition from private.migration_backups

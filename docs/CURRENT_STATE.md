@@ -17,7 +17,7 @@ Last reconciled: 2026-10-12 against `origin/main` at `541632c` (#65), PR #67
   `20261012180000_qstash_timers.sql` (D50, D51): timed work moves to QStash
   and the five polling jobs are removed (`docs/SUPABASE.md` → "Timed work
   (QStash)"). Not yet deployed: `timers` (new) and `send-notification`
-  (passes `data.category` for the 3-hour notice buttons).
+  (passes `data.category` for the Hide and I'm still here buttons).
 - Installed TestFlight build: version `1.0.3`. Builds are manual only; none
   used in October so far (`docs/RELEASE.md`).
 - EAS project: `agenticjess-os/localcheck`
@@ -78,17 +78,18 @@ Last reconciled: 2026-10-12 against `origin/main` at `541632c` (#65), PR #67
   won. It still counts for ELO, rank, record and head-to-head.
 - Game visibility (D31): a game shows outside its players only if every
   player is Public.
-- Auto check-in (D35, D36; opt-in, real builds only): one 150 m geofence on the
-  player's local court. Arriving is held 3 minutes server-side (drive-bys never
-  post), then becomes a check-in with source `auto` and a "Checked in" local
-  notification with Undo; leaving checks out. Offered once when a local court
+- Auto check-in (D35, D52; opt-in, real builds only): one 150 m geofence on the
+  player's local court. Arriving checks in privately and shows "Checked in at
+  …" with Hide at once; 5 minutes later it posts (source `auto`, check-in time
+  = arrival) with "Check-in posted"; leaving checks out at once; 1.5 hours
+  after arrival it ends with "Auto checked out" / I'm still here. Offered once when a local court
   is picked (after onboarding) and in Settings → AUTO CHECK-IN. The auth
   session is stored readable after first unlock so the background task can
   call Supabase with the phone locked. A "Checked in automatically · Not
   here?" line sits under the check-in button on Home and the court drawer.
   Friend alerts need both "Share my auto check-ins" (sender) and "Friends'
-  auto check-ins" (receiver) on, and never fire for Private (D37). The 3-hour
-  backstop sends "You've been checked out" with Check back in (D38).
+  auto check-ins" (receiver) on, and never fire for Private (D37). The 1.5-hour
+  backstop sends "Auto checked out" with I'm still here (D52).
 - LocalPlus plans: Yearly $49.99 (preselected, "Save 17%") and Monthly $4.99,
   US only, with the auto-renew disclosure and Terms / Privacy links.
 - Leaderboard membership: a profile is ranked in a sport only after ≥1 game in

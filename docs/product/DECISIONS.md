@@ -62,18 +62,23 @@ below wherever they disagree.
   activity feed keeps its timeline (day headers, one marker size, games as
   cards, check-ins as quiet lines); games-together rows and head-to-head use
   the row/line style.
-- **D51 Timed work runs on QStash, not polling jobs (Oct 12):** each timed
-  follow-up is booked once, for its exact time, on Upstash QStash (US East):
-  the 3-minute auto check-in hold (then friend alerts), the 3-hour auto and
-  45-minute manual checkouts, the 3-day score auto-approve and 7-day held
-  void, the 30-minute challenge reminder, and challenge expiry at game time.
-  The database writes a row to `private.timers` and asks the `timers` Edge
-  Function to book it; QStash calls `timers` back at that time, which checks
-  the signature and runs the existing database rule. The five polling jobs
-  (every 1, 5 and 15 minutes) are gone; the 2-minute push job also sweeps
-  for any timer that failed to book or was never delivered. Migration
-  `20261012180000_qstash_timers.sql`. Before, jobs checked every minute or
-  more for things that were due.
+- **D51 Timed work runs on QStash, one timer per thing (Oct 12):** each
+  timed follow-up is booked once, for its exact time, on Upstash QStash, and
+  acts on that one challenge, check-in, arrival or game: expiry at game time,
+  the 30-minute reminder, posting an auto check-in, ending a check-in, the
+  3-day score approval and the 7-day held-game void. If QStash can't reach
+  the server it retries. The five polling jobs are gone; the 2-minute push
+  resend job is unchanged. Every database change ships with a test version
+  and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D52 Auto check-in timing (Oct 12, revises D36, D38):** arriving checks you
+  in privately and shows "Checked in at Rancho" with **Hide** right away.
+  5 minutes later it posts (court, feed, friends' alerts) and you get
+  "Check-in posted", still with Hide. Leaving checks you out at that moment.
+  If the phone never reports leaving, you're checked out 1.5 hours after
+  arriving ("Auto checked out", with **I'm still here**, which starts another
+  1.5 hours). The check-in time is the arrival time. Hide erases the check-in;
+  friend alerts already sent stay sent. A countdown on the home court page
+  comes after launch.
 - **D50 Every challenge has a game time; 7-day windows (Oct 12, revises D26,
   D39):** a challenge needs a court, a day and a time, up to 7 days ahead. A
   pending challenge expires at its game time (not at the end of its day). Once

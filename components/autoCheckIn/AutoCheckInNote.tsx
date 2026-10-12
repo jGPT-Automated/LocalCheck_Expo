@@ -10,8 +10,8 @@ import { undoAutoCheckIn } from "@/services/autoCheckInService";
 
 /**
  * One quiet line under a court's check-in button when the check-in came from
- * auto check-in (D35): "Checked in automatically · Not here?". Tapping
- * "Not here?" removes it as if it never happened, so an auto check-in always
+ * auto check-in (D35): "Checked in automatically · Hide". Tapping
+ * "Hide" removes it as if it never happened, so an auto check-in always
  * feels easy to take back.
  */
 export function AutoCheckInNote({ courtId }: { courtId: string }) {
@@ -39,13 +39,13 @@ export function AutoCheckInNote({ courtId }: { courtId: string }) {
     <View style={styles.row}>
       <Text style={styles.text}>Checked in automatically ·</Text>
       <Pressable
-        accessibilityLabel="Not here? Remove this auto check-in"
+        accessibilityLabel="Hide this auto check-in"
         accessibilityRole="button"
         disabled={busy}
         hitSlop={12}
         onPress={() => void remove()}
       >
-        <Text style={styles.link}>{busy ? "Removing…" : "Not here?"}</Text>
+        <Text style={styles.link}>{busy ? "Hiding…" : "Hide"}</Text>
       </Pressable>
     </View>
   );

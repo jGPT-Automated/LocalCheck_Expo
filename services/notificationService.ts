@@ -9,6 +9,7 @@ export type NotificationType =
   | "match_rejected"
   | "challenge"
   | "friend_check_in"
+  | "auto_check_in"
   | "auto_check_out";
 
 export interface AppNotification {

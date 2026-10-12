@@ -7,14 +7,12 @@ import {
   AUTO_CHECK_OUT_CATEGORY,
   AUTO_CHECK_IN_CATEGORY,
   CHECK_BACK_IN_ACTION,
-  GOT_IT_ACTION,
   AUTO_CHECK_IN_NOTIFICATION_ID,
   AUTO_CHECK_IN_TASK,
   AUTO_CHECK_IN_UNDO_ACTION,
   type AutoCheckInCourt,
   type AutoCheckInPermission,
   checkedInNotification,
-  notifyAt,
   regionFor,
 } from "@/lib/autoCheckInModel";
 import { supabase } from "@/lib/supabase";
@@ -22,8 +20,10 @@ import { supabase } from "@/lib/supabase";
 /**
  * Auto check-in at the local court (D35, D36). One geofence, set from the
  * player's local court. iOS wakes the app for a few seconds on arrival and on
- * leaving; the task below tells the server, which holds arrivals 3 minutes
- * before they become a check-in (migration 20261009120000_auto_check_in.sql).
+ * leaving; the task below tells the server. On arrival the player is checked
+ * in privately and told at once ("Checked in at …", with Hide); 5 minutes
+ * later a QStash timer posts it, unless they hid it or left (migrations
+ * 20261009120000_auto_check_in.sql and 20261012180000_qstash_timers.sql).
  *
  * Geofencing needs a real build: Expo Go has no background location, so
  * everything here reports "unavailable" there and never throws.
@@ -64,17 +64,15 @@ async function onArrive(courtId: string) {
       categoryIdentifier: AUTO_CHECK_IN_CATEGORY,
       data: { kind: "auto_check_in", path: `/court/${courtId}` },
     },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DATE,
-      date: notifyAt(result.arrived_at),
-    },
+    // Shown right away: checked in now, posted in 5 minutes.
+    trigger: null,
   });
 }
 
 async function onLeave(courtId: string) {
   const Notifications = await notifications();
-  // Left inside the hold: the "Checked in" notification never goes out.
-  await Notifications.cancelScheduledNotificationAsync(AUTO_CHECK_IN_NOTIFICATION_ID).catch(() => {});
+  // Left before it posted (a drive-by): take the "Checked in" notice away.
+  await Notifications.dismissNotificationAsync(AUTO_CHECK_IN_NOTIFICATION_ID).catch(() => {});
   const { error } = await supabase.rpc("auto_check_in_leave", { p_court_id: courtId });
   if (error) console.warn("auto check-in leave failed", error.message);
 }
@@ -170,9 +168,8 @@ export async function syncAutoCheckIn(court: AutoCheckInCourt | null): Promise<v
 }
 
 /**
- * Notification buttons: "Not here" on "Checked in at …" (D36), and
- * "Check back in" / "Got it" on the 3-hour "You've been checked out" push
- * (D38).
+ * Notification buttons: "Hide" on "Checked in at …" and "Check-in posted",
+ * and "I'm still here" on the 1.5-hour "Auto checked out" push.
  */
 export async function registerUndoAction(): Promise<void> {
   if (Platform.OS !== "ios") return;
@@ -181,20 +178,15 @@ export async function registerUndoAction(): Promise<void> {
     await Notifications.setNotificationCategoryAsync(AUTO_CHECK_IN_CATEGORY, [
       {
         identifier: AUTO_CHECK_IN_UNDO_ACTION,
-        buttonTitle: "Not here",
+        buttonTitle: "Hide",
         options: { opensAppToForeground: true },
       },
     ]);
     await Notifications.setNotificationCategoryAsync(AUTO_CHECK_OUT_CATEGORY, [
       {
         identifier: CHECK_BACK_IN_ACTION,
-        buttonTitle: "Check back in",
+        buttonTitle: "I'm still here",
         options: { opensAppToForeground: true },
-      },
-      {
-        identifier: GOT_IT_ACTION,
-        buttonTitle: "Got it",
-        options: { opensAppToForeground: false },
       },
     ]);
   } catch (error) {
@@ -202,7 +194,7 @@ export async function registerUndoAction(): Promise<void> {
   }
 }
 
-/** "Check back in" on the 3-hour notice: auto check-in again, right away. */
+/** "I'm still here" on the 1.5-hour notice: auto check-in again, right away (another 1.5 hours). */
 export async function resumeAutoCheckIn(courtId: string): Promise<boolean> {
   const { data, error } = await supabase.rpc("resume_auto_check_in", { p_court_id: courtId });
   if (error) {

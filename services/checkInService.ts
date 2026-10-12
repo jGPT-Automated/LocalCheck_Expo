@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { mapProfileToPlayer, SupabaseProfile } from "./profileService";
 
 // Manual check-ins end after 45 minutes; auto check-ins (the local-court
-// geofence, D35) end when the player leaves, with a 3-hour backstop. A
+// geofence, D35) end when the player leaves, with a 1.5-hour backstop. A
 // pg_cron job closes stale rows every 5 minutes; reads ALSO apply the same
 // windows so presence is exact between runs. Keep in sync with
 // private.auto_checkout_stale_check_ins (migration 20261009120000).

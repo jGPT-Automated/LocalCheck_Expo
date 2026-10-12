@@ -18,6 +18,7 @@ const ICONS: Record<NotificationType, React.ComponentProps<typeof Feather>["name
   match_rejected: "alert-circle",
   challenge: "zap",
   friend_check_in: "map-pin",
+  auto_check_in: "log-in",
   auto_check_out: "log-out",
 };
 

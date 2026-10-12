@@ -288,63 +288,61 @@ Both are recorded in `supabase_migrations.schema_migrations` by
 ## Timed work (QStash)
 
 Every timed follow-up is booked once, for its exact time, on Upstash QStash
-(US East). No job polls for due work.
+(US East), and acts on its one thing only. No job polls for due work.
 
-| What | When | Database rule it runs |
+| What | When | Function (one row) |
 | --- | --- | --- |
-| Auto check-in goes live (+ friend alerts) | arrival + 3 min | `private.promote_auto_check_ins` |
-| Auto check-in ends ("You've been checked out") | check-in + 3 h | `private.auto_checkout_stale_check_ins` |
-| Manual check-in ends | check-in + 45 min | `private.auto_checkout_stale_check_ins` |
-| Score auto-approves / held game voids | review or resolution deadline | `private.auto_confirm_due_matches` |
-| Challenge reminder to both players | game time − 30 min | `private.remind_upcoming_challenges` |
-| Unanswered challenge expires | game time | `private.expire_stale_challenges` |
+| Auto check-in posts (court, feed, friends' alerts, "Check-in posted") | arrival + 5 min | `private.post_auto_check_in(user)` |
+| Auto check-in ends ("Auto checked out", I'm still here) | arrival + 1.5 h | `private.end_check_in(check-in)` |
+| Manual check-in ends | check-in + 45 min | `private.end_check_in(check-in)` |
+| Score approved / held game voided | its deadline | `private.settle_due_match(game)` |
+| Challenge reminder to both players | game time − 30 min | `private.remind_challenge(challenge)` |
+| Unanswered challenge expires | game time | `private.expire_challenge(challenge)` |
 
 How it works:
 
-1. A trigger on `check_ins`, `private.auto_check_in_arrivals`, `matches` or
-   `challenges` writes a row to `private.timers` (`kind`, `ref_id`, `run_at`;
-   one row per kind, thing and time).
+1. A trigger on `challenges`, `check_ins`, `private.auto_check_in_arrivals`
+   or `matches` writes a row to `private.timers` (`kind`, `ref_id`, `run_at`).
 2. `private.book_timer` calls the `timers` Edge Function through `pg_net`
    with the Vault webhook secret. The function publishes a QStash message
-   (`Upstash-Not-Before` = the time) whose destination is the same function,
-   then stores `booked_at` and `qstash_message_id`.
-3. At that time QStash calls `timers`. It checks the `Upstash-Signature` with
-   the current and next signing keys, then runs `public.fire_timer`, which runs
-   the database rule above. The rules only act on rows that are actually due,
-   so running one twice, early or for a cancelled thing is harmless. QStash
-   retries 3 times on failure.
-4. QStash's free plan delays at most 7 days. A later timer is booked at the
-   cap; when it arrives early, `fire_timer` answers `early` and the function
-   books it again.
-5. A timer is marked done only when its work really happened
-   (`private.timer_still_due`); the rules skip rows another transaction has
-   locked, and such a timer stays open with `result = 'still_due'`.
-6. Safety net: the 2-minute `localcheck-notification-dispatch` job also runs
-   `private.sweep_timers()`, which re-books timers that never booked (up to 5
-   tries) and runs any timer more than 3 minutes overdue (up to 5 tries,
-   `run_attempts`). It never raises, so a bad timer can't stop push resends.
+   (`Upstash-Not-Before` = the time) that calls the same function back, and
+   stores `booked_at` and `qstash_message_id`.
+3. At that time QStash calls `timers`. It checks the `Upstash-Signature`
+   (current and next signing keys) and runs `public.fire_timer`, which runs the
+   function above for that one row. Each function locks its row and checks it
+   is still due, so an answered challenge, an ended check-in, a hidden or left
+   arrival, or an approved game is left alone. `private.timers.result` records
+   what it did.
+4. An error makes the function answer 500 and QStash tries again (after about
+   12 seconds, 2.5 minutes and 30 minutes). QStash's free plan delays at most
+   7 days; a later timer is booked at the cap and booked again when it
+   arrives early.
 
-Undo: `supabase/rollbacks/20261012180000_qstash_timers.sql` puts back the 4
-replaced functions and the cron jobs exactly as they were (the migration saved
-them in `private.migration_backups`), drops the 4 triggers and closes every
-open timer.
+The 2-minute `localcheck-notification-dispatch` job is separate and
+unchanged: it resends pushes Expo didn't accept, as Expo's docs recommend.
 
-Secrets (Supabase → Edge Functions → Secrets): `QSTASH_URL`, `QSTASH_TOKEN`,
-`QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY`, plus the existing
-`NOTIFICATION_WEBHOOK_SECRET`. `timers` is deployed with JWT verification off;
-it accepts only the webhook secret (booking) or a valid QStash signature
-(firing).
-
-Check it:
+Known gap: booking goes out after the change commits (`pg_net`). If that one
+request fails, the timer stays unbooked (`booked_at` null). Check:
 
 ```sql
-select kind, run_at, booked_at, qstash_message_id is not null as booked,
-       fired_at, result
+select kind, run_at, booked_at, fired_at, result
 from private.timers order by created_at desc limit 20;
 ```
 
 Then Edge Functions → `timers` → Logs (`timer_booked`, `timer_fired`), and the
-QStash console's Messages / Logs.
+QStash console.
+
+Secrets (Supabase → Edge Functions → Secrets): `QSTASH_URL`, `QSTASH_TOKEN`,
+`QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY`, plus the existing
+`NOTIFICATION_WEBHOOK_SECRET`. `timers` is deployed with JWT verification off;
+it accepts only the webhook secret (booking) or a valid QStash signature.
+
+Test first: `supabase/scripts/20261012180000_qstash_timers_test.sql` runs the
+migration, fakes each flow with the QA accounts, runs the undo, and throws it
+all away (ends in a `TEST_RESULT` error). Undo:
+`supabase/rollbacks/20261012180000_qstash_timers.sql` (puts back the 2
+replaced functions, the notification kinds and the 5 jobs from
+`private.migration_backups`).
 
 ## Realtime and API safety
 

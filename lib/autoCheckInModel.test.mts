@@ -7,7 +7,6 @@ import {
   autoCheckInState,
   autoCheckInSwitchValue,
   checkedInNotification,
-  notifyAt,
   regionFor,
 } from "./autoCheckInModel.ts";
 
@@ -44,11 +43,7 @@ test("settings copy and switch", () => {
   assert.equal(autoCheckInSwitchValue("off"), false);
 });
 
-test("notification fires 3 minutes after arrival, never in the past", () => {
-  const now = new Date("2026-10-08T12:00:00Z");
-  assert.equal(notifyAt("2026-10-08T11:59:00Z", now).toISOString(), "2026-10-08T12:02:00.000Z");
-  assert.equal(notifyAt("2026-10-08T11:00:00Z", now).toISOString(), "2026-10-08T12:00:05.000Z");
-  assert.equal(notifyAt(null, now).toISOString(), "2026-10-08T12:03:00.000Z");
+test("arrival notification: checked in now, posts in 5 minutes, Hide", () => {
   assert.equal(checkedInNotification("Kasmiersky Park").title, "Checked in at Kasmiersky Park");
-  assert.match(checkedInNotification("Kasmiersky Park").body, /Not here/);
+  assert.equal(checkedInNotification("Kasmiersky Park").body, "Posts in 5 minutes. Not playing? Tap Hide.");
 });

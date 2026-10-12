@@ -13,8 +13,8 @@
 //      delivered early (its free plan delays at most 7 days), the timer is
 //      booked again for the rest of the wait.
 //
-// Anything else gets 401. A failure returns 500 so QStash retries (3 times
-// by default); the database's 2-minute sweep is the last resort.
+// Anything else gets 401. A failure returns 500 so QStash tries again
+// (3 times by default: after about 12 seconds, 2.5 minutes and 30 minutes).
 
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { Receiver } from "npm:@upstash/qstash@2";

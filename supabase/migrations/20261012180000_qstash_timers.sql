@@ -1,36 +1,39 @@
--- Timed work runs on QStash instead of repeating jobs (Oct 12, 2026).
+-- Timed work runs on QStash instead of repeating jobs (Oct 12, 2026; D50, D51).
 --
--- Before: five pg_cron jobs woke up every 1, 5 or 15 minutes and looked for
--- work (3-minute auto check-in hold, check-in time limits, score auto-approve,
--- challenge reminder, challenge expiry).
+-- Each timed follow-up is booked once, for its exact time, and acts on its
+-- one thing only. When something happens, a trigger writes a row in
+-- private.timers and asks the `timers` Edge Function to book a QStash message
+-- for that time. At that time QStash calls `timers`, which checks QStash's
+-- signature and runs public.fire_timer for that row. If the call fails,
+-- QStash tries again (after about 12 seconds, 2.5 minutes and 30 minutes).
 --
--- Now: when something happens that needs a follow-up at a set time, a trigger
--- writes one row in private.timers and asks the `timers` Edge Function to book
--- a QStash message for that exact time. At that time QStash calls `timers`,
--- which checks the QStash signature and runs public.fire_timer. fire_timer
--- runs the same, already-proven function the old job ran; those functions only
--- act on rows that are actually due, so a late, early or repeated delivery is
--- harmless, and a cancelled challenge or an undone check-in simply has nothing
--- left to do.
+--   what                         booked when                    runs at
+--   challenge_expiry   (challenge)  sent, with a game time        the game time
+--   challenge_reminder (challenge)  accepted 30+ minutes ahead    30 min before
+--   auto_check_in_post (player)     the phone reports arrival     arrival + 5 min
+--   check_in_end       (check-in)   a check-in starts             + 45 min manual,
+--                                                                 + 1.5 h auto
+--   match_due          (game)       a score goes to review/held   its deadline
 --
---   kind                 booked when                         runs at
---   challenge_expiry     a challenge is pending with a time  its game time
---   challenge_reminder   a challenge is accepted 30+ min out  30 min before
---   auto_check_in_hold   a geofence arrival is held           arrival + 3 min
---   check_in_end         a check-in starts                    + 45 min (manual)
---                                                             + 3 h (auto)
---   match_due            a score goes to review / is held     its due time
+-- At run time each one checks its own thing first: a challenge that was
+-- accepted, a check-in already ended, an arrival that was hidden or left, a
+-- game already approved: nothing happens.
 --
--- Safety net: the 2-minute push job that already runs (it resends failed
--- pushes) also calls private.sweep_timers, which books any timer whose booking
--- didn't go out and runs any timer more than 3 minutes overdue. No new job.
+-- Auto check-in (Jesse, Oct 12): checked in privately on arrival; posted
+-- 5 minutes later (friends' alerts, "Check-in posted"); ends when the phone
+-- reports leaving, or 1.5 hours after arrival ("Auto checked out", with
+-- I'm still here). The check-in time is the arrival time.
 --
--- Also in this script (decided Oct 12): challenges need a day and time, up to
--- 7 days ahead, future times only, and an unanswered challenge expires at its
--- game time. The two Oct 12 morning scripts that were run in the SQL editor
--- are recorded as applied.
+-- Challenges (Jesse, Oct 12): a day and time are required, up to 7 days
+-- ahead; an unanswered challenge expires at its game time.
 --
--- Needs: Edge Function `timers` deployed, Edge secrets QSTASH_URL,
+-- The 5 repeating jobs that polled for this work are removed. The 2-minute
+-- push job (resends pushes Expo didn't accept) is not touched.
+--
+-- Undo: supabase/rollbacks/20261012180000_qstash_timers.sql, using the copy
+-- this script saves in private.migration_backups before changing anything.
+--
+-- Needs: Edge Function `timers` deployed; Edge secrets QSTASH_URL,
 -- QSTASH_TOKEN, QSTASH_CURRENT_SIGNING_KEY, QSTASH_NEXT_SIGNING_KEY and
 -- NOTIFICATION_WEBHOOK_SECRET; Vault secrets localcheck_supabase_url and
 -- localcheck_notification_webhook_secret (both already used by push).
@@ -40,43 +43,10 @@ begin;
 set local lock_timeout = '5s';
 set local statement_timeout = '60s';
 
--- ── 1. The timers table ─────────────────────────────────────────────────────
-create table if not exists private.timers (
-  id uuid primary key default gen_random_uuid(),
-  kind text not null check (kind in (
-    'challenge_expiry', 'challenge_reminder', 'auto_check_in_hold',
-    'check_in_end', 'match_due'
-  )),
-  ref_id uuid not null,
-  run_at timestamptz not null,
-  created_at timestamptz not null default now(),
-  booking_attempts integer not null default 0,
-  run_attempts integer not null default 0,
-  booked_at timestamptz,
-  qstash_message_id text,
-  fired_at timestamptz,
-  result text,
-  unique (kind, ref_id, run_at)
-);
-
-comment on table private.timers is
-  'One row per timed follow-up, delivered by QStash at run_at (see migration 20261012180000).';
-
-create index if not exists timers_unfired_run_at_idx
-  on private.timers (run_at) where fired_at is null;
-
-revoke all on table private.timers from public, anon, authenticated;
--- No policies: only the security-definer functions below (owned by postgres,
--- which bypasses RLS as the table owner) read or write it.
-alter table private.timers enable row level security;
-
--- ── 1b. Keep a copy of what this script replaces, so it can be undone ───────
--- The exact live definitions of the 4 functions it rewrites and the cron jobs
--- as they stand right now. supabase/rollbacks/20261012180000_qstash_timers.sql
--- puts them back from this table.
+-- ── 1. Save what this script replaces, so it can be undone ──────────────────
 create table if not exists private.migration_backups (
   migration text not null,
-  kind text not null check (kind in ('function', 'cron_job')),
+  kind text not null check (kind in ('function', 'cron_job', 'constraint')),
   name text not null,
   definition text not null,
   saved_at timestamptz not null default now(),
@@ -89,12 +59,7 @@ insert into private.migration_backups (migration, kind, name, definition)
 select '20261012180000', 'function', p.oid::regprocedure::text, pg_get_functiondef(p.oid)
 from pg_proc p
 join pg_namespace n on n.oid = p.pronamespace
-where (n.nspname, p.proname) in (
-  ('private', 'expire_stale_challenges'),
-  ('private', 'remind_upcoming_challenges'),
-  ('public', 'create_challenge'),
-  ('public', 'respond_to_challenge')
-)
+where (n.nspname, p.proname) in (('public', 'create_challenge'), ('public', 'respond_to_challenge'))
 on conflict do nothing;
 
 insert into private.migration_backups (migration, kind, name, definition)
@@ -103,9 +68,44 @@ from cron.job j
 where j.jobname like 'localcheck-%'
 on conflict do nothing;
 
--- ── 2. Book a timer: ask the `timers` Edge Function to publish to QStash ────
+insert into private.migration_backups (migration, kind, name, definition)
+select '20261012180000', 'constraint', c.conname, pg_get_constraintdef(c.oid)
+from pg_constraint c
+where c.conrelid = 'public.notifications'::regclass and c.conname = 'notifications_type_check'
+on conflict do nothing;
+
+-- ── 2. The timers table ─────────────────────────────────────────────────────
+create table if not exists private.timers (
+  id uuid primary key default gen_random_uuid(),
+  kind text not null check (kind in (
+    'challenge_expiry', 'challenge_reminder', 'auto_check_in_post',
+    'check_in_end', 'match_due'
+  )),
+  ref_id uuid not null,
+  run_at timestamptz not null,
+  created_at timestamptz not null default now(),
+  booking_attempts integer not null default 0,
+  booked_at timestamptz,
+  qstash_message_id text,
+  fired_at timestamptz,
+  result text,
+  unique (kind, ref_id, run_at)
+);
+
+comment on table private.timers is
+  'One row per timed follow-up, delivered by QStash at run_at (migration 20261012180000).';
+
+create index if not exists timers_unfired_run_at_idx
+  on private.timers (run_at) where fired_at is null;
+
+revoke all on table private.timers from public, anon, authenticated;
+-- No policies: only the security-definer functions below (owned by postgres,
+-- which bypasses RLS as the table owner) read or write it.
+alter table private.timers enable row level security;
+
+-- ── 3. Book a timer: ask the `timers` Edge Function to publish to QStash ────
 -- Same pattern and secrets as private.dispatch_push_webhook. pg_net sends the
--- request after this transaction commits, and never blocks or fails it.
+-- request after the transaction commits and never blocks or fails it.
 create or replace function private.book_timer(p_timer_id uuid)
 returns bigint
 language plpgsql
@@ -164,6 +164,8 @@ $$;
 
 revoke all on function private.book_timer(uuid) from public, anon, authenticated;
 
+-- The exact time is kept (no rounding down), so a timer never runs before the
+-- thing it checks is due.
 create or replace function private.schedule_timer(p_kind text, p_ref_id uuid, p_run_at timestamptz)
 returns uuid
 language plpgsql
@@ -177,7 +179,7 @@ begin
     return null;
   end if;
   insert into private.timers (kind, ref_id, run_at)
-  values (p_kind, p_ref_id, date_trunc('second', p_run_at))
+  values (p_kind, p_ref_id, p_run_at)
   on conflict (kind, ref_id, run_at) do nothing
   returning id into v_id;
   if v_id is not null then
@@ -189,85 +191,7 @@ $$;
 
 revoke all on function private.schedule_timer(text, uuid, timestamptz) from public, anon, authenticated;
 
--- ── 3. Challenge rules (Oct 12) ─────────────────────────────────────────────
--- Expire: a pending challenge expires at its game time. Older challenges with
--- no time keep the old day rule.
-create or replace function private.expire_stale_challenges()
-returns integer
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  v_count integer;
-begin
-  update public.challenges c
-  set status = 'expired', updated_at = now()
-  where c.status = 'pending'
-    and (
-      (c.play_at is not null and c.play_at <= now())
-      or (c.play_at is null and c.play_on is not null
-        and c.play_on < (now() at time zone 'America/Chicago')::date)
-      or (c.play_at is null and c.play_on is null
-        and c.created_at < now() - interval '7 days')
-    );
-  get diagnostics v_count = row_count;
-  return v_count;
-end
-$$;
-
--- Remind: both players, 30 minutes before, only for challenges accepted at
--- least 30 minutes before the game. The dedupe key keeps it to one each.
-create or replace function private.remind_upcoming_challenges()
-returns integer
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  v_row record;
-  v_count integer := 0;
-  v_place text;
-begin
-  for v_row in
-    select c.id, c.challenger_id, c.opponent_id, c.court_id, c.play_at, c.ranked,
-      coalesce(pa.username, 'Your opponent') as challenger_name,
-      coalesce(pb.username, 'Your opponent') as opponent_name
-    from public.challenges c
-    left join public.profiles pa on pa.id = c.challenger_id
-    left join public.profiles pb on pb.id = c.opponent_id
-    where c.status = 'accepted'
-      and c.play_at is not null
-      -- Not when it would arrive with under 20 minutes left: "in 30 minutes"
-      -- would be wrong (only possible if delivery is very late).
-      and c.play_at > now() + interval '20 minutes'
-      and c.play_at - interval '30 minutes' <= now() + interval '30 seconds'
-      and c.responded_at <= c.play_at - interval '30 minutes'
-  loop
-    select ' at ' || coalesce(nullif(ct.short_name, ''), ct.name)
-    into v_place
-    from public.courts ct where ct.id = v_row.court_id;
-
-    perform private.create_notification(
-      v_row.challenger_id, 'challenge', v_row.opponent_id, null, null, null,
-      case when v_row.ranked then 'RANKED GAME' else 'CASUAL GAME' end,
-      left('With ' || v_row.opponent_name || coalesce(v_place, '') || ' in 30 minutes', 240),
-      jsonb_build_object('path', '/challenge/' || v_row.id::text, 'challenge_id', v_row.id),
-      'challenge-reminder:' || v_row.id::text || ':' || v_row.challenger_id::text
-    );
-    perform private.create_notification(
-      v_row.opponent_id, 'challenge', v_row.challenger_id, null, null, null,
-      case when v_row.ranked then 'RANKED GAME' else 'CASUAL GAME' end,
-      left('With ' || v_row.challenger_name || coalesce(v_place, '') || ' in 30 minutes', 240),
-      jsonb_build_object('path', '/challenge/' || v_row.id::text, 'challenge_id', v_row.id),
-      'challenge-reminder:' || v_row.id::text || ':' || v_row.opponent_id::text
-    );
-    v_count := v_count + 1;
-  end loop;
-  return v_count;
-end
-$$;
-
+-- ── 4. Challenge rules (Oct 12) ─────────────────────────────────────────────
 -- Create: a day and time are required, up to 7 days ahead, future only.
 create or replace function public.create_challenge(
   p_opponent_id uuid,
@@ -440,44 +364,275 @@ $$;
 revoke execute on function public.respond_to_challenge(uuid, boolean) from public, anon;
 grant execute on function public.respond_to_challenge(uuid, boolean) to authenticated;
 
--- ── 4. Run a timer (called by the `timers` Edge Function, or the sweep) ─────
--- Is the thing this timer is for still waiting to be done? Used after a run:
--- the rules skip rows another transaction has locked at that moment, so a
--- timer is only marked done once its work really happened.
-create or replace function private.timer_still_due(p_kind text, p_ref_id uuid)
-returns boolean
-language sql
-stable
+-- ── 5. One action per timer, each for one thing ─────────────────────────────
+-- Each locks its row and checks it is still due before doing anything, and
+-- returns what it did (kept in private.timers.result).
+
+-- A challenge nobody answered expires at its game time.
+create or replace function private.expire_challenge(p_challenge_id uuid)
+returns text
+language plpgsql
 security definer
 set search_path = ''
 as $$
-  select case p_kind
-    when 'auto_check_in_hold' then exists (
-      select 1 from private.auto_check_in_arrivals a
-      where a.user_id = p_ref_id and a.arrived_at <= now() - interval '3 minutes')
-    when 'check_in_end' then exists (
-      select 1 from public.check_ins ci
-      where ci.id = p_ref_id and ci.checked_out_at is null
-        and ci.checked_in_at < now()
-          - case when ci.source = 'auto' then interval '3 hours' else interval '45 minutes' end)
-    when 'match_due' then exists (
-      select 1 from public.matches m
-      where m.id = p_ref_id
-        and ((m.status = 'pending' and m.review_due_at <= now())
-          or (m.status = 'held' and m.resolution_due_at <= now())))
-    when 'challenge_expiry' then exists (
-      select 1 from public.challenges c
-      where c.id = p_ref_id and c.status = 'pending' and c.play_at <= now())
-    else false
-  end;
+begin
+  update public.challenges
+  set status = 'expired', updated_at = now()
+  where id = p_challenge_id
+    and status = 'pending'
+    and play_at is not null
+    and play_at <= now();
+  return case when found then 'expired' else 'nothing to do' end;
+end
 $$;
 
-revoke all on function private.timer_still_due(text, uuid) from public, anon, authenticated;
+-- 30 minutes before an accepted challenge, both players get a reminder, but
+-- only while the game hasn't started.
+create or replace function private.remind_challenge(p_challenge_id uuid)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v record;
+  v_place text;
+begin
+  select c.id, c.challenger_id, c.opponent_id, c.court_id, c.ranked,
+    coalesce(pa.username, 'Your opponent') as challenger_name,
+    coalesce(pb.username, 'Your opponent') as opponent_name
+  into v
+  from public.challenges c
+  left join public.profiles pa on pa.id = c.challenger_id
+  left join public.profiles pb on pb.id = c.opponent_id
+  where c.id = p_challenge_id
+    and c.status = 'accepted'
+    and c.play_at is not null
+    and c.play_at > now()
+    and c.play_at - interval '30 minutes' <= now();
+  if not found then
+    return 'nothing to do';
+  end if;
 
--- Returns {"result": "ran" | "still_due" | "already" | "early" | "missing", "run_at": ...}.
+  select ' at ' || coalesce(nullif(ct.short_name, ''), ct.name)
+  into v_place
+  from public.courts ct where ct.id = v.court_id;
+
+  perform private.create_notification(
+    v.challenger_id, 'challenge', v.opponent_id, null, null, null,
+    case when v.ranked then 'RANKED GAME' else 'CASUAL GAME' end,
+    left('With ' || v.opponent_name || coalesce(v_place, '') || ' in 30 minutes', 240),
+    jsonb_build_object('path', '/challenge/' || v.id::text, 'challenge_id', v.id),
+    'challenge-reminder:' || v.id::text || ':' || v.challenger_id::text
+  );
+  perform private.create_notification(
+    v.opponent_id, 'challenge', v.challenger_id, null, null, null,
+    case when v.ranked then 'RANKED GAME' else 'CASUAL GAME' end,
+    left('With ' || v.challenger_name || coalesce(v_place, '') || ' in 30 minutes', 240),
+    jsonb_build_object('path', '/challenge/' || v.id::text, 'challenge_id', v.id),
+    'challenge-reminder:' || v.id::text || ':' || v.opponent_id::text
+  );
+  return 'reminded both players';
+end
+$$;
+
+-- 5 minutes after arriving (and not hidden or left), the auto check-in is
+-- posted: it shows at the court and in the feed, friends with alerts on are
+-- told, and the player gets "Check-in posted" (with Hide). The check-in time
+-- is the arrival time.
+create or replace function private.post_auto_check_in(p_user_id uuid)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v record;
+  v_check_in uuid;
+begin
+  select a.user_id, a.court_id, a.arrived_at,
+         coalesce(p.visibility, 'public') as visibility,
+         p.share_auto_check_ins as shares_alerts,
+         coalesce(nullif(btrim(p.display_name), ''), p.username, 'A friend') as player_name,
+         coalesce(nullif(btrim(c.short_name), ''), c.name) as court_name
+  into v
+  from private.auto_check_in_arrivals a
+  join public.profiles p on p.id = a.user_id
+  join public.courts c on c.id = a.court_id
+  where a.user_id = p_user_id
+    and a.arrived_at <= now() - interval '5 minutes'
+  for update of a;
+  if not found then
+    return 'nothing to do';
+  end if;
+
+  delete from private.auto_check_in_arrivals where user_id = p_user_id;
+
+  -- Same court, still checked in: nothing to post.
+  if exists (
+    select 1 from public.check_ins ci
+    where ci.user_id = p_user_id and ci.court_id = v.court_id and ci.checked_out_at is null
+  ) then
+    return 'already checked in';
+  end if;
+
+  -- Close any check-in elsewhere, exactly like check_in does.
+  update public.check_ins
+  set checked_out_at = now()
+  where user_id = p_user_id and checked_out_at is null;
+
+  insert into public.check_ins (user_id, court_id, visibility, source, checked_in_at)
+  values (p_user_id, v.court_id, v.visibility, 'auto', v.arrived_at)
+  returning id into v_check_in;
+
+  -- Friend alerts (D37): sender shares, receiver wants them, not Private,
+  -- not blocked, test accounts only reach insiders (D34), at most one per
+  -- friend per 2 hours.
+  if v.shares_alerts and v.visibility <> 'private' then
+    insert into public.notifications (user_id, type, actor_id, title, body, data, dedupe_key)
+    select fr.friend_id, 'friend_check_in', p_user_id,
+           'A friend just checked in',
+           left(v.player_name || ' is at ' || v.court_name, 240),
+           jsonb_build_object('path', '/court/' || v.court_id),
+           'friend_check_in:' || v_check_in || ':' || fr.friend_id
+    from (
+      select case when f.requester_id = p_user_id then f.addressee_id else f.requester_id end as friend_id
+      from public.friendships f
+      where f.status = 'accepted'
+        and (f.requester_id = p_user_id or f.addressee_id = p_user_id)
+    ) fr
+    join public.profiles fp on fp.id = fr.friend_id
+    where fp.notify_friend_check_ins
+      and not private.users_are_blocked(p_user_id, fr.friend_id)
+      and (not private.is_hidden_account(p_user_id)
+           or fp.account_tag in ('TEST', 'REVIEWER', 'FOUNDER'))
+      and not exists (
+        select 1 from public.notifications n
+        where n.user_id = fr.friend_id
+          and n.actor_id = p_user_id
+          and n.type = 'friend_check_in'
+          and n.created_at > now() - interval '2 hours'
+      )
+    on conflict (dedupe_key) do nothing;
+  end if;
+
+  perform private.create_notification(
+    p_user_id, 'auto_check_in', null, null, null, null,
+    'Check-in posted',
+    left('You''re at ' || v.court_name || '. Not playing? Tap Hide.', 240),
+    jsonb_build_object(
+      'path', '/court/' || v.court_id,
+      'kind', 'auto_check_in',
+      'court_id', v.court_id,
+      'category', 'auto-check-in'
+    ),
+    'auto_check_in_posted:' || v_check_in::text
+  );
+  return 'posted';
+end
+$$;
+
+-- A check-in ends 45 minutes after a manual check-in, or 1.5 hours after an
+-- auto check-in's arrival, unless it already ended. An auto check-in that ends
+-- this way tells the player ("Auto checked out", with I'm still here).
+create or replace function private.end_check_in(p_check_in_id uuid)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v public.check_ins;
+  v_limit interval;
+  v_court_name text;
+begin
+  select * into v from public.check_ins where id = p_check_in_id for update;
+  if not found or v.checked_out_at is not null then
+    return 'nothing to do';
+  end if;
+  v_limit := case when v.source = 'auto' then interval '90 minutes' else interval '45 minutes' end;
+  if v.checked_in_at + v_limit > now() then
+    return 'not due yet';
+  end if;
+
+  update public.check_ins
+  set checked_out_at = v.checked_in_at + v_limit
+  where id = p_check_in_id;
+
+  if v.source = 'auto' then
+    select coalesce(nullif(btrim(c.short_name), ''), c.name) into v_court_name
+    from public.courts c where c.id = v.court_id;
+    perform private.create_notification(
+      v.user_id, 'auto_check_out', null, null, null, null,
+      'Auto checked out',
+      left('Still at ' || coalesce(v_court_name, 'the court') || '? Tap I''m still here.', 240),
+      jsonb_build_object(
+        'path', '/court/' || v.court_id,
+        'kind', 'auto_check_out',
+        'court_id', v.court_id,
+        'category', 'auto-check-out'
+      ),
+      'auto_check_out:' || p_check_in_id::text
+    );
+  end if;
+  return 'checked out';
+end
+$$;
+
+-- A score waiting on review is approved at its 3-day deadline; a held game
+-- is voided at its deadline. Same rules as the old job, for this game only.
+create or replace function private.settle_due_match(p_match_id uuid)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v public.matches;
+begin
+  select * into v from public.matches where id = p_match_id for update;
+  if not found then
+    return 'nothing to do';
+  end if;
+  if v.status = 'held' and v.resolution_due_at <= now() then
+    update public.matches set
+      status = 'voided', resolution_due_at = null,
+      reviewed_at = now(), updated_at = now()
+    where id = v.id;
+    return 'voided';
+  end if;
+  if v.status = 'pending' and v.review_due_at <= now() then
+    if v.run_id is not null then
+      perform private.apply_scheduled_match_elo(v.id, 'automatic');
+    elsif v.team_size > 1 then
+      perform private.apply_ad_hoc_team_elo(v.id, 'automatic');
+    else
+      perform private.apply_match_elo(v.id, 'automatic');
+    end if;
+    return 'approved';
+  end if;
+  return 'nothing to do';
+end
+$$;
+
+revoke all on function private.expire_challenge(uuid) from public, anon, authenticated;
+revoke all on function private.remind_challenge(uuid) from public, anon, authenticated;
+revoke all on function private.post_auto_check_in(uuid) from public, anon, authenticated;
+revoke all on function private.end_check_in(uuid) from public, anon, authenticated;
+revoke all on function private.settle_due_match(uuid) from public, anon, authenticated;
+
+-- "Check-in posted" is a new kind of notification.
+alter table public.notifications drop constraint notifications_type_check;
+alter table public.notifications add constraint notifications_type_check check (type = any (array[
+  'friend_request', 'friend_accepted', 'run_invite', 'match_review', 'match_confirmed',
+  'match_rejected', 'challenge', 'friend_check_in', 'auto_check_out', 'auto_check_in'
+]));
+
+-- ── 6. Run a timer (called by the `timers` Edge Function) ───────────────────
+-- Returns {"result": "ran" | "already" | "early" | "missing", "did": ..., "run_at": ...}.
 -- "early" means QStash delivered before run_at (its free plan delays at most
--- 7 days); the Edge Function books it again. "still_due" means the work was
--- skipped (row locked elsewhere); the timer stays open and the sweep retries.
+-- 7 days); the Edge Function books it again. An error makes the Edge Function
+-- answer 500, and QStash tries again.
 create or replace function private.run_timer(p_timer_id uuid)
 returns jsonb
 language plpgsql
@@ -486,6 +641,7 @@ set search_path = ''
 as $$
 declare
   v_timer private.timers;
+  v_did text;
 begin
   select * into v_timer from private.timers where id = p_timer_id for update;
   if not found then
@@ -494,31 +650,22 @@ begin
   if v_timer.fired_at is not null then
     return jsonb_build_object('result', 'already', 'run_at', v_timer.run_at);
   end if;
-  -- Never run early: the rules only act on what is due, so an early run would
-  -- do nothing and the timer would be lost.
   if v_timer.run_at > now() then
     return jsonb_build_object('result', 'early', 'run_at', v_timer.run_at);
   end if;
 
-  case v_timer.kind
-    when 'challenge_expiry' then perform private.expire_stale_challenges();
-    when 'challenge_reminder' then perform private.remind_upcoming_challenges();
-    when 'auto_check_in_hold' then perform private.promote_auto_check_ins();
-    when 'check_in_end' then perform private.auto_checkout_stale_check_ins();
-    when 'match_due' then perform private.auto_confirm_due_matches();
-  end case;
-
-  if private.timer_still_due(v_timer.kind, v_timer.ref_id) then
-    update private.timers
-    set run_attempts = run_attempts + 1, result = 'still_due'
-    where id = p_timer_id;
-    return jsonb_build_object('result', 'still_due', 'run_at', v_timer.run_at);
-  end if;
+  v_did := case v_timer.kind
+    when 'challenge_expiry' then private.expire_challenge(v_timer.ref_id)
+    when 'challenge_reminder' then private.remind_challenge(v_timer.ref_id)
+    when 'auto_check_in_post' then private.post_auto_check_in(v_timer.ref_id)
+    when 'check_in_end' then private.end_check_in(v_timer.ref_id)
+    when 'match_due' then private.settle_due_match(v_timer.ref_id)
+  end;
 
   update private.timers
-  set fired_at = now(), result = 'ran'
+  set fired_at = now(), result = v_did
   where id = p_timer_id;
-  return jsonb_build_object('result', 'ran', 'run_at', v_timer.run_at);
+  return jsonb_build_object('result', 'ran', 'did', v_did, 'run_at', v_timer.run_at);
 end
 $$;
 
@@ -550,68 +697,8 @@ revoke all on function public.timer_booked(uuid, text) from public, anon, authen
 grant execute on function public.fire_timer(uuid) to service_role;
 grant execute on function public.timer_booked(uuid, text) to service_role;
 
--- ── 5. Safety net, run by the existing 2-minute push job ────────────────────
--- It shares one statement with the push resend, so it must never raise: each
--- timer runs in its own sub-transaction, a failure is recorded on the timer,
--- and a timer is given up after 5 failed runs (visible in private.timers).
-create or replace function private.sweep_timers()
-returns integer
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  v record;
-  v_count integer := 0;
-begin
-  -- A booking request that never reached QStash: try again (up to 5 times).
-  for v in
-    select t.id from private.timers t
-    where t.fired_at is null
-      and t.booked_at is null
-      and t.booking_attempts < 5
-      and t.created_at < now() - interval '2 minutes'
-      and t.run_at > now() + interval '1 minute'
-    limit 50
-  loop
-    begin
-      perform private.book_timer(v.id);
-    exception when others then
-      raise warning 'sweep_timers: booking % failed: %', v.id, sqlerrm;
-    end;
-  end loop;
-
-  -- A timer QStash never delivered, or whose work was skipped: run it here.
-  for v in
-    select t.id from private.timers t
-    where t.fired_at is null
-      and t.run_at < now() - interval '3 minutes'
-      and t.run_attempts < 5
-    order by t.run_at
-    limit 50
-  loop
-    begin
-      perform private.run_timer(v.id);
-    exception when others then
-      update private.timers
-      set run_attempts = run_attempts + 1, result = left('error: ' || sqlerrm, 200)
-      where id = v.id;
-      raise warning 'sweep_timers: timer % failed: %', v.id, sqlerrm;
-    end;
-    v_count := v_count + 1;
-  end loop;
-  return v_count;
-exception when others then
-  raise warning 'sweep_timers: %', sqlerrm;
-  return -1;
-end
-$$;
-
-revoke all on function private.sweep_timers() from public, anon, authenticated;
-
--- ── 6. Triggers that book timers ────────────────────────────────────────────
--- A booking problem must never block the change that caused it; the sweep
--- retries it.
+-- ── 7. Triggers that book timers ────────────────────────────────────────────
+-- A booking problem never blocks the change that caused it.
 create or replace function private.book_challenge_timers()
 returns trigger
 language plpgsql
@@ -622,7 +709,7 @@ begin
   begin
     if new.play_at is not null then
       if new.status = 'pending' then
-        perform private.schedule_timer('challenge_expiry', new.id, new.play_at + interval '5 seconds');
+        perform private.schedule_timer('challenge_expiry', new.id, new.play_at);
       elsif new.status = 'accepted' and new.play_at - interval '30 minutes' > now() then
         perform private.schedule_timer('challenge_reminder', new.id, new.play_at - interval '30 minutes');
       end if;
@@ -651,8 +738,7 @@ begin
       perform private.schedule_timer(
         'check_in_end', new.id,
         new.checked_in_at
-          + case when new.source = 'auto' then interval '3 hours' else interval '45 minutes' end
-          + interval '5 seconds'
+          + case when new.source = 'auto' then interval '90 minutes' else interval '45 minutes' end
       );
     end if;
   exception when others then
@@ -667,7 +753,7 @@ create trigger book_check_in_timer
   after insert on public.check_ins
   for each row execute function private.book_check_in_timer();
 
-create or replace function private.book_auto_check_in_hold_timer()
+create or replace function private.book_auto_check_in_post_timer()
 returns trigger
 language plpgsql
 security definer
@@ -675,20 +761,18 @@ set search_path = ''
 as $$
 begin
   begin
-    perform private.schedule_timer(
-      'auto_check_in_hold', new.user_id, new.arrived_at + interval '3 minutes 5 seconds'
-    );
+    perform private.schedule_timer('auto_check_in_post', new.user_id, new.arrived_at + interval '5 minutes');
   exception when others then
-    raise warning 'book_auto_check_in_hold_timer: %', sqlerrm;
+    raise warning 'book_auto_check_in_post_timer: %', sqlerrm;
   end;
   return new;
 end
 $$;
 
-drop trigger if exists book_auto_check_in_hold_timer on private.auto_check_in_arrivals;
-create trigger book_auto_check_in_hold_timer
+drop trigger if exists book_auto_check_in_post_timer on private.auto_check_in_arrivals;
+create trigger book_auto_check_in_post_timer
   after insert or update of arrived_at, court_id on private.auto_check_in_arrivals
-  for each row execute function private.book_auto_check_in_hold_timer();
+  for each row execute function private.book_auto_check_in_post_timer();
 
 create or replace function private.book_match_timer()
 returns trigger
@@ -699,9 +783,9 @@ as $$
 begin
   begin
     if new.status = 'pending' and new.review_due_at is not null then
-      perform private.schedule_timer('match_due', new.id, new.review_due_at + interval '5 seconds');
+      perform private.schedule_timer('match_due', new.id, new.review_due_at);
     elsif new.status = 'held' and new.resolution_due_at is not null then
-      perform private.schedule_timer('match_due', new.id, new.resolution_due_at + interval '5 seconds');
+      perform private.schedule_timer('match_due', new.id, new.resolution_due_at);
     end if;
   exception when others then
     raise warning 'book_match_timer: %', sqlerrm;
@@ -717,10 +801,10 @@ create trigger book_match_timer
 
 revoke all on function private.book_challenge_timers() from public, anon, authenticated;
 revoke all on function private.book_check_in_timer() from public, anon, authenticated;
-revoke all on function private.book_auto_check_in_hold_timer() from public, anon, authenticated;
+revoke all on function private.book_auto_check_in_post_timer() from public, anon, authenticated;
 revoke all on function private.book_match_timer() from public, anon, authenticated;
 
--- ── 7. Jobs: the five that polled are removed; the push job also sweeps ─────
+-- ── 8. Remove the 5 repeating jobs (the 2-minute push job stays as it is) ───
 do $cron$
 declare
   v_name text;
@@ -736,42 +820,30 @@ begin
       perform cron.unschedule(v_name);
     end if;
   end loop;
-
-  perform cron.schedule(
-    'localcheck-notification-dispatch',
-    '*/2 * * * *',
-    'select private.dispatch_push_webhook(null), private.sweep_timers()'
-  );
 end
 $cron$;
 
--- ── 8. Catch up, then book timers for everything already open ───────────────
-select private.promote_auto_check_ins();
-select private.auto_checkout_stale_check_ins();
-select private.auto_confirm_due_matches();
-select private.expire_stale_challenges();
-
+-- ── 9. Book timers for everything already open ──────────────────────────────
+-- Anything already past its time is delivered right away.
 select private.schedule_timer(
   'check_in_end', ci.id,
-  ci.checked_in_at
-    + case when ci.source = 'auto' then interval '3 hours' else interval '45 minutes' end
-    + interval '5 seconds'
+  ci.checked_in_at + case when ci.source = 'auto' then interval '90 minutes' else interval '45 minutes' end
 )
 from public.check_ins ci
 where ci.checked_out_at is null;
 
-select private.schedule_timer('auto_check_in_hold', a.user_id, a.arrived_at + interval '3 minutes 5 seconds')
+select private.schedule_timer('auto_check_in_post', a.user_id, a.arrived_at + interval '5 minutes')
 from private.auto_check_in_arrivals a;
 
 select private.schedule_timer(
   'match_due', m.id,
-  case when m.status = 'pending' then m.review_due_at else m.resolution_due_at end + interval '5 seconds'
+  case when m.status = 'pending' then m.review_due_at else m.resolution_due_at end
 )
 from public.matches m
 where (m.status = 'pending' and m.review_due_at is not null)
    or (m.status = 'held' and m.resolution_due_at is not null);
 
-select private.schedule_timer('challenge_expiry', c.id, c.play_at + interval '5 seconds')
+select private.schedule_timer('challenge_expiry', c.id, c.play_at)
 from public.challenges c
 where c.status = 'pending' and c.play_at is not null;
 
@@ -781,7 +853,7 @@ where c.status = 'accepted'
   and c.play_at is not null
   and c.play_at - interval '30 minutes' > now();
 
--- ── 9. Record the migrations ────────────────────────────────────────────────
+-- ── 10. Record the migrations ───────────────────────────────────────────────
 insert into supabase_migrations.schema_migrations (version, name, statements)
 values
   ('20261010120000', 'expire_stale_challenges',
