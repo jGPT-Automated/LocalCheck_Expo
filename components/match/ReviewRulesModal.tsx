@@ -11,7 +11,7 @@ export const REVIEW_RULES = [
   "A dispute puts the game on hold for 7 days. During the hold, any player—or any player from either team—can correct the score, court, or date.",
   "A corrected game notifies every player and starts a new 3-day review. Players can approve it or dispute it again.",
   "A game can be disputed twice. A third dispute, or an unresolved 7-day hold, voids the game with no profile or ELO change.",
-  "Any player can hide the score. The players still see it on the game; everyone else sees only who won. It still counts for ELO, rank and record. Turn it off any time.",
+  "If half or more of the players turn on Hide score, the score is hidden from everyone else: they see only who won. Players in the game still see the score on this game score page. It still counts for ELO, rank and record.",
 ];
 
 /**

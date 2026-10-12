@@ -16,17 +16,23 @@ export function HideScoreToggle({
   value,
   onChange,
   disabled = false,
+  detail,
 }: {
   value: boolean;
   onChange: (value: boolean) => void;
   disabled?: boolean;
+  /** One quiet line under the label (team games: how many it takes). */
+  detail?: string;
 }) {
   return (
     <View style={styles.row}>
       <Feather color={Colors.textSecondary} name={value ? "eye-off" : "eye"} size={17} />
-      <Text style={styles.label}>Hide score</Text>
+      <View style={styles.copy}>
+        <Text style={styles.label}>Hide score</Text>
+        {detail ? <Text style={styles.detail}>{detail}</Text> : null}
+      </View>
       <Switch
-        accessibilityHint="Everyone sees only who won. It still counts for ELO, rank and record."
+        accessibilityHint="Once half the players turn this on, everyone else sees only who won. It still counts for ELO, rank and record."
         accessibilityLabel="Hide score"
         disabled={disabled}
         onValueChange={onChange}
@@ -46,5 +52,7 @@ const styles = StyleSheet.create({
     gap: Space.md,
     paddingHorizontal: Space.xs,
   },
-  label: { ...TextStyles.listName, flex: 1, color: Colors.text },
+  copy: { flex: 1, minWidth: 0, gap: 1 },
+  label: { ...TextStyles.listName, color: Colors.text },
+  detail: { ...TextStyles.caption, color: Colors.muted },
 });

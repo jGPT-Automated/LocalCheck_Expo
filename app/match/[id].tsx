@@ -28,6 +28,7 @@ import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useRealtimeHub } from "@/context/RealtimeHubContext";
 import { buildGameActivity } from "@/lib/gameActivity";
+import { hidersNeeded } from "@/lib/scoreVisibility";
 import { batchHasResource, type RealtimeTopic } from "@/lib/realtimeHub";
 import {
   fetchMatchReview,
@@ -249,6 +250,11 @@ export default function MatchReviewScreen() {
             if (!ok) setHiddenOverride(!next);
           });
         }}
+        detail={
+          match.participants.length > 2
+            ? `Hidden once ${hidersNeeded(match.participants.length)} of ${match.participants.length} players turn it on`
+            : undefined
+        }
         value={hiddenOverride ?? Boolean(viewer.hideScore)}
       />
     ) : null;

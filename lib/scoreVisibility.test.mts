@@ -31,3 +31,15 @@ test("on the game page the players see the numbers; everyone else sees W / L", (
   assert.equal(scoresHiddenFor(players, "stranger", "confirmed", "gamePage"), true);
   assert.equal(scoresHiddenFor(players, null, "confirmed", "gamePage"), true);
 });
+
+test("hidden once half or more of the players turn it on (D49)", async () => {
+  const { hidersNeeded, isScoreHidden } = await import("./scoreVisibility.ts");
+  assert.equal(isScoreHidden([{ hideScore: true }, { hideScore: false }]), true);
+  const four = (n: number) => [0, 1, 2, 3].map((i) => ({ hideScore: i < n }));
+  assert.equal(isScoreHidden(four(1)), false);
+  assert.equal(isScoreHidden(four(2)), true);
+  assert.equal(scoresHiddenFor(four(1).map((p, i) => ({ ...p, userId: `u${i}` })), "x"), false);
+  assert.equal(hidersNeeded(2), 1);
+  assert.equal(hidersNeeded(6), 3);
+  assert.equal(hidersNeeded(10), 5);
+});

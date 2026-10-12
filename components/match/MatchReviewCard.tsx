@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import type { MatchReview, MatchReviewParticipant } from "@/services/gameService";
 import { matchStatusCopy } from "@/services/matchReviewModel";
 
-import { hiddenByIds, scoresHiddenFor } from "@/lib/scoreVisibility";
+import { hiddenByIds, isScoreHidden, scoresHiddenFor } from "@/lib/scoreVisibility";
 import { countdownText, shortFirstName, waitingBannerLabel } from "./gameCardModel";
 import { ScoreCard, scoreCardStatusLabel } from "./ScoreCard";
 
@@ -154,11 +154,12 @@ export function MatchReviewCard({
   }));
   const viewerPlayed = match.participants.some((p) => p.id === viewerId);
   const hiders = hiddenByIds(hideRows);
+  const hidden = isScoreHidden(hideRows);
   // The game page (D47): a settled game keeps its banner. If the score is
   // hidden, the players see the numbers and who hid it; others see W / L.
   let pageLabel = statusText;
   let pageKind: "waiting" | undefined;
-  if (!compact && match.status === "confirmed" && hiders.length > 0 && viewerPlayed) {
+  if (!compact && match.status === "confirmed" && hidden && viewerPlayed) {
     const who =
       hiders.length > 1
         ? null
@@ -176,7 +177,7 @@ export function MatchReviewCard({
       courtName={match.courtName}
       emphasis={viewerEmphasis(match, viewerId)}
       format={`${match.teamSize}V${match.teamSize}`}
-      hiddenMark={!compact && viewerPlayed && hiders.length > 0}
+      hiddenMark={!compact && viewerPlayed && hidden}
       leftLabel="YOUR TEAM"
       leftPlayers={sidePlayers(firstSide)}
       leftScore={firstScore}

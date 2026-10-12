@@ -93,7 +93,11 @@ export function toHeadToHeadGame(
       .filter((p) => p.side === me.side && p.userId !== viewerId)
       .map((p) => firstName(p.name)),
     opponents: ordered.filter((p) => p.side !== me.side).map((p) => firstName(p.name)),
-    scoresHidden: game.participants.some((p) => p.hideScore),
+    // Same rule as lib/scoreVisibility isScoreHidden (D49): half or more.
+    scoresHidden: (() => {
+      const hiders = game.participants.filter((p) => p.hideScore).length;
+      return hiders > 0 && hiders * 2 >= game.participants.length;
+    })(),
   };
 }
 

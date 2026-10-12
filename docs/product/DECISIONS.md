@@ -61,6 +61,15 @@ below wherever they disagree.
   activity feed keeps its timeline (day headers, one marker size, games as
   cards, check-ins as quiet lines); games-together rows and head-to-head use
   the row/line style.
+- **D49 Hide score takes half the players (Oct 12, revises D47):** a score is
+  hidden once half or more of the game's players turn on Hide score (one in a
+  1v1, two in a 2v2, three in a 3v3), so one player can't hide a team game
+  alone. Hidden: feeds, profiles, court pages and everyone outside the game
+  see W / L; the players see the score on the game score page, with the HIDDEN
+  banner and checker line so they know it's hidden. Team games show "Hidden
+  once N of M players turn it on" under the switch. Review rule #5 says so.
+  Challenge reminder (1v1 only; team games are scheduled games): "CASUAL GAME
+  / With Jesse at Rancho in 30 minutes", sent 30 minutes before.
 - **D47 Game page and hidden scores (Oct 12, revises D40):** header GAME
   SCORE with an info button that opens the review rules as a pop-up. A live
   countdown sits above the card while a game is open. The card always keeps

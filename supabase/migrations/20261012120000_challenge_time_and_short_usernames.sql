@@ -9,7 +9,8 @@
 --    A day picked without a time must also be in the next 5 days (was 60).
 --    Older app builds that send only p_play_on keep working.
 -- 2. Reminder: 30 minutes before an accepted challenge's time, both players get
---    a notification (pg_cron every 5 minutes, deduped per challenge).
+--    "CASUAL GAME / With Jesse at Rancho in 30 minutes" (Jesse, Oct 12). pg_cron
+--    every 5 minutes, deduped per challenge and player.
 -- 3. Usernames (D46): 3-10 letters and numbers. New signups get one made from
 --    their email, cut to fit, with a number added only if taken. Existing
 --    usernames that are longer or use "_" are shortened the same way. Referral
@@ -88,7 +89,7 @@ declare
   v_place text;
 begin
   for v_row in
-    select c.id, c.challenger_id, c.opponent_id, c.court_id, c.play_at,
+    select c.id, c.challenger_id, c.opponent_id, c.court_id, c.play_at, c.ranked,
       coalesce(pa.username, 'Your opponent') as challenger_name,
       coalesce(pb.username, 'Your opponent') as opponent_name
     from public.challenges c
@@ -96,7 +97,7 @@ begin
     left join public.profiles pb on pb.id = c.opponent_id
     where c.status = 'accepted'
       and c.play_at is not null
-      and c.play_at > now()
+      and c.play_at > now() + interval '25 minutes'
       and c.play_at <= now() + interval '35 minutes'
   loop
     select ' at ' || coalesce(nullif(ct.short_name, ''), ct.name)
@@ -105,17 +106,15 @@ begin
 
     perform private.create_notification(
       v_row.challenger_id, 'challenge', v_row.opponent_id, null, null, null,
-      'GAME IN 30 MIN',
-      left('Your game with ' || v_row.opponent_name || coalesce(v_place, '')
-        || ' starts at ' || to_char(v_row.play_at at time zone 'America/Chicago', 'FMHH12:MI AM') || '.', 240),
+      case when v_row.ranked then 'RANKED GAME' else 'CASUAL GAME' end,
+      left('With ' || v_row.opponent_name || coalesce(v_place, '') || ' in 30 minutes', 240),
       jsonb_build_object('path', '/challenge/' || v_row.id::text, 'challenge_id', v_row.id),
       'challenge-reminder:' || v_row.id::text || ':' || v_row.challenger_id::text
     );
     perform private.create_notification(
       v_row.opponent_id, 'challenge', v_row.challenger_id, null, null, null,
-      'GAME IN 30 MIN',
-      left('Your game with ' || v_row.challenger_name || coalesce(v_place, '')
-        || ' starts at ' || to_char(v_row.play_at at time zone 'America/Chicago', 'FMHH12:MI AM') || '.', 240),
+      case when v_row.ranked then 'RANKED GAME' else 'CASUAL GAME' end,
+      left('With ' || v_row.challenger_name || coalesce(v_place, '') || ' in 30 minutes', 240),
       jsonb_build_object('path', '/challenge/' || v_row.id::text, 'challenge_id', v_row.id),
       'challenge-reminder:' || v_row.id::text || ':' || v_row.opponent_id::text
     );
