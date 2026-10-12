@@ -51,6 +51,7 @@ create table if not exists private.timers (
   run_at timestamptz not null,
   created_at timestamptz not null default now(),
   booking_attempts integer not null default 0,
+  run_attempts integer not null default 0,
   booked_at timestamptz,
   qstash_message_id text,
   fired_at timestamptz,
@@ -68,6 +69,39 @@ revoke all on table private.timers from public, anon, authenticated;
 -- No policies: only the security-definer functions below (owned by postgres,
 -- which bypasses RLS as the table owner) read or write it.
 alter table private.timers enable row level security;
+
+-- ── 1b. Keep a copy of what this script replaces, so it can be undone ───────
+-- The exact live definitions of the 4 functions it rewrites and the cron jobs
+-- as they stand right now. supabase/rollbacks/20261012180000_qstash_timers.sql
+-- puts them back from this table.
+create table if not exists private.migration_backups (
+  migration text not null,
+  kind text not null check (kind in ('function', 'cron_job')),
+  name text not null,
+  definition text not null,
+  saved_at timestamptz not null default now(),
+  primary key (migration, kind, name)
+);
+revoke all on table private.migration_backups from public, anon, authenticated;
+alter table private.migration_backups enable row level security;
+
+insert into private.migration_backups (migration, kind, name, definition)
+select '20261012180000', 'function', p.oid::regprocedure::text, pg_get_functiondef(p.oid)
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where (n.nspname, p.proname) in (
+  ('private', 'expire_stale_challenges'),
+  ('private', 'remind_upcoming_challenges'),
+  ('public', 'create_challenge'),
+  ('public', 'respond_to_challenge')
+)
+on conflict do nothing;
+
+insert into private.migration_backups (migration, kind, name, definition)
+select '20261012180000', 'cron_job', j.jobname, j.schedule || E'\n' || j.command
+from cron.job j
+where j.jobname like 'localcheck-%'
+on conflict do nothing;
 
 -- ── 2. Book a timer: ask the `timers` Edge Function to publish to QStash ────
 -- Same pattern and secrets as private.dispatch_push_webhook. pg_net sends the
@@ -204,7 +238,9 @@ begin
     left join public.profiles pb on pb.id = c.opponent_id
     where c.status = 'accepted'
       and c.play_at is not null
-      and c.play_at > now()
+      -- Not when it would arrive with under 20 minutes left: "in 30 minutes"
+      -- would be wrong (only possible if delivery is very late).
+      and c.play_at > now() + interval '20 minutes'
       and c.play_at - interval '30 minutes' <= now() + interval '30 seconds'
       and c.responded_at <= c.play_at - interval '30 minutes'
   loop
@@ -405,9 +441,43 @@ revoke execute on function public.respond_to_challenge(uuid, boolean) from publi
 grant execute on function public.respond_to_challenge(uuid, boolean) to authenticated;
 
 -- ── 4. Run a timer (called by the `timers` Edge Function, or the sweep) ─────
--- Returns {"result": "ran" | "already" | "early" | "missing", "run_at": ...}.
+-- Is the thing this timer is for still waiting to be done? Used after a run:
+-- the rules skip rows another transaction has locked at that moment, so a
+-- timer is only marked done once its work really happened.
+create or replace function private.timer_still_due(p_kind text, p_ref_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select case p_kind
+    when 'auto_check_in_hold' then exists (
+      select 1 from private.auto_check_in_arrivals a
+      where a.user_id = p_ref_id and a.arrived_at <= now() - interval '3 minutes')
+    when 'check_in_end' then exists (
+      select 1 from public.check_ins ci
+      where ci.id = p_ref_id and ci.checked_out_at is null
+        and ci.checked_in_at < now()
+          - case when ci.source = 'auto' then interval '3 hours' else interval '45 minutes' end)
+    when 'match_due' then exists (
+      select 1 from public.matches m
+      where m.id = p_ref_id
+        and ((m.status = 'pending' and m.review_due_at <= now())
+          or (m.status = 'held' and m.resolution_due_at <= now())))
+    when 'challenge_expiry' then exists (
+      select 1 from public.challenges c
+      where c.id = p_ref_id and c.status = 'pending' and c.play_at <= now())
+    else false
+  end;
+$$;
+
+revoke all on function private.timer_still_due(text, uuid) from public, anon, authenticated;
+
+-- Returns {"result": "ran" | "still_due" | "already" | "early" | "missing", "run_at": ...}.
 -- "early" means QStash delivered before run_at (its free plan delays at most
--- 7 days); the Edge Function books it again.
+-- 7 days); the Edge Function books it again. "still_due" means the work was
+-- skipped (row locked elsewhere); the timer stays open and the sweep retries.
 create or replace function private.run_timer(p_timer_id uuid)
 returns jsonb
 language plpgsql
@@ -424,7 +494,9 @@ begin
   if v_timer.fired_at is not null then
     return jsonb_build_object('result', 'already', 'run_at', v_timer.run_at);
   end if;
-  if v_timer.run_at > now() + interval '30 seconds' then
+  -- Never run early: the rules only act on what is due, so an early run would
+  -- do nothing and the timer would be lost.
+  if v_timer.run_at > now() then
     return jsonb_build_object('result', 'early', 'run_at', v_timer.run_at);
   end if;
 
@@ -435,6 +507,13 @@ begin
     when 'check_in_end' then perform private.auto_checkout_stale_check_ins();
     when 'match_due' then perform private.auto_confirm_due_matches();
   end case;
+
+  if private.timer_still_due(v_timer.kind, v_timer.ref_id) then
+    update private.timers
+    set run_attempts = run_attempts + 1, result = 'still_due'
+    where id = p_timer_id;
+    return jsonb_build_object('result', 'still_due', 'run_at', v_timer.run_at);
+  end if;
 
   update private.timers
   set fired_at = now(), result = 'ran'
@@ -472,6 +551,9 @@ grant execute on function public.fire_timer(uuid) to service_role;
 grant execute on function public.timer_booked(uuid, text) to service_role;
 
 -- ── 5. Safety net, run by the existing 2-minute push job ────────────────────
+-- It shares one statement with the push resend, so it must never raise: each
+-- timer runs in its own sub-transaction, a failure is recorded on the timer,
+-- and a timer is given up after 5 failed runs (visible in private.timers).
 create or replace function private.sweep_timers()
 returns integer
 language plpgsql
@@ -492,21 +574,36 @@ begin
       and t.run_at > now() + interval '1 minute'
     limit 50
   loop
-    perform private.book_timer(v.id);
+    begin
+      perform private.book_timer(v.id);
+    exception when others then
+      raise warning 'sweep_timers: booking % failed: %', v.id, sqlerrm;
+    end;
   end loop;
 
-  -- A timer QStash never delivered: run it here.
+  -- A timer QStash never delivered, or whose work was skipped: run it here.
   for v in
     select t.id from private.timers t
     where t.fired_at is null
       and t.run_at < now() - interval '3 minutes'
+      and t.run_attempts < 5
     order by t.run_at
     limit 50
   loop
-    perform private.run_timer(v.id);
+    begin
+      perform private.run_timer(v.id);
+    exception when others then
+      update private.timers
+      set run_attempts = run_attempts + 1, result = left('error: ' || sqlerrm, 200)
+      where id = v.id;
+      raise warning 'sweep_timers: timer % failed: %', v.id, sqlerrm;
+    end;
     v_count := v_count + 1;
   end loop;
   return v_count;
+exception when others then
+  raise warning 'sweep_timers: %', sqlerrm;
+  return -1;
 end
 $$;
 

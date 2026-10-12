@@ -316,9 +316,18 @@ How it works:
 4. QStash's free plan delays at most 7 days. A later timer is booked at the
    cap; when it arrives early, `fire_timer` answers `early` and the function
    books it again.
-5. Safety net: the 2-minute `localcheck-notification-dispatch` job also runs
+5. A timer is marked done only when its work really happened
+   (`private.timer_still_due`); the rules skip rows another transaction has
+   locked, and such a timer stays open with `result = 'still_due'`.
+6. Safety net: the 2-minute `localcheck-notification-dispatch` job also runs
    `private.sweep_timers()`, which re-books timers that never booked (up to 5
-   tries) and runs any timer more than 3 minutes overdue.
+   tries) and runs any timer more than 3 minutes overdue (up to 5 tries,
+   `run_attempts`). It never raises, so a bad timer can't stop push resends.
+
+Undo: `supabase/rollbacks/20261012180000_qstash_timers.sql` puts back the 4
+replaced functions and the cron jobs exactly as they were (the migration saved
+them in `private.migration_backups`), drops the 4 triggers and closes every
+open timer.
 
 Secrets (Supabase → Edge Functions → Secrets): `QSTASH_URL`, `QSTASH_TOKEN`,
 `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY`, plus the existing
