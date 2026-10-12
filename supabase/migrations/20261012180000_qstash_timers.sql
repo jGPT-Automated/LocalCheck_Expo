@@ -65,6 +65,9 @@ create index if not exists timers_unfired_run_at_idx
   on private.timers (run_at) where fired_at is null;
 
 revoke all on table private.timers from public, anon, authenticated;
+-- No policies: only the security-definer functions below (owned by postgres,
+-- which bypasses RLS as the table owner) read or write it.
+alter table private.timers enable row level security;
 
 -- ── 2. Book a timer: ask the `timers` Edge Function to publish to QStash ────
 -- Same pattern and secrets as private.dispatch_push_webhook. pg_net sends the
