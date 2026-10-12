@@ -6,7 +6,19 @@ export type InviteResult =
   | { ok: true }
   | { ok: false; reason: "empty" | "not_found" | "self" | "already_set" | "error" };
 
-/** Keeps only characters a username can contain. */
+/** Usernames (D46): the name shown everywhere, 3-10 letters and numbers. */
+export const USERNAME_MAX = 10;
+
+/** Keeps only what a username can contain, cut to fit. */
+export function cleanUsername(raw: string): string {
+  return raw.replace(/[^A-Za-z0-9]/g, "").slice(0, USERNAME_MAX);
+}
+
+export function isValidUsername(value: string): boolean {
+  return /^[A-Za-z0-9]{3,10}$/.test(value);
+}
+
+/** Referral codes are frozen at the old username rules, so they keep "_". */
 export function normalizeInviter(raw: string): string {
   return raw.replace(/[^A-Za-z0-9_]/g, "").slice(0, 32);
 }

@@ -38,6 +38,7 @@ import { useLocalPlus } from "@/hooks/useLocalPlus";
 import { autoCheckInDetail, autoCheckInSwitchValue } from "@/lib/autoCheckInModel";
 import { setAutoCheckInAlerts } from "@/services/autoCheckInService";
 import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
+import { cleanUsername, isValidUsername, USERNAME_MAX } from "@/lib/onboardingModel";
 import { deleteCurrentAccount } from "@/services/accountService";
 import { searchCourts } from "@/services/courtService";
 
@@ -986,6 +987,10 @@ function UsernameEditorSheet({
       onClose();
       return;
     }
+    if (!isValidUsername(value.trim())) {
+      setError("Usernames are 3-10 letters and numbers.");
+      return;
+    }
     setSaving(true);
     setError(null);
     const result = await onSave(value.trim());
@@ -1002,7 +1007,7 @@ function UsernameEditorSheet({
       visible={visible}
       onClose={onClose}
       title="USERNAME"
-      eyebrow="LETTERS, NUMBERS, AND UNDERSCORES"
+      eyebrow="3–10 LETTERS AND NUMBERS"
       dynamic
     >
       <View style={styles.field}>
@@ -1012,9 +1017,9 @@ function UsernameEditorSheet({
           <BottomSheetTextInput
             autoCapitalize="none"
             autoCorrect={false}
-            maxLength={32}
+            maxLength={USERNAME_MAX}
             onChangeText={(text) => {
-              setValue(text.replace(/[^A-Za-z0-9_]/g, ""));
+              setValue(cleanUsername(text));
               setError(null);
             }}
             placeholder="username"

@@ -45,3 +45,12 @@ test("court picker detail skips missing parts", () => {
   );
   assert.equal(courtPickerDetail({ sport: "PICKLEBALL", city: "" }), "Pickleball");
 });
+
+test("usernames are 3-10 letters and numbers (D46)", async () => {
+  const { cleanUsername, isValidUsername } = await import("./onboardingModel.ts");
+  assert.equal(cleanUsername("chris_j.12345678"), "chrisj1234");
+  assert.equal(isValidUsername("ChrisJ"), true);
+  assert.equal(isValidUsername("ab"), false);
+  assert.equal(isValidUsername("chris_j"), false);
+  assert.equal(isValidUsername("abcdefghijk"), false);
+});

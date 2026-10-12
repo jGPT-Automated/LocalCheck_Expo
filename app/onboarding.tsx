@@ -20,11 +20,14 @@ import { useDeviceLocation } from "@/context/DeviceLocationContext";
 import { coordinateForLocationAction } from "@/context/deviceLocationModel";
 import { useNotifications } from "@/context/NotificationContext";
 import {
+  cleanUsername,
   courtPickerDetail,
   inviteErrorMessage,
   isCityQuery,
+  isValidUsername,
   normalizeInviter,
   ONBOARDING_STEPS,
+  USERNAME_MAX,
 } from "@/lib/onboardingModel";
 import { coordinateForPlace } from "@/lib/placeLocation";
 import { fetchClosestCourts } from "@/services/courtService";
@@ -80,10 +83,10 @@ export default function OnboardingScreen() {
   const [finishError, setFinishError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (!username && profile?.username) setUsername(profile.username);
+    if (!username && profile?.username) setUsername(cleanUsername(profile.username));
   }, [profile?.username, username]);
 
-  const usernameValid = username.trim().length >= 3;
+  const usernameValid = isValidUsername(username.trim());
   const step1Ready = usernameValid && sport !== null;
   // No courts nearby yet is not a dead end: they can continue and add one later.
   const step2Ready = selectedCourt !== null || (searched && courtOptions.length === 0);
@@ -296,9 +299,9 @@ export default function OnboardingScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 editable={!savingStep1}
-                maxLength={32}
+                maxLength={USERNAME_MAX}
                 onChangeText={(text) => {
-                  setUsername(text.replace(/[^A-Za-z0-9_]/g, ""));
+                  setUsername(cleanUsername(text));
                   setUsernameError(null);
                 }}
                 placeholder="username"
@@ -306,7 +309,13 @@ export default function OnboardingScreen() {
                 style={[styles.input, savingStep1 && styles.inputDisabled]}
                 value={username}
               />
-              {usernameError ? <Text style={styles.fieldError}>{usernameError}</Text> : null}
+              {usernameError ? (
+                <Text style={styles.fieldError}>{usernameError}</Text>
+              ) : (
+                <Text style={styles.fieldHint}>
+                  Tip: first name + last initial, or first name + a number.
+                </Text>
+              )}
             </View>
 
             <View style={styles.field}>

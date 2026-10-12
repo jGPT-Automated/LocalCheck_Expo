@@ -175,9 +175,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let base =
         (displayName || "player")
           .toLowerCase()
-          .replace(/[^a-z0-9_]+/g, "")
-          .slice(0, 20) || "player";
-      if (base.length < 3) base = `${base}xxx`.slice(0, 20);
+          .replace(/[^a-z0-9]+/g, "")
+          .slice(0, 10) || "player";
+      if (base.length < 3) base = `${base}xxx`.slice(0, 10);
 
       const tryInsert = (username: string) =>
         supabase.from("profiles").insert({
@@ -195,7 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         // Row still absent: the clash is on the handle, not the id — take a
         // unique id-tailed handle.
-        ({ error: insertError } = await tryInsert(`${base}_${idTail.slice(0, 6)}`));
+        ({ error: insertError } = await tryInsert(`${base.slice(0, 4)}${idTail.slice(0, 6)}`));
       }
 
       if (!insertError || insertError.code === "23505") {
