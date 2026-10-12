@@ -7,6 +7,8 @@ import {
   autoCheckInState,
   autoCheckInSwitchValue,
   checkedInNotification,
+  clockTime,
+  postsAt,
   regionFor,
 } from "./autoCheckInModel.ts";
 
@@ -43,7 +45,16 @@ test("settings copy and switch", () => {
   assert.equal(autoCheckInSwitchValue("off"), false);
 });
 
-test("arrival notification: checked in now, posts in 5 minutes, Hide", () => {
-  assert.equal(checkedInNotification("Kasmiersky Park").title, "Checked in at Kasmiersky Park");
-  assert.equal(checkedInNotification("Kasmiersky Park").body, "Posts in 5 minutes. Not playing? Tap Hide.");
+test("arrival notification: posts 5 minutes after arriving, with the clock time and Hide", () => {
+  const arrived = new Date(2026, 9, 12, 16, 0, 0);
+  const posts = postsAt(arrived.toISOString());
+  assert.equal(clockTime(posts), "4:05 PM");
+  assert.equal(checkedInNotification("Rancho", posts).title, "Checked in at Rancho");
+  assert.equal(checkedInNotification("Rancho", posts).body, "Posts at 4:05 PM. Not playing? Tap Hide.");
+});
+
+test("clock time: noon, midnight, morning", () => {
+  assert.equal(clockTime(new Date(2026, 9, 12, 12, 7)), "12:07 PM");
+  assert.equal(clockTime(new Date(2026, 9, 12, 0, 30)), "12:30 AM");
+  assert.equal(clockTime(new Date(2026, 9, 12, 9, 5)), "9:05 AM");
 });

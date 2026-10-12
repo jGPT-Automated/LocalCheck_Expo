@@ -12,7 +12,9 @@ import {
   AUTO_CHECK_IN_UNDO_ACTION,
   type AutoCheckInCourt,
   type AutoCheckInPermission,
+  AUTO_CHECK_IN_NOTICE_DELAY_SECONDS,
   checkedInNotification,
+  postsAt,
   regionFor,
 } from "@/lib/autoCheckInModel";
 import { supabase } from "@/lib/supabase";
@@ -21,7 +23,8 @@ import { supabase } from "@/lib/supabase";
  * Auto check-in at the local court (D35, D36). One geofence, set from the
  * player's local court. iOS wakes the app for a few seconds on arrival and on
  * leaving; the task below tells the server. On arrival the player is checked
- * in privately and told at once ("Checked in at …", with Hide); 5 minutes
+ * in privately and, after a minute inside, told ("Checked in at …", with
+ * Hide); 5 minutes after arriving
  * later a QStash timer posts it, unless they hid it or left (migrations
  * 20261009120000_auto_check_in.sql and 20261012180000_qstash_timers.sql).
  *
@@ -56,7 +59,7 @@ async function onArrive(courtId: string) {
   const result = data as { status?: string; arrived_at?: string; court_name?: string } | null;
   if (result?.status !== "pending") return;
   const Notifications = await notifications();
-  const content = checkedInNotification(result.court_name ?? "your court");
+  const content = checkedInNotification(result.court_name ?? "your court", postsAt(result.arrived_at));
   await Notifications.scheduleNotificationAsync({
     identifier: AUTO_CHECK_IN_NOTIFICATION_ID,
     content: {
@@ -64,14 +67,19 @@ async function onArrive(courtId: string) {
       categoryIdentifier: AUTO_CHECK_IN_CATEGORY,
       data: { kind: "auto_check_in", path: `/court/${courtId}` },
     },
-    // Shown right away: checked in now, posted in 5 minutes.
-    trigger: null,
+    // After a minute inside the circle, so driving past shows nothing. The
+    // server's "Check-in posted" push later replaces it (same id).
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: AUTO_CHECK_IN_NOTICE_DELAY_SECONDS,
+    },
   });
 }
 
 async function onLeave(courtId: string) {
   const Notifications = await notifications();
-  // Left before it posted (a drive-by): take the "Checked in" notice away.
+  // Left before it posted: the notice never shows, or is taken away.
+  await Notifications.cancelScheduledNotificationAsync(AUTO_CHECK_IN_NOTIFICATION_ID).catch(() => {});
   await Notifications.dismissNotificationAsync(AUTO_CHECK_IN_NOTIFICATION_ID).catch(() => {});
   const { error } = await supabase.rpc("auto_check_in_leave", { p_court_id: courtId });
   if (error) console.warn("auto check-in leave failed", error.message);

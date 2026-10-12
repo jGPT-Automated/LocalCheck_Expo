@@ -7,7 +7,8 @@
 --   - the 5 repeating jobs (the push job was never changed)
 --   - the list of notification kinds; the "Check-in posted" notifications,
 --     which only exist because of the migration, are deleted first
--- Stops new timers (drops the 4 triggers) and closes every open timer, so a
+-- Removes the booking re-sender job. Stops new timers (drops the 4 triggers)
+-- and closes every open timer, so a
 -- QStash message still on its way does nothing when it arrives.
 -- Leaves private.timers, private.migration_backups and the new functions in
 -- place, unused, for the record.
@@ -37,6 +38,14 @@ begin
   end if;
 end
 $check$;
+
+do $stop$
+begin
+  if exists (select 1 from cron.job where jobname = 'localcheck-timer-bookings') then
+    perform cron.unschedule('localcheck-timer-bookings');
+  end if;
+end
+$stop$;
 
 drop trigger if exists book_challenge_timers on public.challenges;
 drop trigger if exists book_check_in_timer on public.check_ins;

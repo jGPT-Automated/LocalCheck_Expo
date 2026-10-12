@@ -158,8 +158,11 @@ async function processNotification(admin: SupabaseClient, notificationId: string
   }
 
   // A notification may name an action-button set the app registers
-  // (e.g. "auto-check-out": Check back in / Got it, D38).
+  // (e.g. "auto-check-out": I'm still here; "auto-check-in": Hide).
   const category = typeof notification.data?.category === "string" ? notification.data.category : null;
+  // A notification may replace one already showing on the phone (iOS
+  // apns-collapse-id): "Check-in posted" replaces "Checked in at ...".
+  const collapseId = typeof notification.data?.collapse_id === "string" ? notification.data.collapse_id : null;
   const messages = tokens.map((token) => ({
     to: token.expo_push_token,
     title: notification.title,
@@ -168,6 +171,7 @@ async function processNotification(admin: SupabaseClient, notificationId: string
     sound: "default",
     channelId: "default",
     ...(category ? { categoryId: category } : {}),
+    ...(collapseId ? { collapseId } : {}),
   }));
   const response = await expoRequest(EXPO_SEND_URL, messages);
   const payload = await response.json().catch(() => ({})) as {

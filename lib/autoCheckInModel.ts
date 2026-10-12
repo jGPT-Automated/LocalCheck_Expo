@@ -115,9 +115,30 @@ export function autoCheckInSwitchValue(state: AutoCheckInState): boolean {
   return state === "on" || state === "needs_always";
 }
 
-export function checkedInNotification(courtName: string): { title: string; body: string } {
+/**
+ * The phone shows "Checked in at …" after a minute inside the circle, so
+ * driving past shows nothing (the "dwell" approach from Android's geofencing
+ * guide; iOS has no built-in dwell).
+ */
+export const AUTO_CHECK_IN_NOTICE_DELAY_SECONDS = 60;
+
+/** "4:05 PM" in the phone's own time. */
+export function clockTime(date: Date): string {
+  const hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${hours % 12 === 0 ? 12 : hours % 12}:${minutes} ${hours < 12 ? "AM" : "PM"}`;
+}
+
+/** When an arrival posts: 5 minutes after arriving. */
+export function postsAt(arrivedAtIso: string | null | undefined, now: Date = new Date()): Date {
+  const arrived = arrivedAtIso ? new Date(arrivedAtIso) : now;
+  const base = Number.isNaN(arrived.getTime()) ? now : arrived;
+  return new Date(base.getTime() + AUTO_CHECK_IN_HOLD_MINUTES * 60_000);
+}
+
+export function checkedInNotification(courtName: string, posts: Date): { title: string; body: string } {
   return {
     title: `Checked in at ${courtName}`,
-    body: `Posts in ${AUTO_CHECK_IN_HOLD_MINUTES} minutes. Not playing? Tap Hide.`,
+    body: `Posts at ${clockTime(posts)}. Not playing? Tap Hide.`,
   };
 }

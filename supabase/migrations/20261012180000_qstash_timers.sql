@@ -27,8 +27,9 @@
 -- Challenges (Jesse, Oct 12): a day and time are required, up to 7 days
 -- ahead; an unanswered challenge expires at its game time.
 --
--- The 5 repeating jobs that polled for this work are removed. The 2-minute
--- push job (resends pushes Expo didn't accept) is not touched.
+-- The 5 repeating jobs that polled for this work are removed. One small job
+-- re-sends any booking QStash didn't confirm (pg_net sends once, no retry);
+-- it never runs timers itself. The 2-minute push job is not touched.
 --
 -- Undo: supabase/rollbacks/20261012180000_qstash_timers.sql, using the copy
 -- this script saves in private.migration_backups before changing anything.
@@ -524,7 +525,9 @@ begin
       'path', '/court/' || v.court_id,
       'kind', 'auto_check_in',
       'court_id', v.court_id,
-      'category', 'auto-check-in'
+      'category', 'auto-check-in',
+      -- Replaces the phone's own "Checked in at ..." notice (same id).
+      'collapse_id', 'localcheck-auto-check-in'
     ),
     'auto_check_in_posted:' || v_check_in::text
   );
@@ -628,7 +631,63 @@ alter table public.notifications add constraint notifications_type_check check (
   'match_rejected', 'challenge', 'friend_check_in', 'auto_check_out', 'auto_check_in'
 ]));
 
--- ── 6. Run a timer (called by the `timers` Edge Function) ───────────────────
+-- Home shows "Checked in · posts at 4:05 · Hide" while an arrival waits to post.
+create or replace function public.my_pending_auto_check_in()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select jsonb_build_object(
+    'court_id', a.court_id,
+    'arrived_at', a.arrived_at,
+    'posts_at', a.arrived_at + interval '5 minutes'
+  )
+  from private.auto_check_in_arrivals a
+  where a.user_id = (select auth.uid());
+$$;
+
+revoke all on function public.my_pending_auto_check_in() from public, anon;
+grant execute on function public.my_pending_auto_check_in() to authenticated;
+
+-- ── 6. Re-send bookings that weren't confirmed (the outbox sender) ──────────
+-- pg_net sends each booking request once and never retries. A booking not
+-- confirmed (booked_at) within a minute is sent again, up to 10 times. This
+-- only books; QStash still runs every timer. On a normal day it finds nothing.
+create or replace function private.rebook_unconfirmed_timers()
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v record;
+  v_count integer := 0;
+begin
+  for v in
+    select t.id from private.timers t
+    where t.fired_at is null
+      and t.booked_at is null
+      and t.created_at < now() - interval '1 minute'
+      and t.booking_attempts < 10
+    order by t.created_at
+    limit 100
+  loop
+    begin
+      perform private.book_timer(v.id);
+      v_count := v_count + 1;
+    exception when others then
+      raise warning 'rebook_unconfirmed_timers: %: %', v.id, sqlerrm;
+    end;
+  end loop;
+  return v_count;
+end
+$$;
+
+revoke all on function private.rebook_unconfirmed_timers() from public, anon, authenticated;
+
+-- ── 6b. Run a timer (called by the `timers` Edge Function) ──────────────────
 -- Returns {"result": "ran" | "already" | "early" | "missing", "did": ..., "run_at": ...}.
 -- "early" means QStash delivered before run_at (its free plan delays at most
 -- 7 days); the Edge Function books it again. An error makes the Edge Function
@@ -804,7 +863,8 @@ revoke all on function private.book_check_in_timer() from public, anon, authenti
 revoke all on function private.book_auto_check_in_post_timer() from public, anon, authenticated;
 revoke all on function private.book_match_timer() from public, anon, authenticated;
 
--- ── 8. Remove the 5 repeating jobs (the 2-minute push job stays as it is) ───
+-- ── 8. Remove the 5 repeating jobs; add the booking re-sender ───────────────
+-- The 2-minute push job stays as it is.
 do $cron$
 declare
   v_name text;
@@ -820,6 +880,11 @@ begin
       perform cron.unschedule(v_name);
     end if;
   end loop;
+  perform cron.schedule(
+    'localcheck-timer-bookings',
+    '* * * * *',
+    'select private.rebook_unconfirmed_timers()'
+  );
 end
 $cron$;
 

@@ -321,11 +321,16 @@ How it works:
 The 2-minute `localcheck-notification-dispatch` job is separate and
 unchanged: it resends pushes Expo didn't accept, as Expo's docs recommend.
 
-Known gap: booking goes out after the change commits (`pg_net`). If that one
-request fails, the timer stays unbooked (`booked_at` null). Check:
+Bookings are sent by `pg_net`, which sends once and never retries
+([pg_net README](https://github.com/supabase/pg_net), "Retrying failed
+requests"). So, as in the standard transactional-outbox pattern, the timer row
+is written in the same transaction as the change, and the
+`localcheck-timer-bookings` job (every minute) re-sends any booking not
+confirmed (`booked_at` null) after a minute, up to 10 tries. It only books;
+QStash runs every timer. Check:
 
 ```sql
-select kind, run_at, booked_at, fired_at, result
+select kind, run_at, booking_attempts, booked_at, fired_at, result
 from private.timers order by created_at desc limit 20;
 ```
 
