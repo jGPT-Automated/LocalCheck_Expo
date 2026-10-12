@@ -43,6 +43,7 @@ export interface GameActivityInput {
   participants: Array<{
     id: string;
     name: string;
+    side?: "a" | "b";
     decision: "pending" | "approved" | "disputed";
     decidedAt?: string;
   }>;
@@ -59,13 +60,15 @@ export function buildGameActivity(
   };
   const timed: GameActivityEvent[] = [];
 
-  timed.push({
+  // played_at is a day (stored as noon UTC), not a time: the row shows the
+  // day only and always comes first.
+  const played: GameActivityEvent = {
     key: "played",
     kind: "played",
     at: game.playedAt,
     lead: "Played",
     rest: `· ${game.courtName}`,
-  });
+  };
   if (game.createdAt) {
     timed.push({
       key: "logged",
@@ -126,10 +129,17 @@ export function buildGameActivity(
 
   timed.sort((a, b) => Date.parse(a.at ?? "") - Date.parse(b.at ?? ""));
 
+  // Only the other side can approve, so only they are waited on.
+  const submitterSide = game.participants.find((p) => p.id === game.lastSubmittedBy)?.side;
   const waiting: GameActivityEvent[] =
     game.status === "pending"
       ? game.participants
-          .filter((p) => p.decision === "pending" && p.id !== game.lastSubmittedBy)
+          .filter(
+            (p) =>
+              p.decision === "pending" &&
+              p.id !== game.lastSubmittedBy &&
+              (!submitterSide || !p.side || p.side !== submitterSide),
+          )
           .map((p) => ({
             key: `waiting-${p.id}`,
             kind: "waiting" as const,
@@ -138,7 +148,7 @@ export function buildGameActivity(
           }))
       : [];
 
-  return [...timed, ...waiting];
+  return [played, ...timed, ...waiting];
 }
 
 /** "OCT 8" the first time a day appears in the list, otherwise null. */
@@ -164,9 +174,9 @@ export function activityDayLabels(
   });
 }
 
-/** "6:12 PM". */
-export function activityTime(at?: string): string {
-  if (!at) return "";
+/** "6:12 PM"; nothing for the Played row (a day, not a time). */
+export function activityTime(at?: string, kind?: GameActivityKind): string {
+  if (!at || kind === "played") return "";
   const date = new Date(at);
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });

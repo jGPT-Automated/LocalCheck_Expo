@@ -43,7 +43,7 @@ export function GameActivityList({ events }: { events: GameActivityEvent[] }) {
                 </Text>
               ) : null}
               <Text numberOfLines={1} style={styles.time}>
-                {activityTime(event.at)}
+                {activityTime(event.at, event.kind)}
               </Text>
             </View>
             <View style={styles.rail}>

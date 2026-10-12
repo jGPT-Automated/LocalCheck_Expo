@@ -182,7 +182,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const tryInsert = (username: string) =>
         supabase.from("profiles").insert({
           id: authUser.id,
-          display_name: displayName,
+          // D46: the username is the name shown everywhere.
+          display_name: username,
           username,
         });
 

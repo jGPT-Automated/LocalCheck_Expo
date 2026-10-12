@@ -73,10 +73,12 @@ export default function MatchReviewScreen() {
   const [rulesOpen, setRulesOpen] = React.useState(false);
   const [hiddenOverride, setHiddenOverride] = React.useState<boolean | null>(null);
 
+  // Only the first fetch shows the spinner: a realtime refresh must not
+  // unmount an open dispute or update form.
   const load = React.useCallback(async () => {
     if (!id) return;
-    setLoading(true);
-    setMatch(await fetchMatchReview(id));
+    const next = await fetchMatchReview(id);
+    setMatch(next);
     setLoading(false);
   }, [id]);
 

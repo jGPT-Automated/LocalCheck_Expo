@@ -4,7 +4,8 @@
 --
 -- 1. Challenges get a time (Jesse, Oct 11): new column challenges.play_at.
 --    create_challenge takes an optional p_play_at; when given it must be in the
---    next 5 days, and play_on is set from it (Central time, the first market).
+--    next 5 days. play_on stays the day the client sent (its local day); only
+--    when it is missing is it taken from p_play_at in Central time.
 --    A day picked without a time must also be in the next 5 days (was 60).
 --    Older app builds that send only p_play_on keep working.
 -- 2. Reminder: 30 minutes before an accepted challenge's time, both players get
@@ -40,7 +41,8 @@ declare
     if p_play_at < now() - interval '15 minutes' or p_play_at > now() + interval '5 days' then
       raise exception 'Pick a time in the next 5 days.' using errcode = 'LC103';
     end if;
-    p_play_on := (p_play_at at time zone 'America/Chicago')::date;
+    -- The client sends its own local day; Central is only a fallback.
+    p_play_on := coalesce(p_play_on, (p_play_at at time zone 'America/Chicago')::date);
   end if;
   if p_play_on is not null and (p_play_on < current_date - 1 or p_play_on > current_date + 5) then
     raise exception 'Pick a day in the next 5 days.' using errcode = 'LC103';
@@ -167,6 +169,7 @@ begin
   ) loop
     v_suffix := v_suffix + 1;
     if v_suffix > 99 then
+      -- 6 characters of the id: unique in practice; never blocks a signup.
       v_candidate := left(v_base, 4) || substr(replace(p_id::text, '-', ''), 1, 6);
       exit;
     end if;

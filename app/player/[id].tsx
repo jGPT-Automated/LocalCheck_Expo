@@ -155,6 +155,11 @@ export default function PlayerProfileScreen() {
   // summary scrolls away (D48).
   const [summaryBottom, setSummaryBottom] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
+  const switchTab = (tab: PlayerProfileTab) => {
+    setCollapsed(false);
+    setSummaryBottom(0);
+    setActiveTab(tab);
+  };
   const [qrVisible, setQrVisible] = useState(false);
   const [challengeOpen, setChallengeOpen] = useState(false);
   const [openChallenge, setOpenChallenge] = useState<Challenge | null>(null);
@@ -377,9 +382,9 @@ export default function PlayerProfileScreen() {
       ]} />
 
       <View accessibilityRole="tablist" style={styles.tabs}>
-        <ProfileTab label="HEAD TO HEAD" active={activeTab === "versus"} onPress={() => setActiveTab("versus")} />
-        <ProfileTab label="ACTIVITY" active={activeTab === "activity"} onPress={() => setActiveTab("activity")} />
-        <ProfileTab label="DETAILS" active={activeTab === "details"} onPress={() => setActiveTab("details")} />
+        <ProfileTab label="HEAD TO HEAD" active={activeTab === "versus"} onPress={() => switchTab("versus")} />
+        <ProfileTab label="ACTIVITY" active={activeTab === "activity"} onPress={() => switchTab("activity")} />
+        <ProfileTab label="DETAILS" active={activeTab === "details"} onPress={() => switchTab("details")} />
       </View>
 
       <View style={styles.scroll}>

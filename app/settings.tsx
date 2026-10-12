@@ -3,7 +3,7 @@ import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Href, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -141,6 +141,9 @@ export default function SettingsScreen() {
     null | "privacy" | "sport" | "court" | "username" | "password"
   >(null);
   const [autoSheetOpen, setAutoSheetOpen] = useState(false);
+  // Turning auto check-in on hands off to the opt-in sheet only once this
+  // drawer has finished closing: two sheets never move at once.
+  const offerAfterClose = useRef(false);
   const usesApple =
     user?.app_metadata?.provider === "apple" ||
     user?.identities?.some((identity) => identity.provider === "apple");
@@ -502,7 +505,13 @@ export default function SettingsScreen() {
         }
         courtName={localCourt ? localCourt.shortName || localCourt.name : null}
         on={autoCheckInSwitchValue(autoCheckIn.state)}
-        onClose={() => setAutoSheetOpen(false)}
+        onClose={() => {
+          setAutoSheetOpen(false);
+          if (offerAfterClose.current) {
+            offerAfterClose.current = false;
+            autoCheckIn.offer();
+          }
+        }}
         onOpenSettings={autoCheckIn.openSettings}
         onReceiveAlerts={(value) => void saveAutoCheckInAlerts({ receive: value })}
         onShareAlerts={(value) => void saveAutoCheckInAlerts({ share: value })}
@@ -510,8 +519,8 @@ export default function SettingsScreen() {
           if (!value) void autoCheckIn.turnOff();
           else if (autoCheckIn.state === "needs_always") autoCheckIn.openSettings();
           else {
+            offerAfterClose.current = true;
             setAutoSheetOpen(false);
-            autoCheckIn.offer();
           }
         }}
         receiveAlerts={profile?.notify_friend_check_ins !== false}

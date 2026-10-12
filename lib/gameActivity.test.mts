@@ -68,3 +68,24 @@ test("day labels only on the first row of each day", () => {
   assert.equal(labels[0], "OCT 8");
   assert.equal(labels[2], null);
 });
+
+test("played comes first and shows no time; a 2v2 waits only on the other side", async () => {
+  const { activityTime } = await import("./gameActivity.ts");
+  const events = buildGameActivity({
+    ...base,
+    playedAt: "2026-10-09T12:00:00Z",
+    createdAt: "2026-10-09T11:00:00Z",
+    participants: [
+      { id: "m", name: "MaximJ", side: "a", decision: "approved" },
+      { id: "a", name: "Ana", side: "a", decision: "pending" },
+      { id: "j", name: "Jesse", side: "b", decision: "pending" },
+      { id: "k", name: "Kim", side: "b", decision: "pending" },
+    ],
+  });
+  assert.equal(events[0].kind, "played");
+  assert.equal(activityTime(events[0].at, events[0].kind), "");
+  assert.deepEqual(events.filter((e) => e.kind === "waiting").map((e) => e.lead), [
+    "Waiting on Jesse",
+    "Waiting on Kim",
+  ]);
+});

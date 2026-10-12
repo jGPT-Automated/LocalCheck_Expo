@@ -29,10 +29,9 @@ export function GeofenceVisual({ courtName }: { courtName: string }) {
           <Line key={`v${f}`} stroke={Colors.border} strokeWidth={1} x1={W * f} x2={W * f} y1={0} y2={H} />
         ))}
         <Circle cx={cx} cy={cy} fill={Colors.accentGhost} r={56} stroke={Colors.accent} strokeDasharray="5 4" strokeWidth={1.5} />
-        {/* the court */}
-        <Rect fill={Colors.surfaceHigh} height={26} rx={3} stroke={Colors.textSecondary} strokeWidth={1.25} width={44} x={cx - 22} y={cy - 13} />
-        <Line stroke={Colors.textSecondary} strokeWidth={1} x1={cx} x2={cx} y1={cy - 13} y2={cy + 13} />
-        <Circle cx={cx} cy={cy} fill="none" r={5} stroke={Colors.textSecondary} strokeWidth={1} />
+        {/* the court, to scale: about 28 m against a 150 m ring */}
+        <Rect fill={Colors.surfaceHigh} height={7} rx={1} stroke={Colors.textSecondary} strokeWidth={1} width={12} x={cx - 6} y={cy - 3.5} />
+        <Line stroke={Colors.textSecondary} strokeWidth={0.75} x1={cx} x2={cx} y1={cy - 3.5} y2={cy + 3.5} />
       </Svg>
       <Text numberOfLines={1} style={styles.caption}>
         {`${AUTO_CHECK_IN_RADIUS_M} m around ${courtName}`}
