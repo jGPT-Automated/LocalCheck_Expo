@@ -72,6 +72,7 @@ insert into private.migration_backups (migration, kind, name, definition)
 select '20261012180000', 'cron_job', j.jobname, j.schedule || E'\n' || j.command
 from cron.job j
 where j.jobname like 'localcheck-%'
+  and j.jobname <> 'localcheck-timer-bookings'
 on conflict do nothing;
 
 insert into private.migration_backups (migration, kind, name, definition)
