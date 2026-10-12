@@ -11,7 +11,7 @@ import {
   AUTO_CHECK_IN_UNDONE_EVENT,
   CHECK_BACK_IN_ACTION,
 } from "@/lib/autoCheckInModel";
-import { getSafeNotificationRoute } from "@/lib/notificationRoutes";
+import { getSafeNotificationRoute, notificationResponseKey } from "@/lib/notificationRoutes";
 import { resumeAutoCheckIn, undoAutoCheckIn } from "@/services/autoCheckInService";
 import { canAutoPromptPush } from "@/lib/onboardingGate";
 import {
@@ -116,9 +116,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       if (cancelled) return;
       const handleResponse = (response: Awaited<ReturnType<typeof Notifications.getLastNotificationResponseAsync>>) => {
         if (!response) return;
-        const identifier = response.notification.request.identifier;
-        if (handledResponseIdRef.current === identifier) return;
-        handledResponseIdRef.current = identifier;
+        const key = notificationResponseKey(response);
+        if (handledResponseIdRef.current === key) return;
+        handledResponseIdRef.current = key;
         const data = response.notification.request.content.data;
         if (data?.kind === "auto_check_in" && response.actionIdentifier === AUTO_CHECK_IN_UNDO_ACTION) {
           void undoAutoCheckIn().then((ok) => DeviceEventEmitter.emit(AUTO_CHECK_IN_UNDONE_EVENT, ok));

@@ -8,6 +8,9 @@
 --    when it is missing is it taken from p_play_at in Central time.
 --    A day picked without a time must also be in the next 5 days (was 60).
 --    Older app builds that send only p_play_on keep working.
+-- 1b. The NEW CHALLENGE notification names the time ("... tomorrow at 6:30 PM").
+-- 1c. Friend arrival alert: title "A friend just checked in", body "Jesse is at
+--     Rancho" (was "Jesse is at Rancho" / "Checked in just now.").
 -- 2. Reminder: 30 minutes before an accepted challenge's time, both players get
 --    "CASUAL GAME / With Jesse at Rancho in 30 minutes" (Jesse, Oct 12). pg_cron
 --    every 5 minutes, deduped per challenge and player.
@@ -52,6 +55,12 @@ declare
   values (v_user_id, p_opponent_id, p_court_id, p_play_on, coalesce(p_ranked, true))$a$;
   v_insert_new text := $n$  insert into public.challenges (challenger_id, opponent_id, court_id, play_on, play_at, ranked)
   values (v_user_id, p_opponent_id, p_court_id, p_play_on, p_play_at, coalesce(p_ranked, true))$n$;
+  -- The invite names the time too: "... at Rancho tomorrow at 6:30 PM."
+  -- Central time, the first market; the app shows it in the player's own zone.
+  v_body_old text := $a$      || coalesce(private.challenge_place(v_row.court_id, v_row.play_on), '') || '.', 240),$a$;
+  v_body_new text := $n$      || coalesce(private.challenge_place(v_row.court_id, v_row.play_on), '')
+      || coalesce(' at ' || to_char(v_row.play_at at time zone 'America/Chicago', 'FMHH12:MI AM'), '')
+      || '.', 240),$n$;
 begin
   if to_regprocedure('public.create_challenge(uuid,uuid,date,boolean,timestamp with time zone)') is not null then
     return;
@@ -62,9 +71,11 @@ begin
   end if;
   if position(v_sig_old in v_def) = 0
     or position(v_window_old in v_def) = 0
-    or position(v_insert_old in v_def) = 0 then
+    or position(v_insert_old in v_def) = 0
+    or position(v_body_old in v_def) = 0 then
     raise exception 'create_challenge anchors not found; definition drifted';
   end if;
+  v_def := replace(v_def, v_body_old, v_body_new);
   v_def := replace(v_def, v_sig_old, v_sig_new);
   v_def := replace(v_def, v_window_old, v_window_new);
   v_def := replace(v_def, v_insert_old, v_insert_new);
@@ -75,6 +86,28 @@ $patch$;
 
 revoke execute on function public.create_challenge(uuid, uuid, date, boolean, timestamptz) from public, anon;
 grant execute on function public.create_challenge(uuid, uuid, date, boolean, timestamptz) to authenticated;
+
+-- ── 2b. Friend arrival alert reads like a notification ─────────────────────
+-- Was title "Jesse is at Rancho", body "Checked in just now." Now the title
+-- names the event and the body the specifics (Jesse, Oct 12).
+do $patch$
+declare
+  v_def text;
+  v_old text := $a$left(v.player_name || ' is at ' || v.court_name, 80),
+             'Checked in just now.',$a$;
+  v_new text := $n$'A friend just checked in',
+             left(v.player_name || ' is at ' || v.court_name, 240),$n$;
+begin
+  v_def := pg_get_functiondef('private.promote_auto_check_ins()'::regprocedure);
+  if position(v_new in v_def) > 0 then
+    return;
+  end if;
+  if position(v_old in v_def) = 0 then
+    raise exception 'promote_auto_check_ins anchor not found; definition drifted';
+  end if;
+  execute replace(v_def, v_old, v_new);
+end
+$patch$;
 
 -- ── 3. 30-minute reminder ────────────────────────────────────────────────────
 create or replace function private.remind_upcoming_challenges()

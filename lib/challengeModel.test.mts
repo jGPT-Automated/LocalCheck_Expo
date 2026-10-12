@@ -241,3 +241,12 @@ test("an RPC that does not know p_play_at is recognised so the old call can run"
   assert.equal(isUnknownRpcSignature({ code: "LC104", message: "You already have an open challenge" }), false);
   assert.equal(isUnknownRpcSignature({ code: null, message: "network down" }), false);
 });
+
+test("a challenge with a time shows it after the day", async () => {
+  const { relativeWhen, challengeTime } = await import("./challengeModel.ts");
+  const today = new Date(2026, 9, 12, 9, 0);
+  const at = new Date(2026, 9, 13, 18, 30).toISOString();
+  assert.equal(challengeTime(at), "6:30 PM");
+  assert.equal(relativeWhen({ playOn: "2026-10-13", playAt: at }, today), "Tomorrow 6:30 PM");
+  assert.equal(relativeWhen({ playOn: "2026-10-13", playAt: null }, today), "Tomorrow");
+});

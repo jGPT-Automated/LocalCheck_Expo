@@ -24,6 +24,7 @@ import {
   challengeAction,
   challengeBanner,
   challengeTitle,
+  challengeTime,
   dayLabel,
   otherPlayer,
 } from "@/lib/challengeModel";
@@ -93,7 +94,10 @@ export default function ChallengeScreen() {
   const other = otherPlayer(challenge, viewerId);
   const action = challengeAction(challenge, viewerId);
   const banner = challengeBanner(challenge, viewerId);
-  const caption = [dayLabel(challenge.playOn).toUpperCase(), challenge.ranked ? null : "CASUAL"]
+  const caption = [
+    [dayLabel(challenge.playOn), challengeTime(challenge.playAt)].filter(Boolean).join(" ").toUpperCase(),
+    challenge.ranked ? null : "CASUAL",
+  ]
     .filter(Boolean)
     .join(" · ");
 

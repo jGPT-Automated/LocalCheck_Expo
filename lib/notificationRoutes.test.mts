@@ -22,3 +22,13 @@ test("rejects malformed or unrelated destinations", () => {
   assert.equal(getSafeNotificationRoute("/court/not-a-uuid"), null);
   assert.equal(getSafeNotificationRoute(null), null);
 });
+
+test("two arrivals with the same notification id are two taps", async () => {
+  const { notificationResponseKey } = await import("./notificationRoutes.ts");
+  const tap = (date: number) => ({
+    actionIdentifier: "not-here",
+    notification: { date, request: { identifier: "localcheck-auto-check-in" } },
+  });
+  assert.notEqual(notificationResponseKey(tap(1000)), notificationResponseKey(tap(2000)));
+  assert.equal(notificationResponseKey(tap(1000)), notificationResponseKey(tap(1000)));
+});

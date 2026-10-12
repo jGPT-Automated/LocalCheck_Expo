@@ -128,7 +128,7 @@ export function challengeSubtitle(
     challengeStatusLine(challenge, viewerId),
     challenge.ranked ? null : "Casual",
     challenge.courtName || "Any court",
-    dayShort(challenge.playOn, today),
+    [dayShort(challenge.playOn, today), challengeTime(challenge.playAt)].filter(Boolean).join(" "),
   ]
     .filter(Boolean)
     .join(" · ");
@@ -259,6 +259,24 @@ export function relativeDay(playOn: string | null, today: Date = new Date()): st
   return `In ${days} days`;
 }
 
+/** "6:30 PM" in the viewer's own time; empty when the challenge has no time. */
+export function challengeTime(playAt: string | null | undefined): string {
+  if (!playAt) return "";
+  const date = new Date(playAt);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+/** "Tomorrow 6:30 PM", "In 3 days 6:30 PM", or just the day. */
+export function relativeWhen(
+  challenge: Pick<Challenge, "playOn" | "playAt">,
+  today: Date = new Date(),
+): string {
+  return [relativeDay(challenge.playOn, today), challengeTime(challenge.playAt)]
+    .filter(Boolean)
+    .join(" ");
+}
+
 /**
  * The two lines of a challenge card in the inbox:
  * "Ranked game" / "Casual game", then "MaximJ · Rancho Courts · In 3 days".
@@ -273,7 +291,7 @@ export function challengeCardLines(
     subtitle: [
       otherPlayer(challenge, viewerId).name,
       challenge.courtName,
-      relativeDay(challenge.playOn, today),
+      relativeWhen(challenge, today),
     ]
       .filter(Boolean)
       .join(" · "),
