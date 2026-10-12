@@ -77,6 +77,10 @@ export function ShareLine({
 }
 
 const styles = StyleSheet.create({
+  pattern: { height: TRACK, overflow: "hidden" },
+  patternRow: { height: TRACK / 2, flexDirection: "row" },
+  checker: { width: TRACK / 2, height: TRACK / 2 },
+  checkerOn: { backgroundColor: Colors.accentBorder },
   line: { height: TRACK },
   track: {
     height: TRACK,
@@ -91,3 +95,34 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent,
   },
 });
+
+/**
+ * The line's stand-in when a score is hidden (D47): same height and place, a
+ * faint orange checker instead of a split, so the card keeps its divide
+ * without giving the margin away.
+ */
+export function PatternLine() {
+  const [width, setWidth] = useState(0);
+  const cells = Math.max(0, Math.floor(width / CHECKER));
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      onLayout={(event) => setWidth(Math.round(event.nativeEvent.layout.width))}
+      style={styles.pattern}
+    >
+      {[0, 1].map((row) => (
+        <View key={row} style={styles.patternRow}>
+          {Array.from({ length: cells }, (_, index) => (
+            <View
+              key={index}
+              style={[styles.checker, (index + row) % 2 === 0 ? styles.checkerOn : null]}
+            />
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const CHECKER = TRACK / 2;

@@ -27,16 +27,21 @@ export function StickyActionBar({
   primary,
   secondary,
   leading,
+  top,
   bottomInset = 0,
 }: {
   primary: StickyAction;
   secondary?: StickyAction;
   /** Square icon-only button on the far left (e.g. add / remove friend). */
   leading?: StickyIconAction;
+  /** A row that belongs with the actions, above them (e.g. Hide score). */
+  top?: React.ReactNode;
   bottomInset?: number;
 }) {
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(bottomInset, Space.md) }]}>
+    <View style={[styles.wrap, { paddingBottom: Math.max(bottomInset, Space.md) }]}>
+      {top}
+      <View style={styles.bar}>
       {leading ? (
         <PressableScale
           accessibilityLabel={leading.accessibilityLabel}
@@ -49,6 +54,7 @@ export function StickyActionBar({
       ) : null}
       {secondary ? <Action action={secondary} /> : null}
       <Action action={primary} primary />
+      </View>
     </View>
   );
 }
@@ -75,15 +81,16 @@ function Action({ action, primary = false }: { action: StickyAction; primary?: b
 }
 
 const styles = StyleSheet.create({
-  bar: {
+  wrap: {
     paddingTop: Space.md,
     paddingHorizontal: Layout.screenGutter,
-    flexDirection: "row",
-    gap: Space.md,
+    gap: Space.sm,
     backgroundColor: Colors.surfaceDark,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.border,
   },
+  // The buttons share the row equally and sit centred in it.
+  bar: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Space.md },
   action: {
     flex: 1,
     minHeight: 50,

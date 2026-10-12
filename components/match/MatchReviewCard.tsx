@@ -1,14 +1,10 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
-import { Colors } from "@/constants/colors";
-import { Space } from "@/constants/layout";
-import { TextStyles } from "@/constants/typography";
 import type { MatchReview, MatchReviewParticipant } from "@/services/gameService";
 import { matchStatusCopy } from "@/services/matchReviewModel";
 
-import { scoresHiddenFor } from "@/lib/scoreVisibility";
+import { hiddenByIds, scoresHiddenFor } from "@/lib/scoreVisibility";
 import { countdownText, shortFirstName, waitingBannerLabel } from "./gameCardModel";
 import { ScoreCard, scoreCardStatusLabel } from "./ScoreCard";
 
@@ -57,9 +53,9 @@ function viewerEmphasis(
 
 /**
  * Wrapper around the shared ScoreCard for a real game. The state of the game
- * is the banner on the card, in the Inbox and on the Final Score screen alike;
- * the short line under the scores is the countdown while it is still open.
- * Confirmed games carry no explainer.
+ * is the banner on the card, in the Inbox and on the game page alike. In the
+ * Inbox (compact) the countdown is the short line under the scores; on the
+ * game page it sits above the card instead (D47).
  */
 export function MatchReviewCard({
   match,
@@ -152,17 +148,39 @@ export function MatchReviewCard({
         ? `Resolve within ${remaining}`
         : undefined;
 
+  const hideRows = match.participants.map((p) => ({
+    userId: p.id,
+    hideScore: p.id === viewerId && viewerHideScore != null ? viewerHideScore : p.hideScore,
+  }));
+  const viewerPlayed = match.participants.some((p) => p.id === viewerId);
+  const hiders = hiddenByIds(hideRows);
+  // The game page (D47): a settled game keeps its banner. If the score is
+  // hidden, the players see the numbers and who hid it; others see W / L.
+  let pageLabel = statusText;
+  let pageKind: "waiting" | undefined;
+  if (!compact && match.status === "confirmed" && hiders.length > 0 && viewerPlayed) {
+    const who =
+      hiders.length > 1
+        ? null
+        : hiders[0] === viewerId
+          ? "YOU"
+          : shortFirstName(match.participants.find((p) => p.id === hiders[0])?.name ?? "").toUpperCase();
+    pageLabel = who ? `HIDDEN BY ${who}` : "HIDDEN";
+    pageKind = "waiting";
+  }
+
   const card = (
     <ScoreCard
+      bannerKind={pageKind}
       compact={compact}
       courtName={match.courtName}
       emphasis={viewerEmphasis(match, viewerId)}
-      footnote={!compact && extras.length > 0 ? extras.join(" · ") : undefined}
       format={`${match.teamSize}V${match.teamSize}`}
+      hiddenMark={!compact && viewerPlayed && hiders.length > 0}
       leftLabel="YOUR TEAM"
       leftPlayers={sidePlayers(firstSide)}
       leftScore={firstScore}
-      note={note}
+      note={compact ? note : undefined}
       onPlayerPress={(id) => router.push(`/player/${id}`)}
       playedOn={match.playedAt}
       rightLabel="OTHER TEAM"
@@ -176,55 +194,18 @@ export function MatchReviewCard({
       rightPlayers={sidePlayers(secondSide)}
       rightScore={secondScore}
       scoresHidden={scoresHiddenFor(
-        match.participants.map((p) => ({
-          userId: p.id,
-          hideScore: p.id === viewerId && viewerHideScore != null ? viewerHideScore : p.hideScore,
-        })),
+        hideRows,
         viewerId,
         match.status,
+        compact ? "list" : "gamePage",
       )}
+      showFinalBanner={!compact}
       status={match.status}
-      statusLabel={statusText}
+      statusLabel={pageLabel}
     />
   );
 
-  if (compact) return card;
-
-  return (
-    <View style={styles.wrap}>
-      {card}
-      {match.disputeNote ? (
-        <View style={styles.disputeNote}>
-          <Text style={styles.disputeNoteLabel}>
-            {revisedByOther && reviser
-              ? `${reviserName.toUpperCase()} SAYS`
-              : "DISPUTE NOTE"}
-          </Text>
-          <Text style={styles.disputeNoteText}>{match.disputeNote}</Text>
-        </View>
-      ) : null}
-    </View>
-  );
+  // On the game page the countdown, dispute count and note live above and
+  // below the card (ReviewCountdown, GameActivityList), not in it.
+  return card;
 }
-
-const styles = StyleSheet.create({
-  wrap: { gap: Space.lg },
-  disputeNote: {
-    gap: 3,
-    paddingVertical: Space.sm,
-    paddingHorizontal: Space.md,
-    borderLeftWidth: 2,
-    borderLeftColor: Colors.borderLight,
-    backgroundColor: Colors.surfaceHigh,
-    borderRadius: 6,
-  },
-  disputeNoteLabel: {
-    ...TextStyles.labelSmall,
-    color: Colors.textSecondary,
-    letterSpacing: 1.4,
-  },
-  disputeNoteText: {
-    ...TextStyles.bodySmall,
-    color: Colors.text,
-  },
-});

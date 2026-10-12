@@ -14,14 +14,14 @@ type BannerTone = { bg: string; border: string; text: string };
  * Final Score page:
  *  - action: it is the viewer's move (accent, filled)
  *  - waiting: pending someone else (neutral)
- *  - final: settled (green)
+ *  - final: settled (neutral band, orange text; D47: never green)
  *  - held: disputed, paused (accent outline, no fill)
  *  - voided: gone (muted)
  */
 const TONES: Record<GameBannerKind, BannerTone> = {
   action: { bg: Colors.accentDim, border: Colors.accentBorder, text: Colors.accent },
   waiting: { bg: Colors.surfaceHigh, border: Colors.borderLight, text: Colors.textSecondary },
-  final: { bg: Colors.winDim, border: Colors.win, text: Colors.win },
+  final: { bg: Colors.surfaceHigh, border: Colors.borderLight, text: Colors.accent },
   held: { bg: Colors.surface, border: Colors.accentBorder, text: Colors.accent },
   voided: { bg: Colors.surface, border: Colors.border, text: Colors.muted },
 };

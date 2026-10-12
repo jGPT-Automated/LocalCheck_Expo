@@ -61,6 +61,17 @@ below wherever they disagree.
   activity feed keeps its timeline (day headers, one marker size, games as
   cards, check-ins as quiet lines); games-together rows and head-to-head use
   the row/line style.
+- **D47 Game page and hidden scores (Oct 12, revises D40):** header GAME
+  SCORE with an info button that opens the review rules as a pop-up. A live
+  countdown sits above the card while a game is open. The card always keeps
+  its banner on the game page: FINAL is a neutral band with orange text (never
+  green); HIDDEN BY YOU / HIDDEN BY [NAME] uses the same band in grey. Game
+  activity under the card: day and time left of the rail, then person + action
+  ("Jesse approved"), dispute note under it. Hide score sits just above the
+  Dispute / Approve buttons and only the game's players see it. Hidden score:
+  the players see the numbers on the game page; everywhere else, and for
+  everyone else, W / L. A hidden score keeps the line as a faint orange
+  checker.
 - **D46 Usernames: 10 characters, letters and numbers (Oct 11, revised same
   day):** the username is the name shown everywhere (feed, game cards, inbox,
   profiles). One clean string, letters and numbers only, 3 to 10 characters;

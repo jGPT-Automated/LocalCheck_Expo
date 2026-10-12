@@ -60,6 +60,8 @@ export interface MatchReviewParticipant {
   name: string;
   side: "a" | "b";
   decision: "pending" | "approved" | "disputed";
+  /** When this player approved or disputed (game activity list). */
+  decidedAt?: string;
   eloBefore?: number;
   eloAfter?: number;
   /** This player hid the score for their side (decision D30). */
@@ -78,6 +80,10 @@ export interface MatchReview {
   status: "pending" | "held" | "confirmed" | "voided";
   confirmationMethod: "manual" | "automatic" | null;
   playedAt: string;
+  /** When it was logged, last changed, and made final (game activity list). */
+  createdAt?: string;
+  updatedAt?: string;
+  confirmedAt?: string;
   reviewDueAt?: string;
   resolutionDueAt?: string;
   disputeCount: number;
@@ -560,7 +566,7 @@ export async function fetchMatchReview(
       .eq("match_id", row.id),
     supabase
       .from("match_participant_reviews")
-      .select("user_id,decision")
+      .select("user_id,decision,decided_at")
       .eq("match_id", row.id),
   ]);
   const participantRows = (participantsResult.data ?? []) as Array<{
@@ -591,9 +597,13 @@ export async function fetchMatchReview(
   const reviewRows = (reviewsResult.data ?? []) as Array<{
     user_id: string;
     decision: "pending" | "approved" | "disputed";
+    decided_at?: string | null;
   }>;
   const decisions = new Map(
     reviewRows.map((review) => [review.user_id, review.decision]),
+  );
+  const decidedAt = new Map(
+    reviewRows.map((review) => [review.user_id, review.decided_at ?? undefined]),
   );
   const participants = participantRows
     .slice()
@@ -609,6 +619,7 @@ export async function fetchMatchReview(
         name: profile?.display_name || profile?.username || "Player",
         side: participant.side,
         decision: decisions.get(participant.user_id) ?? "pending",
+        decidedAt: decidedAt.get(participant.user_id),
         eloBefore: participant.elo_before ?? undefined,
         eloAfter: participant.elo_after ?? undefined,
         hideScore: Boolean(participant.hide_score),
@@ -645,6 +656,9 @@ export async function fetchMatchReview(
     status: row.status === "rejected" ? "held" : row.status,
     confirmationMethod: row.confirmation_method,
     playedAt: row.played_at,
+    createdAt: row.created_at ?? undefined,
+    updatedAt: row.updated_at ?? undefined,
+    confirmedAt: row.confirmed_at ?? undefined,
     reviewDueAt: row.review_due_at ?? legacyReviewDue,
     resolutionDueAt: row.resolution_due_at ?? legacyResolutionDue,
     disputeCount: row.dispute_count ?? (row.status === "rejected" ? 1 : 0),

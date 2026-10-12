@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { RollingNumber } from "@/components/ui/RollingNumber";
-import { ShareLine } from "@/components/ui/ShareLine";
+import { PatternLine, ShareLine } from "@/components/ui/ShareLine";
 import { Colors, Radius } from "@/constants/colors";
 import { Space } from "@/constants/layout";
 import { TextStyles } from "@/constants/typography";
@@ -17,6 +17,7 @@ import {
   eloDelta,
   formatCardDate,
   gameBannerKind,
+  type GameBannerKind,
   marginSplit,
   sideEloDelta,
 } from "./gameCardModel";
@@ -159,19 +160,8 @@ function ScoreText({
 }
 
 /** Where the line would be when the score is hidden: say so, quietly. */
-function HiddenScoreNote() {
-  return (
-    <View style={styles.hiddenNote}>
-      <Feather color={Colors.muted} name="eye-off" size={13} />
-      <Text numberOfLines={1} style={styles.hiddenNoteText}>
-        Score hidden
-      </Text>
-    </View>
-  );
-}
-
-/** The line under the scores, or a quiet note in its place. Same height either
- *  way, so hiding the score does not move the card. */
+/** The line under the scores; a hidden score keeps the line as a faint
+ *  checker (D47), so the card keeps its divide and never moves. */
 function MarginSlot({
   hidden,
   split,
@@ -182,7 +172,7 @@ function MarginSlot({
   return (
     <View style={styles.lineSlot}>
       {hidden ? (
-        <HiddenScoreNote />
+        <PatternLine />
       ) : split ? (
         <ShareLine leader={split.leader} leftShare={split.share} />
       ) : null}
@@ -496,6 +486,9 @@ export function ScoreCard({
   onPlayerPress,
   footnote,
   scoresHidden = false,
+  hiddenMark = false,
+  bannerKind,
+  showFinalBanner = false,
   variant = "card",
 }: {
   status: ScoreCardStatus;
@@ -531,8 +524,15 @@ export function ScoreCard({
   variant?: "card" | "sheet";
   /** Quiet line under the scores, e.g. "You're 2–5 all-time vs Jesse". */
   footnote?: string;
-  /** A player hid the score: W / L instead of numbers, no margin line (D40). */
+  /** A player hid the score: W / L instead of numbers, checker line (D40). */
   scoresHidden?: boolean;
+  /** The numbers show (the viewer played) but the score is hidden from
+   *  everyone else: checker line instead of the margin (D47). */
+  hiddenMark?: boolean;
+  /** Overrides the banner colour `status` gives (HIDDEN uses "waiting"). */
+  bannerKind?: GameBannerKind;
+  /** Keep the banner on a settled game (the game page). The drawer has none. */
+  showFinalBanner?: boolean;
 }) {
   // In list contexts the whole card is one tap target (it opens the match), so
   // players are only links on the full card.
@@ -555,8 +555,9 @@ export function ScoreCard({
   const [hadEloAtOpen] = React.useState(hasElo);
   const countUp = !hadEloAtOpen;
 
-  const split = scoresHidden ? null : marginSplit(leftScore, rightScore);
-  const kind = gameBannerKind(status, emphasis);
+  const lineHidden = scoresHidden || hiddenMark;
+  const split = lineHidden ? null : marginSplit(leftScore, rightScore);
+  const kind = bannerKind ?? gameBannerKind(status, emphasis);
   const banner =
     statusPlacement === "card" ? (
       <GameStateBanner
@@ -566,7 +567,7 @@ export function ScoreCard({
     ) : null;
   // A settled game needs no banner on the full card: it's final by the time
   // anyone opens it. Colour is only for games still in someone's queue.
-  const fullBanner = status === "confirmed" ? null : banner;
+  const fullBanner = status === "confirmed" && !showFinalBanner ? null : banner;
 
   if (compact) {
     const caption = [formatCardDate(playedOn), rightMeta].filter(Boolean).join(" · ");
@@ -626,7 +627,7 @@ export function ScoreCard({
         {(
           <Teams
             countUp={countUp}
-            hidden={scoresHidden}
+            hidden={lineHidden}
             leftPlayers={leftPlayers}
             leftScore={shownLeft}
             leftStrong={leftStrong}
@@ -690,13 +691,6 @@ const styles = StyleSheet.create({
   dateLine: { ...TextStyles.labelSmall, marginTop: -Space.sm, textAlign: "center", letterSpacing: 1.2, color: Colors.muted },
   nameWin: { color: Colors.text },
   lineSlot: { minHeight: 16, justifyContent: "center" },
-  hiddenNote: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Space.xs + 2,
-  },
-  hiddenNoteText: { ...TextStyles.metadata, color: Colors.muted },
 
   // 1v1: avatars facing off, the scores centred under each, the line below.
   faceoffBlock: { gap: Space.md },

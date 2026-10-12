@@ -24,3 +24,10 @@ test("players still see the numbers while the game is in review", () => {
 test("nobody hid it: everyone sees it", () => {
   assert.equal(scoresHiddenFor([{ userId: "a" }, { userId: "b", hideScore: false }], "x"), false);
 });
+
+test("on the game page the players see the numbers; everyone else sees W / L", () => {
+  assert.equal(scoresHiddenFor(players, "a", "confirmed", "gamePage"), false);
+  assert.equal(scoresHiddenFor(players, "b", "confirmed", "gamePage"), false);
+  assert.equal(scoresHiddenFor(players, "stranger", "confirmed", "gamePage"), true);
+  assert.equal(scoresHiddenFor(players, null, "confirmed", "gamePage"), true);
+});
