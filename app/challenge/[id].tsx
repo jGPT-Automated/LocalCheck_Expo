@@ -1,6 +1,5 @@
-import * as Crypto from "expo-crypto";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -8,20 +7,17 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ChoiceChips } from "@/components/challenge/ChoiceChips";
 import { GameStateBanner } from "@/components/match/GameStateBanner";
-import { HideScoreToggle } from "@/components/match/HideScoreToggle";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { DetailHeader } from "@/components/ui/DetailHeader";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { Colors, Radius } from "@/constants/colors";
 import { Layout, Space } from "@/constants/layout";
-import { TextStyles, Typography } from "@/constants/typography";
+import { TextStyles } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import {
   type Challenge,
@@ -29,19 +25,14 @@ import {
   challengeBanner,
   challengeTitle,
   dayLabel,
-  firstName,
-  localDateValue,
   otherPlayer,
-  scoreError,
 } from "@/lib/challengeModel";
 import {
   cancelChallenge,
   finishCasualChallenge,
   fetchChallenge,
-  logChallengeResult,
   respondToChallenge,
 } from "@/services/challengeService";
-import { setScoreHidden } from "@/services/gameService";
 
 /**
  * One challenge, from either player's side. Pending: the opponent accepts or
@@ -52,16 +43,10 @@ export default function ChallengeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { bottom } = useSafeAreaInsets();
-  const { currentUser, localCourt } = useApp();
+  const { currentUser } = useApp();
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [myScore, setMyScore] = useState("");
-  const [theirScore, setTheirScore] = useState("");
-  const [courtChoice, setCourtChoice] = useState<string | null>(null);
-  const [day, setDay] = useState<"today" | "yesterday">("today");
-  const [hideScore, setHideScore] = useState(false);
-  const [requestId] = useState(() => Crypto.randomUUID());
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -77,16 +62,17 @@ export default function ChallengeScreen() {
   }, [id]);
   useFocusEffect(load);
 
-  const courtChoices = useMemo(() => {
-    const list: { value: string; label: string }[] = [];
-    if (challenge?.courtId) list.push({ value: challenge.courtId, label: challenge.courtName ?? "Court" });
-    if (localCourt && localCourt.id !== challenge?.courtId) {
-      list.push({ value: localCourt.id, label: localCourt.shortName || localCourt.name });
+  // An accepted ranked challenge is a game to log: it opens the Log Game flow,
+  // filled in with the opponent, court and day.
+  const needsScore =
+    challenge != null && challengeAction(challenge, currentUser.id) === "log_score";
+  useEffect(() => {
+    if (needsScore && challenge) {
+      router.replace(`/(tabs)/compete?tab=log&challengeId=${challenge.id}`);
     }
-    return list;
-  }, [challenge, localCourt]);
+  }, [needsScore, challenge, router]);
 
-  if (loading) {
+  if (loading || needsScore) {
     return (
       <View style={styles.screen}>
         <DetailHeader onBack={() => router.back()} title="CHALLENGE" />
@@ -106,7 +92,6 @@ export default function ChallengeScreen() {
   const viewerId = currentUser.id;
   const other = otherPlayer(challenge, viewerId);
   const action = challengeAction(challenge, viewerId);
-  const courtId = courtChoice ?? courtChoices[0]?.value ?? null;
   const banner = challengeBanner(challenge, viewerId);
   const caption = [dayLabel(challenge.playOn).toUpperCase(), challenge.ranked ? null : "CASUAL"]
     .filter(Boolean)
@@ -127,38 +112,6 @@ export default function ChallengeScreen() {
       { text: "Keep it", style: "cancel" },
       { text: "Call it off", style: "destructive", onPress: () => void run(() => cancelChallenge(challenge.id)) },
     ]);
-
-  const submitScore = async () => {
-    const problem = scoreError(myScore, theirScore);
-    if (problem) {
-      setError(problem);
-      return;
-    }
-    if (!courtId) {
-      setError("Set a local court first, or pick where you played.");
-      return;
-    }
-    if (busy) return;
-    setBusy(true);
-    setError(null);
-    const played = new Date();
-    if (day === "yesterday") played.setDate(played.getDate() - 1);
-    const result = await logChallengeResult({
-      challengeId: challenge.id,
-      myScore: Number(myScore),
-      theirScore: Number(theirScore),
-      courtId,
-      playedOn: localDateValue(played),
-      clientRequestId: requestId,
-    });
-    setBusy(false);
-    if (!result.ok) {
-      setError(result.message);
-      return;
-    }
-    if (hideScore) await setScoreHidden(result.value, true);
-    router.replace(`/match/${result.value}`);
-  };
 
   const footer = (() => {
     switch (action) {
@@ -183,18 +136,6 @@ export default function ChallengeScreen() {
           <StickyActionBar
             bottomInset={bottom}
             primary={{ label: "CALL IT OFF", tone: "light", disabled: busy, onPress: callOff }}
-          />
-        );
-      case "log_score":
-        return (
-          <StickyActionBar
-            bottomInset={bottom}
-            primary={{
-              label: busy ? "SUBMITTING…" : "SUBMIT SCORE",
-              disabled: busy,
-              onPress: () => void submitScore(),
-            }}
-            secondary={{ label: "CALL IT OFF", disabled: busy, onPress: callOff }}
           />
         );
       case "casual_on":
@@ -258,36 +199,6 @@ export default function ChallengeScreen() {
           </View>
         </View>
 
-        {action === "log_score" ? (
-          <View style={styles.scoreBlock}>
-            <Text style={styles.label}>FINAL SCORE</Text>
-            <View style={styles.scoreRow}>
-              <ScoreField label="YOU" onChange={setMyScore} value={myScore} />
-              <ScoreField label={firstName(other.name).toUpperCase()} onChange={setTheirScore} value={theirScore} />
-            </View>
-            {courtChoices.length > 1 || (!challenge.courtId && courtChoices.length > 0) ? (
-              <>
-                <Text style={styles.label}>PLAYED AT</Text>
-                <ChoiceChips choices={courtChoices} onChange={setCourtChoice} scroll value={courtId ?? ""} />
-              </>
-            ) : null}
-            <Text style={styles.label}>PLAYED</Text>
-            <ChoiceChips
-              choices={[
-                { value: "today", label: "Today" },
-                { value: "yesterday", label: "Yesterday" },
-              ]}
-              onChange={setDay}
-              value={day}
-            />
-            <View style={styles.hideRow}>
-              <HideScoreToggle disabled={busy} onChange={setHideScore} value={hideScore} />
-            </View>
-            <Text style={styles.hint}>
-              They confirm or dispute it within 3 days. ELO moves once it's confirmed.
-            </Text>
-          </View>
-        ) : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </ScrollView>
       {footer}
@@ -316,24 +227,6 @@ function Side({
       <Text numberOfLines={1} style={styles.sideLabel}>
         {label}
       </Text>
-    </View>
-  );
-}
-
-function ScoreField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <View style={styles.scoreField}>
-      <TextInput
-        accessibilityLabel={`${label} score`}
-        keyboardType="number-pad"
-        maxLength={3}
-        onChangeText={(text) => onChange(text.replace(/[^0-9]/g, ""))}
-        placeholder="0"
-        placeholderTextColor={Colors.mutedDark}
-        style={styles.scoreInput}
-        value={value}
-      />
-      <Text numberOfLines={1} style={styles.scoreLabel}>{label}</Text>
     </View>
   );
 }
@@ -375,30 +268,5 @@ const styles = StyleSheet.create({
     color: Colors.muted,
     letterSpacing: 1.2,
   },
-  scoreBlock: { marginTop: Space.lg },
-  label: {
-    ...TextStyles.labelSmall,
-    marginTop: Space.xl,
-    marginBottom: Space.sm,
-    letterSpacing: 1.4,
-    color: Colors.muted,
-  },
-  scoreRow: { flexDirection: "row", alignItems: "center", gap: Space.md },
-  scoreField: { flex: 1, alignItems: "center", gap: 6 },
-  scoreInput: {
-    alignSelf: "stretch",
-    minHeight: 76,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-    fontFamily: Typography.headingBold,
-    fontSize: 44,
-    color: Colors.text,
-    textAlign: "center",
-  },
-  scoreLabel: { ...TextStyles.labelSmall, alignSelf: "stretch", textAlign: "center", letterSpacing: 1.2, color: Colors.textSecondary },
-  hint: { ...TextStyles.metadata, marginTop: Space.md, color: Colors.textSecondary },
-  hideRow: { marginTop: Space.xl },
-  error: { ...TextStyles.metadata, marginTop: Space.lg, color: Colors.loss },
+  error: { ...TextStyles.metadata, marginTop: Space.lg, color: Colors.textSecondary },
 });

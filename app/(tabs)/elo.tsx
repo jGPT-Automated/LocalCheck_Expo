@@ -40,6 +40,7 @@ import { fetchPlayerActivity } from "@/services/feedService";
 import { pairVisits } from "@/lib/activityPresentation";
 import { type Challenge, inboxChallenges } from "@/lib/challengeModel";
 import { fetchOpenChallenges, respondToChallenge } from "@/services/challengeService";
+import { fetchCourtById } from "@/services/courtService";
 import { LocalPlusFlags } from "@/constants/flags";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
 import type { Player } from "@/constants/data";
@@ -56,6 +57,7 @@ export default function MeScreen() {
     currentUser,
     matches,
     localCourt,
+    courts,
     preferredSport,
     getFriendsList,
     incomingFriendRequests,
@@ -198,8 +200,48 @@ export default function MeScreen() {
     setRespondingId(challenge.id);
     const result = await respondToChallenge(challenge.id, accept);
     setRespondingId(null);
-    if (result.ok && accept) router.push(`/challenge/${challenge.id}`);
+    // An accepted ranked game goes straight into Log Game, filled in.
+    if (result.ok && accept) openChallenge({ ...challenge, status: "accepted" });
     refreshChallenges();
+  };
+  const openChallenge = (challenge: Challenge) => {
+    if (challenge.status === "accepted" && challenge.ranked) {
+      router.push(`/(tabs)/compete?tab=log&challengeId=${challenge.id}`);
+    } else {
+      router.push(`/challenge/${challenge.id}`);
+    }
+  };
+  // A friend request shows the sender's home court: the app's nearby courts
+  // first, the rest fetched once.
+  const [requestCourts, setRequestCourts] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const missing = Array.from(
+      new Set(
+        incomingFriendRequests
+          .map((p) => p.courtId)
+          .filter((id): id is string => Boolean(id) && !courts.some((c) => c.id === id)),
+      ),
+    ).filter((id) => !requestCourts[id]);
+    if (missing.length === 0) return;
+    let active = true;
+    void Promise.all(missing.map((id) => fetchCourtById(id))).then((rows) => {
+      if (!active) return;
+      setRequestCourts((current) => {
+        const next = { ...current };
+        rows.forEach((court, i) => {
+          if (court) next[missing[i]] = court.shortName || court.name;
+        });
+        return next;
+      });
+    });
+    return () => {
+      active = false;
+    };
+  }, [incomingFriendRequests, courts, requestCourts]);
+  const homeCourtName = (player: Player): string | null => {
+    if (!player.courtId) return null;
+    const court = courts.find((c) => c.id === player.courtId);
+    return court ? court.shortName || court.name : (requestCourts[player.courtId] ?? null);
   };
   // The "ALL" inbox scope also shows games that have already settled — so a
   // player can see that a game was approved and what it did to their rating
@@ -548,15 +590,19 @@ export default function MeScreen() {
             {visibleChallenges.length > 0 ? (
               <View style={styles.requestGroup}>
                 <Text style={styles.requestGroupTitle}>CHALLENGES</Text>
-                {visibleChallenges.map((challenge) => (
-                  <ChallengeInboxRow
-                    busy={respondingId === challenge.id}
-                    challenge={challenge}
+                {visibleChallenges.map((challenge, index) => (
+                  <View
                     key={challenge.id}
-                    onOpen={() => router.push(`/challenge/${challenge.id}`)}
-                    onRespond={(accept) => void answerChallenge(challenge, accept)}
-                    viewerId={currentUser.id}
-                  />
+                    style={index < visibleChallenges.length - 1 ? styles.gameCard : undefined}
+                  >
+                    <ChallengeInboxRow
+                      busy={respondingId === challenge.id}
+                      challenge={challenge}
+                      onOpen={() => openChallenge(challenge)}
+                      onRespond={(accept) => void answerChallenge(challenge, accept)}
+                      viewerId={currentUser.id}
+                    />
+                  </View>
                 ))}
               </View>
             ) : null}
@@ -587,19 +633,15 @@ export default function MeScreen() {
                 <Text style={styles.requestGroupTitle}>FRIEND REQUESTS</Text>
                 {visibleRequests.map((player) => (
                   <InboxActionRow
-                    decline={{
-                      label: `Decline ${player.name}'s friend request`,
-                      onPress: () => void removeFriend(player.id),
-                    }}
+                    acceptLabel={`Accept ${player.name}'s friend request`}
+                    declineLabel={`Decline ${player.name}'s friend request`}
                     key={player.id}
+                    onAccept={() => void acceptFriendRequest(player.id)}
+                    onDecline={() => void removeFriend(player.id)}
                     onOpen={() => router.push(`/player/${player.id}`)}
                     openLabel={`Open ${player.name}'s profile`}
                     player={{ id: player.id, name: player.name, initials: player.avatar }}
-                    primary={{
-                      label: "ACCEPT",
-                      onPress: () => void acceptFriendRequest(player.id),
-                    }}
-                    subtitle={`${player.elo} ELO`}
+                    subtitle={[homeCourtName(player), `${player.elo} ELO`].filter(Boolean).join(" · ")}
                     title={player.name}
                   />
                 ))}

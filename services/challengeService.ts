@@ -2,6 +2,7 @@ import {
   type Challenge,
   type ChallengeStatus,
   challengeErrorMessage,
+  isUnknownRpcSignature,
 } from "@/lib/challengeModel";
 import { supabase } from "@/lib/supabase";
 
@@ -15,6 +16,8 @@ type ChallengeRow = {
   opponent_id: string;
   court_id: string | null;
   play_on: string | null;
+  /** Absent until the play_at migration is applied. */
+  play_at?: string | null;
   ranked: boolean;
   status: ChallengeStatus;
   match_id: string | null;
@@ -49,6 +52,7 @@ function mapChallenge(row: ChallengeRow): Challenge {
     courtName: row.courts ? row.courts.short_name || row.courts.name : null,
     sport: sport === "BASKETBALL" || sport === "PICKLEBALL" ? sport : null,
     playOn: row.play_on,
+    playAt: row.play_at ?? null,
     ranked: row.ranked,
     status: row.status,
     matchId: row.match_id,
@@ -104,15 +108,28 @@ export async function fetchOpenChallengeWith(userId: string, otherId: string): P
 export async function createChallenge(input: {
   opponentId: string;
   courtId: string | null;
+  /** The day, YYYY-MM-DD. */
   playOn: string | null;
+  /** The day and time as an ISO timestamp (p_play_at). */
+  playAt?: string | null;
   ranked: boolean;
 }): Promise<ChallengeResult<string>> {
-  const { data, error } = await supabase.rpc("create_challenge", {
+  const base = {
     p_opponent_id: input.opponentId,
     p_court_id: input.courtId,
     p_play_on: input.playOn,
     p_ranked: input.ranked,
-  });
+  };
+  let { data, error } = await supabase.rpc(
+    "create_challenge",
+    input.playAt ? { ...base, p_play_at: input.playAt } : base,
+  );
+  // Until the play_at migration is applied the RPC has no p_play_at: PostgREST
+  // answers PGRST202 (no function with that signature). Send the old call so
+  // the challenge still goes out, just without a time.
+  if (input.playAt && error && isUnknownRpcSignature(error)) {
+    ({ data, error } = await supabase.rpc("create_challenge", base));
+  }
   const id = extractRpcMatchId(data);
   if (error || !id) return { ok: false, message: challengeErrorMessage(error) };
   return { ok: true, value: id };

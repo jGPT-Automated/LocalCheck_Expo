@@ -23,6 +23,8 @@ export type Challenge = {
   courtName: string | null;
   sport: "BASKETBALL" | "PICKLEBALL" | null;
   playOn: string | null; // YYYY-MM-DD
+  /** When it is planned, with the time (ISO). Absent on challenges made before times. */
+  playAt?: string | null;
   ranked: boolean;
   status: ChallengeStatus;
   matchId: string | null;
@@ -244,4 +246,99 @@ export function scoreError(mine: string, theirs: string): string | null {
   if (a === b) return "Games can't end in a tie.";
   if (a > 200 || b > 200) return "That score looks too high.";
   return null;
+}
+
+/** "Today", "Tomorrow", "In 3 days"; empty when there is no day. Past days read "Today". */
+export function relativeDay(playOn: string | null, today: Date = new Date()): string {
+  if (!playOn) return "";
+  const [y, m, d] = playOn.split("-").map(Number);
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12);
+  const days = Math.round((new Date(y, m - 1, d, 12).getTime() - start.getTime()) / 86_400_000);
+  if (days <= 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  return `In ${days} days`;
+}
+
+/**
+ * The two lines of a challenge card in the inbox:
+ * "Ranked game" / "Casual game", then "MaximJ · Rancho Courts · In 3 days".
+ */
+export function challengeCardLines(
+  challenge: Challenge,
+  viewerId: string,
+  today: Date = new Date(),
+): { title: string; subtitle: string } {
+  return {
+    title: challenge.ranked ? "Ranked game" : "Casual game",
+    subtitle: [
+      otherPlayer(challenge, viewerId).name,
+      challenge.courtName,
+      relativeDay(challenge.playOn, today),
+    ]
+      .filter(Boolean)
+      .join(" · "),
+  };
+}
+
+// ── The WHEN wheel: Today plus 4 days, 15-minute steps ──────────────────────
+
+export const CHALLENGE_DAYS = 5;
+export const TIME_STEP_MINUTES = 15;
+const STEPS_PER_DAY = (24 * 60) / TIME_STEP_MINUTES;
+
+export type WheelDay = { value: string; label: string };
+export type WheelTime = { minutes: number; label: string };
+
+/** "Today", "Tomorrow", then "Tue 13" for the days after. */
+export function wheelDays(now: Date = new Date(), count: number = CHALLENGE_DAYS): WheelDay[] {
+  return upcomingDays(count, now).map((value, i) => {
+    if (i === 0) return { value, label: "Today" };
+    if (i === 1) return { value, label: "Tomorrow" };
+    const [y, m, d] = value.split("-").map(Number);
+    const date = new Date(y, m - 1, d, 12);
+    return {
+      value,
+      label: `${date.toLocaleDateString("en-US", { weekday: "short" })} ${date.getDate()}`,
+    };
+  });
+}
+
+/** 12:00 AM … 11:45 PM in 15-minute steps. */
+export function wheelTimes(): WheelTime[] {
+  return Array.from({ length: STEPS_PER_DAY }, (_, i) => {
+    const minutes = i * TIME_STEP_MINUTES;
+    const h24 = Math.floor(minutes / 60);
+    const mm = String(minutes % 60).padStart(2, "0");
+    const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+    return { minutes, label: `${h12}:${mm} ${h24 < 12 ? "AM" : "PM"}` };
+  });
+}
+
+/** A slot on today that has already started can't be picked. */
+export function isPastSlot(day: string, minutes: number, now: Date = new Date()): boolean {
+  if (day !== localDateValue(now)) return false;
+  return minutes < now.getHours() * 60 + now.getMinutes();
+}
+
+/** The first pickable slot: the next quarter hour today, else 12:00 PM tomorrow. */
+export function defaultSlot(now: Date = new Date()): { day: string; minutes: number } {
+  const days = upcomingDays(2, now);
+  const next =
+    Math.ceil((now.getHours() * 60 + now.getMinutes() + 1) / TIME_STEP_MINUTES) * TIME_STEP_MINUTES;
+  return next < 24 * 60 ? { day: days[0], minutes: next } : { day: days[1], minutes: 12 * 60 };
+}
+
+/** The chosen day and minutes as the ISO timestamp sent to the server. */
+export function toPlayAt(day: string, minutes: number): string {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(y, m - 1, d, Math.floor(minutes / 60), minutes % 60).toISOString();
+}
+
+/** True when the RPC rejected the call because it doesn't know a parameter or the function. */
+export function isUnknownRpcSignature(error: { code?: string | null; message?: string | null }): boolean {
+  return (
+    error.code === "PGRST202" ||
+    error.code === "42883" ||
+    /could not find the function|function .* does not exist/i.test(error.message ?? "")
+  );
 }
