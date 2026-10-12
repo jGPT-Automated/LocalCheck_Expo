@@ -1,6 +1,6 @@
 # Current state
 
-Last reconciled: 2026-10-10 against `origin/main` at `541632c` (#65), PR #67
+Last reconciled: 2026-10-12 against `origin/main` at `541632c` (#65), PR #67
 (`codex/auto-check-in`, head `b846c97`), and LocalCheckProd.
 
 ## Production checkpoint
@@ -12,9 +12,12 @@ Last reconciled: 2026-10-10 against `origin/main` at `541632c` (#65), PR #67
   motion pass, Yearly + Monthly picker, test-data hiding, store-review fixes)
   plus auto check-in (D35–D38) and the Oct 8 preview fixes (D39–D41). #66 is
   superseded; close it when #67 merges.
-- Not yet applied: `20261010120000_expire_stale_challenges.sql` (D39; anchors
-  checked against live). Not yet deployed: `send-notification` (passes
-  `data.category` for the 3-hour notice buttons).
+- Applied Oct 12 by Jesse: `20261010120000` and `20261012120000` (challenge
+  time, short usernames, friend alert wording). Not yet applied:
+  `20261012180000_qstash_timers.sql` (D50, D51): timed work moves to QStash
+  and the five polling jobs are removed (`docs/SUPABASE.md` → "Timed work
+  (QStash)"). Not yet deployed: `timers` (new) and `send-notification`
+  (passes `data.category` for the 3-hour notice buttons).
 - Installed TestFlight build: version `1.0.3`. Builds are manual only; none
   used in October so far (`docs/RELEASE.md`).
 - EAS project: `agenticjess-os/localcheck`
@@ -64,8 +67,9 @@ Last reconciled: 2026-10-10 against `origin/main` at `541632c` (#65), PR #67
 - Account tags: `profiles.account_tag` (`FOUNDER` / `STARTER` / `REVIEWER` /
   `TEST` / null). Only FOUNDER / STARTER show as a label or ME title.
   Server-managed.
-- Challenges (D25–D27r): friends only, from a player's profile. Court and day
-  optional. **Ranked**: either player logs the score after, it goes through
+- Challenges (D25–D27r, D50): friends only, from a player's profile. Court,
+  day and time required, up to 7 days ahead; unanswered ones expire at the
+  game time; once accepted both players get a reminder 30 minutes before. **Ranked**: either player logs the score after, it goes through
   normal review and counts. **Casual**: just a time and place, no score,
   counts nowhere; closes with "We played" or after its day. Inbox shows them
   under CHALLENGES; notifications open `/challenge/<id>`.

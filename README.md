@@ -7,6 +7,11 @@ reviewed results, and climb sport-specific ELO leaderboards. LocalPlus
 courts' details, and full history. Supabase provides Auth, Postgres, RLS,
 Realtime, and Edge Functions. Website: https://localchecksports.com.
 
+Timed work (the 3-minute auto check-in hold, 3-hour and 45-minute checkouts,
+3-day score auto-approve, the 30-minute challenge reminder and challenge
+expiry) is booked for its exact time on Upstash QStash; there are no polling
+jobs for it. See "Timed work (QStash)" in `docs/SUPABASE.md`.
+
 Native pieces (camera for QR codes and court photos, Mapbox, notifications,
 Apple Sign-In, purchases) need a TestFlight build to verify; everything else
 previews in Expo Go.
@@ -80,6 +85,6 @@ docs/                 current engineering and product guidance
 - [`docs/GITHUB.md`](docs/GITHUB.md) — required checks and merge rules
 - [`docs/product/README.md`](docs/product/README.md) — product/design material
 - [`docs/product/DESIGN.md`](docs/product/DESIGN.md) — tokens, canonical components, motion and feedback rules
-- [`docs/product/DECISIONS.md`](docs/product/DECISIONS.md) — settled product decisions (D0–D34)
+- [`docs/product/DECISIONS.md`](docs/product/DECISIONS.md) — settled product decisions (D0–D51)
 - [`docs/runbooks/`](docs/runbooks/) — account tags + test data, RevenueCat
 - [`docs/product/ELO_AND_NOTIFICATIONS.md`](docs/product/ELO_AND_NOTIFICATIONS.md) — Compete ranking and actionable-vs-informational notification contract

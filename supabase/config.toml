@@ -53,6 +53,12 @@ verify_jwt = false
 # in the function body instead.
 verify_jwt = false
 
+[functions.timers]
+# Called by the database (x-localcheck-webhook-secret, like send-notification)
+# to book QStash messages, and by QStash itself (Upstash-Signature, checked
+# with the signing keys) when a timer is due. Neither carries a user JWT.
+verify_jwt = false
+
 [functions.verify-court]
 # Court submissions must carry an authenticated user JWT. The function also
 # calls getUser before invoking its service-role-only insertion RPC.

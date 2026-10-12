@@ -264,19 +264,78 @@ All applied by Jesse in the SQL editor, verified, and recorded (the last two on 
   `data.category` as the push's `categoryId` (action buttons) — redeploy
   after merge, with Jesse's OK.
 
+### Applied Oct 12 by Jesse (SQL editor), not yet recorded
+
+- `20261010120000_expire_stale_challenges.sql` (D39) — adds `expired` to
+  `challenges_status_check`, `private.expire_stale_challenges()`, `LC112`
+  "This challenge expired." Its 15-minute cron job is removed again by
+  `20261012180000`.
+- `20261012120000_challenge_time_and_short_usernames.sql` — `challenges.play_at`,
+  the NEW CHALLENGE push names the time, friend alert wording, 10-character
+  usernames (D46). Its 5-minute reminder cron job is removed again by
+  `20261012180000`.
+
+Both are recorded in `supabase_migrations.schema_migrations` by
+`20261012180000`.
+
 ### Written, not applied
 
-- `20261010120000_expire_stale_challenges.sql` (D39) — **written, not applied**.
-  Adds `expired` to `challenges_status_check`; `private.expire_stale_challenges()`
-  expires pending challenges whose `play_on` is before today (Central time) and
-  undated pending ones older than 7 days (accepted ones are left alone);
-  pg_cron job `localcheck-expire-challenges` every 15 minutes, plus one run at
-  the end of the migration. Patches `create_challenge` (expires the pair's own
-  stale pending challenge before the duplicate check) and `respond_to_challenge`
-  (new `LC112` "This challenge expired.") with anchor checks. Creates no tables,
-  so there is no RLS prompt. Needs the two challenge migrations above first. The
-  app already hides stale pending challenges on its own, so the order of
-  migration and app release doesn't matter.
+- `20261012180000_qstash_timers.sql` (D50, D51) — **written, not applied**.
+  Jesse runs it in the SQL editor. See "Timed work (QStash)" below. Every
+  challenge needs a time in the next 7 days (`LC103`); pending challenges
+  expire at their time.
+
+## Timed work (QStash)
+
+Every timed follow-up is booked once, for its exact time, on Upstash QStash
+(US East). No job polls for due work.
+
+| What | When | Database rule it runs |
+| --- | --- | --- |
+| Auto check-in goes live (+ friend alerts) | arrival + 3 min | `private.promote_auto_check_ins` |
+| Auto check-in ends ("You've been checked out") | check-in + 3 h | `private.auto_checkout_stale_check_ins` |
+| Manual check-in ends | check-in + 45 min | `private.auto_checkout_stale_check_ins` |
+| Score auto-approves / held game voids | review or resolution deadline | `private.auto_confirm_due_matches` |
+| Challenge reminder to both players | game time − 30 min | `private.remind_upcoming_challenges` |
+| Unanswered challenge expires | game time | `private.expire_stale_challenges` |
+
+How it works:
+
+1. A trigger on `check_ins`, `private.auto_check_in_arrivals`, `matches` or
+   `challenges` writes a row to `private.timers` (`kind`, `ref_id`, `run_at`;
+   one row per kind, thing and time).
+2. `private.book_timer` calls the `timers` Edge Function through `pg_net`
+   with the Vault webhook secret. The function publishes a QStash message
+   (`Upstash-Not-Before` = the time) whose destination is the same function,
+   then stores `booked_at` and `qstash_message_id`.
+3. At that time QStash calls `timers`. It checks the `Upstash-Signature` with
+   the current and next signing keys, then runs `public.fire_timer`, which runs
+   the database rule above. The rules only act on rows that are actually due,
+   so running one twice, early or for a cancelled thing is harmless. QStash
+   retries 3 times on failure.
+4. QStash's free plan delays at most 7 days. A later timer is booked at the
+   cap; when it arrives early, `fire_timer` answers `early` and the function
+   books it again.
+5. Safety net: the 2-minute `localcheck-notification-dispatch` job also runs
+   `private.sweep_timers()`, which re-books timers that never booked (up to 5
+   tries) and runs any timer more than 3 minutes overdue.
+
+Secrets (Supabase → Edge Functions → Secrets): `QSTASH_URL`, `QSTASH_TOKEN`,
+`QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY`, plus the existing
+`NOTIFICATION_WEBHOOK_SECRET`. `timers` is deployed with JWT verification off;
+it accepts only the webhook secret (booking) or a valid QStash signature
+(firing).
+
+Check it:
+
+```sql
+select kind, run_at, booked_at, qstash_message_id is not null as booked,
+       fired_at, result
+from private.timers order by created_at desc limit 20;
+```
+
+Then Edge Functions → `timers` → Logs (`timer_booked`, `timer_fired`), and the
+QStash console's Messages / Logs.
 
 ## Realtime and API safety
 

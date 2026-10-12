@@ -5,8 +5,8 @@ import { Colors } from "@/constants/colors";
 import { Typography } from "@/constants/typography";
 
 const DAY_MS = 86_400_000;
-/** A game is logged right after it is played: today and the 4 days before. */
-export const MAX_LOOKBACK_DAYS = 5;
+/** A game can be logged up to a week back: today and the 6 days before. */
+export const MAX_LOOKBACK_DAYS = 7;
 
 function ymd(date: Date): string {
   const year = date.getFullYear();
@@ -16,10 +16,10 @@ function ymd(date: Date): string {
 }
 
 /**
- * Compact "recent day" strip: one plain row of the last 5 days, weekday above
+ * Compact "recent day" strip: one plain row of the last 7 days, weekday above
  * the number, the chosen day an orange circle. Oldest on the left, TODAY on the
  * right like a calendar week; there is no future date and no older paging.
- * `daysBack` is capped at 5 so every caller (Log Game, a revision) offers the
+ * `daysBack` is capped at 7 so every caller (Log Game, a revision) offers the
  * same days.
  */
 export function RecentDatePicker({

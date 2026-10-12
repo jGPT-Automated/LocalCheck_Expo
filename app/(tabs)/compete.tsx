@@ -605,7 +605,7 @@ function GameDateField({
   value: string;
   onChange: (value: string) => void;
 }) {
-  return <RecentDatePicker daysBack={5} onChange={onChange} value={value} />;
+  return <RecentDatePicker daysBack={7} onChange={onChange} value={value} />;
 }
 
 /** Tap to switch the game's sport. It sits to the left of the court field and
@@ -986,18 +986,18 @@ function LogGameView({
 
   // An accepted challenge fills in where and when once its court has loaded:
   // the day it was planned for, or today if that day is still ahead or is
-  // older than the 5 days Log Game offers.
+  // older than the 7 days Log Game offers.
   const appliedChallengeRef = React.useRef<string | null>(null);
   useEffect(() => {
     if (!challenge?.court || appliedChallengeRef.current === challenge.id) return;
     appliedChallengeRef.current = challenge.id;
     selectCourt(challenge.court);
     const today = localDateValue();
-    const fiveDaysAgo = localDateValue(new Date(Date.now() - 4 * 86_400_000));
+    const weekAgo = localDateValue(new Date(Date.now() - 6 * 86_400_000));
     const playOn = challenge.playOn;
     setForm((current) => ({
       ...current,
-      playedOn: playOn && playOn >= fiveDaysAgo && playOn <= today ? playOn : today,
+      playedOn: playOn && playOn >= weekAgo && playOn <= today ? playOn : today,
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [challenge?.id, challenge?.court]);
@@ -1525,7 +1525,7 @@ function LogGameView({
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
     >
-      {/* Title, the date under it like the game card, then the last 5 days. */}
+      {/* Title, the date under it like the game card, then the last 7 days. */}
       <View style={styles.formHead}>
         <Text style={styles.formTitle}>LOG GAME</Text>
         <Text style={styles.formDate}>{formatCardDate(form.playedOn)}</Text>

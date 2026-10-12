@@ -140,6 +140,13 @@ test("pending past its day is stale; today and later are not", () => {
   assert.equal(isStalePending({ ...base, playOn: "2026-10-09" }, today), false);
 });
 
+test("pending with a time is stale once the time passes, not before", () => {
+  const now = new Date("2026-10-12T18:00:00Z");
+  assert.equal(isStalePending({ ...base, playOn: "2026-10-12", playAt: "2026-10-12T17:59:00Z" }, now), true);
+  assert.equal(isStalePending({ ...base, playOn: "2026-10-12", playAt: "2026-10-12T18:00:00Z" }, now), true);
+  assert.equal(isStalePending({ ...base, playOn: "2026-10-12", playAt: "2026-10-12T18:01:00Z" }, now), false);
+});
+
 test("pending with no day goes stale after 7 days", () => {
   const today = new Date("2026-10-13T12:00:00Z");
   assert.equal(isStalePending({ ...base, createdAt: "2026-10-06T12:00:00Z" }, today), false);
@@ -207,7 +214,7 @@ test("challenge card: game type, then who, where and when", () => {
 test("wheel: today plus four days, 15-minute steps", () => {
   const now = new Date(2026, 9, 11, 17, 5);
   const days = wheelDays(now);
-  assert.equal(days.length, 5);
+  assert.equal(days.length, 7);
   assert.deepEqual(days.slice(0, 2).map((d) => d.label), ["Today", "Tomorrow"]);
   assert.equal(days[2].label, "Tue 13");
   assert.equal(days[4].value, "2026-10-15");

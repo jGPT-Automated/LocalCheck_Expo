@@ -39,7 +39,8 @@ below wherever they disagree.
 - **D39 Pending challenges expire after their day (Oct 8):** a pending
   challenge whose day has passed (or, with no day, is over 7 days old) becomes
   `expired` and leaves the inbox; a cron job on the server does it every 15
-  minutes and the app hides it at once. Accepted challenges stay, since players
+  minutes and the app hides it at once. (Revised by D50: expiry is at the game
+  time; D51: a QStash timer does it, not a cron job.) Accepted challenges stay, since players
   may still log the result. Expiring frees the pair to challenge again. Before,
   an unanswered challenge sat in the inbox forever.
 - **D40 Hide score means hidden for everyone (Oct 8, revises D30):** once any
@@ -61,6 +62,24 @@ below wherever they disagree.
   activity feed keeps its timeline (day headers, one marker size, games as
   cards, check-ins as quiet lines); games-together rows and head-to-head use
   the row/line style.
+- **D51 Timed work runs on QStash, not polling jobs (Oct 12):** each timed
+  follow-up is booked once, for its exact time, on Upstash QStash (US East):
+  the 3-minute auto check-in hold (then friend alerts), the 3-hour auto and
+  45-minute manual checkouts, the 3-day score auto-approve and 7-day held
+  void, the 30-minute challenge reminder, and challenge expiry at game time.
+  The database writes a row to `private.timers` and asks the `timers` Edge
+  Function to book it; QStash calls `timers` back at that time, which checks
+  the signature and runs the existing database rule. The five polling jobs
+  (every 1, 5 and 15 minutes) are gone; the 2-minute push job also sweeps
+  for any timer that failed to book or was never delivered. Migration
+  `20261012180000_qstash_timers.sql`. Before, jobs checked every minute or
+  more for things that were due.
+- **D50 Every challenge has a game time; 7-day windows (Oct 12, revises D26,
+  D39):** a challenge needs a court, a day and a time, up to 7 days ahead. A
+  pending challenge expires at its game time (not at the end of its day). Once
+  accepted, both players get "With X at Court in 30 minutes" 30 minutes
+  before. No 24-hour nudge. Logging a game and score corrections look back 7
+  days (was 5).
 - **D49 Hide score takes half the players (Oct 12, revises D47):** a score is
   hidden once half or more of the game's players turn on Hide score (one in a
   1v1, two in a 2v2, three in a 3v3), so one player can't hide a team game

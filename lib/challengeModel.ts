@@ -139,16 +139,22 @@ export function challengeTitle(challenge: Pick<Challenge, "courtName">): string 
   return challenge.courtName ? `1v1 at ${challenge.courtName}` : "1v1, any court";
 }
 
-/** A pending challenge with no date expires after this many days (matches the server). */
+/** An old challenge with no day or time expired after this many days (matches the server). */
 export const UNDATED_CHALLENGE_DAYS = 7;
 
 /**
- * True when a pending challenge's day has passed (or, with no day, it is over a
- * week old). The server flips these to "expired" within 15 minutes; this makes
- * the inbox drop them immediately. Accepted challenges never expire here.
+ * True when a pending challenge's game time has passed (Oct 12: it expires at
+ * its game time). The server flips it to "expired" at that moment through a
+ * QStash timer; this makes the inbox drop it at once. Older challenges without
+ * a time keep the old rule (past their day, or over a week old). Accepted
+ * challenges never expire here.
  */
 export function isStalePending(challenge: Challenge, today: Date = new Date()): boolean {
   if (challenge.status !== "pending") return false;
+  if (challenge.playAt) {
+    const at = Date.parse(challenge.playAt);
+    if (!Number.isNaN(at)) return at <= today.getTime();
+  }
   if (challenge.playOn) return challenge.playOn < localDateValue(today);
   const created = Date.parse(challenge.createdAt);
   if (Number.isNaN(created)) return false;
@@ -298,9 +304,9 @@ export function challengeCardLines(
   };
 }
 
-// ── The WHEN wheel: Today plus 4 days, 15-minute steps ──────────────────────
+// ── The WHEN wheel: Today plus 6 days (7 in all), 15-minute steps ──────────────────────
 
-export const CHALLENGE_DAYS = 5;
+export const CHALLENGE_DAYS = 7;
 export const TIME_STEP_MINUTES = 15;
 const STEPS_PER_DAY = (24 * 60) / TIME_STEP_MINUTES;
 
