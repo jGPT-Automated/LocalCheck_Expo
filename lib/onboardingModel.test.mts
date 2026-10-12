@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   courtPickerDetail,
+  farCourtNote,
   formatMiles,
   inviteErrorMessage,
   isCityQuery,
@@ -53,4 +54,28 @@ test("usernames are 3-10 letters and numbers (D46)", async () => {
   assert.equal(isValidUsername("ab"), false);
   assert.equal(isValidUsername("chris_j"), false);
   assert.equal(isValidUsername("abcdefghijk"), false);
+});
+
+test("a court 1354 mi away gets a plain far-away note naming the typed city", () => {
+  assert.equal(
+    farCourtNote([{ distanceKm: 2179 }], "  Los   Angeles "),
+    "No courts near Los Angeles yet. Closest:",
+  );
+});
+
+test("the far-away note says 'you' for device location", () => {
+  assert.equal(farCourtNote([{ distanceKm: 300 }], null), "No courts near you yet. Closest:");
+});
+
+test("a court within 50 mi gets no note", () => {
+  assert.equal(farCourtNote([{ distanceKm: 80 }], "Conroe, TX"), null);
+});
+
+test("the nearest court decides, not the first row", () => {
+  assert.equal(farCourtNote([{ distanceKm: 900 }, { distanceKm: 10 }], "Conroe"), null);
+});
+
+test("no distances or no courts means no note", () => {
+  assert.equal(farCourtNote([], "Conroe"), null);
+  assert.equal(farCourtNote([{}], "Conroe"), null);
 });

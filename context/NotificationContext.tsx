@@ -13,7 +13,7 @@ import {
 } from "@/lib/autoCheckInModel";
 import { getSafeNotificationRoute } from "@/lib/notificationRoutes";
 import { resumeAutoCheckIn, undoAutoCheckIn } from "@/services/autoCheckInService";
-import { profileNeedsOnboarding } from "@/lib/onboardingGate";
+import { canAutoPromptPush } from "@/lib/onboardingGate";
 import {
   AppNotification,
   fetchNotifications,
@@ -81,14 +81,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [refreshNotifications]);
 
   useEffect(() => {
-    if (!user || !profile) return;
-    // A fresh signup still going through onboarding gets no automatic
-    // permission prompts at all — onboarding's own "Share location" button
-    // is the only thing allowed to trigger a native prompt there.
-    // `profile?.onboarding_completed` is a dependency below specifically so
-    // this effect re-fires once it flips, letting push prompt normally right
-    // after onboarding finishes rather than staying skipped for the session.
-    if (profileNeedsOnboarding(profile)) return;
+    // The automatic prompt needs a positive "onboarding finished" signal for
+    // THIS user. Until then (profile still loading, a stale or unflagged row,
+    // or onboarding in progress) the only path to the iOS alerts prompt is
+    // onboarding's last step, after the "why alerts" explainer.
+    // `profile.onboarding_completed` is a dependency below so this re-fires
+    // once onboarding finishes.
+    if (!profile || !canAutoPromptPush(user?.id, profile)) return;
     const preferenceEnabled = profile.push_notifications_enabled;
     let cancelled = false;
     // Staggered, not simultaneous: on a fresh sign-in this mounts the same
@@ -106,7 +105,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [profile?.push_notifications_enabled, profile?.onboarding_completed, refreshProfile, user]);
+  }, [profile?.id, profile?.push_notifications_enabled, profile?.onboarding_completed, refreshProfile, user]);
 
   useEffect(() => {
     if (Platform.OS !== "ios" && Platform.OS !== "android") return;

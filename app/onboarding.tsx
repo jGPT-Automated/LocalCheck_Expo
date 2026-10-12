@@ -22,6 +22,7 @@ import { useNotifications } from "@/context/NotificationContext";
 import {
   cleanUsername,
   courtPickerDetail,
+  farCourtNote,
   inviteErrorMessage,
   isCityQuery,
   isValidUsername,
@@ -67,6 +68,9 @@ export default function OnboardingScreen() {
   const [cityMode, setCityMode] = React.useState(false);
   const [city, setCity] = React.useState("");
   const [usedCity, setUsedCity] = React.useState(false);
+  // What the current court list is measured from: the typed city, or null for
+  // the device location.
+  const [searchedPlace, setSearchedPlace] = React.useState<string | null>(null);
   // Only the newest lookup may fill the picker (an older, slower one is dropped).
   const lookupRef = React.useRef(0);
   // The sport the current court list was loaded for.
@@ -146,6 +150,10 @@ export default function OnboardingScreen() {
     lookupRef.current += 1;
     setSearching(true);
     setSelectedCourt(null);
+    // Drop the previous list now: if this lookup fails, the old origin's
+    // courts must not stay on screen under a failure notice.
+    setCourtOptions([]);
+    setSearched(false);
     setLocationNotice(null);
     return lookupRef.current;
   }
@@ -163,6 +171,7 @@ export default function OnboardingScreen() {
       return;
     }
     setUsedCity(false);
+    setSearchedPlace(null);
     await loadCourtsNear(lookup, coord.lat, coord.lng);
   }
 
@@ -179,6 +188,7 @@ export default function OnboardingScreen() {
       return;
     }
     setUsedCity(true);
+    setSearchedPlace(city);
     await loadCourtsNear(lookup, coord.lat, coord.lng);
   }
 
@@ -223,6 +233,8 @@ export default function OnboardingScreen() {
     else if (step === 2) setStep(1);
   }
 
+  const farNote = farCourtNote(courtOptions, searchedPlace);
+
   const primary =
     step === 1
       ? {
@@ -236,7 +248,7 @@ export default function OnboardingScreen() {
               ? "SAVING…"
               : step2Error
                 ? "RETRY"
-                : selectedCourt || !searched
+                : selectedCourt || !searched || courtOptions.length > 0
                   ? "CONTINUE"
                   : "CONTINUE WITHOUT A COURT",
             onPress: () => void handleContinueStep2(),
@@ -413,7 +425,11 @@ export default function OnboardingScreen() {
             ) : searched ? (
               courtOptions.length > 0 ? (
                 <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>CLOSEST COURTS</Text>
+                  {farNote ? (
+                    <Text style={styles.locationNotice}>{farNote}</Text>
+                  ) : (
+                    <Text style={styles.fieldLabel}>CLOSEST COURTS</Text>
+                  )}
                   <View style={styles.sportList}>
                     {courtOptions.map((court) => (
                       <OptionRow

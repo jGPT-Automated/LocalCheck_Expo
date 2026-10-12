@@ -93,6 +93,22 @@ export function autoCheckInDetail(state: AutoCheckInState, courtName?: string | 
   }
 }
 
+/** The value on the Settings row that opens the auto check-in drawer. */
+export function autoCheckInLabel(state: AutoCheckInState): string {
+  switch (state) {
+    case "on":
+      return "ON";
+    case "needs_always":
+      return "PAUSED";
+    case "no_court":
+      return "NO COURT";
+    case "unavailable":
+      return "APP ONLY";
+    default:
+      return "OFF";
+  }
+}
+
 export function autoCheckInSwitchValue(state: AutoCheckInState): boolean {
   return state === "on" || state === "needs_always";
 }

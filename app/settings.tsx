@@ -35,7 +35,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useAutoCheckIn } from "@/context/AutoCheckInContext";
 import { useNotifications } from "@/context/NotificationContext";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
-import { autoCheckInDetail, autoCheckInSwitchValue } from "@/lib/autoCheckInModel";
+import { autoCheckInLabel, autoCheckInSwitchValue } from "@/lib/autoCheckInModel";
+import { AutoCheckInSettingsSheet } from "@/components/autoCheckIn/AutoCheckInSettingsSheet";
 import { setAutoCheckInAlerts } from "@/services/autoCheckInService";
 import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
 import { cleanUsername, isValidUsername, USERNAME_MAX } from "@/lib/onboardingModel";
@@ -139,6 +140,7 @@ export default function SettingsScreen() {
   const [editor, setEditor] = useState<
     null | "privacy" | "sport" | "court" | "username" | "password"
   >(null);
+  const [autoSheetOpen, setAutoSheetOpen] = useState(false);
   const usesApple =
     user?.app_metadata?.provider === "apple" ||
     user?.identities?.some((identity) => identity.provider === "apple");
@@ -369,17 +371,12 @@ export default function SettingsScreen() {
             valueMuted={!localCourt}
             onPress={() => setEditor("court")}
           />
-          <ToggleSettingsRow
+          <DrillRow
             icon="navigation"
             label="AUTO CHECK-IN"
-            detail={autoCheckInDetail(autoCheckIn.state, autoCheckIn.courtName)}
-            disabled={autoCheckIn.state === "unavailable" || autoCheckIn.state === "no_court" || autoCheckIn.busy}
-            onValueChange={(value) => {
-              if (!value) void autoCheckIn.turnOff();
-              else if (autoCheckIn.state === "needs_always") autoCheckIn.openSettings();
-              else autoCheckIn.offer();
-            }}
-            value={autoCheckInSwitchValue(autoCheckIn.state)}
+            value={autoCheckInLabel(autoCheckIn.state)}
+            valueMuted={autoCheckIn.state !== "on"}
+            onPress={() => setAutoSheetOpen(true)}
             last
           />
         </Section>
@@ -392,22 +389,6 @@ export default function SettingsScreen() {
             disabled={pushSaving}
             onValueChange={(value) => void setPushNotifications(value)}
             value={pushValue}
-          />
-          <ToggleSettingsRow
-            icon="send"
-            label="SHARE MY AUTO CHECK-INS"
-            detail="Friends who turn on alerts get a heads-up when you're auto-checked in. Never when you're Private."
-            disabled={alertsSaving}
-            onValueChange={(value) => void saveAutoCheckInAlerts({ share: value })}
-            value={profile?.share_auto_check_ins === true}
-          />
-          <ToggleSettingsRow
-            icon="users"
-            label="FRIENDS' AUTO CHECK-INS"
-            detail="Get a heads-up when a friend who shares is auto-checked in"
-            disabled={alertsSaving}
-            onValueChange={(value) => void saveAutoCheckInAlerts({ receive: value })}
-            value={profile?.notify_friend_check_ins !== false}
           />
           <SettingsRow
             icon="inbox"
@@ -513,6 +494,29 @@ export default function SettingsScreen() {
         value={preferredSport}
         onSelect={(next) => void setPreferredSport(next)}
         onClose={() => setEditor(null)}
+      />
+      <AutoCheckInSettingsSheet
+        alertsSaving={alertsSaving}
+        canToggle={
+          autoCheckIn.state !== "unavailable" && autoCheckIn.state !== "no_court" && !autoCheckIn.busy
+        }
+        courtName={localCourt ? localCourt.shortName || localCourt.name : null}
+        on={autoCheckInSwitchValue(autoCheckIn.state)}
+        onClose={() => setAutoSheetOpen(false)}
+        onOpenSettings={autoCheckIn.openSettings}
+        onReceiveAlerts={(value) => void saveAutoCheckInAlerts({ receive: value })}
+        onShareAlerts={(value) => void saveAutoCheckInAlerts({ share: value })}
+        onToggle={(value) => {
+          if (!value) void autoCheckIn.turnOff();
+          else if (autoCheckIn.state === "needs_always") autoCheckIn.openSettings();
+          else {
+            setAutoSheetOpen(false);
+            autoCheckIn.offer();
+          }
+        }}
+        receiveAlerts={profile?.notify_friend_check_ins !== false}
+        shareAlerts={profile?.share_auto_check_ins === true}
+        visible={autoSheetOpen}
       />
       <LocalCourtEditorSheet
         visible={editor === "court"}

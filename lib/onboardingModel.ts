@@ -69,3 +69,24 @@ export function courtPickerDetail(court: {
     .filter(Boolean)
     .join(" · ");
 }
+
+/** Past this, the nearest court is not "near" anyone. */
+export const FAR_COURT_MILES = 50;
+
+/**
+ * One line shown above the picker when even the closest court is far away,
+ * so a 1,354-mi court is not presented as a nearby option. `place` is what
+ * the player typed; null means their device location. Null = nothing to say.
+ */
+export function farCourtNote(
+  courts: { distanceKm?: number }[],
+  place: string | null,
+): string | null {
+  const km = courts
+    .map((c) => c.distanceKm)
+    .filter((d): d is number => d != null && !Number.isNaN(d));
+  if (km.length === 0) return null;
+  if (Math.min(...km) * 0.621371 <= FAR_COURT_MILES) return null;
+  const where = place?.trim().replace(/\s+/g, " ") || "you";
+  return `No courts near ${where} yet. Closest:`;
+}
