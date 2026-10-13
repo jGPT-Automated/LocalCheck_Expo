@@ -75,7 +75,7 @@ export function CourtSheetContent({
 }) {
   const {
     courts, localCourt, checkIn, checkOut, checkedInCourtId,
-    localCourtId, isFriend, setLocalCourt,
+    localCourtId, isFriend, setLocalCourt, pendingAutoCheckIn, hideAutoCheckIn,
   } = useApp();
   const { bottom } = useSafeAreaInsets();
   const { profile } = useAuth();
@@ -119,7 +119,9 @@ export function CourtSheetContent({
     );
   }
 
-  const isCheckedIn = checkedInCourtId === court.id;
+  // An auto check-in waiting to post counts as checked in for the player.
+  const waitingToPost = pendingAutoCheckIn?.courtId === court.id && checkedInCourtId !== court.id;
+  const isCheckedIn = checkedInCourtId === court.id || waitingToPost;
   const isMyLocal = localCourtId === court.id;
   // Same rule as app/court/[id].tsx's full-page gate — your own local court
   // always stays free, every other court's player-level detail is LocalPlus.
@@ -146,6 +148,11 @@ export function CourtSheetContent({
   })();
 
   const handleCheckIn = async () => {
+    if (waitingToPost) {
+      // Not posted yet: checking out means it never happened.
+      await hideAutoCheckIn();
+      return;
+    }
     if (isCheckedIn) {
       await checkOut();
       return;

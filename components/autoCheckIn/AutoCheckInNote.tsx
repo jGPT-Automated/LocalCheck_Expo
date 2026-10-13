@@ -6,44 +6,48 @@ import { Colors } from "@/constants/colors";
 import { Space } from "@/constants/layout";
 import { TextStyles, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
-import { undoAutoCheckIn } from "@/services/autoCheckInService";
+import { clockTime } from "@/lib/autoCheckInModel";
 
 /**
- * One quiet line under a court's check-in button when the check-in came from
- * auto check-in (D35): "Checked in automatically · Hide". Tapping
- * "Hide" removes it as if it never happened, so an auto check-in always
- * feels easy to take back.
+ * One quiet line under a court's check-in button for an auto check-in
+ * (D35, D52). While it waits to post: "Checked in automatically · Posts at
+ * 4:05 PM · Hide". Once posted: "Checked in automatically · Hide". Hide
+ * erases it as if it never happened (friend alerts already sent stay sent).
  */
 export function AutoCheckInNote({ courtId }: { courtId: string }) {
-  const { checkedInCourtId, checkedInAuto, refreshCheckedIn, refreshFeed } = useApp();
+  const { checkedInCourtId, checkedInAuto, pendingAutoCheckIn, hideAutoCheckIn } = useApp();
   const { showToast } = useToast();
   const [busy, setBusy] = useState(false);
 
-  if (!checkedInAuto || checkedInCourtId !== courtId) return null;
+  const waiting = pendingAutoCheckIn?.courtId === courtId && checkedInCourtId !== courtId;
+  const posted = checkedInAuto && checkedInCourtId === courtId;
+  if (!waiting && !posted) return null;
 
-  const remove = async () => {
+  const hide = async () => {
     if (busy) return;
     setBusy(true);
-    const ok = await undoAutoCheckIn();
+    const ok = await hideAutoCheckIn();
     setBusy(false);
-    await refreshCheckedIn();
-    refreshFeed();
     showToast(
       ok
-        ? { title: "REMOVED", body: "You're not checked in.", icon: "rotate-ccw" }
-        : { title: "COULDN'T REMOVE", body: "Tap CHECKED IN to check out instead.", icon: "alert-circle" },
+        ? { title: "HIDDEN", body: "You're not checked in.", icon: "eye-off" }
+        : { title: "COULDN'T HIDE", body: "Tap CHECKED IN to check out instead.", icon: "alert-circle" },
     );
   };
 
+  const postsAt = waiting && pendingAutoCheckIn ? clockTime(new Date(pendingAutoCheckIn.postsAt)) : null;
+
   return (
     <View style={styles.row}>
-      <Text style={styles.text}>Checked in automatically ·</Text>
+      <Text style={styles.text}>
+        {postsAt ? `Checked in automatically · Posts at ${postsAt} ·` : "Checked in automatically ·"}
+      </Text>
       <Pressable
         accessibilityLabel="Hide this auto check-in"
         accessibilityRole="button"
         disabled={busy}
         hitSlop={12}
-        onPress={() => void remove()}
+        onPress={() => void hide()}
       >
         <Text style={styles.link}>{busy ? "Hiding…" : "Hide"}</Text>
       </Pressable>

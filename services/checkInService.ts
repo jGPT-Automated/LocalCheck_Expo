@@ -209,6 +209,28 @@ export async function fetchActiveCheckInState(
   }
 }
 
+export interface PendingAutoCheckIn {
+  courtId: string;
+  /** When it posts (5 minutes after arriving). */
+  postsAt: string;
+}
+
+/**
+ * An auto check-in waiting to post (arrived, not yet 5 minutes, not hidden).
+ * Null when there is none, or before migration 20261012180000 is applied.
+ */
+export async function fetchPendingAutoCheckIn(): Promise<PendingAutoCheckIn | null> {
+  try {
+    const { data, error } = await supabase.rpc("my_pending_auto_check_in");
+    if (error || !data) return null;
+    const row = data as { court_id?: unknown; posts_at?: unknown };
+    if (typeof row.court_id !== "string" || typeof row.posts_at !== "string") return null;
+    return { courtId: row.court_id, postsAt: row.posts_at };
+  } catch {
+    return null;
+  }
+}
+
 /** Get only the active court id for callers that do not need privacy state. */
 export async function fetchCheckedInCourtId(userId: string): Promise<string | null> {
   return (await fetchActiveCheckInState(userId))?.courtId ?? null;

@@ -44,6 +44,8 @@ export function HomeScreen() {
     localCourt,
     localCourtId,
     checkedInCourtId,
+    pendingAutoCheckIn,
+    hideAutoCheckIn,
     checkIn,
     checkOut,
     feed,
@@ -123,7 +125,9 @@ export function HomeScreen() {
     return <NoCourtState isSignedIn={Boolean(user)} />;
   }
 
-  const isCheckedIn = checkedInCourtId === localCourt.id;
+  // An auto check-in waiting to post counts as checked in for the player.
+  const waitingToPost = pendingAutoCheckIn?.courtId === localCourt.id && checkedInCourtId !== localCourt.id;
+  const isCheckedIn = checkedInCourtId === localCourt.id || waitingToPost;
   const statsActive = liveCounts[localCourt.id]?.activeCount ?? 0;
   const activeTotal = Math.max(roster.length, statsActive);
   const hiddenCount = Math.max(0, activeTotal - roster.length);
@@ -138,7 +142,11 @@ export function HomeScreen() {
     if (isChecking) return;
     setIsChecking(true);
     try {
-      if (isCheckedIn) {
+      if (waitingToPost) {
+        // Not posted yet: checking out means it never happened.
+        if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        await hideAutoCheckIn();
+      } else if (isCheckedIn) {
         if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         await checkOut();
       } else if (await checkIn(localCourt.id)) {
