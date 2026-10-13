@@ -20,19 +20,19 @@ Last reconciled: 2026-10-12 against `origin/main` at `541632c` (#65), PR #67
   Deployed Oct 12: `timers` v1 and `send-notification` v5 (`data.category` →
   Hide / I'm still here buttons, `data.collapse_id` → "Check-in posted"
   replaces the arrival notice).
-- Not yet applied: `20261012200000_checkout_notice_for_all.sql` (D53: manual
-  check-ins get the "Auto checked out" push too). Saved in the SQL editor as
-  "1 TEST - Checkout notice for manual check-ins" and "2 REAL - Checkout
-  notice for manual check-ins" for Jesse to run, test first. Front-end
-  handoff (includes the matching I'm still here change):
+- Applied Oct 12, about 9:05 PM Central: `20261012200000_checkout_notice_for_all.sql`
+  (D53: manual check-ins get the "Auto checked out" push too). Checked on a
+  real check-in: Jesse's manual check-in ended at 9:14:29 PM by QStash and
+  the push went out at 9:14:32 PM. Front-end handoff (includes the matching
+  I'm still here change):
   `docs/handoffs/2026-10-13-frontend-timers-and-auto-check-in.md`.
 - Installed TestFlight build: version `1.0.3`. Builds are manual only; none
   used in October so far (`docs/RELEASE.md`).
 - EAS project: `agenticjess-os/localcheck`
   (`9c906173-0258-45a9-a3fe-786cda373c66`).
 - Supabase production project: `qkrnmyexzvaxiqfxwwfb`. Every migration in
-  `supabase/migrations/` is applied and recorded except the D53 one above;
-  Edge Functions are deployed (`docs/SUPABASE.md`).
+  `supabase/migrations/` is applied and recorded; Edge Functions are
+  deployed (`docs/SUPABASE.md`).
 - Installed binaries use EAS Update with `runtimeVersion.policy = appVersion`.
 
 ## Current product contract
