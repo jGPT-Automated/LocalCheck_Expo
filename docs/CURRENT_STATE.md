@@ -16,8 +16,12 @@ Last reconciled: 2026-10-12 against `origin/main` at `541632c` (#65), PR #67
   time, short usernames, friend alert wording). Not yet applied:
   `20261012180000_qstash_timers.sql` (D50, D51): timed work moves to QStash
   and the five polling jobs are removed (`docs/SUPABASE.md` → "Timed work
-  (QStash)"). Not yet deployed: `timers` (new) and `send-notification`
-  (passes `data.category` for the Hide and I'm still here buttons).
+  (QStash)"). Test version passed Oct 12; the real script is saved in the
+  SQL editor as "2 REAL - QStash timers" for Jesse to run. Deployed Oct 12:
+  `timers` v1 and `send-notification` v5 (`data.category` → Hide / I'm
+  still here buttons, `data.collapse_id` → "Check-in posted" replaces the
+  arrival notice). Front-end handoff:
+  `docs/handoffs/2026-10-13-frontend-timers-and-auto-check-in.md`.
 - Installed TestFlight build: version `1.0.3`. Builds are manual only; none
   used in October so far (`docs/RELEASE.md`).
 - EAS project: `agenticjess-os/localcheck`
