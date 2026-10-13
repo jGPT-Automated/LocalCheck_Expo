@@ -71,6 +71,15 @@ below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D53 Every automatic checkout sends the same notice (Oct 12, extends D52):**
+  when a check-in ends on its own, manual (45 minutes) or auto (1.5 hours),
+  the player gets "Auto checked out" / "Still at {court}? Tap I'm still
+  here." The button checks them back in the same way they came: manual for
+  another 45 minutes, auto for another 1.5 hours. Leaving the circle and
+  checking out yourself send nothing. Migration
+  `20261012200000_checkout_notice_for_all.sql` (test version and undo in
+  the repo); the push carries `source` so the app knows which way to check
+  back in.
 - **D52 Auto check-in timing (Oct 12, revises D36, D38):** arriving checks you
   in privately; after a minute inside the circle (so driving past shows
   nothing) the phone shows "Checked in at Rancho · Posts at 4:05 PM" with

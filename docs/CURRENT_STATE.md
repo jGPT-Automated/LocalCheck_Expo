@@ -13,23 +13,26 @@ Last reconciled: 2026-10-12 against `origin/main` at `541632c` (#65), PR #67
   plus auto check-in (D35–D38) and the Oct 8 preview fixes (D39–D41). #66 is
   superseded; close it when #67 merges.
 - Applied Oct 12 by Jesse: `20261010120000` and `20261012120000` (challenge
-  time, short usernames, friend alert wording). Not yet applied:
-  `20261012180000_qstash_timers.sql` (D50, D51): timed work moves to QStash
-  and the five polling jobs are removed (`docs/SUPABASE.md` → "Timed work
-  (QStash)"). Test version passed Oct 12; the real script is saved in the
-  SQL editor as "2 REAL - QStash timers" for Jesse to run. Deployed Oct 12:
-  `timers` v1 and `send-notification` v5 (`data.category` → Hide / I'm
-  still here buttons, `data.collapse_id` → "Check-in posted" replaces the
-  arrival notice). Front-end handoff:
+  time, short usernames, friend alert wording) and, at about 8:33 PM Central,
+  `20261012180000_qstash_timers.sql` (D50, D51): timed work runs on QStash,
+  the five polling jobs are gone, and `localcheck-timer-bookings` re-sends
+  failed bookings every minute (`docs/SUPABASE.md` → "Timed work (QStash)").
+  Deployed Oct 12: `timers` v1 and `send-notification` v5 (`data.category` →
+  Hide / I'm still here buttons, `data.collapse_id` → "Check-in posted"
+  replaces the arrival notice).
+- Not yet applied: `20261012200000_checkout_notice_for_all.sql` (D53: manual
+  check-ins get the "Auto checked out" push too). Saved in the SQL editor as
+  "1 TEST - Checkout notice for manual check-ins" and "2 REAL - Checkout
+  notice for manual check-ins" for Jesse to run, test first. Front-end
+  handoff (includes the matching I'm still here change):
   `docs/handoffs/2026-10-13-frontend-timers-and-auto-check-in.md`.
 - Installed TestFlight build: version `1.0.3`. Builds are manual only; none
   used in October so far (`docs/RELEASE.md`).
 - EAS project: `agenticjess-os/localcheck`
   (`9c906173-0258-45a9-a3fe-786cda373c66`).
 - Supabase production project: `qkrnmyexzvaxiqfxwwfb`. Every migration in
-  `supabase/migrations/` is applied and recorded except the one above; Edge
-  Functions are deployed except the `send-notification` change above
-  (`docs/SUPABASE.md`).
+  `supabase/migrations/` is applied and recorded except the D53 one above;
+  Edge Functions are deployed (`docs/SUPABASE.md`).
 - Installed binaries use EAS Update with `runtimeVersion.policy = appVersion`.
 
 ## Current product contract

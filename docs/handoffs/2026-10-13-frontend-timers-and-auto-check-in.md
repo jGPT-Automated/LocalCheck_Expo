@@ -2,7 +2,7 @@
 
 For the agent doing front-end changes and the polish review on PR #67
 (`codex/auto-check-in`). The backend is done. Don't change SQL, Edge Functions or
-timings without Jesse. Decisions: `docs/product/DECISIONS.md` D50–D52.
+timings without Jesse. Decisions: `docs/product/DECISIONS.md` D50–D53.
 Backend detail: `docs/SUPABASE.md` → "Timed work (QStash)".
 
 ## 1. User flows (what the player sees)
@@ -19,7 +19,7 @@ Backend detail: `docs/SUPABASE.md` → "Timed work (QStash)".
 
 **Hide** (any time, from the notice, push, Home line or court drawer) calls `undo_auto_check_in`. It erases the arrival or check-in and its feed item. Friend alerts already sent stay sent. Tapping **CHECKED IN** while it waits to post also hides it.
 
-**Manual check-in:** ends 45 minutes after it started (QStash). No push.
+**Manual check-in:** ends 45 minutes after it started (QStash). Push **"Auto checked out"**: "Still at Rancho? Tap I'm still here." (D53, once Jesse runs the Oct 12 checkout-notice script). The button starts another 45 minutes.
 
 **Challenge:** needs court, day and time, up to 7 days ahead. Unanswered, it expires at its game time (leaves the inbox; no push). Accepted 30+ minutes ahead: both players get **"CASUAL GAME"** / **"RANKED GAME"**, "With {username} at {court} in 30 minutes". Only sent if the game hasn't started.
 
@@ -46,7 +46,7 @@ Never call `fire_timer` or `timer_booked`: they're service-role only.
 | type | title / body | data |
 |---|---|---|
 | `auto_check_in` **new** | Check-in posted / You're at {court}. Not playing? Tap Hide. | `path:/court/<id>`, `kind:"auto_check_in"`, `court_id`, `category:"auto-check-in"`, `collapse_id:"localcheck-auto-check-in"` |
-| `auto_check_out` | Auto checked out / Still at {court}? Tap I'm still here. | `path`, `kind:"auto_check_out"`, `court_id`, `category:"auto-check-out"` |
+| `auto_check_out` | Auto checked out / Still at {court}? Tap I'm still here. Now sent for manual check-ins too (D53). | `path`, `kind:"auto_check_out"`, `court_id`, `source` (`"manual"` or `"auto"`) **new**, `category:"auto-check-out"` |
 | `friend_check_in` | A friend just checked in / {name} is at {court} | `path` |
 | `challenge` (reminder) | CASUAL GAME or RANKED GAME / With {username} at {court} in 30 minutes | `path:/challenge/<id>`, `challenge_id` |
 
@@ -75,20 +75,21 @@ Never call `fire_timer` or `timer_booked`: they're service-role only.
 
 ## 4. Open front-end items
 
-1. **Polish** the Home and drawer waiting line against the mock and `docs/product/DESIGN.md`.
-2. **Hide on the player's own row in the court feed:** Jesse's idea. Show him a mock first; don't build it unasked.
-3. **Fix stale comments:**
+1. **I'm still here must follow `data.source` (D53, must do).** Today `context/NotificationContext.tsx:128-131` always calls `resumeAutoCheckIn`, which is wrong for a manual check-in (it would start a 1.5-hour auto check-in, and only at the local court). Change it to: `source === "manual"` → `check_in(p_court_id)` (another 45 minutes, same as checking in by hand); `source === "auto"` or missing → `resume_auto_check_in` as now. The STILL HERE toast should say 45 minutes for manual. Old pushes have no `source`; treat them as auto.
+2. **Polish** the Home and drawer waiting line against the mock and `docs/product/DESIGN.md`.
+3. **Hide on the player's own row in the court feed:** Jesse's idea. Show him a mock first; don't build it unasked.
+4. **Fix stale comments:**
    - `components/challenge/ChallengeSheet.tsx:31` ("today plus four days"; the wheel is 7 days).
    - `lib/challengeModel.test.mts:214` (test name).
    - `services/checkInService.ts:9` (says a pg_cron job ends check-ins every 5 minutes; QStash does now).
-4. **Notification buttons only show when the player long-presses or expands a notification.** That's how iOS works ([Apple: actionable notifications](https://developer.apple.com/documentation/usernotifications/declaring-your-actionable-notification-types)). Most players just tap, which opens `/court/<id>`, so the in-app Hide is the main path.
-5. **After launch, not now:** a countdown to auto checkout on the home court page.
+5. **Notification buttons only show when the player long-presses or expands a notification.** That's how iOS works ([Apple: actionable notifications](https://developer.apple.com/documentation/usernotifications/declaring-your-actionable-notification-types)). Most players just tap, which opens `/court/<id>`, so the in-app Hide is the main path.
+6. **After launch, not now:** a countdown to auto checkout on the home court page.
 
 ## 5. What needs a build vs. an over-the-air update
 
 - **Needs the 1.0.4 TestFlight build (PR #67):** geofence, notification buttons, Hide on the notice. Build 33 (1.0.3) has neither auto check-in nor challenges.
 - **Over the air, after that build:** any JS or copy change in §3–4.
-- **Server side:** the timer script ("2 REAL" in the Supabase SQL editor, run by Jesse). The push sender update adds `collapseId` and `categoryId`; until it's deployed, "Check-in posted" stacks under the 4:01 notice and the push buttons don't show.
+- **Server side:** the timer script is live (Jesse ran it Oct 12). The push sender with `collapseId` and `categoryId` is deployed. The D53 checkout notice for manual check-ins is "2 REAL - Checkout notice for manual check-ins" in the Supabase SQL editor, run by Jesse after its "1 TEST".
 - **Web preview:** no auto check-in (no geofence), so `pendingAutoCheckIn` stays `null` there. Test the waiting state on a phone.
 
 ## 6. Done means (real flow, on the 1.0.4 build)
@@ -96,6 +97,6 @@ Never call `fire_timer` or `timer_booked`: they're service-role only.
 1. Walk onto the local court: the notice at about 1 minute, the push at 5 minutes, which replaces it.
 2. Hide, from both the notice and Home: you're gone from the court and the feed.
 3. Walk away: checked out at once.
-4. Check in by hand: checked out at 45 minutes.
+4. Check in by hand: checked out at 45 minutes, with the "Auto checked out" push; I'm still here checks you back in for 45 minutes.
 5. Challenge from the web test account for about 35 minutes out, and accept on the phone: both reminders 30 minutes before.
 6. `pnpm run check` passes.
