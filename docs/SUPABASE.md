@@ -68,6 +68,17 @@ production SQL goes through Jesse:
 
 Never run SQL written by Supabase's assistant.
 
+When a script adds or changes a function that an Edge Function or the app
+calls through the API, end it with `notify pgrst, 'reload schema';` so the
+API sees the new function immediately
+([Supabase: reloading the schema cache](https://supabase.com/docs/guides/troubleshooting/refresh-postgrest-schema)).
+On Oct 12 the first timer booking failed for a minute ("Could not find the
+function public.timer_booked … in the schema cache") until the re-sender
+booked it again.
+
+Save every script in the SQL editor under a clear name ("1 TEST …",
+"2 REAL …"); the test version runs first.
+
 ## Edge Functions
 
 Keep service-role and provider secrets in Supabase; public Expo variables never
