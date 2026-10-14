@@ -9,6 +9,25 @@ preferences) lives outside the repo, in Jesse's folder
 https://claude.ai/code/artifact/7748ed30-34b0-408d-ba7f-2eef59fae0f5. If the
 session isn't linked to his Mac, use the plan doc and `docs/CURRENT_STATE.md`.
 
+## Docs on every push
+
+Every push to a pull request that changes anything outside `docs/` (code,
+database, config, CI) updates the docs in the same push. Nothing is "not
+affected": if it changed, it gets written down. Readers of `main`, including
+Jesse's project chats, see only what the docs say, and PR #65 merged a month of
+app changes with none of them recorded (Oct 13).
+
+- Always: `docs/CURRENT_STATE.md` — add what changed and what is true now.
+- Database or server functions (`supabase/`): also `docs/SUPABASE.md`.
+- A decision Jesse made: also `docs/product/DECISIONS.md` (and the plan doc's
+  Decision log).
+- Screen layout, components or wording rules: also `docs/product/DESIGN.md`.
+- What the app does for players changed: also `docs/product/PRODUCT.md`.
+
+CI enforces the first two on every push (`docs updated` job,
+`scripts/check-docs-updated.mjs`); the PR template lists all five. A push that
+fails it is fixed by adding the doc update, never by skipping the check.
+
 ## Read order
 
 1. `docs/CURRENT_STATE.md` — what is actually shipped, live, and blocked.
@@ -253,4 +272,5 @@ is implemented; it must not be presented as current behavior. Do not create
 activity logs, duplicate runbooks, machine inventories, or competing sources of
 truth. After any change to the repo or backend, bring the affected authority
 file (`docs/CURRENT_STATE.md`, `docs/SUPABASE.md`, `docs/FEEDBACK_TRACKER.md`,
-the relevant runbook) to current in the same pull request.
+the relevant runbook) to current in the same push — see "Docs on every push"
+at the top; anything changed counts as affected.

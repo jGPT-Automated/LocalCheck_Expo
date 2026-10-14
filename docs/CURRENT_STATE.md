@@ -26,6 +26,14 @@ Last reconciled: 2026-10-12 against `origin/main` at `541632c` (#65), PR #67
   the push went out at 9:14:32 PM. Front-end handoff (includes the matching
   I'm still here change):
   `docs/handoffs/2026-10-13-frontend-timers-and-auto-check-in.md`.
+- Docs check (Oct 13, D54): CI job `docs updated` fails any push to a pull
+  request that changes anything outside `docs/` without adding lines to this
+  file, and anything under `supabase/` without adding lines to
+  `docs/SUPABASE.md` (`scripts/check-docs-updated.mjs`, rules in
+  `scripts/docsCheckModel.mjs`, tests in `scripts/docsCheckModel.test.mjs`).
+  The rule is at the top of `AGENTS.md` ("Docs on every push") and in the PR
+  template. Found because #65 (Oct 6) merged with none of these docs updated,
+  so `main`'s docs still describe September.
 - Installed TestFlight build: version `1.0.3`. Builds are manual only; none
   used in October so far (`docs/RELEASE.md`).
 - EAS project: `agenticjess-os/localcheck`

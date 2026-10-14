@@ -41,4 +41,9 @@
 
 - Remaining risk or blocker:
 - Exact next action:
-- Documentation updated:
+- Documentation updated in this PR (AGENTS.md "Docs on every push"; CI checks the first two on every push):
+  - [ ] `docs/CURRENT_STATE.md` — what changed and what is true now (always)
+  - [ ] `docs/SUPABASE.md` — if anything under `supabase/` changed
+  - [ ] `docs/product/DECISIONS.md` — if Jesse made a decision
+  - [ ] `docs/product/DESIGN.md` — if layout, components or wording rules changed
+  - [ ] `docs/product/PRODUCT.md` — if what the app does for players changed

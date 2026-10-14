@@ -71,6 +71,13 @@ below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D54 Docs are updated on every push, and CI checks it (Oct 13):** any
+  change outside `docs/` counts as affecting the docs; there is no "not
+  affected." Every push to a pull request updates `docs/CURRENT_STATE.md`, plus
+  `docs/SUPABASE.md` for database changes, and the decision, design and product
+  docs when those change. The `docs updated` CI job enforces the first two;
+  the PR template lists all five. Why: #65 merged a month of app changes with
+  none of them in the docs, so anyone reading `main` saw September's app.
 - **D53 Every automatic checkout sends the same notice (Oct 12, extends D52):**
   when a check-in ends on its own, manual (45 minutes) or auto (1.5 hours),
   the player gets "Auto checked out" / "Still at {court}? Tap I'm still

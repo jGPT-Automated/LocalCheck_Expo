@@ -9,7 +9,7 @@
     "preview:web": "./scripts/start-web-preview.sh",
     "export:web": "EXPO_NO_CACHE=1 expo export --clear --platform web",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm run test:backend && pnpm run test:add-court && pnpm run test:court-discovery && pnpm run test:leaderboard && pnpm run test:feed && pnpm run test:brand && pnpm run test:notification-routes && pnpm run test:realtime && pnpm run test:home-presentation && pnpm run test:player-identity && pnpm run test:schedule && pnpm run test:release-models && pnpm run test:activity",
+    "test": "pnpm run test:backend && pnpm run test:add-court && pnpm run test:court-discovery && pnpm run test:leaderboard && pnpm run test:feed && pnpm run test:brand && pnpm run test:notification-routes && pnpm run test:realtime && pnpm run test:home-presentation && pnpm run test:player-identity && pnpm run test:schedule && pnpm run test:release-models && pnpm run test:activity && pnpm run test:docs-check",
     "test:backend": "node --no-warnings --experimental-strip-types --test supabase/functions/verify-court/courtVerification.test.mts supabase/functions/send-notification/pushDelivery.test.mts supabase/functions/revenuecat-webhook/webhookLogic.test.mts supabase/functions/timers/timerLogic.test.mts && node --test supabase/tests/source/backendContract.test.mjs",
     "test:add-court": "node --no-warnings --experimental-strip-types --test components/addCourtModel.test.mts",
     "test:court-discovery": "node --no-warnings --experimental-strip-types --test services/courtDiscoveryModel.test.mts",
@@ -26,7 +26,8 @@
     "check:design": "node scripts/check-design-consistency.mjs",
     "check": "pnpm run typecheck && pnpm run test && pnpm run check:design",
     "check:release": "pnpm run check && ./scripts/start-web-preview.sh --export-only",
-    "doctor": "./scripts/doctor.sh"
+    "doctor": "./scripts/doctor.sh",
+    "test:docs-check": "node --test scripts/docsCheckModel.test.mjs"
   },
   "engines": {
     "node": ">=22"
