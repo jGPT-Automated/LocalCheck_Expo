@@ -9,9 +9,9 @@ its Supabase source of truth. Read this file before changing anything.
 2. `docs/ARCHITECTURE.md` — code, data, Realtime, and native boundaries.
 3. `docs/DEVELOPMENT.md` — setup, branch, preview, and handoff workflow.
 4. `docs/TESTING.md` — required automated and multi-user verification.
-5. `docs/RELEASE.md` — the automatic PR-open → Expo Go preview and
-   merge-to-`main` → TestFlight build triggers, plus OTA and rollback
-   procedure.
+5. `docs/RELEASE.md` — the automatic PR-open → Expo Go preview, the
+   manual TestFlight build (merging to `main` builds nothing), plus OTA and
+   rollback procedure.
 6. `docs/SUPABASE.md` — live-cloud grounding, migrations, functions, and deployment.
 7. `docs/FEEDBACK_TRACKER.md` — Jesse's screen-by-screen feedback, its
    done/in-progress/backlog status, and which commit/branch/PR each item
@@ -174,10 +174,12 @@ Do not merge with failing required checks or unresolved review conversations.
 Do not deploy a migration, OTA, TestFlight build, or production change unless
 the task explicitly authorizes that external action.
 
-An approved merge to `main` automatically starts the EAS production iOS build
-and TestFlight submission. Treat the merge itself as the release authorization:
-the PR must state device coverage, native risk, and any App Store Connect step
-still required. Production OTA remains manual.
+Merging to `main` builds nothing. TestFlight builds are manual: run
+`release-ios.yml` via `workflow_dispatch` from the GitHub Actions tab (or
+`gh workflow run release-ios.yml`). Each build counts against the 15/month EAS
+quota, so merge to `main` first, then build. The PR must state device coverage,
+native risk, and any App Store Connect step still required. Production OTA
+remains manual.
 
 ## Repeatable operations
 
