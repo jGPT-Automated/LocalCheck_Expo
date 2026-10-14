@@ -23,17 +23,16 @@ scannable QR/link on the PR. Scan it and preview on your phone — no manual
 step. Explore's map crashes there; reload recovers it. Use `pnpm preview:web`
 for desktop annotation and simultaneous signed-in users.
 
-Merging that PR to `main` is the other automatic trigger: `Release iOS
-(build + TestFlight)` builds and submits to TestFlight on its own — see
-TestFlight/native release below. That's the whole loop: open PR → phone
-preview, merge → TestFlight build. No extra steps either way.
+Merging that PR to `main` builds nothing. TestFlight builds are manual — see
+TestFlight/native release below. The loop: open PR → phone preview, merge to
+`main`, then start a TestFlight build by hand when one is needed.
 
 PR #28 also carries GitHub's `eas-build-ios:production` label, the current Expo
 syntax `eas-build-[platform]:[profile]`. That label asks the Expo GitHub
 integration for a pull-request production build; it is review evidence, not a
-TestFlight submission trigger. The TestFlight trigger is the approved merge to
-`main` described below. Do not create a `v*` Git tag before release approval,
-because that tag is an alternate production build-and-submit trigger.
+TestFlight submission trigger. TestFlight builds are started by hand as
+described below. Do not create a `v*` Git tag before release approval; no
+workflow builds from tags, so a tag does not start a build.
 
 ## Production OTA
 
@@ -62,10 +61,12 @@ the JavaScript registration gate changed.
 
 ## TestFlight/native release
 
-Every approved merge to `main` triggers `Release iOS (build + TestFlight)`.
-That workflow builds the production iOS profile and submits the resulting
-binary to App Store Connect. It can also be retriggered manually or with a
-`v*` tag. EAS owns signing and App Store Connect submission; build numbers
+Merging to `main` builds nothing. `Release iOS to TestFlight` runs only when
+started by hand: run `release-ios.yml` via `workflow_dispatch` from the GitHub
+Actions tab, or `gh workflow run release-ios.yml`. Each run counts against the
+15/month EAS build quota, so merge to `main` first, then build. The workflow
+builds the production iOS profile and submits the resulting binary to App
+Store Connect. EAS owns signing and App Store Connect submission; build numbers
 increment remotely.
 
 This is intentionally the fast MVP path. `main` is not currently protected, so
@@ -78,14 +79,15 @@ Expo's connected GitHub base directory is `/`, visibly saved on 2026-08-10. EAS
 therefore resolves the cleaned root-level app instead of the retired
 `/artifacts/mobile` directory.
 
-For this release, merge PR #28 only. It already contains PR #27. The merge is
-the authorization that starts the workflow; no version tag or second pull
-request is required. PR #28 is app version `1.0.2` because Add Court introduces
+For this release, merge PR #28 only. It already contains PR #27. The merge does
+not start the workflow; run it by hand after merge. No version tag or second
+pull request is required. PR #28 is app version `1.0.2` because Add Court introduces
 the native `expo-image-picker` config plugin; EAS assigns the build number.
 
 After merge:
 
-1. Watch GitHub `quality` and the EAS `Release iOS (build + TestFlight)` run.
+1. Run `release-ios.yml` by hand, then watch GitHub `quality` and the EAS
+   `Release iOS (build + TestFlight)` run.
 2. Wait for App Store Connect processing and record the generated build number.
 3. Install that exact build from the internal TestFlight group and run the
    native/high-risk matrix in `docs/TESTING.md`.
