@@ -19,14 +19,31 @@ app changes with none of them recorded (Oct 13).
 
 - Always: `docs/CURRENT_STATE.md` — add what changed and what is true now.
 - Database or server functions (`supabase/`): also `docs/SUPABASE.md`.
+- Builds, previews, OTA, native config (`.eas/`, `eas.json`, `app.json`,
+  `app.config.js`, the release and preview workflows): also `docs/RELEASE.md`.
+- CI or the PR template: also `docs/GITHUB.md`.
+- Purchases (`services/purchasesService.ts`, `revenuecat-webhook`): also
+  `docs/runbooks/REVENUECAT.md`.
 - A decision Jesse made: also `docs/product/DECISIONS.md` (and the plan doc's
-  Decision log).
+  Decision log). A decision that changes an older one says "revises Dn", and
+  the older entry gets "(Revised by Dm …)". Never delete the older entry.
 - Screen layout, components or wording rules: also `docs/product/DESIGN.md`.
 - What the app does for players changed: also `docs/product/PRODUCT.md`.
 
-CI enforces the first two on every push (`docs updated` job,
-`scripts/check-docs-updated.mjs`); the PR template lists all five. A push that
-fails it is fixed by adding the doc update, never by skipping the check.
+When you write a status, say which kind it is: **decided**, **on a branch**,
+**live backend** (checked how, when), or **tested on device** (which build,
+when). Branch code is not live, and live backend is not tested on a phone.
+
+CI enforces the file-based rules above on every push (`docs updated` job,
+`scripts/check-docs-updated.mjs`) and runs structural checks between the docs
+and the repo in `pnpm check` (`scripts/check-docs-consistency.mjs`: every Edge
+Function and October+ migration named in `docs/SUPABASE.md`, function counts,
+the README decision range, "revises" back-references, the release workflow
+staying manual). CI can't tell whether a sentence is true or what production
+or a phone does; that is checked by hand. Decisions, design and product docs
+are on the PR checklist only. A push that fails a check is fixed by updating
+the docs, never by skipping the check. `main` has no branch protection yet, so
+the checks don't block a merge (`docs/GITHUB.md`).
 
 ## Read order
 

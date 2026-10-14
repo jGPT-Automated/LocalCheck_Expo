@@ -1,6 +1,7 @@
 # Release and rollback
 
-Three release paths, all started by hand. Nothing builds or ships on merge.
+Four paths. The two previews are automatic; builds and production updates are
+started by hand. Nothing builds or ships to players on merge (D22).
 
 | Path | Trigger | Cost | Use for |
 |------|---------|------|---------|
@@ -14,7 +15,9 @@ They say when a change needs a build and why, and Jesse decides.
 
 ## Before merge (only Jesse merges)
 
-1. `pnpm check` passes in CI and review conversations are resolved.
+1. CI is green on the pull request (`quality` and `docs updated`) and review
+   conversations are resolved. GitHub does not enforce this today: `main` has
+   no branch protection (`docs/GITHUB.md`), so Jesse checks it before merging.
 2. The PR says whether the change is JavaScript-only, native, or backend.
 3. Jesse has previewed it in Expo Go.
 4. Any database change is already applied, verified, and recorded (see
@@ -64,8 +67,16 @@ update to the `production` channel from EAS Update.
 ## TestFlight build
 
 `Release iOS to TestFlight` builds the `production` profile and submits it to
-App Store Connect, waiting for the real result (a green check means the build
-reached TestFlight). EAS owns signing; build numbers increment remotely.
+App Store Connect. The step waits for the EAS build and the auto-submit instead
+of exiting when the job is queued, so a green check means EAS finished both
+(last seen working: run 19, Sep 14, build 33). Apple's processing in App Store
+Connect happens after that and is not covered by the check. EAS owns signing;
+build numbers increment remotely (`appVersionSource: remote`).
+
+State on 2026-10-14: the workflow was disabled in GitHub on Oct 3 and enabled
+again on Oct 14 (GitHub API). The newest iOS build is 1.0.3 (33), Sep 14 (EAS
+build list); none has run in October. Runs 20–25 (Sep 15–30) failed: September's
+build quota ran out, then the `ios/` folder (removed by #61) broke the build.
 
 After a build:
 
@@ -78,12 +89,15 @@ After a build:
    (`https://localchecksports.com/support`, `/privacy`, `/terms`; support
    email `localchecksports@gmail.com`). Account deletion is in Settings.
 
-## Edge Function waiting for deploy
+## Edge Functions
 
-- `send-notification`: passes `data.category` as `categoryId`, so the 3-hour
-  "You've been checked out" push shows Check back in / Got it (D38). Deploy
-  after #67 merges, with Jesse's OK. Until then the push still arrives, and
-  tapping it opens the court page.
+None is waiting for deploy (Supabase function list, 2026-10-14). The
+`send-notification` change that passes `data.category` (action buttons) and
+`data.collapse_id` (the posted notice replaces the arrival notice) was deployed
+as version 5 on Oct 12, before #67 merged; the push text it carries is "Auto
+checked out" with I'm still here (D52, D53), not the older "You've been checked
+out" with Check back in / Got it (D38). Build 33 has no auto check-in, so it
+shows these pushes without buttons; tapping opens the court page.
 
 ## Backend order
 

@@ -7,14 +7,16 @@ reviewed results, and climb sport-specific ELO leaderboards. LocalPlus
 courts' details, and full history. Supabase provides Auth, Postgres, RLS,
 Realtime, and Edge Functions. Website: https://localchecksports.com.
 
-Timed work (the 3-minute auto check-in hold, 3-hour and 45-minute checkouts,
-3-day score auto-approve, the 30-minute challenge reminder and challenge
-expiry) is booked for its exact time on Upstash QStash; there are no polling
-jobs for it. See "Timed work (QStash)" in `docs/SUPABASE.md`.
+Timed work is booked for its exact time on Upstash QStash, one timer per
+thing (D51): an auto check-in posts 5 minutes after arrival and ends 1.5 hours
+after arrival (D52); a manual check-in ends after 45 minutes; a held score is
+approved or voided at its deadline; the 30-minute challenge reminder and
+challenge expiry run at the game time (D50). No polling job does this work.
+See "Timed work (QStash)" in `docs/SUPABASE.md`.
 
 Native pieces (camera for QR codes and court photos, Mapbox, notifications,
-Apple Sign-In, purchases) need a TestFlight build to verify; everything else
-previews in Expo Go.
+Apple Sign-In, purchases, background location for auto check-in) need a
+TestFlight build to verify; everything else previews in Expo Go.
 
 ## Start here
 
@@ -70,7 +72,7 @@ lib/                 Supabase client and realtime hub
 supabase/migrations/ immutable database history
 supabase/functions/  deployable Edge Functions
 .github/              CI and pull-request contract
-.eas/workflows/       preview, OTA, and TestFlight workflows
+.eas/workflows/       EAS dashboard workflows: dev build, production OTA, TestFlight fallback
 docs/                 current engineering and product guidance
 ```
 
@@ -82,9 +84,9 @@ docs/                 current engineering and product guidance
 - [`docs/TESTING.md`](docs/TESTING.md) — automation and multi-user matrix
 - [`docs/RELEASE.md`](docs/RELEASE.md) — preview, OTA, TestFlight, rollback
 - [`docs/SUPABASE.md`](docs/SUPABASE.md) — local backend and migrations
-- [`docs/GITHUB.md`](docs/GITHUB.md) — required checks and merge rules
+- [`docs/GITHUB.md`](docs/GITHUB.md) — CI checks, branch protection (not yet set), merge rules
 - [`docs/product/README.md`](docs/product/README.md) — product/design material
 - [`docs/product/DESIGN.md`](docs/product/DESIGN.md) — tokens, canonical components, motion and feedback rules
-- [`docs/product/DECISIONS.md`](docs/product/DECISIONS.md) — settled product decisions (D0–D51)
+- [`docs/product/DECISIONS.md`](docs/product/DECISIONS.md) — settled product decisions (D0–D54)
 - [`docs/runbooks/`](docs/runbooks/) — account tags + test data, RevenueCat
 - [`docs/product/ELO_AND_NOTIFICATIONS.md`](docs/product/ELO_AND_NOTIFICATIONS.md) — Compete ranking and actionable-vs-informational notification contract

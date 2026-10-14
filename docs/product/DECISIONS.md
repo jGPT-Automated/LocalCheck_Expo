@@ -1,8 +1,11 @@
 # LocalCheck Design Decisions
 
-Status: Current MVP decisions. Newer dated decisions supersede older entries.
+Status: Current MVP decisions. Newer decisions supersede older entries; every
+superseded entry stays here and names what replaced it ("Revised by …" or
+"Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
+"revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D34, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D54, Jesse's plan doc)
 
 Numbers match Jesse's plan doc (Decisions tab). These supersede older entries
 below wherever they disagree.
@@ -16,7 +19,8 @@ below wherever they disagree.
 - **D22 Builds:** TestFlight builds are manual only; merges never build.
 - **D25–D27r Challenges:** friends only; court and day optional; the challenger
   picks ranked or casual. Casual is a plan, not a game: no score, counts
-  nowhere.
+  nowhere. (Revised by D50: court, day and time are required, up to 7 days
+  ahead.)
 - **D30 Hide score:** either player can hide the score for their side; outsiders
   see only W / L; it still counts for ELO, rank, record and head-to-head.
   Revised by D40: hidden for everyone, players included, once final.
@@ -29,13 +33,16 @@ below wherever they disagree.
 - **D35 Auto check-in in v1:** opt-in, one geofence on the local court only,
   built on expo-location. **D36:** automatic with a 3-minute hold and an Undo
   notification; leaving checks out; auto check-ins last until you leave
-  (3-hour backstop). Plan doc Spec 8.
+  (3-hour backstop). Plan doc Spec 8. (Revised by D52: posts 5 minutes after
+  arrival, Hide instead of Undo, ends 1.5 hours after arrival.)
 - **D37 Friend alerts for auto check-ins:** auto check-ins use the main
   privacy setting. Two switches: "Share my auto check-ins" (send, default off)
   and "Friends' auto check-ins" (receive, default on). A friend gets a push
   only when both are on and the check-in isn't Private; at most one per friend
   per 2 hours. **D38:** when the 3-hour backstop ends an auto check-in, the
-  player gets "You've been checked out" with Check back in / Got it.
+  player gets "You've been checked out" with Check back in / Got it. (Revised
+  by D52 and D53: "Auto checked out" with I'm still here, no Got it, after 1.5
+  hours; manual check-ins get the same notice at 45 minutes.)
 - **D39 Pending challenges expire after their day (Oct 8):** a pending
   challenge whose day has passed (or, with no day, is over 7 days old) becomes
   `expired` and leaves the inbox; a cron job on the server does it every 15
@@ -49,7 +56,8 @@ below wherever they disagree.
   see the numbers while the game is in review, to approve or dispute it. The
   switch is just "Hide score"; what it does is explained in "How score review
   works". Before, the players always saw the numbers, so hiding looked broken
-  from their own profile.
+  from their own profile. (Revised by D47: players see the numbers on the game
+  page; by D49: hidden once half the players turn it on.)
 - **D42 Motion is intentional (Oct 10):** opening a sheet or screen doesn't
   animate its content. The only motion: a margin/series line (`ShareLine`)
   fills once; an ELO change counts up when it happens while you watch; a value
@@ -57,7 +65,8 @@ below wherever they disagree.
 - **D43 One game card, one state banner, short court names (Oct 10):** every
   game card (inbox, game sheet, Final Score) has the state banner on top
   (needs you = orange, waiting = grey, FINAL = green, disputed = orange
-  outline, voided = muted), "2V2 AT RANCHO" title, ELO change inside each
+  outline, voided = muted) (revised by D45 and D47: no FINAL banner on the game
+  sheet; FINAL is never green), "2V2 AT RANCHO" title, ELO change inside each
   player's tile. Court short names everywhere except court details. The
   activity feed keeps its timeline (day headers, one marker size, games as
   cards, check-ins as quiet lines); games-together rows and head-to-head use
@@ -78,6 +87,9 @@ below wherever they disagree.
   docs when those change. The `docs updated` CI job enforces the first two;
   the PR template lists all five. Why: #65 merged a month of app changes with
   none of them in the docs, so anyone reading `main` saw September's app.
+  Oct 14: the check also requires `RELEASE.md`, `GITHUB.md` and the RevenueCat
+  runbook for their areas, and `pnpm check` runs structural doc checks
+  (`scripts/check-docs-consistency.mjs`). Neither proves the docs are true.
 - **D53 Every automatic checkout sends the same notice (Oct 12, extends D52):**
   when a check-in ends on its own, manual (45 minutes) or auto (1.5 hours),
   the player gets "Auto checked out" / "Still at {court}? Tap I'm still
@@ -123,7 +135,8 @@ below wherever they disagree.
   Dispute / Approve buttons and only the game's players see it. Hidden score:
   the players see the numbers on the game page; everywhere else, and for
   everyone else, W / L. A hidden score keeps the line as a faint orange
-  checker.
+  checker. (Revised by D49: hidden once half or more of the players turn it
+  on.)
 - **D46 Usernames: 10 characters, letters and numbers (Oct 11, revised same
   day):** the username is the name shown everywhere (feed, game cards, inbox,
   profiles). One clean string, letters and numbers only, 3 to 10 characters;
@@ -147,6 +160,7 @@ below wherever they disagree.
 - **D41 The tab bar is a hard floor (Oct 8):** no screen or sheet content
   renders under the tab bar. Sheets inside a tab rise from its top edge
   (`AppBottomSheetModal`), scroll content clears it (`useBottomFloor`).
+  (Revised by D44 for sheets: they open in front of the tab bar.)
 - **D34 Test data hidden at launch:** `TEST` / `REVIEWER` accounts and test
   courts are hidden from real players by RLS; `TEST` / `REVIEWER` / `FOUNDER`
   see everything. Four test courts (LA, Houston), Kasmiersky the one real
@@ -155,6 +169,9 @@ below wherever they disagree.
   the `hideTaggedAccounts` switch. Runbook: `docs/runbooks/ACCOUNT_TAGS.md`.
 
 ## 2026-09-11 — REVIEWER is comped like FOUNDER, not offer-code-tested
+
+(Still current for FOUNDER and REVIEWER. Its line about STARTER using offer
+codes is superseded by D4 / D12.)
 
 **Decision confirmed by Jesse — supersedes this file's own earlier "leave the
 reviewer account plain, let it redeem an offer code" note from the same day.**
@@ -174,6 +191,9 @@ exercise a specific redemption UI, only that the subscription's behavior is
 described accurately.
 
 ## 2026-09-11 — STARTER's free year is an Apple offer code, not a promo row
+
+**Superseded by D4 / D12 (Oct 2026):** the first 100 get an automatic
+server-side promo year with no code and no auto-renew. Kept as history.
 
 **Decision confirmed by Jesse — supersedes the 2026-09-09 entry's "promo row,
 not offer codes" line.** The first-100 STARTER cohort's free year is granted by
@@ -198,6 +218,9 @@ for the same cohort added a second bookkeeping system for no benefit once
 offer codes were on the table.
 
 ## 2026-09-09 — LocalPlus is US-only for v1; one owner for RC + App Connect
+
+(US-only still holds. "Price stays $4.99/mo" and "no annual product" are
+superseded by D0: Yearly $49.99 and Monthly $4.99.)
 
 **Decision confirmed by Jesse:** the paid release (LocalPlus, and any in-app
 purchase) is **United States only** at launch. The EU is deliberately excluded:
@@ -235,6 +258,9 @@ sized to the app's normal scale, not larger.
 under the nav; the landscape frame guided users into landscape photos.
 
 ## 2026-09-08 — LocalPlus ships as one monthly plan
+
+**Superseded by D0 (Oct 2026):** Yearly $49.99 and Monthly $4.99. Kept as
+history.
 
 **Decision confirmed by Jesse:** LocalPlus launches with a **single** product —
 **Monthly, $4.99/mo**. No annual plan for v1 (an annual option was considered at

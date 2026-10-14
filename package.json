@@ -24,10 +24,11 @@
     "test:realtime": "node --no-warnings --experimental-strip-types --test lib/realtimeHub.test.mts",
     "test:activity": "node --no-warnings --experimental-strip-types --test lib/activityPresentation.test.mts",
     "check:design": "node scripts/check-design-consistency.mjs",
-    "check": "pnpm run typecheck && pnpm run test && pnpm run check:design",
+    "check": "pnpm run typecheck && pnpm run test && pnpm run check:design && pnpm run check:docs",
     "check:release": "pnpm run check && ./scripts/start-web-preview.sh --export-only",
     "doctor": "./scripts/doctor.sh",
-    "test:docs-check": "node --test scripts/docsCheckModel.test.mjs"
+    "test:docs-check": "node --test scripts/docsCheckModel.test.mjs scripts/docsConsistencyModel.test.mjs",
+    "check:docs": "node scripts/check-docs-consistency.mjs"
   },
   "engines": {
     "node": ">=22"
