@@ -69,6 +69,16 @@ Each claim says which of these it is, because they are often confused:
   (versions in `docs/SUPABASE.md`). Live jobs: `localcheck-notification-dispatch`
   and `localcheck-timer-bookings` only (Oct 14).
 - Installed binaries use EAS Update with `runtimeVersion.policy = appVersion`.
+- Expo SDK 54 patches on #67 (Oct 14, Jesse's OK in chat): `expo` 54.0.37,
+  `expo-constants` 18.0.14, `expo-updates` 29.0.20. Lockfile also moves
+  `@expo/cli` 54.0.27, `expo-file-system` 19.0.24 and
+  `expo-modules-autolinking` 3.0.27; nothing outside the SDK 54 patch line.
+  `expo-updates` 29.0.20 rejects update assets whose name contains a path
+  separator (native fix, so it only ships in a build). Checked: `npx expo
+  install --check` clean, `pnpm check` passes, iOS bundle exports, and
+  `expo prebuild` produces 1.0.4 with `UIBackgroundModes` fetch + location.
+  expo-doctor still flags only the existing `ios.buildProperties` key, which
+  was also in build 33's config.
 
 ## Current product contract
 
