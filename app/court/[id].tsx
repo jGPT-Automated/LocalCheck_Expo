@@ -276,7 +276,7 @@ export default function CourtProfileScreen() {
 
       <View style={styles.tabContent}>
         {activeTab === "live" ? (
-          <ScrollView contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
+          <ScrollView alwaysBounceVertical={false} contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
             <View style={styles.onCourt}>
               <Text style={styles.eyebrow}>On court · {hiddenCount > 0 ? `~${activeCount}` : activeCount}</Text>
               {roster.length > 0 || hiddenCount > 0 ? (
@@ -339,13 +339,13 @@ export default function CourtProfileScreen() {
         ) : null}
 
         {activeTab === "games" ? (
-          <ScrollView contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
+          <ScrollView alwaysBounceVertical={false} contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
             <CourtGamesPanel games={upcomingGames} onOpen={(game) => router.push(`/run/${game.id}`)} />
           </ScrollView>
         ) : null}
 
         {activeTab === "players" ? (
-          <ScrollView contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
+          <ScrollView alwaysBounceVertical={false} contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
             <SectionHeader count={activeCount} title="Here now" />
             {roster.length > 0 ? roster.map((player) => {
               const history = locals.find((entry) => entry.player.id === player.id);
@@ -387,7 +387,7 @@ export default function CourtProfileScreen() {
         ) : null}
 
         {activeTab === "info" ? (
-          <ScrollView contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
+          <ScrollView alwaysBounceVertical={false} contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
             <CourtInfoPanel
               averageSession={formatAverageSession(week)}
               court={court}

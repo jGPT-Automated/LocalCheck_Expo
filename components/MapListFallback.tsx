@@ -16,7 +16,7 @@ export function MapListFallback({ message }: { message: string }) {
   const { openCourtSheet } = useCourtSheet();
   return (
     <View style={styles.container}>
-      <ScrollView
+      <ScrollView alwaysBounceVertical={false}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingHorizontal: 20,

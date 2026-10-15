@@ -388,7 +388,7 @@ export default function PlayerProfileScreen() {
       </View>
 
       <View style={styles.scroll}>
-      <ScrollView
+      <ScrollView alwaysBounceVertical={false}
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 32 }}

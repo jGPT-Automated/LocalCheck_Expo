@@ -93,7 +93,7 @@ function mapRow(row: SupabaseCourtRow): Court {
   };
 }
 
-function haversineKm(
+export function haversineKm(
   lat1: number,
   lng1: number,
   lat2: number,

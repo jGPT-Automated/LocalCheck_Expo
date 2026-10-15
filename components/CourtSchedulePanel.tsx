@@ -255,7 +255,7 @@ export function CourtSchedulePanel({
             </View>
           ))}
         </View>
-        <ScrollView
+        <ScrollView alwaysBounceVertical={false}
           contentContainerStyle={styles.timeRows}
           nestedScrollEnabled
           showsVerticalScrollIndicator={false}

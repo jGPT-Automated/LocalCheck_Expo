@@ -38,6 +38,7 @@ import {
   fetchCourtsByMarket,
   fetchNearbyCourts,
   searchCourts,
+  haversineKm,
 } from "@/services/courtService";
 
 type SportFilter = CourtSport | "ALL";
@@ -227,7 +228,16 @@ export function CourtsScreen() {
     [liveCounts],
   );
 
-  const localCourtLive = localCourt ? withLiveCounts(localCourt) : null;
+  // The saved local court may carry a distance measured from somewhere else
+  // (onboarding's city search), so measure it from the phone like the list.
+  const localCourtLive = localCourt
+    ? withLiveCounts({
+        ...localCourt,
+        distanceKm: deviceCoord
+          ? haversineKm(deviceCoord.lat, deviceCoord.lng, localCourt.latitude, localCourt.longitude)
+          : undefined,
+      })
+    : null;
   // The local court is pinned separately above this list — but only outside
   // search mode (see `!isSearchMode && localCourtLive` below). Stripping it
   // here unconditionally made it vanish from search results entirely, since

@@ -177,7 +177,7 @@ export default function ChallengeScreen() {
         onBack={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)"))}
         title="CHALLENGE"
       />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView alwaysBounceVertical={false} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
           <GameStateBanner kind={banner.kind} label={banner.label} />
           <View style={styles.cardBody}>

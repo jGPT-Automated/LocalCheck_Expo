@@ -66,7 +66,7 @@ export default function NotificationsScreen() {
         ) : <View style={{ width: 56 }} />}
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: bottom + 40 }}>
+      <ScrollView alwaysBounceVertical={false} contentContainerStyle={{ padding: 18, paddingBottom: bottom + 40 }}>
         {!pushEnabled ? (
           <Pressable style={styles.pushCard} onPress={() => void turnOnPush()}>
             <View style={styles.pushIcon}><Feather name="bell" size={16} color={Colors.accent} /></View>
