@@ -69,6 +69,31 @@ Each claim says which of these it is, because they are often confused:
   (versions in `docs/SUPABASE.md`). Live jobs: `localcheck-notification-dispatch`
   and `localcheck-timer-bookings` only (Oct 14).
 - Installed binaries use EAS Update with `runtimeVersion.policy = appVersion`.
+- Court page and Home card, first design pass (Oct 14, Jesse asked for it
+  before the 1.0.4 build), from the Claude Design court flow handoff:
+  - Court page (`app/court/[id].tsx`): the 6-number dashboard is gone. New
+    header: court line art, sport, name, city · distance, then On court /
+    Court hours · wk / Next game. Tabs Live · Games · Players · Week · Info.
+    Bottom bar: Plan visit (opens Week, now with "I'm coming" and Create a
+    game) and Check in / Check out (same
+    rules as Home, including the auto check-in waiting state). The jump to
+    LocalPlus for a court that isn't yours, without Plus, is unchanged.
+  - Games lists upcoming scheduled games at the court (`runs`, already
+    loaded by AppContext); tapping one opens `app/run/[id].tsx`.
+  - Info: map with Directions, Court hours · wk / Avg session / Locals, and
+    Courts, Lights, Access from `courts.court_count`, `has_lights`,
+    `access_type` (now read by `services/courtService.ts`); a missing value
+    shows a dash.
+  - Court hours = sum of the last 7 days' sessions, each capped at 4h, a
+    session with no check-out closed at 3h (`lib/courtHours.ts`, tests in
+    `lib/courtHours.test.mts`).
+  - Home: the local court card uses the same pieces (`components/court/`):
+    line art, Your local, On court / Court hours · wk / Locals, Check in and
+    View court (arrow points right). Home's tabs use the same tab bar.
+  - Docs: D55 in `docs/product/DECISIONS.md` (supersedes the Aug 9 read-only
+    court route entry) and the court page section of `docs/product/DESIGN.md`.
+  - Not in this pass: Players sorts (Active / Newest / All), the Live
+    scoreboard rows, Phosphor icons, the drawer.
 - Expo SDK 54 patches on #67 (Oct 14, Jesse's OK in chat): `expo` 54.0.37,
   `expo-constants` 18.0.14, `expo-updates` 29.0.20. Lockfile also moves
   `@expo/cli` 54.0.27, `expo-file-system` 19.0.24 and

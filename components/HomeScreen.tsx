@@ -22,6 +22,7 @@ import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
 import { PersonTile } from "@/components/ui/PersonTile";
 import { ScreenViewport } from "@/components/ui/ScreenViewport";
 import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
+import { CourtTabBar } from "@/components/court/CourtParts";
 import { useToast } from "@/components/ui/Toast";
 import { Colors, Radius } from "@/constants/colors";
 import type { FeedItem, FeedMatchSummary } from "@/constants/data";
@@ -32,12 +33,19 @@ import { useAuth } from "@/context/AuthContext";
 import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
 import { isInactiveLocal, relativeTime } from "@/lib/localPresence";
 import { groupCheckinBursts, pairVisits } from "@/lib/activityPresentation";
+import { courtHours, formatCourtHours } from "@/lib/courtHours";
+import { fetchCourtWeekSpans } from "@/services/courtService";
 import {
   fetchLocalsWithLastCheckIn,
   type LocalWithLastCheckIn,
 } from "@/services/profileService";
 
 type HomeTab = "feed" | "locals" | "schedule";
+const HOME_TABS = [
+  { value: "feed", label: "Feed" },
+  { value: "locals", label: "Locals" },
+  { value: "schedule", label: "Schedule" },
+] as const;
 
 export function HomeScreen() {
   const {
@@ -60,6 +68,7 @@ export function HomeScreen() {
   const [activeTab, setActiveTab] = useState<HomeTab>("feed");
   const [locals, setLocals] = useState<LocalWithLastCheckIn[]>([]);
   const [isChecking, setIsChecking] = useState(false);
+  const [hoursLabel, setHoursLabel] = useState("0h");
   const { showToast } = useToast();
   const [selectedResult, setSelectedResult] = useState<{
     match: FeedMatchSummary;
@@ -87,6 +96,19 @@ export function HomeScreen() {
       void refreshFeed();
       return refreshLocals();
     }, [refreshCheckedIn, refreshFeed, refreshLocals]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!localCourtId) return;
+      let active = true;
+      void fetchCourtWeekSpans(localCourtId).then((spans) => {
+        if (active) setHoursLabel(formatCourtHours(courtHours(spans).hours));
+      });
+      return () => {
+        active = false;
+      };
+    }, [localCourtId]),
   );
 
   useEffect(() => {
@@ -188,16 +210,17 @@ export function HomeScreen() {
       <HomeCourtHero
         activeCount={activeLabel}
         court={localCourt}
+        hoursLabel={hoursLabel}
         isCheckedIn={isCheckedIn}
         isChecking={isChecking}
+        live={activeTotal > 0}
         localCount={localCount}
         onCheckIn={() => void handleCheckIn()}
         onViewCourt={() => router.push(`/court/${localCourt.id}`)}
-        visitCount={localCourt.ratingCount ?? 0}
       />
       <AutoCheckInNote courtId={localCourt.id} />
 
-      <HomeTabs active={activeTab} onChange={setActiveTab} />
+      <CourtTabBar active={activeTab} onChange={setActiveTab} tabs={HOME_TABS} />
 
       <View style={styles.tabBody}>
         {activeTab === "feed" ? (
@@ -373,34 +396,6 @@ export function HomeScreen() {
   );
 }
 
-function HomeTabs({
-  active,
-  onChange,
-}: {
-  active: HomeTab;
-  onChange: (tab: HomeTab) => void;
-}) {
-  return (
-    <View accessibilityRole="tablist" style={styles.tabs}>
-      {(["feed", "locals", "schedule"] as const).map((tab) => (
-        <Pressable
-          accessibilityRole="tab"
-          accessibilityState={{ selected: active === tab }}
-          key={tab}
-          onPress={() => onChange(tab)}
-          style={[styles.tab, active === tab && styles.tabActive]}
-        >
-          <Text
-            style={[styles.tabText, active === tab && styles.tabTextActive]}
-          >
-            {tab.toUpperCase()}
-          </Text>
-        </Pressable>
-      ))}
-    </View>
-  );
-}
-
 function HiddenPeopleTile({ count }: { count: number }) {
   return (
     <View
@@ -456,33 +451,6 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   scheduleTab: { flex: 1, minHeight: 0 },
-  tabs: {
-    minHeight: 45,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    backgroundColor: Colors.background,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
-  },
-  tab: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
-  },
-  tabActive: {
-    borderBottomColor: Colors.accent,
-  },
-  tabText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 8,
-    color: Colors.muted,
-    letterSpacing: 1.6,
-  },
-  tabTextActive: {
-    color: Colors.text,
-  },
   peopleSection: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.borderSubtle,

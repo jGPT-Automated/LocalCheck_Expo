@@ -1,5 +1,4 @@
 import { Feather } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
   AccessibilityInfo,
@@ -11,28 +10,24 @@ import {
   View,
 } from "react-native";
 
-import { Colors, Radius } from "@/constants/colors";
+import { CourtArt } from "@/components/court/CourtArt";
+import { LocalPill, MetricStrip, SportLabel } from "@/components/court/CourtParts";
+import { Colors } from "@/constants/colors";
 import type { Court } from "@/constants/data";
-import { Layout, Space } from "@/constants/layout";
-import { TextStyles, Typography } from "@/constants/typography";
-import { SportEmblem } from "@/components/ui/SportEmblem";
+import { Typography } from "@/constants/typography";
 
 /**
- * Space above and below the court name so it reads as centred between the
- * label text and the stats line. The label's own line box holds ~5pt of air
- * under its glyphs that the stats hairline does not, so the bottom gap is
- * that much larger.
+ * Home's local court card, in the court-flow card style (Claude Design
+ * handoff, Explore card): court trace top right, sport + Your local, the name,
+ * city · distance, then On court / Court hours · wk / Locals and the two
+ * actions. Same pieces as the court page header so both read as one court.
  */
-const NAME_GAP_TOP = Space.lg;
-const NAME_GAP_BOTTOM = Space.xl + 2;
-/** Label row height: the sport emblem draws 25pt of box around a 17pt glyph. */
-const META_ROW_HEIGHT = 17;
-
 export function HomeCourtHero({
   court,
   activeCount,
+  live,
   localCount,
-  visitCount,
+  hoursLabel,
   isCheckedIn,
   isChecking,
   onCheckIn,
@@ -40,8 +35,9 @@ export function HomeCourtHero({
 }: {
   court: Court;
   activeCount: string;
+  live: boolean;
   localCount: number;
-  visitCount: number;
+  hoursLabel: string;
   isCheckedIn: boolean;
   isChecking: boolean;
   onCheckIn: () => void;
@@ -55,7 +51,6 @@ export function HomeCourtHero({
       mounted.current = true;
       return;
     }
-
     let cancelled = false;
     void AccessibilityInfo.isReduceMotionEnabled().then((reduceMotion) => {
       if (cancelled || reduceMotion) return;
@@ -72,68 +67,36 @@ export function HomeCourtHero({
     };
   }, [confirmationScale, isCheckedIn]);
 
-  return (
-    <View style={styles.hero}>
-      <LinearGradient
-        colors={[Colors.courtCardStart, Colors.courtCardEnd]}
-        end={{ x: 1, y: 1 }}
-        start={{ x: 0, y: 0 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <LinearGradient
-        colors={[
-          court.sport === "PICKLEBALL"
-            ? Colors.pickleballTint
-            : Colors.basketballTint,
-          "transparent",
-        ]}
-        end={{ x: 0.25, y: 0.8 }}
-        start={{ x: 1, y: 0 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={styles.metaRow}>
-        <View style={styles.sportLabel}>
-          <SportEmblem sport={court.sport} size={17} />
-          <Text
-            style={[
-              styles.sportText,
-              {
-                color:
-                  court.sport === "PICKLEBALL"
-                    ? Colors.pickleballMeta
-                    : Colors.basketballMeta,
-              },
-            ]}
-          >
-            {court.sport}
-          </Text>
-        </View>
-        <Text numberOfLines={1} style={styles.cityText}>
-          {court.city || court.market || court.neighborhood || ""}
-        </Text>
-      </View>
+  const distance =
+    court.distanceKm != null && !Number.isNaN(court.distanceKm)
+      ? `${(court.distanceKm * 0.621371).toFixed(1)} mi`
+      : null;
+  const place = [court.city || court.market || court.neighborhood, distance].filter(Boolean).join(" · ");
 
-      <View style={styles.titleRow}>
-        <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={2} style={styles.name}>
+  return (
+    <View style={styles.card}>
+      <CourtArt sport={court.sport} />
+      <View style={styles.top}>
+        <View style={styles.metaRow}>
+          <SportLabel sport={court.sport} />
+          <LocalPill isLocal />
+        </View>
+        <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
           {court.shortName || court.name}
         </Text>
+        {place ? <Text numberOfLines={1} style={styles.place}>{place}</Text> : null}
       </View>
 
-      <View style={styles.stats}>
-        <HeroStat label="Active" value={activeCount} />
-        <View style={styles.divider} />
-        <HeroStat label="Locals" value={localCount} />
-        <View style={styles.divider} />
-        <HeroStat label="Visits" value={visitCount} />
-      </View>
+      <MetricStrip
+        cells={[
+          { label: "On court", value: activeCount, live },
+          { label: "Court hours · wk", value: hoursLabel },
+          { label: "Locals", value: localCount },
+        ]}
+      />
 
       <View style={styles.actions}>
-        <Animated.View
-          style={[
-            styles.actionSlot,
-            { transform: [{ scale: confirmationScale }] },
-          ]}
-        >
+        <Animated.View style={[styles.actionSlot, { transform: [{ scale: confirmationScale }] }]}>
           <Pressable
             accessibilityLabel={
               isCheckedIn
@@ -146,47 +109,32 @@ export function HomeCourtHero({
             onPress={onCheckIn}
             style={({ pressed }) => [
               styles.action,
-              styles.primaryAction,
-              isCheckedIn && styles.checkedAction,
+              isCheckedIn ? styles.checkedAction : styles.primaryAction,
               pressed && styles.pressed,
             ]}
           >
             {isChecking ? (
-              <ActivityIndicator
-                color={isCheckedIn ? Colors.text : Colors.black}
-                size="small"
-              />
+              <ActivityIndicator color={isCheckedIn ? Colors.text : Colors.black} size="small" />
             ) : (
               <View style={styles.actionCopy}>
-                <Text
-                  style={[
-                    styles.actionText,
-                    isCheckedIn && styles.checkedActionText,
-                  ]}
-                >
-                  {isCheckedIn ? "CHECKED IN" : "CHECK IN"}
+                <Text style={[styles.actionText, isCheckedIn && styles.checkedActionText]}>
+                  {isCheckedIn ? "Checked in" : "Check in"}
                 </Text>
-                {isCheckedIn ? (
-                  <Feather color={Colors.text} name="check" size={14} />
-                ) : null}
+                {isCheckedIn ? <Feather color={Colors.accent} name="check" size={14} /> : null}
               </View>
             )}
           </Pressable>
         </Animated.View>
         <View style={styles.actionSlot}>
           <Pressable
-            accessibilityHint="Opens the full court profile"
+            accessibilityHint="Opens the full court page"
             accessibilityLabel={`View ${court.shortName || court.name}`}
             accessibilityRole="button"
             onPress={onViewCourt}
-            style={({ pressed }) => [
-              styles.action,
-              styles.secondaryAction,
-              pressed && styles.pressed,
-            ]}
+            style={({ pressed }) => [styles.action, styles.secondaryAction, pressed && styles.pressed]}
           >
-            <Text style={styles.secondaryActionText}>VIEW COURT</Text>
-            <Feather color={Colors.text} name="chevron-right" size={15} />
+            <Text style={styles.secondaryActionText}>View court</Text>
+            <Feather color={Colors.text} name="arrow-right" size={14} />
           </Pressable>
         </View>
       </View>
@@ -194,154 +142,60 @@ export function HomeCourtHero({
   );
 }
 
-function HeroStat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <View style={styles.stat}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  hero: {
+  card: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 12,
     overflow: "hidden",
-    backgroundColor: Colors.courtCardEnd,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.accentDim,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.hairlineCard,
+    backgroundColor: Colors.sheet,
   },
-  // Four bands, one rhythm: 12 above the label row, the name centred between
-  // the label row and the stats row (equal gap each side, however many lines
-  // it wraps to), 12 around the buttons. Every band uses the screen gutter, so
-  // the sport label, stats and buttons share their left and right edges.
-  metaRow: {
-    height: META_ROW_HEIGHT,
-    marginTop: Space.md,
-    paddingHorizontal: Layout.screenGutter,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: Space.sm,
-  },
-  sportLabel: { flexDirection: "row", alignItems: "center", gap: 5, flexShrink: 0 },
-  sportText: {
-    ...TextStyles.labelSmall,
-    fontFamily: Typography.bodyBold,
-    letterSpacing: 1.2,
-  },
-  cityText: {
-    ...TextStyles.labelSmall,
-    fontFamily: Typography.bodyBold,
-    minWidth: 0,
-    flexShrink: 1,
-    color: Colors.textSecondary,
-    letterSpacing: 1,
-    textTransform: "uppercase",
-    textAlign: "right",
-  },
-  titleRow: {
-    paddingHorizontal: Layout.screenGutter,
-    paddingTop: NAME_GAP_TOP,
-    paddingBottom: NAME_GAP_BOTTOM,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  top: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 14, gap: 6 },
+  metaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
   name: {
-    width: "100%",
+    marginTop: 4,
     fontFamily: Typography.headingBold,
-    fontSize: 25,
-    lineHeight: 28,
+    fontSize: 30,
+    lineHeight: 32,
+    letterSpacing: -0.9,
     color: Colors.text,
-    letterSpacing: 0.3,
-    textAlign: "center",
     textTransform: "uppercase",
+    textShadowColor: Colors.sheet,
+    textShadowRadius: 6,
   },
-  stats: {
-    minHeight: 62,
-    paddingHorizontal: Layout.screenGutter,
-    flexDirection: "row",
-    alignItems: "center",
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderSubtle,
-  },
-  stat: {
-    flex: 1,
-    alignItems: "center",
-  },
-  statValue: {
-    fontFamily: Typography.headingBold,
-    fontSize: 24,
-    lineHeight: 27,
-    color: Colors.text,
-  },
-  statLabel: {
-    marginTop: 2,
-    fontFamily: Typography.headingRegular,
-    fontSize: 11,
-    lineHeight: 13,
-    color: Colors.muted,
-    letterSpacing: 0.45,
-    textTransform: "uppercase",
-  },
-  divider: {
-    width: StyleSheet.hairlineWidth,
-    height: 28,
-    backgroundColor: Colors.border,
-  },
-  actions: {
-    paddingHorizontal: Layout.screenGutter,
-    paddingVertical: Space.md,
-    flexDirection: "row",
-    gap: Space.sm,
-  },
-  actionSlot: {
-    flex: 1,
-  },
-  actionCopy: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-  },
+  place: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
+  actions: { flexDirection: "row", gap: 10, padding: 14 },
+  actionSlot: { flex: 1 },
+  actionCopy: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
   action: {
     width: "100%",
-    minHeight: 48,
-    borderRadius: Radius.sm,
+    height: 46,
+    borderRadius: 4,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: Space.sm,
+    gap: 8,
   },
-  primaryAction: {
-    backgroundColor: Colors.accent,
-    borderWidth: 1,
-    borderColor: Colors.accent,
-  },
-  checkedAction: {
-    backgroundColor: Colors.surfaceHigh,
-    borderColor: Colors.borderLight,
-  },
-  secondaryAction: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  pressed: {
-    opacity: 0.76,
-    transform: [{ scale: 0.985 }],
-  },
+  primaryAction: { backgroundColor: Colors.accent },
+  checkedAction: { borderWidth: 1.5, borderColor: Colors.accentBorderStrong, backgroundColor: Colors.surfaceDark },
+  secondaryAction: { backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
+  pressed: { opacity: 0.76, transform: [{ scale: 0.985 }] },
   actionText: {
-    ...TextStyles.label,
-    color: Colors.black,
-    letterSpacing: 0.7,
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    color: Colors.background,
   },
-  checkedActionText: {
-    color: Colors.text,
-  },
+  checkedActionText: { color: Colors.accent },
   secondaryActionText: {
-    ...TextStyles.label,
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
     color: Colors.text,
-    letterSpacing: 0.7,
   },
 });

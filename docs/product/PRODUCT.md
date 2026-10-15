@@ -26,6 +26,9 @@ are basketball and pickleball.
   counters.
 - Home, Explore, the map sheet, and Court detail use one court identity model at
   different densities.
+- From the court page a player can check in or out and plan a visit (Week ›
+  I'm coming), see upcoming games, and read the court's details: courts,
+  lights, access, court hours this week and average session (D55, Oct 14).
 - Orange identifies LocalCheck, live truth, selection, and primary action.
   Sport is metadata, not a competing theme.
 - Counts and venue attributes are real. Empty states explain confirmed zeroes;

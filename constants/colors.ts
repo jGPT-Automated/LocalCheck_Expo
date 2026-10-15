@@ -43,6 +43,17 @@ export const Colors = {
   pickleballTint: "rgba(156,207,190,0.11)",
   basketballMeta: "#D8B58D",
   pickleballMeta: "#9CCFBE",
+  // Court flow (Claude Design handoff, rn/theme.ts): sport label ink, the
+  // hairline court trace, and the strip/tab dividers.
+  basketballLabel: "#D8C8B6",
+  pickleballLabel: "#BDD7CF",
+  basketballTrace: "rgba(216,181,141,0.34)",
+  pickleballTrace: "rgba(156,207,190,0.34)",
+  hairline: "rgba(242,242,246,0.075)",
+  hairlineCard: "rgba(242,242,246,0.09)",
+  hairlineChrome: "rgba(242,242,246,0.16)",
+  panel: "#18181D",
+  sheet: "#121216",
 
   tier: {
     platinum: "#E8E8FF",

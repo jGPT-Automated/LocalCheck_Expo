@@ -80,6 +80,8 @@ export interface Court {
   verificationPhoto?: string;
   // Physical court details
   courtCount?: number; // number of courts / playing surfaces
+  access?: string; // courts.access_type, e.g. "public_free" (display only)
+
   hoopCount?: number; // hoops (basketball/pickleball specific)
   netType?: NetType; // net material
   rimType?: RimType; // rim type (basketball)

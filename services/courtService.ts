@@ -1,4 +1,5 @@
 import { Court, CourtSport } from "@/constants/data";
+import type { CheckInSpan } from "@/lib/courtHours";
 import { supabase } from "@/lib/supabase";
 import {
   courtDiscoveryBounds,
@@ -29,10 +30,14 @@ interface SupabaseCourtRow {
   total_check_ins?: number | null;
   local_player_count?: number | null;
   is_confirmed?: boolean | null;
+  // Physical details (both the table and the stats view carry them)
+  access_type?: string | null;
+  court_count?: number | null;
+  has_lights?: boolean | null;
 }
 
 const BASE_COLS =
-  "id,name,short_name,address,postal_code,latitude,longitude,sport_type,image_url,is_archived,location,city,state,market,added_by,created_at";
+  "id,name,short_name,address,postal_code,latitude,longitude,sport_type,image_url,is_archived,location,city,state,market,added_by,created_at,access_type,court_count,has_lights";
 const STATS_COLS =
   BASE_COLS +
   ",active_check_in_count,total_check_ins,local_player_count,is_confirmed";
@@ -67,9 +72,9 @@ function mapRow(row: SupabaseCourtRow): Court {
     latitude: Number(row.latitude),
     longitude: Number(row.longitude),
     activeCount: row.active_check_in_count ?? 0,
-    // The live courts table has no capacity/rating/surface/lights columns —
-    // leave those Court fields unset instead of inventing values. Stats-view
-    // rows DO carry real locals + confirmation state; map them when present.
+    // No capacity/rating columns exist — leave those Court fields unset
+    // instead of inventing values. Stats-view rows DO carry real locals +
+    // confirmation state; map them when present.
     ratingCount: row.total_check_ins ?? 0,
     localCount: row.local_player_count ?? undefined,
     status:
@@ -79,6 +84,10 @@ function mapRow(row: SupabaseCourtRow): Court {
           ? "confirmed"
           : "community",
     imageUri: row.image_url ?? undefined,
+    // Real values only: null stays unset so the UI shows a dash, not a guess.
+    access: row.access_type ?? undefined,
+    courtCount: row.court_count ?? undefined,
+    lights: row.has_lights ?? undefined,
     addedBy: row.added_by ?? undefined,
     addedDate: row.created_at ? row.created_at.slice(0, 10) : undefined,
   };
@@ -215,6 +224,27 @@ export async function fetchCourtActivityMetrics(
       activeLocals: 0,
       activeLocalTrend: null,
     };
+  }
+}
+
+/**
+ * Check-in spans for the last 7 days at one court, for Court hours · wk and
+ * Avg session (lib/courtHours.ts does the math). Returns [] on any error so
+ * the strip shows 0h, never a made-up number.
+ */
+export async function fetchCourtWeekSpans(courtId: string): Promise<CheckInSpan[]> {
+  const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+  try {
+    const { data, error } = await supabase
+      .from("check_ins")
+      .select("checked_in_at,checked_out_at")
+      .eq("court_id", courtId)
+      .gte("checked_in_at", weekAgo)
+      .limit(5000);
+    if (error || !data) return [];
+    return data as CheckInSpan[];
+  } catch {
+    return [];
   }
 }
 
