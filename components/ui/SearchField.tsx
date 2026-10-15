@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import React, { type ReactNode } from "react";
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   type StyleProp,
@@ -30,6 +31,9 @@ export interface SearchFieldProps
     | "autoCorrect"
     | "autoFocus"
     | "keyboardType"
+    | "onFocus"
+    | "onBlur"
+    | "selectTextOnFocus"
     | "onSubmitEditing"
     | "returnKeyType"
     | "testID"
@@ -62,6 +66,9 @@ export function SearchField({
   autoCorrect = false,
   autoFocus,
   keyboardType,
+  onFocus,
+  onBlur,
+  selectTextOnFocus,
   onSubmitEditing,
   returnKeyType = "search",
   testID,
@@ -77,11 +84,14 @@ export function SearchField({
         autoCorrect={autoCorrect}
         autoFocus={autoFocus}
         keyboardType={keyboardType}
+        onBlur={onBlur}
         onChangeText={onChangeText}
+        onFocus={onFocus}
         onSubmitEditing={onSubmitEditing}
         placeholder={placeholder}
         placeholderTextColor={Colors.mutedDark}
         returnKeyType={returnKeyType}
+        selectTextOnFocus={selectTextOnFocus}
         style={styles.input}
         testID={testID}
         underlineColorAndroid="transparent"
@@ -138,5 +148,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18,
     color: Colors.text,
+    // The web build would otherwise draw the browser focus ring around the text.
+    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as object) : null),
   },
 });

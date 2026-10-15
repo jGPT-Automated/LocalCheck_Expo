@@ -1,8 +1,177 @@
 # LocalCheck Design Decisions
 
-Status: Current MVP decisions. Newer dated decisions supersede older entries.
+Status: Current MVP decisions. Newer decisions supersede older entries; every
+superseded entry stays here and names what replaced it ("Revised by …" or
+"Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
+"revises Dn" has that back-reference.
+
+## 2026-10 — Launch decisions (D0–D54, Jesse's plan doc)
+
+Numbers match Jesse's plan doc (Decisions tab). These supersede older entries
+below wherever they disagree.
+
+- **D0 Plans:** Yearly $49.99 and Monthly $4.99, US only. Yearly is
+  preselected on the LocalPlus screen; the drawer upgrade opens Apple's Yearly
+  sheet (D13). Supersedes "monthly only".
+- **D4 / D12 Starter:** free offers don't auto-renew. The first 100 accounts get
+  a free year automatically, server-side, no code (not built yet). Supersedes
+  "STARTER is an Apple offer code".
+- **D22 Builds:** TestFlight builds are manual only; merges never build.
+- **D25–D27r Challenges:** friends only; court and day optional; the challenger
+  picks ranked or casual. Casual is a plan, not a game: no score, counts
+  nowhere. (Revised by D50: court, day and time are required, up to 7 days
+  ahead.)
+- **D30 Hide score:** either player can hide the score for their side; outsiders
+  see only W / L; it still counts for ELO, rank, record and head-to-head.
+  Revised by D40: hidden for everyone, players included, once final.
+- **D31 Game visibility:** a game shows outside its players only if every
+  player is Public.
+- **D32 Website follows the app:** material app changes come with a website
+  change or a prompt for the website agent.
+- **D33 Mocks are a style reference:** Claude makes product and design calls;
+  colors tuned to the mocks (`#FC4C02`, neutral greys).
+- **D35 Auto check-in in v1:** opt-in, one geofence on the local court only,
+  built on expo-location. **D36:** automatic with a 3-minute hold and an Undo
+  notification; leaving checks out; auto check-ins last until you leave
+  (3-hour backstop). Plan doc Spec 8. (Revised by D52: posts 5 minutes after
+  arrival, Hide instead of Undo, ends 1.5 hours after arrival.)
+- **D37 Friend alerts for auto check-ins:** auto check-ins use the main
+  privacy setting. Two switches: "Share my auto check-ins" (send, default off)
+  and "Friends' auto check-ins" (receive, default on). A friend gets a push
+  only when both are on and the check-in isn't Private; at most one per friend
+  per 2 hours. **D38:** when the 3-hour backstop ends an auto check-in, the
+  player gets "You've been checked out" with Check back in / Got it. (Revised
+  by D52 and D53: "Auto checked out" with I'm still here, no Got it, after 1.5
+  hours; manual check-ins get the same notice at 45 minutes.)
+- **D39 Pending challenges expire after their day (Oct 8):** a pending
+  challenge whose day has passed (or, with no day, is over 7 days old) becomes
+  `expired` and leaves the inbox; a cron job on the server does it every 15
+  minutes and the app hides it at once. (Revised by D50: expiry is at the game
+  time; D51: a QStash timer does it, not a cron job.) Accepted challenges stay, since players
+  may still log the result. Expiring frees the pair to challenge again. Before,
+  an unanswered challenge sat in the inbox forever.
+- **D40 Hide score means hidden for everyone (Oct 8, revises D30):** once any
+  player hides a game's score, everyone sees only W / L on every screen (feed,
+  profiles, head-to-head, the game sheet), the players included. Players still
+  see the numbers while the game is in review, to approve or dispute it. The
+  switch is just "Hide score"; what it does is explained in "How score review
+  works". Before, the players always saw the numbers, so hiding looked broken
+  from their own profile. (Revised by D47: players see the numbers on the game
+  page; by D49: hidden once half the players turn it on.)
+- **D42 Motion is intentional (Oct 10):** opening a sheet or screen doesn't
+  animate its content. The only motion: a margin/series line (`ShareLine`)
+  fills once; an ELO change counts up when it happens while you watch; a value
+  the user changes (hide score) animates. Nothing bounces or pops.
+- **D43 One game card, one state banner, short court names (Oct 10):** every
+  game card (inbox, game sheet, Final Score) has the state banner on top
+  (needs you = orange, waiting = grey, FINAL = green, disputed = orange
+  outline, voided = muted) (revised by D45 and D47: no FINAL banner on the game
+  sheet; FINAL is never green), "2V2 AT RANCHO" title, ELO change inside each
+  player's tile. Court short names everywhere except court details. The
+  activity feed keeps its timeline (day headers, one marker size, games as
+  cards, check-ins as quiet lines); games-together rows and head-to-head use
+  the row/line style.
+- **D51 Timed work runs on QStash, one timer per thing (Oct 12):** each
+  timed follow-up is booked once, for its exact time, on Upstash QStash, and
+  acts on that one challenge, check-in, arrival or game: expiry at game time,
+  the 30-minute reminder, posting an auto check-in, ending a check-in, the
+  3-day score approval and the 7-day held-game void. If QStash can't reach
+  the server it retries. A booking request that fails is re-sent by a small
+  job every minute (the standard outbox pattern); it never runs timers. The
+  five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
+  and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D54 Docs are updated on every push, and CI checks it (Oct 13):** any
+  change outside `docs/` counts as affecting the docs; there is no "not
+  affected." Every push to a pull request updates `docs/CURRENT_STATE.md`, plus
+  `docs/SUPABASE.md` for database changes, and the decision, design and product
+  docs when those change. The `docs updated` CI job enforces the first two;
+  the PR template lists all five. Why: #65 merged a month of app changes with
+  none of them in the docs, so anyone reading `main` saw September's app.
+  Oct 14: the check also requires `RELEASE.md`, `GITHUB.md` and the RevenueCat
+  runbook for their areas, and `pnpm check` runs structural doc checks
+  (`scripts/check-docs-consistency.mjs`). Neither proves the docs are true.
+- **D53 Every automatic checkout sends the same notice (Oct 12, extends D52):**
+  when a check-in ends on its own, manual (45 minutes) or auto (1.5 hours),
+  the player gets "Auto checked out" / "Still at {court}? Tap I'm still
+  here." The button checks them back in the same way they came: manual for
+  another 45 minutes, auto for another 1.5 hours. Leaving the circle and
+  checking out yourself send nothing. Migration
+  `20261012200000_checkout_notice_for_all.sql` (test version and undo in
+  the repo); the push carries `source` so the app knows which way to check
+  back in.
+- **D52 Auto check-in timing (Oct 12, revises D36, D38):** arriving checks you
+  in privately; after a minute inside the circle (so driving past shows
+  nothing) the phone shows "Checked in at Rancho · Posts at 4:05 PM" with
+  **Hide**. 5 minutes after arriving it posts (court, feed, friends' alerts)
+  and "Check-in posted" replaces that notice, still with Hide. Home shows the
+  waiting state (design pending sign-off). Leaving checks you out at that moment.
+  If the phone never reports leaving, you're checked out 1.5 hours after
+  arriving ("Auto checked out", with **I'm still here**, which starts another
+  1.5 hours). The check-in time is the arrival time. Hide erases the check-in;
+  friend alerts already sent stay sent. A countdown on the home court page
+  comes after launch.
+- **D50 Every challenge has a game time; 7-day windows (Oct 12, revises D26,
+  D39):** a challenge needs a court, a day and a time, up to 7 days ahead. A
+  pending challenge expires at its game time (not at the end of its day). Once
+  accepted, both players get "With X at Court in 30 minutes" 30 minutes
+  before. No 24-hour nudge. Logging a game and score corrections look back 7
+  days (was 5).
+- **D49 Hide score takes half the players (Oct 12, revises D47):** a score is
+  hidden once half or more of the game's players turn on Hide score (one in a
+  1v1, two in a 2v2, three in a 3v3), so one player can't hide a team game
+  alone. Hidden: feeds, profiles, court pages and everyone outside the game
+  see W / L; the players see the score on the game score page, with the HIDDEN
+  banner and checker line so they know it's hidden. Team games show "Hidden
+  once N of M players turn it on" under the switch. Review rule #5 says so.
+  Challenge reminder (1v1 only; team games are scheduled games): "CASUAL GAME
+  / With Jesse at Rancho in 30 minutes", sent 30 minutes before.
+- **D47 Game page and hidden scores (Oct 12, revises D40):** header GAME
+  SCORE with an info button that opens the review rules as a pop-up. A live
+  countdown sits above the card while a game is open. The card always keeps
+  its banner on the game page: FINAL is a neutral band with orange text (never
+  green); HIDDEN BY YOU / HIDDEN BY [NAME] uses the same band in grey. Game
+  activity under the card: day and time left of the rail, then person + action
+  ("Jesse approved"), dispute note under it. Hide score sits just above the
+  Dispute / Approve buttons and only the game's players see it. Hidden score:
+  the players see the numbers on the game page; everywhere else, and for
+  everyone else, W / L. A hidden score keeps the line as a faint orange
+  checker. (Revised by D49: hidden once half or more of the players turn it
+  on.)
+- **D46 Usernames: 10 characters, letters and numbers (Oct 11, revised same
+  day):** the username is the name shown everywhere (feed, game cards, inbox,
+  profiles). One clean string, letters and numbers only, 3 to 10 characters;
+  search ignores capitals. It is still auto-generated from the email (cut to
+  fit, a number added only if taken) and editable on the onboarding username
+  field, which suggests first name + last initial or first name + a number.
+  Signup does not ask for a first or last name. The 20 existing usernames over
+  10 characters (and the 5 with "_") get shortened automatically.
+- **D44 Sheets open in front of the tab bar (Oct 11, revises D41 for sheets):**
+  one app-wide sheet host above the navigator (app/_layout.tsx), so every
+  sheet covers the tab bar and pads only for the home indicator. Screens still
+  never draw content under the tab bar.
+- **D45 Game card and timeline, signed off (Oct 11):** the game sheet shows no
+  FINAL banner (a coloured banner only while a game is in someone's queue);
+  one layout for 1v1 and teams: big scores (winner orange, loser grey) with a
+  rating pill, the orange line, then the players mirrored below it (1v1 gets
+  bigger boxes); no box inside the sheet. ELO changes are orange up, grey down,
+  never green or red. Timeline: day headers carry the date, no times; game
+  boxes show the court on top only on profiles; check-in + check-out become
+  one visit line ("1h 20m · Jesse") with an empty circle, on court pages too.
+- **D41 The tab bar is a hard floor (Oct 8):** no screen or sheet content
+  renders under the tab bar. Sheets inside a tab rise from its top edge
+  (`AppBottomSheetModal`), scroll content clears it (`useBottomFloor`).
+  (Revised by D44 for sheets: they open in front of the tab bar.)
+- **D34 Test data hidden at launch:** `TEST` / `REVIEWER` accounts and test
+  courts are hidden from real players by RLS; `TEST` / `REVIEWER` / `FOUNDER`
+  see everything. Four test courts (LA, Houston), Kasmiersky the one real
+  court. Free (LocalLite) players stay unranked (`gateLeaderboard` on). Only
+  FOUNDER / STARTER show as labels. Supersedes "account_tag is cosmetic" and
+  the `hideTaggedAccounts` switch. Runbook: `docs/runbooks/ACCOUNT_TAGS.md`.
 
 ## 2026-09-11 — REVIEWER is comped like FOUNDER, not offer-code-tested
+
+(Still current for FOUNDER and REVIEWER. Its line about STARTER using offer
+codes is superseded by D4 / D12.)
 
 **Decision confirmed by Jesse — supersedes this file's own earlier "leave the
 reviewer account plain, let it redeem an offer code" note from the same day.**
@@ -22,6 +191,9 @@ exercise a specific redemption UI, only that the subscription's behavior is
 described accurately.
 
 ## 2026-09-11 — STARTER's free year is an Apple offer code, not a promo row
+
+**Superseded by D4 / D12 (Oct 2026):** the first 100 get an automatic
+server-side promo year with no code and no auto-renew. Kept as history.
 
 **Decision confirmed by Jesse — supersedes the 2026-09-09 entry's "promo row,
 not offer codes" line.** The first-100 STARTER cohort's free year is granted by
@@ -46,6 +218,9 @@ for the same cohort added a second bookkeeping system for no benefit once
 offer codes were on the table.
 
 ## 2026-09-09 — LocalPlus is US-only for v1; one owner for RC + App Connect
+
+(US-only still holds. "Price stays $4.99/mo" and "no annual product" are
+superseded by D0: Yearly $49.99 and Monthly $4.99.)
 
 **Decision confirmed by Jesse:** the paid release (LocalPlus, and any in-app
 purchase) is **United States only** at launch. The EU is deliberately excluded:
@@ -83,6 +258,9 @@ sized to the app's normal scale, not larger.
 under the nav; the landscape frame guided users into landscape photos.
 
 ## 2026-09-08 — LocalPlus ships as one monthly plan
+
+**Superseded by D0 (Oct 2026):** Yearly $49.99 and Monthly $4.99. Kept as
+history.
 
 **Decision confirmed by Jesse:** LocalPlus launches with a **single** product —
 **Monthly, $4.99/mo**. No annual plan for v1 (an annual option was considered at

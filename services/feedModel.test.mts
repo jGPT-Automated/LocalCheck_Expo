@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { formatLegacyFeedResult, summarizeActivityHype } from "./feedModel.ts";
+import {
+  courtDisplayName,
+  formatLegacyFeedResult,
+  summarizeActivityHype,
+} from "./feedModel.ts";
 
 test("hydrates the authoritative hype count", () => {
   assert.deepEqual(
@@ -28,4 +32,11 @@ test("marks an event already hyped by the current user", () => {
     summarizeActivityHype([{ user_id: "one" }, { user_id: "two" }], "two"),
     { hypeCount: 2, hypedByCurrentUser: true },
   );
+});
+
+test("a court shows its short slug, and the full name only when it has none", () => {
+  assert.equal(courtDisplayName({ name: "Rancho Cienega Recreation Center", short_name: "Rancho" }), "Rancho");
+  assert.equal(courtDisplayName({ name: "Kasmiersky Park Courts", short_name: null }), "Kasmiersky Park Courts");
+  assert.equal(courtDisplayName({ name: "Kasmiersky Park Courts", short_name: "  " }), "Kasmiersky Park Courts");
+  assert.equal(courtDisplayName(null), undefined);
 });

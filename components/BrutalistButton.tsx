@@ -3,13 +3,13 @@ import React from "react";
 import {
   ActivityIndicator,
   Platform,
-  Pressable,
   StyleSheet,
   Text,
   View,
   ViewStyle,
 } from "react-native";
 
+import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
 import { Typography } from "@/constants/typography";
 
@@ -45,16 +45,16 @@ export function BrutalistButton({
   };
 
   return (
-    <Pressable
+    <PressableScale
       testID={testID}
       onPress={handlePress}
       disabled={disabled || loading}
-      style={({ pressed }) => [
+      accessibilityRole="button"
+      style={[
         styles.base,
         styles[`size_${size}`],
         styles[`variant_${variant}`],
         disabled && styles.disabled,
-        pressed && !disabled && styles.pressed,
         style,
       ]}
     >
@@ -71,7 +71,7 @@ export function BrutalistButton({
           </Text>
         </View>
       )}
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -93,7 +93,6 @@ const styles = StyleSheet.create({
   variant_ghost: { backgroundColor: "transparent", borderWidth: 0 },
   variant_dark: { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
   disabled: { opacity: 0.3 },
-  pressed: { opacity: 0.75 },
   label: {
     fontFamily: Typography.heading,
     letterSpacing: 1.5,

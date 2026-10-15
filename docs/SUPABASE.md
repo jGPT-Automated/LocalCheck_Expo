@@ -42,19 +42,57 @@ Write one forward migration. Include RLS, grants, indexes, Realtime/publication
 effects, and recovery notes as part of the same pull request. Compare it with
 the verified live contract and migration ledger, run focused source/unit
 checks, and document the intended-user and denied-user acceptance cases. After
-explicit authorization, apply the reviewed file to `LocalCheckProd` through the
-connected Supabase migration tool, then verify the resulting cloud schema with
-read-only queries. Function deployment and production-secret changes remain
-separate explicitly authorized actions.
+explicit authorization, apply it as below. Function deployment and
+production-secret changes remain separate explicitly authorized actions.
+
+## Apply a change to production (the SQL editor flow)
+
+The connected migration tool's DDL calls are cancelled in this setup, so
+production SQL goes through Jesse:
+
+1. Write the migration file. Wrap it in `begin; … commit;` with
+   `set local lock_timeout = '5s'` and `statement_timeout = '60s'`.
+2. To change a long live function, patch it in place inside a `do` block:
+   read `pg_get_functiondef(...)`, assert the anchor text exists (fail loudly
+   if the definition drifted), skip if already applied, `execute replace(...)`.
+   Never retype a live function from memory.
+3. Paste the file into a new query in the Supabase SQL editor
+   (`/project/qkrnmyexzvaxiqfxwwfb/sql/new`) and confirm the editor's UTF-8
+   byte count equals `wc -c` of the file. Jesse clicks **Run**.
+4. Verify with read-only queries, then a rolled-back test: a `do` block that
+   sets `request.jwt.claims`, runs `set local role authenticated`, exercises an
+   allowed and a denied user, and ends with `raise exception 'RESULT …'` so
+   nothing persists.
+5. Record it: insert the version and name into
+   `supabase_migrations.schema_migrations`.
+
+Never run SQL written by Supabase's assistant.
+
+When a script adds or changes a function that an Edge Function or the app
+calls through the API, end it with `notify pgrst, 'reload schema';` so the
+API sees the new function immediately
+([Supabase: reloading the schema cache](https://supabase.com/docs/guides/troubleshooting/refresh-postgrest-schema)).
+On Oct 12 the first timer booking failed for a minute ("Could not find the
+function public.timer_booked … in the schema cache") until the re-sender
+booked it again.
+
+Save every script in the SQL editor under a clear name ("1 TEST …",
+"2 REAL …"); the test version runs first.
 
 ## Edge Functions
+
+Deployed on 2026-10-14 (Supabase function list): `delete-account` v6,
+`send-notification` v5 (Oct 12), `verify-court` v10, `revenuecat-webhook` v4,
+`timers` v1 (Oct 12). These are the five folders under `supabase/functions/`.
+`verify-court` now writes through `create_live_court_submission_v4`
+(`supabase/functions/verify-court/index.ts:450`).
 
 Keep service-role and provider secrets in Supabase; public Expo variables never
 contain them. Test pure request/delivery logic from source. After explicit
 release approval, deploy one named function at a time and verify its
 authenticated and unauthorized paths.
 
-PR #28 added two function sources:
+History — PR #28 (Aug 2026) added two function sources:
 
 - `verify-court` requires the caller's user JWT, validates a submitted court
   photo with Gemini, and delegates the write to the service-role-only
@@ -63,7 +101,7 @@ PR #28 added two function sources:
   atomically claims queued inbox rows, stores Expo tickets, checks receipts,
   retries bounded transient failures, and removes tokens Expo marks invalid.
 
-Production status on 2026-08-12:
+Production status on 2026-08-12 (historical; versions above are current):
 
 - `send-notification` version 1 is active. An unauthenticated request returned
   401, while `private.dispatch_push_webhook(null)` reached it through the Vault
@@ -101,8 +139,8 @@ temporary delivery failure does not strand inbox rows.
   byte-for-byte immutable.
 - `20260812032141_skip_stale_pending_push_notifications.sql`: idempotent source
   migration for retaining pre-push inbox rows while marking them push-skipped,
-  preventing a burst of stale alerts after first device registration. It is not
-  deployed by this pull request.
+  preventing a burst of stale alerts after first device registration. **Never
+  applied:** not in the live ledger on 2026-10-14. Source only.
 - `20260812111025_make_court_access_optional.sql`: preserves every historical
   access value, makes the field optional for new rows, and adds the
   service-role-only `create_verified_court_v2` RPC without an access argument.
@@ -110,29 +148,21 @@ temporary delivery failure does not strand inbox rows.
   lifecycle. It converts legacy `rejected` rows to a seven-day `held` state,
   adds bounded dispute/revision metadata, participant-authorized approve,
   dispute, and held-game update RPCs, full-roster notifications, and cron-owned
-  three-day approval / seven-day void deadlines. It must be applied after the
-  participant-review and ad-hoc-team migrations and is not production behavior
-  until the live ledger and two-account matrix prove it.
+  three-day approval / seven-day void deadlines. **Applied** 2026-09-03 (live
+  ledger `20260903105302 match_dispute_resolution`). The deadlines now run as
+  QStash timers (`20261012180000`), not cron.
 - `20260829120000_add_profile_postal_code.sql` +
   `20260830133000_grant_profile_postal_code_update.sql`: **APPLIED to
   LocalCheckProd** (confirmed live 2026-09-15: `profiles.postal_code` exists,
   nullable text, with an `authenticated` column UPDATE grant). Nullable
   five-digit profile ZIP; the onboarding flow's "enter ZIP instead" path
   writes it directly.
-- `20260914120000_profile_onboarding_completed.sql`: **SOURCE ONLY, NOT
-  APPLIED.** Adds `profiles.onboarding_completed boolean not null default
+- `20260914120000_profile_onboarding_completed.sql`: applied 2026-09-17. Adds `profiles.onboarding_completed boolean not null default
   false` (existing rows backfilled `true` in the same migration) + the column
   UPDATE grant. The client's onboarding gate (`lib/onboardingGate.ts`) also
   requires the profile to be freshly created (within 30 minutes), so shipping
-  this ahead of the migration is safe — no existing account can be routed
-  into onboarding regardless of whether this column exists yet. Confirmed via
-  a live read-only query (2026-09-15) that this column genuinely does not
-  exist on LocalCheckProd yet, and that a client write attempting it fails
-  and rolls back the whole update atomically (no partial-field writes) —
-  `app/onboarding.tsx` handles that failure with a visible retry rather than
-  silently proceeding.
-- `20260915000000_update_username_syncs_display_name.sql`: **SOURCE ONLY,
-  NOT APPLIED.** Redefines `public.update_username` (never edits
+  this ahead of the migration was safe.
+- `20260915000000_update_username_syncs_display_name.sql`: applied 2026-10-05. Redefines `public.update_username` (never edits
   `20260911180000`, which is live) so a username change also sets
   `display_name` to match — every player-facing surface (rosters, feed, game
   cards, profile header) reads `display_name`, not `username`, so claiming a
@@ -192,7 +222,7 @@ tool, verified with read-only queries:
   intended replacement; fatal native crashes are not captured here. Inspect:
   `select created_at, route, update_id, message, error_stack, component_stack from public.client_errors order by created_at desc limit 50;`
 
-- `20260910000000_friendly_usernames.sql` — **SOURCE ONLY, NOT APPLIED.**
+- `20260910000000_friendly_usernames.sql` — applied 2026-09-11.
   Rewrites `private.handle_new_user()` (via a new `private.generate_username`
   helper) so an auto handle is the clean base (`mapcrash`), with a numeric
   suffix only on collision (`mapcrash2`) and the old 16-hex UUID tail kept only
@@ -203,27 +233,156 @@ tool, verified with read-only queries:
   verify: `select username from public.profiles where username ~ '_[0-9a-f]{16}$';`
   should return 0 rows.
 
-- `20260911000000_subscriptions_webhook_support.sql` — **SOURCE ONLY, NOT
-  APPLIED.** Adds `public.subscriptions.last_event_ms` (out-of-order guard for
+- `20260911000000_subscriptions_webhook_support.sql` — applied 2026-09-11. Adds `public.subscriptions.last_event_ms` (out-of-order guard for
   webhook events) and a unique index on `user_id` (one subscription lineage per
   person, makes the webhook's upsert idempotent). 0 rows in the table today, so
   this is a safe additive change whenever applied. Pairs with the
   `revenuecat-webhook` function below — apply this first.
 
-All other 2026-09 migrations are applied to LocalCheckProd; four are pending:
-`20260910000000_friendly_usernames.sql`,
-`20260911000000_subscriptions_webhook_support.sql`,
-`20260914120000_profile_onboarding_completed.sql`, and
-`20260915000000_update_username_syncs_display_name.sql`.
-`account_tag` is cosmetic — it does not gate the leaderboard or LocalPlus; the
-only functional switch is the client flag `LeaderboardFlags.hideTaggedAccounts`
-(off). `supabase/functions/revenuecat-webhook` exists as source — **not yet
-deployed** — authorized by its own `REVENUECAT_WEBHOOK_AUTH_HEADER` secret (not
-the platform JWT), pure event-mapping logic in `webhookLogic.ts` (unit tested),
-upserts `public.subscriptions`; see `docs/runbooks/REVENUECAT.md` Phase 3 for
-the deploy sequence.
-`profiles.is_pro` is still the only entitlement field, trigger-derived from
+Every 2026-09 migration is applied to LocalCheckProd. Migrations applied with
+the connected migration tool are recorded under the time they were applied, not
+the file's timestamp, so the same change has two version numbers (example: file
+`20260915000000_update_username_syncs_display_name.sql` is live as
+`20261005231246 update_username_syncs_display_name`). Match by name, not
+version. Ledger vs repo on 2026-10-14:
+
+- Live with no repo file: `20260909141247 client_errors_cap_simplify`;
+  `20260810211500 atomic_verified_court_creation` (probably the change in
+  `20260810200103_add_verified_court_creation.sql`, renamed; unverified).
+- Repo file never applied: `20260812032141_skip_stale_pending_push_notifications.sql`.
+
+`revenuecat-webhook` is authorized by its own `REVENUECAT_WEBHOOK_AUTH_HEADER`
+secret (see `docs/runbooks/REVENUECAT.md`).
+`profiles.is_pro` is the only entitlement field, trigger-derived from
 `public.subscriptions`.
+
+## 2026-10 migrations
+
+All applied by Jesse in the SQL editor, verified, and recorded (the last two on Oct 8, with rolled-back tests as a real player, a tester, Jesse and APPLE):
+
+- `20261005120000_frozen_referral_handle.sql` — invite codes are the
+  username at signup and never change.
+- `20261006120000_challenges.sql` — `public.challenges` (friends only, one
+  open per pair, 10 a day), `matches.is_ranked`, RPCs `create_challenge`,
+  `respond_to_challenge`, `cancel_challenge`, `log_challenge_result`;
+  notification type `challenge`.
+- `20261007120000_hide_score_and_game_visibility.sql` —
+  `match_participants.hide_score` + `set_score_hidden` (D30); a game shows
+  outside its players only when every player is Public (D31,
+  `private.match_all_public`).
+- `20261007150000_casual_challenges_no_score.sql` — casual challenges are plans
+  with no score (D27r): `finish_casual_challenge`, stale plans auto-close.
+- `20261008120000_hide_test_accounts_and_courts.sql` — test accounts and test
+  courts hidden from real players (D34). Runbook:
+  `docs/runbooks/ACCOUNT_TAGS.md`.
+- `20261009120000_auto_check_in.sql` — auto check-in (D35, D36). **Its timing
+  and jobs below are superseded by `20261012180000` (D51, D52):** no
+  promote or sweep jobs; the post is a QStash timer at 5 minutes and the auto
+  checkout at 1.5 hours. As written on Oct 9:
+  `check_ins.source` (manual / auto), `private.auto_check_in_arrivals` (3-minute
+  hold), RPCs `auto_check_in_arrive`, `auto_check_in_leave`,
+  `undo_auto_check_in`; cron `localcheck-promote-auto-check-ins` every minute;
+  the stale sweep keeps 45 minutes for manual and 3 hours for auto; a
+  `profiles` trigger ends the held arrival and any open auto check-in at the
+  old court when the local court changes. Also (D37, D38):
+  `profiles.share_auto_check_ins` / `notify_friend_check_ins` +
+  `set_auto_check_in_alerts`; notification types `friend_check_in` and
+  `auto_check_out`; `resume_auto_check_in`. Needs
+  `20261008120000_hide_test_accounts_and_courts.sql` first
+  (`private.is_hidden_account`). `send-notification` passes
+  `data.category` as the push's `categoryId` (action buttons) — deployed
+  Oct 12 as `send-notification` v5.
+
+### Applied Oct 12 by Jesse (SQL editor)
+
+- `20261010120000_expire_stale_challenges.sql` (D39) — adds `expired` to
+  `challenges_status_check`, `private.expire_stale_challenges()`, `LC112`
+  "This challenge expired." Its 15-minute cron job is removed again by
+  `20261012180000`.
+- `20261012120000_challenge_time_and_short_usernames.sql` — `challenges.play_at`,
+  the NEW CHALLENGE push names the time, friend alert wording, 10-character
+  usernames (D46). Its 5-minute reminder cron job is removed again by
+  `20261012180000`.
+
+Both are recorded in `supabase_migrations.schema_migrations` by
+`20261012180000`.
+
+- `20261012180000_qstash_timers.sql` (D50, D51, D52) — applied Oct 12 about
+  8:33 pm Central after its test version passed; recorded. See "Timed work
+  (QStash)" below. Every challenge needs a time in the next 7 days (`LC103`);
+  pending challenges expire at their time.
+- `20261012200000_checkout_notice_for_all.sql` (D53) — applied Oct 12 about
+  9:05 pm Central (its test version was skipped); recorded. Every automatic
+  checkout, manual (45 min) or auto (1.5 h), sends "Auto checked out" with
+  `data.source`. Checked on a real check-in: ended 9:14:29 pm, push sent
+  9:14:32 pm. Undo: `supabase/rollbacks/20261012200000_checkout_notice_for_all.sql`.
+
+## Timed work (QStash)
+
+Every timed follow-up is booked once, for its exact time, on Upstash QStash
+(US East), and acts on its one thing only. No job polls for due work.
+
+| What | When | Function (one row) |
+| --- | --- | --- |
+| Auto check-in posts (court, feed, friends' alerts, "Check-in posted") | arrival + 5 min | `private.post_auto_check_in(user)` |
+| Auto check-in ends ("Auto checked out", I'm still here) | arrival + 1.5 h | `private.end_check_in(check-in)` |
+| Manual check-in ends ("Auto checked out", I'm still here; D53) | check-in + 45 min | `private.end_check_in(check-in)` |
+| Score approved / held game voided | its deadline | `private.settle_due_match(game)` |
+| Challenge reminder to both players | game time − 30 min | `private.remind_challenge(challenge)` |
+| Unanswered challenge expires | game time | `private.expire_challenge(challenge)` |
+
+How it works:
+
+1. A trigger on `challenges`, `check_ins`, `private.auto_check_in_arrivals`
+   or `matches` writes a row to `private.timers` (`kind`, `ref_id`, `run_at`).
+2. `private.book_timer` calls the `timers` Edge Function through `pg_net`
+   with the Vault webhook secret. The function publishes a QStash message
+   (`Upstash-Not-Before` = the time) that calls the same function back, and
+   stores `booked_at` and `qstash_message_id`.
+3. At that time QStash calls `timers`. It checks the `Upstash-Signature`
+   (current and next signing keys) and runs `public.fire_timer`, which runs the
+   function above for that one row. Each function locks its row and checks it
+   is still due, so an answered challenge, an ended check-in, a hidden or left
+   arrival, or an approved game is left alone. `private.timers.result` records
+   what it did.
+4. An error makes the function answer 500 and QStash tries again (after about
+   12 seconds, 2.5 minutes and 30 minutes). QStash's free plan delays at most
+   7 days; a later timer is booked at the cap and booked again when it
+   arrives early.
+
+Live jobs on 2026-10-14 (`cron.job`): only `localcheck-notification-dispatch`
+(every 2 min) and `localcheck-timer-bookings` (every minute).
+
+The 2-minute `localcheck-notification-dispatch` job is separate and
+unchanged: it resends pushes Expo didn't accept, as Expo's docs recommend.
+
+Bookings are sent by `pg_net`, which sends once and never retries
+([pg_net README](https://github.com/supabase/pg_net), "Retrying failed
+requests"). So, as in the standard transactional-outbox pattern, the timer row
+is written in the same transaction as the change, and the
+`localcheck-timer-bookings` job (every minute) re-sends any booking not
+confirmed (`booked_at` null) after a minute, up to 10 tries. It only books;
+QStash runs every timer. Check:
+
+```sql
+select kind, run_at, booking_attempts, booked_at, fired_at, result
+from private.timers order by created_at desc limit 20;
+```
+
+Then Edge Functions → `timers` → Logs (`timer_booked`, `timer_fired`), and the
+QStash console.
+
+Secrets (Supabase → Edge Functions → Secrets): `QSTASH_URL`, `QSTASH_TOKEN`,
+`QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY`, plus the existing
+`NOTIFICATION_WEBHOOK_SECRET`. `timers` is deployed with JWT verification off;
+it accepts only the webhook secret (booking) or a valid QStash signature.
+
+Test first: `supabase/scripts/20261012180000_qstash_timers_test.sql` runs the
+migration, fakes each flow with the QA accounts, runs the undo, and throws it
+all away (ends in a `TEST_RESULT` error). Undo:
+`supabase/rollbacks/20261012180000_qstash_timers.sql` (puts back the 2
+replaced functions, the notification kinds and the 5 jobs from
+`private.migration_backups`).
 
 ## Realtime and API safety
 

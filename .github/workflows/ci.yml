@@ -50,3 +50,26 @@ jobs:
 
       - name: Prove CI bundle is not a connected preview
         run: node scripts/assert-export-placeholder.mjs /tmp/localcheck-ci-export/_expo/static/js/web https://ci-placeholder.invalid
+
+  docs:
+    name: docs updated
+    # Every push to a pull request that changes the product must update the
+    # docs in the same push (AGENTS.md "Docs on every push"; D54).
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository with history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check this push updated the docs
+        env:
+          ACTION: ${{ github.event.action }}
+          BEFORE: ${{ github.event.before }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        # The script picks the range: this push alone, or the whole pull
+        # request after a force push or on open (scripts/docsCheckModel.mjs).
+        run: node scripts/check-docs-updated.mjs

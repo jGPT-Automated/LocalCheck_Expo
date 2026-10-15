@@ -17,6 +17,17 @@ import { Layout, Space } from "@/constants/layout";
 import { TextStyles, Typography } from "@/constants/typography";
 import { SportEmblem } from "@/components/ui/SportEmblem";
 
+/**
+ * Space above and below the court name so it reads as centred between the
+ * label text and the stats line. The label's own line box holds ~5pt of air
+ * under its glyphs that the stats hairline does not, so the bottom gap is
+ * that much larger.
+ */
+const NAME_GAP_TOP = Space.lg;
+const NAME_GAP_BOTTOM = Space.xl + 2;
+/** Label row height: the sport emblem draws 25pt of box around a 17pt glyph. */
+const META_ROW_HEIGHT = 17;
+
 export function HomeCourtHero({
   court,
   activeCount,
@@ -103,7 +114,7 @@ export function HomeCourtHero({
       </View>
 
       <View style={styles.titleRow}>
-        <Text numberOfLines={2} style={styles.name}>
+        <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={2} style={styles.name}>
           {court.shortName || court.name}
         </Text>
       </View>
@@ -199,33 +210,39 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.accentDim,
   },
+  // Four bands, one rhythm: 12 above the label row, the name centred between
+  // the label row and the stats row (equal gap each side, however many lines
+  // it wraps to), 12 around the buttons. Every band uses the screen gutter, so
+  // the sport label, stats and buttons share their left and right edges.
   metaRow: {
-    minHeight: 34,
-    paddingHorizontal: 16,
+    height: META_ROW_HEIGHT,
+    marginTop: Space.md,
+    paddingHorizontal: Layout.screenGutter,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 5,
+    gap: Space.sm,
   },
-  sportLabel: { flexDirection: "row", alignItems: "center", gap: 5 },
+  sportLabel: { flexDirection: "row", alignItems: "center", gap: 5, flexShrink: 0 },
   sportText: {
+    ...TextStyles.labelSmall,
     fontFamily: Typography.bodyBold,
-    fontSize: 11,
     letterSpacing: 1.2,
   },
   cityText: {
+    ...TextStyles.labelSmall,
+    fontFamily: Typography.bodyBold,
     minWidth: 0,
     flexShrink: 1,
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
     color: Colors.textSecondary,
     letterSpacing: 1,
     textTransform: "uppercase",
     textAlign: "right",
   },
   titleRow: {
-    minHeight: 70,
     paddingHorizontal: Layout.screenGutter,
+    paddingTop: NAME_GAP_TOP,
+    paddingBottom: NAME_GAP_BOTTOM,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -241,7 +258,6 @@ const styles = StyleSheet.create({
   },
   stats: {
     minHeight: 62,
-    marginTop: Space.xs,
     paddingHorizontal: Layout.screenGutter,
     flexDirection: "row",
     alignItems: "center",
@@ -274,7 +290,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.border,
   },
   actions: {
-    paddingHorizontal: 20,
+    paddingHorizontal: Layout.screenGutter,
     paddingVertical: Space.md,
     flexDirection: "row",
     gap: Space.sm,

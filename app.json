@@ -3,7 +3,7 @@
     "name": "LocalCheck",
     "slug": "localcheck",
     "owner": "agenticjess-os",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "localcheck",
@@ -41,6 +41,14 @@
         "NSPrivacyTracking": false,
         "NSPrivacyTrackingDomains": [],
         "NSPrivacyCollectedDataTypes": [
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypePreciseLocation",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
           {
             "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeCrashData",
             "NSPrivacyCollectedDataTypeLinked": false,
@@ -86,17 +94,12 @@
         }
       ],
       [
-        "expo-image-picker",
-        {
-          "photosPermission": "LocalCheck lets you choose a current court photo for verification.",
-          "cameraPermission": "LocalCheck uses the camera to verify the court you are adding.",
-          "microphonePermission": false
-        }
-      ],
-      [
         "expo-location",
         {
-          "locationWhenInUsePermission": "LocalCheck uses your location to find courts near you and show who's playing nearby."
+          "locationWhenInUsePermission": "LocalCheck uses your location to find courts near you and show who's playing nearby.",
+          "locationAlwaysAndWhenInUsePermission": "For auto check-in: when the app is closed, your iPhone tells LocalCheck only when you arrive at or leave your local court. Nothing else is tracked.",
+          "locationAlwaysPermission": "For auto check-in: when the app is closed, your iPhone tells LocalCheck only when you arrive at or leave your local court. Nothing else is tracked.",
+          "isIosBackgroundLocationEnabled": true
         }
       ]
     ],

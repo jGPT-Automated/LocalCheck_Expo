@@ -1,3 +1,7 @@
+// Defines the auto check-in geofence task at startup (iOS can launch the app
+// straight into it). Must stay a top-level import.
+import "@/services/autoCheckInService";
+
 import {
   Inter_200ExtraLight,
   Inter_400Regular,
@@ -11,6 +15,7 @@ import {
   Oswald_600SemiBold,
   Oswald_700Bold,
 } from "@expo-google-fonts/oswald";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, usePathname, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -24,10 +29,12 @@ import { LogoMark } from "@/components/brand/LogoMark";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LaunchTransition } from "@/components/onboarding/LaunchTransition";
 import { CourtSheetProvider } from "@/components/sheet/CourtSheetHost";
+import { ToastProvider } from "@/components/ui/Toast";
 import { Colors, Radius } from "@/constants/colors";
 import { Layout } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { AppProvider } from "@/context/AppContext";
+import { AutoCheckInProvider } from "@/context/AutoCheckInContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { CourtPresenceProvider } from "@/context/CourtPresenceContext";
 import { DeviceLocationProvider } from "@/context/DeviceLocationContext";
@@ -221,7 +228,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
  */
 function DataProviders({ children }: { children: React.ReactNode }) {
   const { session, profile } = useAuth();
-  if (!session) return <>{children}</>;
+  if (!session) return <BottomSheetModalProvider>{children}</BottomSheetModalProvider>;
   // While a fresh signup still needs onboarding, neither location nor push
   // permission should fire on their own — onboarding's own "Share location"
   // button is the only thing allowed to trigger that native prompt, and
@@ -237,7 +244,18 @@ function DataProviders({ children }: { children: React.ReactNode }) {
         <CourtPresenceProvider>
           <DeviceLocationProvider autoResolve={autoResolveLocation}>
             <AppProvider>
-              <CourtSheetProvider>{children}</CourtSheetProvider>
+              <ToastProvider>
+                {/* One modal host for every sheet in the app, above the
+                    navigator and above AutoCheckInProvider (which mounts its
+                    own sheet), so sheets open in front of the tab bar (D44).
+                    It must sit below the data providers: sheet content is
+                    portalled here and only sees contexts above this point. */}
+                <BottomSheetModalProvider>
+                  <AutoCheckInProvider>
+                    <CourtSheetProvider>{children}</CourtSheetProvider>
+                  </AutoCheckInProvider>
+                </BottomSheetModalProvider>
+              </ToastProvider>
             </AppProvider>
           </DeviceLocationProvider>
         </CourtPresenceProvider>
@@ -270,6 +288,7 @@ function RootLayoutNav() {
         <Stack.Screen name="player/[id]" options={detailScreenOptions} />
         <Stack.Screen name="notifications" options={detailScreenOptions} />
         <Stack.Screen name="match/[id]" options={detailScreenOptions} />
+        <Stack.Screen name="challenge/[id]" options={detailScreenOptions} />
         <Stack.Screen name="settings" options={detailScreenOptions} />
         <Stack.Screen name="localplus" options={detailScreenOptions} />
         <Stack.Screen name="add-court" options={{ ...detailScreenOptions, presentation: "fullScreenModal" }} />

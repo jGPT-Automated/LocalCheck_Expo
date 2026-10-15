@@ -28,9 +28,12 @@ import {
   checkInToCourt,
   checkOutOfCourt,
   fetchActiveCheckInState,
+  fetchPendingAutoCheckIn,
   fetchUserCheckInCount,
+  type PendingAutoCheckIn,
   updateActiveCheckInVisibility,
 } from "@/services/checkInService";
+import { undoAutoCheckIn } from "@/services/autoCheckInService";
 import {
   addFriend,
   acceptFriendRequest,
@@ -80,6 +83,12 @@ interface AppContextValue {
   currentUser: Player;
   courts: Court[];
   checkedInCourtId: string | null;
+  /** The active check-in came from auto check-in (D35): show "Hide". */
+  checkedInAuto: boolean;
+  /** Arrived at the local court, posting in under 5 minutes (D52). */
+  pendingAutoCheckIn: PendingAutoCheckIn | null;
+  /** Hide the auto check-in, waiting or posted, as if it never happened. */
+  hideAutoCheckIn: () => Promise<boolean>;
   lastVisitedCourtId: string | null;
   localCourtId: string | null;
   localCourt: Court | null;
@@ -94,7 +103,8 @@ interface AppContextValue {
   preferredSport: CourtSport | null;
   preferredCourtId: string | null;
   addCourt: (submission: VerifiedCourtSubmission) => Promise<CourtSubmissionResult>;
-  checkIn: (courtId: string) => Promise<void>;
+  /** Resolves true when the check-in saved. */
+  checkIn: (courtId: string) => Promise<boolean>;
   checkOut: () => Promise<void>;
   visitCourt: (courtId: string) => Promise<void>;
   joinRun: (runId: string, teamSide?: "a" | "b") => Promise<boolean>;
@@ -200,6 +210,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [courts, setCourts] = useState<Court[]>([]);
   const [localCourt, setLocalCourtObj] = useState<Court | null>(null);
   const [checkedInCourtId, setCheckedInCourtId] = useState<string | null>(null);
+  const [checkedInAuto, setCheckedInAuto] = useState(false);
+  const [pendingAutoCheckIn, setPendingAutoCheckIn] = useState<PendingAutoCheckIn | null>(null);
   const [lastVisitedCourtId, setLastVisitedCourtId] = useState<string | null>(null);
   const [localCourtId, setLocalCourtId] = useState<string | null>(null);
   const [runs, setRuns] = useState<GameRun[]>([]);
@@ -330,8 +342,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // ─── Refresh signed-in user's checked-in court ──────────────────────────────
   const refreshCheckedIn = useCallback(async () => {
     if (!userId) return;
-    const active = await fetchActiveCheckInState(userId);
+    const [active, pending] = await Promise.all([
+      fetchActiveCheckInState(userId),
+      fetchPendingAutoCheckIn(),
+    ]);
     setCheckedInCourtId(active?.courtId ?? null);
+    setCheckedInAuto(active?.auto ?? false);
+    setPendingAutoCheckIn(pending);
     // Visibility is the profile-level setting now (see the profile effect),
     // not whatever the active check-in row happened to store.
   }, [userId]);
@@ -339,6 +356,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     refreshCheckedIn();
   }, [refreshCheckedIn]);
+
+  // A waiting auto check-in flips to posted at its time: read once, then.
+  useEffect(() => {
+    if (!pendingAutoCheckIn) return;
+    const wait = Date.parse(pendingAutoCheckIn.postsAt) - Date.now() + 3000;
+    const timer = setTimeout(() => void refreshCheckedIn(), Math.max(1000, wait));
+    return () => clearTimeout(timer);
+  }, [pendingAutoCheckIn, refreshCheckedIn]);
 
   // ─── Refresh runs, feed, matches, friends ───────────────────────────────────
   // Runs are fetched for ALL courts (7-day window) — screens filter by court
@@ -444,11 +469,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         refreshPlannedVisits(),
         refreshCheckInCount(),
         refreshFriends(),
+        // An auto check-in may have started or posted while in the background.
+        refreshCheckedIn(),
       ]);
     } finally {
       resyncInFlight.current = false;
     }
-  }, [userId, refreshFeed, refreshRuns, refreshPlannedVisits, refreshCheckInCount, refreshFriends]);
+  }, [userId, refreshFeed, refreshRuns, refreshPlannedVisits, refreshCheckInCount, refreshFriends, refreshCheckedIn]);
+
+  const hideAutoCheckIn = useCallback(async () => {
+    const ok = await undoAutoCheckIn();
+    await refreshCheckedIn();
+    void refreshFeed();
+    return ok;
+  }, [refreshCheckedIn, refreshFeed]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
@@ -574,12 +608,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // ─── Actions ───────────────────────────────────────────────────────────────
   const checkIn = useCallback(
-    async (courtId: string) => {
-      if (!userId) return;
+    async (courtId: string): Promise<boolean> => {
+      if (!userId) return false;
       const prevCourtId = checkedInCourtId;
       const ok = await checkInToCourt(courtId, undefined, visibility);
       if (ok) {
         setCheckedInCourtId(courtId);
+        setCheckedInAuto(false);
         setLastVisitedCourtId(courtId);
         void refreshCheckInCount();
       }
@@ -589,6 +624,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       refreshPresence(courtId);
       if (prevCourtId && prevCourtId !== courtId) refreshPresence(prevCourtId);
       refreshFeed();
+      return Boolean(ok);
     },
     [userId, visibility, checkedInCourtId, refreshPresence, refreshFeed, refreshCheckInCount]
   );
@@ -864,6 +900,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         currentUser,
         courts,
         checkedInCourtId,
+        checkedInAuto,
+        pendingAutoCheckIn,
+        hideAutoCheckIn,
         lastVisitedCourtId,
         localCourtId,
         localCourt,

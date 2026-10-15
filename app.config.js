@@ -17,7 +17,8 @@ module.exports = ({ config }) => ({
     [
       "expo-camera",
       {
-        cameraPermission: "Allow LocalCheck to scan player QR codes.",
+        cameraPermission:
+          "LocalCheck uses the camera to scan player QR codes and to take a photo of a court you are adding.",
         microphonePermission: false,
         recordAudioAndroid: false,
       },

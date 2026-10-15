@@ -1,12 +1,19 @@
 import { Href, useRouter } from "expo-router";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { AppState, Platform } from "react-native";
+import { AppState, DeviceEventEmitter, Platform } from "react-native";
 
 import { useAuth } from "@/context/AuthContext";
 import { useRealtimeHub } from "@/context/RealtimeHubContext";
 import { batchHasResource, RealtimeTopic } from "@/lib/realtimeHub";
-import { getSafeNotificationRoute } from "@/lib/notificationRoutes";
-import { profileNeedsOnboarding } from "@/lib/onboardingGate";
+import {
+  AUTO_CHECK_IN_RESUMED_EVENT,
+  AUTO_CHECK_IN_UNDO_ACTION,
+  AUTO_CHECK_IN_UNDONE_EVENT,
+  CHECK_BACK_IN_ACTION,
+} from "@/lib/autoCheckInModel";
+import { getSafeNotificationRoute, notificationResponseKey } from "@/lib/notificationRoutes";
+import { resumeAutoCheckIn, undoAutoCheckIn } from "@/services/autoCheckInService";
+import { canAutoPromptPush } from "@/lib/onboardingGate";
 import {
   AppNotification,
   fetchNotifications,
@@ -74,14 +81,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [refreshNotifications]);
 
   useEffect(() => {
-    if (!user || !profile) return;
-    // A fresh signup still going through onboarding gets no automatic
-    // permission prompts at all — onboarding's own "Share location" button
-    // is the only thing allowed to trigger a native prompt there.
-    // `profile?.onboarding_completed` is a dependency below specifically so
-    // this effect re-fires once it flips, letting push prompt normally right
-    // after onboarding finishes rather than staying skipped for the session.
-    if (profileNeedsOnboarding(profile)) return;
+    // The automatic prompt needs a positive "onboarding finished" signal for
+    // THIS user. Until then (profile still loading, a stale or unflagged row,
+    // or onboarding in progress) the only path to the iOS alerts prompt is
+    // onboarding's last step, after the "why alerts" explainer.
+    // `profile.onboarding_completed` is a dependency below so this re-fires
+    // once onboarding finishes.
+    if (!profile || !canAutoPromptPush(user?.id, profile)) return;
     const preferenceEnabled = profile.push_notifications_enabled;
     let cancelled = false;
     // Staggered, not simultaneous: on a fresh sign-in this mounts the same
@@ -99,7 +105,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [profile?.push_notifications_enabled, profile?.onboarding_completed, refreshProfile, user]);
+  }, [profile?.id, profile?.push_notifications_enabled, profile?.onboarding_completed, refreshProfile, user]);
 
   useEffect(() => {
     if (Platform.OS !== "ios" && Platform.OS !== "android") return;
@@ -110,10 +116,21 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       if (cancelled) return;
       const handleResponse = (response: Awaited<ReturnType<typeof Notifications.getLastNotificationResponseAsync>>) => {
         if (!response) return;
-        const identifier = response.notification.request.identifier;
-        if (handledResponseIdRef.current === identifier) return;
-        handledResponseIdRef.current = identifier;
-        const path = getSafeNotificationRoute(response.notification.request.content.data?.path);
+        const key = notificationResponseKey(response);
+        if (handledResponseIdRef.current === key) return;
+        handledResponseIdRef.current = key;
+        const data = response.notification.request.content.data;
+        if (data?.kind === "auto_check_in" && response.actionIdentifier === AUTO_CHECK_IN_UNDO_ACTION) {
+          void undoAutoCheckIn().then((ok) => DeviceEventEmitter.emit(AUTO_CHECK_IN_UNDONE_EVENT, ok));
+        }
+        if (
+          data?.kind === "auto_check_out" &&
+          response.actionIdentifier === CHECK_BACK_IN_ACTION &&
+          typeof data.court_id === "string"
+        ) {
+          void resumeAutoCheckIn(data.court_id).then((ok) => DeviceEventEmitter.emit(AUTO_CHECK_IN_RESUMED_EVENT, ok));
+        }
+        const path = getSafeNotificationRoute(data?.path);
         if (path) router.push(path as Href);
       };
       responseSubscription = Notifications.addNotificationResponseReceivedListener(handleResponse);

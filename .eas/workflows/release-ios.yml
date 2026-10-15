@@ -5,13 +5,10 @@ defaults:
     node: "22"
     pnpm: "10.13.1"
 
-# Release path: build a fresh production iOS binary and submit it to App Store
-# Connect / TestFlight after each approved merge to main. This also covers
-# native changes that cannot ship over the air.
-#
-# Manual fallback for releases launched from the EAS dashboard. The automatic
-# main -> TestFlight path lives in .github/workflows/release-ios.yml so an
-# exhausted EAS Workflows-minute allowance cannot prevent a production build.
+# Manual fallback for a TestFlight build started from the EAS dashboard. The
+# normal path is GitHub Actions `.github/workflows/release-ios.yml` ("Run
+# workflow"), also manual only (D22): merges to main never build. Each run
+# spends one of the Expo plan's monthly iOS builds.
 #
 # Signing is handled by the distribution cert + provisioning profile stored on
 # EAS. Submission uses the App Store Connect API key stored on EAS (no local

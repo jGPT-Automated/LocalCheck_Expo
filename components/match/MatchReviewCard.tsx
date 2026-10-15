@@ -1,19 +1,17 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
-import { Colors } from "@/constants/colors";
-import { Space } from "@/constants/layout";
-import { TextStyles } from "@/constants/typography";
 import type { MatchReview, MatchReviewParticipant } from "@/services/gameService";
-import {
-  formatRemainingTime,
-  matchStatusCopy,
-} from "@/services/matchReviewModel";
+import { matchStatusCopy } from "@/services/matchReviewModel";
 
-import { ScoreCard, scoreCardStatusLabel, scoreCardTone } from "./ScoreCard";
+import { hiddenByIds, isScoreHidden, scoresHiddenFor } from "@/lib/scoreVisibility";
+import { countdownText, shortFirstName, waitingBannerLabel } from "./gameCardModel";
+import { ScoreCard, scoreCardStatusLabel } from "./ScoreCard";
 
-/** Badge text from the viewer's seat: whose move it is, not a raw status. */
+/** The countdown only shows minutes, so a slow tick is plenty. */
+const COUNTDOWN_TICK_MS = 30_000;
+
+/** Banner text from the viewer's seat: whose move it is, not a raw status. */
 function viewerStatusLabel(
   match: MatchReview,
   viewerId?: string,
@@ -25,28 +23,23 @@ function viewerStatusLabel(
     return me?.decision === "disputed" ? "YOU DISPUTED" : "DISPUTED";
   }
   // pending
-  if (!me) return undefined; // spectator — fall back to the generic label
+  if (!me) return undefined; // spectator: fall back to the generic label
   if (me.decision === "disputed") return "YOU DISPUTED";
   const other = match.participants.find(
     (p) => p.id !== viewerId && p.decision === "pending",
   );
-  const otherName = other
-    ? `WAITING ON ${other.name.split(" ")[0].toUpperCase()}`
-    : "CONFIRMING…";
-  // Whoever last submitted the score has, in effect, already approved it —
+  const otherName = other ? waitingBannerLabel(other.name) : "CONFIRMING…";
+  // Whoever last submitted the score has, in effect, already approved it:
   // they never need to "approve their own game", so they see who they're
   // waiting on instead of a phantom "WAITING ON YOU".
   if (viewerId && viewerId === match.lastSubmittedBy) return otherName;
-  // "WAITING ON YOU" rather than "YOUR APPROVAL" — it reads as the same kind
-  // of thing as "WAITING ON JESSE" on the other player's card.
   if (me.decision === "pending") return "WAITING ON YOU";
   return otherName;
 }
 
-/** Whether this card is the viewer's move to make ("action" — it wears accent
- *  and a spine so it stands out in the Inbox stack) or is just pending someone
- *  else ("waiting" — quiet). Mirrors viewerStatusLabel: "WAITING ON YOU" only
- *  ever pairs with "action". */
+/** Whether this card is the viewer's move to make ("action": accent banner)
+ *  or is just pending someone else ("waiting": neutral). Mirrors
+ *  viewerStatusLabel: "WAITING ON YOU" only ever pairs with "action". */
 function viewerEmphasis(
   match: MatchReview,
   viewerId?: string,
@@ -59,19 +52,23 @@ function viewerEmphasis(
 }
 
 /**
- * Wrapper around the shared ScoreCard. In the Inbox (`compact`) the status
- * rides on the card. On the full FINAL SCORE screen the status, the review
- * timer and the policy explainer are screen furniture — they sit above the
- * card, which is then only the game itself.
+ * Wrapper around the shared ScoreCard for a real game. The state of the game
+ * is the banner on the card, in the Inbox and on the game page alike. In the
+ * Inbox (compact) the countdown is the short line under the scores; on the
+ * game page it sits above the card instead (D47).
  */
 export function MatchReviewCard({
   match,
   viewerId,
   compact = false,
+  viewerHideScore,
 }: {
   match: MatchReview;
   viewerId?: string;
   compact?: boolean;
+  /** The viewer's Hide score switch while their change is saving, so the
+   *  numbers flip to W / L the moment they tap it. */
+  viewerHideScore?: boolean;
 }) {
   const router = useRouter();
   const [now, setNow] = React.useState(Date.now());
@@ -81,7 +78,7 @@ export function MatchReviewCard({
 
   React.useEffect(() => {
     if (!deadline) return;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
+    const timer = setInterval(() => setNow(Date.now()), COUNTDOWN_TICK_MS);
     return () => clearInterval(timer);
   }, [deadline]);
 
@@ -95,14 +92,15 @@ export function MatchReviewCard({
     (participant) => participant.side === "b",
   );
   const confirmed = match.status === "confirmed";
-  // One entry per player, each with its own ELO move (animated only on
-  // confirm). Team games get a row per member instead of one aggregate.
+  // One entry per player, each with its own ELO move (shown only once the
+  // game is confirmed). Team games get a tile per member.
   const sidePlayers = (side: MatchReviewParticipant[]) =>
     side.map((participant) => ({
       id: participant.id,
       name: participant.name,
       elo:
         confirmed &&
+        match.isRanked &&
         participant.eloBefore != null &&
         participant.eloAfter != null
           ? { before: participant.eloBefore, after: participant.eloAfter }
@@ -114,16 +112,11 @@ export function MatchReviewCard({
   const firstScore = viewerSide === "b" ? match.scoreB : match.scoreA;
   const secondScore = viewerSide === "b" ? match.scoreA : match.scoreB;
   const remaining =
-    deadline && copy.countdownLabel
-      ? formatRemainingTime(deadline, now)
-      : null;
+    deadline && copy.countdownLabel ? countdownText(deadline, now) : null;
   const statusText =
     viewerStatusLabel(match, viewerId) ?? scoreCardStatusLabel(match.status);
-  const tone = scoreCardTone(match.status);
 
-  const firstIsMine = viewerSide != null;
-
-  // A revision the *other* player made — the number on the card isn't the one
+  // A revision the *other* player made: the number on the card isn't the one
   // this viewer entered. `revisionNumber > 0` means the score has been edited
   // at least once since it was first logged.
   const reviser =
@@ -131,140 +124,89 @@ export function MatchReviewCard({
       ? match.participants.find((p) => p.id === match.lastSubmittedBy)
       : undefined;
   const revisedByOther = reviser != null && reviser.id !== viewerId;
-  const reviserFirst = reviser
-    ? reviser.name.split(" ")[0].toUpperCase()
-    : "";
+  const reviserName = reviser ? shortFirstName(reviser.name) : "";
 
-  // The note text lives on the match screen. The card only flags there is
-  // one so it stays a single clean height. Compact keeps the caption short;
-  // the full screen names who left it.
-  const captionExtras = [
+  // Ranked is the default and never written; only a casual game says so.
+  const caption = [match.isRanked ? null : "CASUAL"].filter(Boolean).join(" · ");
+  const extras = [
     match.disputeCount > 0
-      ? `DISPUTE ${Math.min(match.disputeCount, 2)} OF 2`
+      ? `Dispute ${Math.min(match.disputeCount, 2)} of 2`
       : null,
     match.disputeNote && revisedByOther
-      ? compact
-        ? "NOTE ADDED"
-        : `${reviserFirst} ADDED A NOTE`
+      ? `${reviserName} added a note`
       : revisedByOther
-        ? `REVISED BY ${reviserFirst}`
+        ? `Revised by ${reviserName}`
         : null,
   ].filter(Boolean);
 
+  // What the countdown means, in the viewer's words. Nothing for a settled
+  // game: the banner already says FINAL.
+  const note =
+    remaining && match.status === "pending"
+      ? `Auto-approves in ${remaining}`
+      : remaining && match.status === "held"
+        ? `Resolve within ${remaining}`
+        : undefined;
+
+  const hideRows = match.participants.map((p) => ({
+    userId: p.id,
+    hideScore: p.id === viewerId && viewerHideScore != null ? viewerHideScore : p.hideScore,
+  }));
+  const viewerPlayed = match.participants.some((p) => p.id === viewerId);
+  const hiders = hiddenByIds(hideRows);
+  const hidden = isScoreHidden(hideRows);
+  // The game page (D47): a settled game keeps its banner. If the score is
+  // hidden, the players see the numbers and who hid it; others see W / L.
+  let pageLabel = statusText;
+  let pageKind: "waiting" | undefined;
+  if (!compact && match.status === "confirmed" && hidden && viewerPlayed) {
+    const who =
+      hiders.length > 1
+        ? null
+        : hiders[0] === viewerId
+          ? "YOU"
+          : shortFirstName(match.participants.find((p) => p.id === hiders[0])?.name ?? "").toUpperCase();
+    pageLabel = who ? `HIDDEN BY ${who}` : "HIDDEN";
+    pageKind = "waiting";
+  }
+
   const card = (
     <ScoreCard
+      bannerKind={pageKind}
       compact={compact}
       courtName={match.courtName}
-      emphasis={compact ? viewerEmphasis(match, viewerId) : undefined}
+      emphasis={viewerEmphasis(match, viewerId)}
       format={`${match.teamSize}V${match.teamSize}`}
-      leftLabel={firstIsMine ? "YOUR TEAM" : "TEAM A"}
+      hiddenMark={!compact && viewerPlayed && hidden}
+      leftLabel="YOUR TEAM"
       leftPlayers={sidePlayers(firstSide)}
       leftScore={firstScore}
-      note={
-        compact && remaining
-          ? `${copy.countdownLabel} · ${remaining}`
-          : compact
-            ? copy.description
-            : undefined
-      }
+      note={compact ? note : undefined}
       onPlayerPress={(id) => router.push(`/player/${id}`)}
       playedOn={match.playedAt}
-      rightLabel={firstIsMine ? "OTHER TEAM" : "TEAM B"}
-      rightPlayers={sidePlayers(secondSide)}
+      rightLabel="OTHER TEAM"
       rightMeta={
-        captionExtras.length > 0 ? captionExtras.join(" · ") : undefined
+        compact
+          ? [caption || null, ...extras.map((extra) => extra?.toUpperCase())]
+              .filter(Boolean)
+              .join(" · ") || undefined
+          : caption || undefined
       }
+      rightPlayers={sidePlayers(secondSide)}
       rightScore={secondScore}
+      scoresHidden={scoresHiddenFor(
+        hideRows,
+        viewerId,
+        match.status,
+        compact ? "list" : "gamePage",
+      )}
+      showFinalBanner={!compact}
       status={match.status}
-      statusLabel={statusText}
-      statusPlacement={compact ? "card" : "none"}
+      statusLabel={pageLabel}
     />
   );
 
-  if (compact) return card;
-
-  return (
-    <View style={styles.wrap}>
-      <View style={styles.header}>
-        <View
-          style={[
-            styles.statusBar,
-            { backgroundColor: tone.bg, borderColor: tone.border },
-          ]}
-        >
-          <Text style={[styles.statusBarText, { color: tone.text }]}>
-            {statusText}
-          </Text>
-        </View>
-        {remaining && copy.countdownLabel ? (
-          <View accessibilityLiveRegion="polite" style={styles.timer}>
-            <Text style={styles.timerLabel}>{copy.countdownLabel}</Text>
-            <Text style={styles.timerValue}>{remaining}</Text>
-          </View>
-        ) : null}
-        {copy.description ? (
-          <Text style={styles.explainer}>{copy.description}</Text>
-        ) : null}
-        {match.disputeNote ? (
-          <View style={styles.disputeNote}>
-            <Text style={styles.disputeNoteLabel}>
-              {revisedByOther && reviser
-                ? `${reviser.name.split(" ")[0].toUpperCase()} SAYS`
-                : "DISPUTE NOTE"}
-            </Text>
-            <Text style={styles.disputeNoteText}>{match.disputeNote}</Text>
-          </View>
-        ) : null}
-      </View>
-      {card}
-    </View>
-  );
+  // On the game page the countdown, dispute count and note live above and
+  // below the card (ReviewCountdown, GameActivityList), not in it.
+  return card;
 }
-
-const styles = StyleSheet.create({
-  wrap: { gap: Space.lg },
-  header: { alignItems: "center", gap: Space.md },
-  statusBar: {
-    alignSelf: "stretch",
-    paddingVertical: 10,
-    alignItems: "center",
-    borderWidth: 1,
-    borderRadius: 8,
-  },
-  statusBarText: { ...TextStyles.label, letterSpacing: 2 },
-  timer: { alignItems: "center", gap: 2 },
-  timerLabel: {
-    ...TextStyles.labelSmall,
-    color: Colors.textSecondary,
-    letterSpacing: 1.6,
-  },
-  timerValue: {
-    ...TextStyles.display,
-    color: Colors.text,
-    fontVariant: ["tabular-nums"],
-  },
-  explainer: {
-    ...TextStyles.bodySmall,
-    color: Colors.muted,
-    textAlign: "center",
-  },
-  disputeNote: {
-    alignSelf: "stretch",
-    gap: 3,
-    paddingVertical: Space.sm,
-    paddingHorizontal: Space.md,
-    borderLeftWidth: 2,
-    borderLeftColor: Colors.accent,
-    backgroundColor: Colors.surfaceHigh,
-    borderRadius: 6,
-  },
-  disputeNoteLabel: {
-    ...TextStyles.labelSmall,
-    color: Colors.accent,
-    letterSpacing: 1.4,
-  },
-  disputeNoteText: {
-    ...TextStyles.bodySmall,
-    color: Colors.text,
-  },
-});

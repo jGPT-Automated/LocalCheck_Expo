@@ -30,6 +30,7 @@ export function ProfileHero({
   onOpenQr,
   compact = false,
   actions,
+  subline,
 }: {
   playerId: string;
   name: string;
@@ -49,12 +50,16 @@ export function ProfileHero({
   onOpenQr: () => void;
   compact?: boolean;
   actions?: ReactNode;
+  /** Replaces the compact "sport · court" line, e.g. "#9 at Rancho Cienega · Basketball". */
+  subline?: string | null;
 }) {
   if (compact) {
     const handle = profileHandle(username, name);
-    const locationLine = courtLabel
-      ? `${sportLabel ? `${sportLabel} · ` : ""}${courtLabel}`
-      : `@${handle}`;
+    const locationLine = subline
+      ? subline
+      : courtLabel
+        ? `${sportLabel ? `${sportLabel} · ` : ""}${courtLabel}`
+        : `@${handle}`;
 
     return (
       <View style={styles.compactHero}>

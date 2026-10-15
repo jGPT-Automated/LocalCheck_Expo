@@ -10,11 +10,25 @@ test("accepts LocalCheck notification destinations", () => {
   assert.equal(getSafeNotificationRoute("/notifications"), "/notifications");
   assert.equal(getSafeNotificationRoute(`/match/${id}`), `/match/${id}`);
   assert.equal(getSafeNotificationRoute(`/run/${id}`), `/run/${id}`);
+  assert.equal(getSafeNotificationRoute(`/challenge/${id}`), `/challenge/${id}`);
+  assert.equal(getSafeNotificationRoute(`/court/${id}`), `/court/${id}`);
 });
 
 test("rejects malformed or unrelated destinations", () => {
   assert.equal(getSafeNotificationRoute("https://example.com"), null);
   assert.equal(getSafeNotificationRoute("/(tabs)/compete?admin=true"), null);
   assert.equal(getSafeNotificationRoute("/run/not-a-uuid"), null);
+  assert.equal(getSafeNotificationRoute("/challenge/not-a-uuid"), null);
+  assert.equal(getSafeNotificationRoute("/court/not-a-uuid"), null);
   assert.equal(getSafeNotificationRoute(null), null);
+});
+
+test("two arrivals with the same notification id are two taps", async () => {
+  const { notificationResponseKey } = await import("./notificationRoutes.ts");
+  const tap = (date: number) => ({
+    actionIdentifier: "not-here",
+    notification: { date, request: { identifier: "localcheck-auto-check-in" } },
+  });
+  assert.notEqual(notificationResponseKey(tap(1000)), notificationResponseKey(tap(2000)));
+  assert.equal(notificationResponseKey(tap(1000)), notificationResponseKey(tap(1000)));
 });

@@ -13,7 +13,12 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { MatchReviewCard } from "@/components/match/MatchReviewCard";
+import { HideScoreToggle } from "@/components/match/HideScoreToggle";
 import { MatchRevisionForm } from "@/components/match/MatchRevisionForm";
+import { GameActivityList } from "@/components/match/GameActivityList";
+import { shortFirstName } from "@/components/match/gameCardModel";
+import { ReviewCountdown } from "@/components/match/ReviewCountdown";
+import { ReviewRulesModal } from "@/components/match/ReviewRulesModal";
 import { DetailHeader } from "@/components/ui/DetailHeader";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { Colors, Radius } from "@/constants/colors";
@@ -22,11 +27,14 @@ import { TextStyles } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useRealtimeHub } from "@/context/RealtimeHubContext";
+import { buildGameActivity } from "@/lib/gameActivity";
+import { hidersNeeded } from "@/lib/scoreVisibility";
 import { batchHasResource, type RealtimeTopic } from "@/lib/realtimeHub";
 import {
   fetchMatchReview,
   type MatchReview,
   respondToMatch,
+  setScoreHidden,
   updateHeldMatch,
 } from "@/services/gameService";
 
@@ -63,12 +71,15 @@ export default function MatchReviewScreen() {
   const [revisionMode, setRevisionMode] = React.useState<"update" | "dispute">(
     "update",
   );
-  const [policyExpanded, setPolicyExpanded] = React.useState(false);
+  const [rulesOpen, setRulesOpen] = React.useState(false);
+  const [hiddenOverride, setHiddenOverride] = React.useState<boolean | null>(null);
 
+  // Only the first fetch shows the spinner: a realtime refresh must not
+  // unmount an open dispute or update form.
   const load = React.useCallback(async () => {
     if (!id) return;
-    setLoading(true);
-    setMatch(await fetchMatchReview(id));
+    const next = await fetchMatchReview(id);
+    setMatch(next);
     setLoading(false);
   }, [id]);
 
@@ -106,9 +117,9 @@ export default function MatchReviewScreen() {
       return;
     }
     await refreshAll();
-    // Approving a 1v1 confirms it and moves ELO. The card's ELO line animates
+    // Approving a 1v1 confirms it and moves ELO. The card's rating tiles count
     // in place (status flips to "confirmed" on the refresh above); hold a beat
-    // so that roll is seen, then hand off to the profile, where the same delta
+    // so that count is seen, then hand off to the profile, where the same delta
     // shows on the big number for the next few hours.
     if (decision === "approve") {
       const fresh = await fetchMatchReview(match.id);
@@ -229,65 +240,72 @@ export default function MatchReviewScreen() {
   const canUpdate = match.status === "held" && Boolean(viewer);
   const showActions = canApprove || canDispute || canUpdate;
 
+  // Only the players in the game can hide its score (D47).
+  const hideToggle =
+    viewer && match.status !== "voided" ? (
+      <HideScoreToggle
+        onChange={(next) => {
+          setHiddenOverride(next);
+          void setScoreHidden(match.id, next).then((ok) => {
+            if (!ok) setHiddenOverride(!next);
+          });
+        }}
+        detail={
+          match.participants.length > 2
+            ? `Hidden once ${hidersNeeded(match.participants.length)} of ${match.participants.length} players turn it on`
+            : undefined
+        }
+        value={hiddenOverride ?? Boolean(viewer.hideScore)}
+      />
+    ) : null;
+
+  const deadline =
+    match.status === "pending"
+      ? match.reviewDueAt
+      : match.status === "held"
+        ? match.resolutionDueAt
+        : undefined;
+  const activity = buildGameActivity(match, user?.id, shortFirstName);
+
+  const openDispute = () => {
+    setRevisionMode("dispute");
+    setEditing(true);
+  };
+
   return (
     <View style={styles.screen}>
-      <DetailHeader onBack={() => router.back()} title="FINAL SCORE" />
-      <ScrollView
-        contentContainerStyle={[
-          styles.content,
-          showActions && { paddingBottom: 120 + bottom },
-        ]}
-        bounces={policyExpanded}
-        showsVerticalScrollIndicator={false}
-      >
-        <MatchReviewCard match={match} viewerId={user?.id} />
-
-        <View style={styles.policy}>
+      <DetailHeader
+        onBack={() => router.back()}
+        right={
           <Pressable
             accessibilityLabel="How score review works"
             accessibilityRole="button"
-            accessibilityState={{ expanded: policyExpanded }}
-            onPress={() => setPolicyExpanded((expanded) => !expanded)}
-            style={styles.policyHeader}
+            hitSlop={10}
+            onPress={() => setRulesOpen(true)}
+            style={styles.infoButton}
           >
-            <View style={styles.policyHeaderCopy}>
-              <Feather color={Colors.accent} name="info" size={17} />
-              <View style={styles.policyTitleCopy}>
-                <Text style={styles.policyTitle}>HOW SCORE REVIEW WORKS</Text>
-                {!policyExpanded ? (
-                  <Text style={styles.policySummary}>
-                    3-DAY REVIEW · 7-DAY DISPUTE HOLD
-                  </Text>
-                ) : null}
-              </View>
-            </View>
-            <Feather
-              color={Colors.textSecondary}
-              name={policyExpanded ? "chevron-up" : "chevron-down"}
-              size={17}
-            />
+            <Feather color={Colors.textSecondary} name="info" size={18} />
           </Pressable>
-          {policyExpanded ? (
-            <View style={styles.policyRows}>
-              <PolicyRow
-                index="1"
-                text="Every submitted score has a 3-day review. Approve it sooner to update ELO immediately; otherwise it auto-approves."
-              />
-              <PolicyRow
-                index="2"
-                text="A dispute puts the game on hold for 7 days. During the hold, any player—or any player from either team—can correct the score, court, or date."
-              />
-              <PolicyRow
-                index="3"
-                text="A corrected game notifies every player and starts a new 3-day review. Players can approve it or dispute it again."
-              />
-              <PolicyRow
-                index="4"
-                text="A game can be disputed twice. A third dispute, or an unresolved 7-day hold, voids the game with no profile or ELO change."
-              />
-            </View>
-          ) : null}
-        </View>
+        }
+        title="GAME SCORE"
+      />
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          showActions && { paddingBottom: 180 + bottom },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {deadline ? (
+          <ReviewCountdown
+            deadline={deadline}
+            label={match.status === "pending" ? "Auto-approves in" : "Resolve within"}
+            windowMs={(match.status === "pending" ? 3 : 7) * 86_400_000}
+          />
+        ) : null}
+        <MatchReviewCard match={match} viewerHideScore={hiddenOverride ?? undefined} viewerId={user?.id} />
+        <GameActivityList events={activity} />
+        {showActions ? null : hideToggle}
       </ScrollView>
 
       {canUpdate ? (
@@ -302,6 +320,7 @@ export default function MatchReviewScreen() {
             },
             disabled: working,
           }}
+          top={hideToggle}
         />
       ) : canApprove ? (
         <StickyActionBar
@@ -314,49 +333,20 @@ export default function MatchReviewScreen() {
           }}
           secondary={
             canDispute
-              ? {
-                  icon: "flag",
-                  label: "DISPUTE",
-                  onPress: () => {
-                    setRevisionMode("dispute");
-                    setEditing(true);
-                  },
-                  disabled: working,
-                }
+              ? { icon: "flag", label: "DISPUTE", onPress: openDispute, disabled: working }
               : undefined
           }
+          top={hideToggle}
         />
       ) : canDispute ? (
-        <View
-          style={[
-            styles.singleAction,
-            { paddingBottom: Math.max(bottom, Space.md) },
-          ]}
-        >
-          <Pressable
-            disabled={working}
-            onPress={() => {
-              setRevisionMode("dispute");
-              setEditing(true);
-            }}
-            style={styles.disputeButton}
-          >
-            <Feather color={Colors.loss} name="flag" size={16} />
-            <Text style={styles.disputeText}>DISPUTE SCORE</Text>
-          </Pressable>
-        </View>
+        <StickyActionBar
+          bottomInset={bottom}
+          primary={{ icon: "flag", label: "DISPUTE SCORE", onPress: openDispute, disabled: working }}
+          top={hideToggle}
+        />
       ) : null}
-    </View>
-  );
-}
 
-function PolicyRow({ index, text }: { index: string; text: string }) {
-  return (
-    <View style={styles.policyRow}>
-      <View style={styles.policyIndex}>
-        <Text style={styles.policyIndexText}>{index}</Text>
-      </View>
-      <Text style={styles.policyText}>{text}</Text>
+      <ReviewRulesModal onClose={() => setRulesOpen(false)} visible={rulesOpen} />
     </View>
   );
 }
@@ -390,68 +380,16 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     backgroundColor: Colors.surface,
   },
+  infoButton: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 18,
+  },
   emptyButtonText: {
     ...TextStyles.label,
     color: Colors.textSecondary,
     letterSpacing: 1.2,
   },
-  policy: {
-    padding: Space.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.card,
-    backgroundColor: Colors.surface,
-  },
-  policyHeader: {
-    minHeight: Layout.minTouchTarget,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: Space.md,
-  },
-  policyHeaderCopy: {
-    minWidth: 0,
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Space.sm,
-  },
-  policyTitleCopy: { minWidth: 0, flex: 1, gap: 2 },
-  policyTitle: { ...TextStyles.label, color: Colors.text, letterSpacing: 1.2 },
-  policySummary: {
-    ...TextStyles.caption,
-    color: Colors.textSecondary,
-    letterSpacing: 0.5,
-  },
-  policyRows: { marginTop: Space.lg, gap: Space.lg },
-  policyRow: { flexDirection: "row", alignItems: "flex-start", gap: Space.md },
-  policyIndex: {
-    width: 24,
-    height: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 12,
-    backgroundColor: Colors.surfaceHigh,
-  },
-  policyIndexText: { ...TextStyles.labelSmall, color: Colors.accent },
-  policyText: { ...TextStyles.bodySmall, flex: 1, color: Colors.textSecondary },
-  singleAction: {
-    paddingTop: Space.md,
-    paddingHorizontal: Layout.screenGutter,
-    backgroundColor: Colors.surfaceDark,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.border,
-  },
-  disputeButton: {
-    minHeight: 50,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Space.sm,
-    borderWidth: 1,
-    borderColor: Colors.loss,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.lossDim,
-  },
-  disputeText: { ...TextStyles.label, color: Colors.loss, letterSpacing: 1.2 },
 });

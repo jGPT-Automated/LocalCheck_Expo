@@ -62,8 +62,9 @@ test("new verified courts do not require a paid, free, or private access classif
     new URL("../../../services/courtService.ts", import.meta.url),
     "utf8",
   );
+  // The Add Court screen (the old AddCourtModal was removed as dead code).
   const modal = await readFile(
-    new URL("../../../components/AddCourtModal.tsx", import.meta.url),
+    new URL("../../../app/add-court.tsx", import.meta.url),
     "utf8",
   );
   for (const source of [verification, edgeFunction, courtService, modal]) {
@@ -364,4 +365,22 @@ test("scheduled games persist and enforce their team assignment mode", async () 
   assert.match(sql, /submitted teams do not match the scheduled teams/i);
   assert.match(sql, /grant execute on function public\.create_scheduled_game[\s\S]*to authenticated/i);
   assert.match(sql, /grant execute on function public\.join_scheduled_game[\s\S]*to authenticated/i);
+});
+
+test("stale pending challenges expire on a schedule and free the pair", async () => {
+  const sql = await migrationEndingWith("_expire_stale_challenges.sql");
+  assert.match(sql, /drop constraint if exists challenges_status_check/i);
+  assert.match(sql, /'declined', 'cancelled', 'completed', 'expired'/);
+  assert.match(sql, /create or replace function private\.expire_stale_challenges\(\)/i);
+  assert.match(sql, /security definer\s+set search_path = ''/i);
+  assert.match(sql, /c\.status = 'pending'/);
+  assert.match(sql, /America\/Chicago/);
+  assert.match(sql, /interval '7 days'/);
+  assert.doesNotMatch(sql, /c\.status = 'accepted'/);
+  assert.match(sql, /'localcheck-expire-challenges',\s+'\*\/15 \* \* \* \*'/);
+  assert.match(sql, /cron\.unschedule/);
+  assert.match(sql, /create_challenge anchor not found/);
+  assert.match(sql, /respond_to_challenge anchor not found/);
+  assert.match(sql, /^begin;/m);
+  assert.match(sql, /commit;\s*$/);
 });

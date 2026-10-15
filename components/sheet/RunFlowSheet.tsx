@@ -5,12 +5,13 @@ import {
 } from "@gorhom/bottom-sheet";
 import React, { useEffect, useMemo, useRef } from "react";
 import { Dimensions, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors } from "@/constants/colors";
+import { Feather } from "@expo/vector-icons";
+
+import { Colors, Radius } from "@/constants/colors";
 import { TextStyles } from "@/constants/typography";
 
-import { AppBottomSheetModal } from "./AppBottomSheetModal";
+import { AppBottomSheetModal, useSheetBottomPadding } from "./AppBottomSheetModal";
 
 /** Run-only task drawer. It deliberately replaces the old custom Modal for
  * this flow so swipe-down, backdrop close, and drag interruption are native to
@@ -20,8 +21,9 @@ export function RunFlowSheet({
   onClose,
   title,
   eyebrow,
+  icon,
+  subtitle,
   backdropOpacity,
-  bottomClearance = 0,
   contentBottomPadding = 44,
   snapPoints: providedSnapPoints,
   dynamic = false,
@@ -31,9 +33,11 @@ export function RunFlowSheet({
   onClose: () => void;
   title: string;
   eyebrow?: string;
+  /** A Feather icon in an accent box before the title, with `subtitle` under it. */
+  icon?: React.ComponentProps<typeof Feather>["name"];
+  subtitle?: string;
   /** Keep the underlying surface visible when the drawer is part of it. */
   backdropOpacity?: number;
-  bottomClearance?: number;
   /** Minimum breathing room below the final action. */
   contentBottomPadding?: number;
   /** Compact task drawers may opt into a smaller fixed detent. Schedule keeps 88%. */
@@ -44,7 +48,7 @@ export function RunFlowSheet({
   children: React.ReactNode;
 }) {
   const modalRef = useRef<BottomSheetModal>(null);
-  const { bottom } = useSafeAreaInsets();
+  const floorPadding = useSheetBottomPadding();
   const presentedRef = useRef(false);
   const snapPoints = useMemo<Array<string | number>>(
     () => providedSnapPoints ?? ["88%"],
@@ -60,14 +64,28 @@ export function RunFlowSheet({
     }
   }, [visible]);
 
-  const paddingBottom = Math.max(contentBottomPadding, bottom + bottomClearance);
+  // The sheet itself clears the tab bar (AppBottomSheetModal); this only adds
+  // room below the last action.
+  const paddingBottom = Math.max(contentBottomPadding, floorPadding);
 
   // No close button — the sheet's own drag handle (swipe down) and tapping
   // the backdrop already dismiss it; a redundant X was the odd one out.
   const header = (
     <View style={styles.header}>
+      {icon ? (
+        <View style={styles.iconBox}>
+          <Feather color={Colors.accent} name={icon} size={20} />
+        </View>
+      ) : null}
       <View style={styles.headingCopy}>
-        <Text style={styles.title}>{title}</Text>
+        <Text numberOfLines={1} style={styles.title}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text numberOfLines={1} style={styles.subtitle}>
+            {subtitle}
+          </Text>
+        ) : null}
         {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
       </View>
     </View>
@@ -116,7 +134,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
   },
-  headingCopy: { flex: 1, gap: 3 },
+  headingCopy: { flex: 1, minWidth: 0, gap: 3 },
+  iconBox: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.accentDim,
+  },
+  subtitle: { ...TextStyles.metadata, color: Colors.textSecondary },
   eyebrow: {
     ...TextStyles.labelSmall,
     color: Colors.accent,

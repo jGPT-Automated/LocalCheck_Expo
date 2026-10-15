@@ -1,5 +1,5 @@
-import { LeaderboardFlags, LocalPlusFlags } from "@/constants/flags";
-import { AccountTag, CourtSport, getEloTier, Player } from "@/constants/data";
+import { LocalPlusFlags } from "@/constants/flags";
+import { AccountTag, CourtSport, displayTag, getEloTier, Player } from "@/constants/data";
 import type { InviteResult } from "@/lib/onboardingModel";
 import { supabase } from "@/lib/supabase";
 import {
@@ -77,7 +77,7 @@ export function mapProfileToPlayer(
     username: row.username ?? undefined,
     elo,
     tier: getEloTier(elo),
-    tag: row.account_tag ?? null,
+    tag: displayTag(row.account_tag),
     avatar: initials,
     wins,
     losses,
@@ -434,11 +434,12 @@ async function fetchRankedProfileRows(
  */
 /**
  * Whether a profile row belongs on a leaderboard the given viewer is looking
- * at. `private` is never listed; `friends` only to a friend; LocalPlus is the
- * gate once `gateLeaderboard` is on. `account_tag` is cosmetic — it only
- * removes a row here when `LeaderboardFlags.hideTaggedAccounts` is on (a
- * launch-day switch to keep TEST / REVIEWER accounts off real players' boards).
- * See docs/runbooks/ACCOUNT_TAGS.md.
+ * at. `private` is never listed; `friends` only to a friend. With
+ * `gateLeaderboard` on, only LocalPlus players are ranked (LocalLite stays
+ * unranked, as the paywall says); TEST accounts count as LocalPlus, matching
+ * `useLocalPlus`. Test and reviewer accounts never reach a real player's
+ * device at all: the database hides them (migration 20261008120000, see
+ * docs/runbooks/ACCOUNT_TAGS.md).
  */
 function isLeaderboardVisible(
   row: {
@@ -451,12 +452,8 @@ function isLeaderboardVisible(
   friendIds: Set<string>,
 ): boolean {
   if (viewerId && row.id === viewerId) return true;
-  if (
-    LeaderboardFlags.hideTaggedAccounts &&
-    (row.account_tag === "TEST" || row.account_tag === "REVIEWER")
-  )
+  if (LocalPlusFlags.gateLeaderboard && !row.is_pro && row.account_tag !== "TEST")
     return false;
-  if (LocalPlusFlags.gateLeaderboard && !row.is_pro) return false;
   if (row.visibility === "private") return false;
   if (row.visibility === "friends") return friendIds.has(row.id);
   return true;

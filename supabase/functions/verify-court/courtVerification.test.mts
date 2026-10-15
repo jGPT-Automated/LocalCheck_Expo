@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   acceptsVerifiedCourt,
   courtNamesWereEdited,
+  isWrongSport,
   matchesRequestedSport,
   normalizeGeminiResult,
   validateCourtSubmission,
@@ -27,6 +28,7 @@ test("normalizes Gemini output, clamps confidence, and constrains codes", () => 
     rejectionCode: "none",
     nameOkay: true,
     nameCode: "none",
+    note: "",
   });
 
   assert.deepEqual(normalizeGeminiResult({
@@ -45,6 +47,7 @@ test("normalizes Gemini output, clamps confidence, and constrains codes", () => 
     rejectionCode: "photo_of_screen",
     nameOkay: false,
     nameCode: "contact_info",
+    note: "",
   });
 
   // Unknown rejection_code falls back to too_unclear; missing name_code -> none.
@@ -176,4 +179,37 @@ test("accepts only high-confidence supported playable courts", () => {
   assert.equal(matchesRequestedSport(basketball, "basketball"), true);
   assert.equal(matchesRequestedSport(basketball, "pickleball"), false);
   assert.equal(matchesRequestedSport(basketball, null), true);
+});
+
+test("the model's own sentence is kept, trimmed and capped", () => {
+  const result = normalizeGeminiResult({
+    verified: false,
+    sport: "unclear",
+    setting: "unclear",
+    confidence: 95,
+    rejection_code: "not_a_court",
+    name_okay: true,
+    name_code: "none",
+    reason: `  This looks like a living room, not a court.  ${"x".repeat(300)}`,
+  });
+  assert.ok(result?.note.startsWith("This looks like a living room, not a court."));
+  assert.equal(result?.note.length, 140);
+});
+
+test("a living room is not a court, never the wrong sport", () => {
+  const livingRoom = normalizeGeminiResult({
+    verified: false,
+    sport: "unclear",
+    setting: "unclear",
+    confidence: 100,
+    rejection_code: "not_a_court",
+    name_okay: true,
+    name_code: "none",
+  })!;
+  assert.equal(isWrongSport(livingRoom, "basketball"), false);
+  const pickleballCourt = { ...livingRoom, sport: "pickleball" as const, rejectionCode: "none" as const };
+  assert.equal(isWrongSport(pickleballCourt, "basketball"), true);
+  const tennis = { ...livingRoom, sport: "other" as const, rejectionCode: "wrong_sport" as const };
+  assert.equal(isWrongSport(tennis, "basketball"), true);
+  assert.equal(isWrongSport(pickleballCourt, null), false);
 });

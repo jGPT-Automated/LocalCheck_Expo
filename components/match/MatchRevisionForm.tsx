@@ -129,7 +129,7 @@ export function MatchRevisionForm({
           <Text style={styles.label}>DATE</Text>
           <RecentDatePicker
             accessibilityLabel="Corrected game date"
-            daysBack={14}
+            daysBack={7}
             onChange={setPlayedOn}
             value={playedOn}
           />

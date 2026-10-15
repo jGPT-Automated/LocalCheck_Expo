@@ -22,7 +22,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 
 import { Colors, Radius } from "@/constants/colors";
-import { Layout } from "@/constants/layout";
 import {
   Court,
   PlannedVisit,
@@ -444,7 +443,6 @@ function HostRunModal({
       onClose={onClose}
       eyebrow="SCHEDULED GAME"
       title="Create game"
-      bottomClearance={Layout.tabBarClearance}
     >
       <View style={styles.gamePreview}>
         <View style={styles.gamePreviewTop}>

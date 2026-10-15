@@ -2,15 +2,28 @@ import {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
   BottomSheetModal,
-  BottomSheetModalProvider,
 } from "@gorhom/bottom-sheet";
 import React, { forwardRef, useCallback } from "react";
 import { StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors, Radius } from "@/constants/colors";
+import { Space } from "@/constants/layout";
+
+/**
+ * Bottom padding for content inside an AppBottomSheetModal. Sheets open in
+ * front of the tab bar (one host at the app root), so content only clears the
+ * home indicator. Use this instead of the safe area or Layout.tabBarClearance.
+ */
+export function useSheetBottomPadding(): number {
+  const { bottom } = useSafeAreaInsets();
+  return Math.max(bottom, Space.md) + Space.sm;
+}
 
 /** Shared LocalCheck drawer shell. Flows own their height and content; this
- * component owns the gesture, backdrop, surface, and grabber treatment. */
+ * component owns the gesture, backdrop, surface, and grabber treatment. It
+ * renders through the app-wide BottomSheetModalProvider (app/_layout.tsx DataProviders), so
+ * every sheet opens in front of the tab bar. */
 export const AppBottomSheetModal = forwardRef<
   BottomSheetModal,
   {
@@ -52,7 +65,6 @@ export const AppBottomSheetModal = forwardRef<
   );
 
   return (
-    <BottomSheetModalProvider>
       <BottomSheetModal
         ref={ref}
         index={index}
@@ -71,7 +83,6 @@ export const AppBottomSheetModal = forwardRef<
       >
         {children}
       </BottomSheetModal>
-    </BottomSheetModalProvider>
   );
 });
 

@@ -1,33 +1,84 @@
 # Current state
 
-Last reconciled: 2026-08-12 against `origin/main` at `3ca9c6f`, the production
-EAS Update channel, and LocalCheckProd.
+Last reconciled: 2026-10-14 against `origin/main` at `541632c` (#65), PR #67
+(`codex/auto-check-in`), LocalCheckProd (read-only queries), the GitHub API and
+the EAS build list.
 
-Focused branch reconciliation: 2026-08-29 on
-`codex/profile-app-store-polish`. This records source and connected-browser
-evidence only; it does not replace the production checkpoint below.
+Each claim says which of these it is, because they are often confused:
+
+- **Decided:** Jesse approved it (`docs/product/DECISIONS.md`).
+- **On #67:** the code is on the PR #67 branch, not on `main` and not in any
+  installed build.
+- **Live backend:** the database change or Edge Function is in production,
+  checked by a query or the function list. Live backend applies to every
+  installed build, merged or not.
+- **Tested on device:** seen working on a real iPhone build, with the date.
 
 ## Production checkpoint
 
-- Source truth: `origin/main` @ `f5f5b81` — PR #45 squash-merged 2026-09-08
-  (camera lifecycle, unified `profiles.visibility` privacy, FRIENDS leaderboard,
-  account tags, one shared `SearchField`, launch polish). That merge triggered
-  EAS production **build 22**; TestFlight state to confirm on the EAS/ASC side.
-- Previous TestFlight checkpoint: `1.0.2 (21)`, commit `8bdb401` (PR #44), EAS
-  build `a1f15238-803a-49b6-8901-ac2bb32ec070`, FINISHED 2026-09-06.
+- Source truth: `origin/main` @ `541632c` — #65 squash-merged (forgot
+  password, onboarding, Expo Go previews, court drawer + Yearly upgrade).
+- PR #67 open (base `main`, app version 1.0.4): everything from #66 (other-
+  player profile, Challenges, hide score, game card and real game sheet,
+  motion pass, Yearly + Monthly picker, test-data hiding, store-review fixes)
+  plus auto check-in (D35–D38) and the Oct 8 preview fixes (D39–D41). #66 is
+  superseded; close it when #67 merges.
+- Applied Oct 12 by Jesse: `20261010120000` and `20261012120000` (challenge
+  time, short usernames, friend alert wording) and, at about 8:33 PM Central,
+  `20261012180000_qstash_timers.sql` (D50, D51): timed work runs on QStash,
+  the five polling jobs are gone, and `localcheck-timer-bookings` re-sends
+  failed bookings every minute (`docs/SUPABASE.md` → "Timed work (QStash)").
+  Deployed Oct 12: `timers` v1 and `send-notification` v5 (`data.category` →
+  Hide / I'm still here buttons, `data.collapse_id` → "Check-in posted"
+  replaces the arrival notice).
+- Applied Oct 12, about 9:05 PM Central: `20261012200000_checkout_notice_for_all.sql`
+  (D53: manual check-ins get the "Auto checked out" push too). Checked on a
+  real check-in: Jesse's manual check-in ended at 9:14:29 PM by QStash and
+  the push went out at 9:14:32 PM. Front-end handoff (includes the matching
+  I'm still here change):
+  `docs/handoffs/2026-10-13-frontend-timers-and-auto-check-in.md`.
+- Docs check (Oct 13, D54): CI job `docs updated` fails any push to a pull
+  request that changes anything outside `docs/` without adding lines to this
+  file, and anything under `supabase/` without adding lines to
+  `docs/SUPABASE.md` (`scripts/check-docs-updated.mjs`, rules in
+  `scripts/docsCheckModel.mjs`, tests in `scripts/docsCheckModel.test.mjs`).
+  The rule is at the top of `AGENTS.md` ("Docs on every push") and in the PR
+  template. Found because #65 (Oct 6) merged with none of these docs updated,
+  so `main`'s docs still describe September.
+  Oct 14 audit: corrected README, GITHUB, SUPABASE, RELEASE, this file, the
+  RevenueCat runbook and DECISIONS against the code, the live database, the
+  GitHub API and the EAS build list. The docs check now also maps release and
+  native config to `RELEASE.md`, CI to `GITHUB.md` and purchase code to the
+  RevenueCat runbook, picks the range correctly after a force push (whole PR,
+  merge-base diff), and `pnpm check` runs `scripts/check-docs-consistency.mjs`
+  with regression tests for each error found. Neither check is required to
+  merge, because `main` has no branch protection.
+- Installed TestFlight build: `1.0.3` (33), built Sep 14 from #57. EAS build
+  list on Oct 14: no iOS build since. Builds are manual only (D22). The release
+  workflow was disabled in GitHub Oct 3 and enabled again Oct 14
+  (`docs/RELEASE.md`).
+- `main` has no branch protection and no ruleset (GitHub API, Oct 14), so no CI
+  check is required to merge (`docs/GITHUB.md`).
 - EAS project: `agenticjess-os/localcheck`
   (`9c906173-0258-45a9-a3fe-786cda373c66`).
-- Supabase production project: `qkrnmyexzvaxiqfxwwfb`.
+- Supabase production project: `qkrnmyexzvaxiqfxwwfb`. Every migration in
+  `supabase/migrations/` is in the live ledger except
+  `20260812032141_skip_stale_pending_push_notifications.sql` (never applied).
+  Some files are recorded under a different version (their apply time); match
+  by name. All five Edge Functions in `supabase/functions/` are deployed
+  (versions in `docs/SUPABASE.md`). Live jobs: `localcheck-notification-dispatch`
+  and `localcheck-timer-bookings` only (Oct 14).
 - Installed binaries use EAS Update with `runtimeVersion.policy = appVersion`.
-- Production OTA rollback remains available through EAS Update republish.
-- **All migrations applied to LocalCheckProd (through 2026-09-09); none pending:**
-  `pr43_founding_localplus_referral_cooldown` (referral codes + 7-day
-  local-court cooldown; founding grant deferred to a launch-day migration),
-  `account_tags` (`profiles.account_tag` — replaces `is_test` /
-  `is_founding_member`; runbook `docs/runbooks/ACCOUNT_TAGS.md`),
-  `profile_visibility` (`profiles.visibility` public/friends/private),
-  `client_error_log` (`public.client_errors` — insert-only crash capture; see
-  `docs/SUPABASE.md`).
+- Expo SDK 54 patches on #67 (Oct 14, Jesse's OK in chat): `expo` 54.0.37,
+  `expo-constants` 18.0.14, `expo-updates` 29.0.20. Lockfile also moves
+  `@expo/cli` 54.0.27, `expo-file-system` 19.0.24 and
+  `expo-modules-autolinking` 3.0.27; nothing outside the SDK 54 patch line.
+  `expo-updates` 29.0.20 rejects update assets whose name contains a path
+  separator (native fix, so it only ships in a build). Checked: `npx expo
+  install --check` clean, `pnpm check` passes, iOS bundle exports, and
+  `expo prebuild` produces 1.0.4 with `UIBackgroundModes` fetch + location.
+  expo-doctor still flags only the existing `ios.buildProperties` key, which
+  was also in build 33's config.
 
 ## Current product contract
 
@@ -38,9 +89,7 @@ evidence only; it does not replace the production checkpoint below.
   ZIP) before ever reaching the tabs. Gated by `lib/onboardingGate.ts` on
   profile age (≤30 min) OR the `profiles.onboarding_completed` flag — the age
   check alone guarantees no existing account is ever routed into it,
-  independent of whether that column's migration
-  (`20260914120000_profile_onboarding_completed.sql`, source-only — see
-  `docs/SUPABASE.md`) has been applied. Location and push-permission prompts
+  and the `onboarding_completed` column is live. Location and push-permission prompts
   are suppressed app-wide while a profile still needs onboarding
   (`DeviceLocationProvider`'s `autoResolve` prop, `NotificationContext`'s
   push effect) — onboarding's own "Share location" button is the only thing
@@ -61,17 +110,47 @@ evidence only; it does not replace the production checkpoint below.
   inbox notifications, production push delivery, and reversible block/report
   safety controls managed from Settings.
 - Competition: sport-specific ELO and reviewed match lifecycle.
-- Account tags: `profiles.account_tag`
-  (`FOUNDER` / `STARTER` / `REVIEWER` / `TEST` / null) is a **cosmetic** label —
-  the leaderboard row label, the avatar treatment, the ME-tab title. It does not
-  grant LocalPlus or change privacy. The only functional tie is a launch switch,
-  `LeaderboardFlags.hideTaggedAccounts` (**off** now), which hides `TEST` /
-  `REVIEWER` from other players' boards once flipped on. Server-managed, changed
-  only via `docs/runbooks/ACCOUNT_TAGS.md`. Replaced the `is_test` /
-  `is_founding_member` booleans.
+- Test data (D34): `TEST` and `REVIEWER` accounts, and test courts
+  (`courts.is_test`), are hidden by RLS from every ordinary player. `TEST`,
+  `REVIEWER` and `FOUNDER` see everything. Test courts: LA (Rancho Cienega,
+  Cheviot Hills) and Houston (Fonde Rec, Jaycee Park). Kasmiersky Park
+  (Conroe) is the one real court; other seeded courts are archived. Runbook:
+  `docs/runbooks/ACCOUNT_TAGS.md`.
+- Account tags: `profiles.account_tag` (`FOUNDER` / `STARTER` / `REVIEWER` /
+  `TEST` / null). Only FOUNDER / STARTER show as a label or ME title.
+  Server-managed.
+- Challenges (D25–D27r, D50; **on #67, live backend**; the full two-phone flow
+  is not yet tested): friends only, from a player's profile. Court,
+  day and time required, up to 7 days ahead; unanswered ones expire at the
+  game time; once accepted both players get a reminder 30 minutes before. **Ranked**: either player logs the score after, it goes through
+  normal review and counts. **Casual**: just a time and place, no score,
+  counts nowhere; closes with "We played" or after its day. Inbox shows them
+  under CHALLENGES; notifications open `/challenge/<id>`.
+- Hide score (D30): each player can hide the score for their side when
+  logging, confirming, or later. Anyone outside the game then sees only who
+  won. It still counts for ELO, rank, record and head-to-head.
+- Game visibility (D31): a game shows outside its players only if every
+  player is Public.
+- Auto check-in (D35, D52, D53; **on #67, live backend, never tested on a
+  device** — build 33 doesn't have it): one 150 m geofence on the
+  player's local court. Arriving checks in privately and shows "Checked in at
+  …" with Hide at once; 5 minutes later it posts (source `auto`, check-in time
+  = arrival) with "Check-in posted"; leaving checks out at once; 1.5 hours
+  after arrival it ends with "Auto checked out" / I'm still here. Offered once when a local court
+  is picked (after onboarding) and in Settings → AUTO CHECK-IN. The auth
+  session is stored readable after first unlock so the background task can
+  call Supabase with the phone locked. A "Checked in automatically · Hide"
+  line sits under the check-in button on Home and the court drawer ("Not
+  here" was renamed Hide on Oct 12).
+  Friend alerts need both "Share my auto check-ins" (sender) and "Friends'
+  auto check-ins" (receiver) on, and never fire for Private (D37). The 1.5-hour
+  backstop sends "Auto checked out" with I'm still here (D52).
+- LocalPlus plans: Yearly $49.99 (preselected, "Save 17%") and Monthly $4.99,
+  US only, with the auto-renew disclosure and Terms / Privacy links.
 - Leaderboard membership: a profile is ranked in a sport only after ≥1 game in
-  that sport (`hasRankedGame`); privacy (`visibility`) and, when
-  `gateLeaderboard` is on, LocalPlus still gate on top. REGIONAL falls back to
+  that sport (`hasRankedGame`), only with LocalPlus (`gateLeaderboard` on;
+  LocalLite stays unranked, `TEST` counts as LocalPlus), and privacy
+  (`visibility`) applies. REGIONAL falls back to
   the nearest court to the viewer's live location when no local court is set
   yet (`fetchNearbyCourts`, `app/(tabs)/compete.tsx`) — it used to return
   empty in that case, since the market lookup was anchored on the local court
@@ -97,7 +176,17 @@ development and testing.
 
 ## Known release risks
 
-- **LocalPlus monetization is live and device-verified.** Migration applied,
+- **Open bugs on #67, found Oct 13–14** (details in the project's PR 67 review
+  doc): "I'm still here" after a *manual* check-in always calls
+  `resume_auto_check_in` (`context/NotificationContext.tsx`, `auto_check_out`
+  branch), which fails off the home court and starts 1.5 hours instead of 45
+  minutes; the backend already sends `data.source` for the fix. Reported, not
+  re-checked here: Hide doesn't stick if the app restarts while still at the
+  court, and sign-out leaves the geofence running.
+
+- **LocalPlus monetization is live and device-verified for Monthly only.**
+  Every App Store row in `public.subscriptions` is the Monthly product (query,
+  Oct 14); a Yearly sandbox purchase has not been seen yet. Migration applied,
   `revenuecat-webhook` deployed with a working auth secret (confirmed via a
   200 on RevenueCat's test event AND a real device sandbox purchase —
   `apply_subscription_event` writes correctly), FOUNDER + REVIEWER promo
@@ -111,8 +200,8 @@ development and testing.
   `useLocalPlus()` has no blanket dev-unlock fallback — a fresh account is
   genuinely locked unless a real `subscriptions` row says otherwise, with one
   named exception (`account_tag === 'TEST'`).
-  Still open: the first-100 STARTER offer codes aren't set up in App Store
-  Connect yet. Full history: `docs/runbooks/REVENUECAT.md`.
+  Still open: Starter is automatic server-side per D12 (first 100 accounts,
+  free year, no code, no auto-renew) — not built yet. Full history: `docs/runbooks/REVENUECAT.md`.
 - **Settings gained self-service account changes (2026-09-11):** username
   (`public.update_username` RPC — format + a denylist-based moderation check
   + uniqueness, all server-side; not exhaustive, a starting baseline) and
@@ -179,11 +268,11 @@ specific missing behavior only after verifying it against current `main`.
 - Expo's connected GitHub base directory was changed from `/artifacts/mobile`
   to `/` on 2026-08-10 and visibly confirmed as saved, so EAS now resolves the
   cleaned root-level repository.
-- `main` is not currently protected. PR #28 therefore treats explicit approval,
-  a clean `quality` check, and a clean Codex review as mandatory operational
-  gates before merge.
+- `main` is not currently protected (still true Oct 14). PR #28 therefore
+  treated explicit approval, a clean `quality` check, and a clean Codex review
+  as mandatory operational gates before merge.
 - Push delivery is active in LocalCheckProd. The durable delivery migration is
-  applied, `send-notification` version 1 is deployed, the webhook secret is held
+  applied, `send-notification` version 1 was deployed (version 5 since Oct 12), the webhook secret is held
   in Supabase/Vault, and a direct database-to-function dispatch returned HTTP
   200 before the physical friend-request alert succeeded.
 - The registration fix prompts only when iOS permission is undetermined,
@@ -193,7 +282,8 @@ specific missing behavior only after verifying it against current `main`.
 - Add Court no longer asks new submissions to classify a court as free, paid,
   or private. Existing values on all 56 courts are unchanged; new verified
   rows use a nullable field through the service-role-only
-  `create_verified_court_v2` RPC. `verify-court` version 2 is active with JWT
+  `create_verified_court_v2` RPC. `verify-court` version 2 was active (version
+  10 on Oct 14, writing through `create_live_court_submission_v4`) with JWT
   enforcement and rejects unauthenticated requests with HTTP 401.
 - Block/report is active in LocalCheckProd: both RLS tables, the caller-scoped
   RPCs, blocked-relationship read filters, and social/run write guards are
@@ -321,7 +411,7 @@ focused branch; `pending` means no completion claim has been made.
   and no clipped identity or metadata text.
 - **Source, release-gated:** Settings accepts a ZIP and provides direct court
   typeahead/local-court selection without opening Explore. The profile ZIP
-  migration remains undeployed. **Pending:** add the explicit device-location
+  migration is applied (live ledger, Aug 30). **Pending:** add the explicit device-location
   toggle and make Explore list/map consume the same resolved location instead
   of silently defaulting to Los Angeles.
 - **Pending:** Explore must show all courts for the resolved city, keep the
@@ -342,9 +432,9 @@ focused branch; `pending` means no completion claim has been made.
   required-row-first read removes that failure coupling.
 - **Source, release-gated:** Log Game includes the compact current/previous-week
   date selector, inline keyboard-aware player typeahead, QR selection, equal
-  review actions, five-second animated review, and team-format source. Team
-  migrations and one complete 2v2 lifecycle remain required before calling
-  team logging live.
+  review actions, five-second animated review, and team-format source. The team
+  migrations are applied (live ledger, Sep 3); one complete 2v2 lifecycle on
+  two accounts is still required before calling team logging tested.
 - **Pending:** preserve the already-working 1v1 notification path while testing
   edit, confirm, object, auto-confirm, and score-history states on two accounts.
 - **Pending:** restore green GitHub/Expo workflow evidence and review open PRs
@@ -356,19 +446,25 @@ focused branch; `pending` means no completion claim has been made.
 
 ## Immediate gates
 
-1. Apply the participant-review, game-date, and ad-hoc-team migrations in ledger
-   order, then complete the receiving-account score notification/review and one
-   2v2 lifecycle. Install a fresh native build before QR/date-picker acceptance.
-2. Exercise one accepted and one rejected Add Court live photo on a signed-in
+1. Fix the open #67 bugs above that Jesse approves, then merge #67 and run one
+   TestFlight build (1.0.4).
+2. On that build: auto check-in (arrive, Hide, leave, 1.5-hour checkout),
+   manual check-in checkout at 45 minutes, and a challenge sent, accepted and
+   reminded on two phones.
+3. Exercise one accepted and one rejected Add Court live photo on a signed-in
    iPhone; verify the accepted court appears and the rejection inserts nothing.
-3. Complete foreground/cold-start push routing plus receipt/retry/invalid-token
+4. Complete foreground/cold-start push routing plus receipt/retry/invalid-token
    evidence without reopening the already-proven registration path.
+
+History: until Oct 14 gate 1 read "apply the participant-review, game-date and
+ad-hoc-team migrations"; all three were applied Sep 3 (live ledger).
 
 ## Next-agent starting point
 
-- Begin from updated `origin/main`; do not resume PR #25, #26, or #27.
-- Treat TestFlight build 14 and the production OTA identifiers above as the
-  current installed baseline until Expo/App Store Connect proves a later one.
+- Until #67 merges, begin from `codex/auto-check-in` (PR #67); `main` is
+  older. Do not resume PR #25, #26, or #27.
+- The installed baseline is TestFlight `1.0.3` (33), Sep 14 (EAS build list,
+  Oct 14). Build 14 was the August baseline.
 - Push token registration and one background friend-request delivery are
   verified. Preserve that path while completing the remaining native matrix.
 - Small visual follow-ups must improve the shared owner named in

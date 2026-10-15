@@ -7,6 +7,7 @@ import React from "react";
 import { Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { TabFloorProvider } from "@/components/ui/TabFloor";
 import { Colors } from "@/constants/colors";
 import { Layout } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
@@ -58,117 +59,119 @@ function ClassicTabLayout() {
   const tabBarHeight = isWeb ? Layout.tabBarClearance : TAB_ICON_AREA + bottom;
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors.accent,
-        tabBarInactiveTintColor: Colors.mutedDark,
-        headerShown: false,
-        tabBarStyle: {
-          position: "absolute",
-          backgroundColor: isIOS ? "transparent" : Colors.surfaceDark,
-          borderTopWidth: 0.5,
-          borderTopColor: Colors.border,
-          elevation: 0,
-          height: tabBarHeight,
-          paddingBottom: isWeb ? 10 : bottom + 4,
-          paddingTop: 8,
-        },
-        tabBarLabelStyle: {
-          fontFamily: Typography.bodySemiBold,
-          fontSize: 9,
-          letterSpacing: 0.5,
-          textTransform: "uppercase",
-          marginBottom: 0,
-        },
-        tabBarBackground: () =>
-          isIOS ? (
-            <BlurView
-              intensity={90}
-              tint="dark"
-              style={StyleSheet.absoluteFill}
-            />
-          ) : null,
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="house" tintColor={color} size={22} />
-            ) : (
-              <Feather name="home" size={21} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
-        name="schedule"
-        options={{
-          title: "Schedule",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="calendar" tintColor={color} size={22} />
-            ) : (
-              <Feather name="calendar" size={21} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
-        name="compete"
-        options={{
-          title: "Compete",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="trophy" tintColor={color} size={22} />
-            ) : (
-              <Feather name="award" size={21} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: "Explore",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="map" tintColor={color} size={22} />
-            ) : (
-              <Feather name="map" size={21} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
-        name="elo"
-        options={{
-          title: "Me",
-          tabBarAccessibilityLabel:
-            actionableCount > 0
-              ? `Me, ${actionableCount} items need action`
-              : "Me",
-          tabBarBadge:
-            actionableCount > 0 ? Math.min(actionableCount, 99) : undefined,
-          tabBarBadgeStyle: {
-            minWidth: 13,
-            height: 13,
-            borderRadius: 7,
-            paddingHorizontal: 2,
-            fontSize: 6,
-            lineHeight: 11,
-            color: Colors.black,
-            backgroundColor: Colors.accent,
+    <TabFloorProvider height={tabBarHeight}>
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: Colors.accent,
+          tabBarInactiveTintColor: Colors.mutedDark,
+          headerShown: false,
+          tabBarStyle: {
+            position: "absolute",
+            backgroundColor: isIOS ? "transparent" : Colors.surfaceDark,
+            borderTopWidth: 0.5,
+            borderTopColor: Colors.border,
+            elevation: 0,
+            height: tabBarHeight,
+            paddingBottom: isWeb ? 10 : bottom + 4,
+            paddingTop: 8,
           },
-          tabBarIcon: ({ color }) =>
+          tabBarLabelStyle: {
+            fontFamily: Typography.bodySemiBold,
+            fontSize: 9,
+            letterSpacing: 0.5,
+            textTransform: "uppercase",
+            marginBottom: 0,
+          },
+          tabBarBackground: () =>
             isIOS ? (
-              <SymbolView name="person" tintColor={color} size={22} />
-            ) : (
-              <Feather name="user" size={21} color={color} />
-            ),
+              <BlurView
+                intensity={90}
+                tint="dark"
+                style={StyleSheet.absoluteFill}
+              />
+            ) : null,
         }}
-      />
-      {/* Feed is still accessible as a route but hidden from tab bar */}
-      <Tabs.Screen name="feed" options={{ href: null }} />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: "Home",
+            tabBarIcon: ({ color }) =>
+              isIOS ? (
+                <SymbolView name="house" tintColor={color} size={22} />
+              ) : (
+                <Feather name="home" size={21} color={color} />
+              ),
+          }}
+        />
+        <Tabs.Screen
+          name="schedule"
+          options={{
+            title: "Schedule",
+            tabBarIcon: ({ color }) =>
+              isIOS ? (
+                <SymbolView name="calendar" tintColor={color} size={22} />
+              ) : (
+                <Feather name="calendar" size={21} color={color} />
+              ),
+          }}
+        />
+        <Tabs.Screen
+          name="compete"
+          options={{
+            title: "Compete",
+            tabBarIcon: ({ color }) =>
+              isIOS ? (
+                <SymbolView name="trophy" tintColor={color} size={22} />
+              ) : (
+                <Feather name="award" size={21} color={color} />
+              ),
+          }}
+        />
+        <Tabs.Screen
+          name="explore"
+          options={{
+            title: "Explore",
+            tabBarIcon: ({ color }) =>
+              isIOS ? (
+                <SymbolView name="map" tintColor={color} size={22} />
+              ) : (
+                <Feather name="map" size={21} color={color} />
+              ),
+          }}
+        />
+        <Tabs.Screen
+          name="elo"
+          options={{
+            title: "Me",
+            tabBarAccessibilityLabel:
+              actionableCount > 0
+                ? `Me, ${actionableCount} items need action`
+                : "Me",
+            tabBarBadge:
+              actionableCount > 0 ? Math.min(actionableCount, 99) : undefined,
+            tabBarBadgeStyle: {
+              minWidth: 13,
+              height: 13,
+              borderRadius: 7,
+              paddingHorizontal: 2,
+              fontSize: 6,
+              lineHeight: 11,
+              color: Colors.black,
+              backgroundColor: Colors.accent,
+            },
+            tabBarIcon: ({ color }) =>
+              isIOS ? (
+                <SymbolView name="person" tintColor={color} size={22} />
+              ) : (
+                <Feather name="user" size={21} color={color} />
+              ),
+          }}
+        />
+        {/* Feed is still accessible as a route but hidden from tab bar */}
+        <Tabs.Screen name="feed" options={{ href: null }} />
+      </Tabs>
+    </TabFloorProvider>
   );
 }
 

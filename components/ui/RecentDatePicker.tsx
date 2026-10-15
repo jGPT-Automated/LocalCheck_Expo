@@ -1,10 +1,12 @@
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Colors, Radius } from "@/constants/colors";
+import { Colors } from "@/constants/colors";
 import { Typography } from "@/constants/typography";
 
 const DAY_MS = 86_400_000;
+/** A game can be logged up to a week back: today and the 6 days before. */
+export const MAX_LOOKBACK_DAYS = 7;
 
 function ymd(date: Date): string {
   const year = date.getFullYear();
@@ -14,16 +16,16 @@ function ymd(date: Date): string {
 }
 
 /**
- * Compact "recent day" picker: one row of chips for the last `daysBack` days.
- * A game is logged right after it is played, so the axis reads like a
- * calendar week — oldest on the left, TODAY on the right (where the row
- * scrolls to by default) — and there is no future date and no older-week
- * paging. Capping at a week keeps stale, half-remembered results out.
+ * Compact "recent day" strip: one plain row of the last 7 days, weekday above
+ * the number, the chosen day an orange circle. Oldest on the left, TODAY on the
+ * right like a calendar week; there is no future date and no older paging.
+ * `daysBack` is capped at 7 so every caller (Log Game, a revision) offers the
+ * same days.
  */
 export function RecentDatePicker({
   value,
   onChange,
-  daysBack = 7,
+  daysBack = MAX_LOOKBACK_DAYS,
   accessibilityLabel = "Game date",
 }: {
   value: string;
@@ -31,11 +33,10 @@ export function RecentDatePicker({
   daysBack?: number;
   accessibilityLabel?: string;
 }) {
-  const scrollRef = React.useRef<ScrollView>(null);
   const days = React.useMemo(() => {
     const start = new Date();
     start.setHours(12, 0, 0, 0);
-    const count = Math.max(1, daysBack);
+    const count = Math.min(MAX_LOOKBACK_DAYS, Math.max(1, daysBack));
     // Oldest first, today last.
     return Array.from(
       { length: count },
@@ -44,17 +45,7 @@ export function RecentDatePicker({
   }, [daysBack]);
 
   return (
-    <ScrollView
-      accessibilityLabel={accessibilityLabel}
-      contentContainerStyle={styles.row}
-      horizontal
-      keyboardShouldPersistTaps="handled"
-      onContentSizeChange={() =>
-        scrollRef.current?.scrollToEnd({ animated: false })
-      }
-      ref={scrollRef}
-      showsHorizontalScrollIndicator={false}
-    >
+    <View accessibilityLabel={accessibilityLabel} accessibilityRole="radiogroup" style={styles.row}>
       {days.map((date, index) => {
         const dateValue = ymd(date);
         const active = dateValue === value;
@@ -66,55 +57,45 @@ export function RecentDatePicker({
               month: "long",
               day: "numeric",
             })}
-            accessibilityRole="button"
+            accessibilityRole="radio"
             accessibilityState={{ selected: active }}
             key={dateValue}
             onPress={() => onChange(dateValue)}
-            style={[styles.chip, active && styles.chipActive]}
+            style={styles.cell}
           >
-            <Text style={[styles.weekday, active && styles.textActive]}>
+            <Text numberOfLines={1} style={[styles.weekday, active && styles.weekdayActive]}>
               {isToday
                 ? "TODAY"
-                : date
-                    .toLocaleDateString("en-US", { weekday: "short" })
-                    .toUpperCase()}
+                : date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}
             </Text>
-            <Text style={[styles.day, active && styles.textActive]}>
-              {date.getDate()}
-            </Text>
+            <View style={[styles.circle, active && styles.circleActive]}>
+              <Text style={[styles.day, active && styles.dayActive]}>{date.getDate()}</Text>
+            </View>
           </Pressable>
         );
       })}
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { gap: 6, paddingVertical: 2 },
-  chip: {
-    minWidth: 46,
-    minHeight: 50,
-    paddingHorizontal: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 3,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.surface,
-  },
-  chipActive: { borderColor: Colors.accent, backgroundColor: Colors.accent },
+  row: { flexDirection: "row" },
+  cell: { flex: 1, minWidth: 0, alignItems: "center", gap: 6, paddingVertical: 2 },
   weekday: {
     fontFamily: Typography.bodyBold,
     fontSize: 9,
     letterSpacing: 1,
     color: Colors.muted,
   },
-  day: {
-    fontFamily: Typography.heading,
-    fontSize: 15,
-    lineHeight: 17,
-    color: Colors.text,
+  weekdayActive: { color: Colors.text },
+  circle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  textActive: { color: Colors.black },
+  circleActive: { backgroundColor: Colors.accent },
+  day: { fontFamily: Typography.heading, fontSize: 18, lineHeight: 22, color: Colors.text },
+  dayActive: { color: Colors.black },
 });

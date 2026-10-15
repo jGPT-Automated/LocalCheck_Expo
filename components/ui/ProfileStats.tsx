@@ -97,10 +97,11 @@ const styles = StyleSheet.create({
   },
   value: {
     fontFamily: Typography.headingBold,
-    fontSize: 20,
-    // Tight line box so the number and its label read as one pair, centred in
-    // the cell (Jesse: "closer together, then as a group centred in the box").
-    lineHeight: 20,
+    fontSize: 22,
+    // Oswald's caps rise above a line box equal to the font size, which clipped
+    // the top of every number. 28 fits them; the label pulls up to keep the
+    // pair tight (Jesse: "closer together, then as a group centred in the box").
+    lineHeight: 28,
     textAlign: "center",
     includeFontPadding: false,
     color: Colors.text,
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
   win: { color: Colors.win },
   loss: { color: Colors.loss },
   label: {
-    marginTop: 1,
+    marginTop: -1,
     fontFamily: Typography.bodyMedium,
     fontSize: 9,
     lineHeight: 11,

@@ -34,6 +34,9 @@ export interface UserProfile {
   total_court_time_minutes: number;
   apple_private_email: boolean;
   push_notifications_enabled: boolean;
+  /** D37 friend alerts for auto check-ins: send / receive. */
+  share_auto_check_ins?: boolean;
+  notify_friend_check_ins?: boolean;
   check_in_reminders_enabled: boolean;
   game_alerts_enabled: boolean;
   local_court_id: string | null;
@@ -172,14 +175,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let base =
         (displayName || "player")
           .toLowerCase()
-          .replace(/[^a-z0-9_]+/g, "")
-          .slice(0, 20) || "player";
-      if (base.length < 3) base = `${base}xxx`.slice(0, 20);
+          .replace(/[^a-z0-9]+/g, "")
+          .slice(0, 10) || "player";
+      if (base.length < 3) base = `${base}xxx`.slice(0, 10);
 
       const tryInsert = (username: string) =>
         supabase.from("profiles").insert({
           id: authUser.id,
-          display_name: displayName,
+          // D46: the username is the name shown everywhere.
+          display_name: username,
           username,
         });
 
@@ -192,7 +196,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         // Row still absent: the clash is on the handle, not the id — take a
         // unique id-tailed handle.
-        ({ error: insertError } = await tryInsert(`${base}_${idTail.slice(0, 6)}`));
+        ({ error: insertError } = await tryInsert(`${base.slice(0, 4)}${idTail.slice(0, 6)}`));
       }
 
       if (!insertError || insertError.code === "23505") {

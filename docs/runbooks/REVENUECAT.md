@@ -2,10 +2,25 @@
 
 LocalCheck owns this end to end (app + backend + dashboard). No handoff.
 
-**It is NOT a submission blocker.** The app can be submitted with the current
-build as-is; the real paywall ships in the next one.
+## Status (2026-10-14)
 
-## Status (2026-09-11)
+Checked read-only: Supabase function list, `public.subscriptions`,
+`private.revenuecat_processed_events`, `profiles.account_tag`.
+
+| Piece | State |
+|---|---|
+| Plans (D0) | Yearly $49.99 + Monthly $4.99, US only. Neither Yearly path is in build 33: the court drawer's Yearly upgrade is on `main` (#65), the Yearly + Monthly picker is **on #67**. |
+| `revenuecat-webhook` | **Live backend**, v4. 7 events processed. |
+| Migration `20260911000000_subscriptions_webhook_support.sql` | **Applied** (ledger `20260911050522`). |
+| App purchase code (`react-native-purchases`) | In build 33. **Tested on device for Monthly only**: every App Store row in `public.subscriptions` is `com.realjess.localcheck.localplus.monthly` (1 active, 2 expired). Yearly is unverified. |
+| FOUNDER / REVIEWER | Promo rows `founder_grant` and `reviewer_grant`, both active. |
+| STARTER first 100 (D4/D12) | Automatic promo year, no code, no auto-renew. **Not built**: 0 STARTER accounts, no function for it. |
+| Submission | Attach both subscriptions to the app version (`docs/RELEASE.md`). The "not a submission blocker" note that used to open this file was about build 33's predecessor and no longer applies. |
+
+The rest of this file is the September setup record. Where it disagrees with
+the table above or with D0 / D12, those win; the superseded steps are marked.
+
+## Status (2026-09-11, historical)
 
 | Phase | State |
 |---|---|
@@ -27,12 +42,12 @@ build as-is; the real paywall ships in the next one.
 
 | Thing | Value |
 |---|---|
-| Plans | **Monthly only, $4.99, United States only.** No annual for v1. No annual offer codes. |
+| Plans | **Yearly $49.99 and Monthly $4.99, United States only** (D0, Oct 2026). Yearly is preselected; the court drawer's upgrade opens Apple's Yearly sheet. |
 | Why US-only | EU/DSA requires a public trader address; Jesse is a non-trader. Revisit post-launch if monetization works. |
 | Entitlement | `localplus` (RevenueCat says already created, `entl99df860f0d`). NOT `localcheck_pro`. |
-| Offering | `default` — one package, `$rc_monthly` → `com.realjess.localcheck.localplus.monthly`. Remove any `$rc_annual`. |
-| ASC product | `com.realjess.localcheck.localplus.monthly` — created, price ($4.99), US availability, and localization all set. Status "Prepare for Submission" until submitted alongside an app version. |
-| First-100 free year (STARTER) | **Apple offer codes** on the monthly product — 100 one-time codes, 100% off, 1 year, then **auto-converts to paid $4.99/mo** unless cancelled (Apple has no "free then just stop" mechanism). Accepted trade-off — see Phase 5. `account_tag='STARTER'` is set at signup as the row label; it grants nothing by itself. |
+| Offering | `default` — two packages: `$rc_annual` (Yearly, $49.99) and `$rc_monthly` → `com.realjess.localcheck.localplus.monthly`. The app reads `current.annual` / `current.monthly` (`services/purchasesService.ts`). |
+| ASC products | Monthly `com.realjess.localcheck.localplus.monthly` ($4.99) and Yearly ($49.99), both US-only, in the LocalPlus group. Status "Prepare for Submission" until **both are attached to the app version** at submission. |
+| First-100 free year (STARTER) | **Automatic, server-side** (D12, Oct 2026; supersedes offer codes): the first 100 accounts are tagged STARTER with a one-year `promo` row, no code, **no auto-renew** (D4). Not built yet. The Phase 5 offer-code notes below are history. |
 | FOUNDER free access | **Promo `subscriptions` row** (`billing_provider='promo'`), inserted directly per `docs/runbooks/ACCOUNT_TAGS.md` — no App Store product involved, no expiry pressure. |
 | Grant reconciliation | The webhook only writes rows for real RC purchases, keyed `(user_id, billing_provider)` — a promo row and a real store row for the same person never overwrite each other. `sync_profile_is_pro` grants `is_pro` if *either* lineage is active/unexpired; the same trigger also sets `profiles.plus_billing_provider` so the app can tell "comped" from "a real subscription you can cancel." |
 
@@ -110,7 +125,9 @@ RC → **Entitlements** → open **`localplus`** → attach the product above.
 
 ### 2e. Offering
 RC → **Offerings** → **`default`** → package **`$rc_monthly`** → attach
-`com.realjess.localcheck.localplus.monthly`. Delete any `$rc_annual` package.
+`com.realjess.localcheck.localplus.monthly`. ~~Delete any `$rc_annual`
+package.~~ **Superseded by D0 (Oct 2026):** keep `$rc_annual` for Yearly; the
+app reads `current.annual` and `current.monthly`.
 
 ### 2f. Public SDK key
 RC → **Project settings** → **API keys** → under the **App Store** app (NOT Test
@@ -120,7 +137,7 @@ Store) → copy the **public** key (`appl_…`).
 
 ---
 
-## Phase 3 — Webhook (built; deploy needs your go)
+## Phase 3 — Webhook (done: deployed, v4 live on 2026-10-14)
 
 `supabase/functions/revenuecat-webhook` — JWT off, its own `Authorization`
 header check, pure event-mapping logic in `webhookLogic.ts` (unit tested —
@@ -174,7 +191,10 @@ preview) before it can be trusted. Verify: the price shown matches ASC, a
 sandbox purchase completes and flips `useLocalPlus()` true immediately, Restore
 works from a second install, and an offer code redeems.
 
-## Phase 5 — First-100 STARTER offer codes
+## Phase 5 — First-100 STARTER offer codes (superseded by D4/D12; not used)
+
+**History only.** D12 replaced offer codes with an automatic server-side
+promo year that does not auto-renew (D4). Keep this for the record; don't run it.
 
 ASC → your app → **Subscriptions → LocalPlus → LocalPlus Monthly → Promotional
 Offers / Offer Codes** (Apple's naming varies by ASC version — look for
@@ -207,7 +227,8 @@ Offers / Offer Codes** (Apple's naming varies by ASC version — look for
 - **TEST accounts** stay unlocked automatically — `useLocalPlus()` grants
   LocalPlus to any `account_tag === 'TEST'` profile, no per-account row needed.
 - Everyone else flows through real: a fresh sign-up sees the locked/paywalled
-  state; the first 100 real sign-ups (STARTER) redeem an Apple offer code for
-  their free year (Phase 5); anyone after that just subscribes.
+  state; the first 100 real sign-ups (STARTER) get their free year
+  automatically, server-side (D12, not built yet; this line used to say they
+  redeem an Apple offer code); anyone after that just subscribes.
 - Submit the paid subscription (`Add for Review`) with the app version that
   carries the paywall.

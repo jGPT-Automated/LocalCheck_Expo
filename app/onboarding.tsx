@@ -20,11 +20,15 @@ import { useDeviceLocation } from "@/context/DeviceLocationContext";
 import { coordinateForLocationAction } from "@/context/deviceLocationModel";
 import { useNotifications } from "@/context/NotificationContext";
 import {
+  cleanUsername,
   courtPickerDetail,
+  farCourtNote,
   inviteErrorMessage,
   isCityQuery,
+  isValidUsername,
   normalizeInviter,
   ONBOARDING_STEPS,
+  USERNAME_MAX,
 } from "@/lib/onboardingModel";
 import { coordinateForPlace } from "@/lib/placeLocation";
 import { fetchClosestCourts } from "@/services/courtService";
@@ -64,6 +68,9 @@ export default function OnboardingScreen() {
   const [cityMode, setCityMode] = React.useState(false);
   const [city, setCity] = React.useState("");
   const [usedCity, setUsedCity] = React.useState(false);
+  // What the current court list is measured from: the typed city, or null for
+  // the device location.
+  const [searchedPlace, setSearchedPlace] = React.useState<string | null>(null);
   // Only the newest lookup may fill the picker (an older, slower one is dropped).
   const lookupRef = React.useRef(0);
   // The sport the current court list was loaded for.
@@ -80,10 +87,10 @@ export default function OnboardingScreen() {
   const [finishError, setFinishError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (!username && profile?.username) setUsername(profile.username);
+    if (!username && profile?.username) setUsername(cleanUsername(profile.username));
   }, [profile?.username, username]);
 
-  const usernameValid = username.trim().length >= 3;
+  const usernameValid = isValidUsername(username.trim());
   const step1Ready = usernameValid && sport !== null;
   // No courts nearby yet is not a dead end: they can continue and add one later.
   const step2Ready = selectedCourt !== null || (searched && courtOptions.length === 0);
@@ -143,6 +150,10 @@ export default function OnboardingScreen() {
     lookupRef.current += 1;
     setSearching(true);
     setSelectedCourt(null);
+    // Drop the previous list now: if this lookup fails, the old origin's
+    // courts must not stay on screen under a failure notice.
+    setCourtOptions([]);
+    setSearched(false);
     setLocationNotice(null);
     return lookupRef.current;
   }
@@ -160,6 +171,7 @@ export default function OnboardingScreen() {
       return;
     }
     setUsedCity(false);
+    setSearchedPlace(null);
     await loadCourtsNear(lookup, coord.lat, coord.lng);
   }
 
@@ -176,6 +188,7 @@ export default function OnboardingScreen() {
       return;
     }
     setUsedCity(true);
+    setSearchedPlace(city);
     await loadCourtsNear(lookup, coord.lat, coord.lng);
   }
 
@@ -220,6 +233,8 @@ export default function OnboardingScreen() {
     else if (step === 2) setStep(1);
   }
 
+  const farNote = farCourtNote(courtOptions, searchedPlace);
+
   const primary =
     step === 1
       ? {
@@ -233,7 +248,7 @@ export default function OnboardingScreen() {
               ? "SAVING…"
               : step2Error
                 ? "RETRY"
-                : selectedCourt || !searched
+                : selectedCourt || !searched || courtOptions.length > 0
                   ? "CONTINUE"
                   : "CONTINUE WITHOUT A COURT",
             onPress: () => void handleContinueStep2(),
@@ -296,9 +311,9 @@ export default function OnboardingScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 editable={!savingStep1}
-                maxLength={32}
+                maxLength={USERNAME_MAX}
                 onChangeText={(text) => {
-                  setUsername(text.replace(/[^A-Za-z0-9_]/g, ""));
+                  setUsername(cleanUsername(text));
                   setUsernameError(null);
                 }}
                 placeholder="username"
@@ -306,7 +321,13 @@ export default function OnboardingScreen() {
                 style={[styles.input, savingStep1 && styles.inputDisabled]}
                 value={username}
               />
-              {usernameError ? <Text style={styles.fieldError}>{usernameError}</Text> : null}
+              {usernameError ? (
+                <Text style={styles.fieldError}>{usernameError}</Text>
+              ) : (
+                <Text style={styles.fieldHint}>
+                  Tip: first name + last initial, or first name + a number.
+                </Text>
+              )}
             </View>
 
             <View style={styles.field}>
@@ -404,7 +425,11 @@ export default function OnboardingScreen() {
             ) : searched ? (
               courtOptions.length > 0 ? (
                 <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>CLOSEST COURTS</Text>
+                  {farNote ? (
+                    <Text style={styles.locationNotice}>{farNote}</Text>
+                  ) : (
+                    <Text style={styles.fieldLabel}>CLOSEST COURTS</Text>
+                  )}
                   <View style={styles.sportList}>
                     {courtOptions.map((court) => (
                       <OptionRow

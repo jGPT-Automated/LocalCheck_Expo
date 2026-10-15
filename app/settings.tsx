@@ -1,8 +1,9 @@
+import Constants from "expo-constants";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Href, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -31,9 +32,14 @@ import { Layout, Space } from "@/constants/layout";
 import { TextStyles, Typography } from "@/constants/typography";
 import { useApp, Visibility } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
+import { useAutoCheckIn } from "@/context/AutoCheckInContext";
 import { useNotifications } from "@/context/NotificationContext";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
+import { autoCheckInLabel, autoCheckInSwitchValue } from "@/lib/autoCheckInModel";
+import { AutoCheckInSettingsSheet } from "@/components/autoCheckIn/AutoCheckInSettingsSheet";
+import { setAutoCheckInAlerts } from "@/services/autoCheckInService";
 import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
+import { cleanUsername, isValidUsername, USERNAME_MAX } from "@/lib/onboardingModel";
 import { deleteCurrentAccount } from "@/services/accountService";
 import { searchCourts } from "@/services/courtService";
 
@@ -93,6 +99,7 @@ function sportLabel(sport: CourtSport | null): string {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const autoCheckIn = useAutoCheckIn();
   const {
     currentUser,
     visibility,
@@ -102,7 +109,16 @@ export default function SettingsScreen() {
     localCourt,
     setLocalCourt,
   } = useApp();
-  const { user, profile, signOut, updatePassword, updateUsername } = useAuth();
+  const { user, profile, signOut, updatePassword, updateUsername, refreshProfile } = useAuth();
+  const [alertsSaving, setAlertsSaving] = useState(false);
+  const saveAutoCheckInAlerts = async (prefs: { share?: boolean; receive?: boolean }) => {
+    if (alertsSaving) return;
+    setAlertsSaving(true);
+    const ok = await setAutoCheckInAlerts(prefs);
+    if (ok) await refreshProfile();
+    setAlertsSaving(false);
+    if (!ok) Alert.alert("Not saved", "Try again in a moment.");
+  };
   const hasLocalPlus = useLocalPlus();
   const { bottom } = useSafeAreaInsets();
 
@@ -124,6 +140,10 @@ export default function SettingsScreen() {
   const [editor, setEditor] = useState<
     null | "privacy" | "sport" | "court" | "username" | "password"
   >(null);
+  const [autoSheetOpen, setAutoSheetOpen] = useState(false);
+  // Turning auto check-in on hands off to the opt-in sheet only once this
+  // drawer has finished closing: two sheets never move at once.
+  const offerAfterClose = useRef(false);
   const usesApple =
     user?.app_metadata?.provider === "apple" ||
     user?.identities?.some((identity) => identity.provider === "apple");
@@ -353,6 +373,13 @@ export default function SettingsScreen() {
             }
             valueMuted={!localCourt}
             onPress={() => setEditor("court")}
+          />
+          <DrillRow
+            icon="navigation"
+            label="AUTO CHECK-IN"
+            value={autoCheckInLabel(autoCheckIn.state)}
+            valueMuted={autoCheckIn.state !== "on"}
+            onPress={() => setAutoSheetOpen(true)}
             last
           />
         </Section>
@@ -454,7 +481,9 @@ export default function SettingsScreen() {
           </Text>
         </Pressable>
 
-        <Text style={styles.version}>LOCALCHECK 1.0.0</Text>
+        <Text style={styles.version}>
+          LOCALCHECK {Constants.expoConfig?.version ?? ""}
+        </Text>
       </KeyboardAwareScrollViewCompat>
 
       <PrivacyEditorSheet
@@ -468,6 +497,35 @@ export default function SettingsScreen() {
         value={preferredSport}
         onSelect={(next) => void setPreferredSport(next)}
         onClose={() => setEditor(null)}
+      />
+      <AutoCheckInSettingsSheet
+        alertsSaving={alertsSaving}
+        canToggle={
+          autoCheckIn.state !== "unavailable" && autoCheckIn.state !== "no_court" && !autoCheckIn.busy
+        }
+        courtName={localCourt ? localCourt.shortName || localCourt.name : null}
+        on={autoCheckInSwitchValue(autoCheckIn.state)}
+        onClose={() => {
+          setAutoSheetOpen(false);
+          if (offerAfterClose.current) {
+            offerAfterClose.current = false;
+            autoCheckIn.offer();
+          }
+        }}
+        onOpenSettings={autoCheckIn.openSettings}
+        onReceiveAlerts={(value) => void saveAutoCheckInAlerts({ receive: value })}
+        onShareAlerts={(value) => void saveAutoCheckInAlerts({ share: value })}
+        onToggle={(value) => {
+          if (!value) void autoCheckIn.turnOff();
+          else if (autoCheckIn.state === "needs_always") autoCheckIn.openSettings();
+          else {
+            offerAfterClose.current = true;
+            setAutoSheetOpen(false);
+          }
+        }}
+        receiveAlerts={profile?.notify_friend_check_ins !== false}
+        shareAlerts={profile?.share_auto_check_ins === true}
+        visible={autoSheetOpen}
       />
       <LocalCourtEditorSheet
         visible={editor === "court"}
@@ -590,6 +648,7 @@ function ToggleSettingsRow({
   detail,
   onValueChange,
   value,
+  last,
 }: {
   disabled?: boolean;
   icon: React.ComponentProps<typeof Feather>["name"];
@@ -597,9 +656,10 @@ function ToggleSettingsRow({
   detail?: string;
   onValueChange: (value: boolean) => void;
   value: boolean;
+  last?: boolean;
 }) {
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, last && styles.rowLast]}>
       <Feather name={icon} size={17} color={Colors.textSecondary} />
       <View style={{ flex: 1 }}>
         <Text style={styles.settingsLabel} numberOfLines={1}>
@@ -940,6 +1000,10 @@ function UsernameEditorSheet({
       onClose();
       return;
     }
+    if (!isValidUsername(value.trim())) {
+      setError("Usernames are 3-10 letters and numbers.");
+      return;
+    }
     setSaving(true);
     setError(null);
     const result = await onSave(value.trim());
@@ -956,7 +1020,7 @@ function UsernameEditorSheet({
       visible={visible}
       onClose={onClose}
       title="USERNAME"
-      eyebrow="LETTERS, NUMBERS, AND UNDERSCORES"
+      eyebrow="3–10 LETTERS AND NUMBERS"
       dynamic
     >
       <View style={styles.field}>
@@ -966,9 +1030,9 @@ function UsernameEditorSheet({
           <BottomSheetTextInput
             autoCapitalize="none"
             autoCorrect={false}
-            maxLength={32}
+            maxLength={USERNAME_MAX}
             onChangeText={(text) => {
-              setValue(text.replace(/[^A-Za-z0-9_]/g, ""));
+              setValue(cleanUsername(text));
               setError(null);
             }}
             placeholder="username"

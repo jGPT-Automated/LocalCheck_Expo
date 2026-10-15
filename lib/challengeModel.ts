@@ -1,0 +1,368 @@
+/**
+ * Challenge a player: pure rules for what each player sees and can do.
+ * Backend: public.challenges + create_challenge / respond_to_challenge /
+ * cancel_challenge / log_challenge_result (migration 20261006120000).
+ * Pending challenges expire after their day (D39, migration 20261010120000).
+ */
+
+export type ChallengeStatus =
+  | "pending"
+  | "accepted"
+  | "declined"
+  | "cancelled"
+  | "completed"
+  | "expired";
+
+export type ChallengePlayer = { id: string; name: string; initials?: string };
+
+export type Challenge = {
+  id: string;
+  challenger: ChallengePlayer;
+  opponent: ChallengePlayer;
+  courtId: string | null;
+  courtName: string | null;
+  sport: "BASKETBALL" | "PICKLEBALL" | null;
+  playOn: string | null; // YYYY-MM-DD
+  /** When it is planned, with the time (ISO). Absent on challenges made before times. */
+  playAt?: string | null;
+  ranked: boolean;
+  status: ChallengeStatus;
+  matchId: string | null;
+  cancelledBy: string | null;
+  createdAt: string;
+};
+
+/** Casual challenges are only plans (D27 revised): no score, nothing counts,
+ * so an accepted casual challenge offers "we played" instead of a score. */
+export type ChallengeAction =
+  | "accept_decline"
+  | "waiting"
+  | "log_score"
+  | "casual_on"
+  | "view_game"
+  | "closed";
+
+export function isOpen(status: ChallengeStatus): boolean {
+  return status === "pending" || status === "accepted";
+}
+
+/** The other player, from the viewer's side. */
+export function otherPlayer(challenge: Challenge, viewerId: string): ChallengePlayer {
+  return challenge.challenger.id === viewerId ? challenge.opponent : challenge.challenger;
+}
+
+export function challengeAction(challenge: Challenge, viewerId: string): ChallengeAction {
+  switch (challenge.status) {
+    case "pending":
+      return challenge.opponent.id === viewerId ? "accept_decline" : "waiting";
+    case "accepted":
+      return challenge.ranked ? "log_score" : "casual_on";
+    case "completed":
+      return challenge.matchId ? "view_game" : "closed";
+    case "expired":
+    default:
+      return "closed";
+  }
+}
+
+/**
+ * Short status line for cards and the inbox. Never carries a player's name:
+ * a name is its own line, so a 24-character username can't break a sentence.
+ */
+export function challengeStatusLine(challenge: Challenge, viewerId: string): string {
+  switch (challenge.status) {
+    case "pending":
+      return challenge.opponent.id === viewerId ? "Challenged you" : "Waiting for a reply";
+    case "accepted":
+      return "Game on";
+    case "completed":
+      return challenge.matchId ? "Score logged" : "Played";
+    case "declined":
+      return challenge.opponent.id === viewerId ? "You passed" : "Passed";
+    case "cancelled":
+      return challenge.cancelledBy === viewerId ? "You called it off" : "Called off";
+    case "expired":
+      return "Expired";
+    default:
+      // A status this build doesn't know yet.
+      return "Closed";
+  }
+}
+
+/** Banner kinds match the game card's banner colours: accent = your move, neutral = waiting, muted = over. */
+export type ChallengeBannerKind = "action" | "waiting" | "voided";
+
+/** The state banner across the top of the challenge card. */
+export function challengeBanner(
+  challenge: Challenge,
+  viewerId: string,
+): { kind: ChallengeBannerKind; label: string } {
+  switch (challenge.status) {
+    case "pending":
+      return challenge.opponent.id === viewerId
+        ? { kind: "action", label: "WAITING ON YOU" }
+        : { kind: "waiting", label: "WAITING FOR A REPLY" };
+    case "accepted":
+      return { kind: "waiting", label: "GAME ON" };
+    case "completed":
+      return { kind: "waiting", label: challenge.matchId ? "SCORE LOGGED" : "PLAYED" };
+    case "declined":
+      return { kind: "voided", label: "DECLINED" };
+    case "cancelled":
+      return { kind: "voided", label: "CALLED OFF" };
+    default:
+      return { kind: "voided", label: "EXPIRED" };
+  }
+}
+
+/**
+ * The inbox subtitle: "Challenged you · Rancho · Sat". Ranked is the default
+ * and never written; "Casual" only appears when the plan is casual.
+ */
+export function challengeSubtitle(
+  challenge: Challenge,
+  viewerId: string,
+  today: Date = new Date(),
+): string {
+  return [
+    challengeStatusLine(challenge, viewerId),
+    challenge.ranked ? null : "Casual",
+    challenge.courtName || "Any court",
+    [dayShort(challenge.playOn, today), challengeTime(challenge.playAt)].filter(Boolean).join(" "),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/** The challenge screen's title: "1v1 at Rancho" (the short court name). */
+export function challengeTitle(challenge: Pick<Challenge, "courtName">): string {
+  return challenge.courtName ? `1v1 at ${challenge.courtName}` : "1v1, any court";
+}
+
+/** An old challenge with no day or time expired after this many days (matches the server). */
+export const UNDATED_CHALLENGE_DAYS = 7;
+
+/**
+ * True when a pending challenge's game time has passed (Oct 12: it expires at
+ * its game time). The server flips it to "expired" at that moment through a
+ * QStash timer; this makes the inbox drop it at once. Older challenges without
+ * a time keep the old rule (past their day, or over a week old). Accepted
+ * challenges never expire here.
+ */
+export function isStalePending(challenge: Challenge, today: Date = new Date()): boolean {
+  if (challenge.status !== "pending") return false;
+  if (challenge.playAt) {
+    const at = Date.parse(challenge.playAt);
+    if (!Number.isNaN(at)) return at <= today.getTime();
+  }
+  if (challenge.playOn) return challenge.playOn < localDateValue(today);
+  const created = Date.parse(challenge.createdAt);
+  if (Number.isNaN(created)) return false;
+  return today.getTime() - created > UNDATED_CHALLENGE_DAYS * 24 * 60 * 60 * 1000;
+}
+
+/**
+ * What the inbox shows. "pending" hides stale pending challenges; "all" keeps
+ * them, relabelled as expired. Everything else passes through unchanged.
+ */
+export function inboxChallenges(
+  challenges: Challenge[],
+  scope: "pending" | "all",
+  today: Date = new Date(),
+): Challenge[] {
+  const out: Challenge[] = [];
+  for (const challenge of challenges) {
+    if (!isStalePending(challenge, today)) {
+      out.push(challenge);
+    } else if (scope === "all") {
+      out.push({ ...challenge, status: "expired" });
+    }
+  }
+  return out;
+}
+
+export function dayLabel(playOn: string | null, today: Date = new Date()): string {
+  if (!playOn) return "Any day";
+  const todayValue = localDateValue(today);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  if (playOn === todayValue) return "Today";
+  if (playOn === localDateValue(tomorrow)) return "Tomorrow";
+  const [y, m, d] = playOn.split("-").map(Number);
+  return new Date(y, m - 1, d, 12).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/** Compact day for rows: "Today", "Tomorrow", "Sat" within the week, else "Oct 17". */
+export function dayShort(playOn: string | null, today: Date = new Date()): string {
+  if (!playOn) return "Any day";
+  const label = dayLabel(playOn, today);
+  if (label === "Today" || label === "Tomorrow") return label;
+  const [y, m, d] = playOn.split("-").map(Number);
+  const date = new Date(y, m - 1, d, 12);
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12);
+  const days = Math.round((date.getTime() - start.getTime()) / 86_400_000);
+  return days > 0 && days < 7
+    ? date.toLocaleDateString("en-US", { weekday: "short" })
+    : date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+export function localDateValue(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/** The next `count` days starting today, as YYYY-MM-DD. */
+export function upcomingDays(count: number, today: Date = new Date()): string[] {
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(today);
+    d.setHours(12, 0, 0, 0);
+    d.setDate(d.getDate() + i);
+    return localDateValue(d);
+  });
+}
+
+export function firstName(name: string): string {
+  return name.trim().split(/\s+/)[0] || name;
+}
+
+/** Server errors carry plain sentences for the cases a player can hit. */
+export function challengeErrorMessage(error: { code?: string | null; message?: string | null } | null): string {
+  if (!error) return "Something went wrong. Try again.";
+  if (error.code === "42P01" || error.code === "PGRST202" || error.code === "PGRST205") {
+    return "Challenges aren't switched on yet.";
+  }
+  if (error.code && /^LC1\d\d$/.test(error.code) && error.message) return error.message;
+  if (error.message?.includes("blocked")) return "You can't challenge this player.";
+  if (error.message?.includes("scores must be")) return "Scores can't be negative or tied.";
+  return "Something went wrong. Try again.";
+}
+
+/** Score entry check before calling the server. */
+export function scoreError(mine: string, theirs: string): string | null {
+  const a = Number(mine);
+  const b = Number(theirs);
+  if (mine.trim() === "" || theirs.trim() === "") return "Enter both scores.";
+  if (!Number.isInteger(a) || !Number.isInteger(b) || a < 0 || b < 0) return "Scores are whole numbers.";
+  if (a === b) return "Games can't end in a tie.";
+  if (a > 200 || b > 200) return "That score looks too high.";
+  return null;
+}
+
+/** "Today", "Tomorrow", "In 3 days"; empty when there is no day. Past days read "Today". */
+export function relativeDay(playOn: string | null, today: Date = new Date()): string {
+  if (!playOn) return "";
+  const [y, m, d] = playOn.split("-").map(Number);
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12);
+  const days = Math.round((new Date(y, m - 1, d, 12).getTime() - start.getTime()) / 86_400_000);
+  if (days <= 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  return `In ${days} days`;
+}
+
+/** "6:30 PM" in the viewer's own time; empty when the challenge has no time. */
+export function challengeTime(playAt: string | null | undefined): string {
+  if (!playAt) return "";
+  const date = new Date(playAt);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+/** "Tomorrow 6:30 PM", "In 3 days 6:30 PM", or just the day. */
+export function relativeWhen(
+  challenge: Pick<Challenge, "playOn" | "playAt">,
+  today: Date = new Date(),
+): string {
+  return [relativeDay(challenge.playOn, today), challengeTime(challenge.playAt)]
+    .filter(Boolean)
+    .join(" ");
+}
+
+/**
+ * The two lines of a challenge card in the inbox:
+ * "Ranked game" / "Casual game", then "MaximJ · Rancho Courts · In 3 days".
+ */
+export function challengeCardLines(
+  challenge: Challenge,
+  viewerId: string,
+  today: Date = new Date(),
+): { title: string; subtitle: string } {
+  return {
+    title: challenge.ranked ? "Ranked game" : "Casual game",
+    subtitle: [
+      otherPlayer(challenge, viewerId).name,
+      challenge.courtName,
+      relativeWhen(challenge, today),
+    ]
+      .filter(Boolean)
+      .join(" · "),
+  };
+}
+
+// ── The WHEN wheel: Today plus 6 days (7 in all), 15-minute steps ──────────────────────
+
+export const CHALLENGE_DAYS = 7;
+export const TIME_STEP_MINUTES = 15;
+const STEPS_PER_DAY = (24 * 60) / TIME_STEP_MINUTES;
+
+export type WheelDay = { value: string; label: string };
+export type WheelTime = { minutes: number; label: string };
+
+/** "Today", "Tomorrow", then "Tue 13" for the days after. */
+export function wheelDays(now: Date = new Date(), count: number = CHALLENGE_DAYS): WheelDay[] {
+  return upcomingDays(count, now).map((value, i) => {
+    if (i === 0) return { value, label: "Today" };
+    if (i === 1) return { value, label: "Tomorrow" };
+    const [y, m, d] = value.split("-").map(Number);
+    const date = new Date(y, m - 1, d, 12);
+    return {
+      value,
+      label: `${date.toLocaleDateString("en-US", { weekday: "short" })} ${date.getDate()}`,
+    };
+  });
+}
+
+/** 12:00 AM … 11:45 PM in 15-minute steps. */
+export function wheelTimes(): WheelTime[] {
+  return Array.from({ length: STEPS_PER_DAY }, (_, i) => {
+    const minutes = i * TIME_STEP_MINUTES;
+    const h24 = Math.floor(minutes / 60);
+    const mm = String(minutes % 60).padStart(2, "0");
+    const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+    return { minutes, label: `${h12}:${mm} ${h24 < 12 ? "AM" : "PM"}` };
+  });
+}
+
+/** A slot on today that has already started can't be picked. */
+export function isPastSlot(day: string, minutes: number, now: Date = new Date()): boolean {
+  if (day !== localDateValue(now)) return false;
+  return minutes < now.getHours() * 60 + now.getMinutes();
+}
+
+/** The first pickable slot: the next quarter hour today, else 12:00 PM tomorrow. */
+export function defaultSlot(now: Date = new Date()): { day: string; minutes: number } {
+  const days = upcomingDays(2, now);
+  const next =
+    Math.ceil((now.getHours() * 60 + now.getMinutes() + 1) / TIME_STEP_MINUTES) * TIME_STEP_MINUTES;
+  return next < 24 * 60 ? { day: days[0], minutes: next } : { day: days[1], minutes: 12 * 60 };
+}
+
+/** The chosen day and minutes as the ISO timestamp sent to the server. */
+export function toPlayAt(day: string, minutes: number): string {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(y, m - 1, d, Math.floor(minutes / 60), minutes % 60).toISOString();
+}
+
+/** True when the RPC rejected the call because it doesn't know a parameter or the function. */
+export function isUnknownRpcSignature(error: { code?: string | null; message?: string | null }): boolean {
+  return (
+    error.code === "PGRST202" ||
+    error.code === "42883" ||
+    /could not find the function|function .* does not exist/i.test(error.message ?? "")
+  );
+}

@@ -23,7 +23,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { BrandCheck } from "@/components/brand/LogoMark";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { CompactSelect } from "@/components/ui/CompactSelect";
@@ -32,6 +31,9 @@ import { ModeTabs } from "@/components/ui/ModeTabs";
 import { parsePlayerQrCode } from "@/components/ui/playerIdentity";
 import { RecentDatePicker } from "@/components/ui/RecentDatePicker";
 import { SearchField } from "@/components/ui/SearchField";
+import { HideScoreToggle } from "@/components/match/HideScoreToggle";
+import { useToast } from "@/components/ui/Toast";
+import { formatCardDate } from "@/components/match/gameCardModel";
 import { ScoreCard } from "@/components/match/ScoreCard";
 import { Colors, Radius } from "@/constants/colors";
 import {
@@ -52,8 +54,10 @@ import {
   searchCourtPlayersRecent,
   searchPlayers,
 } from "@/services/profileService";
-import { logGame, logTeamGame } from "@/services/gameService";
-import { fetchNearbyCourts, searchCourts } from "@/services/courtService";
+import { logGame, logTeamGame, setScoreHidden } from "@/services/gameService";
+import { fetchCourtById, fetchNearbyCourts, searchCourts } from "@/services/courtService";
+import { fetchChallenge, logChallengeResult } from "@/services/challengeService";
+import { type Challenge, otherPlayer } from "@/lib/challengeModel";
 import { useDeviceLocation } from "@/context/DeviceLocationContext";
 
 // BACKEND NOTE:
@@ -86,7 +90,28 @@ export default function CompeteScreen() {
     tab?: string;
     courtId?: string;
     opponentId?: string;
+    /** An accepted ranked challenge: Log Game opens filled in from it. */
+    challengeId?: string;
   }>();
+  const [linkedChallenge, setLinkedChallenge] = useState<Challenge | null>(null);
+  const [challengeCourt, setChallengeCourt] = useState<Court | null>(null);
+  const challengeId =
+    typeof params.challengeId === "string" ? params.challengeId : null;
+  useEffect(() => {
+    let mounted = true;
+    setLinkedChallenge(null);
+    setChallengeCourt(null);
+    if (!challengeId) return;
+    void fetchChallenge(challengeId).then(async (row) => {
+      if (!mounted || !row || row.status !== "accepted" || !row.ranked) return;
+      setLinkedChallenge(row);
+      const court = row.courtId ? await fetchCourtById(row.courtId) : null;
+      if (mounted) setChallengeCourt(court);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [challengeId]);
 
   const [mode, setMode] = useState<CompeteMode>(
     params.tab === "log" ? "LOG_GAME" : "RANKINGS",
@@ -168,7 +193,11 @@ export default function CompeteScreen() {
   useEffect(() => {
     let mounted = true;
     const opponentId =
-      typeof params.opponentId === "string" ? params.opponentId : null;
+      typeof params.opponentId === "string"
+        ? params.opponentId
+        : linkedChallenge
+          ? otherPlayer(linkedChallenge, currentUser.id).id
+          : null;
     if (!opponentId || opponentId === currentUser.id) {
       setDeepLinkedOpponent(null);
       return () => {
@@ -181,7 +210,7 @@ export default function CompeteScreen() {
     return () => {
       mounted = false;
     };
-  }, [currentUser.id, params.opponentId]);
+  }, [currentUser.id, params.opponentId, linkedChallenge]);
 
   const myRank = allPlayers.findIndex((p) => p.id === currentUser.id) + 1;
   const rankedCurrentUser =
@@ -273,9 +302,23 @@ export default function CompeteScreen() {
             preferredCourtId
           }
           preselectedOpponent={deepLinkedOpponent}
+          challenge={
+            linkedChallenge
+              ? {
+                  id: linkedChallenge.id,
+                  opponentId: otherPlayer(linkedChallenge, currentUser.id).id,
+                  court: challengeCourt,
+                  playOn: linkedChallenge.playOn,
+                }
+              : null
+          }
           localCourtId={localCourtId}
           hasLocalPlus={isLocalPlus}
-          onLogged={() => setMode("RANKINGS")}
+          onLogged={() => {
+            setLinkedChallenge(null);
+            setChallengeCourt(null);
+            setMode("RANKINGS");
+          }}
         />
       )}
     </View>
@@ -771,6 +814,7 @@ function LogGameView({
   preferredSport,
   preferredCourtId,
   preselectedOpponent,
+  challenge = null,
   localCourtId,
   hasLocalPlus,
   inSheet = false,
@@ -782,6 +826,15 @@ function LogGameView({
   preferredSport: CourtSport | null;
   preferredCourtId: string | null;
   preselectedOpponent: Player | null;
+  /** An accepted ranked challenge this game settles: opponent, court and day
+   *  come from it, and logging goes through log_challenge_result so the
+   *  challenge closes with the game. */
+  challenge?: {
+    id: string;
+    opponentId: string;
+    court: Court | null;
+    playOn: string | null;
+  } | null;
   localCourtId: string | null;
   /** Discovery search (any name, any court) is a LocalPlus perk. LocalLite
    * logging a game away from their own local court gets a narrower search
@@ -824,7 +877,8 @@ function LogGameView({
     opponents: [],
   });
   const [reviewGame, setReviewGame] = useState<GameLog | null>(null);
-  const [submittedGame, setSubmittedGame] = useState<GameLog | null>(null);
+  const [hideScore, setHideScore] = useState(false);
+  const { showToast } = useToast();
   // The court picked from typeahead search may not be in the nearby `courts`
   // array — hold onto the full object so the field, the review card, and the
   // submit all agree on which court is being logged.
@@ -930,6 +984,24 @@ function LogGameView({
     );
   }, [preselectedOpponent]);
 
+  // An accepted challenge fills in where and when once its court has loaded:
+  // the day it was planned for, or today if that day is still ahead or is
+  // older than the 7 days Log Game offers.
+  const appliedChallengeRef = React.useRef<string | null>(null);
+  useEffect(() => {
+    if (!challenge?.court || appliedChallengeRef.current === challenge.id) return;
+    appliedChallengeRef.current = challenge.id;
+    selectCourt(challenge.court);
+    const today = localDateValue();
+    const weekAgo = localDateValue(new Date(Date.now() - 6 * 86_400_000));
+    const playOn = challenge.playOn;
+    setForm((current) => ({
+      ...current,
+      playedOn: playOn && playOn >= weekAgo && playOn <= today ? playOn : today,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [challenge?.id, challenge?.court]);
+
   const myScoreNum = Number(form.myScore);
   const theirScoreNum = Number(form.theirScore);
   const scoresEntered = form.myScore !== "" && form.theirScore !== "";
@@ -997,6 +1069,23 @@ function LogGameView({
     setSubmitError(null);
     let result: { ok: boolean; matchId?: string } = { ok: false };
     try {
+      const settlesChallenge =
+        challenge != null &&
+        reviewGame.teamSize === 1 &&
+        reviewGame.opponents[0]?.id === challenge.opponentId;
+      if (settlesChallenge && challenge) {
+        // The game and the accepted challenge are one thing: the RPC logs the
+        // 1v1 and closes the challenge together.
+        const logged = await logChallengeResult({
+          challengeId: challenge.id,
+          myScore: Number(reviewGame.myScore),
+          theirScore: Number(reviewGame.theirScore),
+          courtId: reviewGame.courtId,
+          playedOn: reviewGame.playedOn,
+          clientRequestId,
+        });
+        result = logged.ok ? { ok: true, matchId: logged.value } : { ok: false };
+      } else
       result =
         reviewGame.teamSize === 1
           ? await logGame({
@@ -1032,17 +1121,25 @@ function LogGameView({
       setReviewGame(null);
       return;
     }
+    // Hide score (D30) is set right after the game exists; the game logs
+    // either way, so a failure here only leaves the score visible.
+    if (hideScore && result.matchId) void setScoreHidden(result.matchId, true);
+    setHideScore(false);
     // The score is pending. The opponent receives a review action; ratings and
     // public history remain unchanged until confirmation.
-    setSubmittedGame({ ...reviewGame });
+    // A swipe-away toast instead of a 5-second confirmation screen; the
+    // viewer lands on the leaderboard right away.
+    const firstOpponent = reviewGame.opponents[0]?.name.split(" ")[0] ?? "Your opponent";
+    showToast({
+      title: "SCORE SENT",
+      body:
+        reviewGame.teamSize === 1
+          ? `${firstOpponent} confirms or disputes it. No rating change until then.`
+          : "Any player can confirm or dispute it. No rating change until then.",
+    });
     setReviewGame(null);
     setClientRequestId(Crypto.randomUUID());
-    // The leaderboard is the safe fallback after logging a game — never leave
-    // the viewer sitting on Log Game once the confirmation's had its moment.
-    setTimeout(() => {
-      setSubmittedGame(null);
-      onLogged?.();
-    }, 5000);
+    onLogged?.();
     setForm({
       sport: defaultSport,
       myScore: "",
@@ -1409,39 +1506,6 @@ function LogGameView({
     );
   }
 
-  if (submittedGame) {
-    return (
-      <View style={[styles.successState, { paddingBottom: successPadBottom }]}>
-        <Text style={styles.successTitle}>SCORE SENT FOR REVIEW</Text>
-        <Text style={styles.successSub}>
-          {submittedGame.teamSize === 1
-            ? "Your opponent can confirm or dispute it. No rating changes yet."
-            : "Any player can confirm or dispute it. No rating changes yet."}
-        </Text>
-        <ScrollView
-          contentContainerStyle={styles.successScrollContent}
-          showsVerticalScrollIndicator={false}
-          style={styles.successScroll}
-        >
-          <ScoreCard
-            compact
-            status="pending"
-            note={
-              submittedGame.teamSize === 1
-                ? "Waiting on your opponent, or it auto-confirms in 3 days."
-                : "Waiting on the other players, or it auto-confirms in 3 days."
-            }
-            onPlayerPress={(id) => router.push(`/player/${id}`)}
-            {...gameCardProps(submittedGame)}
-          />
-          <View style={styles.successCheck}>
-            <BrandCheck size={92} />
-          </View>
-        </ScrollView>
-      </View>
-    );
-  }
-
   return (
     <KeyboardAwareScrollViewCompat
       bottomOffset={112}
@@ -1461,6 +1525,19 @@ function LogGameView({
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
     >
+      {/* Title, the date under it like the game card, then the last 7 days. */}
+      <View style={styles.formHead}>
+        <Text style={styles.formTitle}>LOG GAME</Text>
+        <Text style={styles.formDate}>{formatCardDate(form.playedOn)}</Text>
+      </View>
+      <GameDateField
+        onChange={(playedOn) => {
+          Keyboard.dismiss();
+          setForm((current) => ({ ...current, playedOn }));
+        }}
+        value={form.playedOn}
+      />
+
       {/* Sport drives which courts the picker suggests, so it leads the row. */}
       <View style={styles.fieldRow}>
         <View style={styles.fieldGroup}>
@@ -1478,17 +1555,6 @@ function LogGameView({
             onSelect={selectCourt}
           />
         </View>
-      </View>
-
-      <View style={styles.fieldGroup}>
-        <Text style={styles.fieldLabel}>DATE</Text>
-        <GameDateField
-          onChange={(playedOn) => {
-            Keyboard.dismiss();
-            setForm((current) => ({ ...current, playedOn }));
-          }}
-          value={form.playedOn}
-        />
       </View>
 
       {/* Two columns so the matchup stays tight as players are added: YOU on
@@ -1620,17 +1686,18 @@ function LogGameView({
           <Text
             style={[
               styles.resultHint,
-              { color: isWin ? Colors.win : Colors.loss },
+              { color: isWin ? Colors.accent : Colors.textSecondary },
             ]}
           >
             {isWin ? "WIN — POSITIVE ELO CHANGE" : "LOSS — NEGATIVE ELO CHANGE"}
           </Text>
         )}
         {isTie && (
-          <Text style={[styles.resultHint, { color: Colors.loss }]}>
+          <Text style={[styles.resultHint, { color: Colors.text }]}>
             TIES CAN'T BE LOGGED — ENTER A WINNING SCORE
           </Text>
         )}
+        <HideScoreToggle disabled={submitting} onChange={setHideScore} value={hideScore} />
       </View>
 
       {/* Submit */}
@@ -1655,7 +1722,7 @@ function LogGameView({
             (!canSubmit || submitting) && styles.submitBtnTextDisabled,
           ]}
         >
-          {submitting ? "LOGGING..." : "LOG GAME"}
+          {submitting ? "LOGGING…" : "LOG GAME"}
         </Text>
       </Pressable>
     </KeyboardAwareScrollViewCompat>
@@ -2023,6 +2090,20 @@ const styles = StyleSheet.create({
 
   // ── Log Game ──
   fieldGroup: { gap: 8 },
+  // Same title and date line as the game card.
+  formHead: { alignItems: "center", gap: 4 },
+  formTitle: {
+    ...TextStyles.title,
+    color: Colors.text,
+    letterSpacing: 0.6,
+    textAlign: "center",
+  },
+  formDate: {
+    ...TextStyles.labelSmall,
+    textAlign: "center",
+    letterSpacing: 1.2,
+    color: Colors.muted,
+  },
   fieldRow: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -2302,8 +2383,9 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     lineHeight: 46,
   },
-  scoreInputWin: { borderBottomColor: Colors.win, color: Colors.win },
-  scoreInputLoss: { borderBottomColor: Colors.loss, color: Colors.loss },
+  // Winner orange, loser grey (no green or red).
+  scoreInputWin: { borderBottomColor: Colors.accent, color: Colors.accent },
+  scoreInputLoss: { borderBottomColor: Colors.borderLight, color: Colors.textSecondary },
   scoreDash: {
     fontFamily: Typography.heading,
     fontSize: 28,
@@ -2376,8 +2458,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   successScroll: { flex: 1, alignSelf: "stretch", marginTop: 4 },
-  successScrollContent: { paddingBottom: 12 },
-  successCheck: { alignItems: "center", paddingVertical: 36 },
+  successScrollContent: { paddingBottom: 12, gap: 12 },
   successTitle: {
     fontFamily: Typography.heading,
     fontSize: 24,

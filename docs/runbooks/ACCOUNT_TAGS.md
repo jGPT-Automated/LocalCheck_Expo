@@ -1,72 +1,104 @@
-# Account tags — the one runbook
+# Account tags and test data — the one runbook
 
-`profiles.account_tag` is a **cosmetic** label on an account — one tag, or
-`null` for an ordinary player. It sets the leaderboard row's label, the avatar
-treatment, and the ME-tab title. It does **not** grant LocalPlus, change
-privacy, or decide who is on the leaderboard. The single exception is one
-client switch, `LeaderboardFlags.hideTaggedAccounts` (in `constants/flags.ts`):
-when it is on, `TEST` and `REVIEWER` rows are dropped from *other* players'
-boards. It is **off** now so QA and App Review see every account.
+`profiles.account_tag` is one tag per account, or `null` for an ordinary
+player. Since migration `20261008120000_hide_test_accounts_and_courts.sql`
+(D34) it does two jobs:
 
-This file is the whole contract: what the tags mean, everywhere they are read,
-and the exact SQL to add / change / remove them.
+1. **Who real players can see.** `TEST` and `REVIEWER` accounts are *hidden*:
+   the database never returns them, or their games, check-ins, plans, runs or
+   feed posts, to an ordinary player. Test courts (`courts.is_test`) are
+   hidden the same way.
+2. **Who sees the test data.** `TEST`, `REVIEWER` and `FOUNDER` accounts are
+   *insiders*: they see everything, so dev work, game-logging tests and App
+   Review all have a populated app. Every new sign-up is an ordinary player
+   and gets the real view.
+
+It still sets the leaderboard label and ME-tab title for `FOUNDER` / `STARTER`
+only. It never grants LocalPlus by itself.
+
+This file is the whole contract: what the tags mean, where they are read,
+the test courts, and the exact SQL to change any of it.
 
 - Backend: Supabase `LocalCheckProd`, ref `qkrnmyexzvaxiqfxwwfb`
   → https://supabase.com/dashboard/project/qkrnmyexzvaxiqfxwwfb/sql/new
 - Column: `public.profiles.account_tag text`, `CHECK (account_tag in ('FOUNDER','STARTER','REVIEWER','TEST'))`, nullable.
-- Introduced by migration `supabase/migrations/20260907120000_account_tags.sql`
-  (replaced the earlier `is_test` and `is_founding_member` booleans).
-- **Server-managed.** There is no `UPDATE` grant to `authenticated` — a user
-  cannot set their own tag. All changes are made from the SQL console below.
+- **Server-managed.** No `UPDATE` grant to `authenticated`: a user cannot set
+  their own tag. Change tags from the SQL editor below.
 
 ## The tags
 
-| Tag | Meaning | Row label | Avatar | ME-tab title | On the board? |
-|-----|---------|-----------|--------|--------------|---------------|
-| `FOUNDER` | The maker(s). | `FOUNDER` | Diagonal accent print | `FOUNDER` | Yes |
-| `STARTER` | First 100 real sign-ups after public launch. | `STARTER` | Diagonal accent print | `STARTER` | Yes |
-| `REVIEWER` | Apple App Review's account. | `REVIEWER` | Apple mark instead of initials | `REVIEWER` | Yes now; hidden from others when `hideTaggedAccounts` is on |
-| `TEST` | QA / burner account. | `TEST` | Normal initials | `TEST` | Yes now; hidden from others when `hideTaggedAccounts` is on |
-| `null` | An ordinary player. | their earned ELO tier | Normal initials | `PROFILE` | Yes |
+| Tag | Meaning | Real players see them? | Sees test data? | Row label / ME title | Avatar |
+|-----|---------|------------------------|-----------------|----------------------|--------|
+| `FOUNDER` | Jesse. | Yes | Yes | `FOUNDER` | Diagonal accent print |
+| `STARTER` | First 100 real sign-ups. | Yes | No | `STARTER` | Diagonal accent print |
+| `REVIEWER` | Apple App Review's account (`APPLE`). | No | Yes | Tier / `PROFILE` | Normal initials |
+| `TEST` | QA / dev account. Every pre-launch account but JESSE and APPLE. | No | Yes | Tier / `PROFILE` | Normal initials |
+| `null` | An ordinary player. | Yes | No | Tier / `PROFILE` | Normal initials |
 
-Independent of the tag, a profile is only ranked in a sport after **≥1 game**
-in that sport (`hasRankedGame` in `services/profileService.ts`), and privacy
-(`profiles.visibility`) and the LocalPlus gate still apply.
+A profile is ranked in a sport only after **≥1 game** in it
+(`hasRankedGame`), and only with LocalPlus (`LocalPlusFlags.gateLeaderboard`,
+on; LocalLite stays unranked). `TEST` rows count as LocalPlus on the board,
+matching `useLocalPlus()`. Privacy (`profiles.visibility`) still applies.
 
-**LocalPlus is not a tag.** `useLocalPlus()` reads `is_pro` only, which the
-`private.sync_profile_is_pro` trigger derives from `public.subscriptions` — the
-tag never grants anything by itself. The two cohorts get there differently:
+**LocalPlus is not a tag.** `profiles.is_pro` is derived from
+`public.subscriptions` by the `private.sync_profile_is_pro` trigger. FOUNDER
+and REVIEWER hold `promo` rows (granted, see step 3 below). `useLocalPlus()`
+also treats `TEST` as LocalPlus so testers reach every surface.
 
-- **FOUNDER** — a promo row in `public.subscriptions`
-  (`billing_provider='promo'`), inserted directly (step 3 below).
-- **STARTER** — redeems one of the 100 first-100 Apple offer codes (see
-  `docs/runbooks/REVENUECAT.md` Phase 5). That's a **real App Store
-  subscription** (`billing_provider='app_store'`), reported through the
-  `revenuecat-webhook` like any other purchase — no manual SQL. It auto-renews
-  at $4.99/mo after the free year unless the user cancels; `account_tag` is
-  set at signup time (step 2 below) purely as the row label, independent of
-  when/whether they redeem a code.
+## Test courts
+
+Insiders only (`courts.is_test = true`). Two cities, two courts each, one per
+sport, so location, leaderboards and court explore can be tested:
+
+| City | Basketball | Pickleball |
+|------|------------|------------|
+| Los Angeles | Rancho Cienega Sports Complex `7831e524-8ee8-47a3-9a11-7dae16ff22bb` | Cheviot Hills Recreation Center `fd528863-bbda-460c-ba5e-428ca5fae940` |
+| Houston | Fonde Recreation Center `15fb6104-9743-4a1e-ae64-6487539730b3` | Jaycee Park Pickleball Courts `3bc01099-488e-4dd2-8d4c-3c18ff314d59` |
+
+The only real court at launch is **Kasmiersky Park**, Conroe
+(`abe05196-a2d2-469e-b919-0435a056d9a3`). Every other seeded court is archived
+(`is_archived = true`, hidden from everyone, reversible).
+
+Rules for testers:
+
+- Test on the four test courts. A check-in or local court set at a *real*
+  court still counts in that court's public numbers (`court_metrics`), even
+  though the tester is hidden.
+- New-court duplicate checks skip test courts, so a real player can add the
+  real Fonde Rec next to the test one.
+
+## How the hiding works (database)
+
+Helpers in the `private` schema, all `security definer`, execute granted to
+`authenticated` only:
+
+- `private.viewer_sees_test_data()` — the signed-in viewer is an insider.
+- `private.is_hidden_account(user_id)` — tag is `TEST` or `REVIEWER`.
+- `private.is_test_court(court_id)` — court is test or archived.
+- `private.match_has_hidden_player(match_id)` — any player in the game is hidden.
+
+Each read policy keeps its rule and adds: *you own it, or you're an insider,
+or it has no hidden account and no test court.* Covered: `profiles`,
+`check_ins`, `planned_visits`, `runs`, `activity_events`, `matches` (and,
+through them, `match_participants`, `run_participants`,
+`activity_event_likes`), `courts` (signed-in and anonymous; `courts_with_stats`
+is `security_invoker`). A player always keeps seeing their own games.
+
+Because the database does this, the client has no hide switch; the old
+`LeaderboardFlags.hideTaggedAccounts` was removed.
 
 ## Everywhere `account_tag` is read (the blast radius)
 
-If you change the set of tags or what one does, these are the only places to
-touch. Keep them in sync with the `CHECK` constraint above.
-
 | File | What it does with the tag |
 |------|---------------------------|
-| `constants/data.ts` | `AccountTag` union type; `playerRankLabel()` — tag wins over the ELO tier label. **The union must match the DB `CHECK`.** |
-| `constants/flags.ts` | `LeaderboardFlags.hideTaggedAccounts` — the one functional switch (off now). |
-| `services/profileService.ts` | `SupabaseProfile.account_tag`; `isLeaderboardVisible()` drops `TEST` + `REVIEWER` **only when `hideTaggedAccounts` is on**; `mapProfileToPlayer()` copies it onto `Player.tag`. (`hasRankedGame()` — the ≥1-game rule — is separate, not tag-driven.) |
+| `supabase/migrations/20261008120000_hide_test_accounts_and_courts.sql` | Hidden / insider rules (see above). |
+| `constants/data.ts` | `AccountTag` union (**must match the DB `CHECK`**); `displayTag()` (FOUNDER / STARTER only); `playerRankLabel()`. |
+| `services/profileService.ts` | `mapProfileToPlayer()` sets `Player.tag = displayTag(...)`; `isLeaderboardVisible()` counts `TEST` as LocalPlus under the gate. |
+| `hooks/useLocalPlus.ts` | `TEST` ⇒ LocalPlus. |
 | `context/AuthContext.tsx` | `UserProfile.account_tag` (from `select('*')`). |
-| `components/PlayerAvatar.tsx` | `FOUNDER`/`STARTER` ⇒ accent print; `REVIEWER` ⇒ Apple mark. |
-| `components/ui/ProfileHero.tsx` | passes `tag` through to `PlayerAvatar`. |
-| `app/(tabs)/elo.tsx` | screen title = `account_tag ?? "PROFILE"`; passes `tag` to `ProfileHero`. |
-| `app/(tabs)/compete.tsx`, `app/(tabs)/feed.tsx` | leaderboard rows: `playerRankLabel()` + tag on the avatar. |
-| `app/settings.tsx`, `app/localplus.tsx` | LocalPlus *copy* wording for `FOUNDER` / `STARTER` (gated by `useLocalPlus()`, not by the tag). |
-
-`useLocalPlus()` does **not** read `account_tag`. `profiles.is_pro` — the real
-entitlement, trigger-derived from `public.subscriptions` — is what it checks. A
-tag never writes `is_pro`.
+| `components/PlayerAvatar.tsx` | `FOUNDER` / `STARTER` ⇒ accent print. |
+| `app/(tabs)/elo.tsx` | ME title = `displayTag(account_tag) ?? "PROFILE"`. |
+| `app/settings.tsx`, `app/localplus.tsx` | LocalPlus copy for `FOUNDER` / `STARTER`. |
 
 ## Operations — copy, paste, run
 
@@ -108,23 +140,27 @@ update public.profiles set account_tag = null      where id = '…';  -- back to
 
 ### Launch day
 
-Three things, in order.
+Test accounts are already hidden (D34); there is no flag to flip.
 
-**1. Hide the dev/review accounts from real players.** In `constants/flags.ts`,
-set `LeaderboardFlags.hideTaggedAccounts = true` and ship it (OTA or build).
-`TEST` and `REVIEWER` rows drop off everyone else's boards; they still see their
-own.
+**1. Before submitting:** confirm the tags and courts.
 
-**2. Grant STARTER to the first 100 real sign-ups.** Run once. `TEST` /
-`REVIEWER` / already-tagged accounts are skipped. Each free year runs from that
-user's own `created_at`; the promo `subscriptions` row (not the tag) drives
-`is_pro`, and it **expires** — after a year `is_pro` flips back to false.
+```sql
+select account_tag, count(*) from public.profiles group by 1 order by 1;
+select is_test, is_archived, count(*) from public.courts group by 1, 2;
+```
+
+Expected: only JESSE (`FOUNDER`) and APPLE (`REVIEWER`) are not `TEST`;
+four test courts; Kasmiersky the one live real court.
+
+**2. Starter (D12, not built yet).** The first 100 real sign-ups get a free
+year automatically, server-side, no code. Until that ships, run this once
+after launch: `TEST` / `REVIEWER` / already-tagged accounts are skipped.
 
 ```sql
 with first_100 as (
   select id, created_at
   from public.profiles
-  where account_tag is null            -- not FOUNDER / TEST / REVIEWER / STARTER
+  where account_tag is null
   order by created_at
   limit 100
 )
@@ -133,16 +169,9 @@ set account_tag = 'STARTER'
 from first_100 f where f.id = p.id;
 ```
 
-**3. Grant the free entitlement to FOUNDER and REVIEWER.** One promo row each,
-a long horizon (renew or drop the row later). Both see the full unlocked app,
-permanently, with no purchase and no offer code — simplest to reason about,
-and a comped review account is normal, accepted practice (say so plainly in
-the App Review notes). **Not** for STARTER — their free year comes from
-redeeming an Apple offer code (a real, separate `billing_provider='app_store'`
-row the webhook writes; running this for STARTER too would leave them with two
-simultaneous lineages for no reason). The unique key is
-`(user_id, billing_provider)`, so this insert can never collide with a real
-subscription row on the same person either way.
+**3. FOUNDER and REVIEWER grants** (already applied; safe to re-run). One
+promo row each; the unique key `(user_id, billing_provider)` means it never
+collides with a real subscription.
 
 ```sql
 insert into public.subscriptions (
@@ -159,6 +188,25 @@ select p.id, p.id::text,
 from public.profiles p
 where p.account_tag in ('FOUNDER', 'REVIEWER')
 on conflict (user_id, billing_provider) do nothing;
+```
+
+### Make a new test account
+
+Sign up normally, then tag it. It disappears for real players at once and
+starts seeing test data.
+
+```sql
+update public.profiles set account_tag = 'TEST' where lower(username) = 'newtester';
+update public.profiles set local_court_id = '15fb6104-9743-4a1e-ae64-6487539730b3'  -- Fonde Rec
+where lower(username) = 'newtester';
+```
+
+### Test courts: add, remove, restore
+
+```sql
+update public.courts set is_test = true  where id = '…';   -- insiders only
+update public.courts set is_test = false where id = '…';   -- real, everyone sees it
+update public.courts set is_archived = false where id = '…'; -- bring back an archived court
 ```
 
 ### Add a brand-new tag value (e.g. `CHAMPION`)

@@ -31,7 +31,7 @@ for (const root of ROOTS) {
     if (/fontFamily\s*:\s*["'`]/.test(source)) {
       failures.push(`${label}: use Typography tokens instead of a literal font family`);
     }
-    if (/#ff5500|rgba\(255\s*,\s*85\s*,\s*0/i.test(source)) {
+    if (/#ff5500|#fc4c02|rgba\(255\s*,\s*85\s*,\s*0|rgba\(252\s*,\s*76\s*,\s*2/i.test(source)) {
       failures.push(`${label}: use the canonical Colors accent tokens instead of raw orange`);
     }
     if (/[←→↑↓↗↕★☆✓]/.test(source)) {

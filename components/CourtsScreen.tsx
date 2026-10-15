@@ -282,7 +282,7 @@ export function CourtsScreen() {
           <SearchField
             variant="bare"
             accessibilityLabel="Search courts"
-            placeholder="Search courts..."
+            placeholder="Search courts…"
             value={searchQuery}
             onChangeText={(value) => {
               setSearchQuery(value);

@@ -1,5 +1,8 @@
 import { supabase } from "@/lib/supabase";
 
+const DELETE_FAILED =
+  "We couldn't delete your account just now. Check your connection and try again.";
+
 export interface DeleteAccountResult {
   ok: boolean;
   error?: string;
@@ -18,17 +21,17 @@ export async function deleteCurrentAccount(
     const { data, error } = await supabase.functions.invoke("delete-account", {
       body: { appleAuthorizationCode: appleAuthorizationCode ?? null },
     });
-    if (error) return { ok: false, error: error.message };
-    if (!data?.ok) return { ok: false, error: data?.error ?? "Account deletion failed." };
+    if (error || !data?.ok) {
+      console.warn("delete-account failed", error?.message ?? data?.error);
+      return { ok: false, error: DELETE_FAILED };
+    }
 
     // Supabase JWTs remain valid until expiry after admin deletion, so clear
     // the local session immediately on the deleting device.
     await supabase.auth.signOut({ scope: "local" });
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Account deletion failed.",
-    };
+    console.warn("delete-account threw", error);
+    return { ok: false, error: DELETE_FAILED };
   }
 }

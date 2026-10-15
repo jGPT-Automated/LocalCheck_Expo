@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import { DRAWER_HANDLE_HEIGHT } from "@/lib/courtDrawerLayout";
+
 import { AppBottomSheetModal } from "./AppBottomSheetModal";
 import { CourtSheetContent } from "./CourtSheetContent";
 
@@ -93,7 +94,9 @@ export function CourtSheetProvider({
             distanceKm={args.distanceKm}
             onNavigate={closeCourtSheet}
             onExpand={expandCourtSheet}
-            onPeekHeight={(height) => setPeekHeight(Math.ceil(height + DRAWER_HANDLE_HEIGHT))}
+            onPeekHeight={(height) =>
+              setPeekHeight(Math.ceil(height + DRAWER_HANDLE_HEIGHT))
+            }
           />
         )}
       </AppBottomSheetModal>
