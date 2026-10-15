@@ -32,8 +32,8 @@ import { parsePlayerQrCode } from "@/components/ui/playerIdentity";
 import { RecentDatePicker } from "@/components/ui/RecentDatePicker";
 import { SearchField } from "@/components/ui/SearchField";
 import { HideScoreToggle } from "@/components/match/HideScoreToggle";
+import { useBottomFloor } from "@/components/ui/TabFloor";
 import { useToast } from "@/components/ui/Toast";
-import { formatCardDate } from "@/components/match/gameCardModel";
 import { ScoreCard } from "@/components/match/ScoreCard";
 import { Colors, Radius } from "@/constants/colors";
 import {
@@ -849,6 +849,9 @@ function LogGameView({
   // The parent passes 0 for the sheet case; on the tab it needs the real
   // inset so pinned actions clear the floating tab bar.
   const bottom = inSheet ? bottomProp : Math.max(bottomProp, insets.bottom);
+  // The form's last row clears the tab bar by 12; no extra, so the whole
+  // form fits on one screen with LOG GAME in view (Jesse's Sep 6 brief).
+  const formFloor = useBottomFloor(12);
 
   // Default court: preferredCourtId > localCourtId > empty
   const supportedCourts = useMemo(
@@ -1515,29 +1518,14 @@ function LogGameView({
         paddingHorizontal: 16,
         paddingTop: 14,
         gap: 14,
-        // Must come AFTER the shorthand-free paddings so the submit button
-        // clears the bottom tab bar: 84px fixed bar on web (50 + 34),
-        // safe-area inset + bar height on native. +16 breathing room.
-        paddingBottom: inSheet
-          ? 24
-          : 16 + (Platform.OS === "web" ? 84 : bottom + 76),
+        paddingBottom: inSheet ? 24 : formFloor,
       }}
+      // Only moves when the form is taller than the screen (iOS bounces a
+      // scroll view by default even when everything fits).
+      alwaysBounceVertical={false}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
     >
-      {/* Title, the date under it like the game card, then the last 7 days. */}
-      <View style={styles.formHead}>
-        <Text style={styles.formTitle}>LOG GAME</Text>
-        <Text style={styles.formDate}>{formatCardDate(form.playedOn)}</Text>
-      </View>
-      <GameDateField
-        onChange={(playedOn) => {
-          Keyboard.dismiss();
-          setForm((current) => ({ ...current, playedOn }));
-        }}
-        value={form.playedOn}
-      />
-
       {/* Sport drives which courts the picker suggests, so it leads the row. */}
       <View style={styles.fieldRow}>
         <View style={styles.fieldGroup}>
@@ -1555,6 +1543,17 @@ function LogGameView({
             onSelect={selectCourt}
           />
         </View>
+      </View>
+
+      <View style={styles.fieldGroup}>
+        <Text style={styles.fieldLabel}>DATE</Text>
+        <GameDateField
+          onChange={(playedOn) => {
+            Keyboard.dismiss();
+            setForm((current) => ({ ...current, playedOn }));
+          }}
+          value={form.playedOn}
+        />
       </View>
 
       {/* Two columns so the matchup stays tight as players are added: YOU on
@@ -2090,20 +2089,6 @@ const styles = StyleSheet.create({
 
   // ── Log Game ──
   fieldGroup: { gap: 8 },
-  // Same title and date line as the game card.
-  formHead: { alignItems: "center", gap: 4 },
-  formTitle: {
-    ...TextStyles.title,
-    color: Colors.text,
-    letterSpacing: 0.6,
-    textAlign: "center",
-  },
-  formDate: {
-    ...TextStyles.labelSmall,
-    textAlign: "center",
-    letterSpacing: 1.2,
-    color: Colors.muted,
-  },
   fieldRow: {
     flexDirection: "row",
     alignItems: "flex-start",

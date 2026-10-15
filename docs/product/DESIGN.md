@@ -326,6 +326,11 @@ Replaced by the above on Oct 14 (D55), kept for history: the court detail page k
 - Compete uses the same `ModeTabs` interaction as Explore for **Rankings** and
   **Log Game**. The logging form is a first-class tab rather than a nested
   drawer, while profile and run deep links still prefill its existing context.
+- Log Game fits on one screen with the LOG GAME button in view and doesn't
+  move when nothing is cut off (Jesse's Sep 6 brief; restored Oct 15). Order:
+  Sport + Court, Date (boxed days, oldest left, TODAY right in orange),
+  Matchup, Final score with Hide score, then LOG GAME. No title inside the tab:
+  the tab already says LOG GAME.
 - Game logging is a shared form sheet reached from a player or run context, with opponent/court prefilled when available.
 
 ## Final score review

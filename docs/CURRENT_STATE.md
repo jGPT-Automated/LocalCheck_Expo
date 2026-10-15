@@ -69,6 +69,16 @@ Each claim says which of these it is, because they are often confused:
   (versions in `docs/SUPABASE.md`). Live jobs: `localcheck-notification-dispatch`
   and `localcheck-timer-bookings` only (Oct 14).
 - Installed binaries use EAS Update with `runtimeVersion.policy = appVersion`.
+- Build 1.0.4 (45), Oct 15, 1:38 am, from main 03fcd66 (#67 + #70), sent to
+  TestFlight. Jesse's review found regressions this thread made; list and
+  causes: project doc "2026-10-15 · trace · what's wrong in build 45".
+- Log Game restored (Oct 15, branch `codex/log-game-restore`): the extra
+  "LOG GAME · date" title (added Oct 11 in 32358a9) is gone, the date row is
+  build 33's boxed days again, under Sport + Court, and the form's bottom
+  padding is the tab bar height + 12 instead of a fixed 126, with
+  `alwaysBounceVertical={false}`. Checked at 393×852 in a local render of the
+  real form: it fits with LOG GAME above the tab bar, so it doesn't scroll.
+  On a 375×667 phone it still scrolls (too tall to fit). JavaScript only.
 - Court page and Home card, first design pass (Oct 14, Jesse asked for it
   before the 1.0.4 build), from the Claude Design court flow handoff:
   - Court page (`app/court/[id].tsx`): the 6-number dashboard is gone. New
