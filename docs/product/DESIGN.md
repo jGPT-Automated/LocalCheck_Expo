@@ -284,6 +284,10 @@ Replaced by the above on Oct 14 (D55), kept for history: the court detail page k
   profile context and never replace the primary game/friend actions. Settings
   exposes **Blocked players** so an accidental block is reversible without
   making blocked identities visible in ordinary profile search.
+- Other-player profile bar: not friends = orange **Add friend** (or **Accept
+  request**) beside **Log Game**, no Challenge; request sent = **Cancel
+  request** + orange **Log Game**; friends = a small remove-friend icon,
+  **Log Game** and **Challenge** (Jesse, Oct 15).
 - Other-player profiles use three mutually exclusive tabs: **VS YOU**,
   **ACTIVITY**, and **DETAILS**. The external profile hero omits the long
   username and moves member-since metadata into Details. Name/local-court copy

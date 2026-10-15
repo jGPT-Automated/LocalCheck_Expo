@@ -508,35 +508,52 @@ export default function PlayerProfileScreen() {
         </View>
       ) : null}
       </View>
-      <StickyActionBar
-        bottomInset={bottom}
-        leading={{
-          accessibilityLabel: isFriendStatus
-            ? "Remove friend"
-            : isIncomingRequest
-              ? "Accept friend request"
-              : isRequestPending
-                ? "Cancel friend request"
-                : "Add friend",
-          icon: isFriendStatus
-            ? "user-minus"
-            : isIncomingRequest
-              ? "user-check"
-              : isRequestPending
-                ? "user-x"
-                : "user-plus",
-          onPress: handleToggleFriend,
-        }}
-        secondary={{
-          label: "LOG GAME",
-          onPress: () => router.push(`/(tabs)/compete?tab=log&opponentId=${player.id}`),
-        }}
-        primary={{
-          label: openChallenge ? "VIEW CHALLENGE" : "CHALLENGE",
-          tone: "light",
-          onPress: handleChallenge,
-        }}
-      />
+      {isFriendStatus ? (
+        // Friends: the friend button shrinks to an icon and Challenge appears
+        // (challenges are between friends, D25).
+        <StickyActionBar
+          bottomInset={bottom}
+          leading={{
+            accessibilityLabel: "Remove friend",
+            icon: "user-minus",
+            onPress: handleToggleFriend,
+          }}
+          secondary={{
+            label: "LOG GAME",
+            onPress: () => router.push(`/(tabs)/compete?tab=log&opponentId=${player.id}`),
+          }}
+          primary={{
+            label: openChallenge ? "VIEW CHALLENGE" : "CHALLENGE",
+            tone: "light",
+            onPress: handleChallenge,
+          }}
+        />
+      ) : isRequestPending && !isIncomingRequest ? (
+        // Request sent: nothing to do on the friend side, so Log Game leads.
+        <StickyActionBar
+          bottomInset={bottom}
+          secondary={{ label: "CANCEL REQUEST", icon: "user-x", onPress: handleToggleFriend }}
+          primary={{
+            label: "LOG GAME",
+            onPress: () => router.push(`/(tabs)/compete?tab=log&opponentId=${player.id}`),
+          }}
+        />
+      ) : (
+        // Not friends yet: a full-size orange Add friend (or Accept request)
+        // next to Log Game. No Challenge until you're friends.
+        <StickyActionBar
+          bottomInset={bottom}
+          secondary={{
+            label: "LOG GAME",
+            onPress: () => router.push(`/(tabs)/compete?tab=log&opponentId=${player.id}`),
+          }}
+          primary={{
+            label: isIncomingRequest ? "ACCEPT REQUEST" : "ADD FRIEND",
+            icon: isIncomingRequest ? "user-check" : "user-plus",
+            onPress: handleToggleFriend,
+          }}
+        />
+      )}
       {challengeOpen ? (
         <ChallengeSheet
           defaultCourt={playerCourt ?? localCourt}
