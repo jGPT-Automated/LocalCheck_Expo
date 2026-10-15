@@ -673,7 +673,7 @@ function PlanVisitModal({
 
   return (
     <FormSheet visible={visible} onClose={onClose} title="I'll be there">
-      <ScrollView
+      <ScrollView alwaysBounceVertical={false}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.sheetContent}
         keyboardShouldPersistTaps="handled"
@@ -786,7 +786,7 @@ function CourtPickerModal({
 }) {
   return (
     <FormSheet visible={visible} onClose={onClose} title="Pick a court">
-      <ScrollView
+      <ScrollView alwaysBounceVertical={false}
         contentContainerStyle={styles.sheetContent}
         keyboardShouldPersistTaps="handled"
       >
@@ -1308,7 +1308,7 @@ export default function ScheduleScreen() {
         right={<Text style={styles.headerDate}>{weekLabel}</Text>}
       />
 
-      <ScrollView
+      <ScrollView alwaysBounceVertical={false}
         style={styles.scheduleBody}
         contentContainerStyle={[
           styles.scheduleBodyContent,
@@ -1388,7 +1388,7 @@ export default function ScheduleScreen() {
               </Pressable>
             </View>
           ) : null}
-          <ScrollView
+          <ScrollView alwaysBounceVertical={false}
             ref={timeScrollRef}
             contentContainerStyle={styles.timeRows}
             decelerationRate="fast"

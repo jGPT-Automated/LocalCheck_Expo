@@ -42,7 +42,7 @@ export function ReviewRulesModal({
               <Feather color={Colors.textSecondary} name="x" size={18} />
             </Pressable>
           </View>
-          <ScrollView contentContainerStyle={styles.rows} showsVerticalScrollIndicator={false}>
+          <ScrollView alwaysBounceVertical={false} contentContainerStyle={styles.rows} showsVerticalScrollIndicator={false}>
             {REVIEW_RULES.map((rule, index) => (
               <View key={rule} style={styles.row}>
                 <View style={styles.index}>

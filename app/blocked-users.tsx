@@ -70,7 +70,7 @@ export default function BlockedUsersScreen() {
         onBack={() => router.canGoBack() ? router.back() : router.replace("/settings")}
         title="BLOCKED PLAYERS"
       />
-      <ScrollView
+      <ScrollView alwaysBounceVertical={false}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >

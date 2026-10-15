@@ -16,6 +16,13 @@ Each claim says which of these it is, because they are often confused:
 
 ## Production checkpoint
 
+- Oct 15 (branch `codex/fit-screens`): screens no longer move when their
+  content fits (`alwaysBounceVertical={false}` on every vertical scroll view,
+  default in `KeyboardAwareScrollViewCompat`); the leaderboard's filters and
+  place label stay fixed while the rankings scroll; Explore and the Home card
+  measure the local court's distance from the phone (it showed a distance
+  from onboarding's city search, e.g. 37.4 mi for a court 1 mi away); Home
+  card spacing evened out and slightly smaller.
 - Source truth: `origin/main` @ `541632c` — #65 squash-merged (forgot
   password, onboarding, Expo Go previews, court drawer + Yearly upgrade).
 - PR #67 open (base `main`, app version 1.0.4): everything from #66 (other-

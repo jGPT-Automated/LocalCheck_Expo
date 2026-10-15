@@ -153,13 +153,14 @@ const styles = StyleSheet.create({
     borderColor: Colors.hairlineCard,
     backgroundColor: Colors.sheet,
   },
-  top: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 14, gap: 6 },
+  // Sport row, name and place are spaced evenly, with the same space above
+  // and below the block.
+  top: { paddingHorizontal: 18, paddingVertical: 14, gap: 8 },
   metaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
   name: {
-    marginTop: 4,
     fontFamily: Typography.headingBold,
-    fontSize: 30,
-    lineHeight: 32,
+    fontSize: 28,
+    lineHeight: 30,
     letterSpacing: -0.9,
     color: Colors.text,
     textTransform: "uppercase",
@@ -167,12 +168,12 @@ const styles = StyleSheet.create({
     textShadowRadius: 6,
   },
   place: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
-  actions: { flexDirection: "row", gap: 10, padding: 14 },
+  actions: { flexDirection: "row", gap: 10, padding: 12 },
   actionSlot: { flex: 1 },
   actionCopy: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
   action: {
     width: "100%",
-    height: 46,
+    height: 44,
     borderRadius: 4,
     flexDirection: "row",
     alignItems: "center",

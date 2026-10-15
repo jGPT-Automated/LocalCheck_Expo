@@ -525,7 +525,7 @@ function Details({
   onSubmit: () => void;
 }) {
   return (
-    <ScrollView
+    <ScrollView alwaysBounceVertical={false}
       contentContainerStyle={[
         styles.detailsContent,
         { paddingBottom: bottom + 24 },

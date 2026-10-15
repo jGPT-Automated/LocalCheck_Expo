@@ -102,7 +102,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
                 </Pressable>
               </View>
 
-              <ScrollView
+              <ScrollView alwaysBounceVertical={false}
                 style={styles.modalScrollView}
                 contentContainerStyle={[
                   styles.modalScrollContent,

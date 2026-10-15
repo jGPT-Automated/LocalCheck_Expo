@@ -108,7 +108,7 @@ export function MatchRevisionForm({
 
   return (
     <View style={styles.flex}>
-      <ScrollView
+      <ScrollView alwaysBounceVertical={false}
         contentContainerStyle={[styles.content, { paddingBottom: 150 + bottom }]}
         keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"

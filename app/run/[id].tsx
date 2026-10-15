@@ -154,7 +154,7 @@ export default function RunScreen() {
         title={`${run.courtShortName.toUpperCase()} · ${format}`}
         onBack={() => router.back()}
       />
-      <ScrollView
+      <ScrollView alwaysBounceVertical={false}
         contentContainerStyle={[
           styles.contentContainer,
           { paddingBottom: (Platform.OS === "web" ? 110 : bottom + 100) },

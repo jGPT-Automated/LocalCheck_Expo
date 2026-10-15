@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
   sportDot: { width: 6, height: 6, borderRadius: 3 },
   sportText: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.5, textTransform: "uppercase", flexShrink: 1 },
   pill: {
-    height: 28,
+    height: 22,
     paddingHorizontal: 10,
     borderRadius: 999,
     flexDirection: "row",

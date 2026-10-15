@@ -194,7 +194,7 @@ export default function LocalPlusScreen() {
         }
         title="LOCALPLUS"
       />
-      <ScrollView
+      <ScrollView alwaysBounceVertical={false}
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,

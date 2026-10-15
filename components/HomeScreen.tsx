@@ -34,7 +34,8 @@ import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
 import { isInactiveLocal, relativeTime } from "@/lib/localPresence";
 import { groupCheckinBursts, pairVisits } from "@/lib/activityPresentation";
 import { courtHours, formatCourtHours } from "@/lib/courtHours";
-import { fetchCourtWeekSpans } from "@/services/courtService";
+import { fetchCourtWeekSpans, haversineKm } from "@/services/courtService";
+import { useDeviceLocation } from "@/context/DeviceLocationContext";
 import {
   fetchLocalsWithLastCheckIn,
   type LocalWithLastCheckIn,
@@ -61,6 +62,21 @@ export function HomeScreen() {
     refreshCheckedIn,
     refreshFeed,
   } = useApp();
+  const { coord: deviceCoord } = useDeviceLocation();
+  // Distance on the card is measured from the phone, like Explore's list. The
+  // saved court can carry a distance from onboarding's city search instead.
+  const localCourtShown = React.useMemo(
+    () =>
+      localCourt
+        ? {
+            ...localCourt,
+            distanceKm: deviceCoord
+              ? haversineKm(deviceCoord.lat, deviceCoord.lng, localCourt.latitude, localCourt.longitude)
+              : undefined,
+          }
+        : null,
+    [localCourt, deviceCoord],
+  );
   const { roster, localCount } = usePresence(localCourtId);
   const liveCounts = useCourtCounts(localCourt ? [localCourt] : []);
   const { user } = useAuth();
@@ -209,7 +225,7 @@ export function HomeScreen() {
 
       <HomeCourtHero
         activeCount={activeLabel}
-        court={localCourt}
+        court={localCourtShown ?? localCourt}
         hoursLabel={hoursLabel}
         isCheckedIn={isCheckedIn}
         isChecking={isChecking}
@@ -224,7 +240,7 @@ export function HomeScreen() {
 
       <View style={styles.tabBody}>
         {activeTab === "feed" ? (
-          <ScrollView
+          <ScrollView alwaysBounceVertical={false}
             contentContainerStyle={{ paddingBottom: scrollBottom }}
             showsVerticalScrollIndicator={false}
           >
@@ -304,7 +320,7 @@ export function HomeScreen() {
         ) : null}
 
         {activeTab === "locals" ? (
-          <ScrollView
+          <ScrollView alwaysBounceVertical={false}
             contentContainerStyle={{ paddingBottom: scrollBottom }}
             showsVerticalScrollIndicator={false}
           >

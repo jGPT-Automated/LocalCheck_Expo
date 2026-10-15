@@ -392,12 +392,8 @@ function LeaderboardView({
   }, [currentUserId, myRank, players, showMyRank]);
 
   return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{
-        paddingBottom: Platform.OS === "web" ? 84 : bottom + 100,
-      }}
-    >
+    // The filters and the place label stay put; only the rankings scroll.
+    <View style={{ flex: 1 }}>
       {/* Sport and scope are one filter decision, presented on one row. */}
       <View style={styles.filterRow}>
         <View style={styles.sportFilter}>
@@ -467,6 +463,12 @@ function LeaderboardView({
         )}
       </View>
 
+    <ScrollView alwaysBounceVertical={false}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{
+        paddingBottom: Platform.OS === "web" ? 84 : bottom + 100,
+      }}
+    >
       {loading ? (
         <View style={styles.emptyState}>
           <ActivityIndicator color={Colors.accent} />
@@ -563,6 +565,7 @@ function LeaderboardView({
         })
       )}
     </ScrollView>
+    </View>
   );
 }
 
@@ -1466,7 +1469,7 @@ function LogGameView({
           Check the matchup, then send it in. Ratings don&apos;t move until it&apos;s
           confirmed.
         </Text>
-        <ScrollView
+        <ScrollView alwaysBounceVertical={false}
           contentContainerStyle={styles.successScrollContent}
           showsVerticalScrollIndicator={false}
           style={styles.successScroll}

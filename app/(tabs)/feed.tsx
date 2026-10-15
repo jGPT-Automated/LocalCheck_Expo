@@ -131,7 +131,7 @@ export default function FeedScreen() {
           testID="feed-list"
         />
       ) : (
-        <ScrollView
+        <ScrollView alwaysBounceVertical={false}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 84 : 100 }}
         >
