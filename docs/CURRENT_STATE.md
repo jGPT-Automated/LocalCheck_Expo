@@ -16,6 +16,10 @@ Each claim says which of these it is, because they are often confused:
 
 ## Production checkpoint
 
+- Oct 15 (branch `codex/profile-friend-bar`): other player's profile bar.
+  Not friends: orange ADD FRIEND (or ACCEPT REQUEST) + LOG GAME, no
+  Challenge. Request sent: CANCEL REQUEST + orange LOG GAME. Friends: the
+  small remove-friend icon + LOG GAME + CHALLENGE. Jesse's rule (Oct 15).
 - Source truth: `origin/main` @ `541632c` — #65 squash-merged (forgot
   password, onboarding, Expo Go previews, court drawer + Yearly upgrade).
 - PR #67 open (base `main`, app version 1.0.4): everything from #66 (other-
