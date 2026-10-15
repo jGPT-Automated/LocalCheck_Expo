@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CourtSchedulePanel } from "@/components/CourtSchedulePanel";
 import { SectionHeader } from "@/components/ScreenHeader";
 import { CourtArt } from "@/components/court/CourtArt";
+import { CourtBusyChart } from "@/components/court/CourtBusyChart";
 import { CourtGamesPanel } from "@/components/court/CourtGamesPanel";
 import { CourtInfoPanel } from "@/components/court/CourtInfoPanel";
 import { CheckInButton, CourtTabBar, LocalPill, MetricStrip, SportLabel } from "@/components/court/CourtParts";
@@ -280,6 +281,9 @@ export default function CourtProfileScreen() {
       <View style={styles.tabContent}>
         {activeTab === "live" ? (
           <ScrollView contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
+            <View style={styles.busy}>
+              <CourtBusyChart courtId={court.id} games={upcomingGames} refreshKey={roster.length} />
+            </View>
             <View style={styles.onCourt}>
               <Text style={styles.eyebrow}>On court · {hiddenCount > 0 ? `~${activeCount}` : activeCount}</Text>
               {roster.length > 0 || hiddenCount > 0 ? (
@@ -467,6 +471,7 @@ const styles = StyleSheet.create({
   stripWrap: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 12 },
   tabContent: { flex: 1, minHeight: 0 },
   scheduleView: { flex: 1, minHeight: 0, overflow: "hidden" },
+  busy: { paddingHorizontal: 20, paddingTop: 16 },
   onCourt: { paddingTop: 16, gap: 10 },
   eyebrow: { paddingHorizontal: 20, fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
   roster: { paddingHorizontal: 20, gap: Space.md, alignItems: "center" },

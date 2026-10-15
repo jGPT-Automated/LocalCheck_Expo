@@ -255,6 +255,19 @@ Current (D56, Oct 15):
    local court — always free"). Court ↗ goes to the LocalPlus screen.
 5. The drawer can set a local court; removing one lives on the court page.
 
+Onboarding (Oct 15): welcome (what LocalCheck is, three rows), name + sport,
+Pick your court on a map with pins (location ask sits on the map, city search
+as a fallback), auto check-in on its own screen with the privacy explanation,
+then alerts. No drawer in onboarding.
+
+Player profile actions by friend state: not friends Log game | Add friend
+(orange); they asked Log game | Accept request (orange); you asked Cancel
+request | Log game (orange); friends remove icon | Log game | Challenge
+(white). Log game opens as a sheet over the profile.
+
+Busy times (`CourtBusyChart`): past hours filled grey (check-ins), now
+orange, later hours outlined (planned visits + game sign-ups).
+
 Buttons (D56): 4pt corners, Inter bold uppercase labels, 50pt main actions
 (`BrutalistButton`, `CheckInButton`). White is the neutral primary; orange
 is for Check in, live and selection.

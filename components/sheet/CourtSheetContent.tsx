@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { CourtArt } from "@/components/court/CourtArt";
+import { CourtBusyChart } from "@/components/court/CourtBusyChart";
 import {
   CheckInButton,
   CourtLinkButton,
@@ -37,18 +38,13 @@ import { usePresence } from "@/context/CourtPresenceContext";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
 import { useLocalPlusPurchase } from "@/hooks/useLocalPlusPurchase";
 import { describeTimelineItem } from "@/lib/activityPresentation";
-import { courtHours, formatCourtHours } from "@/lib/courtHours";
+import { courtHours, formatCourtHours, formatTimeOnCourt } from "@/lib/courtHours";
 import { drawerDetailHeight, drawerFooterGap } from "@/lib/courtDrawerLayout";
 import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/planModel";
 import { fetchCourtById, fetchCourtWeekSpans } from "@/services/courtService";
 import { fetchFeed } from "@/services/feedService";
-import { fetchCourtPlannedTimes } from "@/services/plannedVisitService";
 
-/** Today's planned visits in 2-hour slots, 7 AM to 11 PM (the design's bars). */
-const TODAY_SLOTS = [7, 9, 11, 13, 15, 17, 19, 21];
-const SLOT_SHORT = ["7a", "9a", "11a", "1p", "3p", "5p", "7p", "9p"];
-const SLOT_LONG = ["7 AM", "9 AM", "11 AM", "1 PM", "3 PM", "5 PM", "7 PM", "9 PM"];
 const HERE_MAX = 4;
 const DRAWER_CHIPS = [
   { label: "Games", tab: "games" },
@@ -56,12 +52,6 @@ const DRAWER_CHIPS = [
   { label: "Feed", tab: "live" },
   { label: "Week", tab: "week" },
 ] as const;
-
-function slotFor(date: Date): number {
-  const hour = date.getHours();
-  if (hour < TODAY_SLOTS[0]) return -1;
-  return Math.min(TODAY_SLOTS.length - 1, Math.floor((hour - TODAY_SLOTS[0]) / 2));
-}
 
 function dayShort(iso: string): string {
   const date = new Date(iso);
@@ -122,7 +112,6 @@ export function CourtSheetContent({
   const [court, setCourt] = useState<Court | null>(cached);
   const [courtMissing, setCourtMissing] = useState(false);
   const [hoursLabel, setHoursLabel] = useState("—");
-  const [today, setToday] = useState<number[]>(TODAY_SLOTS.map(() => 0));
   const [recent, setRecent] = useState<FeedItem[]>([]);
   const { roster, localCount } = usePresence(courtId || null);
 
@@ -136,23 +125,9 @@ export function CourtSheetContent({
   useEffect(() => {
     if (!courtId) return;
     let cancelled = false;
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 1);
-    void Promise.all([
-      fetchCourtWeekSpans(courtId),
-      fetchCourtPlannedTimes(courtId, start, end),
-      fetchFeed(courtId, currentUser.id),
-    ]).then(([spans, planned, feed]) => {
+    void Promise.all([fetchCourtWeekSpans(courtId), fetchFeed(courtId, currentUser.id)]).then(([spans, feed]) => {
       if (cancelled) return;
       setHoursLabel(formatCourtHours(courtHours(spans).hours));
-      const buckets = TODAY_SLOTS.map(() => 0);
-      planned.forEach((time) => {
-        const slot = slotFor(time);
-        if (slot >= 0) buckets[slot] += 1;
-      });
-      setToday(buckets);
       setRecent(feed.slice(0, 3));
     });
     return () => { cancelled = true; };
@@ -197,9 +172,6 @@ export function CourtSheetContent({
     .sort((a, b) => a.startTimeIso.localeCompare(b.startTimeIso));
   const weekAhead = upcoming.filter((run) => Date.parse(run.startTimeIso) < now + 7 * 86_400_000);
   const next = upcoming[0];
-  const nowSlot = slotFor(new Date());
-  const peakSlot = today.indexOf(Math.max(...today));
-  const todayMax = Math.max(8, ...today);
 
   const handleCheckIn = async () => {
     if (isChecking) return;
@@ -312,7 +284,7 @@ export function CourtSheetContent({
                       status="active"
                     />
                     <Text numberOfLines={1} style={styles.hereName}>{player.name.split(" ")[0]}</Text>
-                    <Text style={styles.hereSub}>{player.elo}</Text>
+                    <Text style={styles.hereSub}>{formatTimeOnCourt(player.checkedInAt) ?? player.elo}</Text>
                   </Pressable>
                 ))}
                 {roster.length > HERE_MAX ? (
@@ -380,36 +352,7 @@ export function CourtSheetContent({
           </View>
 
           <View style={styles.section}>
-            <SectionHead
-              meta={today.some((count) => count > 0) ? `Busiest at ${SLOT_LONG[peakSlot]}` : "No plans yet"}
-              title="Today"
-            />
-            <View style={styles.bars}>
-              {today.map((count, index) => (
-                <View
-                  key={SLOT_SHORT[index]}
-                  style={[
-                    styles.bar,
-                    {
-                      height: Math.max(4, Math.round((count / todayMax) * 52)),
-                      backgroundColor:
-                        index < nowSlot
-                          ? Colors.grabber
-                          : index === nowSlot
-                            ? live ? Colors.accent : Colors.mutedDark
-                            : heatFill(count),
-                    },
-                  ]}
-                />
-              ))}
-            </View>
-            <View style={styles.barLabels}>
-              {SLOT_SHORT.map((label, index) => (
-                <Text key={label} style={[styles.barLabel, index === nowSlot && styles.barLabelNow]}>
-                  {index === nowSlot ? "Now" : label}
-                </Text>
-              ))}
-            </View>
+            <CourtBusyChart courtId={court.id} games={upcoming} refreshKey={roster.length} title="Today" />
           </View>
 
           <View style={styles.section}>
@@ -439,15 +382,6 @@ export function CourtSheetContent({
       ) : null}
     </BottomSheetView>
   );
-}
-
-/** Planned-visit heat: the same orange ramp as the Week heatmap. */
-function heatFill(count: number): string {
-  if (count === 0) return Colors.surfaceHigh;
-  if (count < 3) return Colors.heat1;
-  if (count < 6) return Colors.heat2;
-  if (count < 10) return Colors.heat3;
-  return Colors.accent;
 }
 
 /** One quiet feed line: dot, "Name did this", time. */
@@ -660,19 +594,6 @@ const styles = StyleSheet.create({
   face: { borderRadius: 9, borderWidth: 2, borderColor: Colors.panel },
   faceOverlap: { marginLeft: -8 },
 
-  bars: { height: 52, flexDirection: "row", alignItems: "flex-end", gap: 5 },
-  bar: { flex: 1, borderRadius: 4 },
-  barLabels: { flexDirection: "row", gap: 5, marginTop: 5 },
-  barLabel: {
-    flex: 1,
-    textAlign: "center",
-    fontFamily: Typography.bodyBold,
-    fontSize: 7.5,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-    color: Colors.muted,
-  },
-  barLabelNow: { color: Colors.liveInk },
 
   recentRow: {
     height: 40,

@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors, Radius } from "@/constants/colors";
 import { Layout, Space } from "@/constants/layout";
-import { TextStyles, Typography } from "@/constants/typography";
+import { Typography } from "@/constants/typography";
 import {
   firstName,
   type HeadToHeadSummary as Summary,
@@ -42,34 +42,27 @@ export function HeadToHeadSummary({
   const eloNet = summary.eloNet;
   return (
     <View style={styles.card}>
-      <View accessibilityRole="header" style={styles.status}>
-        <Text numberOfLines={1} style={styles.statusText}>
-          {seriesStatus(summary)}
-        </Text>
-      </View>
-
       <View style={styles.scores}>
         <View style={styles.side}>
-          <AvatarWithElo player={me} />
+          <PlayerAvatar initials={me.initials} name={me.name} playerId={me.id} size={AVATAR} />
           <View style={styles.sideCopy}>
-            <Text numberOfLines={1} style={styles.sideLabel}>
-              YOU
-            </Text>
-            <Text numberOfLines={1} style={[styles.score, myTone]}>
-              {summary.myWins}
-            </Text>
+            <Text numberOfLines={1} style={styles.sideLabel}>You{me.elo != null ? ` · ${me.elo}` : ""}</Text>
+            <Text numberOfLines={1} style={[styles.score, myTone]}>{summary.myWins}</Text>
           </View>
+        </View>
+        <View accessibilityRole="header" style={styles.status}>
+          <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={2} style={styles.statusText}>
+            {seriesStatus(summary)}
+          </Text>
         </View>
         <View style={[styles.side, styles.sideRight]}>
           <View style={[styles.sideCopy, styles.sideCopyRight]}>
             <Text numberOfLines={1} style={[styles.sideLabel, styles.sideLabelRight]}>
-              {firstName(them.name).toUpperCase()}
+              {firstName(them.name)}{them.elo != null ? ` · ${them.elo}` : ""}
             </Text>
-            <Text numberOfLines={1} style={[styles.score, theirTone]}>
-              {summary.theirWins}
-            </Text>
+            <Text numberOfLines={1} style={[styles.score, theirTone]}>{summary.theirWins}</Text>
           </View>
-          <AvatarWithElo player={them} />
+          <PlayerAvatar initials={them.initials} name={them.name} playerId={them.id} size={AVATAR} />
         </View>
       </View>
 
@@ -93,64 +86,17 @@ export function HeadToHeadSummary({
       </View>
 
       <View style={styles.stats}>
-        <Stat
-          highlight={eloNet != null && eloNet > 0}
-          label="NET ELO"
-          value={eloNet == null ? "—" : signed(eloNet)}
-        />
-        <Stat
-          divider
-          label="LAST PLAYED"
-          value={summary.lastPlayedIso ? shortDay(summary.lastPlayedIso) : "—"}
-        />
-      </View>
-    </View>
-  );
-}
-
-/** The avatar box with that player's current ELO in quiet text beneath it. */
-function AvatarWithElo({ player }: { player: Side }) {
-  return (
-    <View style={styles.avatarColumn}>
-      <PlayerAvatar
-        initials={player.initials}
-        name={player.name}
-        playerId={player.id}
-        size={AVATAR}
-      />
-      {player.elo != null ? (
-        <Text numberOfLines={1} style={styles.avatarElo}>
-          {player.elo}
+        <Text numberOfLines={1} style={styles.statLine}>
+          Net ELO{" "}
+          <Text style={[styles.statValue, eloNet != null && eloNet > 0 && styles.statValueHighlight]}>
+            {eloNet == null ? "—" : signed(eloNet)}
+          </Text>
         </Text>
-      ) : null}
-    </View>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  divider = false,
-  highlight = false,
-}: {
-  label: string;
-  value: string;
-  divider?: boolean;
-  highlight?: boolean;
-}) {
-  return (
-    <View style={[styles.stat, divider && styles.statDivider]}>
-      <Text
-        adjustsFontSizeToFit
-        minimumFontScale={0.8}
-        numberOfLines={1}
-        style={[styles.statValue, highlight && styles.statValueHighlight]}
-      >
-        {value}
-      </Text>
-      <Text numberOfLines={1} style={styles.statLabel}>
-        {label}
-      </Text>
+        <Text numberOfLines={1} style={[styles.statLine, styles.statLineRight]}>
+          Last played{" "}
+          <Text style={styles.statValue}>{summary.lastPlayedIso ? shortDay(summary.lastPlayedIso) : "—"}</Text>
+        </Text>
+      </View>
     </View>
   );
 }
@@ -159,107 +105,56 @@ function shortDay(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-const AVATAR = 46;
+const AVATAR = 38;
 
+// Compact court-flow card (Oct 15): one row with the series status in the
+// middle, a thin split bar, and one quiet line for net ELO and last played.
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: Layout.screenGutter,
     marginTop: Space.lg,
     overflow: "hidden",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderLight,
-    borderRadius: Radius.card,
-    backgroundColor: Colors.surface,
-  },
-  status: {
-    paddingHorizontal: Space.lg,
-    paddingTop: Space.lg,
-    alignItems: "center",
-  },
-  statusText: {
-    ...TextStyles.statSmall,
-    letterSpacing: 0.6,
-    textAlign: "center",
-    color: Colors.text,
+    borderWidth: 1,
+    borderColor: Colors.hairlineCard,
+    borderRadius: Radius.panel,
+    backgroundColor: Colors.panel,
   },
   scores: {
-    paddingHorizontal: Space.lg,
+    paddingHorizontal: Space.md,
     paddingTop: Space.md,
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: Space.lg,
+    alignItems: "center",
+    gap: Space.sm,
   },
-  side: {
-    flex: 1,
-    flexBasis: 0,
-    minWidth: 0,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: Space.md,
-  },
+  side: { flex: 1, flexBasis: 0, minWidth: 0, flexDirection: "row", alignItems: "center", gap: Space.sm },
   sideRight: { justifyContent: "flex-end" },
-  avatarColumn: { flexShrink: 0, alignItems: "center", gap: Space.xs },
-  avatarElo: {
-    ...TextStyles.metadata,
-    fontVariant: ["tabular-nums"],
-    color: Colors.muted,
-  },
   sideCopy: { flexShrink: 1, minWidth: 0 },
   sideCopyRight: { alignItems: "flex-end" },
-  sideLabel: {
-    ...TextStyles.labelSmall,
-    fontFamily: Typography.bodyBold,
-    letterSpacing: 1.2,
-    color: Colors.textSecondary,
-  },
+  sideLabel: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.textSecondary },
   sideLabelRight: { textAlign: "right" },
-  score: {
-    ...TextStyles.displayLarge,
-    fontFamily: Typography.headingBold,
-    fontVariant: ["tabular-nums"],
-    color: Colors.text,
-  },
+  score: { fontFamily: Typography.headingBold, fontSize: 32, lineHeight: 34, letterSpacing: -0.8, fontVariant: ["tabular-nums"], color: Colors.text },
   scoreLeader: { color: Colors.accent },
   scoreTrailing: { color: Colors.textSecondary },
-  bar: {
-    height: 6,
-    marginHorizontal: Space.lg,
-    marginTop: Space.lg,
-    marginBottom: Space.xl,
-    flexDirection: "row",
-    gap: 4,
-  },
-  barSegment: { borderRadius: 3 },
+  status: { width: 84, alignItems: "center" },
+  statusText: { fontFamily: Typography.headingSemiBold, fontSize: 14, lineHeight: 16, letterSpacing: 0.3, textTransform: "uppercase", textAlign: "center", color: Colors.text },
+  bar: { height: 4, marginHorizontal: Space.md, marginTop: Space.md, flexDirection: "row", gap: 3 },
+  barSegment: { borderRadius: 2 },
   barLeading: { backgroundColor: Colors.accent },
-  barNeutral: { backgroundColor: Colors.borderLight },
+  barNeutral: { backgroundColor: Colors.surfaceHigh },
   barTied: { backgroundColor: Colors.mutedDark },
   stats: {
+    height: 36,
+    marginTop: Space.md,
+    paddingHorizontal: Space.md,
     flexDirection: "row",
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.border,
-    backgroundColor: Colors.surfaceDark,
-  },
-  stat: {
-    flex: 1,
-    flexBasis: 0,
-    minWidth: 0,
     alignItems: "center",
-    paddingHorizontal: Space.sm,
-    paddingVertical: Space.md,
+    justifyContent: "space-between",
+    gap: Space.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.hairline,
   },
-  statDivider: { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: Colors.border },
-  statValue: {
-    ...TextStyles.stat,
-    fontVariant: ["tabular-nums"],
-    textAlign: "center",
-    color: Colors.text,
-  },
+  statLine: { flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.muted },
+  statLineRight: { textAlign: "right" },
+  statValue: { fontFamily: Typography.headingSemiBold, fontSize: 13, letterSpacing: 0, color: Colors.text, fontVariant: ["tabular-nums"] },
   statValueHighlight: { color: Colors.accent },
-  statLabel: {
-    ...TextStyles.labelSmall,
-    marginTop: 2,
-    textAlign: "center",
-    letterSpacing: 1,
-    color: Colors.muted,
-  },
 });

@@ -73,47 +73,50 @@ function Action({ action, primary = false }: { action: StickyAction; primary?: b
       ]}
     >
       {action.icon ? (
-        <Feather color={primary ? Colors.black : Colors.text} name={action.icon} size={16} />
+        <Feather color={primary ? Colors.background : Colors.text} name={action.icon} size={16} />
       ) : null}
-      <Text style={[styles.label, primary && styles.primaryLabel]}>{action.label}</Text>
+      <Text numberOfLines={1} style={[styles.label, primary && styles.primaryLabel]}>{action.label}</Text>
     </PressableScale>
   );
 }
 
+// Court-flow action bar: 4pt buttons, Inter bold uppercase labels, the page
+// background behind them and one hairline above.
 const styles = StyleSheet.create({
   wrap: {
     paddingTop: Space.md,
     paddingHorizontal: Layout.screenGutter,
     gap: Space.sm,
-    backgroundColor: Colors.surfaceDark,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.border,
+    backgroundColor: Colors.background,
+    borderTopWidth: 1,
+    borderTopColor: Colors.hairline,
   },
   // The buttons share the row equally and sit centred in it.
-  bar: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Space.md },
+  bar: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
   action: {
     flex: 1,
-    minHeight: 50,
+    minHeight: 52,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: Space.sm,
-    borderRadius: Radius.md,
+    borderRadius: Radius.button,
   },
   primary: { backgroundColor: Colors.accent, borderWidth: 1, borderColor: Colors.accent },
   light: { backgroundColor: Colors.text, borderWidth: 1, borderColor: Colors.text },
   iconAction: {
-    width: 50,
-    minHeight: 50,
+    width: 52,
+    minHeight: 52,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: Radius.md,
+    borderRadius: Radius.button,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderColor: Colors.hairlineChrome,
+    backgroundColor: Colors.panel,
   },
-  secondary: { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
-  label: { fontFamily: Typography.heading, fontSize: 11, color: Colors.text, letterSpacing: 1.25 },
-  primaryLabel: { color: Colors.black },
+  secondary: { backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
+  label: { flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 11.5, color: Colors.text, letterSpacing: 1.5, textTransform: "uppercase" },
+  primaryLabel: { color: Colors.background },
   disabled: { opacity: 0.45 },
 });

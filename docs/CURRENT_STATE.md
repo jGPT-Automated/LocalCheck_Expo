@@ -130,6 +130,36 @@ Each claim says which of these it is, because they are often confused:
   - Checked: `pnpm typecheck`, `pnpm test`, `pnpm check:design`, web export
     compiles. Not checked: a connected preview or phone screenshots (this
     session had no `.env.local` or test sign-in).
+- Second pass on the same branch (Oct 15, Jesse's feedback; frontend only,
+  **on a branch**, not on a device):
+  - Onboarding (`app/onboarding.tsx`): a welcome screen (check in, plan the
+    week, log games), then name + sport, then Pick your court on a map
+    (`components/onboarding/CourtPickerMap.tsx`: Mapbox static map fitted to
+    you and the 8 closest courts, tappable pins, zooms in when location or a
+    city comes back; math in `lib/courtPickerMapModel.ts` with tests), then
+    a full-screen auto check-in step with the privacy explanation (only the
+    150 m circle; turned on through `useAutoCheckIn().turnOn`), then alerts
+    (Turn on alerts / Not now). The auto check-in sheet no longer pops up
+    right after onboarding (`context/AutoCheckInContext.tsx`).
+  - Player profile: one button layout per friend state (not friends: Log
+    game | Add friend; they asked: Log game | Accept request; you asked:
+    Cancel request | Log game; friends: remove | Log game | Challenge). Log
+    game opens a sheet over the profile (`components/game/LogGameSheet.tsx`)
+    instead of jumping to Compete. Head to head card is one compact row with
+    the status in the middle; the existing sticky line still takes over on
+    scroll.
+  - Log game form moved to `components/game/LogGameForm.tsx` (Compete and
+    the profile sheet share it): no repeated "Log game" title, court first,
+    then the day, players, score; Hide score is no longer on the form (it
+    stays on the pending game); the form clears the tab bar via TabFloor.
+  - Busy times (`components/court/CourtBusyChart.tsx`, model
+    `lib/courtBusyModel.ts` with tests): hour-by-hour bars for any day a week
+    back to a week ahead; past hours from check-ins, later hours from planned
+    visits plus players signed up for games, now in orange. Top of the court
+    page's Live tab and Today in the expanded drawer. The Week heatmap stays.
+  - Drawer Here now shows time on court ("38m"), from the active check-in's
+    `checked_in_at` (now selected in `fetchActiveCheckIns`).
+  - `StickyActionBar` restyled to the court-flow buttons.
 - Expo SDK 54 patches on #67 (Oct 14, Jesse's OK in chat): `expo` 54.0.37,
   `expo-constants` 18.0.14, `expo-updates` 29.0.20. Lockfile also moves
   `@expo/cli` 54.0.27, `expo-file-system` 19.0.24 and

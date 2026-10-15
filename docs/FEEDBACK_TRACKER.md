@@ -32,6 +32,12 @@ point.
 | One button style everywhere (4pt, Inter bold, white primary, orange for live/check-in) | ✅ |
 | Notifications and Log game restyled to the same tokens | ✅ needs device check |
 | Connected preview / phone screenshots | ⬜ not done in this session (no env or sign-in) |
+| Onboarding: welcome, map court picker, auto check-in screen with privacy, no drawer | ✅ needs device check |
+| Profile: clear friend states (4 layouts), compact head to head | ✅ needs device check |
+| Log game from a profile opens a sheet, no jump to Compete | ✅ needs device check |
+| Log game form: one title, court then date, no Hide score, clears tab bar | ✅ needs device check |
+| Busy times chart (past check-ins + planned), drawer time on court | ✅ needs device check |
+| "Toggle local court off and can't get back in on the sign-in page" | ⬜ need repro steps from Jesse |
 
 ## 2026-10-10 — #67 second design pass (`codex/auto-check-in`)
 

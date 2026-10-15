@@ -29,6 +29,8 @@ export interface Player {
   visibility?: "public" | "friends" | "private";
   isLocalPlus?: boolean;
   friendIds?: string[];
+  /** Only on live rosters: when this check-in started, for time on court. */
+  checkedInAt?: string;
 }
 
 export type EloTier = "PLATINUM" | "GOLD" | "SILVER" | "BRONZE" | "UNRANKED";
