@@ -1,18 +1,11 @@
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import {
-  AccessibilityInfo,
-  ActivityIndicator,
-  Animated,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { AccessibilityInfo, Animated, StyleSheet, Text, View } from "react-native";
 
 import { CourtArt } from "@/components/court/CourtArt";
-import { LocalPill, MetricStrip, SportLabel } from "@/components/court/CourtParts";
-import { Colors } from "@/constants/colors";
+import { CheckInButton, LocalPill, MetricStrip, SportLabel } from "@/components/court/CourtParts";
+import { PressableScale } from "@/components/ui/PressableScale";
+import { Colors, Radius } from "@/constants/colors";
 import type { Court } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 
@@ -97,45 +90,24 @@ export function HomeCourtHero({
 
       <View style={styles.actions}>
         <Animated.View style={[styles.actionSlot, { transform: [{ scale: confirmationScale }] }]}>
-          <Pressable
-            accessibilityLabel={
-              isCheckedIn
-                ? `Check out of ${court.shortName || court.name}`
-                : `Check in to ${court.shortName || court.name}`
-            }
-            accessibilityRole="button"
-            accessibilityState={{ busy: isChecking, selected: isCheckedIn }}
-            disabled={isChecking}
+          <CheckInButton
+            busy={isChecking}
+            checkedIn={isCheckedIn}
+            courtName={court.shortName || court.name}
             onPress={onCheckIn}
-            style={({ pressed }) => [
-              styles.action,
-              isCheckedIn ? styles.checkedAction : styles.primaryAction,
-              pressed && styles.pressed,
-            ]}
-          >
-            {isChecking ? (
-              <ActivityIndicator color={isCheckedIn ? Colors.text : Colors.black} size="small" />
-            ) : (
-              <View style={styles.actionCopy}>
-                <Text style={[styles.actionText, isCheckedIn && styles.checkedActionText]}>
-                  {isCheckedIn ? "Checked in" : "Check in"}
-                </Text>
-                {isCheckedIn ? <Feather color={Colors.accent} name="check" size={14} /> : null}
-              </View>
-            )}
-          </Pressable>
+          />
         </Animated.View>
         <View style={styles.actionSlot}>
-          <Pressable
+          <PressableScale
             accessibilityHint="Opens the full court page"
             accessibilityLabel={`View ${court.shortName || court.name}`}
             accessibilityRole="button"
             onPress={onViewCourt}
-            style={({ pressed }) => [styles.action, styles.secondaryAction, pressed && styles.pressed]}
+            style={[styles.action, styles.secondaryAction]}
           >
             <Text style={styles.secondaryActionText}>View court</Text>
             <Feather color={Colors.text} name="arrow-right" size={14} />
-          </Pressable>
+          </PressableScale>
         </View>
       </View>
     </View>
@@ -148,7 +120,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 12,
     overflow: "hidden",
-    borderRadius: 20,
+    borderRadius: Radius.courtCard,
     borderWidth: 1,
     borderColor: Colors.hairlineCard,
     backgroundColor: Colors.sheet,
@@ -169,28 +141,15 @@ const styles = StyleSheet.create({
   place: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
   actions: { flexDirection: "row", gap: 10, padding: 14 },
   actionSlot: { flex: 1 },
-  actionCopy: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
   action: {
-    width: "100%",
-    height: 46,
-    borderRadius: 4,
+    height: 50,
+    borderRadius: Radius.button,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
-  primaryAction: { backgroundColor: Colors.accent },
-  checkedAction: { borderWidth: 1.5, borderColor: Colors.accentBorderStrong, backgroundColor: Colors.surfaceDark },
   secondaryAction: { backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
-  pressed: { opacity: 0.76, transform: [{ scale: 0.985 }] },
-  actionText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
-    color: Colors.background,
-  },
-  checkedActionText: { color: Colors.accent },
   secondaryActionText: {
     fontFamily: Typography.bodyBold,
     fontSize: 11,

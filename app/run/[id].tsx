@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { ScreenHeader } from "@/components/ScreenHeader";
+import { MetricStrip, SportLabel } from "@/components/court/CourtParts";
 import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
 import {
   formatForMaxPlayers,
@@ -20,8 +20,8 @@ import {
 } from "@/components/schedule/scheduledGameModel";
 import { Colors, Radius } from "@/constants/colors";
 import { formatClockTime } from "@/components/home/homePresentation";
-import { getSportColor, type CourtSport, type Player } from "@/constants/data";
-import { TextStyles, Typography } from "@/constants/typography";
+import type { CourtSport, Player } from "@/constants/data";
+import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useRealtimeHub } from "@/context/RealtimeHubContext";
 import { batchHasResource, type RealtimeTopic } from "@/lib/realtimeHub";
@@ -34,7 +34,7 @@ export default function RunScreen() {
   const { runs, joinRun, leaveRun, cancelRun, currentUser, refreshRuns, getFriendsList } =
     useApp();
   const realtimeHub = useRealtimeHub();
-  const { bottom } = useSafeAreaInsets();
+  const { top, bottom } = useSafeAreaInsets();
   const [joining, setJoining] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [cancelArmed, setCancelArmed] = useState(false);
@@ -62,7 +62,6 @@ export default function RunScreen() {
     );
   }
 
-  const sportColor = getSportColor(run.sport);
   const total = run.participants.length;
   const max = run.maxPlayers;
   const spotsLeft = Math.max(0, max - total);
@@ -148,12 +147,66 @@ export default function RunScreen() {
     if (ok) setInvitedIds((ids) => [...ids, friendId]);
   };
 
+  const avgElo = total > 0
+    ? Math.round(run.participants.reduce((sum, player) => sum + player.elo, 0) / total)
+    : null;
+  const segments = Math.min(max, 12);
+  const filledSegments = Math.round((total / Math.max(max, 1)) * segments);
+  const whenLabel = `${
+    run.date === "TODAY"
+      ? "Today"
+      : run.date === "TOMORROW"
+        ? "Tomorrow"
+        : new Date(run.startTimeIso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+  } · ${formatClockTime(run.time)}`;
+  const details: Array<[string, string]> = [
+    ["Teams", run.teamAssignmentMode === "elo_balance"
+      ? teamsAreAssigned ? "ELO balance · locked" : "ELO balance · set when full"
+      : "Choose teams · pick a side"],
+    ["Level", run.skillLevel.charAt(0) + run.skillLevel.slice(1).toLowerCase()],
+    ["Where", run.courtName],
+    ["Host", run.hostName || "Court local"],
+  ];
+  const renderPlayer = (player: Player, compact = false) => (
+    <Pressable
+      accessibilityRole="button"
+      key={player.id}
+      onPress={() => router.push(`/player/${player.id}`)}
+      style={({ pressed }) => [styles.personRow, pressed && styles.rowPressed]}
+    >
+      <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={34} />
+      <View style={styles.personBody}>
+        <View style={styles.personNameRow}>
+          <Text numberOfLines={1} style={styles.personName}>
+            {compact ? player.name.split(" ")[0] : player.name}
+          </Text>
+          {player.id === run.hostId ? (
+            <View style={styles.hostTag}><Text style={styles.hostTagText}>Host</Text></View>
+          ) : null}
+        </View>
+        {compact ? null : <Text style={styles.personSub}>{player.wins}–{player.losses}</Text>}
+      </View>
+      <Text style={styles.personElo}>{player.elo}</Text>
+    </Pressable>
+  );
+
   return (
     <View style={styles.container}>
-      <ScreenHeader
-        title={`${run.courtShortName.toUpperCase()} · ${format}`}
-        onBack={() => router.back()}
-      />
+      <View style={[styles.nav, { paddingTop: Platform.OS === "web" ? 44 : top }]}>
+        <View style={styles.navRow}>
+          <Pressable
+            accessibilityLabel="Back"
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)")}
+            style={styles.back}
+          >
+            <Feather color={Colors.text} name="arrow-left" size={22} />
+          </Pressable>
+          <Text numberOfLines={1} style={styles.navTitle}>{run.courtShortName}</Text>
+          <View style={styles.back} />
+        </View>
+      </View>
       <ScrollView
         contentContainerStyle={[
           styles.contentContainer,
@@ -163,57 +216,36 @@ export default function RunScreen() {
         showsVerticalScrollIndicator={false}
         style={styles.content}
       >
-        <View style={styles.factsRow}>
-          <View style={styles.factItem}>
-            <Feather color={Colors.accent} name="clock" size={14} />
-            <View style={styles.factCopy}>
-              <Text style={styles.factLabel}>WHEN</Text>
-              <Text numberOfLines={1} style={styles.factValue}>{run.date} · {formatClockTime(run.time)}</Text>
-            </View>
-          </View>
-          <View style={[styles.factItem, styles.factBorder]}>
-            <Feather color={Colors.accent} name="map-pin" size={14} />
-            <View style={styles.factCopy}>
-              <Text style={styles.factLabel}>LOCATION</Text>
-              <Text numberOfLines={1} style={styles.factValue}>{run.courtShortName}</Text>
-            </View>
-          </View>
+        <View style={styles.titleBlock}>
+          <SportLabel sport={run.sport} suffix={format} />
+          <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={2} style={styles.title}>
+            {run.title}
+          </Text>
+          <Text style={styles.when}>{whenLabel}</Text>
+          <Text numberOfLines={1} style={styles.where}>{run.courtName}</Text>
         </View>
 
-        {/* Creator gets its own full-width line so the badge stops eating
-            into player names in the roster below. */}
-        <View style={styles.creatorRow}>
-          <Feather color={Colors.accent} name="award" size={13} />
-          <Text style={styles.creatorRowText}>
-            CREATED BY {(run.hostName || "COURT LOCAL").toUpperCase()}
+        <MetricStrip
+          cells={[
+            { label: "Going", value: `${total}/${max}` },
+            { label: "Avg ELO", value: avgElo ?? "—" },
+            { label: "Format", value: format.toLowerCase() },
+          ]}
+        />
+
+        <View style={styles.spots}>
+          <View style={styles.spotBar}>
+            {Array.from({ length: segments }).map((_, index) => (
+              <View key={index} style={[styles.spot, index < filledSegments && styles.spotFilled]} />
+            ))}
+          </View>
+          <Text style={styles.spotLabel}>
+            {isFull ? "Full" : `${spotsLeft} ${spotsLeft === 1 ? "spot" : "spots"} left`}
           </Text>
         </View>
 
-        <View style={styles.rosterArea}>
-          <View style={[styles.teamHeader, { borderBottomColor: sportColor }]}>
-            <Text style={styles.teamLabel}>GAME ROSTER</Text>
-            <Text style={styles.goingCount}>GOING {total}/{max}</Text>
-          </View>
-          <View style={styles.teamModeBanner}>
-            <Feather
-              name={run.teamAssignmentMode === "elo_balance" ? "shuffle" : "users"}
-              size={15}
-              color={Colors.accent}
-            />
-            <View style={styles.teamModeCopy}>
-              <Text style={styles.teamModeTitle}>
-                {run.teamAssignmentMode === "elo_balance" ? "ELO BALANCE" : "CHOOSE TEAMS"}
-              </Text>
-              <Text style={styles.teamModeDescription}>
-                {run.teamAssignmentMode === "elo_balance"
-                  ? teamsAreAssigned
-                    ? "Teams are balanced and locked for this game."
-                    : "Teams appear when the roster fills."
-                  : "Players claim Side A or Side B when joining."}
-              </Text>
-            </View>
-          </View>
-
+        <View style={styles.section}>
+          <Text style={styles.eyebrow}>Who's going</Text>
           {showTeamColumns ? (
             <View style={styles.teamColumns}>
               {(["a", "b"] as const).map((side) => {
@@ -222,83 +254,52 @@ export default function RunScreen() {
                 return (
                   <View key={side} style={styles.teamColumn}>
                     <View style={styles.sideHeading}>
-                      <Text style={styles.sideHeadingText}>SIDE {side.toUpperCase()}</Text>
+                      <Text style={styles.sideHeadingText}>Side {side.toUpperCase()}</Text>
                       <Text style={styles.sideCount}>{players.length}/{teamSize}</Text>
                     </View>
-                    {players.map((player) => (
-                      <View key={player.id} style={styles.playerSlot}>
-                        <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={34} />
-                        <View style={styles.playerIdentity}>
-                          <View style={styles.playerNameRow}>
-                            {player.id === run.hostId ? (
-                              <Feather color={Colors.accent} name="award" size={11} />
-                            ) : null}
-                            <Text numberOfLines={1} style={styles.slotName}>{player.name.split(" ")[0]}</Text>
-                          </View>
-                          <Text style={styles.slotElo}>{player.elo} ELO</Text>
-                        </View>
-                      </View>
-                    ))}
+                    {players.map((player) => renderPlayer(player, true))}
                     {Array.from({ length: open }).map((_, index) => (
-                      <View key={`${side}-open-${index}`} style={[styles.playerSlot, styles.openSlot]}>
-                        <View style={styles.openAvatar}><Feather color={Colors.mutedDark} name="plus" size={16} /></View>
-                        <View>
-                          <Text style={styles.openSlotName}>OPEN SPOT</Text>
-                          <Text style={styles.slotElo}>SIDE {side.toUpperCase()}</Text>
-                        </View>
+                      <View key={`${side}-open-${index}`} style={styles.personRow}>
+                        <View style={styles.openAvatar}><Feather color={Colors.mutedDark} name="plus" size={14} /></View>
+                        <Text style={styles.openText}>Open spot</Text>
                       </View>
                     ))}
                   </View>
                 );
               })}
             </View>
+          ) : total > 0 ? (
+            run.participants.map((player) => renderPlayer(player))
           ) : (
-            <View style={styles.neutralRoster}>
-              {run.participants.map((player) => (
-                <View key={player.id} style={[styles.playerSlot, styles.neutralPlayerSlot]}>
-                  <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={34} />
-                  <View style={styles.playerIdentity}>
-                    <View style={styles.playerNameRow}>
-                      {player.id === run.hostId ? (
-                        <Feather color={Colors.accent} name="award" size={11} />
-                      ) : null}
-                      <Text numberOfLines={1} style={styles.slotName}>{player.name.split(" ")[0]}</Text>
-                    </View>
-                    <Text style={styles.slotElo}>{player.elo} ELO</Text>
-                  </View>
-                </View>
-              ))}
-              {Array.from({ length: spotsLeft }).map((_, index) => (
-                <View key={`open-${index}`} style={[styles.playerSlot, styles.neutralPlayerSlot, styles.openSlot]}>
-                  <View style={styles.openAvatar}><Feather color={Colors.mutedDark} name="plus" size={16} /></View>
-                  <View>
-                    <Text style={styles.openSlotName}>OPEN SPOT</Text>
-                    <Text style={styles.slotElo}>JOIN TO CLAIM</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
+            <Text style={styles.emptyLine}>Nobody yet. Join and you're first.</Text>
           )}
         </View>
 
+        <View style={styles.detailsCard}>
+          {details.map(([key, value], index) => (
+            <View key={key} style={[styles.detailRow, index > 0 && styles.detailDivider]}>
+              <Text style={styles.detailKey}>{key}</Text>
+              <Text numberOfLines={2} style={styles.detailValue}>{value}</Text>
+            </View>
+          ))}
+        </View>
+
         {isHost && !hasStarted && inviteableFriends.length > 0 ? (
-          <View style={styles.inviteSection}>
-            <Text style={styles.resultLabel}>INVITE FRIENDS</Text>
+          <View style={styles.section}>
+            <Text style={styles.eyebrow}>Invite friends</Text>
             {inviteableFriends.slice(0, 2).map((friend) => {
               const invited = invitedIds.includes(friend.id);
               return (
-                <View key={friend.id} style={styles.inviteRow}>
-                  <PlayerAvatar initials={friend.avatar} name={friend.name} playerId={friend.id} size={32} />
-                  <Text style={styles.inviteName} numberOfLines={1}>{friend.name.toUpperCase()}</Text>
-                  <Pressable
-                    style={[styles.inviteButton, invited && styles.inviteButtonDone]}
-                    onPress={() => void handleInvite(friend.id)}
+                <View key={friend.id} style={styles.personRow}>
+                  <PlayerAvatar initials={friend.avatar} name={friend.name} playerId={friend.id} size={34} />
+                  <Text style={[styles.personName, styles.personBody]} numberOfLines={1}>{friend.name}</Text>
+                  <BrutalistButton
                     disabled={invited || invitingId === friend.id}
-                  >
-                    <Text style={[styles.inviteButtonText, invited && styles.inviteButtonTextDone]}>
-                      {invited ? "INVITED" : invitingId === friend.id ? "SENDING…" : "INVITE"}
-                    </Text>
-                  </Pressable>
+                    label={invited ? "Invited" : invitingId === friend.id ? "Sending…" : "Invite"}
+                    onPress={() => void handleInvite(friend.id)}
+                    size="xs"
+                    variant={invited ? "dark" : "outline"}
+                  />
                 </View>
               );
             })}
@@ -308,14 +309,14 @@ export default function RunScreen() {
         {/* The scheduled game owns its result. Only its creator enters teams and
             score; every participant then receives the shared review state. */}
         {resultAction.kind !== "none" ? (
-          <View style={styles.resultSection}>
-            <Text style={styles.resultLabel}>
-              {resultAction.kind === "submit" ? "GAME DONE? SUBMIT THE RESULT" : "RESULT STATUS"}
+          <View style={styles.section}>
+            <Text style={styles.eyebrow}>
+              {resultAction.kind === "submit" ? "Game done? Submit the result" : "Result status"}
             </Text>
             <View style={styles.resultButtons}>
               {resultAction.kind === "submit" ? (
                 <BrutalistButton
-                  label="SUBMIT RESULT"
+                  label="Submit result"
                   onPress={() => setShowResult(true)}
                   variant="accent"
                   style={styles.resultBtn}
@@ -323,16 +324,16 @@ export default function RunScreen() {
                 />
               ) : resultAction.kind === "review" ? (
                 <BrutalistButton
-                  label="VIEW RESULT"
+                  label="View result"
                   onPress={() => router.push(`/match/${resultAction.matchId}`)}
-                  variant="accent"
+                  variant="primary"
                   style={styles.resultBtn}
                   testID="view-result-btn"
                 />
               ) : (
                 <View style={styles.awaitingResult}>
                   <Text style={styles.awaitingResultTitle}>
-                    {resultAction.kind === "submitted" ? "RESULT SUBMITTED" : "WAITING ON THE CREATOR"}
+                    {resultAction.kind === "submitted" ? "Result submitted" : "Waiting on the creator"}
                   </Text>
                   <Text style={styles.awaitingResultCopy}>
                     {resultAction.kind === "submitted"
@@ -344,24 +345,18 @@ export default function RunScreen() {
             </View>
           </View>
         ) : isHost ? (
-          <View style={styles.resultSection}>
-            <Text style={styles.resultLabel}>MANAGE THIS GAME</Text>
+          <View style={styles.section}>
+            <Text style={styles.eyebrow}>Manage this game</Text>
             <View style={styles.resultButtons}>
               <BrutalistButton
-                label="EDIT GAME"
+                label="Edit game"
                 onPress={() => setShowEdit(true)}
-                variant="outline"
+                variant="dark"
                 style={styles.resultBtn}
                 testID="edit-run-btn"
               />
               <BrutalistButton
-                label={
-                  cancelling
-                    ? "CANCELLING…"
-                    : cancelArmed
-                      ? "TAP TO CONFIRM"
-                      : "CANCEL GAME"
-                }
+                label={cancelling ? "Cancelling…" : cancelArmed ? "Tap to confirm" : "Cancel game"}
                 onPress={() => void handleCancelGame()}
                 variant="outline"
                 disabled={cancelling}
@@ -399,7 +394,7 @@ export default function RunScreen() {
       />
 
       <View style={[styles.footer, { paddingBottom: (Platform.OS === "web" ? 34 : bottom) + 12 }]}>
-        {joinError && <Text style={styles.joinError}>SOMETHING WENT WRONG — TRY AGAIN</Text>}
+        {joinError && <Text style={styles.joinError}>Something went wrong. Try again.</Text>}
         {run.teamAssignmentMode === "choose_teams" && !isJoined && !isFull ? (
           <View style={styles.joinSideRow}>
             {(["a", "b"] as const).map((side) => {
@@ -407,11 +402,12 @@ export default function RunScreen() {
               return (
                 <BrutalistButton
                   key={side}
-                  label={`JOIN SIDE ${side.toUpperCase()}`}
+                  label={`Join side ${side.toUpperCase()}`}
                   onPress={() => void handleJoin(side)}
-                  variant={side === "a" ? "accent" : "outline"}
+                  variant={side === "a" ? "primary" : "dark"}
                   disabled={sideIsFull || joining}
                   loading={joining}
+                  size="lg"
                   style={styles.joinSideButton}
                   testID={`join-run-${side}`}
                 />
@@ -423,21 +419,23 @@ export default function RunScreen() {
           <View style={styles.joinSideRow}>
             {run.teamAssignmentMode === "choose_teams" && mySide ? (
               <BrutalistButton
-                label={`MOVE TO SIDE ${mySide === "a" ? "B" : "A"}`}
+                label={`Move to side ${mySide === "a" ? "B" : "A"}`}
                 onPress={() => void handleSwitchSide()}
-                variant="outline"
+                variant="dark"
                 disabled={joining || leaving}
                 loading={joining}
+                size="lg"
                 style={styles.joinSideButton}
                 testID="switch-run-side"
               />
             ) : null}
             <BrutalistButton
-              label={leaving ? "LEAVING…" : "LEAVE GAME"}
+              label={leaving ? "Leaving…" : "You're in · Leave"}
               onPress={() => void handleLeave()}
               variant="outline"
               disabled={joining || leaving}
               loading={leaving}
+              size="lg"
               style={
                 run.teamAssignmentMode === "choose_teams" && mySide
                   ? styles.joinSideButton
@@ -448,11 +446,12 @@ export default function RunScreen() {
           </View>
         ) : (
           <BrutalistButton
-            label={isJoined ? "YOU'RE GOING" : isFull ? "GAME FULL" : joining ? "JOINING…" : "JOIN GAME"}
+            label={isJoined ? "You're going" : isFull ? "Game full" : joining ? "Joining…" : "Join game"}
             onPress={() => void handleJoin()}
-            variant={isJoined ? "outline" : "accent"}
+            variant={isJoined ? "outline" : "primary"}
             disabled={isFull && !isJoined}
             loading={joining}
+            size="lg"
             style={{ flex: 1 }}
             testID="join-run-btn"
           />
@@ -660,78 +659,56 @@ function SubmitRunResultSheet({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   content: { flex: 1, minHeight: 0 },
-  contentContainer: {},
-  notFound: { flex: 1, justifyContent: "center", alignItems: "center", gap: 20, padding: 40 },
+  contentContainer: { paddingTop: 8, gap: 18 },
+  notFound: { flex: 1, justifyContent: "center", alignItems: "center", gap: 20, padding: 40, backgroundColor: Colors.background },
   notFoundText: { fontFamily: Typography.heading, fontSize: 24, color: Colors.text, letterSpacing: 2 },
-  factsRow: { flexDirection: "row", borderBottomWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface },
-  factItem: { flex: 1, minHeight: 68, flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 10, gap: 9 },
-  factCopy: { flex: 1, minWidth: 0, gap: 2 },
-  factBorder: { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: Colors.border },
-  factLabel: { ...TextStyles.labelSmall, color: Colors.muted, letterSpacing: 0.8 },
-  factValue: { ...TextStyles.caption, color: Colors.text },
-  rosterArea: { backgroundColor: Colors.background },
-  teamHeader: { width: "100%", minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: 3, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: Colors.surface },
-  teamLabel: { fontFamily: Typography.heading, fontSize: 13, color: Colors.text, letterSpacing: 3 },
-  goingCount: { ...TextStyles.label, color: Colors.accent, letterSpacing: 0.6 },
-  teamModeBanner: { minHeight: 54, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.surfaceHigh },
-  teamModeCopy: { flex: 1, minWidth: 0 },
-  teamModeTitle: { ...TextStyles.labelSmall, color: Colors.text, letterSpacing: 1.1 },
-  teamModeDescription: { marginTop: 2, fontFamily: Typography.body, fontSize: 11, lineHeight: 15, color: Colors.textSecondary },
-  teamColumns: { flexDirection: "row", alignItems: "stretch" },
-  teamColumn: { width: "50%", borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: Colors.border },
-  sideHeading: { minHeight: 34, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.surface },
-  sideHeadingText: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.text, letterSpacing: 1 },
-  sideCount: { fontFamily: Typography.bodySemiBold, fontSize: 10, color: Colors.accent },
-  neutralRoster: { flexDirection: "row", flexWrap: "wrap" },
-  playerSlot: { width: "100%", minHeight: 62, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderColor: Colors.border },
-  neutralPlayerSlot: { width: "50%", borderRightWidth: StyleSheet.hairlineWidth },
-  playerIdentity: { flex: 1, minWidth: 0 },
-  playerNameRow: { flexDirection: "row", alignItems: "center", gap: 5, minWidth: 0 },
-  slotName: { ...TextStyles.listName, color: Colors.text, flexShrink: 1 },
-  creatorRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.surface,
-  },
-  creatorRowText: {
-    ...TextStyles.labelSmall,
-    color: Colors.textSecondary,
-    letterSpacing: 1,
-  },
-  cancelHint: {
-    marginTop: 8,
-    fontFamily: Typography.body,
-    fontSize: 11,
-    lineHeight: 15,
-    color: Colors.muted,
-  },
-  slotElo: { ...TextStyles.caption, color: Colors.muted, marginTop: 1 },
-  openSlot: { borderStyle: "dashed", opacity: 0.72 },
-  openAvatar: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderWidth: 1, borderStyle: "dashed", borderColor: Colors.border, borderRadius: Radius.sm },
-  openSlotName: { ...TextStyles.labelSmall, color: Colors.textSecondary },
-  resultSection: { paddingHorizontal: 20, paddingTop: 14 },
-  resultLabel: { fontFamily: Typography.heading, fontSize: 13, color: Colors.text, letterSpacing: 3, borderBottomWidth: 1, borderColor: Colors.border, paddingBottom: 10, marginBottom: 12, textTransform: "uppercase" as const },
-  resultButtons: { flexDirection: "row", gap: 10 },
+  nav: { backgroundColor: Colors.background },
+  navRow: { height: 44, paddingLeft: 12, paddingRight: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  back: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
+  navTitle: { flex: 1, textAlign: "center", fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.muted },
+  titleBlock: { paddingHorizontal: 20, gap: 8 },
+  title: { fontFamily: Typography.headingBold, fontSize: 40, lineHeight: 40, letterSpacing: -1.4, textTransform: "uppercase", color: Colors.text },
+  when: { fontFamily: Typography.bodySemiBold, fontSize: 13, color: Colors.inkSoft },
+  where: { fontFamily: Typography.bodyMedium, fontSize: 11.5, color: Colors.textSecondary },
+  spots: { paddingHorizontal: 20, gap: 6 },
+  spotBar: { flexDirection: "row", gap: 3 },
+  spot: { flex: 1, height: 6, borderRadius: 2, backgroundColor: "rgba(242,242,246,0.1)" },
+  spotFilled: { backgroundColor: Colors.inkSoft },
+  spotLabel: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
+  section: { paddingHorizontal: 20 },
+  eyebrow: { paddingBottom: 4, fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
+  personRow: { minHeight: 54, flexDirection: "row", alignItems: "center", gap: 10, borderBottomWidth: 1, borderBottomColor: "rgba(242,242,246,0.06)" },
+  rowPressed: { backgroundColor: Colors.surface },
+  personBody: { flex: 1, minWidth: 0, gap: 2 },
+  personNameRow: { flexDirection: "row", alignItems: "center", gap: 6, minWidth: 0 },
+  personName: { flexShrink: 1, fontFamily: Typography.bodySemiBold, fontSize: 13, color: Colors.text },
+  personSub: { fontFamily: Typography.bodyMedium, fontSize: 10, color: Colors.muted },
+  personElo: { flexShrink: 0, fontFamily: Typography.headingSemiBold, fontSize: 17, letterSpacing: -0.5, color: Colors.text, fontVariant: ["tabular-nums"] },
+  hostTag: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, borderWidth: 1, borderColor: Colors.hairlineChrome },
+  hostTagText: { fontFamily: Typography.bodyBold, fontSize: 7, letterSpacing: 0.9, textTransform: "uppercase", color: Colors.inkSoft },
+  teamColumns: { flexDirection: "row", gap: 14 },
+  teamColumn: { flex: 1, flexBasis: 0, minWidth: 0 },
+  sideHeading: { height: 30, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: 1, borderBottomColor: Colors.hairline },
+  sideHeadingText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.text },
+  sideCount: { fontFamily: Typography.bodySemiBold, fontSize: 10, color: Colors.muted },
+  openAvatar: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderWidth: 1, borderStyle: "dashed", borderColor: Colors.dashed, borderRadius: 10 },
+  openText: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.muted },
+  emptyLine: { paddingVertical: 12, fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
+  detailsCard: { marginHorizontal: 20, overflow: "hidden", borderRadius: Radius.panel, borderWidth: 1, borderColor: Colors.hairlineCard, backgroundColor: Colors.panel },
+  detailRow: { minHeight: 50, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 14 },
+  detailDivider: { borderTopWidth: 1, borderTopColor: Colors.hairline },
+  detailKey: { flexShrink: 0, fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.muted },
+  detailValue: { flexShrink: 1, textAlign: "right", fontFamily: Typography.bodyMedium, fontSize: 12.5, color: Colors.text },
+  cancelHint: { marginTop: 8, fontFamily: Typography.body, fontSize: 11, lineHeight: 15, color: Colors.muted },
+  resultButtons: { flexDirection: "row", gap: 10, paddingTop: 8 },
   resultBtn: { flex: 1 },
-  awaitingResult: { flex: 1, padding: 16, borderRadius: Radius.md, backgroundColor: Colors.surface, alignItems: "center" },
-  awaitingResultTitle: { fontFamily: Typography.heading, fontSize: 15, color: Colors.text, letterSpacing: 1 },
+  awaitingResult: { flex: 1, padding: 16, borderRadius: Radius.row, borderWidth: 1, borderColor: Colors.hairlineCard, backgroundColor: Colors.panel, alignItems: "center" },
+  awaitingResultTitle: { fontFamily: Typography.headingSemiBold, fontSize: 15, color: Colors.text, letterSpacing: 0.5, textTransform: "uppercase" },
   awaitingResultCopy: { marginTop: 4, fontFamily: Typography.body, fontSize: 12, lineHeight: 17, color: Colors.muted, textAlign: "center" },
-  inviteSection: { paddingHorizontal: 20, paddingTop: 12 },
-  inviteRow: { minHeight: 52, flexDirection: "row", alignItems: "center", gap: 10, borderBottomWidth: 1, borderBottomColor: Colors.borderSubtle },
-  inviteName: { flex: 1, fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.text, letterSpacing: 0.4 },
-  inviteButton: { minWidth: 70, minHeight: 30, paddingHorizontal: 10, alignItems: "center", justifyContent: "center", borderRadius: Radius.xs, borderWidth: 1, borderColor: Colors.accent },
-  inviteButtonDone: { borderColor: Colors.border, backgroundColor: Colors.surfaceHigh },
-  inviteButtonText: { fontFamily: Typography.bodyBold, fontSize: 8, color: Colors.accent, letterSpacing: 0.8 },
-  inviteButtonTextDone: { color: Colors.muted },
-  footer: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingTop: 12, backgroundColor: Colors.surface, borderTopWidth: 1, borderColor: Colors.border },
+  footer: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingTop: 12, backgroundColor: Colors.background, borderTopWidth: 1, borderColor: Colors.hairline },
   joinSideRow: { flexDirection: "row", gap: 10 },
   joinSideButton: { flex: 1 },
-  joinError: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.loss, letterSpacing: 1.5, textAlign: "center", marginBottom: 8 },
+  joinError: { fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.loss, textAlign: "center", marginBottom: 8 },
 
   editHelper: { fontFamily: Typography.body, fontSize: 13, lineHeight: 19, color: Colors.textSecondary },
   editLabel: {

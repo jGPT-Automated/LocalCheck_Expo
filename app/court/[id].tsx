@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import React from "react";
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CourtSchedulePanel } from "@/components/CourtSchedulePanel";
@@ -10,7 +10,7 @@ import { SectionHeader } from "@/components/ScreenHeader";
 import { CourtArt } from "@/components/court/CourtArt";
 import { CourtGamesPanel } from "@/components/court/CourtGamesPanel";
 import { CourtInfoPanel } from "@/components/court/CourtInfoPanel";
-import { CourtTabBar, LiveDot, LocalPill, MetricStrip, SportLabel } from "@/components/court/CourtParts";
+import { CheckInButton, CourtTabBar, LocalPill, MetricStrip, SportLabel } from "@/components/court/CourtParts";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { GameResultModal } from "@/components/ui/GameResultModal";
 import { PersonTile } from "@/components/ui/PersonTile";
@@ -62,7 +62,7 @@ const COURT_FEED_RESOURCES = ["activity_events", "activity_event_likes"] as cons
 const FEED_PAGE = 12;
 
 export default function CourtProfileScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const {
     courts,
     localCourtId,
@@ -81,7 +81,10 @@ export default function CourtProfileScreen() {
   const { showToast } = useToast();
   const hasLocalPlus = useLocalPlus();
   const courtId = id ? String(id) : null;
-  const [activeTab, setActiveTab] = React.useState<CourtTab>("live");
+  // The drawer's Games / Players / Feed / Week chips open the page on that tab.
+  const [activeTab, setActiveTab] = React.useState<CourtTab>(
+    COURT_TABS.some((item) => item.value === tab) ? (tab as CourtTab) : "live",
+  );
   const [feedFilter, setFeedFilter] = React.useState<FeedFilter>("all");
   const [isChecking, setIsChecking] = React.useState(false);
   const [court, setCourt] = React.useState<Court | null>(
@@ -408,25 +411,16 @@ export default function CourtProfileScreen() {
         >
           <Text style={styles.planText}>Plan visit</Text>
         </Pressable>
-        <Pressable
-          accessibilityLabel={isCheckedIn ? `Check out of ${court.shortName || court.name}` : `Check in to ${court.shortName || court.name}`}
-          accessibilityRole="button"
-          accessibilityState={{ busy: isChecking, selected: isCheckedIn }}
-          disabled={isChecking}
-          onPress={() => void handleCheckIn()}
-          style={({ pressed }) => [styles.barButton, isCheckedIn ? styles.checkOutButton : styles.checkInButton, pressed && styles.pressed]}
-        >
-          {isChecking ? (
-            <ActivityIndicator color={isCheckedIn ? Colors.text : Colors.black} size="small" />
-          ) : isCheckedIn ? (
-            <View style={styles.checkOutInner}>
-              <LiveDot />
-              <Text style={styles.checkOutText}>Check out</Text>
-            </View>
-          ) : (
-            <Text style={styles.checkInText}>Check in</Text>
-          )}
-        </Pressable>
+        <View style={styles.barSlot}>
+          <CheckInButton
+            busy={isChecking}
+            checkedIn={isCheckedIn}
+            checkedLabel="Check out"
+            courtName={court.shortName || court.name}
+            height={52}
+            onPress={() => void handleCheckIn()}
+          />
+        </View>
       </View>
 
       <GameResultModal
@@ -480,9 +474,9 @@ const styles = StyleSheet.create({
   emptyLine: { paddingHorizontal: 20, fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
   filters: { flexDirection: "row", gap: 6, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6 },
   chip: { height: 30, paddingHorizontal: 12, borderRadius: 999, justifyContent: "center", borderWidth: 1, borderColor: "rgba(242,242,246,0.12)" },
-  chipActive: { backgroundColor: Colors.text, borderColor: Colors.text },
+  chipActive: { backgroundColor: Colors.tile, borderColor: "rgba(242,242,246,0.2)" },
   chipText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.textSecondary },
-  chipTextActive: { color: Colors.background },
+  chipTextActive: { color: Colors.text },
   moreButton: { minHeight: 48, marginHorizontal: Layout.screenGutter, marginTop: Space.md, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Space.sm, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md },
   moreText: { fontFamily: Typography.bodyBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.2 },
   privateNote: { paddingHorizontal: Layout.screenGutter, paddingVertical: Space.md, fontFamily: Typography.bodyMedium, fontSize: 9, color: Colors.muted },
@@ -490,11 +484,7 @@ const styles = StyleSheet.create({
   barButton: { flex: 1, height: 52, borderRadius: 4, alignItems: "center", justifyContent: "center" },
   planButton: { backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
   planText: { fontFamily: Typography.bodyBold, fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", color: Colors.text },
-  checkInButton: { backgroundColor: Colors.accent },
-  checkInText: { fontFamily: Typography.bodyBold, fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", color: Colors.background },
-  checkOutButton: { borderWidth: 1.5, borderColor: Colors.accentBorderStrong, backgroundColor: Colors.surfaceDark },
-  checkOutInner: { flexDirection: "row", alignItems: "center", gap: 8 },
-  checkOutText: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.accent },
+  barSlot: { flex: 1 },
   empty: { minHeight: 72, paddingHorizontal: Layout.screenGutter, paddingVertical: Space.md, alignItems: "center", justifyContent: "center" },
   emptyTitle: { fontFamily: Typography.heading, fontSize: 16, color: Colors.text, textAlign: "center" },
   emptyBody: { maxWidth: 300, marginTop: Space.sm, fontFamily: Typography.body, fontSize: 11, lineHeight: 17, color: Colors.muted, textAlign: "center" },

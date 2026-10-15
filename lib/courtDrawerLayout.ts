@@ -2,14 +2,12 @@
 export const DRAWER_FULL_SHARE = 0.92;
 /** The court drawer's compact drag-handle row above the content. */
 export const DRAWER_HANDLE_HEIGHT = 12;
-/** VIEW ALL row under the detail area. */
-export const DRAWER_VIEW_ALL_HEIGHT = 44;
+/** Games / Players / Feed / Week chip row under the detail area (10 + 30). */
+export const DRAWER_VIEW_ALL_HEIGHT = 40;
 /** Used until the peek layer has been measured once. */
 export const DRAWER_PEEK_FALLBACK = 330;
 /** Never shrink the detail area below this (the paywall panel needs it). */
 export const DRAWER_DETAIL_MIN = 240;
-/** Most locals the drawer lists; VIEW ALL opens the rest. */
-export const DRAWER_LOCALS_MAX = 4;
 
 /**
  * Space under the last row of the drawer. The home indicator sits in the
@@ -37,19 +35,4 @@ export function drawerDetailHeight(input: {
     (input.showViewAll ? DRAWER_VIEW_ALL_HEIGHT : 0) + drawerFooterGap(input.bottomInset);
   const available = sheet - DRAWER_HANDLE_HEIGHT - peek - footer;
   return Math.max(DRAWER_DETAIL_MIN, Math.floor(available));
-}
-
-/**
- * How many local rows fit whole in the space left for them, so the drawer
- * never shows a row cut in half. At least 1 (when there is anyone), at most
- * DRAWER_LOCALS_MAX.
- */
-export function drawerLocalsThatFit(input: {
-  available: number;
-  rowHeight: number;
-  total: number;
-}): number {
-  if (input.total <= 0) return 0;
-  const fit = input.rowHeight > 0 ? Math.floor(input.available / input.rowHeight) : DRAWER_LOCALS_MAX;
-  return Math.min(input.total, DRAWER_LOCALS_MAX, Math.max(1, fit));
 }

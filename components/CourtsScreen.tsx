@@ -32,6 +32,7 @@ import { Court, CourtSport } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts } from "@/context/CourtPresenceContext";
+import { useCourtHours } from "@/hooks/useCourtHours";
 import { useDeviceLocation } from "@/context/DeviceLocationContext";
 import type { DeviceCoordinate } from "@/context/deviceLocationModel";
 import {
@@ -48,7 +49,6 @@ const COLLAPSED_LIMIT = 5;
 
 export function CourtsScreen() {
   const {
-    checkedInCourtId,
     visitCourt,
     preferredSport,
     localCourt,
@@ -236,7 +236,13 @@ export function CourtsScreen() {
     isSearchMode
       ? searchResults
       : nearbyCourts.filter((court) => court.id !== localCourtId)
-  ).map(withLiveCounts);
+  )
+    .map(withLiveCounts)
+    // Live first (most on court), then the original nearest-first order.
+    .map((court, index) => ({ court, index }))
+    .sort((a, b) => (b.court.activeCount ?? 0) - (a.court.activeCount ?? 0) || a.index - b.index)
+    .map(({ court }) => court);
+  const hoursFor = useCourtHours(countTargets.map((court) => court.id));
   const visibleCourts =
     isSearchMode || showAll ? listSource : listSource.slice(0, COLLAPSED_LIMIT);
 
@@ -329,10 +335,9 @@ export function CourtsScreen() {
               <Text style={styles.sectionLabel}>MY LOCAL COURT</Text>
               <CourtListItem
                 court={localCourtLive}
+                hoursLabel={hoursFor(localCourtLive.id)}
                 onPress={openCourt}
-                isCheckedIn={checkedInCourtId === localCourtLive.id}
                 isLocalCourt
-                featured
               />
             </View>
           )}
@@ -373,8 +378,9 @@ export function CourtsScreen() {
                 <CourtListItem
                   key={court.id}
                   court={court}
+                  hoursLabel={hoursFor(court.id)}
+                  isLocalCourt={court.id === localCourtId}
                   onPress={openCourt}
-                  isCheckedIn={checkedInCourtId === court.id}
                 />
               ))
             )}
@@ -544,17 +550,16 @@ const styles = StyleSheet.create({
     fontFamily: Typography.bodyBold,
     fontSize: 9,
     color: Colors.textSecondary,
-    letterSpacing: 2.2,
-    marginHorizontal: 16,
+    letterSpacing: 1.3,
+    marginHorizontal: 20,
     marginBottom: 8,
   },
   resultCount: {
-    marginRight: 16,
+    marginRight: 20,
     marginBottom: 8,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 8,
-    color: Colors.mutedDark,
-    letterSpacing: 1.2,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 10,
+    color: Colors.muted,
   },
   noLocalState: {
     marginHorizontal: 16,

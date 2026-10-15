@@ -2,14 +2,12 @@ import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
 import { BottomSheetView } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -17,45 +15,78 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AnimatedEntry } from "@/components/AnimatedEntry";
-import { BrutalistButton } from "@/components/BrutalistButton";
-import { LogoMark } from "@/components/brand/LogoMark";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { StatBlock } from "@/components/StatBlock";
-import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
-import { SportEmblem } from "@/components/ui/SportEmblem";
+import { CourtArt } from "@/components/court/CourtArt";
+import {
+  CheckInButton,
+  CourtLinkButton,
+  LocalPill,
+  MetricStrip,
+  SectionHead,
+  SportLabel,
+} from "@/components/court/CourtParts";
+import { formatForMaxPlayers } from "@/components/schedule/scheduledGameModel";
+import { PressableScale } from "@/components/ui/PressableScale";
 import { useToast } from "@/components/ui/Toast";
 import { Colors, Radius } from "@/constants/colors";
-import { Court, getSportColor } from "@/constants/data";
-import { Space } from "@/constants/layout";
+import type { Court, FeedItem, GameRun } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { usePresence } from "@/context/CourtPresenceContext";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
 import { useLocalPlusPurchase } from "@/hooks/useLocalPlusPurchase";
+import { describeTimelineItem } from "@/lib/activityPresentation";
+import { courtHours, formatCourtHours } from "@/lib/courtHours";
+import { drawerDetailHeight, drawerFooterGap } from "@/lib/courtDrawerLayout";
 import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
-import { isInactiveLocal, relativeTime } from "@/lib/localPresence";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/planModel";
-import {
-  DRAWER_LOCALS_MAX,
-  drawerDetailHeight,
-  drawerFooterGap,
-  drawerLocalsThatFit,
-} from "@/lib/courtDrawerLayout";
-import { fetchCourtById } from "@/services/courtService";
-import {
-  fetchLocalsWithLastCheckIn,
-  LocalWithLastCheckIn,
-} from "@/services/profileService";
+import { fetchCourtById, fetchCourtWeekSpans } from "@/services/courtService";
+import { fetchFeed } from "@/services/feedService";
+import { fetchCourtPlannedTimes } from "@/services/plannedVisitService";
+
+/** Today's planned visits in 2-hour slots, 7 AM to 11 PM (the design's bars). */
+const TODAY_SLOTS = [7, 9, 11, 13, 15, 17, 19, 21];
+const SLOT_SHORT = ["7a", "9a", "11a", "1p", "3p", "5p", "7p", "9p"];
+const SLOT_LONG = ["7 AM", "9 AM", "11 AM", "1 PM", "3 PM", "5 PM", "7 PM", "9 PM"];
+const HERE_MAX = 4;
+const DRAWER_CHIPS = [
+  { label: "Games", tab: "games" },
+  { label: "Players", tab: "players" },
+  { label: "Feed", tab: "live" },
+  { label: "Week", tab: "week" },
+] as const;
+
+function slotFor(date: Date): number {
+  const hour = date.getHours();
+  if (hour < TODAY_SLOTS[0]) return -1;
+  return Math.min(TODAY_SLOTS.length - 1, Math.floor((hour - TODAY_SLOTS[0]) / 2));
+}
+
+function dayShort(iso: string): string {
+  const date = new Date(iso);
+  const today = new Date();
+  if (date.toDateString() === today.toDateString()) return "Today";
+  return date.toLocaleDateString("en-US", { weekday: "short" });
+}
+
+function clock(iso: string): string {
+  const date = new Date(iso);
+  const h = date.getHours() % 12 === 0 ? 12 : date.getHours() % 12;
+  const m = date.getMinutes();
+  return m === 0 ? `${h}` : `${h}:${String(m).padStart(2, "0")}`;
+}
 
 /**
- * Court drawer content, rendered inside the root BottomSheetModal
- * (see CourtSheetHost). Peek layer (40% snap): name, distance, live stats,
- * CHECK IN. Full (92%): WHO'S HERE roster and up to 4 LOCALS, in a
- * fixed-height area that never scrolls and never cuts a row in half. VIEW ALL
- * opens the full court page (locals, pulling up, runs). Gated courts show the
- * LocalPlus panel over a blurred copy instead.
+ * Court drawer content (Claude Design court flow), rendered inside the root
+ * BottomSheetModal (CourtSheetHost). Two detents on one sheet:
+ *
+ * - Drawer: sport + Your local, the court name, city · distance, On court /
+ *   Court hours · wk / Locals, then Check in and Court ↗. Always free.
+ * - Expanded: Here now, Up next, Today (planned visits by hour) and Recent
+ *   activity in a fixed area that never scrolls, then Games / Players / Feed
+ *   / Week chips into the court page. A court that isn't your local, without
+ *   LocalPlus, shows that area blurred under the LocalPlus panel.
  *
  * `onNavigate` dismisses the sheet before any router.push so the pushed
  * screen isn't buried under the modal.
@@ -74,7 +105,7 @@ export function CourtSheetContent({
   onPeekHeight: (height: number) => void;
 }) {
   const {
-    courts, localCourt, checkIn, checkOut, checkedInCourtId,
+    courts, localCourt, checkIn, checkOut, checkedInCourtId, currentUser, runs,
     localCourtId, isFriend, setLocalCourt, pendingAutoCheckIn, hideAutoCheckIn,
   } = useApp();
   const { bottom } = useSafeAreaInsets();
@@ -83,26 +114,49 @@ export function CourtSheetContent({
   const { showToast } = useToast();
   const { height: windowHeight } = useWindowDimensions();
   const [peekHeight, setPeekHeight] = useState(0);
-  const [localsListHeight, setLocalsListHeight] = useState(0);
-  const [localRowHeight, setLocalRowHeight] = useState(0);
+  const [isChecking, setIsChecking] = useState(false);
 
   const cached =
     courts.find((c) => c.id === courtId) ??
     (localCourt?.id === courtId ? localCourt : null);
   const [court, setCourt] = useState<Court | null>(cached);
   const [courtMissing, setCourtMissing] = useState(false);
-  const [locals, setLocals] = useState<LocalWithLastCheckIn[]>([]);
+  const [hoursLabel, setHoursLabel] = useState("—");
+  const [today, setToday] = useState<number[]>(TODAY_SLOTS.map(() => 0));
+  const [recent, setRecent] = useState<FeedItem[]>([]);
   const { roster, localCount } = usePresence(courtId || null);
 
   useEffect(() => {
+    if (!courtId || court) return;
+    fetchCourtById(courtId)
+      .then((c) => (c ? setCourt(c) : setCourtMissing(true)))
+      .catch(() => setCourtMissing(true));
+  }, [courtId, court]);
+
+  useEffect(() => {
     if (!courtId) return;
-    if (!court) {
-      fetchCourtById(courtId)
-        .then((c) => (c ? setCourt(c) : setCourtMissing(true)))
-        .catch(() => setCourtMissing(true));
-    }
-    fetchLocalsWithLastCheckIn(courtId).then(setLocals);
-  }, [courtId, roster.length]); // re-pull locals when presence changes
+    let cancelled = false;
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    void Promise.all([
+      fetchCourtWeekSpans(courtId),
+      fetchCourtPlannedTimes(courtId, start, end),
+      fetchFeed(courtId, currentUser.id),
+    ]).then(([spans, planned, feed]) => {
+      if (cancelled) return;
+      setHoursLabel(formatCourtHours(courtHours(spans).hours));
+      const buckets = TODAY_SLOTS.map(() => 0);
+      planned.forEach((time) => {
+        const slot = slotFor(time);
+        if (slot >= 0) buckets[slot] += 1;
+      });
+      setToday(buckets);
+      setRecent(feed.slice(0, 3));
+    });
+    return () => { cancelled = true; };
+  }, [courtId, currentUser.id, roster.length]); // re-pull when presence changes
 
   const go = (path: string) => {
     onNavigate();
@@ -112,65 +166,75 @@ export function CourtSheetContent({
   if (!court) {
     return (
       <View style={styles.loading}>
-        <Text style={styles.emptyText}>
-          {courtMissing ? "COULDN'T LOAD THIS COURT" : "LOADING…"}
-        </Text>
+        <Text style={styles.emptyText}>{courtMissing ? "Couldn't load this court" : "Loading…"}</Text>
       </View>
     );
   }
 
+  const name = court.shortName || court.name;
   // An auto check-in waiting to post counts as checked in for the player.
   const waitingToPost = pendingAutoCheckIn?.courtId === court.id && checkedInCourtId !== court.id;
   const isCheckedIn = checkedInCourtId === court.id || waitingToPost;
   const isMyLocal = localCourtId === court.id;
-  // Same rule as app/court/[id].tsx's full-page gate — your own local court
-  // always stays free, every other court's player-level detail is LocalPlus.
+  // Same rule as the court page: your own local court is always free, every
+  // other court's player-level detail is LocalPlus.
   const gated = !isMyLocal && !hasLocalPlus;
-  // Same height for every court, sized to the expanded sheet.
+  const cooldown = getLocalCourtCooldown(hasLocalPlus, profile?.local_court_changed_at);
   const detailHeight = drawerDetailHeight({
     windowHeight,
     peekHeight,
     bottomInset: bottom,
     showViewAll: !gated,
   });
-  const cooldown = getLocalCourtCooldown(hasLocalPlus, profile?.local_court_changed_at);
-  const sportColor = getSportColor(court.sport);
   const activeCount = roster.length;
-  const shownLocals = locals.slice(
-    0,
-    localsListHeight > 0
-      ? drawerLocalsThatFit({ available: localsListHeight, rowHeight: localRowHeight, total: locals.length })
-      : DRAWER_LOCALS_MAX,
-  );
-  const distLabel = (() => {
-    const km = court.distanceKm ?? distanceKm ?? null;
-    return km != null && !Number.isNaN(km) ? `${(km * 0.621371).toFixed(1)} MI` : null;
-  })();
+  const live = activeCount > 0;
+  const km = court.distanceKm ?? distanceKm ?? null;
+  const distance = km != null && !Number.isNaN(km) ? `${(km * 0.621371).toFixed(1)} mi` : null;
+  const place = [court.city || court.market || court.neighborhood, distance].filter(Boolean).join(" · ");
+  const now = Date.now();
+  const upcoming: GameRun[] = runs
+    .filter((run) => run.courtId === court.id && Date.parse(run.startTimeIso) >= now - 60 * 60_000)
+    .sort((a, b) => a.startTimeIso.localeCompare(b.startTimeIso));
+  const weekAhead = upcoming.filter((run) => Date.parse(run.startTimeIso) < now + 7 * 86_400_000);
+  const next = upcoming[0];
+  const nowSlot = slotFor(new Date());
+  const peakSlot = today.indexOf(Math.max(...today));
+  const todayMax = Math.max(8, ...today);
 
   const handleCheckIn = async () => {
-    if (waitingToPost) {
-      // Not posted yet: checking out means it never happened.
-      await hideAutoCheckIn();
-      return;
+    if (isChecking) return;
+    setIsChecking(true);
+    try {
+      if (waitingToPost) {
+        // Not posted yet: checking out means it never happened.
+        await hideAutoCheckIn();
+      } else if (isCheckedIn) {
+        await checkOut();
+      } else if (await checkIn(court.id)) {
+        // The toast carries the success haptic.
+        showToast({
+          title: `CHECKED IN · ${name.toUpperCase()}`,
+          body: "Check out when you leave.",
+          icon: "map-pin",
+        });
+      }
+    } finally {
+      setIsChecking(false);
     }
-    if (isCheckedIn) {
-      await checkOut();
-      return;
-    }
-    const ok = await checkIn(court.id);
-    // The toast carries the success haptic.
-    if (ok) {
-      showToast({
-        title: `CHECKED IN · ${(court.shortName || court.name).toUpperCase()}`,
-        body: "Check out when you leave.",
-        icon: "map-pin",
-      });
-    }
+  };
+
+  // The drawer sets a local court; removing it lives on the court page.
+  const setAsLocal = () => {
+    if (isMyLocal || cooldown.restricted) return;
+    void setLocalCourt(court.id, court).then((ok) => {
+      if (ok) showToast({ title: `${name.toUpperCase()} IS YOUR LOCAL`, icon: "home" });
+    });
   };
 
   return (
     <BottomSheetView>
-      {/* ── Peek layer: its measured height owns the first sheet detent ── */}
+      <CourtArt sport={court.sport} />
+      {/* ── Drawer: its measured height owns the first sheet detent ── */}
       <View
         onLayout={(event) => {
           const height = event.nativeEvent.layout.height;
@@ -178,188 +242,261 @@ export function CourtSheetContent({
           onPeekHeight(height);
         }}
       >
-      <View style={styles.peekHeader}>
-        <View style={styles.headerCorner}>
-          <View style={styles.sportTag}>
-            <SportEmblem glow={false} size={13} sport={court.sport} />
-            <Text style={[styles.sportText, { color: sportColor }]}>{court.sport}</Text>
+        <Pressable
+          accessibilityHint="Shows who's here, games and today's plans"
+          accessibilityLabel={`${name}, expand`}
+          onPress={onExpand}
+        >
+          <View style={styles.metaRow}>
+            <SportLabel sport={court.sport} />
+            <LocalPill isLocal={isMyLocal} onPress={isMyLocal || cooldown.restricted ? undefined : setAsLocal} />
           </View>
-        </View>
-        <View style={styles.headerCornerRight}>
-          <Text numberOfLines={1} style={styles.courtAddress}>
-            {[court.city || court.neighborhood, distLabel].filter(Boolean).join(" · ")}
+          <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
+            {name}
           </Text>
-          {isMyLocal ? (
-            <View style={styles.myLocalTag}>
-              <Feather color={Colors.accent} fill={Colors.accent} name="star" size={9} />
-              <Text style={styles.myLocalInline}>MY LOCAL</Text>
-            </View>
-          ) : null}
+          {place ? <Text numberOfLines={1} style={styles.place}>{place}</Text> : null}
+          <View style={styles.strip}>
+            <MetricStrip
+              cells={[
+                { label: "On court", value: activeCount, live },
+                { label: "Court hours · wk", value: hoursLabel },
+                { label: "Locals", value: localCount },
+              ]}
+              size="drawer"
+            />
+          </View>
+        </Pressable>
+
+        <View style={styles.actions}>
+          <View style={styles.checkSlot}>
+            <CheckInButton
+              busy={isChecking}
+              checkedIn={isCheckedIn}
+              courtName={name}
+              onPress={() => void handleCheckIn()}
+            />
+          </View>
+          <CourtLinkButton courtName={name} onPress={() => go(gated ? "/localplus" : `/court/${court.id}`)} />
         </View>
-        <View pointerEvents="none" style={styles.centerTitleWrap}>
-          <Text style={styles.courtName} numberOfLines={1}>
-            {(court.shortName || court.name).toUpperCase()}
-          </Text>
-          {court.neighborhood && court.neighborhood !== court.city ? (
-            <Text numberOfLines={1} style={styles.neighborhood}>{court.neighborhood}</Text>
-          ) : null}
-        </View>
+        <AutoCheckInNote courtId={court.id} />
+        <View style={styles.peekFoot} />
       </View>
 
-      <View style={styles.statsRow}>
-        <StatBlock live={activeCount > 0} value={activeCount} label="On Court" />
-        <View style={styles.statDiv} />
-        <StatBlock value={localCount} label="Locals" />
-        <View style={styles.statDiv} />
-        <StatBlock value={court.ratingCount ?? 0} label="Visits" />
-      </View>
-
-      <View style={styles.actionsRow}>
-        <BrutalistButton
-          label={isCheckedIn ? "CHECKED IN" : "CHECK IN"}
-          onPress={handleCheckIn}
-          variant={isCheckedIn ? "outline" : "accent"}
-          style={styles.actionButton}
-          testID="check-in-btn"
-        />
-        <BrutalistButton
-          label="VIEW COURT"
-          onPress={() => go(gated ? "/localplus" : `/court/${court.id}`)}
-          variant="dark"
-          style={styles.actionButton}
-        />
-      </View>
-      <AutoCheckInNote courtId={court.id} />
-
-      <Pressable
-        style={styles.swipeHint}
-        onPress={onExpand}
-        accessibilityLabel="Expand for who's here and locals"
-      >
-        <Text style={styles.swipeHintText}>
-          SWIPE UP FOR WHO'S HERE + LOCALS
-        </Text>
-        <Feather color={Colors.accent} name="chevron-up" size={15} />
-      </Pressable>
-      </View>
-
-      {/* ── Full layer: fixed height, never scrolls ── */}
+      {/* ── Expanded: fixed height, never scrolls ── */}
       <View style={[styles.detailArea, { height: detailHeight }]}>
-      <CourtDrawerGate
-        cooldown={cooldown}
-        court={court}
-        gated={gated}
-        onSetLocal={() => void setLocalCourt(court.id, court)}
-        onOpenLocalPlus={() => go("/localplus")}
-      >
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>WHO'S HERE</Text>
-          <Text style={styles.sectionAccent}>{activeCount}</Text>
-        </View>
-        {activeCount === 0 ? (
-          <Text style={styles.emptyText}>NO PLAYERS CHECKED IN YET</Text>
-        ) : (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rosterRow}>
-            {roster.map((p) => (
-              <AnimatedEntry key={p.id}>
-                <Pressable
-                  style={styles.rosterItem}
-                  onPress={() => go(`/player/${p.id}`)}
-                >
-                  <View>
-                    <PlayerAvatar friend={isFriend(p.id)} initials={p.avatar} name={p.name} playerId={p.id} size={40} />
-                  </View>
-                  <Text style={styles.rosterName}>{p.name.split(" ")[0].toUpperCase()}</Text>
-                  <Text style={styles.rosterElo}>{p.elo}</Text>
-                </Pressable>
-              </AnimatedEntry>
-            ))}
-          </ScrollView>
-        )}
-      </View>
-
-      {/* ── Locals: username list with last check-in ── */}
-      <View style={[styles.sectionBleed, styles.localsSection]}>
-        <View style={[styles.sectionHeader, styles.sectionInset]}>
-          <Text style={styles.sectionTitle}>LOCALS</Text>
-          <Text style={styles.sectionAccent}>{locals.length}</Text>
-        </View>
-        {locals.length === 0 ? (
-          <Text style={[styles.emptyText, styles.sectionInset]}>
-            NO ONE HAS CLAIMED THIS COURT YET
-          </Text>
-        ) : (
-          <View
-            onLayout={(event) => setLocalsListHeight(event.nativeEvent.layout.height)}
-            style={styles.localsList}
-          >
-            {shownLocals.map(({ player, lastCheckInAt, checkInCount }, index) => (
-              <View
-                key={player.id}
-                onLayout={
-                  index === 0
-                    ? (event) => setLocalRowHeight(event.nativeEvent.layout.height)
-                    : undefined
-                }
-              >
-                <PlayerSummaryRow
-                  checkInCount={checkInCount}
-                  detail={
-                    lastCheckInAt
-                      ? `Last here · ${relativeTime(lastCheckInAt)}`
-                      : "No check-ins yet"
-                  }
-                  friend={isFriend(player.id)}
-                  inactive={isInactiveLocal(lastCheckInAt)}
-                  onPress={() => go(`/player/${player.id}`)}
-                  player={player}
-                />
+        <CourtDrawerGate
+          cooldown={cooldown}
+          courtName={name}
+          gated={gated}
+          onOpenLocalPlus={() => go("/localplus")}
+          onSetLocal={setAsLocal}
+        >
+          <View style={styles.section}>
+            <SectionHead meta={live ? `${activeCount} on court` : "Live check-ins"} title="Here now" />
+            {live ? (
+              <View style={styles.hereRow}>
+                {roster.slice(0, HERE_MAX).map((player) => (
+                  <Pressable
+                    accessibilityLabel={player.name}
+                    accessibilityRole="button"
+                    key={player.id}
+                    onPress={() => go(`/player/${player.id}`)}
+                    style={styles.hereItem}
+                  >
+                    <PlayerAvatar
+                      friend={isFriend(player.id)}
+                      initials={player.avatar}
+                      name={player.name}
+                      playerId={player.id}
+                      size={40}
+                      status="active"
+                    />
+                    <Text numberOfLines={1} style={styles.hereName}>{player.name.split(" ")[0]}</Text>
+                    <Text style={styles.hereSub}>{player.elo}</Text>
+                  </Pressable>
+                ))}
+                {roster.length > HERE_MAX ? (
+                  <Pressable
+                    accessibilityLabel={`${roster.length - HERE_MAX} more on court`}
+                    accessibilityRole="button"
+                    onPress={() => go(`/court/${court.id}?tab=players`)}
+                    style={styles.hereItem}
+                  >
+                    <View style={styles.moreTile}>
+                      <Text style={styles.moreTileText}>+{roster.length - HERE_MAX}</Text>
+                    </View>
+                    <Text style={styles.hereSub}>More</Text>
+                  </Pressable>
+                ) : null}
               </View>
-            ))}
+            ) : (
+              <View style={styles.emptyBox}>
+                <Text numberOfLines={2} style={styles.emptyText}>Nobody yet. Check in and you're first.</Text>
+              </View>
+            )}
           </View>
-        )}
-      </View>
 
-      </CourtDrawerGate>
+          <View style={styles.section}>
+            <SectionHead
+              meta={weekAhead.length ? `${weekAhead.length} this week` : "None this week"}
+              onMetaPress={weekAhead.length ? () => go(`/court/${court.id}?tab=games`) : undefined}
+              title="Up next"
+            />
+            {next ? (
+              <PressableScale
+                accessibilityLabel={`${next.title}, ${next.participants.length} of ${next.maxPlayers} going`}
+                accessibilityRole="button"
+                onPress={() => go(`/run/${next.id}`)}
+                style={styles.nextRow}
+              >
+                <View style={styles.nextWhen}>
+                  <Text style={styles.nextDay}>{dayShort(next.startTimeIso)}</Text>
+                  <Text style={styles.nextTime}>
+                    {clock(next.startTimeIso)}
+                    {new Date(next.startTimeIso).getHours() >= 12 ? "P" : "A"}
+                  </Text>
+                </View>
+                <View style={styles.nextBody}>
+                  <Text numberOfLines={1} style={styles.nextTitle}>{next.title}</Text>
+                  <Text numberOfLines={1} style={styles.nextSub}>
+                    {[formatForMaxPlayers(next.maxPlayers), `${next.participants.length} of ${next.maxPlayers} going`]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </Text>
+                </View>
+                <View style={styles.faces}>
+                  {next.participants.slice(0, 3).map((player, index) => (
+                    <View key={player.id} style={[styles.face, index > 0 && styles.faceOverlap]}>
+                      <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={24} />
+                    </View>
+                  ))}
+                </View>
+              </PressableScale>
+            ) : (
+              <View style={styles.emptyBox}>
+                <Text numberOfLines={2} style={styles.emptyText}>No games scheduled. Post one and locals see it.</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.section}>
+            <SectionHead
+              meta={today.some((count) => count > 0) ? `Busiest at ${SLOT_LONG[peakSlot]}` : "No plans yet"}
+              title="Today"
+            />
+            <View style={styles.bars}>
+              {today.map((count, index) => (
+                <View
+                  key={SLOT_SHORT[index]}
+                  style={[
+                    styles.bar,
+                    {
+                      height: Math.max(4, Math.round((count / todayMax) * 52)),
+                      backgroundColor:
+                        index < nowSlot
+                          ? Colors.grabber
+                          : index === nowSlot
+                            ? live ? Colors.accent : Colors.mutedDark
+                            : heatFill(count),
+                    },
+                  ]}
+                />
+              ))}
+            </View>
+            <View style={styles.barLabels}>
+              {SLOT_SHORT.map((label, index) => (
+                <Text key={label} style={[styles.barLabel, index === nowSlot && styles.barLabelNow]}>
+                  {index === nowSlot ? "Now" : label}
+                </Text>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <SectionHead meta="Feed" onMetaPress={() => go(`/court/${court.id}?tab=live`)} title="Recent activity" />
+            {recent.length > 0 ? (
+              recent.map((item) => <RecentLine item={item} key={item.id} />)
+            ) : (
+              <Text style={styles.emptyText}>The first check-in or game here will start the feed.</Text>
+            )}
+          </View>
+        </CourtDrawerGate>
       </View>
 
       {!gated ? (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => go(`/court/${court.id}`)}
-          style={({ pressed }) => [
-            styles.viewAll,
-            { marginBottom: drawerFooterGap(bottom) },
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text style={styles.viewAllText}>VIEW ALL</Text>
-          <Feather color={Colors.textSecondary} name="chevron-right" size={14} />
-        </Pressable>
+        <View style={[styles.chips, { paddingBottom: drawerFooterGap(bottom) }]}>
+          {DRAWER_CHIPS.map((chip) => (
+            <PressableScale
+              accessibilityRole="button"
+              key={chip.tab}
+              onPress={() => go(`/court/${court.id}?tab=${chip.tab}`)}
+              style={styles.chip}
+            >
+              <Text style={styles.chipText}>{chip.label}</Text>
+            </PressableScale>
+          ))}
+        </View>
       ) : null}
     </BottomSheetView>
   );
 }
 
+/** Planned-visit heat: the same orange ramp as the Week heatmap. */
+function heatFill(count: number): string {
+  if (count === 0) return Colors.surfaceHigh;
+  if (count < 3) return Colors.heat1;
+  if (count < 6) return Colors.heat2;
+  if (count < 10) return Colors.heat3;
+  return Colors.accent;
+}
+
+/** One quiet feed line: dot, "Name did this", time. */
+function RecentLine({ item }: { item: FeedItem }) {
+  const model = describeTimelineItem(item, { showActor: true });
+  const dot =
+    model.marker === "game"
+      ? item.sport === "PICKLEBALL" ? Colors.pickleballMeta : Colors.basketballMeta
+      : item.type === "checkin" || item.type === "checkin_burst"
+        ? Colors.accent
+        : Colors.checkOutDot;
+  let who = "";
+  let what = "";
+  if (model.kind === "game") {
+    const [win, lose] = model.lines;
+    who = win.name;
+    what = `def. ${lose.name} ${win.score}–${lose.score}`;
+  } else {
+    const nameSegment = model.segments.find((segment) => segment.tone === "name");
+    who = nameSegment?.text ?? "";
+    what = model.segments.filter((segment) => segment !== nameSegment).map((segment) => segment.text).join(" ").trim();
+  }
+  return (
+    <View accessibilityLabel={model.accessibilityLabel} style={styles.recentRow}>
+      <View style={[styles.recentDot, { backgroundColor: dot }]} />
+      <Text numberOfLines={1} style={styles.recentText}>
+        {who ? <Text style={styles.recentWho}>{who} </Text> : null}
+        {what}
+      </Text>
+      <Text style={styles.recentAgo}>{item.timestamp}</Text>
+    </View>
+  );
+}
+
 /**
- * Same rule and visual language as app/court/[id].tsx's CourtInsightsGate —
- * real content renders (blurred, non-interactive) underneath a lock panel,
- * flat against the sheet rather than a modal on top of it. This is the
- * drawer version: everyone reaches a court through this swipe-up sheet
- * first, so gating only the full "VIEW COURT" page and not this left the
- * paywall invisible in practice.
+ * The LocalPlus panel over a blurred copy of the expanded drawer. Real
+ * content renders underneath, non-interactive; the API already sends
+ * placeholder rows for locked courts where names matter.
  */
 function CourtDrawerGate({
   children,
-  court,
+  courtName,
   cooldown,
   gated,
   onSetLocal,
   onOpenLocalPlus,
 }: {
   children: React.ReactNode;
-  court: Court;
+  courtName: string;
   cooldown: ReturnType<typeof getLocalCourtCooldown>;
   gated: boolean;
   onSetLocal: () => void;
@@ -370,52 +507,41 @@ function CourtDrawerGate({
   onOpenLocalPlus: () => void;
 }) {
   // Upgrade opens Apple's purchase sheet for Yearly directly (decision D13).
-  // VIEW COURT still goes to the LocalPlus screen.
   const yearly = useLocalPlusPurchase("yearly", gated);
   if (!gated) return <>{children}</>;
   const onUpgrade = () => {
     if (yearly.available) void yearly.buy();
     else onOpenLocalPlus();
   };
-  const courtName = court.shortName || court.name;
-  const courtPossessive = /s$/i.test(courtName) ? `${courtName}'` : `${courtName}'s`;
   return (
     <View style={styles.gateWrap}>
       <View pointerEvents="none" style={styles.gateWrap}>
         {children}
         <BlurView intensity={28} style={StyleSheet.absoluteFill} tint="dark" />
-        {/* Soft edges instead of a hard blur line at the top and bottom. */}
-        <LinearGradient
-          colors={[Colors.background, "rgba(0,0,0,0)"]}
-          style={styles.gateFadeTop}
-        />
-        <LinearGradient
-          colors={["rgba(0,0,0,0)", Colors.background]}
-          style={styles.gateFadeBottom}
-        />
+        <View style={[StyleSheet.absoluteFill, styles.gateShade]} />
       </View>
       <View style={[styles.gateOverlay, StyleSheet.absoluteFill]}>
-        <View style={styles.gateBadge}>
-          <LogoMark size={26} variant="plus" />
-          <Text style={styles.gateTitle}>LOCALPLUS</Text>
-        </View>
-        <Text style={styles.gateSubtitle}>
-          You need LocalPlus to view {courtPossessive} court details.
+        <Text style={styles.gateEyebrow}>LocalPlus</Text>
+        <Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={2} style={styles.gateTitle}>
+          See who runs {courtName}
         </Text>
-        <Pressable
+        <Text style={styles.gateBody}>
+          Who's here, upcoming games, rankings and the week ahead at every court in the city.
+        </Text>
+        <PressableScale
           accessibilityRole="button"
           disabled={yearly.purchasing}
           onPress={onUpgrade}
-          style={({ pressed }) => [styles.gateCta, pressed && styles.pressed]}
+          style={styles.gateCta}
         >
           {yearly.purchasing ? (
             <ActivityIndicator color={Colors.black} size="small" />
           ) : (
             <Text style={styles.gateCtaText}>
-              {yearly.priceString ? `GET LOCALPLUS · ${yearly.priceString}/YR` : "GET LOCALPLUS"}
+              {yearly.priceString ? `Unlock with LocalPlus · ${yearly.priceString}/yr` : "Unlock with LocalPlus"}
             </Text>
           )}
-        </Pressable>
+        </PressableScale>
         {yearly.priceString ? (
           // Apple wants the terms reachable wherever a subscription is sold.
           <View style={styles.gateTermsRow}>
@@ -433,17 +559,13 @@ function CourtDrawerGate({
           disabled={cooldown.restricted}
           hitSlop={8}
           onPress={onSetLocal}
-          style={({ pressed }) => [styles.gateLocalLink, pressed && styles.gateLinkPressed]}
+          style={({ pressed }) => [styles.gateLocalLink, pressed && styles.pressed]}
         >
-          <Feather
-            color={cooldown.restricted ? Colors.textSecondary : Colors.accent}
-            name={cooldown.restricted ? "clock" : "star"}
-            size={12}
-          />
+          {cooldown.restricted ? <Feather color={Colors.textSecondary} name="clock" size={12} /> : null}
           <Text style={styles.gateLocalText}>
             {cooldown.restricted
               ? `You can switch local courts in ${formatCooldownRemaining(cooldown.remainingMs)}`
-              : "Or make it your local court, free"}
+              : "Or make this your local court — always free"}
           </Text>
         </Pressable>
       </View>
@@ -453,275 +575,166 @@ function CourtDrawerGate({
 
 const styles = StyleSheet.create({
   loading: { alignItems: "center", justifyContent: "center", paddingVertical: 64 },
+  metaRow: {
+    height: 34,
+    paddingTop: 6,
+    paddingLeft: 20,
+    paddingRight: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  name: {
+    paddingTop: 10,
+    paddingHorizontal: 20,
+    textAlign: "center",
+    fontFamily: Typography.headingBold,
+    fontSize: 38,
+    lineHeight: 40,
+    letterSpacing: -1.3,
+    textTransform: "uppercase",
+    color: Colors.text,
+    textShadowColor: Colors.sheet,
+    textShadowRadius: 6,
+  },
+  place: {
+    paddingTop: 6,
+    paddingHorizontal: 20,
+    textAlign: "center",
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    color: Colors.textSecondary,
+  },
+  strip: { paddingHorizontal: 20, paddingTop: 12 },
+  actions: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 14 },
+  checkSlot: { flex: 1, minWidth: 0 },
+  peekFoot: { height: 16 },
 
-  peekHeader: {
-    minHeight: 94,
+  detailArea: { overflow: "hidden" },
+  section: { paddingHorizontal: 20, paddingBottom: 16 },
+  hereRow: { height: 62, flexDirection: "row", gap: 8, overflow: "hidden" },
+  hereItem: { width: 58, alignItems: "center", gap: 4 },
+  hereName: { maxWidth: 58, fontFamily: Typography.bodySemiBold, fontSize: 10, color: Colors.inkSoft },
+  hereSub: { fontFamily: Typography.bodySemiBold, fontSize: 9, lineHeight: 10, color: Colors.muted },
+  moreTile: {
+    width: 40,
+    height: 40,
+    borderRadius: 11,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: Colors.dashed,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  moreTileText: { fontFamily: Typography.headingSemiBold, fontSize: 13, color: Colors.textSecondary },
+  emptyBox: {
+    height: 60,
+    paddingHorizontal: 14,
+    justifyContent: "center",
+    borderRadius: Radius.row,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: Colors.dashed,
+  },
+  emptyText: { fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
+
+  nextRow: {
+    height: 60,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: Radius.row,
+    borderWidth: 1,
+    borderColor: Colors.hairlineCard,
+    backgroundColor: Colors.panel,
+  },
+  nextWhen: { width: 52, paddingRight: 10, alignItems: "center", borderRightWidth: 1, borderRightColor: Colors.hairline },
+  nextDay: { fontFamily: Typography.bodyBold, fontSize: 8, letterSpacing: 1, textTransform: "uppercase", color: Colors.textSecondary },
+  nextTime: { fontFamily: Typography.headingSemiBold, fontSize: 17, lineHeight: 19, color: Colors.text },
+  nextBody: { flex: 1, minWidth: 0 },
+  nextTitle: { fontFamily: Typography.bodyBold, fontSize: 12.5, color: Colors.text },
+  nextSub: { marginTop: 2, fontFamily: Typography.bodyMedium, fontSize: 10.5, color: Colors.textSecondary },
+  faces: { flexDirection: "row", flexShrink: 0 },
+  face: { borderRadius: 9, borderWidth: 2, borderColor: Colors.panel },
+  faceOverlap: { marginLeft: -8 },
+
+  bars: { height: 52, flexDirection: "row", alignItems: "flex-end", gap: 5 },
+  bar: { flex: 1, borderRadius: 4 },
+  barLabels: { flexDirection: "row", gap: 5, marginTop: 5 },
+  barLabel: {
+    flex: 1,
+    textAlign: "center",
+    fontFamily: Typography.bodyBold,
+    fontSize: 7.5,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    color: Colors.muted,
+  },
+  barLabelNow: { color: Colors.liveInk },
+
+  recentRow: {
+    height: 40,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.hairline,
+  },
+  recentDot: { width: 7, height: 7, marginHorizontal: 3.5, borderRadius: 4 },
+  recentText: { flex: 1, minWidth: 0, fontFamily: Typography.bodyMedium, fontSize: 12.5, color: Colors.textSecondary },
+  recentWho: { fontFamily: Typography.bodySemiBold, color: Colors.text },
+  recentAgo: { flexShrink: 0, fontFamily: Typography.bodySemiBold, fontSize: 9, letterSpacing: 0.7, textTransform: "uppercase", color: Colors.muted },
+
+  chips: {
+    flexDirection: "row",
+    gap: 6,
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: 4,
-    justifyContent: "center",
-    position: "relative",
+    borderTopWidth: 1,
+    borderTopColor: Colors.hairline,
+    backgroundColor: Colors.sheet,
   },
-  headerCorner: { position: "absolute", left: 20, top: 0, maxWidth: "42%" },
-  headerCornerRight: { position: "absolute", right: 20, top: 0, maxWidth: "36%", alignItems: "flex-end", gap: 6 },
-  centerTitleWrap: { alignSelf: "center", width: "72%", alignItems: "center", paddingTop: 20 },
-  sportTag: { flexDirection: "row", alignItems: "center", gap: 5 },
-  sportText: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 10,
-    letterSpacing: 1.5,
-    textTransform: "uppercase" as const,
-  },
-  myLocalInline: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 10,
-    color: Colors.accent,
-    letterSpacing: 1,
-  },
-  myLocalTag: { marginLeft: 4, flexDirection: "row", alignItems: "center", gap: 4 },
-  courtName: {
-    fontFamily: Typography.heading,
-    fontSize: 26,
-    color: Colors.white,
-    lineHeight: 30,
-    letterSpacing: 0.5,
-    textAlign: "center",
-  },
-  courtAddress: {
-    fontFamily: Typography.body,
-    fontSize: 12,
-    color: Colors.mutedDark,
-    textAlign: "right",
-  },
-  neighborhood: {
-    fontFamily: Typography.body,
-    fontSize: 11,
-    color: Colors.mutedDark,
-    marginTop: 2,
-    textAlign: "center",
-  },
-
-  statsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.surface,
-    borderTopWidth: 0.5,
-    borderBottomWidth: 0.5,
-    borderColor: Colors.border,
-    paddingVertical: 12,
-    marginTop: 12,
-  },
-  statDiv: { width: 0.5, height: 28, backgroundColor: Colors.border },
-
-  actionsRow: {
-    flexDirection: "row",
-    gap: 10,
-    paddingHorizontal: 20,
-    paddingTop: 14,
-  },
-  actionButton: { flex: 1, minHeight: 48 },
-  swipeHint: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 6,
-    minHeight: 44,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.border,
-  },
-  swipeHintText: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 9,
-    color: Colors.muted,
-    letterSpacing: 2,
-  },
-  swipeHintArrow: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    color: Colors.accent,
-  },
-
-  section: {
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 14,
-    borderTopWidth: 0.5,
-    borderTopColor: Colors.border,
-  },
-  sectionBleed: {
-    paddingTop: 18,
-    paddingBottom: 14,
-    borderTopWidth: 0.5,
-    borderTopColor: Colors.border,
-  },
-  sectionInset: { paddingHorizontal: 20 },
-  localsSection: { flex: 1, paddingBottom: 0 },
-  localsList: { flex: 1 },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
-    color: Colors.text,
-    letterSpacing: 3,
-  },
-  sectionAccent: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.accent,
-    letterSpacing: 1.5,
-  },
-  emptyText: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    color: Colors.muted,
-    letterSpacing: 1,
-  },
-
-  rosterRow: { gap: 14 },
-  rosterItem: { alignItems: "center", width: 56 },
-  friendDot: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Colors.win,
-    borderWidth: 2,
-    borderColor: Colors.background,
-  },
-  rosterName: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.text,
-    letterSpacing: 0.5,
-    marginTop: 6,
-  },
-  rosterElo: {
-    fontFamily: Typography.heading,
-    fontSize: 10,
-    color: Colors.muted,
-    marginTop: 1,
-  },
-
-  pressed: { backgroundColor: Colors.surfaceHigh },
-
-  profileLink: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginHorizontal: 20,
-    marginVertical: 20,
-    padding: 14,
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xs,
-  },
-  profileLinkText: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
-    color: Colors.text,
-    letterSpacing: 2,
-  },
-  profileLinkArrow: {
-    fontFamily: Typography.heading,
-    fontSize: 16,
-    color: Colors.muted,
-  },
-
-  // ── Court insights gate (LocalPlus paywall) ──
-  detailArea: { overflow: "hidden" },
-  viewAll: {
-    minHeight: 44,
-    flexDirection: "row",
+  chip: {
+    flex: 1,
+    height: 30,
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(242,242,246,0.13)",
   },
-  viewAllText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    letterSpacing: 1.4,
-    color: Colors.textSecondary,
-  },
+  chipText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.inkSoft },
+
   gateWrap: { flex: 1 },
-  gateTermsRow: { marginTop: 8, flexDirection: "row", alignItems: "center", gap: 8 },
-  gateTermsLink: { textDecorationLine: "underline", color: Colors.textSecondary },
-  gateTerms: {
-    fontFamily: Typography.body,
-    fontSize: 10,
-    color: Colors.mutedDark,
-    textAlign: "center",
-  },
-  gateOverlay: {
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 32,
-  },
-  gateFadeTop: { position: "absolute", left: 0, right: 0, top: 0, height: 28 },
-  gateFadeBottom: { position: "absolute", left: 0, right: 0, bottom: 0, height: 72 },
-  gateBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
+  gateShade: { backgroundColor: "rgba(18,18,22,0.55)" },
+  gateOverlay: { alignItems: "center", justifyContent: "center", gap: 12, paddingHorizontal: 34 },
+  gateEyebrow: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.6, textTransform: "uppercase", color: Colors.textSecondary },
   gateTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 24,
-    color: Colors.text,
-    letterSpacing: 1.2,
-  },
-  gateSubtitle: {
-    marginTop: 10,
-    maxWidth: 280,
-    fontFamily: Typography.body,
-    fontSize: 13,
-    lineHeight: 18,
-    color: Colors.textSecondary,
     textAlign: "center",
-  },
-  gateCta: {
-    minHeight: 48,
-    alignSelf: "stretch",
-    marginTop: 18,
-    paddingHorizontal: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: Radius.md,
-    backgroundColor: Colors.accent,
-  },
-  gateCtaText: {
-    fontFamily: Typography.heading,
-    fontSize: 13,
-    letterSpacing: 1.2,
-    color: Colors.black,
-  },
-  // Solid backing so the line reads on top of the blur.
-  gateLocalLink: {
-    minHeight: 36,
-    marginTop: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
-    paddingHorizontal: 14,
-    borderRadius: Radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderLight,
-    backgroundColor: Colors.surfaceHigh,
-  },
-  gateLinkPressed: { opacity: 0.6 },
-  gateLocalText: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 12,
+    fontFamily: Typography.headingSemiBold,
+    fontSize: 28,
+    lineHeight: 30,
+    letterSpacing: -0.5,
+    textTransform: "uppercase",
     color: Colors.text,
   },
+  gateBody: { maxWidth: 280, textAlign: "center", fontFamily: Typography.bodyMedium, fontSize: 12.5, lineHeight: 19, color: Colors.textSecondary },
+  gateCta: {
+    height: 46,
+    marginTop: 4,
+    paddingHorizontal: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: Radius.button,
+    backgroundColor: Colors.text,
+  },
+  gateCtaText: { fontFamily: Typography.bodyBold, fontSize: 10.5, letterSpacing: 1.4, textTransform: "uppercase", color: Colors.background },
+  gateTermsRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  gateTermsLink: { textDecorationLine: "underline", color: Colors.textSecondary },
+  gateTerms: { fontFamily: Typography.body, fontSize: 10, color: Colors.mutedDark, textAlign: "center" },
+  gateLocalLink: { minHeight: 32, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  gateLocalText: { fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.textSecondary, textAlign: "center" },
+  pressed: { opacity: 0.6 },
 });

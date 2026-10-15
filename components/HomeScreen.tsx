@@ -4,7 +4,6 @@ import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { BrutalistButton } from "@/components/BrutalistButton";
 import { CourtSchedulePanel } from "@/components/CourtSchedulePanel";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenHeader, SectionHeader } from "@/components/ScreenHeader";
@@ -426,19 +426,12 @@ function NoCourtState({ isSignedIn }: { isSignedIn: boolean }) {
             ? "Choose a home court to see who's there, upcoming runs, and live activity."
             : "Sign in to check in, find runs, and see who is playing nearby."}
         </Text>
-        <Pressable
-          accessibilityRole="button"
+        <BrutalistButton
+          icon={<Feather color={Colors.background} name="arrow-right" size={15} />}
+          label={isSignedIn ? "Explore courts" : "Sign in"}
           onPress={() => router.push(isSignedIn ? "/(tabs)/explore" : "/auth")}
-          style={({ pressed }) => [
-            styles.noCourtButton,
-            pressed && styles.buttonPressed,
-          ]}
-        >
-          <Text style={styles.noCourtButtonText}>
-            {isSignedIn ? "EXPLORE COURTS" : "SIGN IN"}
-          </Text>
-          <Feather color={Colors.black} name="arrow-right" size={15} />
-        </Pressable>
+          style={styles.noCourtButton}
+        />
       </View>
     </ScreenViewport>
   );
@@ -600,23 +593,5 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: "center",
   },
-  noCourtButton: {
-    minHeight: 48,
-    marginTop: Space.xxl,
-    paddingHorizontal: Space.xl,
-    borderRadius: Radius.sm,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Space.sm,
-    backgroundColor: Colors.accent,
-  },
-  noCourtButtonText: {
-    fontFamily: Typography.headingBold,
-    fontSize: 12,
-    color: Colors.black,
-    letterSpacing: 1.35,
-  },
-  buttonPressed: {
-    opacity: 0.72,
-  },
+  noCourtButton: { marginTop: Space.xxl },
 });

@@ -5,7 +5,7 @@ superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D55, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D56, Jesse's plan doc)
 
 Numbers match Jesse's plan doc (Decisions tab). These supersede older entries
 below wherever they disagree.
@@ -80,6 +80,16 @@ below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D56 The rest of the app follows the court-flow design, frontend only
+  (Oct 15):** Jesse asked for one consistent front end matched to
+  `CourtFlowPhone2` with no backend changes, focusing on the expanded
+  drawer, Home, and one-off screens (a game open to join, logging a game,
+  notifications). D55 stays as decided: Week keeps today's heatmap and a
+  court that isn't your local, without LocalPlus, still jumps to the
+  LocalPlus screen from the court page. The drawer shows the blurred gate in
+  place. The drawer may set a local court (not remove one). White is the
+  neutral primary button (Join game, Unlock, Log game); orange is for live,
+  check-in and selection. Builds on D55.
 - **D55 Court page and Home card follow the court-flow design (Oct 14):**
   built from the Claude Design handoff (`CourtFlowPhone2`), Jesse's picks
   in chat Oct 14. Court page header: court line art, sport, name, city ·

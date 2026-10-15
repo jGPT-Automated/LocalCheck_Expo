@@ -94,6 +94,42 @@ Each claim says which of these it is, because they are often confused:
     court route entry) and the court page section of `docs/product/DESIGN.md`.
   - Not in this pass: Players sorts (Active / Newest / All), the Live
     scoreboard rows, Phosphor icons, the drawer.
+- Court-flow UI pass, frontend only (Oct 15, D56; **on a branch**,
+  `claude/court-flow-ui-pass`, not merged, not on a device). No database,
+  function or native change.
+  - Court drawer (`components/sheet/CourtSheetContent.tsx`) rebuilt to the
+    design: sport + Your local / Set as local, centred name, city ·
+    distance, On court / Court hours · wk / Locals, Check in + Court ↗.
+    Expanded: Here now (4 + More), Up next (next game), Today (planned
+    visits in 2-hour bars, read with `fetchCourtPlannedTimes`), Recent
+    activity (3 lines), then Games / Players / Feed / Week chips that open
+    the court page on that tab (`/court/[id]?tab=`). Gate: blurred content
+    under "See who runs {court}", white Unlock with LocalPlus (Apple Yearly
+    sheet, terms row kept) and "Or make this your local court — always free".
+    The Set as local pill only sets; removing a local stays on the court
+    page.
+  - Explore card (`components/CourtListItem.tsx`): court art, sport, Your
+    local pill, Oswald name, city · distance, On court / Court hours · wk /
+    Locals. List orders live courts first (most on court), then nearest.
+    Court hours for the list come from one read-only batched query
+    (`fetchCourtsWeekSpans`, `hooks/useCourtHours.ts`).
+  - Game page (`app/run/[id].tsx`): sport · format, Oswald title, when,
+    where, Going / Avg ELO / Format strip, spots bar, Who's going (Host tag,
+    W–L, ELO), details card (Teams, Level, Where, Host), white Join game;
+    joined players get "You're in · Leave". Join, leave, sides, invites,
+    edit, cancel and result flows unchanged.
+  - Shared pieces: `CheckInButton`, `CourtLinkButton`, `SectionHead` and a
+    `size` on `MetricStrip` in `components/court/CourtParts.tsx`; the court
+    page and Home card use the same Check in button. `BrutalistButton`
+    (every button) now uses 4pt corners, Inter bold labels, 50pt main size,
+    white primary. `SectionHeader`, the shared sheet (`#121216`, 22pt
+    corners, grab bar), notifications screen and Log game form restyled to
+    the same tokens (new `Colors.tile`, `grabber`, `dashed`, `liveInk`,
+    `inkSoft`, `checkOutDot`, `heat1–3`; `Radius.button/chip/row/panel/
+    courtCard/sheet`). Orange is kept for live, check-in and selection only.
+  - Checked: `pnpm typecheck`, `pnpm test`, `pnpm check:design`, web export
+    compiles. Not checked: a connected preview or phone screenshots (this
+    session had no `.env.local` or test sign-in).
 - Expo SDK 54 patches on #67 (Oct 14, Jesse's OK in chat): `expo` 54.0.37,
   `expo-constants` 18.0.14, `expo-updates` 29.0.20. Lockfile also moves
   `@expo/cli` 54.0.27, `expo-file-system` 19.0.24 and

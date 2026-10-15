@@ -1342,7 +1342,7 @@ function LogGameView({
           }}
           style={styles.slotScan}
         >
-          <Feather color={Colors.accent} name="maximize" size={14} />
+          <Feather color={Colors.inkSoft} name="maximize" size={14} />
         </Pressable>
         <Pressable
           accessibilityLabel={
@@ -1610,7 +1610,7 @@ function LogGameView({
                 pressed && styles.pressed,
               ]}
             >
-              <Feather color={Colors.accent} name="plus" size={13} />
+              <Feather color={Colors.inkSoft} name="plus" size={13} />
               <Text style={styles.rosterAddText}>
                 ADD PLAYER · {form.teamSize + 1}V{form.teamSize + 1}
               </Text>
@@ -1686,7 +1686,7 @@ function LogGameView({
           <Text
             style={[
               styles.resultHint,
-              { color: isWin ? Colors.accent : Colors.textSecondary },
+              { color: isWin ? Colors.text : Colors.textSecondary },
             ]}
           >
             {isWin ? "WIN — POSITIVE ELO CHANGE" : "LOSS — NEGATIVE ELO CHANGE"}
@@ -2093,9 +2093,12 @@ const styles = StyleSheet.create({
   // Same title and date line as the game card.
   formHead: { alignItems: "center", gap: 4 },
   formTitle: {
-    ...TextStyles.title,
+    fontFamily: Typography.headingBold,
+    fontSize: 38,
+    lineHeight: 40,
+    letterSpacing: -1.2,
+    textTransform: "uppercase",
     color: Colors.text,
-    letterSpacing: 0.6,
     textAlign: "center",
   },
   formDate: {
@@ -2112,10 +2115,10 @@ const styles = StyleSheet.create({
   },
   courtField: { flex: 1, minWidth: 0 },
   fieldLabel: {
-    fontFamily: Typography.heading,
-    fontSize: 11,
-    color: Colors.muted,
-    letterSpacing: 2.5,
+    fontFamily: Typography.bodyBold,
+    fontSize: 9,
+    color: Colors.textSecondary,
+    letterSpacing: 1.3,
     textTransform: "uppercase" as const,
   },
   sportToggle: {
@@ -2127,9 +2130,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 7,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.accentDim,
+    borderColor: Colors.hairlineCard,
+    borderRadius: Radius.chip,
+    backgroundColor: Colors.panel,
   },
   sportToggleDot: { width: 8, height: 8, borderRadius: 4 },
   sportToggleText: {
@@ -2145,10 +2148,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.hairlineCard,
+    borderRadius: Radius.chip,
+    backgroundColor: Colors.panel,
   },
   courtTriggerValue: {
     flex: 1,
@@ -2166,10 +2169,10 @@ const styles = StyleSheet.create({
   courtPanel: {
     marginTop: 6,
     overflow: "hidden",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.hairlineCard,
+    borderRadius: Radius.row,
+    backgroundColor: Colors.panel,
   },
   courtSearch: {
     minHeight: 44,
@@ -2242,10 +2245,10 @@ const styles = StyleSheet.create({
     width: 34,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.accentBorder,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.accentDim,
+    borderWidth: 1,
+    borderColor: Colors.hairlineCard,
+    borderRadius: Radius.chip,
+    backgroundColor: Colors.panel,
   },
   slotMain: {
     flex: 1,
@@ -2254,10 +2257,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.hairlineCard,
+    borderRadius: Radius.chip,
+    backgroundColor: Colors.panel,
   },
   slotMainActive: { borderColor: Colors.accent, backgroundColor: Colors.accentDim },
   slotName: {
@@ -2306,14 +2309,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 7,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.accentDim,
+    borderColor: Colors.hairlineChrome,
+    borderRadius: Radius.button,
+    backgroundColor: Colors.panel,
   },
   rosterAddText: {
     fontFamily: Typography.bodyBold,
     fontSize: 10,
-    color: Colors.accent,
+    color: Colors.inkSoft,
     letterSpacing: 1,
   },
   rosterRemove: {
@@ -2321,10 +2324,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.hairlineChrome,
+    borderRadius: Radius.button,
   },
   rosterRemoveText: {
     fontFamily: Typography.bodyBold,
@@ -2338,10 +2340,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.accentBorder,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.accentDim,
+    borderWidth: 1,
+    borderColor: Colors.hairlineChrome,
+    borderRadius: Radius.chip,
+    backgroundColor: Colors.tile,
   },
   lockedPlayerName: {
     flex: 1,
@@ -2352,7 +2354,7 @@ const styles = StyleSheet.create({
   youBadge: {
     fontFamily: Typography.bodyBold,
     fontSize: 8,
-    color: Colors.accent,
+    color: Colors.inkSoft,
     letterSpacing: 1,
   },
 
@@ -2384,7 +2386,7 @@ const styles = StyleSheet.create({
     lineHeight: 46,
   },
   // Winner orange, loser grey (no green or red).
-  scoreInputWin: { borderBottomColor: Colors.accent, color: Colors.accent },
+  scoreInputWin: { borderBottomColor: Colors.text, color: Colors.text },
   scoreInputLoss: { borderBottomColor: Colors.borderLight, color: Colors.textSecondary },
   scoreDash: {
     fontFamily: Typography.heading,
@@ -2421,24 +2423,25 @@ const styles = StyleSheet.create({
   courtPillTextActive: { color: Colors.text },
 
   submitBtn: {
-    width: 220,
-    alignSelf: "center",
+    alignSelf: "stretch",
     minHeight: 52,
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.text,
     paddingHorizontal: 16,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: Radius.xs,
+    borderRadius: Radius.button,
     marginTop: 8,
   },
   submitBtnDisabled: {
-    backgroundColor: Colors.surfaceHigh,
+    backgroundColor: Colors.panel,
+    borderWidth: 1,
+    borderColor: Colors.hairlineCard,
   },
   submitBtnText: {
-    fontFamily: Typography.heading,
-    fontSize: 15,
-    color: Colors.black,
-    letterSpacing: 2,
+    fontFamily: Typography.bodyBold,
+    fontSize: 12,
+    color: Colors.background,
+    letterSpacing: 1.7,
   },
   submitBtnTextDisabled: { color: Colors.muted },
   submitError: {

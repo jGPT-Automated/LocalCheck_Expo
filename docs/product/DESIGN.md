@@ -169,7 +169,10 @@ Canonical component ownership:
 | Court discovery card           | `CourtListItem`     |
 | Home court hero                | `HomeCourtHero`     |
 | Court line art (card, page)    | `CourtArt`          |
-| Court 3-number strip           | `MetricStrip`       |
+| Court 3-number strip           | `MetricStrip` (`size`: page, drawer, card) |
+| Check in / Check out button    | `CheckInButton`     |
+| Court ↗ (drawer → court page)  | `CourtLinkButton`   |
+| Drawer section label + meta    | `SectionHead`       |
 | Court/Home content tabs        | `CourtTabBar`       |
 | Your local pill                | `LocalPill`         |
 | Sport icon                     | `SportEmblem`       |
@@ -216,6 +219,12 @@ If one of these elements changes, update the canonical component and search the 
 
 ## Court card treatment
 
+Since D56 (Oct 15) the Explore card is the court-flow card: `#121216`, 20pt
+corners, one hairline, `CourtArt` top right, sport label and Your local pill,
+Oswald 30 name, city · distance, then On court / Court hours · wk / Locals on
+a darker band. Live courts sort first. The older treatment below is kept for
+history.
+
 Explore court cards use the supplied reference treatment:
 
 - Base gradient: `#202027` to `#19191E` at 135 degrees.
@@ -231,6 +240,26 @@ Explore court cards use the supplied reference treatment:
 Home uses the same material language as a full-width hero, not a floating card. Its primary check-in action remains bright `#FF5500`.
 
 ## Court flow
+
+Current (D56, Oct 15):
+
+1. Explore shows court-flow cards, live courts first.
+2. Tapping a card opens the drawer: sport + Your local / Set as local,
+   centred name, city · distance, On court / Court hours · wk / Locals,
+   Check in and Court ↗. Tapping the header or dragging expands it.
+3. Expanded (92%): Here now, Up next, Today (planned visits in 2-hour bars),
+   Recent activity, then Games / Players / Feed / Week chips that open the
+   court page on that tab. Fixed height, never scrolls.
+4. Not your local and no LocalPlus: the expanded area is blurred under the
+   LocalPlus panel (white Unlock with LocalPlus, terms, "Or make this your
+   local court — always free"). Court ↗ goes to the LocalPlus screen.
+5. The drawer can set a local court; removing one lives on the court page.
+
+Buttons (D56): 4pt corners, Inter bold uppercase labels, 50pt main actions
+(`BrutalistButton`, `CheckInButton`). White is the neutral primary; orange
+is for Check in, live and selection.
+
+Before D56, kept for history:
 
 1. Explore shows concise court cards.
 2. Tapping a card opens a content-sized court drawer ending exactly at its disclosure rail, with identity, live metrics, equal **Check in** / **View court** actions, and no exposed expanded content.

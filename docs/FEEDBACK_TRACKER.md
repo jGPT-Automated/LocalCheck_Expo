@@ -21,6 +21,18 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-15 — Court-flow UI pass, frontend only (`claude/court-flow-ui-pass`)
+
+| Item | Status |
+|------|--------|
+| Expanded drawer to the design: Here now, Up next, Today, Recent activity, chips into court tabs | ✅ needs device check |
+| Drawer gate: "See who runs …", white Unlock, make-local link | ✅ needs device check |
+| Explore card to the design (art, pill, 3-number strip, live first) | ✅ needs device check |
+| Game open to join: title block, Going / Avg ELO / Format, spots bar, Who's going, details, Join | ✅ needs device check |
+| One button style everywhere (4pt, Inter bold, white primary, orange for live/check-in) | ✅ |
+| Notifications and Log game restyled to the same tokens | ✅ needs device check |
+| Connected preview / phone screenshots | ⬜ not done in this session (no env or sign-in) |
+
 ## 2026-10-10 — #67 second design pass (`codex/auto-check-in`)
 
 | Item | Status |
