@@ -381,6 +381,9 @@ Table stakes, checked on every UI change:
 - Only Expo Go-safe libraries (Reanimated 4 CSS transitions and springs,
   worklets `scheduleOnRN`, gesture-handler, expo-haptics).
 - Court metric tiles: 220ms; Reduce Motion swaps the 3D flip for a crossfade.
+- Going back from a detail screen (court page, Settings, profiles) is the iOS
+  edge swipe from the left edge, or the back icon. A swipe elsewhere on the
+  screen scrolls or moves what is under the finger; it never closes the screen.
 - Signed-in cold starts use a 1.6-second mark sequence: pin → W → check.
   Signed-out cold starts give the artwork and lockup the full reveal before
   the form is interactive. Reduce Motion shows the final static state.
