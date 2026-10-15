@@ -74,7 +74,8 @@ Each claim says which of these it is, because they are often confused:
   - Court page (`app/court/[id].tsx`): the 6-number dashboard is gone. New
     header: court line art, sport, name, city · distance, then On court /
     Court hours · wk / Next game. Tabs Live · Games · Players · Week · Info.
-    Bottom bar: Plan visit (opens Week) and Check in / Check out (same
+    Bottom bar: Plan visit (opens Week, now with "I'm coming" and Create a
+    game) and Check in / Check out (same
     rules as Home, including the auto check-in waiting state). The jump to
     LocalPlus for a court that isn't yours, without Plus, is unchanged.
   - Games lists upcoming scheduled games at the court (`runs`, already
@@ -89,6 +90,8 @@ Each claim says which of these it is, because they are often confused:
   - Home: the local court card uses the same pieces (`components/court/`):
     line art, Your local, On court / Court hours · wk / Locals, Check in and
     View court (arrow points right). Home's tabs use the same tab bar.
+  - Docs: D55 in `docs/product/DECISIONS.md` (supersedes the Aug 9 read-only
+    court route entry) and the court page section of `docs/product/DESIGN.md`.
   - Not in this pass: Players sorts (Active / Newest / All), the Live
     scoreboard rows, Phosphor icons, the drawer.
 - Expo SDK 54 patches on #67 (Oct 14, Jesse's OK in chat): `expo` 54.0.37,

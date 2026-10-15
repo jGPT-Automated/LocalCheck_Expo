@@ -382,7 +382,7 @@ export default function CourtProfileScreen() {
 
         {activeTab === "week" ? (
           <View style={styles.scheduleView}>
-            <CourtSchedulePanel bottomInset={12} court={court} interactive={false} />
+            <CourtSchedulePanel bottomInset={12} court={court} />
           </View>
         ) : null}
 

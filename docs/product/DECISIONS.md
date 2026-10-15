@@ -5,7 +5,7 @@ superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D54, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D55, Jesse's plan doc)
 
 Numbers match Jesse's plan doc (Decisions tab). These supersede older entries
 below wherever they disagree.
@@ -80,6 +80,20 @@ below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D55 Court page and Home card follow the court-flow design (Oct 14):**
+  built from the Claude Design handoff (`CourtFlowPhone2`), Jesse's picks
+  in chat Oct 14. Court page header: court line art, sport, name, city ·
+  distance, then On court / Court hours · wk / Next game (the six-metric
+  panel is gone). Tabs Live · Games · Players · Week · Info. A bottom bar
+  with Plan visit (opens Week, where "I'm coming" plans a visit) and Check
+  in / Check out. Info shows Courts, Lights and Access; hours and surface
+  aren't shown. Week keeps today's heatmap (days across, times down). A court
+  that isn't your local, without LocalPlus, still jumps to the LocalPlus
+  screen. Home's local court card uses the same pieces (On court / Court
+  hours · wk / Locals, Check in, View court with the arrow pointing right).
+  Court hours: the last 7 days' sessions, each capped at 4 h, a session with
+  no check-out closed at 3 h. Supersedes the 2026-08-09 "Court routes are
+  read-only place dashboards" entry.
 - **D54 Docs are updated on every push, and CI checks it (Oct 13):** any
   change outside `docs/` counts as affecting the docs; there is no "not
   affected." Every push to a pull request updates `docs/CURRENT_STATE.md`, plus
@@ -378,6 +392,10 @@ reachable actions without turning every discovery result into a large form.
 
 ## 2026-08-09 — Court routes are read-only place dashboards
 
+**Superseded by D55 (Oct 14, 2026):** new header, Live · Games · Players ·
+Week · Info tabs, and Check in / Plan visit on the court page. Kept as
+history.
+
 **Decision confirmed by Jesse:** A court route has a fixed branded header,
 full-width six-metric panel, and Feed, Locals, Schedule, and Details tabs. Feed
 is progressively loaded, Locals shows the full community, Schedule is a clean
@@ -481,6 +499,7 @@ solo and team logging predictable instead of layering unrelated controls.
 
 **Updated by 2026-08-09:** Court routes use `Feed`, `Locals`, `Schedule`, and
 `Details`. The 2026-08-09 read-only court-route decision is authoritative.
+(Both superseded by D55, Oct 14, 2026: Live · Games · Players · Week · Info.)
 
 **Why:** The current full court page stacks unrelated sections into a long scroll. A stable three-part information architecture makes every court predictable and lets players move directly between activity, people, and place information.
 

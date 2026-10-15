@@ -168,6 +168,10 @@ Canonical component ownership:
 | Detail/back header             | `DetailHeader`      |
 | Court discovery card           | `CourtListItem`     |
 | Home court hero                | `HomeCourtHero`     |
+| Court line art (card, page)    | `CourtArt`          |
+| Court 3-number strip           | `MetricStrip`       |
+| Court/Home content tabs        | `CourtTabBar`       |
+| Your local pill                | `LocalPill`         |
 | Sport icon                     | `SportEmblem`       |
 | Player avatar                  | `PlayerAvatar`      |
 | Player list row                | `PlayerSummaryRow`  |
@@ -175,7 +179,7 @@ Canonical component ownership:
 | Profile metrics                | `ProfileStats`      |
 | ELO value                      | `EloStat`           |
 | Activity timeline event        | `ActivityRow`       |
-| Court metric panel             | `MetricDashboard`   |
+| Court metric panel (old court page, no longer used there) | `MetricDashboard` |
 | Run summary                    | `RunCard`           |
 | Compact menu                   | `CompactSelect`     |
 | Primary two-mode switch        | `ModeTabs`          |
@@ -248,7 +252,17 @@ the canonical geographic court service, and an animated camera move before the
 same court drawer opens; it never substitutes a fabricated location after a
 permission denial.
 
-The court detail page keeps the brand/detail header, six-metric court panel, and tabs fixed. Metric values remain optically centered. A metric with comparison data uses a consistent top-right trend corner; tapping the full 44-point-or-larger tile reveals the percentage and comparison period, with an accessible expanded state and a reduced-motion crossfade. Only the selected tab's content scrolls when needed:
+The court page (D55, Oct 14) follows the court-flow design (`components/court/`). The header is fixed: back arrow and Your local pill; court line art pinned top right; sport label, name (Oswald, one line, shrinks to fit), city · distance; then the 3-number strip On court (orange with the live dot when anyone is on) / Court hours · wk / Next game. Under it the tabs Live · Games · Players · Week · Info, with an orange underline on the active tab. A bottom bar holds Plan visit (opens Week) and Check in (orange) or Check out (outlined, live dot). Only the selected tab's content scrolls:
+
+- Live: On court tiles ("Nobody yet. Check in and you're first." when empty), All / Games / Check-ins chips, then the activity timeline and game-result modal.
+- Games: upcoming scheduled games by day (Today, Tomorrow, then the date), time, title, "x of y going" and a fill bar; tapping opens the game page.
+- Players: Here now and Locals, as before.
+- Week: the shared heatmap (`CourtSchedulePanel`) with "I'm coming" and Create a game.
+- Info: map with Directions, Court hours · wk / Avg session / Locals, then Courts, Lights, Access. A value the database doesn't have shows a dash.
+
+Home's local court card uses the same pieces: line art, sport label, Your local, name, city · distance, On court / Court hours · wk / Locals, then Check in and View court (arrow pointing right).
+
+Replaced by the above on Oct 14 (D55), kept for history: the court detail page keeps the brand/detail header, six-metric court panel, and tabs fixed. Metric values remain optically centered. A metric with comparison data uses a consistent top-right trend corner; tapping the full 44-point-or-larger tile reveals the percentage and comparison period, with an accessible expanded state and a reduced-motion crossfade. Only the selected tab's content scrolls when needed:
 
 - Feed: paginated activity timeline and game-result modal.
 - Locals: public presence, active locals, stale/inactive treatment, check-ins, and ELO.
