@@ -203,6 +203,20 @@ export function formatDayLabel(iso: string, now: Date = new Date()): string {
   );
 }
 
+/** The feed's right-hand time: "Now", "5m", "2h", "3d", then "Sep 6". */
+export function shortAgo(iso: string, now: number = Date.now()): string {
+  const at = Date.parse(iso);
+  if (Number.isNaN(at)) return "";
+  const minutes = Math.max(0, Math.floor((now - at) / 60_000));
+  if (minutes < 1) return "Now";
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d`;
+  return new Date(at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 /** "6:40 PM" */
 export function formatClock(iso: string): string {
   const date = new Date(iso);

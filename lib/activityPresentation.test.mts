@@ -3,6 +3,7 @@ import test from "node:test";
 
 import type { FeedItem } from "../constants/data.ts";
 import {
+  shortAgo,
   describeTimelineItem,
   formatDayLabel,
   formatDurationMinutes,
@@ -281,4 +282,12 @@ test("day labels and day grouping", () => {
   assert.equal(startsNewDay(a, undefined), true);
   assert.equal(startsNewDay(b, a), false);
   assert.equal(startsNewDay(c, b), true);
+});
+
+test("shortAgo reads like the feed mock", () => {
+  const now = Date.parse("2026-10-15T18:00:00Z");
+  assert.equal(shortAgo("2026-10-15T17:59:50Z", now), "Now");
+  assert.equal(shortAgo("2026-10-15T17:48:00Z", now), "12m");
+  assert.equal(shortAgo("2026-10-15T15:00:00Z", now), "3h");
+  assert.equal(shortAgo("2026-10-13T18:00:00Z", now), "2d");
 });

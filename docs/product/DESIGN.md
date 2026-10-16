@@ -265,6 +265,11 @@ Player profile actions by friend state: not friends Log game | Add friend
 request | Log game (orange); friends remove icon | Log game | Challenge
 (white). Log game opens as a sheet over the profile.
 
+Home (Oct 16): the local court is a full-width header (no card), with a
+Local tag hanging off the right edge; Plan / Check in / Court ↗ are one row
+pinned above the tab bar. Feed rows: icon tile, sentence + detail, score and
+time on the right, all one height (`ActivityRow`).
+
 Busy times (`CourtBusyChart`): past hours filled grey (check-ins), now
 orange, later hours outlined (planned visits + game sign-ups).
 

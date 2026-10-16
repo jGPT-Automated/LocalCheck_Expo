@@ -6,7 +6,8 @@ import { BrutalistButton } from "@/components/BrutalistButton";
 import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
 import { SearchField } from "@/components/ui/SearchField";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { WheelPicker } from "@/components/ui/WheelPicker";
+import { RecentDatePicker } from "@/components/ui/RecentDatePicker";
+import { TimeStrip } from "@/components/ui/TimeStrip";
 import { Colors } from "@/constants/colors";
 import type { Court } from "@/constants/data";
 import { Space } from "@/constants/layout";
@@ -232,28 +233,25 @@ export function ChallengeSheet({
       {!focused ? (
         <>
           <Text style={styles.label}>WHEN</Text>
-          <WheelPicker
-            columns={[
-              {
-                label: "Day",
-                flex: 1.15,
-                items: days,
-                value: day,
-                onChange: setDay,
-              },
-              {
-                label: "Time",
-                flex: 1,
-                items: times.map((time) => ({
-                  value: String(time.minutes),
-                  label: time.label,
-                  disabled: isPastSlot(day, time.minutes, now),
-                })),
-                value: String(minutes),
-                onChange: (value) => setMinutes(Number(value)),
-              },
-            ]}
+          <RecentDatePicker
+            accessibilityLabel="Day"
+            ahead
+            daysBack={days.length}
+            onChange={setDay}
+            sport={court?.sport ?? null}
+            value={day}
           />
+          <View style={styles.timeRow}>
+            <TimeStrip
+              items={times.map((time) => ({
+                value: String(time.minutes),
+                label: time.label,
+                disabled: isPastSlot(day, time.minutes, now),
+              }))}
+              onChange={(value) => setMinutes(Number(value))}
+              value={String(minutes)}
+            />
+          </View>
 
           <View style={styles.segment}>
             <SegmentedControl
@@ -281,6 +279,7 @@ export function ChallengeSheet({
 }
 
 const styles = StyleSheet.create({
+  timeRow: { marginTop: Space.md },
   label: {
     marginTop: Space.xl,
     marginBottom: Space.sm,

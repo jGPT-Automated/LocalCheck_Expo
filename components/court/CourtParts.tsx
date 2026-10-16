@@ -81,6 +81,19 @@ export function LocalPill({ isLocal, onPress }: { isLocal: boolean; onPress?: ()
   );
 }
 
+/**
+ * Home's "Local" tag: a label hanging off the right edge of the screen (no
+ * right corners), so the court reads as yours without a second button.
+ */
+export function LocalTag() {
+  return (
+    <View accessibilityLabel="Your local court" style={styles.localTag}>
+      <Feather color={Colors.text} name="home" size={11} />
+      <Text style={styles.localTagText}>Local</Text>
+    </View>
+  );
+}
+
 export interface StripCell {
   label: string;
   value: string | number;
@@ -140,15 +153,15 @@ export function SectionHead({ title, meta, onMetaPress }: { title: string; meta?
 
 /**
  * The one Check in / Check out button. Orange and solid to check in; outlined
- * with the live dot once you're in. `checkedLabel` lets the drawer say
- * "Checked in · Check out" where the court page just says "Check out".
+ * with the live dot once you're in ("Check out"; the dot says you're in, so
+ * the label stays short and never spills out of the button).
  */
 export function CheckInButton({
   checkedIn,
   busy,
   onPress,
   courtName,
-  checkedLabel = "Checked in · Check out",
+  checkedLabel = "Check out",
   height = 50,
 }: {
   checkedIn: boolean;
@@ -254,6 +267,21 @@ const styles = StyleSheet.create({
   pillActive: { backgroundColor: "rgba(242,242,246,0.08)", borderColor: "rgba(242,242,246,0.18)" },
   pillText: { fontFamily: Typography.bodyBold, fontSize: 8.5, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.textSecondary },
   pillTextActive: { color: Colors.text },
+  localTag: {
+    height: 28,
+    paddingLeft: 12,
+    paddingRight: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderTopLeftRadius: 999,
+    borderBottomLeftRadius: 999,
+    borderWidth: 1,
+    borderRightWidth: 0,
+    borderColor: "rgba(242,242,246,0.18)",
+    backgroundColor: Colors.tile,
+  },
+  localTagText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.4, textTransform: "uppercase", color: Colors.text },
   pressed: { opacity: 0.72 },
   strip: {
     flexDirection: "row",

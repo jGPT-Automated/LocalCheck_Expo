@@ -38,6 +38,17 @@ point.
 | Log game form: one title, court then date, no Hide score, clears tab bar | ✅ needs device check |
 | Busy times chart (past check-ins + planned), drawer time on court | ✅ needs device check |
 | "Toggle local court off and can't get back in on the sign-in page" | ⬜ need repro steps from Jesse |
+| Home: full-width header, Local edge tag, Plan / Check in / Court row above the tab bar | ✅ needs device check |
+| Checked-in button label spilling over | ✅ |
+| Feed rows like the mock with icon tiles | ✅ needs device check |
+| Games tab card like the mock | ✅ needs device check |
+| Info map: tilted, orange geofence ring | ✅ needs device check |
+| Explore map controls on one row, live count centred | ✅ needs device check |
+| Inbox: logged challenge opens the score page, not Log game | ✅ |
+| Game score: Hide score at the bottom | ✅ |
+| Log game: button pinned above the tab bar, VS columns | ✅ needs device check |
+| Challenge: horizontal day/time pickers, sport-coloured day circle | ✅ needs device check |
+| Schedule tab rethink (heatmap + upcoming games to swipe) | ⬜ next |
 
 ## 2026-10-10 — #67 second design pass (`codex/auto-check-in`)
 

@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { CourtArt } from "@/components/court/CourtArt";
-import { LocalPill, MetricStrip, SportLabel } from "@/components/court/CourtParts";
+import { LocalTag, MetricStrip, SportLabel } from "@/components/court/CourtParts";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
 import type { Court } from "@/constants/data";
@@ -41,7 +41,7 @@ export function CourtListItem({ court, onPress, isLocalCourt, hoursLabel }: Cour
       <CourtArt sport={court.sport} />
       <View style={styles.metaRow}>
         <SportLabel sport={court.sport} />
-        {isLocalCourt ? <LocalPill isLocal /> : null}
+        {isLocalCourt ? <LocalTag /> : null}
       </View>
       <Text numberOfLines={1} style={styles.name}>
         {court.shortName || court.name}
@@ -75,7 +75,6 @@ const styles = StyleSheet.create({
     height: 26,
     marginTop: 14,
     paddingLeft: 18,
-    paddingRight: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

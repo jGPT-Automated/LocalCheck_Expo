@@ -205,7 +205,11 @@ export default function MeScreen() {
     refreshChallenges();
   };
   const openChallenge = (challenge: Challenge) => {
-    if (challenge.status === "accepted" && challenge.ranked) {
+    // A game already logged for it opens its score page (approve or dispute
+    // there), never a second Log Game.
+    if (challenge.matchId) {
+      router.push(`/match/${challenge.matchId}`);
+    } else if (challenge.status === "accepted" && challenge.ranked) {
       router.push(`/(tabs)/compete?tab=log&challengeId=${challenge.id}`);
     } else {
       router.push(`/challenge/${challenge.id}`);

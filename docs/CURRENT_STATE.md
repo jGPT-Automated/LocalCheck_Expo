@@ -160,6 +160,39 @@ Each claim says which of these it is, because they are often confused:
   - Drawer Here now shows time on court ("38m"), from the active check-in's
     `checked_in_at` (now selected in `fetchActiveCheckIns`).
   - `StickyActionBar` restyled to the court-flow buttons.
+- Third pass on the same branch (Oct 16, Jesse's feedback; frontend only,
+  **on a branch**, not on a device):
+  - Home: the local court is a full-width header, not a card (court art,
+    sport, a Local tag hanging off the right edge, centred name, the 3-number
+    strip), shorter than before. Plan / Check in / Court ↗ sit in one row
+    pinned above the tab bar (`HomeCourtActions` in
+    `components/ui/HomeCourtHero.tsx`); Plan opens the court page's Week.
+  - Check-out label is just "Check out" with the live dot (no more
+    "Checked in · Check out" spilling out of the button).
+  - Feed rows (`components/ui/ActivityRow.tsx`, used by Home, the court page
+    and profiles): equal-height rows, an icon tile (orange arrow in for a
+    check-in, grey arrow out for a check-out or visit, the sport ball in the
+    sport colour for a game, a calendar for a scheduled game), the sentence,
+    a detail line ("Played 1h 40m", "Ranked"), score and short time on the
+    right (`shortAgo` in `lib/activityPresentation.ts`). The rail is gone.
+  - Court page Games tab cards follow the mock: time, title, faces, "x of y
+    going" with a bar, Join / Going / Full (Join right from the card unless
+    the game picks sides).
+  - Court Info map: tilted, with the 150 m auto check-in circle drawn in
+    orange with a soft glow (`lib/geofenceShape.ts`, tests), easing in on
+    load. Stat values centred.
+  - Explore map: legend, a slimmer Nearest button and locate-me share one
+    bottom row; the live count sits top centre.
+  - Inbox: a challenge that already has a logged game opens that game's
+    score page (approve / dispute there), never Log game again.
+  - Game score: with nothing to approve, Hide score sits at the bottom.
+  - Log game: Log game button pinned above the tab bar; YOU · VS · OPPONENT
+    columns with the QR scan on the right of the opponent box.
+  - Challenge sheet: the day is the circle-day strip (today and the next
+    days), the time a horizontal strip; `WheelPicker` removed. The chosen
+    day circle is outlined in the sport colour (orange basketball, sea green
+    pickleball) here and in Log game.
+  - Explore card: the local court uses the same edge Local tag.
 - Expo SDK 54 patches on #67 (Oct 14, Jesse's OK in chat): `expo` 54.0.37,
   `expo-constants` 18.0.14, `expo-updates` 29.0.20. Lockfile also moves
   `@expo/cli` 54.0.27, `expo-file-system` 19.0.24 and

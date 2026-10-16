@@ -85,11 +85,13 @@ function isValidPlayedOn(value: string): boolean {
 function GameDateField({
   value,
   onChange,
+  sport,
 }: {
   value: string;
   onChange: (value: string) => void;
+  sport: CourtSport | "";
 }) {
-  return <RecentDatePicker daysBack={7} onChange={onChange} value={value} />;
+  return <RecentDatePicker daysBack={7} onChange={onChange} sport={sport || null} value={value} />;
 }
 
 /** Tap to switch the game's sport. It sits to the left of the court field and
@@ -815,17 +817,6 @@ export function LogGameView({
     return (
       <View key={`${slot.side}-${slot.index}`} style={styles.slotShell}>
         <Pressable
-          accessibilityLabel={`Scan ${placeholder} player QR code`}
-          accessibilityRole="button"
-          onPress={() => {
-            setActivePlayerSlot(slot);
-            void handleScanOpponent();
-          }}
-          style={styles.slotScan}
-        >
-          <Feather color={Colors.inkSoft} name="maximize" size={14} />
-        </Pressable>
-        <Pressable
           accessibilityLabel={
             player ? `Change ${player.name}` : `Select ${placeholder}`
           }
@@ -862,6 +853,17 @@ export function LogGameView({
           ) : (
             <Ionicons color={Colors.muted} name="chevron-down" size={14} />
           )}
+        </Pressable>
+        <Pressable
+          accessibilityLabel={`Scan ${placeholder} player QR code`}
+          accessibilityRole="button"
+          onPress={() => {
+            setActivePlayerSlot(slot);
+            void handleScanOpponent();
+          }}
+          style={styles.slotScan}
+        >
+          <Feather color={Colors.inkSoft} name="maximize" size={14} />
         </Pressable>
       </View>
     );
@@ -985,8 +987,10 @@ export function LogGameView({
   }
 
   return (
+    <View style={styles.formShell}>
     <KeyboardAwareScrollViewCompat
       bottomOffset={112}
+      style={styles.formShell}
       onTouchStart={scannerOpen ? killScanner : undefined}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{
@@ -995,7 +999,7 @@ export function LogGameView({
         gap: 12,
         // The submit button clears the tab bar (TabFloor), or the home
         // indicator in a sheet.
-        paddingBottom: inSheet ? 24 : tabFloor,
+        paddingBottom: 16,
       }}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
@@ -1031,6 +1035,7 @@ export function LogGameView({
             Keyboard.dismiss();
             setForm((current) => ({ ...current, playedOn }));
           }}
+          sport={form.sport}
           value={form.playedOn}
         />
       </View>
@@ -1061,6 +1066,9 @@ export function LogGameView({
             {Array.from({ length: form.teamSize - 1 }, (_, index) =>
               renderSlotTrigger({ side: "mine", index }, `TEAMMATE ${index + 1}`),
             )}
+          </View>
+          <View style={styles.vs}>
+            <Text style={styles.vsText}>VS</Text>
           </View>
           <View style={styles.matchColumn}>
             <Text style={styles.matchColHeading}>
@@ -1177,32 +1185,36 @@ export function LogGameView({
         )}
       </View>
 
-      {/* Submit */}
-      {submitError && <Text style={styles.submitError}>{submitError}</Text>}
-      <Pressable
-        accessibilityLabel="Log game for opponent review"
-        accessibilityRole="button"
-        accessibilityState={{
-          busy: submitting,
-          disabled: !canSubmit || submitting,
-        }}
-        style={[
-          styles.submitBtn,
-          (!canSubmit || submitting) && styles.submitBtnDisabled,
-        ]}
-        onPress={handleReview}
-        disabled={!canSubmit || submitting}
-      >
-        <Text
-          style={[
-            styles.submitBtnText,
-            (!canSubmit || submitting) && styles.submitBtnTextDisabled,
-          ]}
-        >
-          {submitting ? "LOGGING…" : "LOG GAME"}
-        </Text>
-      </Pressable>
     </KeyboardAwareScrollViewCompat>
+    {/* Log game stays put at the bottom, right above the tab bar. */}
+    <View style={[styles.submitBar, { paddingBottom: inSheet ? 24 : tabFloor }]}>
+      {/* Submit */}
+        {submitError && <Text style={styles.submitError}>{submitError}</Text>}
+        <Pressable
+          accessibilityLabel="Log game for opponent review"
+          accessibilityRole="button"
+          accessibilityState={{
+            busy: submitting,
+            disabled: !canSubmit || submitting,
+          }}
+          style={[
+            styles.submitBtn,
+            (!canSubmit || submitting) && styles.submitBtnDisabled,
+          ]}
+          onPress={handleReview}
+          disabled={!canSubmit || submitting}
+        >
+          <Text
+            style={[
+              styles.submitBtnText,
+              (!canSubmit || submitting) && styles.submitBtnTextDisabled,
+            ]}
+          >
+            {submitting ? "LOGGING…" : "LOG GAME"}
+          </Text>
+        </Pressable>
+    </View>
+    </View>
   );
 }
 
@@ -1339,7 +1351,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   // ── Matchup: two side-by-side columns ──
-  matchColumns: { flexDirection: "row", gap: 10 },
+  matchColumns: { flexDirection: "row", gap: 8 },
+  vs: { width: 22, paddingTop: 22, height: 62, alignItems: "center", justifyContent: "center" },
+  vsText: { fontFamily: Typography.headingSemiBold, fontSize: 12, color: Colors.muted },
+  formShell: { flex: 1, minHeight: 0 },
+  submitBar: {
+    paddingTop: 10,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.hairline,
+    backgroundColor: Colors.background,
+  },
   matchColumn: { flex: 1, minWidth: 0, gap: 6 },
   matchColHeading: {
     fontFamily: Typography.bodyBold,
@@ -1522,7 +1544,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: Radius.button,
-    marginTop: 8,
+    marginTop: 0,
   },
   submitBtnDisabled: {
     backgroundColor: Colors.panel,

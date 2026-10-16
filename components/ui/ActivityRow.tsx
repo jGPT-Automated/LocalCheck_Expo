@@ -1,43 +1,62 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { SportEmblem } from "@/components/ui/SportEmblem";
 import { Colors, Radius } from "@/constants/colors";
 import type { FeedItem } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
-import { TextStyles, Typography } from "@/constants/typography";
+import { Typography } from "@/constants/typography";
 import {
   describeTimelineItem,
+  formatClock,
   formatDayLabel,
-  type GameLine,
-  type LineSegment,
+  formatDurationMinutes,
+  shortAgo,
   startsNewDay,
-  type TimelineMarker,
 } from "@/lib/activityPresentation";
 
-const RAIL = 20;
-const MARKER = 10;
+type Kind = "in" | "out" | "game" | "plan" | "other";
+
+function kindOf(item: FeedItem): Kind {
+  switch (item.type) {
+    case "checkin":
+    case "checkin_burst":
+      return "in";
+    case "checkout":
+    case "visit":
+      return "out";
+    case "game_result":
+    case "run_result":
+      return "game";
+    case "run_started":
+      return "plan";
+    default:
+      return "other";
+  }
+}
 
 /**
- * The one shared activity-timeline row: a rail with one marker per item, a day
- * header whenever the day changes, and two weights on the same rail. A game is
- * the notable event, a small card hanging off the rail; check-ins, check-outs
- * and visits stay single quiet lines. Every marker is the same circle; the
- * type is told by fill (game: orange; check-in: outlined; the rest: grey).
+ * The one shared activity row (court-flow feed): every row the same height,
+ * an icon tile on the left that says what happened (orange arrow in for a
+ * check-in, grey arrow out for a check-out, the sport ball for a game, a
+ * calendar for a scheduled game), the sentence and a quiet detail line, then
+ * the score and time on the right. Day headers split the days.
  *
- * Pass `previous` (the item above this one) so the row can start a new day and
- * know it is first; `isLast` ends the rail. See lib/activityPresentation.ts
- * for how raw events become "visit" and "checkin_burst" items upstream.
+ * Pass `previous` (the item above this one) so the row knows when a new day
+ * starts. See lib/activityPresentation.ts for how raw events become "visit"
+ * and "checkin_burst" items upstream.
  */
 export function ActivityRow({
   item,
   previous,
-  isLast = false,
   showActor = false,
   onPress,
   onActorPress,
 }: {
   item: FeedItem;
   previous?: FeedItem;
+  /** Kept for callers; the last row no longer needs closing. */
   isLast?: boolean;
   /** Lists that mix players (the court feed) lead each line with the name. */
   showActor?: boolean;
@@ -46,237 +65,161 @@ export function ActivityRow({
 }) {
   const [burstExpanded, setBurstExpanded] = React.useState(false);
   const model = describeTimelineItem(item, { showActor });
-  const isFirst = !previous;
+  const kind = kindOf(item);
   const isBurst = item.type === "checkin_burst";
   const handlePress = isBurst ? () => setBurstExpanded((open) => !open) : onPress;
-  const canPress = Boolean(handlePress);
+  const actor = item.playerName.trim() || "Someone";
+  const court = item.courtName?.trim();
+
+  let who = "";
+  let what = "";
+  let meta = "";
+  let score: string | null = null;
+  if (model.kind === "game") {
+    const [win, lose] = model.lines;
+    who = win.name;
+    what = `def. ${lose.name}`;
+    score = `${win.score}–${lose.score}`;
+    meta = [item.match?.ranked === false ? "Casual" : "Ranked", showActor ? null : court].filter(Boolean).join(" · ");
+  } else if (item.type === "visit") {
+    who = showActor ? actor : "";
+    what = showActor ? "checked out" : `Played at ${court ?? "a court"}`;
+    meta = `Played ${formatDurationMinutes(item.visit?.durationMinutes ?? null)}`;
+  } else if (isBurst) {
+    const count = item.burst?.count ?? item.burst?.playerNames.length ?? 0;
+    who = `${count} people`;
+    what = "checked in";
+    const names = item.burst?.playerNames ?? [];
+    meta = burstExpanded || names.length <= 3 ? names.join(", ") : `${names.slice(0, 3).join(", ")} +${names.length - 3}`;
+  } else {
+    const verb =
+      item.type === "checkin"
+        ? "checked in"
+        : item.type === "checkout"
+          ? "checked out"
+          : item.type === "run_started"
+            ? "scheduled a game"
+            : item.type === "new_court"
+              ? "added a court"
+              : model.kind === "line"
+                ? model.segments.filter((s) => s.tone !== "name").map((s) => s.text).join(" ")
+                : "";
+    who = showActor ? actor : "";
+    what = showActor ? verb : `${verb.charAt(0).toUpperCase()}${verb.slice(1)}${court ? ` at ${court}` : ""}`;
+    meta = formatClock(item.occurredAtIso);
+  }
 
   return (
     <View>
-      {startsNewDay(item, previous) ? (
-        <DayHeader first={isFirst} label={formatDayLabel(item.occurredAtIso)} />
-      ) : null}
-      <View style={styles.row}>
-        <View style={styles.rail}>
-          <View style={[styles.railSegment, isFirst && styles.railHidden]} />
-          <View style={[styles.marker, markerStyle[model.marker]]} />
-          <View style={[styles.railSegment, isLast && styles.railHidden]} />
-        </View>
+      {startsNewDay(item, previous) ? <DayHeader first={!previous} label={formatDayLabel(item.occurredAtIso)} /> : null}
+      <Pressable
+        accessibilityHint={kind === "game" ? "Opens the final game result" : isBurst ? "Shows who checked in" : undefined}
+        accessibilityLabel={model.accessibilityLabel}
+        accessibilityRole={handlePress ? "button" : undefined}
+        disabled={!handlePress}
+        onPress={handlePress}
+        style={({ pressed }) => [styles.row, pressed && handlePress && styles.rowPressed]}
+      >
+        <IconTile item={item} kind={kind} />
         <View style={styles.copy}>
-          <Pressable
-            accessibilityHint={
-              model.kind === "game"
-                ? "Opens the final game result"
-                : isBurst
-                  ? "Shows who checked in"
-                  : "Opens the related detail"
-            }
-            accessibilityLabel={model.accessibilityLabel}
-            accessibilityRole={canPress ? "button" : undefined}
-            disabled={!canPress}
-            onPress={handlePress}
-            style={({ pressed }) => [
-              model.kind === "game" ? styles.card : styles.line,
-              pressed && canPress && (model.kind === "game" ? styles.cardPressed : styles.linePressed),
-            ]}
-          >
-            {model.kind === "game" ? (
-              <>
-                {/* Where it was sits on top (profiles only; a court's own
-                    feed leaves it out), the date is the day header. */}
-                {model.caption ? (
-                  <Text numberOfLines={1} style={styles.caption}>
-                    {model.caption}
-                  </Text>
-                ) : null}
-                <GameLineView line={model.lines[0]} />
-                <GameLineView line={model.lines[1]} />
-              </>
-            ) : (
-              <>
-                <View style={styles.lineContent}>
-                  {model.segments
-                    .filter((segment) => segment.text)
-                    .map((segment, index) => (
-                      <SegmentText
-                        key={index}
-                        onActorPress={onActorPress}
-                        segment={segment}
-                      />
-                    ))}
-                </View>
-                {burstExpanded && model.expandedText ? (
-                  <Text style={styles.expanded}>{model.expandedText}</Text>
-                ) : null}
-              </>
-            )}
-          </Pressable>
+          <Text numberOfLines={1} style={styles.title}>
+            {who ? (
+              <Text onPress={onActorPress && kind !== "game" ? onActorPress : undefined} style={styles.who}>
+                {who}{" "}
+              </Text>
+            ) : null}
+            {what}
+          </Text>
+          {meta ? <Text numberOfLines={burstExpanded ? 3 : 1} style={styles.meta}>{meta}</Text> : null}
         </View>
-      </View>
+        <View style={styles.side}>
+          {score ? <Text style={styles.score}>{score}</Text> : null}
+          <Text style={styles.ago}>{shortAgo(item.occurredAtIso)}</Text>
+        </View>
+      </Pressable>
+    </View>
+  );
+}
+
+/** The tile that says what happened, drawn with library icons only. */
+function IconTile({ item, kind }: { item: FeedItem; kind: Kind }) {
+  return (
+    <View style={[styles.tile, kind === "in" && styles.tileLive]}>
+      {kind === "game" && item.sport ? (
+        <SportEmblem
+          color={item.sport === "PICKLEBALL" ? Colors.pickleballMeta : Colors.basketballMeta}
+          size={15}
+          sport={item.sport}
+        />
+      ) : (
+        <MaterialCommunityIcons
+          color={kind === "in" ? Colors.accent : kind === "plan" ? Colors.inkSoft : Colors.muted}
+          name={
+            kind === "in"
+              ? item.type === "checkin_burst"
+                ? "account-group"
+                : "login-variant"
+              : kind === "out"
+                ? "logout-variant"
+                : kind === "plan"
+                  ? "calendar-check"
+                  : kind === "game"
+                    ? "trophy-outline"
+                    : "map-marker-radius"
+          }
+          size={15}
+        />
+      )}
     </View>
   );
 }
 
 function DayHeader({ label, first }: { label: string; first: boolean }) {
   return (
-    <View style={styles.headerRow}>
-      <View style={styles.rail}>
-        <View style={[styles.railSegment, first && styles.railHidden]} />
-      </View>
-      <View style={[styles.headerLabel, first && styles.headerFirst]}>
-        <Text accessibilityRole="header" style={styles.headerText}>
-          {label}
-        </Text>
-        <View style={styles.headerRule} />
-      </View>
+    <View style={[styles.dayHeader, first && styles.dayHeaderFirst]}>
+      <Text accessibilityRole="header" style={styles.dayText}>{label}</Text>
     </View>
   );
 }
-
-function SegmentText({
-  segment,
-  onActorPress,
-}: {
-  segment: LineSegment;
-  onActorPress?: () => void;
-}) {
-  return (
-    <Text
-      numberOfLines={1}
-      onPress={segment.actor ? onActorPress : undefined}
-      style={[
-        segment.tone === "name"
-          ? styles.segmentName
-          : segment.tone === "time"
-            ? styles.segmentTime
-            : styles.segmentText,
-        segment.shrink ? styles.shrink : styles.fixed,
-      ]}
-    >
-      {segment.text}
-    </Text>
-  );
-}
-
-function GameLineView({ line }: { line: GameLine }) {
-  return (
-    <View style={styles.gameLine}>
-      <Text
-        numberOfLines={1}
-        style={[styles.gameName, line.winner ? styles.winnerText : styles.loserText]}
-      >
-        {line.name}
-      </Text>
-      <Text style={[styles.gameScore, line.winner ? styles.winnerText : styles.loserText]}>
-        {line.score}
-      </Text>
-    </View>
-  );
-}
-
-const markerStyle = StyleSheet.create({
-  // Game: the notable event, filled orange.
-  game: { backgroundColor: Colors.accent },
-  // Check-in: outlined, so it reads as lighter than a game.
-  checkin: {
-    backgroundColor: Colors.background,
-    borderWidth: 1.5,
-    borderColor: Colors.textSecondary,
-  },
-  // Check-out, visit, other: quiet grey.
-  quiet: { backgroundColor: Colors.mutedDark },
-} satisfies Record<TimelineMarker, object>);
 
 const styles = StyleSheet.create({
   row: {
-    paddingLeft: Layout.screenGutter,
-    flexDirection: "row",
-    alignItems: "stretch",
-  },
-  rail: { width: RAIL, alignItems: "center", justifyContent: "center" },
-  railSegment: {
-    flex: 1,
-    width: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.borderLight,
-  },
-  railHidden: { backgroundColor: "transparent" },
-  marker: {
-    width: MARKER,
-    height: MARKER,
-    marginVertical: Space.xs,
-    borderRadius: MARKER / 2,
-  },
-  copy: {
-    flex: 1,
-    minWidth: 0,
-    marginLeft: Space.sm,
-    paddingRight: Layout.screenGutter,
-    justifyContent: "center",
-  },
-
-  // ── Day header ──
-  headerRow: {
-    paddingLeft: Layout.screenGutter,
-    flexDirection: "row",
-    alignItems: "stretch",
-  },
-  // The day opens a group: a clear label with a rule running to the edge.
-  headerLabel: {
-    flex: 1,
+    minHeight: 60,
+    marginHorizontal: Layout.screenGutter,
+    paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
-    gap: Space.sm,
-    marginLeft: Space.sm,
-    paddingRight: Layout.screenGutter,
-    paddingTop: Space.xxl,
-    paddingBottom: Space.sm,
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(242,242,246,0.06)",
   },
-  headerText: {
-    ...TextStyles.label,
-    letterSpacing: 1.4,
-    textTransform: "uppercase",
-    color: Colors.textSecondary,
-  },
-  headerRule: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
-  headerFirst: { paddingTop: Space.md },
-
-  // ── Quiet single line (check-in, check-out, visit) ──
-  line: {
-    minHeight: 44,
-    paddingHorizontal: Space.md,
+  rowPressed: { opacity: 0.7 },
+  tile: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
     justifyContent: "center",
-    borderRadius: Radius.lg,
+    borderRadius: Radius.chip,
+    borderWidth: 1,
+    borderColor: "rgba(242,242,246,0.08)",
+    backgroundColor: Colors.panel,
   },
-  linePressed: { backgroundColor: Colors.surfacePressed },
-  lineContent: { flexDirection: "row", alignItems: "center", gap: Space.xs },
-  shrink: { flexShrink: 1, minWidth: 0 },
-  fixed: { flexShrink: 0 },
-  segmentName: { ...TextStyles.bodySmall, fontFamily: Typography.bodySemiBold, color: Colors.text },
-  segmentText: { ...TextStyles.bodySmall, color: Colors.textSecondary },
-  segmentTime: { ...TextStyles.bodySmall, color: Colors.muted },
-  expanded: { ...TextStyles.metadata, paddingBottom: Space.sm, color: Colors.textSecondary },
-
-  // ── Game card hanging off the rail ──
-  card: {
-    marginVertical: Space.xs,
-    paddingHorizontal: Space.md,
-    paddingVertical: Space.md,
-    gap: 2,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
-    borderRadius: Radius.lg,
-    backgroundColor: Colors.surface,
+  // A live check-in glows a little, like the On court dot.
+  tileLive: {
+    borderColor: Colors.accentBorder,
+    shadowColor: Colors.accent,
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 0 },
   },
-  cardPressed: { backgroundColor: Colors.surfacePressed },
-  gameLine: { flexDirection: "row", alignItems: "center", gap: Space.md },
-  gameName: { ...TextStyles.listName, flex: 1, minWidth: 0 },
-  gameScore: {
-    ...TextStyles.statSmall,
-    minWidth: 28,
-    textAlign: "right",
-    fontVariant: ["tabular-nums"],
-  },
-  winnerText: { color: Colors.accent },
-  loserText: { color: Colors.textSecondary },
-  caption: { ...TextStyles.labelSmall, marginBottom: Space.xs, letterSpacing: 1, textTransform: "uppercase", color: Colors.muted },
+  copy: { flex: 1, minWidth: 0, gap: 2 },
+  title: { fontFamily: Typography.bodyMedium, fontSize: 13, lineHeight: 18, color: Colors.textSecondary },
+  who: { fontFamily: Typography.bodySemiBold, color: Colors.text },
+  meta: { fontFamily: Typography.bodyMedium, fontSize: 11, lineHeight: 15, color: Colors.muted },
+  side: { flexShrink: 0, alignItems: "flex-end", gap: 2 },
+  score: { fontFamily: Typography.headingSemiBold, fontSize: 19, lineHeight: 21, letterSpacing: -0.4, color: Colors.text, fontVariant: ["tabular-nums"] },
+  ago: { fontFamily: Typography.bodySemiBold, fontSize: 10, color: Colors.muted },
+  dayHeader: { paddingHorizontal: Layout.screenGutter, paddingTop: Space.xl, paddingBottom: Space.xs },
+  dayHeaderFirst: { paddingTop: Space.md },
+  dayText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
 });
