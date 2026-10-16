@@ -21,6 +21,40 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-15 — Court-flow UI pass, frontend only (`claude/court-flow-ui-pass`)
+
+| Item | Status |
+|------|--------|
+| Expanded drawer to the design: Here now, Up next, Today, Recent activity, chips into court tabs | ✅ needs device check |
+| Drawer gate: "See who runs …", white Unlock, make-local link | ✅ needs device check |
+| Explore card to the design (art, pill, 3-number strip, live first) | ✅ needs device check |
+| Game open to join: title block, Going / Avg ELO / Format, spots bar, Who's going, details, Join | ✅ needs device check |
+| One button style everywhere (4pt, Inter bold, white primary, orange for live/check-in) | ✅ |
+| Notifications and Log game restyled to the same tokens | ✅ needs device check |
+| Connected preview / phone screenshots | ⬜ not done in this session (no env or sign-in) |
+| Onboarding: welcome, map court picker, auto check-in screen with privacy, no drawer | ✅ needs device check |
+| Profile: clear friend states (4 layouts), compact head to head | ✅ needs device check |
+| Log game from a profile opens a sheet, no jump to Compete | ✅ needs device check |
+| Log game form: one title, court then date, no Hide score, clears tab bar | ✅ needs device check |
+| Busy times chart (past check-ins + planned), drawer time on court | ✅ needs device check |
+| "Toggle local court off and can't get back in on the sign-in page" | ⬜ need repro steps from Jesse |
+| Home: full-width header, Local edge tag, Plan / Check in / Court row above the tab bar | ✅ needs device check |
+| Checked-in button label spilling over | ✅ |
+| Feed rows like the mock with icon tiles | ✅ needs device check |
+| Games tab card like the mock | ✅ needs device check |
+| Info map: tilted, orange geofence ring | ✅ needs device check |
+| Explore map controls on one row, live count centred | ✅ needs device check |
+| Inbox: logged challenge opens the score page, not Log game | ✅ |
+| Game score: Hide score at the bottom | ✅ |
+| Log game: button pinned above the tab bar, VS columns | ✅ needs device check |
+| Challenge: horizontal day/time pickers, sport-coloured day circle | ✅ needs device check |
+| Schedule tab rethink (heatmap + upcoming games to swipe) | ✅ restyled, no page scroll, games as court cards; needs device check |
+| Slot card same height empty or full (Schedule + Week) | ✅ |
+| Current hour selected and scrolled into view by default | ✅ needs device check |
+| Feed: today check-in + check-out rows, older days "played" with check-out time | ✅ |
+| Map legend balanced | ✅ needs device check |
+| Favourite courts + switch Home / Schedule between them (LocalPlus) | ⬜ needs backend storage; not started |
+
 ## 2026-10-10 — #67 second design pass (`codex/auto-check-in`)
 
 | Item | Status |

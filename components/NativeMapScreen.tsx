@@ -698,69 +698,56 @@ export function MapScreen({
             </View>
           </View>
 
-          {/* ── Legend ── */}
-          <View
-            style={[
-              styles.legend,
-              { bottom: bottom + Layout.tabBarClearance + 60 },
-            ]}
-          >
-            <View style={styles.legendRow}>
-              <View
-                style={[styles.legendDot, { backgroundColor: Colors.accent }]}
-              />
-              <Text style={styles.legendText}>ACTIVE NOW</Text>
+          {/* ── Legend: one slim row centred under the live count ── */}
+          <View pointerEvents="none" style={[styles.legendBar, { top: 56 }]}>
+            <View style={styles.legend}>
+              <View style={styles.legendRow}>
+                <View style={[styles.legendDot, { backgroundColor: Colors.accent }]} />
+                <Text style={styles.legendText}>ACTIVE NOW</Text>
+              </View>
+              <View style={styles.legendRow}>
+                <View style={[styles.legendDot, { backgroundColor: getCourtIdentityColor("BASKETBALL") }]} />
+                <Text style={styles.legendText}>BASKETBALL</Text>
+              </View>
+              <View style={styles.legendRow}>
+                <View style={[styles.legendDot, { backgroundColor: getCourtIdentityColor("PICKLEBALL") }]} />
+                <Text style={styles.legendText}>PICKLEBALL</Text>
+              </View>
             </View>
-            <View style={styles.legendRow}>
-              <View
-                style={[
-                  styles.legendDot,
-                  { backgroundColor: getCourtIdentityColor("BASKETBALL") },
-                ]}
-              />
-              <Text style={styles.legendText}>BASKETBALL</Text>
-            </View>
-            <View style={styles.legendRow}>
-              <View
-                style={[
-                  styles.legendDot,
-                  { backgroundColor: getCourtIdentityColor("PICKLEBALL") },
-                ]}
-              />
-              <Text style={styles.legendText}>PICKLEBALL</Text>
-            </View>
+
           </View>
 
-          {/* ── Right-side control: center the map on the current device ── */}
-          <Pressable
-            style={[
-              styles.roundBtn,
-              { bottom: bottom + Layout.tabBarClearance + 60 },
-            ]}
-            onPress={flyToUser}
-            accessibilityLabel="Center on my location"
+          {/* ── Bottom row: Nearest centred, locate me on the right ── */}
+          <View
+            pointerEvents="box-none"
+            style={[styles.bottomRow, { bottom: bottom + Layout.tabBarClearance + 12 }]}
           >
-            <Feather name="navigation" size={18} color={Colors.text} />
-          </Pressable>
+            {/* Same width as locate-me, so Nearest sits dead centre. */}
+            <View style={styles.roundSpacer} />
 
-          <Pressable
-            accessibilityLabel="Find nearest court"
-            accessibilityRole="button"
-            onPress={findNearestCourt}
-            style={({ pressed }) => [
-              styles.nearestButton,
-              { bottom: bottom + Layout.tabBarClearance + 10 },
-              pressed && styles.nearestButtonPressed,
-            ]}
-          >
-            <Feather color={Colors.black} name="navigation" size={15} />
-            <Text style={styles.nearestButtonText}>FIND NEAREST COURT</Text>
-          </Pressable>
+            <Pressable
+              accessibilityLabel="Find nearest court"
+              accessibilityRole="button"
+              onPress={findNearestCourt}
+              style={({ pressed }) => [styles.nearestButton, pressed && styles.nearestButtonPressed]}
+            >
+              <Feather color={Colors.background} name="navigation" size={13} />
+              <Text style={styles.nearestButtonText}>Nearest</Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.roundBtn}
+              onPress={flyToUser}
+              accessibilityLabel="Center on my location"
+            >
+              <Feather name="crosshair" size={18} color={Colors.text} />
+            </Pressable>
+          </View>
           {locationNotice ? (
             <View
               style={[
                 styles.locationNotice,
-                { bottom: bottom + Layout.tabBarClearance + 60 },
+                { bottom: bottom + Layout.tabBarClearance + 76 },
               ]}
             >
               <Text style={styles.locationNoticeText}>{locationNotice}</Text>
@@ -780,7 +767,7 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
     gap: 10,
   },
@@ -822,16 +809,26 @@ const styles = StyleSheet.create({
   },
 
 
-  legend: {
+  bottomRow: {
     position: "absolute",
-    left: 20,
+    left: 16,
+    right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  legendBar: { position: "absolute", left: 0, right: 0, alignItems: "center" },
+  roundSpacer: { width: 48, height: 48 },
+  legend: {
+    flexDirection: "row",
     backgroundColor: "rgba(16,16,16,0.85)",
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radius.sm,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
-    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 12,
   },
   legendRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   legendDot: { width: 7, height: 7, borderRadius: 4 },
@@ -843,8 +840,6 @@ const styles = StyleSheet.create({
   },
 
   roundBtn: {
-    position: "absolute",
-    right: 20,
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -855,24 +850,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   nearestButton: {
-    position: "absolute",
-    alignSelf: "center",
-    minWidth: 190,
-    minHeight: 44,
-    paddingHorizontal: 15,
+    height: 40,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 7,
     backgroundColor: Colors.accent,
-    borderRadius: Radius.sm,
+    borderRadius: 999,
   },
   nearestButtonPressed: { opacity: 0.78 },
   nearestButtonText: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
-    color: Colors.black,
+    fontFamily: Typography.bodyBold,
+    fontSize: 10.5,
+    color: Colors.background,
     letterSpacing: 1.4,
+    textTransform: "uppercase",
   },
   locationNotice: {
     position: "absolute",

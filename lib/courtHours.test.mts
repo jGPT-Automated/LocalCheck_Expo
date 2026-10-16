@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { courtHours, formatAverageSession, formatCourtHours, formatNextGame } from "./courtHours.ts";
+import { courtHours, formatAverageSession, formatCourtHours, formatNextGame, formatTimeOnCourt } from "./courtHours.ts";
 
 const now = Date.parse("2026-10-14T20:00:00Z");
 const at = (hoursAgo: number) => new Date(now - hoursAgo * 3_600_000).toISOString();
@@ -51,4 +51,13 @@ test("formats hours, average session and next game", () => {
   assert.equal(formatNextGame(evening), "6:30P");
   const noon = new Date(2026, 9, 14, 12, 0).toISOString();
   assert.equal(formatNextGame(noon), "12P");
+});
+
+test("time on court reads Now, minutes, then hours and minutes", () => {
+  const now = Date.parse("2026-10-15T18:00:00Z");
+  assert.equal(formatTimeOnCourt(undefined, now), null);
+  assert.equal(formatTimeOnCourt("2026-10-15T17:59:40Z", now), "Now");
+  assert.equal(formatTimeOnCourt("2026-10-15T17:22:00Z", now), "38m");
+  assert.equal(formatTimeOnCourt("2026-10-15T16:50:00Z", now), "1h 10m");
+  assert.equal(formatTimeOnCourt("2026-10-15T16:00:00Z", now), "2h");
 });

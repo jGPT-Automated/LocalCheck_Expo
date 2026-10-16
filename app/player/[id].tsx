@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ChallengeSheet } from "@/components/challenge/ChallengeSheet";
+import { LogGameSheet } from "@/components/game/LogGameSheet";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { DetailHeader } from "@/components/ui/DetailHeader";
 import { GameResultModal } from "@/components/ui/GameResultModal";
@@ -162,6 +163,7 @@ export default function PlayerProfileScreen() {
   };
   const [qrVisible, setQrVisible] = useState(false);
   const [challengeOpen, setChallengeOpen] = useState(false);
+  const [logGameOpen, setLogGameOpen] = useState(false);
   const [openChallenge, setOpenChallenge] = useState<Challenge | null>(null);
 
   // Re-checked on focus so coming back from the challenge screen updates
@@ -288,6 +290,30 @@ export default function PlayerProfileScreen() {
     if (isRequestPending) removeFriend(player.id);
     else addFriend(player.id);
   };
+
+  const openLogGame = () => setLogGameOpen(true);
+  // One clear layout per friend state (Jesse's sheet, Oct 15):
+  // not friends: Log game | Add friend; they asked: Log game | Accept request;
+  // you asked: Cancel request | Log game; friends: remove | Log game | Challenge.
+  const friendActions = isFriendStatus
+    ? {
+        secondary: { label: "Log game", onPress: openLogGame },
+        primary: { label: openChallenge ? "View challenge" : "Challenge", tone: "light" as const, onPress: () => handleChallenge() },
+      }
+    : isIncomingRequest
+      ? {
+          secondary: { label: "Log game", onPress: openLogGame },
+          primary: { label: "Accept request", icon: "user-check" as const, onPress: handleToggleFriend },
+        }
+      : isRequestPending
+        ? {
+            secondary: { label: "Cancel request", icon: "user-x" as const, onPress: handleToggleFriend },
+            primary: { label: "Log game", onPress: openLogGame },
+          }
+        : {
+            secondary: { label: "Log game", onPress: openLogGame },
+            primary: { label: "Add friend", icon: "user-plus" as const, onPress: handleToggleFriend },
+          };
 
   const handleChallenge = () => {
     if (openChallenge) {
@@ -510,32 +536,13 @@ export default function PlayerProfileScreen() {
       </View>
       <StickyActionBar
         bottomInset={bottom}
-        leading={{
-          accessibilityLabel: isFriendStatus
-            ? "Remove friend"
-            : isIncomingRequest
-              ? "Accept friend request"
-              : isRequestPending
-                ? "Cancel friend request"
-                : "Add friend",
-          icon: isFriendStatus
-            ? "user-minus"
-            : isIncomingRequest
-              ? "user-check"
-              : isRequestPending
-                ? "user-x"
-                : "user-plus",
-          onPress: handleToggleFriend,
-        }}
-        secondary={{
-          label: "LOG GAME",
-          onPress: () => router.push(`/(tabs)/compete?tab=log&opponentId=${player.id}`),
-        }}
-        primary={{
-          label: openChallenge ? "VIEW CHALLENGE" : "CHALLENGE",
-          tone: "light",
-          onPress: handleChallenge,
-        }}
+        leading={
+          isFriendStatus
+            ? { accessibilityLabel: "Remove friend", icon: "user-minus", onPress: handleToggleFriend }
+            : undefined
+        }
+        primary={friendActions.primary}
+        secondary={friendActions.secondary}
       />
       {challengeOpen ? (
         <ChallengeSheet
@@ -549,6 +556,7 @@ export default function PlayerProfileScreen() {
           visible={challengeOpen}
         />
       ) : null}
+      <LogGameSheet onClose={() => setLogGameOpen(false)} opponent={player} visible={logGameOpen} />
       <PlayerQrModal
         onClose={() => setQrVisible(false)}
         playerId={player.id}
@@ -579,9 +587,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Space.sm,
-    backgroundColor: Colors.surfaceDark,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
+    backgroundColor: Colors.panel,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.hairline,
   },
   stickyName: { ...TextStyles.labelSmall, color: Colors.textSecondary, letterSpacing: 1 },
   stickyNameRight: { flexShrink: 1 },
@@ -599,19 +607,19 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.68 },
   tabs: {
-    minHeight: 48,
+    minHeight: 44,
     flexDirection: "row",
-    backgroundColor: Colors.surfaceDark,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
+    paddingHorizontal: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.hairline,
   },
   profileTab: {
     flex: 1,
-    minHeight: 48,
+    minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
     borderBottomWidth: 2,
-    borderBottomColor: Colors.surfaceDark,
+    borderBottomColor: "transparent",
   },
   profileTabActive: { borderBottomColor: Colors.accent },
   profileTabText: {

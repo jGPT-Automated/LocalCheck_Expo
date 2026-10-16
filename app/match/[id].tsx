@@ -305,8 +305,13 @@ export default function MatchReviewScreen() {
         ) : null}
         <MatchReviewCard match={match} viewerHideScore={hiddenOverride ?? undefined} viewerId={user?.id} />
         <GameActivityList events={activity} />
-        {showActions ? null : hideToggle}
       </ScrollView>
+
+      {/* With nothing to approve, Hide score sits at the bottom like the
+          other screens' actions, not in the middle of the page. */}
+      {!showActions && hideToggle ? (
+        <View style={[styles.footer, { paddingBottom: Math.max(bottom, Space.md) }]}>{hideToggle}</View>
+      ) : null}
 
       {canUpdate ? (
         <StickyActionBar
@@ -353,6 +358,13 @@ export default function MatchReviewScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
+  footer: {
+    paddingTop: Space.md,
+    paddingHorizontal: Layout.screenGutter,
+    borderTopWidth: 1,
+    borderTopColor: Colors.hairline,
+    backgroundColor: Colors.background,
+  },
   center: {
     flex: 1,
     alignItems: "center",

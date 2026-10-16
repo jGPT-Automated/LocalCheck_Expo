@@ -1,12 +1,18 @@
 // Court page › Games (Claude Design handoff): upcoming scheduled games at
-// this court, grouped by day, with "x of y going" and a fill bar. Tapping a
-// game opens the existing game page (app/run/[id].tsx), where joining lives.
+// this court, grouped by day. Each card: time, title, format, then who's
+// going (faces), "x of y going" with a fill bar, and Join / Going / Full.
+// Tapping the card opens the game page (app/run/[id].tsx).
+import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Colors } from "@/constants/colors";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { formatForMaxPlayers } from "@/components/schedule/scheduledGameModel";
+import { PressableScale } from "@/components/ui/PressableScale";
+import { Colors, Radius } from "@/constants/colors";
 import type { GameRun } from "@/constants/data";
 import { Typography } from "@/constants/typography";
+import { useApp } from "@/context/AppContext";
 
 function dayLabel(date: Date): string {
   const today = new Date();
@@ -20,55 +26,108 @@ function dayLabel(date: Date): string {
 }
 
 export function CourtGamesPanel({ games, onOpen }: { games: GameRun[]; onOpen: (game: GameRun) => void }) {
+  const { currentUser, joinRun } = useApp();
+  const [joiningId, setJoiningId] = React.useState<string | null>(null);
+
   if (games.length === 0) {
     return (
       <View style={styles.wrap}>
         <Text style={styles.eyebrow}>Upcoming</Text>
-        <Text style={styles.empty}>Nothing scheduled.</Text>
+        <View style={styles.emptyBox}>
+          <Text style={styles.empty}>Nothing scheduled. Post a game and locals see it.</Text>
+        </View>
       </View>
     );
   }
-  const groups: Array<{ label: string; games: GameRun[] }> = [];
+  const groups: Array<{ label: string; today: boolean; games: GameRun[] }> = [];
   for (const game of games) {
     const label = dayLabel(new Date(game.startTimeIso));
     const last = groups[groups.length - 1];
     if (last?.label === label) last.games.push(game);
-    else groups.push({ label, games: [game] });
+    else groups.push({ label, today: label === "Today", games: [game] });
   }
+
+  const join = async (game: GameRun) => {
+    if (joiningId) return;
+    setJoiningId(game.id);
+    await joinRun(game.id);
+    setJoiningId(null);
+  };
+
   return (
     <View style={styles.wrap}>
       <Text style={styles.eyebrow}>Upcoming · {games.length}</Text>
       {groups.map((group) => (
         <View key={group.label} style={styles.group}>
-          <Text style={styles.day}>{group.label}</Text>
+          <Text style={[styles.day, group.today && styles.dayToday]}>{group.label}</Text>
           {group.games.map((game) => {
             const start = new Date(game.startTimeIso);
             const hours = start.getHours();
             const going = game.participants.length;
             const max = Math.max(game.maxPlayers, 1);
+            const joined = game.participants.some((player) => player.id === currentUser.id);
+            const full = going >= game.maxPlayers;
+            // Choose-teams games pick a side on the game page.
+            const canQuickJoin = !joined && !full && game.teamAssignmentMode !== "choose_teams";
+            const format = formatForMaxPlayers(game.maxPlayers);
             return (
-              <Pressable
+              <PressableScale
                 accessibilityLabel={`${game.title}, ${going} of ${game.maxPlayers} going`}
                 accessibilityRole="button"
                 key={game.id}
                 onPress={() => onOpen(game)}
-                style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+                style={styles.card}
               >
-                <View style={styles.timeCol}>
-                  <Text style={styles.time}>
-                    {hours % 12 === 0 ? 12 : hours % 12}
-                    {start.getMinutes() ? `:${String(start.getMinutes()).padStart(2, "0")}` : ""}
-                  </Text>
-                  <Text style={styles.ampm}>{hours >= 12 ? "PM" : "AM"}</Text>
-                </View>
-                <View style={styles.body}>
-                  <Text numberOfLines={1} style={styles.title}>{game.title}</Text>
-                  <Text style={styles.going}>{going} of {game.maxPlayers} going</Text>
-                  <View style={styles.bar}>
-                    <View style={[styles.fill, { width: `${Math.min(100, (going / max) * 100)}%` }]} />
+                <View style={styles.top}>
+                  <View style={styles.timeCol}>
+                    <Text style={styles.time}>
+                      {hours % 12 === 0 ? 12 : hours % 12}
+                      {start.getMinutes() ? `:${String(start.getMinutes()).padStart(2, "0")}` : ""}
+                    </Text>
+                    <Text style={styles.ampm}>{hours >= 12 ? "PM" : "AM"}</Text>
                   </View>
+                  <View style={styles.body}>
+                    <Text numberOfLines={1} style={styles.title}>{game.title}</Text>
+                    <Text numberOfLines={1} style={styles.sub}>
+                      {[format?.toLowerCase(), game.skillLevel === "ALL LEVELS" ? "All levels" : game.skillLevel.charAt(0) + game.skillLevel.slice(1).toLowerCase(), game.hostName ? `Host ${game.hostName.split(" ")[0]}` : null]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </Text>
+                  </View>
+                  <Feather color={Colors.muted} name="chevron-right" size={16} />
                 </View>
-              </Pressable>
+                <View style={styles.bottom}>
+                  <View style={styles.faces}>
+                    {game.participants.slice(0, 4).map((player, index) => (
+                      <View key={player.id} style={[styles.face, index > 0 && styles.faceOverlap]}>
+                        <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={24} />
+                      </View>
+                    ))}
+                  </View>
+                  <View style={styles.going}>
+                    <Text numberOfLines={1} style={styles.goingText}>{going} of {game.maxPlayers} going</Text>
+                    <View style={styles.bar}>
+                      <View style={[styles.fill, { width: `${Math.min(100, (going / max) * 100)}%` }]} />
+                    </View>
+                  </View>
+                  <Pressable
+                    accessibilityLabel={joined ? "You're going" : full ? "Game full" : `Join ${game.title}`}
+                    accessibilityRole="button"
+                    disabled={joined || full}
+                    hitSlop={6}
+                    onPress={() => (canQuickJoin ? void join(game) : onOpen(game))}
+                    style={({ pressed }) => [styles.cta, joined && styles.ctaJoined, pressed && styles.pressed]}
+                  >
+                    {joiningId === game.id ? (
+                      <ActivityIndicator color={Colors.text} size="small" />
+                    ) : (
+                      <Text style={[styles.ctaText, full && !joined && styles.ctaTextMuted]}>
+                        {joined ? "Going" : full ? "Full" : "Join"}
+                      </Text>
+                    )}
+                  </Pressable>
+                </View>
+              </PressableScale>
             );
           })}
         </View>
@@ -78,19 +137,32 @@ export function CourtGamesPanel({ games, onOpen }: { games: GameRun[]; onOpen: (
 }
 
 const styles = StyleSheet.create({
-  wrap: { paddingHorizontal: 20, paddingTop: 16, gap: 12 },
+  wrap: { paddingHorizontal: 20, paddingTop: 16, gap: 14 },
   eyebrow: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
+  emptyBox: { minHeight: 64, paddingHorizontal: 14, justifyContent: "center", borderRadius: Radius.row, borderWidth: 1, borderStyle: "dashed", borderColor: Colors.dashed },
   empty: { fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
-  group: { gap: 8 },
-  day: { marginTop: 4, fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.muted },
-  card: { flexDirection: "row", gap: 14, padding: 14, borderRadius: 13, borderWidth: 1, borderColor: Colors.hairlineCard, backgroundColor: Colors.panel },
-  timeCol: { width: 44, alignItems: "flex-start" },
+  group: { gap: 7 },
+  day: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
+  dayToday: { color: Colors.text },
+  card: { overflow: "hidden", borderRadius: Radius.panel, borderWidth: 1, borderColor: Colors.hairlineCard, backgroundColor: Colors.panel },
+  top: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingRight: 12 },
+  timeCol: { width: 56, alignItems: "center", borderRightWidth: 1, borderRightColor: Colors.hairline },
   time: { fontFamily: Typography.headingSemiBold, fontSize: 18, lineHeight: 20, color: Colors.text },
-  ampm: { fontFamily: Typography.bodyBold, fontSize: 8, letterSpacing: 1, color: Colors.muted },
-  body: { flex: 1, gap: 4 },
-  title: { fontFamily: Typography.bodySemiBold, fontSize: 13, color: Colors.text },
-  going: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
-  bar: { height: 3, marginTop: 4, borderRadius: 2, backgroundColor: Colors.surfaceHigh, overflow: "hidden" },
-  fill: { height: 3, backgroundColor: Colors.text },
-  pressed: { opacity: 0.8 },
+  ampm: { fontFamily: Typography.bodyBold, fontSize: 7.5, letterSpacing: 0.8, color: Colors.muted },
+  body: { flex: 1, minWidth: 0, gap: 3 },
+  title: { fontFamily: Typography.bodyBold, fontSize: 13, color: Colors.text },
+  sub: { fontFamily: Typography.bodyMedium, fontSize: 10.5, color: Colors.textSecondary },
+  bottom: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, paddingVertical: 10, borderTopWidth: 1, borderTopColor: "rgba(242,242,246,0.06)" },
+  faces: { flexDirection: "row", paddingLeft: 2 },
+  face: { borderRadius: 9, borderWidth: 2, borderColor: Colors.panel },
+  faceOverlap: { marginLeft: -8 },
+  going: { flex: 1, minWidth: 0, gap: 4 },
+  goingText: { fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.inkSoft },
+  bar: { height: 3, borderRadius: 2, backgroundColor: "rgba(242,242,246,0.08)", overflow: "hidden" },
+  fill: { height: 3, backgroundColor: Colors.inkSoft },
+  cta: { height: 32, minWidth: 64, paddingHorizontal: 12, alignItems: "center", justifyContent: "center", borderRadius: Radius.button, borderWidth: 1, borderColor: Colors.hairlineChrome },
+  ctaJoined: { backgroundColor: Colors.tile, borderColor: "rgba(242,242,246,0.3)" },
+  ctaText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.text },
+  ctaTextMuted: { color: Colors.muted },
+  pressed: { opacity: 0.7 },
 });
