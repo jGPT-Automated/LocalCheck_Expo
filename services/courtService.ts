@@ -477,6 +477,8 @@ export interface CourtSubmissionResult {
   attemptsUsed?: number;
   attemptLimit?: number;
   cooldownUntil?: string;
+  /** Until launch: what was sent to Gemini and what it answered. */
+  debug?: Record<string, unknown>;
 }
 
 interface CourtSubmissionResponse {
@@ -492,6 +494,13 @@ interface CourtSubmissionResponse {
   attemptsUsed?: unknown;
   attemptLimit?: unknown;
   cooldownUntil?: unknown;
+  debug?: unknown;
+}
+
+function debugOf(payload: CourtSubmissionResponse | null | undefined) {
+  return payload?.debug && typeof payload.debug === "object"
+    ? (payload.debug as Record<string, unknown>)
+    : undefined;
 }
 
 const COURT_FAILURE_CODES = new Set<CourtSubmissionFailureCode>([
@@ -547,6 +556,7 @@ async function functionErrorResult(error: unknown): Promise<CourtSubmissionResul
     confidence: 0,
     reason,
     failureCode: failureCode(payload?.failureCode) ?? inferredCode,
+    debug: debugOf(payload),
     attemptsUsed: safeAttemptCount(payload?.attemptsUsed),
     attemptLimit: safeAttemptCount(payload?.attemptLimit),
     cooldownUntil: typeof payload?.cooldownUntil === "string" ? payload.cooldownUntil : undefined,
@@ -604,6 +614,7 @@ export async function createCourt(
       attemptsUsed: safeAttemptCount(payload.attemptsUsed),
       attemptLimit: safeAttemptCount(payload.attemptLimit),
       cooldownUntil: typeof payload.cooldownUntil === "string" ? payload.cooldownUntil : undefined,
+      debug: debugOf(payload),
     };
   } catch (error) {
     return functionErrorResult(error);
