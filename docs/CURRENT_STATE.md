@@ -193,6 +193,27 @@ Each claim says which of these it is, because they are often confused:
     day circle is outlined in the sport colour (orange basketball, sea green
     pickleball) here and in Log game.
   - Explore card: the local court uses the same edge Local tag.
+- Fourth pass on the same branch (Oct 16, before Jesse merges; frontend only,
+  **on a branch**, not on a device):
+  - Schedule tab (`app/(tabs)/schedule.tsx`) brought onto the court-flow
+    look without touching its planning logic: court header (sport label,
+    Oswald name, Change), "Who's going" label, the shared heat ramp and 6pt
+    cells, white ring for the chosen slot, orange edge for the hour you're
+    in. The page no longer scrolls: court, heatmap and the slot card stay
+    put; only the games list (now `CourtGamesPanel`, same cards as the court
+    page) or the edit summary scrolls. Each visit selects the current hour
+    and moves the grid to it. `RunCard` removed (no longer used).
+  - Slot card has one fixed height on both the Schedule tab and the court
+    page's Week (`CourtSchedulePanel`), so tapping around never makes it
+    jump; Week also scrolls to the current hour and marks it.
+  - Court feeds (Home, court page): today keeps check-in and check-out as two
+    rows (the check-out shows time played); earlier days collapse into one
+    "played 1h 40m" row with the check-out time (`pairVisits(..,
+    { splitToday: true })`, tested). Profiles still collapse every visit.
+  - Explore map: the legend is one slim row centred under the live count;
+    Nearest sits centred at the bottom with locate-me on the right.
+  - Not built: favourite courts / switching Home between courts (needs a
+    place to store favourites, so a backend change).
 - Expo SDK 54 patches on #67 (Oct 14, Jesse's OK in chat): `expo` 54.0.37,
   `expo-constants` 18.0.14, `expo-updates` 29.0.20. Lockfile also moves
   `@expo/cli` 54.0.27, `expo-file-system` 19.0.24 and

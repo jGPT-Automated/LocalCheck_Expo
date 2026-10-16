@@ -183,7 +183,7 @@ Canonical component ownership:
 | ELO value                      | `EloStat`           |
 | Activity timeline event        | `ActivityRow`       |
 | Court metric panel (old court page, no longer used there) | `MetricDashboard` |
-| Run summary                    | `RunCard`           |
+| Scheduled game card            | `CourtGamesPanel`   |
 | Compact menu                   | `CompactSelect`     |
 | Primary two-mode switch        | `ModeTabs`          |
 | Reachable multi-action control | `SpeedDialFab`      |

@@ -29,12 +29,14 @@ import {
   getSportColor,
 } from "@/constants/data";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { RunCard } from "@/components/RunCard";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { FormSheet } from "@/components/sheet/FormSheet";
 import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
 import { SearchField } from "@/components/ui/SearchField";
 import { SpeedDialFab } from "@/components/ui/SpeedDialFab";
+import { useBottomFloor } from "@/components/ui/TabFloor";
+import { CourtGamesPanel } from "@/components/court/CourtGamesPanel";
+import { SportLabel } from "@/components/court/CourtParts";
 import {
   scheduleSlotIndex,
   scheduleSlotLabel,
@@ -836,6 +838,7 @@ export default function ScheduleScreen() {
     openCreate?: string;
   }>();
   const { top, bottom } = useSafeAreaInsets();
+  const tabFloor = useBottomFloor();
 
   const [showHost, setShowHost] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -1103,14 +1106,6 @@ export default function ScheduleScreen() {
     : null;
   const selectedEntry = selectedKey ? slotMap.get(selectedKey) : undefined;
   const selectedDate = selectedSlot ? weekDays[selectedSlot.day] : null;
-  const selectedRuns = useMemo(
-    () =>
-      selectedKey
-        ? courtRuns.filter((run) => bucketKey(run.startTimeIso) === selectedKey)
-        : [],
-    [bucketKey, courtRuns, selectedKey],
-  );
-
   const heatStyle = (count: number) => {
     if (count >= 5) return styles.heatHigh;
     if (count >= 2) return styles.heatMid;
@@ -1158,8 +1153,10 @@ export default function ScheduleScreen() {
     useCallback(() => {
       if (scheduleMode === "VIEW") {
         setSelectedSlot({ day: 0, slot: currentSlotIndex });
+        // ...and the time grid shows the hour you're in.
+        showTimeWindow(currentSlotIndex >= LATE_TIME_WINDOW_START_INDEX ? "LATE" : "EARLY", false);
       }
-    }, [currentSlotIndex, scheduleMode]),
+    }, [currentSlotIndex, scheduleMode, showTimeWindow]),
   );
 
   const beginEditingTimes = () => {
@@ -1308,35 +1305,36 @@ export default function ScheduleScreen() {
         right={<Text style={styles.headerDate}>{weekLabel}</Text>}
       />
 
-      <ScrollView
-        style={styles.scheduleBody}
-        contentContainerStyle={[
-          styles.scheduleBodyContent,
-          scheduleMode === "EDIT" && styles.scheduleBodyContentEdit,
-        ]}
-        nestedScrollEnabled
-        scrollEnabled={scheduleMode === "VIEW"}
-        showsVerticalScrollIndicator={false}
-      >
+      {/* The page itself never scrolls (Oct 16): court, heatmap and the slot
+          card stay put; only the list under them scrolls. */}
+      <View style={styles.scheduleBody}>
         {/* ── Court selector ── */}
         <Pressable
-          style={styles.courtSelector}
+          accessibilityHint="Pick another court"
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.courtSelector, pressed && styles.courtSelectorPressed]}
           onPress={() => setShowPicker(true)}
           testID="schedule-court-selector"
         >
-          <Feather name="map-pin" size={13} color={Colors.accent} />
-          <Text style={styles.courtSelectorText} numberOfLines={1}>
-            {court ? court.name : "Pick a court"}
-          </Text>
-          <Feather name="chevron-right" size={15} color={Colors.muted} />
+          <View style={styles.courtSelectorCopy}>
+            {court ? <SportLabel sport={court.sport} /> : null}
+            <Text style={styles.courtSelectorText} numberOfLines={1}>
+              {court ? court.shortName || court.name : "Pick a court"}
+            </Text>
+          </View>
+          <View style={styles.courtSelectorChange}>
+            <Text style={styles.courtSelectorChangeText}>Change</Text>
+            <Feather name="chevron-down" size={13} color={Colors.inkSoft} />
+          </View>
         </Pressable>
 
         {/* One restrained instruction above the time grid. The running tally
             of picked times lives in a summary block below the grid, not here. */}
         <View style={styles.scheduleModeRow}>
           <Text style={styles.scheduleModeStatus}>
-            {scheduleMode === "EDIT" ? "Tap cells to add your times" : "Who's Going"}
+            {scheduleMode === "EDIT" ? "Tap the hours you'll play" : "Who's going"}
           </Text>
+          <Text style={styles.scheduleModeMeta}>Planned visits + games</Text>
         </View>
 
         {/* ── Heatmap: the time axis switches between fixed AM and PM states. ── */}
@@ -1517,19 +1515,19 @@ export default function ScheduleScreen() {
               <View
                 style={[
                   styles.legendSwatch,
-                  { backgroundColor: Colors.surface },
+                  { backgroundColor: Colors.surfaceHigh },
                 ]}
               />
               <View
                 style={[
                   styles.legendSwatch,
-                  { backgroundColor: Colors.accentDim },
+                  { backgroundColor: Colors.heat1 },
                 ]}
               />
               <View
                 style={[
                   styles.legendSwatch,
-                  { backgroundColor: Colors.accentGlow },
+                  { backgroundColor: Colors.heat2 },
                 ]}
               />
               <View
@@ -1549,6 +1547,11 @@ export default function ScheduleScreen() {
         </View>
 
         {scheduleMode === "EDIT" ? (
+          <ScrollView
+            contentContainerStyle={styles.editArea}
+            showsVerticalScrollIndicator={false}
+            style={styles.flexArea}
+          >
           <View style={styles.selectedSummary}>
             <Text style={styles.selectedSummaryLabel}>
               {pendingKeys.size} {pendingKeys.size === 1 ? "TIME" : "TIMES"}{" "}
@@ -1576,9 +1579,7 @@ export default function ScheduleScreen() {
               </Text>
             )}
           </View>
-        ) : null}
 
-        {scheduleMode === "EDIT" ? (
           <View style={styles.editOptions}>
             <Text style={styles.editOptionsLabel}>NEW TIMES VISIBLE TO</Text>
             <View style={styles.editVisibilityRow}>
@@ -1605,147 +1606,97 @@ export default function ScheduleScreen() {
               ))}
             </View>
           </View>
+          </ScrollView>
         ) : null}
 
-        {/* ── Selected slot detail ── */}
-        {scheduleMode === "VIEW" &&
-          selectedSlot &&
-          selectedDate &&
-          selectedKey &&
-          (() => {
-            const total = slotTotal(selectedKey);
-            const hidden = slotHidden(selectedKey);
-            const visible = selectedEntry?.attendees ?? [];
-            const gameCount = selectedEntry?.runCount ?? 0;
-            return (
-              <View style={styles.slotCard}>
-                <Text style={styles.slotCardTitle}>
-                  {DAYS[selectedDate.getDay()]} {selectedDate.getDate()} ·{" "}
-                  {scheduleSlotLabel(SLOT_HOURS[selectedSlot.slot])}
-                  {"  "}
-                  <Text style={styles.slotCardGoing}>— {total} GOING</Text>
-                  {gameCount > 0 ? (
-                    <Text style={styles.slotCardGame}>
-                      {` · ${gameCount} ${gameCount === 1 ? "GAME" : "GAMES"}`}
+        {/* ── Selected slot: one fixed height, empty or full, so the page
+            never jumps when you tap around the grid ── */}
+        {scheduleMode === "VIEW" && selectedSlot && selectedDate && selectedKey
+          ? (() => {
+              const total = slotTotal(selectedKey);
+              const hidden = slotHidden(selectedKey);
+              const visible = selectedEntry?.attendees ?? [];
+              const gameCount = selectedEntry?.runCount ?? 0;
+              const mine = selectedEntry?.attendees.find((a) => a.isMine && a.visitId);
+              const slotEnd = new Date(selectedDate);
+              slotEnd.setHours(SLOT_HOURS[selectedSlot.slot] + 1, 0, 0, 0);
+              const canAdd = !mine?.visitId && court?.id === localCourt?.id && slotEnd.getTime() > Date.now();
+              return (
+                <View style={styles.slotCard}>
+                  <View style={styles.slotHead}>
+                    <Text numberOfLines={1} style={styles.slotCardTitle}>
+                      {DAYS[selectedDate.getDay()]} {selectedDate.getDate()} · {scheduleSlotLabel(SLOT_HOURS[selectedSlot.slot])}
                     </Text>
-                  ) : null}
-                </Text>
-                {total > 0 ? (
-                  <View style={styles.slotAvatars}>
-                    {visible.slice(0, 8).map((a) => (
-                      <Pressable
-                        key={a.id}
-                        style={styles.slotAvatarItem}
-                        onPress={() => router.push(`/player/${a.id}`)}
-                      >
-                        <PlayerAvatar
-                          initials={a.initials}
-                          name={a.name}
-                          playerId={a.id}
-                          size={36}
-                          accent={a.isMine}
-                        />
-                        <Text style={styles.slotAvatarName} numberOfLines={1}>
-                          {a.isMine ? "You" : a.name.split(" ")[0]}
-                        </Text>
-                      </Pressable>
-                    ))}
-                    {visible.length > 8 && (
-                      <View style={styles.slotAvatarItem}>
-                        <View style={styles.slotMore}>
-                          <Text style={styles.slotMoreText}>
-                            +{visible.length - 8}
-                          </Text>
-                        </View>
-                      </View>
-                    )}
-                    {hidden > 0 && (
-                      <View style={styles.slotAvatarItem}>
-                        <View
-                          style={[styles.slotMore, styles.slotHiddenSquare]}
-                        >
-                          <Text style={styles.slotMoreText}>+{hidden}</Text>
-                        </View>
-                        <Text style={styles.slotAvatarName}>hidden</Text>
-                      </View>
+                    <Text numberOfLines={1} style={[styles.slotCardGoing, total > 0 && styles.slotCardGoingLive]}>
+                      {total} going{gameCount > 0 ? ` · ${gameCount} ${gameCount === 1 ? "game" : "games"}` : ""}
+                    </Text>
+                  </View>
+                  <View style={styles.slotPeople}>
+                    {total > 0 ? (
+                      <>
+                        {visible.slice(0, 6).map((a) => (
+                          <Pressable
+                            key={a.id}
+                            style={styles.slotAvatarItem}
+                            onPress={() => router.push(`/player/${a.id}`)}
+                          >
+                            <PlayerAvatar accent={a.isMine} initials={a.initials} name={a.name} playerId={a.id} size={32} />
+                            <Text style={styles.slotAvatarName} numberOfLines={1}>
+                              {a.isMine ? "You" : a.name.split(" ")[0]}
+                            </Text>
+                          </Pressable>
+                        ))}
+                        {visible.length > 6 || hidden > 0 ? (
+                          <View style={styles.slotAvatarItem}>
+                            <View style={styles.slotMore}>
+                              <Text style={styles.slotMoreText}>+{Math.max(0, visible.length - 6) + hidden}</Text>
+                            </View>
+                            <Text style={styles.slotAvatarName}>{hidden > 0 ? "private" : "more"}</Text>
+                          </View>
+                        ) : null}
+                      </>
+                    ) : (
+                      <Text style={styles.slotEmpty}>Nobody yet. Add your time so people know to pull up.</Text>
                     )}
                   </View>
-                ) : (
-                  <Text style={styles.slotEmpty}>
-                    Nobody yet — post your time so people know to pull up.
-                  </Text>
-                )}
-                {selectedRuns.length > 0 ? (
-                  <View style={styles.slotGames}>
-                    {selectedRuns.map((run) => (
-                      <RunCard key={run.id} run={run} />
-                    ))}
-                  </View>
-                ) : null}
-                {(() => {
-                  const mine = selectedEntry?.attendees.find(
-                    (a) => a.isMine && a.visitId,
-                  );
-                  if (mine?.visitId) {
-                    const visitId = mine.visitId;
-                    return (
+                  <View style={styles.slotActions}>
+                    {mine?.visitId ? (
                       <Pressable
-                        style={styles.slotRemoveBtn}
-                        onPress={() => removePlannedVisit(visitId)}
-                        testID={`remove-visit-${visitId}`}
+                        style={({ pressed }) => [styles.slotButton, pressed && styles.slotButtonPressed]}
+                        onPress={() => removePlannedVisit(mine.visitId!)}
+                        testID={`remove-visit-${mine.visitId}`}
                       >
-                        <Feather name="x" size={11} color={Colors.loss} />
-                        <Text style={styles.slotRemoveText}>REMOVE MY TIME</Text>
+                        <Feather name="x" size={12} color={Colors.textSecondary} />
+                        <Text style={styles.slotButtonText}>Remove my time</Text>
                       </Pressable>
-                    );
-                  }
-                  // Not going yet — one tap to opt this single cell in without
-                  // dropping into bulk edit mode.
-                  const slotStart = new Date(selectedDate);
-                  slotStart.setHours(
-                    SLOT_HOURS[selectedSlot.slot] + 1,
-                    0,
-                    0,
-                    0,
-                  );
-                  if (
-                    court?.id !== localCourt?.id ||
-                    slotStart.getTime() <= Date.now()
-                  ) {
-                    return null;
-                  }
-                  return (
-                    <Pressable
-                      style={styles.slotAddBtn}
-                      onPress={() => void handleAddSelectedTime()}
-                      disabled={addingSelectedTime}
-                      testID="add-selected-visit"
-                    >
-                      <Feather name="plus" size={12} color={Colors.accent} />
-                      <Text style={styles.slotAddText}>
-                        {addingSelectedTime ? "ADDING…" : "ADD MY TIME"}
-                      </Text>
-                    </Pressable>
-                  );
-                })()}
-              </View>
-            );
-          })()}
+                    ) : canAdd ? (
+                      <Pressable
+                        style={({ pressed }) => [styles.slotButton, pressed && styles.slotButtonPressed]}
+                        onPress={() => void handleAddSelectedTime()}
+                        disabled={addingSelectedTime}
+                        testID="add-selected-visit"
+                      >
+                        <Feather name="plus" size={12} color={Colors.text} />
+                        <Text style={styles.slotButtonText}>{addingSelectedTime ? "Adding…" : "Add my time"}</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </View>
+              );
+            })()
+          : null}
 
-        {/* ── Scheduled games ── */}
-        {scheduleMode === "VIEW" ? <View style={styles.runsSection}>
-          <Text style={styles.runsTitle}>Scheduled Games</Text>
-          {courtRuns.length === 0 ? (
-            <View style={styles.runsEmpty}>
-              <Text style={styles.runsEmptyText}>
-                No games scheduled at this court this week.
-              </Text>
-            </View>
-          ) : (
-            courtRuns.map((run) => <RunCard key={run.id} run={run} />)
-          )}
-        </View> : null}
-      </ScrollView>
+        {/* ── Scheduled games: the same cards as the court page's Games tab ── */}
+        {scheduleMode === "VIEW" ? (
+          <ScrollView
+            contentContainerStyle={{ paddingBottom: tabFloor + 88 }}
+            showsVerticalScrollIndicator={false}
+            style={styles.flexArea}
+          >
+            <CourtGamesPanel games={courtRuns} onOpen={(run) => router.push(`/run/${run.id}`)} />
+          </ScrollView>
+        ) : null}
+      </View>
 
       {scheduleMode === "VIEW" && court?.id === localCourt?.id ? (
         <SpeedDialFab
@@ -1825,6 +1776,8 @@ export default function ScheduleScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   scheduleBody: { flex: 1, minHeight: 0 },
+  flexArea: { flex: 1, minHeight: 0, marginTop: 8 },
+  editArea: { paddingBottom: 140 },
   scheduleBodyContent: { flexGrow: 1, paddingBottom: 88 },
   scheduleBodyContentEdit: { paddingBottom: 8 },
   pressed: { backgroundColor: Colors.surfaceHigh },
@@ -1841,25 +1794,43 @@ const styles = StyleSheet.create({
   courtSelector: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  courtSelectorText: {
-    flex: 1,
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 13,
-    color: Colors.text,
-    letterSpacing: 0.3,
-  },
-  scheduleModeRow: {
+    gap: 12,
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: 2,
-    alignItems: "flex-start",
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.hairline,
   },
+  courtSelectorPressed: { opacity: 0.75 },
+  courtSelectorCopy: { flex: 1, minWidth: 0, gap: 4 },
+  courtSelectorText: {
+    fontFamily: Typography.headingBold,
+    fontSize: 26,
+    lineHeight: 28,
+    letterSpacing: -0.6,
+    textTransform: "uppercase",
+    color: Colors.text,
+  },
+  courtSelectorChange: {
+    height: 30,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(242,242,246,0.13)",
+  },
+  courtSelectorChangeText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.inkSoft },
+  scheduleModeRow: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 8,
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+  },
+  scheduleModeMeta: { fontFamily: Typography.bodySemiBold, fontSize: 10, color: Colors.muted },
   modeToggle: {
     flexDirection: "row",
     minHeight: 34,
@@ -1884,11 +1855,11 @@ const styles = StyleSheet.create({
   },
   modeToggleTextActive: { color: Colors.accent },
   scheduleModeStatus: {
-    fontFamily: Typography.heading,
-    fontSize: 17,
-    lineHeight: 21,
+    fontFamily: Typography.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.4,
+    textTransform: "uppercase",
     color: Colors.text,
-    letterSpacing: 0.5,
   },
   editOptions: {
     marginHorizontal: 20,
@@ -2086,40 +2057,25 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   heatDayDateToday: { color: Colors.text },
-  heatAxisActive: {
-    color: Colors.accent,
-    textShadowColor: Colors.accentTextShadow,
-    textShadowRadius: 7,
-  },
+  heatAxisActive: { color: Colors.liveInk },
+  // Court-flow heatmap: soft 6pt cells, the shared orange ramp, a white
+  // ring for the chosen slot and an orange edge for the hour you're in.
   heatCell: {
     position: "relative",
     flex: 1,
     height: 25,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
+    borderRadius: 6,
+    backgroundColor: Colors.surfaceHigh,
+    borderWidth: 1.5,
+    borderColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
   },
-  heatLow: {
-    backgroundColor: Colors.accentDim,
-    borderColor: Colors.borderSubtle,
-  },
-  heatMid: {
-    backgroundColor: Colors.accentGlow,
-    borderColor: Colors.borderSubtle,
-  },
-  heatHigh: { backgroundColor: Colors.accent, borderColor: Colors.accent },
-  heatCellSelected: { borderColor: Colors.white, borderWidth: 1.5 },
-  heatCellCurrent: {
-    borderColor: Colors.accent,
-    borderStyle: "dashed",
-    shadowColor: Colors.accent,
-    shadowOpacity: 0.28,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 0 },
-  },
+  heatLow: { backgroundColor: Colors.heat1 },
+  heatMid: { backgroundColor: Colors.heat2 },
+  heatHigh: { backgroundColor: Colors.accent },
+  heatCellSelected: { borderColor: Colors.text },
+  heatCellCurrent: { borderColor: Colors.accentBorderStrong },
   heatCellMine: { borderColor: Colors.text, borderWidth: 2 },
   heatCellDisabled: { opacity: 0.34 },
   heatCellCount: {
@@ -2152,103 +2108,60 @@ const styles = StyleSheet.create({
   },
   legendSwatch: {
     width: 10,
-    height: 10,
+    height: 8,
     borderRadius: 2,
-    borderWidth: 0.5,
-    borderColor: Colors.borderSubtle,
   },
   legendText: {
-    fontFamily: Typography.body,
-    fontSize: 10,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 9.5,
     lineHeight: 13,
     color: Colors.muted,
   },
 
-  // ── Slot detail card ──
+  // ── Slot detail card (fixed height) ──
   slotCard: {
+    height: 138,
     marginHorizontal: 20,
-    marginTop: 16,
-    padding: 14,
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderWidth: 1,
-    borderColor: Colors.accent,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.surface,
+    borderColor: Colors.hairlineCard,
+    borderRadius: Radius.panel,
+    backgroundColor: Colors.panel,
   },
-  slotCardTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.text,
-    letterSpacing: 1,
-    marginBottom: 12,
-  },
-  slotCardGoing: { color: Colors.accent },
-  slotCardGame: { color: Colors.textSecondary },
-  slotAvatars: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  slotAvatarItem: { alignItems: "center", width: 44 },
-  slotAvatarName: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 9,
-    color: Colors.textSecondary,
-    marginTop: 4,
-  },
+  slotHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10 },
+  slotCardTitle: { flexShrink: 1, fontFamily: Typography.headingSemiBold, fontSize: 16, letterSpacing: 0.2, textTransform: "uppercase", color: Colors.text },
+  slotCardGoing: { flexShrink: 0, fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.textSecondary },
+  slotCardGoingLive: { color: Colors.liveInk },
+  slotPeople: { height: 52, marginTop: 10, flexDirection: "row", alignItems: "center", gap: 10, overflow: "hidden" },
+  slotAvatarItem: { alignItems: "center", width: 40 },
+  slotAvatarName: { fontFamily: Typography.bodySemiBold, fontSize: 9, color: Colors.textSecondary, marginTop: 3 },
   slotMore: {
-    width: 36,
-    height: 36,
-    borderRadius: 7,
+    width: 32,
+    height: 32,
+    borderRadius: 9,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderStyle: "dashed",
+    borderColor: Colors.dashed,
     alignItems: "center",
     justifyContent: "center",
   },
-  slotMoreText: {
-    fontFamily: Typography.heading,
-    fontSize: 11,
-    color: Colors.muted,
-  },
-  slotEmpty: {
-    fontFamily: Typography.body,
-    fontSize: 12,
-    color: Colors.muted,
-    lineHeight: 17,
-  },
-  slotGames: { marginTop: 12 },
-  slotRemoveBtn: {
+  slotMoreText: { fontFamily: Typography.headingSemiBold, fontSize: 11, color: Colors.textSecondary },
+  slotEmpty: { flex: 1, fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary, lineHeight: 17 },
+  slotActions: { height: 32, marginTop: 8, flexDirection: "row" },
+  slotButton: {
+    height: 32,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    alignSelf: "flex-start",
-    marginTop: 12,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderWidth: 0.5,
-    borderColor: Colors.loss,
-    borderRadius: Radius.xs,
-  },
-  slotRemoveText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.loss,
-    letterSpacing: 1.5,
-  },
-  slotAddBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    alignSelf: "flex-start",
-    marginTop: 12,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    gap: 6,
+    borderRadius: Radius.button,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.accentDim,
+    borderColor: Colors.hairlineChrome,
   },
-  slotAddText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.accent,
-    letterSpacing: 1.5,
-  },
+  slotButtonPressed: { opacity: 0.7 },
+  slotButtonText: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.text },
 
   // ── Scheduled runs ──
   runsSection: { paddingHorizontal: 20, paddingTop: 12 },

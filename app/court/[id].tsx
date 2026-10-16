@@ -95,7 +95,7 @@ export default function CourtProfileScreen() {
   const [locals, setLocals] = React.useState<LocalWithLastCheckIn[]>([]);
   const [courtFeed, setCourtFeed] = React.useState<Awaited<ReturnType<typeof fetchFeed>>>([]);
   const groupedCourtFeed = React.useMemo(
-    () => groupCheckinBursts(pairVisits(courtFeed)),
+    () => groupCheckinBursts(pairVisits(courtFeed, { splitToday: true })),
     [courtFeed],
   );
   const [rankedIds, setRankedIds] = React.useState<Set<string>>(new Set());

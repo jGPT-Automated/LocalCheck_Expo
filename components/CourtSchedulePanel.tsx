@@ -60,6 +60,9 @@ export function CourtSchedulePanel({
   const [plannedBuckets, setPlannedBuckets] = useState<Record<string, number>>(
     {},
   );
+  // Open on the hour you're in: scroll it into view (two rows of context).
+  const timeScrollRef = React.useRef<ScrollView>(null);
+  const scrolledToNow = React.useRef(false);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -258,13 +261,19 @@ export function CourtSchedulePanel({
         <ScrollView
           contentContainerStyle={styles.timeRows}
           nestedScrollEnabled
+          onContentSizeChange={() => {
+            if (scrolledToNow.current) return;
+            scrolledToNow.current = true;
+            timeScrollRef.current?.scrollTo({ y: Math.max(0, (currentSlot - 2) * ROW_PITCH), animated: false });
+          }}
+          ref={timeScrollRef}
           showsVerticalScrollIndicator={false}
           style={styles.timeScroller}
         >
         {SLOT_HOURS.map((hour, slot) => (
           <View key={hour} style={styles.heatRow}>
             <View style={styles.timeColumn}>
-              <Text style={styles.timeLabel}>{scheduleSlotLabel(hour)}</Text>
+              <Text style={[styles.timeLabel, slot === currentSlot && styles.today]}>{scheduleSlotLabel(hour)}</Text>
             </View>
             {weekDays.map((date, day) => {
               const key = `${day}:${slot}`;
@@ -284,6 +293,7 @@ export function CourtSchedulePanel({
                   style={[
                     styles.cell,
                     heatStyle(count),
+                    day === 0 && slot === currentSlot && styles.cellNow,
                     active && styles.cellSelected,
                     past && styles.cellPast,
                   ]}
@@ -310,9 +320,9 @@ export function CourtSchedulePanel({
           <View style={styles.legendScale}>
             <Text style={styles.legendText}>QUIET</Text>
             {[
-              Colors.surface,
-              Colors.accentDim,
-              Colors.accentGlow,
+              Colors.surfaceHigh,
+              Colors.heat1,
+              Colors.heat2,
               Colors.accent,
             ].map((color) => (
               <View
@@ -445,6 +455,9 @@ export function CourtSchedulePanel({
   );
 }
 
+/** One time row: 27pt cell + 2pt gap. */
+const ROW_PITCH = 29;
+
 const styles = StyleSheet.create({
   panel: { flex: 1, minHeight: 0, paddingTop: 6 },
   // The grid fills the space above the pinned slot card and scrolls its own
@@ -496,22 +509,24 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: 1,
   },
-  today: { color: Colors.accent },
+  today: { color: Colors.liveInk },
+  // Same cells as the Schedule tab: soft corners, the shared orange ramp.
   cell: {
     position: "relative",
     flex: 1,
     height: 27,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
+    borderRadius: 6,
+    backgroundColor: Colors.surfaceHigh,
+    borderWidth: 1.5,
+    borderColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
   },
-  heatLow: { backgroundColor: Colors.accentDim },
-  heatMid: { backgroundColor: Colors.accentGlow },
-  heatHigh: { backgroundColor: Colors.accent, borderColor: Colors.accent },
-  cellSelected: { borderWidth: 1.5, borderColor: Colors.text },
+  heatLow: { backgroundColor: Colors.heat1 },
+  heatMid: { backgroundColor: Colors.heat2 },
+  heatHigh: { backgroundColor: Colors.accent },
+  cellNow: { borderColor: Colors.accentBorderStrong },
+  cellSelected: { borderColor: Colors.text },
   cellPast: { opacity: 0.34 },
   cellCount: {
     fontFamily: Typography.heading,
@@ -551,10 +566,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     marginTop: 8,
     borderWidth: 1,
-    borderTopColor: Colors.border,
-    borderColor: Colors.border,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.surface,
+    borderColor: Colors.hairlineCard,
+    borderRadius: Radius.row,
+    backgroundColor: Colors.panel,
     overflow: "hidden",
   },
   slotHeader: {
@@ -580,9 +594,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     textAlign: "right",
   },
+  // One height whether the slot is empty or full, so nothing jumps.
   slotContent: {
-    minHeight: 56,
+    height: 64,
     flexDirection: "row",
+    overflow: "hidden",
   },
   peopleArea: {
     flex: 1,

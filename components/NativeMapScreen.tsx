@@ -698,11 +698,8 @@ export function MapScreen({
             </View>
           </View>
 
-          {/* ── One bottom row: legend, Nearest court, locate me ── */}
-          <View
-            pointerEvents="box-none"
-            style={[styles.bottomRow, { bottom: bottom + Layout.tabBarClearance + 12 }]}
-          >
+          {/* ── Legend: one slim row centred under the live count ── */}
+          <View pointerEvents="none" style={[styles.legendBar, { top: 56 }]}>
             <View style={styles.legend}>
               <View style={styles.legendRow}>
                 <View style={[styles.legendDot, { backgroundColor: Colors.accent }]} />
@@ -717,6 +714,16 @@ export function MapScreen({
                 <Text style={styles.legendText}>PICKLEBALL</Text>
               </View>
             </View>
+
+          </View>
+
+          {/* ── Bottom row: Nearest centred, locate me on the right ── */}
+          <View
+            pointerEvents="box-none"
+            style={[styles.bottomRow, { bottom: bottom + Layout.tabBarClearance + 12 }]}
+          >
+            {/* Same width as locate-me, so Nearest sits dead centre. */}
+            <View style={styles.roundSpacer} />
 
             <Pressable
               accessibilityLabel="Find nearest court"
@@ -807,18 +814,21 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     justifyContent: "space-between",
     gap: 10,
   },
+  legendBar: { position: "absolute", left: 0, right: 0, alignItems: "center" },
+  roundSpacer: { width: 48, height: 48 },
   legend: {
+    flexDirection: "row",
     backgroundColor: "rgba(16,16,16,0.85)",
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radius.sm,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
-    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 12,
   },
   legendRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   legendDot: { width: 7, height: 7, borderRadius: 4 },
@@ -841,7 +851,6 @@ const styles = StyleSheet.create({
   },
   nearestButton: {
     height: 40,
-    marginBottom: 4,
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",

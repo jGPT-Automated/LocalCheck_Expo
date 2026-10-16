@@ -48,7 +48,12 @@ point.
 | Game score: Hide score at the bottom | ✅ |
 | Log game: button pinned above the tab bar, VS columns | ✅ needs device check |
 | Challenge: horizontal day/time pickers, sport-coloured day circle | ✅ needs device check |
-| Schedule tab rethink (heatmap + upcoming games to swipe) | ⬜ next |
+| Schedule tab rethink (heatmap + upcoming games to swipe) | ✅ restyled, no page scroll, games as court cards; needs device check |
+| Slot card same height empty or full (Schedule + Week) | ✅ |
+| Current hour selected and scrolled into view by default | ✅ needs device check |
+| Feed: today check-in + check-out rows, older days "played" with check-out time | ✅ |
+| Map legend balanced | ✅ needs device check |
+| Favourite courts + switch Home / Schedule between them (LocalPlus) | ⬜ needs backend storage; not started |
 
 ## 2026-10-10 — #67 second design pass (`codex/auto-check-in`)
 

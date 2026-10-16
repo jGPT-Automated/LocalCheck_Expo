@@ -82,9 +82,11 @@ export function ActivityRow({
     score = `${win.score}–${lose.score}`;
     meta = [item.match?.ranked === false ? "Casual" : "Ranked", showActor ? null : court].filter(Boolean).join(" · ");
   } else if (item.type === "visit") {
+    // An earlier day: one row, how long they played and when they left.
+    const played = formatDurationMinutes(item.visit?.durationMinutes ?? null);
     who = showActor ? actor : "";
-    what = showActor ? "checked out" : `Played at ${court ?? "a court"}`;
-    meta = `Played ${formatDurationMinutes(item.visit?.durationMinutes ?? null)}`;
+    what = showActor ? `played ${played}` : `Played ${played}${court ? ` at ${court}` : ""}`;
+    meta = `Checked out ${formatClock(item.visit?.checkOutIso ?? item.occurredAtIso)}`;
   } else if (isBurst) {
     const count = item.burst?.count ?? item.burst?.playerNames.length ?? 0;
     who = `${count} people`;
@@ -106,7 +108,11 @@ export function ActivityRow({
                 : "";
     who = showActor ? actor : "";
     what = showActor ? verb : `${verb.charAt(0).toUpperCase()}${verb.slice(1)}${court ? ` at ${court}` : ""}`;
-    meta = formatClock(item.occurredAtIso);
+    // Today's check-out knows how long they played.
+    meta =
+      item.type === "checkout" && item.visit
+        ? `Played ${formatDurationMinutes(item.visit.durationMinutes)} · ${formatClock(item.occurredAtIso)}`
+        : formatClock(item.occurredAtIso);
   }
 
   return (

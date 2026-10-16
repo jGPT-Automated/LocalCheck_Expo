@@ -133,7 +133,7 @@ export function HomeScreen() {
   // account hit the first time it set a local court. `courtFeed` is null-safe.
   const courtFeed = feed.filter((item) => item.courtId === localCourt?.id);
   const groupedCourtFeed = useMemo(
-    () => groupCheckinBursts(pairVisits(courtFeed)),
+    () => groupCheckinBursts(pairVisits(courtFeed, { splitToday: true })),
     [courtFeed],
   );
   const recentArrivalCount = useMemo(() => {

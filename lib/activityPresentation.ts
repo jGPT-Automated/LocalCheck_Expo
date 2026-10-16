@@ -15,7 +15,17 @@ import type { FeedItem } from "@/constants/data";
  * in the fetched window (still checked in, or it fell outside the page) is
  * left as a plain "checkin" rather than fabricating an open-ended visit.
  */
-export function pairVisits(items: FeedItem[]): FeedItem[] {
+export function pairVisits(
+  items: FeedItem[],
+  options: { splitToday?: boolean; now?: number } = {},
+): FeedItem[] {
+  // Court feeds (Oct 16): today keeps the check-in and the check-out as two
+  // rows (the check-out still knows how long they played); older days
+  // collapse into one "played" row.
+  const now = options.now ?? Date.now();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const todayMs = startOfToday.getTime();
   const chronological = [...items].reverse(); // oldest first, to track opens in order
   const openByKey = new Map<string, FeedItem>();
   const visitByCheckoutId = new Map<string, FeedItem>();
@@ -31,7 +41,6 @@ export function pairVisits(items: FeedItem[]): FeedItem[] {
     const checkin = openByKey.get(key);
     if (!checkin) continue;
     openByKey.delete(key);
-    consumedCheckinIds.add(checkin.id);
 
     const checkInMs = new Date(checkin.occurredAtIso).getTime();
     const checkOutMs = new Date(item.occurredAtIso).getTime();
@@ -39,17 +48,21 @@ export function pairVisits(items: FeedItem[]): FeedItem[] {
       Number.isFinite(checkInMs) && Number.isFinite(checkOutMs)
         ? Math.max(0, Math.round((checkOutMs - checkInMs) / 60_000))
         : null;
+    const visit = { checkInIso: checkin.occurredAtIso, checkOutIso: item.occurredAtIso, durationMinutes };
+
+    if (options.splitToday && checkOutMs >= todayMs) {
+      // Today: both rows stay; the check-out carries the time played.
+      visitByCheckoutId.set(item.id, { ...item, visit });
+      continue;
+    }
+    consumedCheckinIds.add(checkin.id);
 
     visitByCheckoutId.set(item.id, {
       ...item,
       id: `visit-${checkin.id}-${item.id}`,
       type: "visit",
       message: `Visited ${item.courtName ?? "a court"}`,
-      visit: {
-        checkInIso: checkin.occurredAtIso,
-        checkOutIso: item.occurredAtIso,
-        durationMinutes,
-      },
+      visit,
     });
   }
 
