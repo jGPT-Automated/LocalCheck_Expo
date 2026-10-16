@@ -16,6 +16,13 @@ Each claim says which of these it is, because they are often confused:
 
 ## Production checkpoint
 
+- Oct 16 (branch `codex/court-verify-debug`, function not deployed): court
+  verification testing mode until launch. The result screen and the
+  `verify-court` logs (`gemini_exchange`) show what was sent to Gemini and its
+  answer (free text up to 500 characters). Bar lowered: confidence 50+, an
+  unclear sport counts when the submitter picked one, an unclear setting is
+  saved as outdoor. `COURT_VERIFY_DEBUG=off` hides the panel. On web, Add
+  Court fills address, city and state from Mapbox (expo-location can't on web).
 - Source truth: `origin/main` @ `541632c` — #65 squash-merged (forgot
   password, onboarding, Expo Go previews, court drawer + Yearly upgrade).
 - PR #67 open (base `main`, app version 1.0.4): everything from #66 (other-

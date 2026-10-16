@@ -38,12 +38,17 @@ export interface GeminiCourtResult {
   rejectionCode: RejectionCode;
   nameOkay: boolean;
   nameCode: NameCode;
-  /** The model's own one-line explanation, shown to the submitter while we
-   * collect real-world results (Jesse, Oct 11). Empty when it gave none. */
+  /** The model's own explanation in plain words, shown to the submitter
+   * until launch (Jesse, Oct 11 and Oct 16). Empty when it gave none. */
   note: string;
 }
 
-export const NOTE_MAX_LENGTH = 140;
+/** Free-text answer from the model, capped so the screen stays readable. */
+export const NOTE_MAX_LENGTH = 500;
+
+/** Lowest model confidence that still adds the court. Lowered from 80 for
+ * testing until launch (Jesse, Oct 16). */
+export const MIN_CONFIDENCE = 50;
 
 export interface ValidCourtSubmission {
   sourceOfficialName: string;
@@ -207,11 +212,33 @@ export function validateCourtSubmission(body: Record<string, unknown>): Validati
   };
 }
 
-export function acceptsVerifiedCourt(analysis: GeminiCourtResult): boolean {
-  return analysis.verified
-    && analysis.confidence >= 80
-    && supportedSports.has(analysis.sport)
-    && supportedSettings.has(analysis.setting);
+/**
+ * Until launch the bar is low (Jesse, Oct 16): the model says it's a court,
+ * confidence 50+, and the sport is either one we support or "unclear" when
+ * the submitter picked one. An unclear indoor/outdoor setting no longer
+ * blocks it (the court is saved as outdoor).
+ */
+export function acceptsVerifiedCourt(
+  analysis: GeminiCourtResult,
+  requestedSport: ValidCourtSubmission["requestedSport"] = null,
+): boolean {
+  const sportOk = supportedSports.has(analysis.sport)
+    || (analysis.sport === "unclear" && requestedSport != null);
+  return analysis.verified && analysis.confidence >= MIN_CONFIDENCE && sportOk;
+}
+
+/** The sport saved on the court: the submitter's pick, else the model's. */
+export function savedSport(
+  analysis: GeminiCourtResult,
+  requestedSport: ValidCourtSubmission["requestedSport"],
+): "basketball" | "pickleball" {
+  if (requestedSport) return requestedSport;
+  return analysis.sport === "pickleball" ? "pickleball" : "basketball";
+}
+
+/** The setting saved on the court; "unclear" is stored as outdoor. */
+export function savedSetting(analysis: GeminiCourtResult): string {
+  return supportedSettings.has(analysis.setting) ? analysis.setting : "outdoor";
 }
 
 /**
@@ -233,5 +260,7 @@ export function matchesRequestedSport(
   analysis: GeminiCourtResult,
   requestedSport: ValidCourtSubmission["requestedSport"],
 ): boolean {
-  return requestedSport == null || analysis.sport === requestedSport;
+  return requestedSport == null
+    || analysis.sport === requestedSport
+    || analysis.sport === "unclear";
 }
