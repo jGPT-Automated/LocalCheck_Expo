@@ -5,7 +5,6 @@ import {
   type GeminiCourtResult,
   isWrongSport,
   matchesRequestedSport,
-  MIN_CONFIDENCE,
   NAME_CODES,
   NOTE_MAX_LENGTH,
   normalizeGeminiResult,
@@ -14,8 +13,39 @@ import {
   savedSetting,
   savedSport,
   supportedSports,
+  UNKNOWN_CITY,
+  UNKNOWN_STATE,
   validateCourtSubmission,
 } from "./courtVerification.ts";
+
+/**
+ * Street, city and two-letter state for a pin, from OpenStreetMap's free
+ * reverse lookup. Used when the app couldn't fill them (the web preview), so a
+ * missing address never blocks a court. Falls back to the pin itself.
+ */
+async function addressForPin(lat: number, lng: number): Promise<{ address: string; city: string; state: string }> {
+  const fallback = { address: `Pin ${lat.toFixed(5)}, ${lng.toFixed(5)}`, city: UNKNOWN_CITY, state: UNKNOWN_STATE };
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=${lat}&lon=${lng}`,
+      { headers: { "User-Agent": "LocalCheck/1.0 (localchecksports.com)" }, signal: AbortSignal.timeout(5000) },
+    );
+    if (!res.ok) return fallback;
+    const body = await res.json() as { address?: Record<string, string> };
+    const a = body.address ?? {};
+    const street = [a.house_number, a.road].filter(Boolean).join(" ");
+    const city = a.city || a.town || a.village || a.hamlet || a.suburb || a.county || "";
+    const iso = a["ISO3166-2-lvl4"] ?? "";
+    const state = /^US-[A-Z]{2}$/.test(iso) ? iso.slice(3) : "";
+    return {
+      address: street.length >= 2 ? street : fallback.address,
+      city: city.length >= 2 ? city.slice(0, 80) : fallback.city,
+      state: state || fallback.state,
+    };
+  } catch {
+    return fallback;
+  }
+}
 
 // Until launch, every response carries what was sent to Gemini and what it
 // answered, so the submitter can see it on the result screen (Jesse, Oct 16).
@@ -143,7 +173,7 @@ async function analyzeCourtPhoto(
   const model = Deno.env.get("GEMINI_VISION_MODEL") || "gemini-3.6-flash";
   const prompt = [
     "Classify this LocalCheck community court submission using only visible evidence in the image.",
-    "Set verified=true when the photo shows a basketball or pickleball court or hoop, even if part of it is out of frame or the lighting is poor; then rejection_code MUST be \"none\". Give the benefit of the doubt.",
+    "Set verified=true if the photo looks even remotely like a basketball or pickleball court, hoop, net or play area, even if it is blurry, dark, partly out of frame or worn; then rejection_code MUST be \"none\". When in doubt, say verified=true.",
     "When verified=false, choose the single best rejection_code:",
     "- not_a_court: a real place but not a basketball/pickleball court.",
     "- photo_of_screen: a photo of a phone/computer screen or a printed photo.",
@@ -447,7 +477,7 @@ Deno.serve(async (request) => {
     && matchesRequestedSport(analysis, requestedSport);
   debug.decision = {
     accepted,
-    rule: `verified=true, confidence ${MIN_CONFIDENCE}+, basketball or pickleball (or unclear when you picked one)`,
+    rule: "passes unless Gemini says it is not a court and saw no basketball or pickleball (no confidence bar, no sport match)",
     model: {
       verified: analysis.verified,
       sport: analysis.sport,
@@ -502,6 +532,14 @@ Deno.serve(async (request) => {
   }
 
   const sourceUrl = `https://maps.apple.com/?ll=${latitude.toFixed(6)},${longitude.toFixed(6)}`;
+  // The app may send no address (the web preview can't look it up): fill it
+  // from the pin so it never blocks the court.
+  let place = { address, city, state };
+  if (address.length < 2 || city.length < 2 || !/^[A-Z]{2}$/.test(state)) {
+    place = await addressForPin(latitude, longitude);
+    log("address_from_pin", { user, city: place.city, state: place.state });
+    debug.addressFromPin = place;
+  }
   // The database RPC owns market resolution, quota enforcement, duplicate
   // detection, and insertion in one transaction. Keeping those decisions out
   // of the Edge Function prevents concurrent requests from racing the guards.
@@ -513,9 +551,9 @@ Deno.serve(async (request) => {
     p_source_short_name: sourceShortName,
     p_official_name: officialName,
     p_short_name: shortName,
-    p_address: address,
-    p_city: city,
-    p_state: state,
+    p_address: place.address,
+    p_city: place.city,
+    p_state: place.state,
     p_latitude: latitude,
     p_longitude: longitude,
     p_sport_type: savedSport(analysis, requestedSport),

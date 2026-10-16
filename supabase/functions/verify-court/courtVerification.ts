@@ -46,9 +46,10 @@ export interface GeminiCourtResult {
 /** Free-text answer from the model, capped so the screen stays readable. */
 export const NOTE_MAX_LENGTH = 500;
 
-/** Lowest model confidence that still adds the court. Lowered from 80 to 30 for
- * testing until launch (Jesse, Oct 16). */
-export const MIN_CONFIDENCE = 30;
+/** Fallbacks when the pin's address can't be looked up (Jesse, Oct 16: the
+ * photo and the pin are all that matter). */
+export const UNKNOWN_CITY = "Unknown";
+export const UNKNOWN_STATE = "US";
 
 export interface ValidCourtSubmission {
   sourceOfficialName: string;
@@ -169,9 +170,6 @@ export function validateCourtSubmission(body: Record<string, unknown>): Validati
   const shortName = cleanText(body.shortName, 32)
     || cleanText(officialName, 32);
 
-  if (!address || address.length < 2 || city.length < 2 || !/^[A-Z]{2}$/.test(state)) {
-    return { ok: false, error: "Add a valid address, city, and two-letter state." };
-  }
   if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90
     || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
     return { ok: false, error: "The court location is invalid." };
@@ -179,26 +177,29 @@ export function validateCourtSubmission(body: Record<string, unknown>): Validati
   if (!supportedMimeTypes.has(imageMimeType) || imageBase64.length < 200 || imageBase64.length > 8_000_000) {
     return { ok: false, error: "Use a clear JPEG, PNG, WebP, HEIC, or HEIF photo under 6 MB." };
   }
-  if (sourceOfficialName.length < 2 || officialName.length < 2
-    || sourceShortName.length < 2 || shortName.length < 2) {
-    return { ok: false, error: "Confirm the official court name and short card name." };
-  }
   if (requestedSportValue && !requestedSport) {
     return { ok: false, error: "Choose basketball or pickleball." };
   }
 
+  // Only the photo and the pin are required. Missing names fall back to a
+  // generic one; the server fills a missing address from the pin.
+  const fallbackName = "Community Court";
+  const finalOfficial = officialName.length >= 2 ? officialName : fallbackName;
+  const finalShort = shortName.length >= 2 ? shortName : cleanText(finalOfficial, 32);
+  const finalSourceOfficial = sourceOfficialName.length >= 2 ? sourceOfficialName : finalOfficial;
+  const finalSourceShort = sourceShortName.length >= 2 ? sourceShortName : finalShort;
   return {
     ok: true,
     value: {
-      sourceOfficialName,
-      sourceShortName,
-      officialName,
-      shortName,
+      sourceOfficialName: finalSourceOfficial,
+      sourceShortName: finalSourceShort,
+      officialName: finalOfficial,
+      shortName: finalShort,
       nameWasEdited: courtNamesWereEdited(
-        sourceOfficialName,
-        sourceShortName,
-        officialName,
-        shortName,
+        finalSourceOfficial,
+        finalSourceShort,
+        finalOfficial,
+        finalShort,
       ),
       address,
       city,
@@ -213,18 +214,18 @@ export function validateCourtSubmission(body: Record<string, unknown>): Validati
 }
 
 /**
- * Until launch the bar is low (Jesse, Oct 16): the model says it's a court,
- * confidence 30+, and the sport is either one we support or "unclear" when
- * the submitter picked one. An unclear indoor/outdoor setting no longer
- * blocks it (the court is saved as outdoor).
+ * Until launch almost everything passes (Jesse, Oct 16): no confidence bar.
+ * A photo is turned down only when the model says it is not a court at all
+ * and saw no basketball or pickleball in it. Blurry, dark, the "wrong" sport
+ * or a beat-up surface all pass; bad ones get cleaned up afterwards.
  */
 export function acceptsVerifiedCourt(
   analysis: GeminiCourtResult,
-  requestedSport: ValidCourtSubmission["requestedSport"] = null,
+  _requestedSport: ValidCourtSubmission["requestedSport"] = null,
 ): boolean {
-  const sportOk = supportedSports.has(analysis.sport)
-    || (analysis.sport === "unclear" && requestedSport != null);
-  return analysis.verified && analysis.confidence >= MIN_CONFIDENCE && sportOk;
+  if (analysis.verified) return true;
+  if (supportedSports.has(analysis.sport)) return true;
+  return analysis.rejectionCode !== "not_a_court";
 }
 
 /** The sport saved on the court: the submitter's pick, else the model's. */
@@ -256,11 +257,10 @@ export function isWrongSport(
     && analysis.sport !== requestedSport;
 }
 
+/** No sport check while testing: the submitter's pick is saved. */
 export function matchesRequestedSport(
-  analysis: GeminiCourtResult,
-  requestedSport: ValidCourtSubmission["requestedSport"],
+  _analysis: GeminiCourtResult,
+  _requestedSport: ValidCourtSubmission["requestedSport"],
 ): boolean {
-  return requestedSport == null
-    || analysis.sport === requestedSport
-    || analysis.sport === "unclear";
+  return true;
 }

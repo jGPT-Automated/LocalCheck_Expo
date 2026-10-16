@@ -147,53 +147,22 @@ test("keeps the legacy no-sport request compatible and rejects unsupported sport
   assert.equal(validateCourtSubmission({ ...base, sport: "tennis" }).ok, false);
 });
 
-test("accepts courts at confidence 30+ (testing bar, Oct 16)", () => {
-  assert.equal(acceptsVerifiedCourt({
-    verified: true,
-    sport: "pickleball",
-    setting: "indoor",
-    confidence: 30,
-    rejectionCode: "none",
-    nameOkay: true,
-    nameCode: "none",
-    note: "",
-  }), true);
-  assert.equal(acceptsVerifiedCourt({
-    verified: true,
-    sport: "pickleball",
-    setting: "indoor",
-    confidence: 29,
-    rejectionCode: "none",
-    nameOkay: true,
-    nameCode: "none",
-    note: "",
-  }), false);
-  const unclearSetting = {
-    verified: true,
+test("while testing, everything passes unless it's not a court at all", () => {
+  const base = {
+    verified: false,
     sport: "unclear" as const,
     setting: "unclear" as const,
-    confidence: 70,
-    rejectionCode: "none" as const,
+    confidence: 5,
+    rejectionCode: "too_unclear" as const,
     nameOkay: true,
     nameCode: "none" as const,
     note: "",
   };
-  assert.equal(acceptsVerifiedCourt(unclearSetting, "pickleball"), true);
-  assert.equal(acceptsVerifiedCourt(unclearSetting, null), false);
-
-  const basketball = {
-    verified: true,
-    sport: "basketball" as const,
-    setting: "outdoor" as const,
-    confidence: 95,
-    rejectionCode: "none" as const,
-    nameOkay: true,
-    nameCode: "none" as const,
-    note: "",
-  };
-  assert.equal(matchesRequestedSport(basketball, "basketball"), true);
-  assert.equal(matchesRequestedSport(basketball, "pickleball"), false);
-  assert.equal(matchesRequestedSport(basketball, null), true);
+  assert.equal(acceptsVerifiedCourt({ ...base, verified: true }), true);
+  assert.equal(acceptsVerifiedCourt(base), true); // blurry, low confidence
+  assert.equal(acceptsVerifiedCourt({ ...base, sport: "pickleball", rejectionCode: "not_a_court" }), true);
+  assert.equal(acceptsVerifiedCourt({ ...base, rejectionCode: "not_a_court" }), false); // a living room
+  assert.equal(matchesRequestedSport({ ...base, sport: "basketball" }, "pickleball"), true);
 });
 
 test("the model's own sentence is kept, trimmed and capped", () => {
