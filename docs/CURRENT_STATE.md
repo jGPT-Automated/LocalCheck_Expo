@@ -19,7 +19,7 @@ Each claim says which of these it is, because they are often confused:
 - Oct 16 (branch `codex/court-verify-debug`, function not deployed): court
   verification testing mode until launch. The result screen and the
   `verify-court` logs (`gemini_exchange`) show what was sent to Gemini and its
-  answer (free text up to 500 characters). Bar lowered: confidence 50+, an
+  answer (free text up to 500 characters). Bar lowered: confidence 30+, an
   unclear sport counts when the submitter picked one, an unclear setting is
   saved as outdoor. `COURT_VERIFY_DEBUG=off` hides the panel. On web, Add
   Court fills address, city and state from Mapbox (expo-location can't on web).

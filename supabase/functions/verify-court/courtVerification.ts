@@ -46,9 +46,9 @@ export interface GeminiCourtResult {
 /** Free-text answer from the model, capped so the screen stays readable. */
 export const NOTE_MAX_LENGTH = 500;
 
-/** Lowest model confidence that still adds the court. Lowered from 80 for
+/** Lowest model confidence that still adds the court. Lowered from 80 to 30 for
  * testing until launch (Jesse, Oct 16). */
-export const MIN_CONFIDENCE = 50;
+export const MIN_CONFIDENCE = 30;
 
 export interface ValidCourtSubmission {
   sourceOfficialName: string;
@@ -214,7 +214,7 @@ export function validateCourtSubmission(body: Record<string, unknown>): Validati
 
 /**
  * Until launch the bar is low (Jesse, Oct 16): the model says it's a court,
- * confidence 50+, and the sport is either one we support or "unclear" when
+ * confidence 30+, and the sport is either one we support or "unclear" when
  * the submitter picked one. An unclear indoor/outdoor setting no longer
  * blocks it (the court is saved as outdoor).
  */

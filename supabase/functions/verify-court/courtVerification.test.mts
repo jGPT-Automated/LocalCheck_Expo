@@ -147,12 +147,12 @@ test("keeps the legacy no-sport request compatible and rejects unsupported sport
   assert.equal(validateCourtSubmission({ ...base, sport: "tennis" }).ok, false);
 });
 
-test("accepts courts at confidence 50+ (testing bar, Oct 16)", () => {
+test("accepts courts at confidence 30+ (testing bar, Oct 16)", () => {
   assert.equal(acceptsVerifiedCourt({
     verified: true,
     sport: "pickleball",
     setting: "indoor",
-    confidence: 50,
+    confidence: 30,
     rejectionCode: "none",
     nameOkay: true,
     nameCode: "none",
@@ -162,7 +162,7 @@ test("accepts courts at confidence 50+ (testing bar, Oct 16)", () => {
     verified: true,
     sport: "pickleball",
     setting: "indoor",
-    confidence: 49,
+    confidence: 29,
     rejectionCode: "none",
     nameOkay: true,
     nameCode: "none",
