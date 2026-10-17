@@ -108,6 +108,18 @@ Each claim says which of these it is, because they are often confused:
   - Game page: court and format shown once; result actions in the footer.
   - Drawers: `FormSheet`, `ReviewRulesModal`, `PlayerQrModal` are all
     `RunFlowSheet` / `AppBottomSheetModal` now.
+  - UI definition of done (Oct 17): `.claude/skills/ui-done/SKILL.md` (Apple
+    UI tips, the layout rules, UX checks) and `pnpm qa:visual`, which renders
+    38 screens at 375x667, 393x852 and 430x932 against mocked data, fails on
+    cut-off, clipped, overlapping or off-screen text and sideways scroll, and
+    ratchets text under 11pt, contrast under 4.5:1 and targets under 44pt
+    against `scripts/visual-qa/baseline.json`. Local only for now:
+    the Explore drawer peek at 375x667 is flaky (about 1 run in 2).
+  - Contrast: muted text #6E6E7A -> #8A8A96 (3.3:1 -> 4.8:1 on the dark
+    surfaces); inactive tab labels use it; counts on the orange heatmap cells
+    are dark.
+  - Open for Jesse: about 500 labels per screen size are 9-10pt uppercase
+    (below Apple's 11pt). Raising them is a type-scale decision, not done.
   - Fixes: game activity markers line up on web; a bare played day shows the
     right day (`parseDayOrInstant`); Me tab tabs; Settings switch thumb.
   - Onboarding welcome uses the sign-in artwork, centred on its subject.

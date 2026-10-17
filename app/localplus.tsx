@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
   },
   fine: {
     ...TextStyles.caption,
-    color: Colors.mutedDark,
+    color: Colors.muted,
     lineHeight: 15,
   },
 });

@@ -1245,7 +1245,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     textAlign: "right",
   },
-  rowValueMuted: { color: Colors.mutedDark },
+  rowValueMuted: { color: Colors.muted },
   settingsLabel: {
     fontFamily: Typography.bodySemiBold,
     fontSize: 11,

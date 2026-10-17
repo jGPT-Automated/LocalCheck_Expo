@@ -17,7 +17,8 @@ export const Colors = {
   borderSubtle: "#202027",
   text: "#F2F2F6",
   textSecondary: "#9C9CA6",
-  muted: "#6E6E7A",
+  // 4.8–5.7:1 on every surface (Apple contrast minimum 4.5:1); was #6E6E7A at 3.3–3.9:1.
+  muted: "#8A8A96",
   mutedDark: "#4E4E58",
   accent: "#FC4C02",
   brandMark: "#FD6A03",

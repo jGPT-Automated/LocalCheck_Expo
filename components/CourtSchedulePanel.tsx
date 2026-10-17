@@ -325,7 +325,7 @@ export function CourtSchedulePanel({
                   }}
                 >
                   {(active || count >= 5) && count > 0 ? (
-                    <Text style={styles.cellCount}>{count}</Text>
+                    <Text style={[styles.cellCount, count >= 5 && styles.cellCountOnAccent]}>{count}</Text>
                   ) : null}
                   {(slotMap.get(key)?.runCount ?? 0) > 0 ? (
                     <View style={styles.runDot} />
@@ -559,6 +559,8 @@ const styles = StyleSheet.create({
   cellNow: { borderColor: Colors.accentBorderStrong },
   cellSelected: { borderColor: Colors.text },
   cellPast: { opacity: 0.34 },
+  // Dark on the orange cell, like the Check in button (white was 3:1).
+  cellCountOnAccent: { color: Colors.background },
   cellCount: {
     fontFamily: Typography.heading,
     fontSize: 11,

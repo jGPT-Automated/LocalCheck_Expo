@@ -56,6 +56,11 @@ voice notes. Checked in a local web render at 393×852 against mocked data
 | Cut-off text fixed: Approve score, inbox "Revised by…", profile subline, Host tag in team columns, Log game opponent, long names in the profile hero and head-to-head, LocalPlus retry | ✅ |
 | Court drawer settles exactly at the Check in row (was showing half the Here now tiles) | ✅ |
 | Notifications uses the shared detail header | ✅ |
+| UI definition of done for agents: `ui-done` skill + `pnpm qa:visual` (38 screens × 3 sizes), local | ✅ |
+| Explore drawer at 375×667 sometimes settles taller, showing half the Here now tiles (intermittent) | ⬜ open |
+| Muted text below 4.5:1 contrast (tab labels, settings values, fine print, heatmap counts) | ✅ |
+| Labels under Apple's 11pt (≈500 per size, 9–10pt caps) | ⬜ Jesse: type-scale decision |
+| Schedule + floating button vs native-ui "no FAB on iOS" | ⬜ Jesse: kept as decided (SpeedDialFab) |
 
 ## 2026-10-15 — Court-flow UI pass, frontend only (`claude/court-flow-ui-pass`)
 

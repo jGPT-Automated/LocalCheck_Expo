@@ -1496,7 +1496,7 @@ export default function ScheduleScreen() {
                         <Feather name="check" size={13} color={Colors.text} />
                       ) : (isSelected || previewCount >= 5) &&
                         previewCount > 0 ? (
-                        <Text style={styles.heatCellCount}>{previewCount}</Text>
+                        <Text style={[styles.heatCellCount, previewCount >= 5 && styles.heatCellCountOnAccent]}>{previewCount}</Text>
                       ) : null}
                       {runCount > 0 ? (
                         <View accessible={false} style={styles.runMarker} />
@@ -2115,6 +2115,8 @@ const styles = StyleSheet.create({
   heatCellCurrent: { borderColor: Colors.accentBorderStrong },
   heatCellMine: { borderColor: Colors.text, borderWidth: 2 },
   heatCellDisabled: { opacity: 0.34 },
+  // Dark on the orange cell, like the Check in button (white was 3:1).
+  heatCellCountOnAccent: { color: Colors.background },
   heatCellCount: {
     fontFamily: Typography.heading,
     fontSize: 12,

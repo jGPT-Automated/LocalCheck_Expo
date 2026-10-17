@@ -58,7 +58,7 @@ The product should feel premium, athletic, editorial, local, and direct. It shou
 | Border            | `#27272D` | Hairlines and structure                           |
 | Primary text      | `#F2F2F6` | Headlines and primary copy                        |
 | Secondary text    | `#9C9CA6` | Supporting copy                                   |
-| Muted text        | `#6E6E7A` | Timestamps and metadata                           |
+| Muted text        | `#8A8A96` | Timestamps and metadata (4.5:1+ on every surface, Oct 17; was `#6E6E7A`) |
 | LocalCheck orange | `#FC4C02` | Brand, live state, selected state, primary action |
 | Win               | `#00E87A` | Positive result semantics only                    |
 | Loss              | `#FF3B5C` | Negative/destructive semantics only               |

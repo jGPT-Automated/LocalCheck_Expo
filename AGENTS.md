@@ -160,6 +160,14 @@ force-push shared branches, or include unrelated user changes.
 
 ### UI change gate
 
+- **Definition of done for anything a player can see:** load
+  `.claude/skills/ui-done/SKILL.md` before starting and before saying it is
+  done. `pnpm qa:visual` (every screen, three phone sizes)
+  must show 0 failures and nothing above baseline, every touched screen is
+  opened at full size and compared with its before screenshot, and the PR
+  logs each change with before/after screenshots. Jesse should never be the
+  one to find cut-off text, overlap, off-centre art or a small-phone break.
+
 - **Sign-off first (Oct 10).** A visible change (layout, colour, motion,
   wording) is shown to Jesse as screenshots before it is built; build exactly
   what he signed off (`~/Documents/LocalCheck_Oct2026/DESIGN_SIGNOFF.md`).
@@ -231,6 +239,7 @@ Run the proportional subset and record it in the pull request:
 ```bash
 pnpm check:release
 git diff --check
+pnpm qa:visual /tmp/localcheck-ci-export   # any visible change (ui-done skill)
 ```
 
 Also perform the relevant signed-in test matrix in `docs/TESTING.md`. A backend
