@@ -66,7 +66,9 @@ export default function ChallengeScreen() {
   // An accepted ranked challenge is a game to log: it opens the Log Game flow,
   // filled in with the opponent, court and day.
   const needsScore =
-    challenge != null && challengeAction(challenge, currentUser.id) === "log_score";
+    challenge != null &&
+    !challenge.matchId &&
+    challengeAction(challenge, currentUser.id) === "log_score";
   useEffect(() => {
     if (needsScore && challenge) {
       router.replace(`/(tabs)/compete?tab=log&challengeId=${challenge.id}`);

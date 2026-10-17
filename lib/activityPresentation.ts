@@ -15,7 +15,17 @@ import type { FeedItem } from "@/constants/data";
  * in the fetched window (still checked in, or it fell outside the page) is
  * left as a plain "checkin" rather than fabricating an open-ended visit.
  */
-export function pairVisits(items: FeedItem[]): FeedItem[] {
+export function pairVisits(
+  items: FeedItem[],
+  options: { splitToday?: boolean; now?: number } = {},
+): FeedItem[] {
+  // Court feeds (Oct 16): today keeps the check-in and the check-out as two
+  // rows (the check-out still knows how long they played); older days
+  // collapse into one "played" row.
+  const now = options.now ?? Date.now();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const todayMs = startOfToday.getTime();
   const chronological = [...items].reverse(); // oldest first, to track opens in order
   const openByKey = new Map<string, FeedItem>();
   const visitByCheckoutId = new Map<string, FeedItem>();
@@ -31,7 +41,6 @@ export function pairVisits(items: FeedItem[]): FeedItem[] {
     const checkin = openByKey.get(key);
     if (!checkin) continue;
     openByKey.delete(key);
-    consumedCheckinIds.add(checkin.id);
 
     const checkInMs = new Date(checkin.occurredAtIso).getTime();
     const checkOutMs = new Date(item.occurredAtIso).getTime();
@@ -39,17 +48,21 @@ export function pairVisits(items: FeedItem[]): FeedItem[] {
       Number.isFinite(checkInMs) && Number.isFinite(checkOutMs)
         ? Math.max(0, Math.round((checkOutMs - checkInMs) / 60_000))
         : null;
+    const visit = { checkInIso: checkin.occurredAtIso, checkOutIso: item.occurredAtIso, durationMinutes };
+
+    if (options.splitToday && checkOutMs >= todayMs) {
+      // Today: both rows stay; the check-out carries the time played.
+      visitByCheckoutId.set(item.id, { ...item, visit });
+      continue;
+    }
+    consumedCheckinIds.add(checkin.id);
 
     visitByCheckoutId.set(item.id, {
       ...item,
       id: `visit-${checkin.id}-${item.id}`,
       type: "visit",
       message: `Visited ${item.courtName ?? "a court"}`,
-      visit: {
-        checkInIso: checkin.occurredAtIso,
-        checkOutIso: item.occurredAtIso,
-        durationMinutes,
-      },
+      visit,
     });
   }
 
@@ -187,8 +200,18 @@ function joinTeam(names: string[]): string {
 }
 
 /** "Today", "Yesterday", "Sep 6" (adds the year when it is not this year). */
+/**
+ * A `played_at` is often a bare day ("2026-10-16"). `new Date()` reads that
+ * as UTC midnight, which is the evening before anywhere in the Americas, so
+ * read a bare day as local midnight; full timestamps parse as usual.
+ */
+export function parseDayOrInstant(value: string): Date {
+  const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  return day ? new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3])) : new Date(value);
+}
+
 export function formatDayLabel(iso: string, now: Date = new Date()): string {
-  const date = new Date(iso);
+  const date = parseDayOrInstant(iso);
   if (Number.isNaN(date.getTime())) return "";
   const startOfDay = (d: Date) =>
     new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -201,6 +224,20 @@ export function formatDayLabel(iso: string, now: Date = new Date()): string {
       ? { month: "short", day: "numeric" }
       : { month: "short", day: "numeric", year: "numeric" },
   );
+}
+
+/** The feed's right-hand time: "Now", "5m", "2h", "3d", then "Sep 6". */
+export function shortAgo(iso: string, now: number = Date.now()): string {
+  const at = Date.parse(iso);
+  if (Number.isNaN(at)) return "";
+  const minutes = Math.max(0, Math.floor((now - at) / 60_000));
+  if (minutes < 1) return "Now";
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d`;
+  return new Date(at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 /** "6:40 PM" */

@@ -1,0 +1,572 @@
+{
+  "375x667/onboarding-welcome": {
+    "smallText": 3,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/onboarding-name": {
+    "smallText": 4,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/home-feed": {
+    "smallText": 21,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/home-locals": {
+    "smallText": 15,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/home-schedule": {
+    "smallText": 27,
+    "lowContrast": 0,
+    "smallTarget": 42
+  },
+  "375x667/court-live": {
+    "smallText": 24,
+    "lowContrast": 0,
+    "smallTarget": 7
+  },
+  "375x667/court-games": {
+    "smallText": 27,
+    "lowContrast": 0,
+    "smallTarget": 5
+  },
+  "375x667/court-players": {
+    "smallText": 16,
+    "lowContrast": 0,
+    "smallTarget": 4
+  },
+  "375x667/court-week": {
+    "smallText": 34,
+    "lowContrast": 0,
+    "smallTarget": 39
+  },
+  "375x667/court-info": {
+    "smallText": 19,
+    "lowContrast": 0,
+    "smallTarget": 4
+  },
+  "375x667/schedule": {
+    "smallText": 19,
+    "lowContrast": 0,
+    "smallTarget": 58
+  },
+  "375x667/schedule-slot": {
+    "smallText": 25,
+    "lowContrast": 0,
+    "smallTarget": 58
+  },
+  "375x667/schedule-mine": {
+    "smallText": 21,
+    "lowContrast": 0,
+    "smallTarget": 58
+  },
+  "375x667/schedule-actions": {
+    "smallText": 5,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/schedule-court-picker": {
+    "smallText": 1,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/game-open": {
+    "smallText": 11,
+    "lowContrast": 0,
+    "smallTarget": 1
+  },
+  "375x667/game-5v5": {
+    "smallText": 11,
+    "lowContrast": 0,
+    "smallTarget": 1
+  },
+  "375x667/game-started": {
+    "smallText": 11,
+    "lowContrast": 0,
+    "smallTarget": 1
+  },
+  "375x667/score-final": {
+    "smallText": 0,
+    "lowContrast": 0,
+    "smallTarget": 4
+  },
+  "375x667/score-timeline": {
+    "smallText": 0,
+    "lowContrast": 0,
+    "smallTarget": 3
+  },
+  "375x667/score-pending": {
+    "smallText": 0,
+    "lowContrast": 0,
+    "smallTarget": 4
+  },
+  "375x667/score-team": {
+    "smallText": 4,
+    "lowContrast": 0,
+    "smallTarget": 5
+  },
+  "375x667/score-rules": {
+    "smallText": 0,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/player-h2h": {
+    "smallText": 10,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/player-longest-name": {
+    "smallText": 10,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/player-activity": {
+    "smallText": 7,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/player-details": {
+    "smallText": 6,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/player-log-game": {
+    "smallText": 20,
+    "lowContrast": 1,
+    "smallTarget": 3
+  },
+  "375x667/me-activity": {
+    "smallText": 14,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/me-friends": {
+    "smallText": 11,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/me-inbox": {
+    "smallText": 12,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/compete": {
+    "smallText": 11,
+    "lowContrast": 0,
+    "smallTarget": 4
+  },
+  "375x667/compete-log-game": {
+    "smallText": 23,
+    "lowContrast": 0,
+    "smallTarget": 3
+  },
+  "375x667/explore": {
+    "smallText": 14,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/explore-drawer": {
+    "smallText": 8,
+    "lowContrast": 0,
+    "smallTarget": 1
+  },
+  "375x667/settings": {
+    "smallText": 1,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/notifications": {
+    "smallText": 0,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/localplus": {
+    "smallText": 0,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "393x852/onboarding-welcome": {
+    "smallText": 3,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "393x852/onboarding-name": {
+    "smallText": 4,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "393x852/home-feed": {
+    "smallText": 23,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "393x852/home-locals": {
+    "smallText": 17,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "393x852/home-schedule": {
+    "smallText": 35,
+    "lowContrast": 0,
+    "smallTarget": 49
+  },
+  "393x852/court-live": {
+    "smallText": 27,
+    "lowContrast": 0,
+    "smallTarget": 7
+  },
+  "393x852/court-games": {
+    "smallText": 33,
+    "lowContrast": 0,
+    "smallTarget": 6
+  },
+  "393x852/court-players": {
+    "smallText": 18,
+    "lowContrast": 0,
+    "smallTarget": 4
+  },
+  "393x852/court-week": {
+    "smallText": 45,
+    "lowContrast": 0,
+    "smallTarget": 63
+  },
+  "393x852/court-info": {
+    "smallText": 23,
+    "lowContrast": 0,
+    "smallTarget": 4
+  },
+  "393x852/schedule": {
+    "smallText": 30,
+    "lowContrast": 0,
+    "smallTarget": 59
+  },
+  "393x852/schedule-slot": {
+    "smallText": 36,
+    "lowContrast": 0,
+    "smallTarget": 59
+  },
+  "393x852/schedule-mine": {
+    "smallText": 32,
+    "lowContrast": 0,
+    "smallTarget": 59
+  },
+  "393x852/schedule-actions": {
+    "smallText": 5,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "393x852/schedule-court-picker": {
+    "smallText": 1,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "393x852/game-open": {
+    "smallText": 13,
+    "lowContrast": 0,
+    "smallTarget": 1
+  },
+  "393x852/game-5v5": {
+    "smallText": 14,
+    "lowContrast": 0,
+    "smallTarget": 1
+  },
+  "393x852/game-started": {
+    "smallText": 13,
+    "lowContrast": 0,
+    "smallTarget": 1
+  },
+  "393x852/score-final": {
+    "smallText": 0,
+    "lowContrast": 0,
+    "smallTarget": 4
+  },
+  "393x852/score-timeline": {
+    "smallText": 0,
+    "lowContrast": 0,
+    "smallTarget": 3
+  },
+  "393x852/score-pending": {
+    "smallText": 0,
+    "lowContrast": 0,
+    "smallTarget": 4
+  },
+  "393x852/score-team": {
+    "smallText": 4,
+    "lowContrast": 0,
+    "smallTarget": 5
+  },
+  "393x852/score-rules": {
+    "smallText": 0,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "393x852/player-h2h": {
+    "smallText": 10,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "393x852/player-longest-name": {
+    "smallText": 10,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "393x852/player-activity": {
+    "smallText": 7,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "393x852/player-details": {
+    "smallText": 6,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "393x852/player-log-game": {
+    "smallText": 20,
+    "lowContrast": 1,
+    "smallTarget": 3
+  },
+  "393x852/me-activity": {
+    "smallText": 14,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "393x852/me-friends": {
+    "smallText": 11,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "393x852/me-inbox": {
+    "smallText": 12,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "393x852/compete": {
+    "smallText": 11,
+    "lowContrast": 0,
+    "smallTarget": 4
+  },
+  "393x852/compete-log-game": {
+    "smallText": 25,
+    "lowContrast": 1,
+    "smallTarget": 3
+  },
+  "393x852/explore": {
+    "smallText": 14,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "393x852/explore-drawer": {
+    "smallText": 6,
+    "lowContrast": 0,
+    "smallTarget": 1
+  },
+  "393x852/settings": {
+    "smallText": 1,
+    "lowContrast": 0,
+    "smallTarget": 1
+  },
+  "393x852/notifications": {
+    "smallText": 0,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "393x852/localplus": {
+    "smallText": 0,
+    "lowContrast": 0,
+    "smallTarget": 2
+  },
+  "430x932/onboarding-welcome": {
+    "smallText": 3,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "430x932/onboarding-name": {
+    "smallText": 4,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "430x932/home-feed": {
+    "smallText": 25,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "430x932/home-locals": {
+    "smallText": 17,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "430x932/home-schedule": {
+    "smallText": 38,
+    "lowContrast": 0,
+    "smallTarget": 70
+  },
+  "430x932/court-live": {
+    "smallText": 29,
+    "lowContrast": 0,
+    "smallTarget": 7
+  },
+  "430x932/court-games": {
+    "smallText": 33,
+    "lowContrast": 0,
+    "smallTarget": 6
+  },
+  "430x932/court-players": {
+    "smallText": 18,
+    "lowContrast": 0,
+    "smallTarget": 4
+  },
+  "430x932/court-week": {
+    "smallText": 49,
+    "lowContrast": 0,
+    "smallTarget": 77
+  },
+  "430x932/court-info": {
+    "smallText": 23,
+    "lowContrast": 0,
+    "smallTarget": 4
+  },
+  "430x932/schedule": {
+    "smallText": 31,
+    "lowContrast": 0,
+    "smallTarget": 59
+  },
+  "430x932/schedule-slot": {
+    "smallText": 39,
+    "lowContrast": 0,
+    "smallTarget": 59
+  },
+  "430x932/schedule-mine": {
+    "smallText": 33,
+    "lowContrast": 0,
+    "smallTarget": 59
+  },
+  "430x932/schedule-actions": {
+    "smallText": 5,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "430x932/schedule-court-picker": {
+    "smallText": 1,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "430x932/game-open": {
+    "smallText": 13,
+    "lowContrast": 0,
+    "smallTarget": 1
+  },
+  "430x932/game-5v5": {
+    "smallText": 16,
+    "lowContrast": 0,
+    "smallTarget": 1
+  },
+  "430x932/game-started": {
+    "smallText": 13,
+    "lowContrast": 0,
+    "smallTarget": 1
+  },
+  "430x932/score-final": {
+    "smallText": 0,
+    "lowContrast": 0,
+    "smallTarget": 4
+  },
+  "430x932/score-timeline": {
+    "smallText": 0,
+    "lowContrast": 0,
+    "smallTarget": 3
+  },
+  "430x932/score-pending": {
+    "smallText": 0,
+    "lowContrast": 0,
+    "smallTarget": 4
+  },
+  "430x932/score-team": {
+    "smallText": 4,
+    "lowContrast": 0,
+    "smallTarget": 5
+  },
+  "430x932/score-rules": {
+    "smallText": 0,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "430x932/player-h2h": {
+    "smallText": 10,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "430x932/player-longest-name": {
+    "smallText": 10,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "430x932/player-activity": {
+    "smallText": 7,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "430x932/player-details": {
+    "smallText": 8,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "430x932/player-log-game": {
+    "smallText": 20,
+    "lowContrast": 1,
+    "smallTarget": 3
+  },
+  "430x932/me-activity": {
+    "smallText": 14,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "430x932/me-friends": {
+    "smallText": 11,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "430x932/me-inbox": {
+    "smallText": 12,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "430x932/compete": {
+    "smallText": 11,
+    "lowContrast": 0,
+    "smallTarget": 4
+  },
+  "430x932/compete-log-game": {
+    "smallText": 25,
+    "lowContrast": 1,
+    "smallTarget": 3
+  },
+  "430x932/explore": {
+    "smallText": 14,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "430x932/explore-drawer": {
+    "smallText": 6,
+    "lowContrast": 0,
+    "smallTarget": 1
+  },
+  "430x932/settings": {
+    "smallText": 1,
+    "lowContrast": 0,
+    "smallTarget": 1
+  },
+  "430x932/notifications": {
+    "smallText": 0,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "430x932/localplus": {
+    "smallText": 0,
+    "lowContrast": 0,
+    "smallTarget": 2
+  }
+}

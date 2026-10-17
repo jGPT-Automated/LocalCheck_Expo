@@ -1,11 +1,23 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import {
+  ActivityIndicator,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrutalistButton } from "@/components/BrutalistButton";
-import { LogoMark } from "@/components/brand/LogoMark";
+import { CourtArt } from "@/components/court/CourtArt";
+import { LogoLockup, LogoMark } from "@/components/brand/LogoMark";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { OptionRow } from "@/components/ui/OptionRow";
 import { SportEmblem } from "@/components/ui/SportEmblem";
@@ -27,11 +39,15 @@ import {
   isCityQuery,
   isValidUsername,
   normalizeInviter,
-  ONBOARDING_STEPS,
   USERNAME_MAX,
 } from "@/lib/onboardingModel";
 import { coordinateForPlace } from "@/lib/placeLocation";
 import { fetchClosestCourts } from "@/services/courtService";
+import { useAutoCheckIn } from "@/context/AutoCheckInContext";
+import { CourtPickerMap } from "@/components/onboarding/CourtPickerMap";
+import { GeofenceVisual } from "@/components/autoCheckIn/GeofenceVisual";
+import type { LatLng } from "@/lib/courtPickerMapModel";
+import { AUTO_CHECK_IN_RADIUS_M } from "@/lib/autoCheckInModel";
 import { redeemInviter, updateProfileFields } from "@/services/profileService";
 
 const SPORT_ROWS: { value: CourtSport; label: string }[] = [
@@ -39,9 +55,12 @@ const SPORT_ROWS: { value: CourtSport; label: string }[] = [
   { value: "PICKLEBALL", label: "Pickleball" },
 ];
 
+const WELCOME_ART = require("@/assets/brand/splash-artwork.png");
+
 export default function OnboardingScreen() {
   const router = useRouter();
   const { top, bottom } = useSafeAreaInsets();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const { profile, updateUsername, refreshProfile } = useAuth();
   const { setPreferredSport, setLocalCourt } = useApp();
   const { enablePush } = useNotifications();
@@ -50,7 +69,11 @@ export default function OnboardingScreen() {
     suppressNextAutoResolve,
   } = useDeviceLocation();
 
-  const [step, setStep] = React.useState<1 | 2 | 3>(1);
+  // 0 is the welcome; 1 name + sport; 2 court; 3 auto check-in; 4 alerts.
+  const [step, setStep] = React.useState<0 | 1 | 2 | 3 | 4>(0);
+  const autoCheckIn = useAutoCheckIn();
+  const [autoBusy, setAutoBusy] = React.useState(false);
+  const [youCoord, setYouCoord] = React.useState<LatLng | null>(null);
 
   // Step 1: name, sport, inviter
   const [username, setUsername] = React.useState(profile?.username ?? "");
@@ -138,7 +161,7 @@ export default function OnboardingScreen() {
   }
 
   async function loadCourtsNear(lookup: number, lat: number, lng: number) {
-    const courts = await fetchClosestCourts(lat, lng, sport, 5);
+    const courts = await fetchClosestCourts(lat, lng, sport, 8);
     if (lookup !== lookupRef.current) return;
     setCourtOptions(courts);
     setCourtsSport(sport);
@@ -172,6 +195,7 @@ export default function OnboardingScreen() {
     }
     setUsedCity(false);
     setSearchedPlace(null);
+    setYouCoord(coord);
     await loadCourtsNear(lookup, coord.lat, coord.lng);
   }
 
@@ -189,6 +213,8 @@ export default function OnboardingScreen() {
     }
     setUsedCity(true);
     setSearchedPlace(city);
+    setYouCoord(null);
+    setCityMode(false);
     await loadCourtsNear(lookup, coord.lat, coord.lng);
   }
 
@@ -205,15 +231,26 @@ export default function OnboardingScreen() {
       }
     }
     setSavingStep2(false);
-    setStep(3);
+    // Auto check-in watches the local court, so it only comes up with one.
+    setStep(selectedCourt ? 3 : 4);
   }
 
-  async function handleFinish() {
+  async function handleAutoCheckIn() {
+    if (autoBusy) return;
+    if (autoCheckIn.state !== "unavailable") {
+      setAutoBusy(true);
+      await autoCheckIn.turnOn();
+      setAutoBusy(false);
+    }
+    setStep(4);
+  }
+
+  async function handleFinish(withAlerts: boolean) {
     if (finishing || !profile) return;
     setFinishing(true);
     setFinishError(null);
     // iOS shows its own Allow / Don't Allow; either answer continues.
-    await enablePush();
+    if (withAlerts) await enablePush();
     const saved = await updateProfileFields(profile.id, { onboarding_completed: true });
     if (!saved) {
       setFinishing(false);
@@ -229,245 +266,421 @@ export default function OnboardingScreen() {
   }
 
   function goBack() {
-    if (step === 3) setStep(2);
+    if (step === 4) setStep(selectedCourt ? 3 : 2);
+    else if (step === 3) setStep(2);
     else if (step === 2) setStep(1);
+    else if (step === 1) setStep(0);
   }
 
   const farNote = farCourtNote(courtOptions, searchedPlace);
+  const hasCourtStep = Boolean(selectedCourt);
+  const totalSteps = hasCourtStep ? 4 : 3;
+  const shownStep = step === 4 ? totalSteps : step;
+  const courtName = selectedCourt ? selectedCourt.shortName || selectedCourt.name : "your court";
+  // Small phones list two rows so the map keeps its room.
+  const nearest = courtOptions.slice(0, windowHeight < 760 ? 2 : 3);
+  const heroHeight = Math.round(windowHeight * 0.4);
+  // The artwork is 2:3 and its subject (the dunk) sits right of the canvas
+  // centre, at 63% of its width. Size it a little wider than the screen and
+  // put that subject on the screen's centre line, on every phone width.
+  const heroArtWidth = Math.round(windowWidth * 1.15);
+  const heroArtHeight = Math.round(heroArtWidth * 1.5);
+  const heroArtLeft = Math.round(windowWidth / 2 - heroArtWidth * 0.63);
 
   const primary =
-    step === 1
-      ? {
-          label: savingStep1 ? "SAVING…" : step1Error ? "RETRY" : "CONTINUE",
-          onPress: () => void handleContinueStep1(),
-          disabled: !step1Ready || savingStep1,
-        }
-      : step === 2
+    step === 0
+      ? { label: "Get started", onPress: () => setStep(1) }
+      : step === 1
         ? {
-            label: savingStep2
-              ? "SAVING…"
-              : step2Error
-                ? "RETRY"
-                : selectedCourt || !searched || courtOptions.length > 0
-                  ? "CONTINUE"
-                  : "CONTINUE WITHOUT A COURT",
-            onPress: () => void handleContinueStep2(),
-            disabled: !step2Ready || savingStep2,
+            label: savingStep1 ? "Saving…" : step1Error ? "Retry" : "Continue",
+            onPress: () => void handleContinueStep1(),
+            disabled: !step1Ready || savingStep1,
           }
-        : {
-            label: finishing ? "FINISHING…" : finishError ? "RETRY" : "TURN ON ALERTS",
-            onPress: () => void handleFinish(),
-            disabled: finishing,
-          };
+        : step === 2
+          ? {
+              label: savingStep2
+                ? "Saving…"
+                : step2Error
+                  ? "Retry"
+                  : selectedCourt
+                    ? `Make ${courtName} my court`
+                    : searched && courtOptions.length === 0
+                      ? "Continue without a court"
+                      : "Pick a court to continue",
+              onPress: () => void handleContinueStep2(),
+              disabled: !step2Ready || savingStep2,
+            }
+          : step === 3
+            ? {
+                label: autoBusy ? "Turning on…" : autoCheckIn.state === "unavailable" ? "Continue" : "Turn on auto check-in",
+                onPress: () => void handleAutoCheckIn(),
+                disabled: autoBusy,
+              }
+            : {
+                label: finishing ? "Finishing…" : finishError ? "Retry" : "Turn on alerts",
+                onPress: () => void handleFinish(true),
+                disabled: finishing,
+              };
+  const secondary =
+    step === 3 && autoCheckIn.state !== "unavailable"
+      ? { label: "Not now", onPress: () => setStep(4), disabled: autoBusy }
+      : step === 4
+        ? { label: "Not now", onPress: () => void handleFinish(false), disabled: finishing }
+        : undefined;
+
+  const header =
+    step === 0 ? null : (
+      <View style={[styles.header, { paddingTop: top + Space.md }]}>
+        <Pressable
+          accessibilityHint="Back to the previous step"
+          accessibilityLabel="Back"
+          accessibilityRole="button"
+          onPress={goBack}
+          style={({ pressed }) => [styles.backAction, pressed && styles.pressed]}
+        >
+          <LogoMark size={24} variant="back" />
+        </Pressable>
+        <View style={styles.progressRow}>
+          {Array.from({ length: totalSteps }, (_, i) => (
+            <View key={i} style={[styles.progressSegment, i < shownStep && styles.progressFilled]} />
+          ))}
+        </View>
+      </View>
+    );
 
   return (
     <View style={styles.screen}>
-      <KeyboardAwareScrollViewCompat
-        style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingTop: top + Space.lg }]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.header}>
-          {step > 1 ? (
-            <Pressable
-              accessibilityHint="Back to the previous step"
-              accessibilityLabel="Back"
-              accessibilityRole="button"
-              onPress={goBack}
-              style={({ pressed }) => [styles.backAction, pressed && styles.pressed]}
-            >
-              <LogoMark size={24} variant="back" />
-            </Pressable>
-          ) : (
-            <View style={styles.backAction}>
-              <LogoMark size={24} />
+      {header}
+
+      {step === 0 ? (
+        <View style={styles.welcome}>
+          {/* The sign-in artwork carries on into the welcome (Oct 17): full
+              bleed at the top, fading into the page under the headline. */}
+          <View style={[styles.hero, { minHeight: heroHeight }]}>
+            <Image
+              accessibilityLabel="An abstract basketball player rising toward the rim"
+              resizeMode="contain"
+              source={WELCOME_ART}
+              style={[styles.heroArt, { height: heroArtHeight, width: heroArtWidth, left: heroArtLeft }]}
+            />
+            <LinearGradient
+              colors={[Colors.background, "rgba(13,13,16,0)"]}
+              pointerEvents="none"
+              style={[styles.heroFadeTop, { height: top + 96 }]}
+            />
+            <LinearGradient
+              colors={["rgba(13,13,16,0)", Colors.background]}
+              pointerEvents="none"
+              style={styles.heroFadeBottom}
+            />
+            <View style={[styles.heroLogo, { top: top + Space.lg }]}>
+              <LogoLockup width={164} />
             </View>
-          )}
-          <View style={styles.progressRow}>
-            {Array.from({ length: ONBOARDING_STEPS }, (_, i) => (
-              <View
-                key={i}
-                style={[styles.progressSegment, i < step && styles.progressFilled]}
+          </View>
+          <View style={styles.welcomeBody}>
+            <View style={styles.welcomeCopy}>
+              <Text style={[styles.title, styles.welcomeTitle]}>
+                Know who's{"\n"}running<Text style={styles.titleDot}>.</Text>
+              </Text>
+              <Text style={styles.subtitle}>
+                LocalCheck is your court, live: who's on now, who's coming this week, and where you rank.
+              </Text>
+            </View>
+            <View style={styles.welcomeHow}>
+              <HowRow
+                body="Tap in at the court, or let it happen when you walk up. Locals see who's on now."
+                icon="map-pin"
+                title="Check in"
               />
-            ))}
+              <HowRow
+                body="Tap the hours you'll play this week. Everyone sees when your court gets busy."
+                icon="calendar"
+                title="Plan the week"
+              />
+              <HowRow
+                body="Log the score after you play. Wins move you up your court's ranking."
+                icon="award"
+                title="Log games, rank up"
+              />
+            </View>
           </View>
         </View>
+      ) : null}
 
-        <Text style={styles.eyebrow}>
-          STEP {step} OF {ONBOARDING_STEPS}
-        </Text>
+      {/* The court trace from Home and the court page sits behind the step
+          titles, so setup already looks like the app it leads into. */}
+      {step === 1 || step === 3 || step === 4 ? <CourtArt sport={sport ?? "BASKETBALL"} top={top + 52} /> : null}
 
-        {step === 1 ? (
-          <>
-            <Text style={styles.title}>
-              CLAIM YOUR{"\n"}NAME<Text style={styles.titleDot}>.</Text>
-            </Text>
-            <Text style={styles.subtitle}>This is how locals will know you.</Text>
+      {step === 1 ? (
+        <KeyboardAwareScrollViewCompat
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <StepTitle line1="Claim your" line2="name" step={shownStep} total={totalSteps} />
+          <Text style={styles.subtitle}>This is how locals will know you.</Text>
 
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>USERNAME</Text>
-              <TextInput
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!savingStep1}
-                maxLength={USERNAME_MAX}
-                onChangeText={(text) => {
-                  setUsername(cleanUsername(text));
-                  setUsernameError(null);
-                }}
-                placeholder="username"
-                placeholderTextColor={Colors.mutedDark}
-                style={[styles.input, savingStep1 && styles.inputDisabled]}
-                value={username}
-              />
-              {usernameError ? (
-                <Text style={styles.fieldError}>{usernameError}</Text>
-              ) : (
-                <Text style={styles.fieldHint}>
-                  Tip: first name + last initial, or first name + a number.
-                </Text>
-              )}
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>YOUR SPORT</Text>
-              <View style={styles.sportList}>
-                {SPORT_ROWS.map((row) => (
-                  <OptionRow
-                    key={row.value}
-                    disabled={savingStep1}
-                    icon={<SportEmblem sport={row.value} size={18} />}
-                    label={row.label}
-                    onPress={() => setSport(row.value)}
-                    selected={sport === row.value}
-                  />
-                ))}
-              </View>
-              <Text style={styles.fieldHint}>You can change this anytime in Settings.</Text>
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>INVITE CODE (OPTIONAL)</Text>
-              <TextInput
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!savingStep1 && !inviterSaved}
-                maxLength={32}
-                onChangeText={(text) => {
-                  setInviter(normalizeInviter(text));
-                  setInviterError(null);
-                }}
-                placeholder="friend's code or username"
-                placeholderTextColor={Colors.mutedDark}
-                style={[styles.input, (savingStep1 || inviterSaved) && styles.inputDisabled]}
-                value={inviter}
-              />
-              {inviterError ? <Text style={styles.fieldError}>{inviterError}</Text> : null}
-            </View>
-
-            {step1Error ? <ErrorBanner message={step1Error} /> : null}
-          </>
-        ) : step === 2 ? (
-          <>
-            <Text style={styles.title}>
-              PICK YOUR{"\n"}COURT<Text style={styles.titleDot}>.</Text>
-            </Text>
-            <Text style={styles.subtitle}>
-              Your home court. See who's there and who's coming.
-            </Text>
-
-            <BrutalistButton
-              icon={<Feather color={Colors.black} name="crosshair" size={15} />}
-              label="USE MY LOCATION"
-              loading={locating}
-              onPress={() => void handleUseLocation()}
-              style={styles.fullButton}
-              variant="accent"
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Username</Text>
+            <TextInput
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!savingStep1}
+              maxLength={USERNAME_MAX}
+              onChangeText={(text) => {
+                setUsername(cleanUsername(text));
+                setUsernameError(null);
+              }}
+              placeholder="username"
+              placeholderTextColor={Colors.mutedDark}
+              style={[styles.input, savingStep1 && styles.inputDisabled]}
+              value={username}
             />
-
-            {!cityMode ? (
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setCityMode(true)}
-                style={({ pressed }) => [styles.zipLink, pressed && styles.pressed]}
-              >
-                <Text style={styles.zipLinkText}>Search by city instead</Text>
-              </Pressable>
+            {usernameError ? (
+              <Text style={styles.fieldError}>{usernameError}</Text>
             ) : (
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>CITY</Text>
+              <Text style={styles.fieldHint}>3 to 10 letters or numbers. First name + last initial works well.</Text>
+            )}
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Your sport</Text>
+            <View style={styles.sportList}>
+              {SPORT_ROWS.map((row) => (
+                <OptionRow
+                  key={row.value}
+                  disabled={savingStep1}
+                  icon={<SportEmblem sport={row.value} size={18} />}
+                  label={row.label}
+                  onPress={() => setSport(row.value)}
+                  selected={sport === row.value}
+                />
+              ))}
+            </View>
+            <Text style={styles.fieldHint}>Courts, games and rankings follow your sport. Change it anytime in Settings.</Text>
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Invite code (optional)</Text>
+            <TextInput
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!savingStep1 && !inviterSaved}
+              maxLength={32}
+              onChangeText={(text) => {
+                setInviter(normalizeInviter(text));
+                setInviterError(null);
+              }}
+              placeholder="friend's code or username"
+              placeholderTextColor={Colors.mutedDark}
+              style={[styles.input, (savingStep1 || inviterSaved) && styles.inputDisabled]}
+              value={inviter}
+            />
+            {inviterError ? <Text style={styles.fieldError}>{inviterError}</Text> : null}
+          </View>
+
+          {step1Error ? <ErrorBanner message={step1Error} /> : null}
+        </KeyboardAwareScrollViewCompat>
+      ) : null}
+
+      {step === 2 ? (
+        <View style={styles.fixedStep}>
+          <StepTitle line1="Pick your" line2="court" step={shownStep} total={totalSteps} />
+          <Text style={styles.subtitleTight}>Your local court is home: it's always free to see who's there and who's coming.</Text>
+
+          <CourtPickerMap
+            courts={courtOptions}
+            onSelect={setSelectedCourt}
+            selectedId={selectedCourt?.id ?? null}
+            you={youCoord}
+          >
+            {cityMode ? (
+              <View style={styles.cityBar}>
                 <TextInput
                   autoCapitalize="words"
                   autoCorrect={false}
+                  autoFocus
                   onChangeText={setCity}
                   onSubmitEditing={() => void handleFindCity()}
-                  placeholder="Conroe, TX"
+                  placeholder="City, State"
                   placeholderTextColor={Colors.mutedDark}
                   returnKeyType="search"
-                  style={styles.input}
+                  style={styles.cityInput}
                   value={city}
                 />
-                <BrutalistButton
+                <Pressable
+                  accessibilityRole="button"
                   disabled={!isCityQuery(city) || searching}
-                  label="FIND COURTS"
                   onPress={() => void handleFindCity()}
-                  style={styles.fullButton}
-                  variant="outline"
-                />
+                  style={({ pressed }) => [styles.cityGo, (!isCityQuery(city) || searching) && styles.disabled, pressed && styles.pressed]}
+                >
+                  <Feather color={Colors.background} name="search" size={16} />
+                </Pressable>
               </View>
-            )}
-
-            {locationNotice ? <Text style={styles.locationNotice}>{locationNotice}</Text> : null}
-
-            {searching ? (
-              <ActivityIndicator color={Colors.accent} style={styles.searching} />
-            ) : searched ? (
-              courtOptions.length > 0 ? (
-                <View style={styles.field}>
-                  {farNote ? (
-                    <Text style={styles.locationNotice}>{farNote}</Text>
-                  ) : (
-                    <Text style={styles.fieldLabel}>CLOSEST COURTS</Text>
-                  )}
-                  <View style={styles.sportList}>
-                    {courtOptions.map((court) => (
-                      <OptionRow
-                        key={court.id}
-                        disabled={savingStep2}
-                        icon={<SportEmblem sport={court.sport} size={18} />}
-                        label={court.name}
-                        description={courtPickerDetail(court)}
-                        onPress={() => setSelectedCourt(court)}
-                        selected={selectedCourt?.id === court.id}
-                      />
-                    ))}
-                  </View>
-                </View>
-              ) : (
-                <Text style={styles.locationNotice}>
-                  No courts found yet. You can add your court after setup.
-                </Text>
-              )
             ) : null}
+            {!searched && !searching && !cityMode ? (
+              <View style={styles.askCard}>
+                <Text style={styles.askTitle}>Find courts near you</Text>
+                <Text style={styles.askBody}>
+                  We use your location once to find nearby courts. It isn't shared with other players.
+                </Text>
+                <BrutalistButton
+                  icon={<Feather color={Colors.background} name="navigation" size={14} />}
+                  label="Use my location"
+                  loading={locating}
+                  onPress={() => void handleUseLocation()}
+                  style={styles.fullButton}
+                  variant="primary"
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={() => setCityMode(true)}
+                  style={({ pressed }) => [styles.cityLink, pressed && styles.pressed]}
+                >
+                  <Text style={styles.cityLinkText}>Search by city instead</Text>
+                </Pressable>
+              </View>
+            ) : null}
+            {searching ? (
+              <View style={styles.mapCenter} pointerEvents="none">
+                <ActivityIndicator color={Colors.text} />
+              </View>
+            ) : null}
+            {searched && !cityMode ? (
+              <View style={styles.mapTools}>
+                <Pressable
+                  accessibilityLabel="Use my location"
+                  accessibilityRole="button"
+                  onPress={() => void handleUseLocation()}
+                  style={({ pressed }) => [styles.mapTool, pressed && styles.pressed]}
+                >
+                  <Feather color={Colors.text} name="navigation" size={15} />
+                </Pressable>
+                <Pressable
+                  accessibilityLabel="Search by city"
+                  accessibilityRole="button"
+                  onPress={() => setCityMode(true)}
+                  style={({ pressed }) => [styles.mapTool, pressed && styles.pressed]}
+                >
+                  <Feather color={Colors.text} name="search" size={15} />
+                </Pressable>
+              </View>
+            ) : null}
+          </CourtPickerMap>
 
-            {step2Error ? <ErrorBanner message={step2Error} /> : null}
-          </>
-        ) : (
-          <>
-            <Text style={styles.title}>
-              GET GAME{"\n"}ALERTS<Text style={styles.titleDot}>.</Text>
-            </Text>
-            <Text style={styles.subtitle}>
-              Know when locals check in at your court, and when someone invites you to play.
-              Change it anytime in Settings.
-            </Text>
-            {finishError ? <ErrorBanner message={finishError} /> : null}
-          </>
-        )}
-      </KeyboardAwareScrollViewCompat>
+          {locationNotice ? <Text style={styles.locationNotice}>{locationNotice}</Text> : null}
+          {searched ? (
+            courtOptions.length > 0 ? (
+              <View style={styles.pickList}>
+                <Text style={styles.fieldLabel}>{farNote ?? "Closest courts · tap a pin or a row"}</Text>
+                {nearest.map((court) => (
+                  <OptionRow
+                    key={court.id}
+                    disabled={savingStep2}
+                    icon={<SportEmblem sport={court.sport} size={18} />}
+                    label={court.name}
+                    description={courtPickerDetail(court)}
+                    onPress={() => setSelectedCourt(court)}
+                    selected={selectedCourt?.id === court.id}
+                  />
+                ))}
+                {selectedCourt && !nearest.some((court) => court.id === selectedCourt.id) ? (
+                  <OptionRow
+                    description={courtPickerDetail(selectedCourt)}
+                    icon={<SportEmblem sport={selectedCourt.sport} size={18} />}
+                    label={selectedCourt.name}
+                    onPress={() => undefined}
+                    selected
+                  />
+                ) : null}
+              </View>
+            ) : (
+              <Text style={styles.locationNotice}>No courts here yet. You can add yours from Explore after setup.</Text>
+            )
+          ) : null}
+          {step2Error ? <ErrorBanner message={step2Error} /> : null}
+        </View>
+      ) : null}
 
-      <StickyActionBar bottomInset={bottom} primary={primary} />
+      {step === 3 ? (
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={styles.scroll}>
+          <StepTitle line1="Check in" line2="hands-free" step={shownStep} total={totalSteps} />
+          <Text style={styles.subtitle}>
+            Walk onto {courtName} and you're checked in. Walk off and you're checked out. No app to open.
+          </Text>
+          <GeofenceVisual courtName={courtName} />
+          <View style={styles.howList}>
+            <HowRow body={`You get a notice each time, with Hide if you'd rather not show.`} icon="bell" title="You stay in control" />
+            <HowRow
+              body={`iPhone watches the ${AUTO_CHECK_IN_RADIUS_M} m circle for us. LocalCheck only hears when you cross it, never where you are otherwise.`}
+              icon="lock"
+              title="Only this circle"
+            />
+            <HowRow body="Turn it off anytime in Settings." icon="toggle-right" title="Your choice" />
+          </View>
+          <View style={styles.permissionNote}>
+            <Feather color={Colors.textSecondary} name="info" size={14} />
+            <Text style={styles.permissionText}>
+              {autoCheckIn.state === "unavailable"
+                ? "Auto check-in works in the App Store app. You can turn it on later in Settings."
+                : "iPhone asks for location next. Choose Allow While Using, then Change to Always Allow when it asks, so it works with your phone in your pocket."}
+            </Text>
+          </View>
+        </ScrollView>
+      ) : null}
+
+      {step === 4 ? (
+        <View style={[styles.fixedStep, styles.alertsStep]}>
+          <StepTitle line1="Get game" line2="alerts" step={shownStep} total={totalSteps} />
+          <Text style={styles.subtitle}>Only what matters at your court. Change it anytime in Settings.</Text>
+          <View style={styles.howList}>
+            <HowRow body="When friends check in at your court." icon="map-pin" title="Friends on court" />
+            <HowRow body="When someone invites or challenges you." icon="zap" title="Games and challenges" />
+            <HowRow body="When a score you played in needs a look." icon="check-square" title="Score reviews" />
+          </View>
+          {finishError ? <ErrorBanner message={finishError} /> : null}
+        </View>
+      ) : null}
+
+      <StickyActionBar bottomInset={bottom} primary={primary} secondary={secondary} />
+    </View>
+  );
+}
+
+function StepTitle({ line1, line2, step, total }: { line1: string; line2: string; step: number; total: number }) {
+  return (
+    <View style={styles.stepTitle}>
+      <Text style={styles.eyebrow}>Step {step} of {total}</Text>
+      <Text style={styles.title}>
+        {line1}
+        {"\n"}
+        {line2}
+        <Text style={styles.titleDot}>.</Text>
+      </Text>
+    </View>
+  );
+}
+
+function HowRow({
+  icon,
+  title,
+  body,
+}: {
+  icon: React.ComponentProps<typeof Feather>["name"];
+  title: string;
+  body: string;
+}) {
+  return (
+    <View style={styles.howRow}>
+      <View style={styles.howIcon}>
+        <Feather color={Colors.text} name={icon} size={16} />
+      </View>
+      <View style={styles.howCopy}>
+        <Text style={styles.howTitle}>{title}</Text>
+        <Text style={styles.howBody}>{body}</Text>
+      </View>
     </View>
   );
 }
@@ -475,7 +688,7 @@ export default function OnboardingScreen() {
 function ErrorBanner({ message }: { message: string }) {
   return (
     <View style={styles.errorBanner}>
-      <LogoMark size={18} />
+      <Feather color={Colors.loss} name="alert-circle" size={16} />
       <Text style={styles.errorBannerText}>{message}</Text>
     </View>
   );
@@ -484,17 +697,12 @@ function ErrorBanner({ message }: { message: string }) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
   scroll: { flex: 1 },
-  content: {
-    paddingHorizontal: Layout.screenGutter,
-    paddingBottom: Space.xl,
-    gap: Space.lg,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Space.lg,
-  },
+  content: { paddingHorizontal: Layout.screenGutter, paddingTop: Space.sm, paddingBottom: Space.xl, gap: Space.lg },
+  fixedStep: { flex: 1, minHeight: 0, paddingHorizontal: Layout.screenGutter, paddingTop: Space.sm, paddingBottom: Space.md, gap: Space.md },
+  alertsStep: { gap: Space.lg },
+  header: { flexDirection: "row", alignItems: "center", gap: Space.lg, paddingHorizontal: Layout.screenGutter },
   pressed: { opacity: 0.68 },
+  disabled: { opacity: 0.4 },
   backAction: {
     width: Layout.minTouchTarget,
     height: Layout.minTouchTarget,
@@ -503,104 +711,148 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   progressRow: { flex: 1, flexDirection: "row", gap: Space.sm },
-  progressSegment: {
-    flex: 1,
-    height: 3,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.border,
-  },
+  progressSegment: { flex: 1, height: 3, borderRadius: 2, backgroundColor: Colors.surfaceHigh },
   progressFilled: { backgroundColor: Colors.accent },
-  eyebrow: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    color: Colors.accent,
-    letterSpacing: 1.5,
-    marginTop: Space.md,
+
+  welcome: { flex: 1 },
+  // The art takes whatever the copy leaves, so the page never shows a gap.
+  hero: { flex: 1, position: "relative", overflow: "hidden" },
+  heroArt: { position: "absolute", top: 0 },
+  heroFadeTop: { position: "absolute", top: 0, left: 0, right: 0 },
+  heroFadeBottom: { position: "absolute", left: 0, right: 0, bottom: 0, height: "55%" },
+  heroLogo: { position: "absolute", left: Layout.screenGutter },
+  welcomeBody: { marginTop: -96, paddingHorizontal: Layout.screenGutter, paddingBottom: Space.lg, gap: Space.xl },
+  welcomeCopy: { gap: Space.md },
+  welcomeTitle: { fontSize: 44, lineHeight: 44 },
+  welcomeHow: {
+    gap: Space.md,
+    paddingTop: Space.lg,
+    borderTopWidth: 1,
+    borderTopColor: Colors.hairline,
   },
+
+  stepTitle: { gap: Space.sm },
+  eyebrow: { fontFamily: Typography.bodyBold, fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", color: Colors.textSecondary },
   title: {
     fontFamily: Typography.headingBold,
-    fontSize: 34,
-    lineHeight: 38,
+    fontSize: 38,
+    lineHeight: 40,
+    letterSpacing: -1.2,
+    textTransform: "uppercase",
     color: Colors.text,
-    letterSpacing: 0.3,
-    marginTop: Space.xs,
   },
   titleDot: { color: Colors.accent },
-  subtitle: {
-    fontFamily: Typography.body,
-    fontSize: 15,
-    lineHeight: 20,
-    color: Colors.textSecondary,
-    marginTop: Space.sm,
+  subtitle: { fontFamily: Typography.bodyMedium, fontSize: 14, lineHeight: 20, color: Colors.textSecondary },
+  subtitleTight: { fontFamily: Typography.bodyMedium, fontSize: 13, lineHeight: 18, color: Colors.textSecondary },
+
+  howList: { gap: Space.lg },
+  howRow: { flexDirection: "row", alignItems: "flex-start", gap: Space.md },
+  howIcon: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: Radius.chip,
+    borderWidth: 1,
+    borderColor: Colors.hairlineCard,
+    backgroundColor: Colors.panel,
   },
-  field: { marginTop: Space.md, gap: Space.sm },
-  fieldLabel: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 10,
-    color: Colors.muted,
-    letterSpacing: 2,
-  },
+  howCopy: { flex: 1, minWidth: 0, gap: 3 },
+  howTitle: { fontFamily: Typography.bodyBold, fontSize: 10.5, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.text },
+  howBody: { fontFamily: Typography.bodyMedium, fontSize: 13, lineHeight: 18, color: Colors.textSecondary },
+
+  field: { gap: Space.sm },
+  fieldLabel: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
   input: {
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderColor: Colors.hairlineCard,
+    backgroundColor: Colors.panel,
     color: Colors.text,
-    fontFamily: Typography.body,
+    fontFamily: Typography.bodyMedium,
     fontSize: 16,
     paddingHorizontal: 14,
     paddingVertical: 14,
-    borderRadius: Radius.md,
+    borderRadius: Radius.chip,
   },
   inputDisabled: { opacity: 0.5 },
-  fieldHint: {
-    fontFamily: Typography.body,
-    fontSize: 12,
-    color: Colors.muted,
-  },
-  fieldError: {
-    fontFamily: Typography.body,
-    fontSize: 12,
-    color: Colors.loss,
-  },
+  fieldHint: { fontFamily: Typography.bodyMedium, fontSize: 12, lineHeight: 17, color: Colors.muted },
+  fieldError: { fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.loss },
   sportList: { gap: Space.sm },
-  fullButton: { width: "100%", marginTop: Space.md },
-  searching: { marginTop: Space.lg },
-  locationNotice: {
-    fontFamily: Typography.body,
-    fontSize: 12,
-    color: Colors.muted,
-    marginTop: Space.sm,
+  fullButton: { alignSelf: "stretch" },
+
+  askCard: {
+    position: "absolute",
+    left: 14,
+    right: 14,
+    bottom: 14,
+    padding: Space.lg,
+    gap: Space.sm,
+    borderRadius: Radius.row,
+    borderWidth: 1,
+    borderColor: "rgba(242,242,246,0.13)",
+    backgroundColor: "rgba(19,19,23,0.94)",
   },
-  zipLink: {
-    marginTop: Space.lg,
-    alignSelf: "center",
-    minHeight: Layout.minTouchTarget,
-    paddingHorizontal: Space.lg,
+  askTitle: { fontFamily: Typography.headingSemiBold, fontSize: 20, lineHeight: 22, textTransform: "uppercase", color: Colors.text },
+  askBody: { fontFamily: Typography.bodyMedium, fontSize: 12.5, lineHeight: 18, color: Colors.textSecondary, marginBottom: Space.xs },
+  cityLink: { alignSelf: "center", minHeight: 36, justifyContent: "center", paddingHorizontal: Space.md },
+  cityLinkText: { fontFamily: Typography.bodySemiBold, fontSize: 12, color: Colors.textSecondary, textDecorationLine: "underline" },
+  cityBar: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    right: 12,
+    flexDirection: "row",
+    gap: Space.sm,
+  },
+  cityInput: {
+    flex: 1,
+    height: 46,
+    paddingHorizontal: 14,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: "rgba(242,242,246,0.13)",
+    backgroundColor: "rgba(19,19,23,0.94)",
+    color: Colors.text,
+    fontFamily: Typography.bodyMedium,
+    fontSize: 15,
+  },
+  cityGo: { width: 46, height: 46, alignItems: "center", justifyContent: "center", borderRadius: Radius.lg, backgroundColor: Colors.text },
+  mapCenter: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
+  mapTools: { position: "absolute", top: 12, right: 12, gap: Space.sm },
+  mapTool: {
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(242,242,246,0.13)",
+    backgroundColor: "rgba(19,19,23,0.92)",
   },
-  zipLinkText: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 12,
-    color: Colors.textSecondary,
-    textDecorationLine: "underline",
+  pickList: { gap: Space.sm },
+  locationNotice: { fontFamily: Typography.bodyMedium, fontSize: 12, lineHeight: 17, color: Colors.textSecondary },
+
+  permissionNote: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: Space.sm,
+    padding: Space.md,
+    borderRadius: Radius.row,
+    borderWidth: 1,
+    borderColor: Colors.hairlineCard,
+    backgroundColor: Colors.panel,
   },
+  permissionText: { flex: 1, fontFamily: Typography.bodyMedium, fontSize: 12, lineHeight: 17, color: Colors.textSecondary },
+
   errorBanner: {
     flexDirection: "row",
     alignItems: "center",
     gap: Space.sm,
-    marginTop: Space.lg,
     padding: Space.md,
     borderWidth: 1,
     borderColor: Colors.loss,
-    borderRadius: Radius.md,
+    borderRadius: Radius.row,
     backgroundColor: Colors.lossDim,
   },
-  errorBannerText: {
-    flex: 1,
-    fontFamily: Typography.body,
-    fontSize: 12,
-    lineHeight: 16,
-    color: Colors.text,
-  },
+  errorBannerText: { flex: 1, fontFamily: Typography.bodyMedium, fontSize: 12, lineHeight: 16, color: Colors.text },
 });

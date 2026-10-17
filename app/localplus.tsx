@@ -173,7 +173,7 @@ export default function LocalPlusScreen() {
     identityState === "pending"
       ? "SIGNING YOU IN…"
       : identityState === "error"
-        ? "COULDN'T VERIFY YOUR ACCOUNT — TAP TO RETRY"
+        ? "COULDN'T VERIFY — TAP TO RETRY"
         : purchasing
           ? "SUBSCRIBING…"
           : pkg
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
   },
   fine: {
     ...TextStyles.caption,
-    color: Colors.mutedDark,
+    color: Colors.muted,
     lineHeight: 15,
   },
 });

@@ -2,15 +2,16 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import React from "react";
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CourtSchedulePanel } from "@/components/CourtSchedulePanel";
 import { SectionHeader } from "@/components/ScreenHeader";
 import { CourtArt } from "@/components/court/CourtArt";
+import { CourtBusyChart } from "@/components/court/CourtBusyChart";
 import { CourtGamesPanel } from "@/components/court/CourtGamesPanel";
 import { CourtInfoPanel } from "@/components/court/CourtInfoPanel";
-import { CourtTabBar, LiveDot, LocalPill, MetricStrip, SportLabel } from "@/components/court/CourtParts";
+import { CheckInButton, CourtTabBar, LiveDot, LocalPill, SportLabel } from "@/components/court/CourtParts";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { GameResultModal } from "@/components/ui/GameResultModal";
 import { PersonTile } from "@/components/ui/PersonTile";
@@ -32,7 +33,6 @@ import {
   courtHours,
   formatAverageSession,
   formatCourtHours,
-  formatNextGame,
   type CourtHours,
 } from "@/lib/courtHours";
 import { fetchCourtById, fetchCourtWeekSpans } from "@/services/courtService";
@@ -62,7 +62,7 @@ const COURT_FEED_RESOURCES = ["activity_events", "activity_event_likes"] as cons
 const FEED_PAGE = 12;
 
 export default function CourtProfileScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const {
     courts,
     localCourtId,
@@ -81,7 +81,10 @@ export default function CourtProfileScreen() {
   const { showToast } = useToast();
   const hasLocalPlus = useLocalPlus();
   const courtId = id ? String(id) : null;
-  const [activeTab, setActiveTab] = React.useState<CourtTab>("live");
+  // The drawer's Games / Players / Feed / Week chips open the page on that tab.
+  const [activeTab, setActiveTab] = React.useState<CourtTab>(
+    COURT_TABS.some((item) => item.value === tab) ? (tab as CourtTab) : "live",
+  );
   const [feedFilter, setFeedFilter] = React.useState<FeedFilter>("all");
   const [isChecking, setIsChecking] = React.useState(false);
   const [court, setCourt] = React.useState<Court | null>(
@@ -91,7 +94,7 @@ export default function CourtProfileScreen() {
   const [locals, setLocals] = React.useState<LocalWithLastCheckIn[]>([]);
   const [courtFeed, setCourtFeed] = React.useState<Awaited<ReturnType<typeof fetchFeed>>>([]);
   const groupedCourtFeed = React.useMemo(
-    () => groupCheckinBursts(pairVisits(courtFeed)),
+    () => groupCheckinBursts(pairVisits(courtFeed, { splitToday: true })),
     [courtFeed],
   );
   const [rankedIds, setRankedIds] = React.useState<Set<string>>(new Set());
@@ -255,21 +258,31 @@ export default function CourtProfileScreen() {
           </Pressable>
           <LocalPill isLocal={isMyLocal} onPress={() => void setLocalCourt(isMyLocal ? null : court.id, court)} />
         </View>
-        <View style={styles.titleBlock}>
-          <SportLabel sport={court.sport} />
-          <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
-            {court.shortName || court.name}
-          </Text>
-          {place ? <Text numberOfLines={1} style={styles.place}>{place}</Text> : null}
+        {/* Name left, the live number right (Oct 17 header reference), then
+            today's busy times above the tabs so every tab shares them. */}
+        <View style={styles.titleRow}>
+          <View style={styles.titleBlock}>
+            <SportLabel sport={court.sport} />
+            <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
+              {court.shortName || court.name}
+            </Text>
+            {place ? <Text numberOfLines={1} style={styles.place}>{place}</Text> : null}
+          </View>
+          <View
+            accessibilityLabel={`${hiddenCount > 0 ? "About " : ""}${activeCount} on court`}
+            style={styles.liveBlock}
+          >
+            <Text style={[styles.liveValue, activeCount > 0 && styles.liveValueOn]}>
+              {hiddenCount > 0 ? `~${activeCount}` : activeCount}
+            </Text>
+            <View style={styles.liveLabelRow}>
+              {activeCount > 0 ? <LiveDot /> : null}
+              <Text style={styles.liveLabel}>On court</Text>
+            </View>
+          </View>
         </View>
-        <View style={styles.stripWrap}>
-          <MetricStrip
-            cells={[
-              { label: "On court", value: hiddenCount > 0 ? `~${activeCount}` : activeCount, live: activeCount > 0 },
-              { label: "Court hours · wk", value: hoursLabel },
-              { label: "Next game", value: formatNextGame(upcomingGames[0]?.startTimeIso) },
-            ]}
-          />
+        <View style={styles.busyHeader}>
+          <CourtBusyChart courtId={court.id} games={upcomingGames} height={34} refreshKey={roster.length} variant="header" />
         </View>
         <CourtTabBar active={activeTab} onChange={setActiveTab} tabs={COURT_TABS} />
       </View>
@@ -340,7 +353,11 @@ export default function CourtProfileScreen() {
 
         {activeTab === "games" ? (
           <ScrollView contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
-            <CourtGamesPanel games={upcomingGames} onOpen={(game) => router.push(`/run/${game.id}`)} />
+            <CourtGamesPanel
+              games={upcomingGames}
+              onCreate={() => router.push({ pathname: "/(tabs)/schedule", params: { courtId: court.id, openCreate: "1" } })}
+              onOpen={(game) => router.push(`/run/${game.id}`)}
+            />
           </ScrollView>
         ) : null}
 
@@ -408,25 +425,16 @@ export default function CourtProfileScreen() {
         >
           <Text style={styles.planText}>Plan visit</Text>
         </Pressable>
-        <Pressable
-          accessibilityLabel={isCheckedIn ? `Check out of ${court.shortName || court.name}` : `Check in to ${court.shortName || court.name}`}
-          accessibilityRole="button"
-          accessibilityState={{ busy: isChecking, selected: isCheckedIn }}
-          disabled={isChecking}
-          onPress={() => void handleCheckIn()}
-          style={({ pressed }) => [styles.barButton, isCheckedIn ? styles.checkOutButton : styles.checkInButton, pressed && styles.pressed]}
-        >
-          {isChecking ? (
-            <ActivityIndicator color={isCheckedIn ? Colors.text : Colors.black} size="small" />
-          ) : isCheckedIn ? (
-            <View style={styles.checkOutInner}>
-              <LiveDot />
-              <Text style={styles.checkOutText}>Check out</Text>
-            </View>
-          ) : (
-            <Text style={styles.checkInText}>Check in</Text>
-          )}
-        </Pressable>
+        <View style={styles.barSlot}>
+          <CheckInButton
+            busy={isChecking}
+            checkedIn={isCheckedIn}
+            checkedLabel="Check out"
+            courtName={court.shortName || court.name}
+            height={52}
+            onPress={() => void handleCheckIn()}
+          />
+        </View>
       </View>
 
       <GameResultModal
@@ -458,19 +466,25 @@ const styles = StyleSheet.create({
   header: { position: "relative", overflow: "hidden" },
   navRow: { height: 44, paddingLeft: 12, paddingRight: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   back: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
-  titleBlock: { paddingHorizontal: 20, paddingTop: 6, gap: 6 },
+  titleRow: { flexDirection: "row", alignItems: "flex-end", gap: 16, paddingHorizontal: 20, paddingTop: 6 },
+  titleBlock: { flex: 1, minWidth: 0, gap: 6 },
+  liveBlock: { flexShrink: 0, alignItems: "flex-end", paddingBottom: 1 },
+  liveValue: { fontFamily: Typography.headingBold, fontSize: 46, lineHeight: 48, letterSpacing: -1.4, color: Colors.text, fontVariant: ["tabular-nums"] },
+  liveValueOn: { color: Colors.liveInk },
+  liveLabelRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
+  liveLabel: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.textSecondary },
+  busyHeader: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14 },
   name: {
     fontFamily: Typography.headingBold,
-    fontSize: 38,
-    lineHeight: 40,
-    letterSpacing: -1.2,
+    fontSize: 34,
+    lineHeight: 37,
+    letterSpacing: -1.1,
     textTransform: "uppercase",
     color: Colors.text,
     textShadowColor: Colors.sheet,
     textShadowRadius: 6,
   },
   place: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
-  stripWrap: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 12 },
   tabContent: { flex: 1, minHeight: 0 },
   scheduleView: { flex: 1, minHeight: 0, overflow: "hidden" },
   onCourt: { paddingTop: 16, gap: 10 },
@@ -480,9 +494,9 @@ const styles = StyleSheet.create({
   emptyLine: { paddingHorizontal: 20, fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
   filters: { flexDirection: "row", gap: 6, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6 },
   chip: { height: 30, paddingHorizontal: 12, borderRadius: 999, justifyContent: "center", borderWidth: 1, borderColor: "rgba(242,242,246,0.12)" },
-  chipActive: { backgroundColor: Colors.text, borderColor: Colors.text },
+  chipActive: { backgroundColor: Colors.tile, borderColor: "rgba(242,242,246,0.2)" },
   chipText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.textSecondary },
-  chipTextActive: { color: Colors.background },
+  chipTextActive: { color: Colors.text },
   moreButton: { minHeight: 48, marginHorizontal: Layout.screenGutter, marginTop: Space.md, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Space.sm, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md },
   moreText: { fontFamily: Typography.bodyBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.2 },
   privateNote: { paddingHorizontal: Layout.screenGutter, paddingVertical: Space.md, fontFamily: Typography.bodyMedium, fontSize: 9, color: Colors.muted },
@@ -490,11 +504,7 @@ const styles = StyleSheet.create({
   barButton: { flex: 1, height: 52, borderRadius: 4, alignItems: "center", justifyContent: "center" },
   planButton: { backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
   planText: { fontFamily: Typography.bodyBold, fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", color: Colors.text },
-  checkInButton: { backgroundColor: Colors.accent },
-  checkInText: { fontFamily: Typography.bodyBold, fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", color: Colors.background },
-  checkOutButton: { borderWidth: 1.5, borderColor: Colors.accentBorderStrong, backgroundColor: Colors.surfaceDark },
-  checkOutInner: { flexDirection: "row", alignItems: "center", gap: 8 },
-  checkOutText: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.accent },
+  barSlot: { flex: 1 },
   empty: { minHeight: 72, paddingHorizontal: Layout.screenGutter, paddingVertical: Space.md, alignItems: "center", justifyContent: "center" },
   emptyTitle: { fontFamily: Typography.heading, fontSize: 16, color: Colors.text, textAlign: "center" },
   emptyBody: { maxWidth: 300, marginTop: Space.sm, fontFamily: Typography.body, fontSize: 11, lineHeight: 17, color: Colors.muted, textAlign: "center" },

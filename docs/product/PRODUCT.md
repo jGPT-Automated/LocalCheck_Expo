@@ -29,7 +29,11 @@ are basketball and pickleball.
 - From the court page a player can check in or out and plan a visit (Week ›
   I'm coming), see upcoming games, and read the court's details: courts,
   lights, access, court hours this week and average session (D55, Oct 14).
-- Orange identifies LocalCheck, live truth, selection, and primary action.
+- From the court drawer a player sees who's here, the next game, today's
+  planned visits and recent activity, jumps to any court page tab, and can
+  make the court their local. Explore lists live courts first (D56, Oct 15).
+- Orange identifies LocalCheck, live truth, check-in and selection. Other
+  primary actions are white (D56).
   Sport is metadata, not a competing theme.
 - Counts and venue attributes are real. Empty states explain confirmed zeroes;
   failures do not masquerade as zero.

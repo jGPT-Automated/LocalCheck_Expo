@@ -674,7 +674,7 @@ function ToggleSettingsRow({
           disabled={disabled}
           ios_backgroundColor={Colors.borderLight}
           onValueChange={onValueChange}
-          style={styles.notificationSwitch}
+          thumbColor={Colors.white}
           trackColor={{ false: Colors.borderLight, true: Colors.accent }}
           value={value}
         />
@@ -1245,7 +1245,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     textAlign: "right",
   },
-  rowValueMuted: { color: Colors.mutedDark },
+  rowValueMuted: { color: Colors.muted },
   settingsLabel: {
     fontFamily: Typography.bodySemiBold,
     fontSize: 11,

@@ -21,6 +21,81 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-17 — Pre-submission polish pass (`claude/kind-pascal-4c174r`, PR #77 into `main`, carries #75)
+
+From the Oct 16 precision handoff (comments 1–16, A1–A4) and Jesse's Oct 17
+voice notes. Checked in a local web render at 393×852 against mocked data
+(see the PR); not on a phone yet.
+
+| Item | Status |
+|------|--------|
+| #1 Home LOCAL pill → small house marker (also Explore card) | ✅ needs device check |
+| #2 Week heatmap: month/hour labels against the grid, readable size | ✅ |
+| #3 Plan / Check in / Court one height, Plan and Court matching | ✅ |
+| #4 Game activity rail: markers on the sentence's line (web dropped the spacer height) | ✅ |
+| #5 Court header: live On court number + today's busy times above the tabs | ✅ |
+| #6 Court Games: list ends on a Create a game row, no dead space | ✅ |
+| #7 Week card: empty text centred, columns line up with the buttons | ✅ |
+| #8 "38h": unit a size smaller with a thin space | ✅ |
+| #9 Week card: shared buttons, shorter card | ✅ |
+| #10 / A4 Game page: court and format once; Submit result pinned in the footer | ✅ needs 5v5 device check |
+| #11 Inbox countdown centred | ✅ needs a pending game to see |
+| #12 Hide score row compact, same left edge as the buttons | ✅ |
+| #13 / #14 Head-to-head: full name + rating on their own row; footer baselines | ✅ |
+| #15 / #16 / A2 Schedule: original dropdown, one-row time card, no page scroll, games swipe | ✅ |
+| A1 Check-out icon points the opposite way to check-in | ✅ |
+| A3 Map legend | ⬜ still needs a working-map capture (no Mapbox token on the preview) |
+| One drawer everywhere: FormSheet, How score review works, player QR | ✅ device check (keyboard in Log game) |
+| Onboarding welcome: artwork hero; court trace behind step titles | ✅ |
+| Me tab tabs match the other profile | ✅ |
+| Played day showed one day early in the timeline / head-to-head | ✅ |
+| Settings push switch thumb turned teal on web | ✅ |
+| Vercel INP 655 ms input delay | ⬜ not reproduced (100–300 ms tasks at 6× CPU throttle, same before and after) |
+| Oct 17 self-QA (375×667, 393×852, 430×932, automated clip/overlap check): onboarding art centred on its subject, no gap | ✅ |
+| Small phones: week heatmap no longer collapses to one row; Schedule tab scrolls only when it can't fit; Add my time clear of the + button | ✅ |
+| Cut-off text fixed: Approve score, inbox "Revised by…", profile subline, Host tag in team columns, Log game opponent, long names in the profile hero and head-to-head, LocalPlus retry | ✅ |
+| Court drawer settles exactly at the Check in row (was showing half the Here now tiles) | ✅ |
+| Notifications uses the shared detail header | ✅ |
+| UI definition of done for agents: `ui-done` skill + `pnpm qa:visual` (38 screens × 3 sizes), local | ✅ |
+| Explore drawer at 375×667 sometimes settles taller, showing half the Here now tiles (intermittent) | ⬜ open |
+| Muted text below 4.5:1 contrast (tab labels, settings values, fine print, heatmap counts) | ✅ |
+| Labels under Apple's 11pt (≈500 per size, 9–10pt caps) | ⬜ Jesse: type-scale decision |
+| Schedule + floating button vs native-ui "no FAB on iOS" | ⬜ Jesse: kept as decided (SpeedDialFab) |
+
+## 2026-10-15 — Court-flow UI pass, frontend only (`claude/court-flow-ui-pass`)
+
+| Item | Status |
+|------|--------|
+| Expanded drawer to the design: Here now, Up next, Today, Recent activity, chips into court tabs | ✅ needs device check |
+| Drawer gate: "See who runs …", white Unlock, make-local link | ✅ needs device check |
+| Explore card to the design (art, pill, 3-number strip, live first) | ✅ needs device check |
+| Game open to join: title block, Going / Avg ELO / Format, spots bar, Who's going, details, Join | ✅ needs device check |
+| One button style everywhere (4pt, Inter bold, white primary, orange for live/check-in) | ✅ |
+| Notifications and Log game restyled to the same tokens | ✅ needs device check |
+| Connected preview / phone screenshots | ⬜ not done in this session (no env or sign-in) |
+| Onboarding: welcome, map court picker, auto check-in screen with privacy, no drawer | ✅ needs device check |
+| Profile: clear friend states (4 layouts), compact head to head | ✅ needs device check |
+| Log game from a profile opens a sheet, no jump to Compete | ✅ needs device check |
+| Log game form: one title, court then date, no Hide score, clears tab bar | ✅ needs device check |
+| Busy times chart (past check-ins + planned), drawer time on court | ✅ needs device check |
+| "Toggle local court off and can't get back in on the sign-in page" | ⬜ need repro steps from Jesse |
+| Home: full-width header, Local edge tag, Plan / Check in / Court row above the tab bar | ✅ needs device check |
+| Checked-in button label spilling over | ✅ |
+| Feed rows like the mock with icon tiles | ✅ needs device check |
+| Games tab card like the mock | ✅ needs device check |
+| Info map: tilted, orange geofence ring | ✅ needs device check |
+| Explore map controls on one row, live count centred | ✅ needs device check |
+| Inbox: logged challenge opens the score page, not Log game | ✅ |
+| Game score: Hide score at the bottom | ✅ |
+| Log game: button pinned above the tab bar, VS columns | ✅ needs device check |
+| Challenge: horizontal day/time pickers, sport-coloured day circle | ✅ needs device check |
+| Schedule tab rethink (heatmap + upcoming games to swipe) | ✅ restyled, no page scroll, games as court cards; needs device check |
+| Slot card same height empty or full (Schedule + Week) | ✅ |
+| Current hour selected and scrolled into view by default | ✅ needs device check |
+| Feed: today check-in + check-out rows, older days "played" with check-out time | ✅ |
+| Map legend balanced | ✅ needs device check |
+| Favourite courts + switch Home / Schedule between them (LocalPlus) | ⬜ needs backend storage; not started |
+
 ## 2026-10-10 — #67 second design pass (`codex/auto-check-in`)
 
 | Item | Status |

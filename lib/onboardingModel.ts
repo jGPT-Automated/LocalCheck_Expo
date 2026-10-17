@@ -1,7 +1,5 @@
 import type { CourtSport } from "../constants/data";
 
-export const ONBOARDING_STEPS = 3;
-
 export type InviteResult =
   | { ok: true }
   | { ok: false; reason: "empty" | "not_found" | "self" | "already_set" | "error" };

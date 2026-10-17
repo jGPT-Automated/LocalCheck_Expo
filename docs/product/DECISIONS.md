@@ -5,7 +5,7 @@ superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D55, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D57, Jesse's plan doc)
 
 Numbers match Jesse's plan doc (Decisions tab). These supersede older entries
 below wherever they disagree.
@@ -80,6 +80,31 @@ below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D57 Pre-submission polish pass (Oct 17, revises D55):** Jesse's voice
+  notes and the Oct 16 precision handoff. The court page header is the
+  court's own: name left, a large live On court number right, and today's
+  busy times (day stepper, outlined planned bars) above the tabs on every
+  tab; the 3-number strip stays on Home, the drawer and Explore. Home's
+  LOCAL pill becomes a small house marker (option A; no favourites). Home
+  keeps Plan / Check in / Court as one row, all one height (option C).
+  The Schedule tab never scrolls as a page: the original one-line court
+  dropdown is back, the selected-time card is one row (names, then Add my
+  time / Remove my time), and upcoming games are one row you swipe left and
+  right. Every drawer is the Explore drawer (`AppBottomSheetModal`):
+  `FormSheet`, How score review works and the player QR now use it.
+  Onboarding's welcome carries the sign-in artwork. The game page shows the
+  court and format once and keeps Submit result / View result pinned at the
+  bottom.
+- **D56 The rest of the app follows the court-flow design, frontend only
+  (Oct 15):** Jesse asked for one consistent front end matched to
+  `CourtFlowPhone2` with no backend changes, focusing on the expanded
+  drawer, Home, and one-off screens (a game open to join, logging a game,
+  notifications). D55 stays as decided: Week keeps today's heatmap and a
+  court that isn't your local, without LocalPlus, still jumps to the
+  LocalPlus screen from the court page. The drawer shows the blurred gate in
+  place. The drawer may set a local court (not remove one). White is the
+  neutral primary button (Join game, Unlock, Log game); orange is for live,
+  check-in and selection. Builds on D55.
 - **D55 Court page and Home card follow the court-flow design (Oct 14):**
   built from the Claude Design handoff (`CourtFlowPhone2`), Jesse's picks
   in chat Oct 14. Court page header: court line art, sport, name, city ·
@@ -93,7 +118,8 @@ below wherever they disagree.
   hours · wk / Locals, Check in, View court with the arrow pointing right).
   Court hours: the last 7 days' sessions, each capped at 4 h, a session with
   no check-out closed at 3 h. Supersedes the 2026-08-09 "Court routes are
-  read-only place dashboards" entry.
+  read-only place dashboards" entry. (Revised by D57: the court page header
+  shows a live On court number and today's busy times instead of the strip.)
 - **D54 Docs are updated on every push, and CI checks it (Oct 13):** any
   change outside `docs/` counts as affecting the docs; there is no "not
   affected." Every push to a pull request updates `docs/CURRENT_STATE.md`, plus

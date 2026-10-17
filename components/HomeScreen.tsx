@@ -4,20 +4,20 @@ import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { BrutalistButton } from "@/components/BrutalistButton";
 import { CourtSchedulePanel } from "@/components/CourtSchedulePanel";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenHeader, SectionHeader } from "@/components/ScreenHeader";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { GameResultModal } from "@/components/ui/GameResultModal";
-import { HomeCourtHero } from "@/components/ui/HomeCourtHero";
+import { HomeCourtActions, HomeCourtHero } from "@/components/ui/HomeCourtHero";
+import { useBottomFloor } from "@/components/ui/TabFloor";
 import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
 import { PersonTile } from "@/components/ui/PersonTile";
 import { ScreenViewport } from "@/components/ui/ScreenViewport";
@@ -41,6 +41,8 @@ import {
 } from "@/services/profileService";
 
 type HomeTab = "feed" | "locals" | "schedule";
+/** Height of Home's pinned Plan / Check in / Court row (52 + 20 padding + rule). */
+const ACTION_ROW = 73;
 const HOME_TABS = [
   { value: "feed", label: "Feed" },
   { value: "locals", label: "Locals" },
@@ -64,7 +66,7 @@ export function HomeScreen() {
   const { roster, localCount } = usePresence(localCourtId);
   const liveCounts = useCourtCounts(localCourt ? [localCourt] : []);
   const { user } = useAuth();
-  const { bottom } = useSafeAreaInsets();
+  const tabFloor = useBottomFloor();
   const [activeTab, setActiveTab] = useState<HomeTab>("feed");
   const [locals, setLocals] = useState<LocalWithLastCheckIn[]>([]);
   const [isChecking, setIsChecking] = useState(false);
@@ -131,7 +133,7 @@ export function HomeScreen() {
   // account hit the first time it set a local court. `courtFeed` is null-safe.
   const courtFeed = feed.filter((item) => item.courtId === localCourt?.id);
   const groupedCourtFeed = useMemo(
-    () => groupCheckinBursts(pairVisits(courtFeed)),
+    () => groupCheckinBursts(pairVisits(courtFeed, { splitToday: true })),
     [courtFeed],
   );
   const recentArrivalCount = useMemo(() => {
@@ -200,8 +202,8 @@ export function HomeScreen() {
     if (item.playerId) router.push(`/player/${item.playerId}`);
   };
 
-  const scrollBottom =
-    Platform.OS === "web" ? Layout.tabBarClearance + 24 : bottom + 92;
+  // The action row sits on the tab bar; lists scroll clear of both.
+  const scrollBottom = tabFloor + ACTION_ROW + 16;
 
   return (
     <ScreenViewport>
@@ -211,12 +213,8 @@ export function HomeScreen() {
         activeCount={activeLabel}
         court={localCourt}
         hoursLabel={hoursLabel}
-        isCheckedIn={isCheckedIn}
-        isChecking={isChecking}
         live={activeTotal > 0}
         localCount={localCount}
-        onCheckIn={() => void handleCheckIn()}
-        onViewCourt={() => router.push(`/court/${localCourt.id}`)}
       />
       <AutoCheckInNote courtId={localCourt.id} />
 
@@ -377,12 +375,23 @@ export function HomeScreen() {
         {activeTab === "schedule" ? (
           <View style={styles.scheduleTab}>
             <CourtSchedulePanel
-              bottomInset={Layout.tabBarClearance}
+              bottomInset={tabFloor + ACTION_ROW}
               court={localCourt}
               interactive={false}
             />
           </View>
         ) : null}
+      </View>
+
+      <View style={[styles.actionRow, { bottom: tabFloor }]}>
+        <HomeCourtActions
+          courtName={localCourt.shortName || localCourt.name}
+          isCheckedIn={isCheckedIn}
+          isChecking={isChecking}
+          onCheckIn={() => void handleCheckIn()}
+          onPlanVisit={() => router.push(`/court/${localCourt.id}?tab=week`)}
+          onViewCourt={() => router.push(`/court/${localCourt.id}`)}
+        />
       </View>
 
       <GameResultModal
@@ -426,19 +435,12 @@ function NoCourtState({ isSignedIn }: { isSignedIn: boolean }) {
             ? "Choose a home court to see who's there, upcoming runs, and live activity."
             : "Sign in to check in, find runs, and see who is playing nearby."}
         </Text>
-        <Pressable
-          accessibilityRole="button"
+        <BrutalistButton
+          icon={<Feather color={Colors.background} name="arrow-right" size={15} />}
+          label={isSignedIn ? "Explore courts" : "Sign in"}
           onPress={() => router.push(isSignedIn ? "/(tabs)/explore" : "/auth")}
-          style={({ pressed }) => [
-            styles.noCourtButton,
-            pressed && styles.buttonPressed,
-          ]}
-        >
-          <Text style={styles.noCourtButtonText}>
-            {isSignedIn ? "EXPLORE COURTS" : "SIGN IN"}
-          </Text>
-          <Feather color={Colors.black} name="arrow-right" size={15} />
-        </Pressable>
+          style={styles.noCourtButton}
+        />
       </View>
     </ScreenViewport>
   );
@@ -446,6 +448,7 @@ function NoCourtState({ isSignedIn }: { isSignedIn: boolean }) {
 
 
 const styles = StyleSheet.create({
+  actionRow: { position: "absolute", left: 0, right: 0 },
   tabBody: {
     flex: 1,
     minHeight: 0,
@@ -600,23 +603,5 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: "center",
   },
-  noCourtButton: {
-    minHeight: 48,
-    marginTop: Space.xxl,
-    paddingHorizontal: Space.xl,
-    borderRadius: Radius.sm,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Space.sm,
-    backgroundColor: Colors.accent,
-  },
-  noCourtButtonText: {
-    fontFamily: Typography.headingBold,
-    fontSize: 12,
-    color: Colors.black,
-    letterSpacing: 1.35,
-  },
-  buttonPressed: {
-    opacity: 0.72,
-  },
+  noCourtButton: { marginTop: Space.xxl },
 });

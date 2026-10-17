@@ -10,10 +10,13 @@ export function SportEmblem({
   sport,
   size = 14,
   glow = false,
+  color = Colors.textSecondary,
 }: {
   sport: CourtSport;
   size?: number;
   glow?: boolean;
+  /** Icon ink; quiet grey by default, the sport color in feed game tiles. */
+  color?: string;
 }) {
   return (
     <View
@@ -26,10 +29,10 @@ export function SportEmblem({
       ]}
     >
       {sport === "BASKETBALL" ? (
-        <Ionicons color={Colors.textSecondary} name="basketball-outline" size={size} />
+        <Ionicons color={color} name="basketball-outline" size={size} />
       ) : (
         <MaterialCommunityIcons
-          color={Colors.textSecondary}
+          color={color}
           name={sport === "PICKLEBALL" ? "table-tennis" : sport === "TENNIS" ? "tennis-ball" : sport === "SOCCER" ? "soccer" : "volleyball"}
           size={size}
         />

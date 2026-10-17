@@ -50,14 +50,15 @@ export function formatAverageSession({ hours, sessions }: CourtHours): string {
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
 
-/** Next game time in the strip: "6:30P", or a dash when nothing is scheduled. */
-export function formatNextGame(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "—";
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
-  const suffix = hours >= 12 ? "P" : "A";
-  const h12 = hours % 12 === 0 ? 12 : hours % 12;
-  return minutes === 0 ? `${h12}${suffix}` : `${h12}:${String(minutes).padStart(2, "0")}${suffix}`;
+/** Time on court so far: "Now", "38m", "1h 10m". */
+export function formatTimeOnCourt(checkedInAtIso: string | undefined, now: number = Date.now()): string | null {
+  if (!checkedInAtIso) return null;
+  const start = Date.parse(checkedInAtIso);
+  if (Number.isNaN(start)) return null;
+  const minutes = Math.max(0, Math.floor((now - start) / 60_000));
+  if (minutes < 1) return "Now";
+  if (minutes < 60) return `${minutes}m`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }

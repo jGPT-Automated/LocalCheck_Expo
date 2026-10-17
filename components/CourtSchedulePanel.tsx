@@ -10,6 +10,7 @@ import { useApp } from "@/context/AppContext";
 import { fetchCourtPlannedTimes } from "@/services/plannedVisitService";
 import { scheduleSlotIndex, scheduleSlotLabel, SLOT_HOURS } from "@/components/schedule/scheduleModel";
 import { formatForMaxPlayers } from "@/components/schedule/scheduledGameModel";
+import { BrutalistButton } from "./BrutalistButton";
 import { PlayerAvatar } from "./PlayerAvatar";
 
 const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
@@ -60,7 +61,14 @@ export function CourtSchedulePanel({
   const [plannedBuckets, setPlannedBuckets] = useState<Record<string, number>>(
     {},
   );
+  // Open on the hour you're in: scroll it into view (two rows of context).
+  const timeScrollRef = React.useRef<ScrollView>(null);
+  const scrolledToNow = React.useRef(false);
   const [saving, setSaving] = useState(false);
+  // The grid takes what the slot card leaves; below GRID_MIN_HEIGHT (short
+  // phones) the panel scrolls instead of squeezing the grid.
+  const [viewHeight, setViewHeight] = useState(0);
+  const [cardHeight, setCardHeight] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
 
   const dayStamp = new Date().toDateString();
@@ -237,8 +245,23 @@ export function CourtSchedulePanel({
   };
 
   return (
-    <View style={styles.panel}>
-      <View style={styles.gridArea}>
+    // Tall phones: the grid fills the space and nothing scrolls. Short phones
+    // (iPhone SE) can't fit the grid and the slot card, so the panel scrolls
+    // instead of squeezing the grid to a single row.
+    <ScrollView
+      alwaysBounceVertical={false}
+      contentContainerStyle={styles.panel}
+      nestedScrollEnabled
+      onLayout={(event) => setViewHeight(event.nativeEvent.layout.height)}
+      showsVerticalScrollIndicator={false}
+      style={styles.panelScroll}
+    >
+      <View
+        style={[
+          styles.gridArea,
+          viewHeight > 0 && { height: Math.max(GRID_MIN_HEIGHT, viewHeight - PANEL_TOP - cardHeight) },
+        ]}
+      >
       <View style={styles.heatmap}>
         <View style={styles.heatRow}>
           <View style={[styles.timeColumn, styles.monthCorner]}>
@@ -258,13 +281,19 @@ export function CourtSchedulePanel({
         <ScrollView
           contentContainerStyle={styles.timeRows}
           nestedScrollEnabled
+          onContentSizeChange={() => {
+            if (scrolledToNow.current) return;
+            scrolledToNow.current = true;
+            timeScrollRef.current?.scrollTo({ y: Math.max(0, (currentSlot - 2) * ROW_PITCH), animated: false });
+          }}
+          ref={timeScrollRef}
           showsVerticalScrollIndicator={false}
           style={styles.timeScroller}
         >
         {SLOT_HOURS.map((hour, slot) => (
           <View key={hour} style={styles.heatRow}>
             <View style={styles.timeColumn}>
-              <Text style={styles.timeLabel}>{scheduleSlotLabel(hour)}</Text>
+              <Text style={[styles.timeLabel, slot === currentSlot && styles.today]}>{scheduleSlotLabel(hour)}</Text>
             </View>
             {weekDays.map((date, day) => {
               const key = `${day}:${slot}`;
@@ -284,6 +313,7 @@ export function CourtSchedulePanel({
                   style={[
                     styles.cell,
                     heatStyle(count),
+                    day === 0 && slot === currentSlot && styles.cellNow,
                     active && styles.cellSelected,
                     past && styles.cellPast,
                   ]}
@@ -295,7 +325,7 @@ export function CourtSchedulePanel({
                   }}
                 >
                   {(active || count >= 5) && count > 0 ? (
-                    <Text style={styles.cellCount}>{count}</Text>
+                    <Text style={[styles.cellCount, count >= 5 && styles.cellCountOnAccent]}>{count}</Text>
                   ) : null}
                   {(slotMap.get(key)?.runCount ?? 0) > 0 ? (
                     <View style={styles.runDot} />
@@ -310,9 +340,9 @@ export function CourtSchedulePanel({
           <View style={styles.legendScale}>
             <Text style={styles.legendText}>QUIET</Text>
             {[
-              Colors.surface,
-              Colors.accentDim,
-              Colors.accentGlow,
+              Colors.surfaceHigh,
+              Colors.heat1,
+              Colors.heat2,
               Colors.accent,
             ].map((color) => (
               <View
@@ -328,7 +358,10 @@ export function CourtSchedulePanel({
       </View>
 
       {selected && selectedKey && selectedDate ? (
-        <View style={[styles.slotCard, { marginBottom: bottomInset + 8 }]}>
+        <View
+          onLayout={(event) => setCardHeight(event.nativeEvent.layout.height + 8 + bottomInset + 8)}
+          style={[styles.slotCard, { marginBottom: bottomInset + 8 }]}
+        >
           <View style={styles.slotHeader}>
             <Text style={styles.slotTitle}>
               {DAYS[selectedDate.getDay()]} {selectedDate.getDate()} · {scheduleSlotLabel(SLOT_HOURS[selected.slot])}
@@ -343,43 +376,44 @@ export function CourtSchedulePanel({
           <View style={styles.slotContent}>
             <View style={styles.peopleArea}>
               <Text style={styles.sectionLabel}>WHO'S GOING</Text>
-              <ScrollView
-                contentContainerStyle={styles.avatars}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-              >
-                {(selectedEntry?.attendees ?? []).slice(0, 5).map((attendee) => (
-                  <Pressable
-                    key={attendee.id}
-                    style={styles.avatar}
-                    onPress={() => router.push(`/player/${attendee.id}`)}
-                  >
-                    <PlayerAvatar
-                      initials={attendee.initials}
-                      name={attendee.name}
-                      playerId={attendee.id}
-                      size={30}
-                      accent={attendee.isMine}
-                    />
-                    <Text style={styles.avatarName} numberOfLines={1}>
-                      {attendee.isMine ? "YOU" : attendee.name.split(" ")[0]}
-                    </Text>
-                  </Pressable>
-                ))}
-                {hiddenCount(selectedKey) > 0 ? (
-                  <View style={styles.avatar}>
-                    <View style={styles.hiddenAvatar}>
-                      <Text style={styles.hiddenText}>
-                        +{hiddenCount(selectedKey)}
+              {slotTotal(selectedKey) === 0 ? (
+                <Text style={styles.empty}>Nobody yet</Text>
+              ) : (
+                <ScrollView
+                  contentContainerStyle={styles.avatars}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                >
+                  {(selectedEntry?.attendees ?? []).slice(0, 5).map((attendee) => (
+                    <Pressable
+                      key={attendee.id}
+                      style={styles.avatar}
+                      onPress={() => router.push(`/player/${attendee.id}`)}
+                    >
+                      <PlayerAvatar
+                        initials={attendee.initials}
+                        name={attendee.name}
+                        playerId={attendee.id}
+                        size={28}
+                        accent={attendee.isMine}
+                      />
+                      <Text style={styles.avatarName} numberOfLines={1}>
+                        {attendee.isMine ? "YOU" : attendee.name.split(" ")[0]}
                       </Text>
+                    </Pressable>
+                  ))}
+                  {hiddenCount(selectedKey) > 0 ? (
+                    <View style={styles.avatar}>
+                      <View style={styles.hiddenAvatar}>
+                        <Text style={styles.hiddenText}>
+                          +{hiddenCount(selectedKey)}
+                        </Text>
+                      </View>
+                      <Text style={styles.avatarName}>PRIVATE</Text>
                     </View>
-                    <Text style={styles.avatarName}>PRIVATE</Text>
-                  </View>
-                ) : null}
-                {slotTotal(selectedKey) === 0 ? (
-                  <Text style={styles.empty}>NOBODY YET.</Text>
-                ) : null}
-              </ScrollView>
+                  ) : null}
+                </ScrollView>
+              )}
             </View>
             <View style={styles.gameArea}>
               <Text style={styles.sectionLabel}>{selectedRuns.length === 1 ? "GAME" : "GAMES"}</Text>
@@ -402,7 +436,7 @@ export function CourtSchedulePanel({
                         </View>
                         <View style={styles.gameCopy}>
                           <Text style={styles.gameTitle}>{format}</Text>
-                          <Text style={styles.gameMeta}>{run.participants.length}/{run.maxPlayers} JOINED · {spots} OPEN</Text>
+                          <Text style={styles.gameMeta}>{run.participants.length}/{run.maxPlayers} going</Text>
                         </View>
                         <Feather color={Colors.textSecondary} name="chevron-right" size={13} />
                       </Pressable>
@@ -410,47 +444,55 @@ export function CourtSchedulePanel({
                   })}
                 </ScrollView>
               ) : (
-                <Text style={styles.noGame}>NO GAME SCHEDULED</Text>
+                <Text style={styles.noGame}>No game scheduled</Text>
               )}
             </View>
           </View>
           {interactive ? (
             <View style={styles.actions}>
-              <Pressable
-                style={[styles.action, (!selectedDate || saving) && styles.actionDisabled]}
+              <BrutalistButton
+                disabled={!selectedDate}
+                label={myVisit ? "I'm not coming" : "I'm coming"}
+                loading={saving}
                 onPress={() => void handleAttendance()}
-                disabled={!selectedDate || saving}
-              >
-                <Text style={styles.actionText}>
-                  {saving ? "SAVING…" : myVisit ? "I'M NOT COMING" : "I'M COMING"}
-                </Text>
-              </Pressable>
-              <Pressable
+                size="sm"
                 style={styles.action}
+                variant="dark"
+              />
+              <BrutalistButton
+                label="Create a game"
                 onPress={() =>
                   router.push({
                     pathname: "/(tabs)/schedule",
                     params: { courtId: court.id, openCreate: "1" },
                   })
                 }
-              >
-                <Text style={styles.actionText}>CREATE A GAME</Text>
-              </Pressable>
+                size="sm"
+                style={styles.action}
+                variant="dark"
+              />
             </View>
           ) : null}
           {notice ? <Text style={styles.notice}>{notice}</Text> : null}
         </View>
       ) : null}
-    </View>
+    </ScrollView>
   );
 }
 
+/** One time row: 27pt cell + 2pt gap. */
+const ROW_PITCH = 29;
+const PANEL_TOP = 6;
+/** Day row + five hour rows + legend. */
+const GRID_MIN_HEIGHT = 34 + 5 * ROW_PITCH + 24;
+
 const styles = StyleSheet.create({
-  panel: { flex: 1, minHeight: 0, paddingTop: 6 },
+  panelScroll: { flex: 1, minHeight: 0 },
+  panel: { flexGrow: 1, paddingTop: PANEL_TOP },
   // The grid fills the space above the pinned slot card and scrolls its own
   // rows, so the card sits at the bottom edge instead of floating in dead
   // space or getting clipped.
-  gridArea: { flex: 1, minHeight: 0 },
+  gridArea: { flexGrow: 1, flexShrink: 0, minHeight: GRID_MIN_HEIGHT },
   heatmap: { flex: 1, minHeight: 0, paddingHorizontal: 12 },
   timeScroller: { flex: 1, minHeight: 0 },
   timeRows: { paddingBottom: 2 },
@@ -460,59 +502,65 @@ const styles = StyleSheet.create({
     gap: 3,
     marginBottom: 2,
   },
-  timeColumn: { width: 42 },
+  // Hour and month labels sit right against the grid (right-aligned) and
+  // share the day names' size, so each label reads with its own row.
+  timeColumn: { width: 38, paddingRight: 6, alignItems: "flex-end" },
   monthCorner: {
-    height: 31,
-    alignItems: "flex-start",
+    height: 34,
     justifyContent: "center",
   },
   monthLabel: {
     fontFamily: Typography.bodyBold,
-    fontSize: 8,
+    fontSize: 9,
     color: Colors.textSecondary,
-    letterSpacing: 1,
+    letterSpacing: 0.8,
   },
   timeLabel: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 7,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 9,
+    lineHeight: 12,
     color: Colors.muted,
     letterSpacing: 0.2,
   },
   dayHeader: {
     flex: 1,
-    height: 31,
+    height: 34,
     alignItems: "center",
     justifyContent: "center",
   },
   dayName: {
     fontFamily: Typography.bodyBold,
-    fontSize: 7,
+    fontSize: 9,
     color: Colors.muted,
-    letterSpacing: 0.7,
+    letterSpacing: 0.8,
   },
   dayDate: {
     fontFamily: Typography.heading,
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.textSecondary,
     marginTop: 1,
   },
-  today: { color: Colors.accent },
+  today: { color: Colors.liveInk },
+  // Same cells as the Schedule tab: soft corners, the shared orange ramp.
   cell: {
     position: "relative",
     flex: 1,
     height: 27,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
+    borderRadius: 6,
+    backgroundColor: Colors.surfaceHigh,
+    borderWidth: 1.5,
+    borderColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
   },
-  heatLow: { backgroundColor: Colors.accentDim },
-  heatMid: { backgroundColor: Colors.accentGlow },
-  heatHigh: { backgroundColor: Colors.accent, borderColor: Colors.accent },
-  cellSelected: { borderWidth: 1.5, borderColor: Colors.text },
+  heatLow: { backgroundColor: Colors.heat1 },
+  heatMid: { backgroundColor: Colors.heat2 },
+  heatHigh: { backgroundColor: Colors.accent },
+  cellNow: { borderColor: Colors.accentBorderStrong },
+  cellSelected: { borderColor: Colors.text },
   cellPast: { opacity: 0.34 },
+  // Dark on the orange cell, like the Check in button (white was 3:1).
+  cellCountOnAccent: { color: Colors.background },
   cellCount: {
     fontFamily: Typography.heading,
     fontSize: 11,
@@ -536,7 +584,7 @@ const styles = StyleSheet.create({
   legendScale: { flexDirection: "row", alignItems: "center", gap: 4 },
   legendText: {
     fontFamily: Typography.bodyBold,
-    fontSize: 6,
+    fontSize: 8,
     color: Colors.muted,
     letterSpacing: 0.7,
   },
@@ -551,15 +599,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     marginTop: 8,
     borderWidth: 1,
-    borderTopColor: Colors.border,
-    borderColor: Colors.border,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.surface,
+    borderColor: Colors.hairlineCard,
+    borderRadius: Radius.row,
+    backgroundColor: Colors.panel,
     overflow: "hidden",
   },
   slotHeader: {
-    minHeight: 27,
-    paddingHorizontal: 10,
+    height: 30,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -569,55 +616,60 @@ const styles = StyleSheet.create({
   },
   slotTitle: {
     fontFamily: Typography.bodyBold,
-    fontSize: 8,
+    fontSize: 11,
     color: Colors.text,
     letterSpacing: 1,
   },
   slotMeta: {
     fontFamily: Typography.bodyBold,
-    fontSize: 7,
+    fontSize: 10,
     color: Colors.accent,
     letterSpacing: 0.8,
     textAlign: "right",
   },
+  // Two equal columns, one height whether the slot is empty or full, so
+  // nothing jumps; the divider lines up with the gap between the buttons.
   slotContent: {
-    minHeight: 56,
+    height: 68,
     flexDirection: "row",
+    overflow: "hidden",
   },
   peopleArea: {
     flex: 1,
+    flexBasis: 0,
     minWidth: 0,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 6,
   },
   gameArea: {
-    width: 148,
-    paddingHorizontal: 9,
+    flex: 1,
+    flexBasis: 0,
+    minWidth: 0,
+    paddingHorizontal: 12,
     paddingVertical: 6,
     borderLeftWidth: StyleSheet.hairlineWidth,
     borderLeftColor: Colors.border,
   },
   sectionLabel: {
-    marginBottom: 6,
+    marginBottom: 5,
     fontFamily: Typography.bodyBold,
-    fontSize: 6,
+    fontSize: 8,
     color: Colors.muted,
-    letterSpacing: 0.9,
+    letterSpacing: 1,
   },
-  avatars: { flexDirection: "row", alignItems: "flex-start", gap: 7 },
-  avatar: { width: 34, alignItems: "center" },
+  avatars: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
+  avatar: { width: 50, alignItems: "center" },
   avatarName: {
-    width: 34,
-    marginTop: 3,
+    width: 50,
+    marginTop: 2,
     textAlign: "center",
-    fontFamily: Typography.bodyBold,
-    fontSize: 6,
-    color: Colors.muted,
-    letterSpacing: 0.4,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 8,
+    color: Colors.textSecondary,
   },
   hiddenAvatar: {
-    width: 30,
-    height: 30,
+    width: 28,
+    height: 28,
     borderRadius: Radius.sm,
     borderWidth: 1,
     borderStyle: "dashed",
@@ -631,26 +683,29 @@ const styles = StyleSheet.create({
     color: Colors.muted,
   },
   empty: {
-    paddingTop: 9,
-    fontFamily: Typography.body,
-    fontSize: 8,
+    flex: 1,
+    paddingTop: 6,
+    textAlign: "center",
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
     color: Colors.muted,
   },
   gameTile: {
-    width: 128,
-    minHeight: 43,
-    paddingRight: 5,
+    width: 140,
+    height: 36,
+    paddingRight: 6,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 7,
     borderWidth: 1,
     borderColor: Colors.accentBorder,
     borderRadius: Radius.xs,
     backgroundColor: Colors.accentDim,
+    overflow: "hidden",
   },
   gameTilePressed: { backgroundColor: Colors.accentGlow },
   gameIcon: {
-    width: 27,
+    width: 26,
     alignSelf: "stretch",
     alignItems: "center",
     justifyContent: "center",
@@ -660,48 +715,29 @@ const styles = StyleSheet.create({
   gameTitle: {
     fontFamily: Typography.heading,
     fontSize: 12,
+    lineHeight: 14,
     color: Colors.text,
   },
   gameMeta: {
-    marginTop: 1,
-    fontFamily: Typography.bodyBold,
-    fontSize: 5.5,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 8,
     color: Colors.textSecondary,
-    letterSpacing: 0.35,
+    letterSpacing: 0.3,
   },
   noGame: {
-    paddingTop: 11,
+    paddingTop: 6,
+    textAlign: "center",
     fontFamily: Typography.bodyMedium,
-    fontSize: 7,
+    fontSize: 11,
     color: Colors.muted,
-    letterSpacing: 0.6,
   },
   actions: {
-    minHeight: 40,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingBottom: 8,
     flexDirection: "row",
-    gap: 7,
+    gap: 8,
   },
-  action: {
-    flex: 1,
-    minHeight: 38,
-    paddingHorizontal: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.surfaceHigh,
-  },
-  actionDisabled: { opacity: 0.45 },
-  actionText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 7,
-    color: Colors.text,
-    letterSpacing: 0.7,
-    textAlign: "center",
-  },
+  action: { flex: 1, flexBasis: 0, paddingHorizontal: 8 },
   notice: {
     paddingHorizontal: 10,
     paddingBottom: 8,

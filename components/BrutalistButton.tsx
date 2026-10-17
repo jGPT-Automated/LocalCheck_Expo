@@ -75,36 +75,40 @@ export function BrutalistButton({
   );
 }
 
+// Court-flow button language (Claude Design handoff): 4pt corners, Inter
+// bold uppercase labels with wide tracking, 50pt main actions. Orange stays
+// for Check in and live actions; white is the neutral primary (Join game,
+// Unlock); dark and outline are the quiet partners.
 const styles = StyleSheet.create({
   base: {
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: Radius.sm,
+    borderRadius: Radius.button,
   },
   inner: { flexDirection: "row", alignItems: "center", gap: 8 },
   iconWrap: { marginRight: 2 },
-  size_xs: { paddingHorizontal: 10, paddingVertical: 6 },
-  size_sm: { paddingHorizontal: 14, paddingVertical: 9 },
-  size_md: { paddingHorizontal: 20, paddingVertical: 14 },
-  size_lg: { paddingHorizontal: 24, paddingVertical: 18 },
-  variant_primary: { backgroundColor: Colors.white, borderWidth: 0 },
+  size_xs: { minHeight: 30, paddingHorizontal: 12 },
+  size_sm: { minHeight: 40, paddingHorizontal: 14 },
+  size_md: { minHeight: 50, paddingHorizontal: 20 },
+  size_lg: { minHeight: 52, paddingHorizontal: 24 },
+  variant_primary: { backgroundColor: Colors.text, borderWidth: 0 },
   variant_accent: { backgroundColor: Colors.accent, borderWidth: 0 },
-  variant_outline: { backgroundColor: "transparent", borderWidth: 1, borderColor: Colors.border },
+  variant_outline: { backgroundColor: "transparent", borderWidth: 1, borderColor: Colors.hairlineChrome },
   variant_ghost: { backgroundColor: "transparent", borderWidth: 0 },
-  variant_dark: { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
+  variant_dark: { backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
   disabled: { opacity: 0.3 },
   label: {
-    fontFamily: Typography.heading,
-    letterSpacing: 1.5,
+    fontFamily: Typography.bodyBold,
+    letterSpacing: 1.6,
     textTransform: "uppercase" as const,
   },
-  labelSize_xs: { fontSize: 10 },
-  labelSize_sm: { fontSize: 11 },
-  labelSize_md: { fontSize: 13 },
-  labelSize_lg: { fontSize: 15 },
-  labelVariant_primary: { color: Colors.black },
-  labelVariant_accent: { color: Colors.black },
+  labelSize_xs: { fontSize: 9 },
+  labelSize_sm: { fontSize: 10 },
+  labelSize_md: { fontSize: 12 },
+  labelSize_lg: { fontSize: 12 },
+  labelVariant_primary: { color: Colors.background },
+  labelVariant_accent: { color: Colors.background },
   labelVariant_outline: { color: Colors.text },
   labelVariant_ghost: { color: Colors.text },
-  labelVariant_dark: { color: Colors.white },
+  labelVariant_dark: { color: Colors.text },
 });

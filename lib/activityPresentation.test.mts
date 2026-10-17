@@ -3,8 +3,10 @@ import test from "node:test";
 
 import type { FeedItem } from "../constants/data.ts";
 import {
+  shortAgo,
   describeTimelineItem,
   formatDayLabel,
+  parseDayOrInstant,
   formatDurationMinutes,
   groupCheckinBursts,
   pairVisits,
@@ -281,4 +283,39 @@ test("day labels and day grouping", () => {
   assert.equal(startsNewDay(a, undefined), true);
   assert.equal(startsNewDay(b, a), false);
   assert.equal(startsNewDay(c, b), true);
+});
+
+test("shortAgo reads like the feed mock", () => {
+  const now = Date.parse("2026-10-15T18:00:00Z");
+  assert.equal(shortAgo("2026-10-15T17:59:50Z", now), "Now");
+  assert.equal(shortAgo("2026-10-15T17:48:00Z", now), "12m");
+  assert.equal(shortAgo("2026-10-15T15:00:00Z", now), "3h");
+  assert.equal(shortAgo("2026-10-13T18:00:00Z", now), "2d");
+});
+
+test("pairVisits with splitToday keeps today's check-in and check-out apart", () => {
+  const now = Date.parse("2026-10-16T22:00:00");
+  const today = (h: number) => new Date(2026, 9, 16, h).toISOString();
+  const yesterday = (h: number) => new Date(2026, 9, 15, h).toISOString();
+  const row = (id: string, type: "checkin" | "checkout", iso: string) =>
+    ({ id, type, playerId: "p1", playerName: "Jesse", courtId: "c1", message: "", timestamp: "", occurredAtIso: iso, hypeCount: 0 }) as FeedItem;
+  const items = [
+    row("o2", "checkout", today(20)),
+    row("i2", "checkin", today(18)),
+    row("o1", "checkout", yesterday(20)),
+    row("i1", "checkin", yesterday(19)),
+  ];
+  const result = pairVisits(items, { splitToday: true, now });
+  assert.deepEqual(result.map((item) => item.type), ["checkout", "checkin", "visit"]);
+  assert.equal(result[0].visit?.durationMinutes, 120);
+  assert.equal(result[2].visit?.durationMinutes, 60);
+});
+
+test("parseDayOrInstant reads a bare day as local midnight", () => {
+  const day = parseDayOrInstant("2026-10-16");
+  assert.equal(day.getFullYear(), 2026);
+  assert.equal(day.getMonth(), 9);
+  assert.equal(day.getDate(), 16);
+  assert.equal(day.getHours(), 0);
+  assert.equal(formatDayLabel("2026-10-16", new Date(2026, 9, 17, 18)), "Yesterday");
 });

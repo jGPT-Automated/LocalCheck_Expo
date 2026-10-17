@@ -248,6 +248,31 @@ export async function fetchCourtWeekSpans(courtId: string): Promise<CheckInSpan[
   }
 }
 
+/**
+ * Last-7-day check-in spans for several courts in one read (the Explore list),
+ * grouped by court. Courts with no check-ins come back as []. Read-only.
+ */
+export async function fetchCourtsWeekSpans(courtIds: string[]): Promise<Record<string, CheckInSpan[]>> {
+  const result: Record<string, CheckInSpan[]> = Object.fromEntries(courtIds.map((id) => [id, []]));
+  if (courtIds.length === 0) return result;
+  const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+  try {
+    const { data, error } = await supabase
+      .from("check_ins")
+      .select("court_id,checked_in_at,checked_out_at")
+      .in("court_id", courtIds)
+      .gte("checked_in_at", weekAgo)
+      .limit(10000);
+    if (error || !data) return result;
+    for (const row of data as Array<CheckInSpan & { court_id: string }>) {
+      result[row.court_id]?.push(row);
+    }
+    return result;
+  } catch {
+    return result;
+  }
+}
+
 function percentChange(current: number, previous: number): number | null {
   if (current === 0 && previous === 0) return null;
   if (previous === 0) return 100;

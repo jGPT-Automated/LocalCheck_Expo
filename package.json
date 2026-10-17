@@ -20,7 +20,7 @@
     "test:home-presentation": "node --no-warnings --experimental-strip-types --test components/home/homePresentation.test.mts",
     "test:player-identity": "node --no-warnings --experimental-strip-types --test components/ui/playerIdentity.test.mts",
     "test:schedule": "node --no-warnings --experimental-strip-types --test components/schedule/scheduleModel.test.mts components/schedule/scheduledGameModel.test.mts",
-    "test:release-models": "node --no-warnings --experimental-strip-types --test services/gameModel.test.mts services/matchReviewModel.test.mts services/profileModel.test.mts context/deviceLocationModel.test.mts components/onboarding/launchTiming.test.mts lib/onboardingGate.test.mts lib/onboardingModel.test.mts lib/courtDrawerLayout.test.mts lib/passwordReset.test.mts lib/headToHead.test.mts lib/challengeModel.test.mts lib/scoreVisibility.test.mts lib/gameActivity.test.mts lib/planModel.test.mts lib/autoCheckInModel.test.mts lib/locationPermission.test.mts lib/courtHours.test.mts",
+    "test:release-models": "node --no-warnings --experimental-strip-types --test services/gameModel.test.mts services/matchReviewModel.test.mts services/profileModel.test.mts context/deviceLocationModel.test.mts components/onboarding/launchTiming.test.mts lib/onboardingGate.test.mts lib/onboardingModel.test.mts lib/courtDrawerLayout.test.mts lib/passwordReset.test.mts lib/headToHead.test.mts lib/challengeModel.test.mts lib/scoreVisibility.test.mts lib/gameActivity.test.mts lib/planModel.test.mts lib/autoCheckInModel.test.mts lib/locationPermission.test.mts lib/courtHours.test.mts lib/courtPickerMapModel.test.mts lib/courtBusyModel.test.mts lib/geofenceShape.test.mts",
     "test:realtime": "node --no-warnings --experimental-strip-types --test lib/realtimeHub.test.mts",
     "test:activity": "node --no-warnings --experimental-strip-types --test lib/activityPresentation.test.mts",
     "check:design": "node scripts/check-design-consistency.mjs",
@@ -28,7 +28,8 @@
     "check:release": "pnpm run check && ./scripts/start-web-preview.sh --export-only",
     "doctor": "./scripts/doctor.sh",
     "test:docs-check": "node --test scripts/docsCheckModel.test.mjs scripts/docsConsistencyModel.test.mjs",
-    "check:docs": "node scripts/check-docs-consistency.mjs"
+    "check:docs": "node scripts/check-docs-consistency.mjs",
+    "qa:visual": "node scripts/visual-qa/run.mjs"
   },
   "engines": {
     "node": ">=22"
@@ -89,6 +90,7 @@
     "@types/react-dom": "~19.1.7",
     "babel-plugin-react-compiler": "^19.0.0-beta-e993439-20250117",
     "babel-preset-expo": "54.0.10",
+    "playwright": "1.56.1",
     "prettier": "^3.8.1",
     "typescript": "~5.9.2"
   }

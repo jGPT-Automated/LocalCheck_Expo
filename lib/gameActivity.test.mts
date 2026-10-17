@@ -89,3 +89,12 @@ test("played comes first and shows no time; a 2v2 waits only on the other side",
     "Waiting on Kim",
   ]);
 });
+
+test("a bare played day reads as that local day, not the UTC evening before", () => {
+  const now = new Date(2026, 9, 17, 18, 30);
+  const labels = activityDayLabels(
+    [{ key: "played", kind: "played", lead: "Played", at: "2026-10-16" }] as never,
+    now,
+  );
+  assert.deepEqual(labels, ["YESTERDAY"]);
+});
