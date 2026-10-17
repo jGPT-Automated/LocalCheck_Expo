@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   action: {
     flex: 1,
     minHeight: 52,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.panel,
   },
   secondary: { backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
-  label: { flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 11.5, color: Colors.text, letterSpacing: 1.5, textTransform: "uppercase" },
+  label: { flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 11.5, color: Colors.text, letterSpacing: 1.1, textTransform: "uppercase" },
   primaryLabel: { color: Colors.background },
   disabled: { opacity: 0.45 },
 });

@@ -1387,10 +1387,10 @@ const styles = StyleSheet.create({
   slotMain: {
     flex: 1,
     minWidth: 0,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 5,
     borderWidth: 1,
     borderColor: Colors.hairlineCard,
     borderRadius: Radius.chip,
@@ -1399,6 +1399,7 @@ const styles = StyleSheet.create({
   slotMainActive: { borderColor: Colors.accent, backgroundColor: Colors.accentDim },
   slotName: {
     flex: 1,
+    minWidth: 0,
     fontFamily: Typography.bodySemiBold,
     fontSize: 12,
     color: Colors.text,

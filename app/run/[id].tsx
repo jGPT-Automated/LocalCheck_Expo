@@ -178,11 +178,17 @@ export default function RunScreen() {
           <Text numberOfLines={1} style={styles.personName}>
             {compact ? player.name.split(" ")[0] : player.name}
           </Text>
-          {player.id === run.hostId ? (
+          {!compact && player.id === run.hostId ? (
             <View style={styles.hostTag}><Text style={styles.hostTagText}>Host</Text></View>
           ) : null}
         </View>
-        {compact ? null : <Text style={styles.personSub}>{player.wins}–{player.losses}</Text>}
+        {/* Half-width team columns have no room beside the name, so the
+            Host tag takes the second line there. */}
+        {compact ? (
+          player.id === run.hostId ? (
+            <View style={[styles.hostTag, styles.hostTagBelow]}><Text style={styles.hostTagText}>Host</Text></View>
+          ) : null
+        ) : <Text style={styles.personSub}>{player.wins}–{player.losses}</Text>}
       </View>
       <Text style={styles.personElo}>{player.elo}</Text>
     </Pressable>
@@ -674,6 +680,7 @@ const styles = StyleSheet.create({
   personSub: { fontFamily: Typography.bodyMedium, fontSize: 10, color: Colors.muted },
   personElo: { flexShrink: 0, fontFamily: Typography.headingSemiBold, fontSize: 17, letterSpacing: -0.5, color: Colors.text, fontVariant: ["tabular-nums"] },
   hostTag: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, borderWidth: 1, borderColor: Colors.hairlineChrome },
+  hostTagBelow: { alignSelf: "flex-start", marginTop: 3 },
   hostTagText: { fontFamily: Typography.bodyBold, fontSize: 7, letterSpacing: 0.9, textTransform: "uppercase", color: Colors.inkSoft },
   teamColumns: { flexDirection: "row", gap: 14 },
   teamColumn: { flex: 1, flexBasis: 0, minWidth: 0 },

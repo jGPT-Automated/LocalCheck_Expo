@@ -97,7 +97,7 @@ export function CourtBusyChart({
         >
           <Feather color={Colors.textSecondary} name="chevron-right" size={16} />
         </Pressable>
-        {header ? <Text numberOfLines={1} style={styles.headerCaption}>{caption}</Text> : null}
+        {header ? <Text numberOfLines={2} style={styles.headerCaption}>{caption}</Text> : null}
       </View>
       <View
         accessibilityLabel={`${busyDayLabel(dayOffset, now)}: ${caption}`}
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   barNow: { backgroundColor: Colors.accent },
   barPlanned: { borderWidth: 1, borderColor: Colors.inkSoft, backgroundColor: "transparent" },
   barEmpty: { backgroundColor: Colors.surfaceHigh },
-  headerCaption: { flex: 1, minWidth: 0, textAlign: "right", fontFamily: Typography.bodySemiBold, fontSize: 10, color: Colors.muted },
+  headerCaption: { flex: 1, minWidth: 0, textAlign: "right", fontFamily: Typography.bodySemiBold, fontSize: 10, lineHeight: 13, color: Colors.muted },
   labels: { height: 12, marginTop: 6 },
   label: { position: "absolute", top: 0, width: 36, marginLeft: -18, textAlign: "center", fontFamily: Typography.bodyBold, fontSize: 8, lineHeight: 12, letterSpacing: 0.4, textTransform: "uppercase", color: Colors.muted },
   labelNow: { color: Colors.liveInk },

@@ -60,7 +60,7 @@ const WELCOME_ART = require("@/assets/brand/splash-artwork.png");
 export default function OnboardingScreen() {
   const router = useRouter();
   const { top, bottom } = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const { profile, updateUsername, refreshProfile } = useAuth();
   const { setPreferredSport, setLocalCourt } = useApp();
   const { enablePush } = useNotifications();
@@ -279,7 +279,13 @@ export default function OnboardingScreen() {
   const courtName = selectedCourt ? selectedCourt.shortName || selectedCourt.name : "your court";
   // Small phones list two rows so the map keeps its room.
   const nearest = courtOptions.slice(0, windowHeight < 760 ? 2 : 3);
-  const heroHeight = Math.round(windowHeight * 0.5);
+  const heroHeight = Math.round(windowHeight * 0.4);
+  // The artwork is 2:3 and its subject (the dunk) sits right of the canvas
+  // centre, at 63% of its width. Size it a little wider than the screen and
+  // put that subject on the screen's centre line, on every phone width.
+  const heroArtWidth = Math.round(windowWidth * 1.15);
+  const heroArtHeight = Math.round(heroArtWidth * 1.5);
+  const heroArtLeft = Math.round(windowWidth / 2 - heroArtWidth * 0.63);
 
   const primary =
     step === 0
@@ -350,12 +356,12 @@ export default function OnboardingScreen() {
         <View style={styles.welcome}>
           {/* The sign-in artwork carries on into the welcome (Oct 17): full
               bleed at the top, fading into the page under the headline. */}
-          <View style={[styles.hero, { height: heroHeight }]}>
+          <View style={[styles.hero, { minHeight: heroHeight }]}>
             <Image
               accessibilityLabel="An abstract basketball player rising toward the rim"
               resizeMode="contain"
               source={WELCOME_ART}
-              style={[styles.heroArt, { height: heroHeight * 1.3, width: heroHeight * 1.3 * (2 / 3) }]}
+              style={[styles.heroArt, { height: heroArtHeight, width: heroArtWidth, left: heroArtLeft }]}
             />
             <LinearGradient
               colors={[Colors.background, "rgba(13,13,16,0)"]}
@@ -709,12 +715,13 @@ const styles = StyleSheet.create({
   progressFilled: { backgroundColor: Colors.accent },
 
   welcome: { flex: 1 },
-  hero: { position: "relative", overflow: "hidden" },
-  heroArt: { position: "absolute", right: -24, top: -12 },
+  // The art takes whatever the copy leaves, so the page never shows a gap.
+  hero: { flex: 1, position: "relative", overflow: "hidden" },
+  heroArt: { position: "absolute", top: 0 },
   heroFadeTop: { position: "absolute", top: 0, left: 0, right: 0 },
   heroFadeBottom: { position: "absolute", left: 0, right: 0, bottom: 0, height: "55%" },
   heroLogo: { position: "absolute", left: Layout.screenGutter },
-  welcomeBody: { flex: 1, marginTop: -96, paddingHorizontal: Layout.screenGutter, justifyContent: "space-between", paddingBottom: Space.lg },
+  welcomeBody: { marginTop: -96, paddingHorizontal: Layout.screenGutter, paddingBottom: Space.lg, gap: Space.xl },
   welcomeCopy: { gap: Space.md },
   welcomeTitle: { fontSize: 44, lineHeight: 44 },
   welcomeHow: {

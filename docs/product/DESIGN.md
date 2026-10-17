@@ -289,7 +289,12 @@ and month labels right-aligned against the grid at the day names' size; the
 selected-time card is two equal columns (Who's going | Game) lined up with
 the two `BrutalistButton` `sm` actions under them; empty text centred.
 
-Schedule tab (D57): never scrolls as a page. One-line court dropdown (pin,
+Small phones (D57): the week heatmap keeps at least five hour rows and the
+Schedule tab its full slot card and games row; when that can't fit (iPhone
+SE) the panel or page scrolls rather than squeezing or clipping. Floating
+buttons get bottom clearance so nothing ends under them.
+
+Schedule tab (D57): never scrolls as a page when it fits. One-line court dropdown (pin,
 name, chevron). The selected-time card is one row of names with Add my time /
 Remove my time beside them. Upcoming games are `ScheduledGameCard`s in one
 row you swipe left and right, one card plus a peek of the next.

@@ -65,6 +65,10 @@ export function CourtSchedulePanel({
   const timeScrollRef = React.useRef<ScrollView>(null);
   const scrolledToNow = React.useRef(false);
   const [saving, setSaving] = useState(false);
+  // The grid takes what the slot card leaves; below GRID_MIN_HEIGHT (short
+  // phones) the panel scrolls instead of squeezing the grid.
+  const [viewHeight, setViewHeight] = useState(0);
+  const [cardHeight, setCardHeight] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
 
   const dayStamp = new Date().toDateString();
@@ -241,8 +245,23 @@ export function CourtSchedulePanel({
   };
 
   return (
-    <View style={styles.panel}>
-      <View style={styles.gridArea}>
+    // Tall phones: the grid fills the space and nothing scrolls. Short phones
+    // (iPhone SE) can't fit the grid and the slot card, so the panel scrolls
+    // instead of squeezing the grid to a single row.
+    <ScrollView
+      alwaysBounceVertical={false}
+      contentContainerStyle={styles.panel}
+      nestedScrollEnabled
+      onLayout={(event) => setViewHeight(event.nativeEvent.layout.height)}
+      showsVerticalScrollIndicator={false}
+      style={styles.panelScroll}
+    >
+      <View
+        style={[
+          styles.gridArea,
+          viewHeight > 0 && { height: Math.max(GRID_MIN_HEIGHT, viewHeight - PANEL_TOP - cardHeight) },
+        ]}
+      >
       <View style={styles.heatmap}>
         <View style={styles.heatRow}>
           <View style={[styles.timeColumn, styles.monthCorner]}>
@@ -339,7 +358,10 @@ export function CourtSchedulePanel({
       </View>
 
       {selected && selectedKey && selectedDate ? (
-        <View style={[styles.slotCard, { marginBottom: bottomInset + 8 }]}>
+        <View
+          onLayout={(event) => setCardHeight(event.nativeEvent.layout.height + 8 + bottomInset + 8)}
+          style={[styles.slotCard, { marginBottom: bottomInset + 8 }]}
+        >
           <View style={styles.slotHeader}>
             <Text style={styles.slotTitle}>
               {DAYS[selectedDate.getDay()]} {selectedDate.getDate()} · {scheduleSlotLabel(SLOT_HOURS[selected.slot])}
@@ -454,19 +476,23 @@ export function CourtSchedulePanel({
           {notice ? <Text style={styles.notice}>{notice}</Text> : null}
         </View>
       ) : null}
-    </View>
+    </ScrollView>
   );
 }
 
 /** One time row: 27pt cell + 2pt gap. */
 const ROW_PITCH = 29;
+const PANEL_TOP = 6;
+/** Day row + five hour rows + legend. */
+const GRID_MIN_HEIGHT = 34 + 5 * ROW_PITCH + 24;
 
 const styles = StyleSheet.create({
-  panel: { flex: 1, minHeight: 0, paddingTop: 6 },
+  panelScroll: { flex: 1, minHeight: 0 },
+  panel: { flexGrow: 1, paddingTop: PANEL_TOP },
   // The grid fills the space above the pinned slot card and scrolls its own
   // rows, so the card sits at the bottom edge instead of floating in dead
   // space or getting clipped.
-  gridArea: { flex: 1, minHeight: 0 },
+  gridArea: { flexGrow: 1, flexShrink: 0, minHeight: GRID_MIN_HEIGHT },
   heatmap: { flex: 1, minHeight: 0, paddingHorizontal: 12 },
   timeScroller: { flex: 1, minHeight: 0 },
   timeRows: { paddingBottom: 2 },

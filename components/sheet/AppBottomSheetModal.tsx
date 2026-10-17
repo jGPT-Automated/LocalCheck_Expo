@@ -31,6 +31,8 @@ export const AppBottomSheetModal = forwardRef<
     children: React.ReactNode;
     index?: number;
     onDismiss?: () => void;
+    /** Called with the detent index the sheet settles on. */
+    onChange?: (index: number) => void;
     snapPoints: Array<string | number>;
     /** Size to content instead of the fixed detents. */
     dynamic?: boolean;
@@ -44,6 +46,7 @@ export const AppBottomSheetModal = forwardRef<
     children,
     index = 0,
     onDismiss,
+    onChange,
     snapPoints,
     dynamic = false,
     maxDynamicContentSize,
@@ -77,6 +80,7 @@ export const AppBottomSheetModal = forwardRef<
         handleIndicatorStyle={styles.handle}
         handleStyle={compactHandle ? styles.handleRowCompact : undefined}
         onDismiss={onDismiss}
+        onChange={onChange}
         keyboardBehavior="interactive"
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"

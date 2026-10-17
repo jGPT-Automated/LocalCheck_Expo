@@ -85,11 +85,11 @@ export function ProfileHero({
           />
         </Pressable>
         <View style={styles.compactIdentity}>
+          {/* Long names step down a size and may take a second line, so
+              the whole name always shows (24-character rule). */}
           <Text
-            adjustsFontSizeToFit
-            minimumFontScale={0.82}
-            numberOfLines={1}
-            style={styles.compactName}
+            numberOfLines={2}
+            style={[styles.compactName, (headline || name).length > 14 && styles.compactNameLong]}
           >
             {headline || name}
           </Text>
@@ -245,6 +245,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.45,
     textTransform: "uppercase",
   },
+  compactNameLong: { fontSize: 17, lineHeight: 20 },
   compactMeta: {
     minWidth: 0,
     marginTop: 3,
@@ -258,7 +259,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 13,
     color: Colors.muted,
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
   },
   compactActions: {
     flexShrink: 0,

@@ -51,6 +51,11 @@ voice notes. Checked in a local web render at 393×852 against mocked data
 | Played day showed one day early in the timeline / head-to-head | ✅ |
 | Settings push switch thumb turned teal on web | ✅ |
 | Vercel INP 655 ms input delay | ⬜ not reproduced (100–300 ms tasks at 6× CPU throttle, same before and after) |
+| Oct 17 self-QA (375×667, 393×852, 430×932, automated clip/overlap check): onboarding art centred on its subject, no gap | ✅ |
+| Small phones: week heatmap no longer collapses to one row; Schedule tab scrolls only when it can't fit; Add my time clear of the + button | ✅ |
+| Cut-off text fixed: Approve score, inbox "Revised by…", profile subline, Host tag in team columns, Log game opponent, long names in the profile hero and head-to-head, LocalPlus retry | ✅ |
+| Court drawer settles exactly at the Check in row (was showing half the Here now tiles) | ✅ |
+| Notifications uses the shared detail header | ✅ |
 
 ## 2026-10-15 — Court-flow UI pass, frontend only (`claude/court-flow-ui-pass`)
 

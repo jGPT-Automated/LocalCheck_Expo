@@ -1,9 +1,10 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { DetailHeader } from "@/components/ui/DetailHeader";
 import { Colors, Radius } from "@/constants/colors";
 import { Typography } from "@/constants/typography";
 import { useNotifications } from "@/context/NotificationContext";
@@ -33,7 +34,7 @@ function timeAgo(value: string): string {
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const { top, bottom } = useSafeAreaInsets();
+  const { bottom } = useSafeAreaInsets();
   const {
     notifications,
     unreadCount,
@@ -43,7 +44,6 @@ export default function NotificationsScreen() {
     readAll,
     enablePush,
   } = useNotifications();
-  const topPad = Platform.OS === "web" ? 67 : top;
 
   const turnOnPush = async () => {
     const result = await enablePush();
@@ -52,28 +52,18 @@ export default function NotificationsScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.header, { paddingTop: topPad }]}>
-        <View style={styles.navRow}>
-          <Pressable
-            accessibilityLabel="Back"
-            accessibilityRole="button"
-            hitSlop={8}
-            onPress={() => router.back()}
-            style={styles.headerButton}
-          >
-            <Feather name="arrow-left" size={22} color={Colors.text} />
-          </Pressable>
-          {unreadCount > 0 ? (
+      {/* The shared detail header, like Game score and Profile. */}
+      <DetailHeader
+        onBack={() => router.back()}
+        right={
+          unreadCount > 0 ? (
             <Pressable accessibilityRole="button" onPress={() => void readAll()} hitSlop={10} style={styles.readAllButton}>
               <Text style={styles.readAll}>Read all</Text>
             </Pressable>
-          ) : null}
-        </View>
-        <View style={styles.titleBlock}>
-          <Text style={styles.subtitle}>{unreadCount > 0 ? `${unreadCount} new` : "You're caught up"}</Text>
-          <Text style={styles.title}>Notifications</Text>
-        </View>
-      </View>
+          ) : undefined
+        }
+        title="NOTIFICATIONS"
+      />
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: bottom + 40 }}>
         {!pushEnabled ? (
@@ -125,12 +115,6 @@ export default function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
-  header: { paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: Colors.hairline },
-  navRow: { height: 44, paddingLeft: 12, paddingRight: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  headerButton: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
-  titleBlock: { paddingHorizontal: 20, paddingTop: 6, gap: 6 },
-  title: { fontFamily: Typography.headingBold, fontSize: 38, lineHeight: 40, letterSpacing: -1.2, textTransform: "uppercase", color: Colors.text },
-  subtitle: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.5, textTransform: "uppercase", color: Colors.textSecondary },
   readAllButton: { minHeight: 38, justifyContent: "center" },
   readAll: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.inkSoft },
   pushCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: Colors.hairlineCard, borderRadius: Radius.row, backgroundColor: Colors.panel },

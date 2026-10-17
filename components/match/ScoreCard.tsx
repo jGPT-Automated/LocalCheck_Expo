@@ -575,7 +575,7 @@ export function ScoreCard({
       <View style={[styles.card, kind === "action" ? styles.cardAction : null]}>
         {banner}
         <View style={styles.compactBody}>
-          <Text numberOfLines={1} style={styles.compactCaption}>
+          <Text numberOfLines={2} style={styles.compactCaption}>
             {[cardTitle(format, courtName), caption].join(" · ")}
           </Text>
           <View style={styles.compactRows}>

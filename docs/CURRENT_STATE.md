@@ -110,7 +110,12 @@ Each claim says which of these it is, because they are often confused:
     `RunFlowSheet` / `AppBottomSheetModal` now.
   - Fixes: game activity markers line up on web; a bare played day shows the
     right day (`parseDayOrInstant`); Me tab tabs; Settings switch thumb.
-  - Onboarding welcome uses the sign-in artwork.
+  - Onboarding welcome uses the sign-in artwork, centred on its subject.
+  - Self-QA at 375×667, 393×852 and 430×932 with an automated clipped /
+    overlapping text check (Oct 17): small phones scroll the week heatmap
+    and Schedule tab instead of squeezing them; cut-off button and name text
+    fixed; the court drawer settles on its measured height; Notifications
+    uses the shared detail header.
 - Court-flow UI pass, frontend only (Oct 15, D56; **on a branch**,
   `claude/court-flow-ui-pass`, not merged, not on a device). No database,
   function or native change.

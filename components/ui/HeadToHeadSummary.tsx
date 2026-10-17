@@ -46,8 +46,8 @@ export function HeadToHeadSummary({
           right, so a long name and a four-digit rating never squeeze into the
           score column. */}
       <View style={styles.labels}>
-        <Text numberOfLines={1} style={styles.sideLabel}>You{me.elo != null ? ` · ${me.elo}` : ""}</Text>
-        <Text numberOfLines={1} style={[styles.sideLabel, styles.sideLabelRight]}>
+        <Text numberOfLines={2} style={styles.sideLabel}>You{me.elo != null ? ` · ${me.elo}` : ""}</Text>
+        <Text numberOfLines={2} style={[styles.sideLabel, styles.sideLabelRight]}>
           {them.name}{them.elo != null ? ` · ${them.elo}` : ""}
         </Text>
       </View>

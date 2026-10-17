@@ -80,6 +80,8 @@ const RUN_TIMES = [
 ];
 
 const TIME_ROW_PITCH = 28;
+/** Room under the last row for the floating + button (56) and its gap. */
+const FAB_CLEARANCE = 72;
 const TIME_WINDOW_ROW_COUNT = 8;
 const LATE_TIME_WINDOW_START_INDEX = 7;
 const LATE_TIME_WINDOW_OFFSET = LATE_TIME_WINDOW_START_INDEX * TIME_ROW_PITCH;
@@ -845,7 +847,7 @@ export default function ScheduleScreen() {
   const { width: screenWidth } = useWindowDimensions();
   // One card plus a peek of the next, so the row reads as swipeable and the
   // FAB only ever covers the peek.
-  const gameCardWidth = Math.min(screenWidth, 520) - 40 - 64;
+  const gameCardWidth = Math.min(screenWidth, 520) - 40 - 48;
   const [joiningRunId, setJoiningRunId] = useState<string | null>(null);
   const joinFromCard = async (game: GameRun) => {
     if (joiningRunId) return;
@@ -1319,9 +1321,17 @@ export default function ScheduleScreen() {
         right={<Text style={styles.headerDate}>{weekLabel}</Text>}
       />
 
-      {/* The page itself never scrolls (Oct 16): court, heatmap and the slot
-          card stay put; only the list under them scrolls. */}
-      <View style={styles.scheduleBody}>
+      {/* The page doesn't scroll when it fits (Oct 16): court, heatmap, slot
+          card and the swipeable games row. On a short phone (iPhone SE) it
+          scrolls instead of clipping the slot card, and the bottom padding
+          lets the last row clear the + button. */}
+      <ScrollView
+        alwaysBounceVertical={false}
+        contentContainerStyle={[styles.scheduleBody, { paddingBottom: FAB_CLEARANCE }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        style={styles.scheduleScroll}
+      >
         {/* ── Court selector ── */}
         <Pressable
           accessibilityHint="Pick another court"
@@ -1641,6 +1651,30 @@ export default function ScheduleScreen() {
                     </Text>
                   </View>
                   <View style={styles.slotBody}>
+                    {/* Action first, on the left: the + button floats over
+                        the right edge on short phones, never over this. */}
+                    {mine?.visitId ? (
+                      <BrutalistButton
+                        icon={<Feather name="x" size={12} color={Colors.textSecondary} />}
+                        label="Remove my time"
+                        onPress={() => void removePlannedVisit(mine.visitId!)}
+                        size="sm"
+                        style={styles.slotAction}
+                        testID={`remove-visit-${mine.visitId}`}
+                        variant="dark"
+                      />
+                    ) : canAdd ? (
+                      <BrutalistButton
+                        icon={<Feather name="plus" size={12} color={Colors.text} />}
+                        label="Add my time"
+                        loading={addingSelectedTime}
+                        onPress={() => void handleAddSelectedTime()}
+                        size="sm"
+                        style={styles.slotAction}
+                        testID="add-selected-visit"
+                        variant="dark"
+                      />
+                    ) : null}
                     {total > 0 ? (
                       <ScrollView
                         contentContainerStyle={styles.slotPeople}
@@ -1672,28 +1706,6 @@ export default function ScheduleScreen() {
                     ) : (
                       <Text numberOfLines={2} style={styles.slotEmpty}>Nobody yet. Add your time so people know to pull up.</Text>
                     )}
-                    {mine?.visitId ? (
-                      <BrutalistButton
-                        icon={<Feather name="x" size={12} color={Colors.textSecondary} />}
-                        label="Remove my time"
-                        onPress={() => void removePlannedVisit(mine.visitId!)}
-                        size="sm"
-                        style={styles.slotAction}
-                        testID={`remove-visit-${mine.visitId}`}
-                        variant="dark"
-                      />
-                    ) : canAdd ? (
-                      <BrutalistButton
-                        icon={<Feather name="plus" size={12} color={Colors.text} />}
-                        label="Add my time"
-                        loading={addingSelectedTime}
-                        onPress={() => void handleAddSelectedTime()}
-                        size="sm"
-                        style={styles.slotAction}
-                        testID="add-selected-visit"
-                        variant="dark"
-                      />
-                    ) : null}
                   </View>
                 </View>
               );
@@ -1733,7 +1745,7 @@ export default function ScheduleScreen() {
             )}
           </View>
         ) : null}
-      </View>
+      </ScrollView>
 
       {scheduleMode === "VIEW" && court?.id === localCourt?.id ? (
         <SpeedDialFab
@@ -1812,8 +1824,9 @@ export default function ScheduleScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  scheduleBody: { flex: 1, minHeight: 0 },
-  flexArea: { flex: 1, minHeight: 0, marginTop: 8 },
+  scheduleScroll: { flex: 1, minHeight: 0 },
+  scheduleBody: { flexGrow: 1 },
+  flexArea: { flexGrow: 1, minHeight: 140, marginTop: 8 },
   editArea: { paddingBottom: 140 },
   scheduleBodyContent: { flexGrow: 1, paddingBottom: 88 },
   scheduleBodyContentEdit: { paddingBottom: 8 },
@@ -2177,7 +2190,7 @@ const styles = StyleSheet.create({
   slotMoreText: { fontFamily: Typography.headingSemiBold, fontSize: 11, color: Colors.textSecondary },
   slotEmpty: { flex: 1, minWidth: 0, fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary, lineHeight: 17 },
   slotAction: { flexShrink: 0 },
-  gamesRow: { flex: 1, minHeight: 0, paddingTop: 14 },
+  gamesRow: { flexGrow: 1, minHeight: 168, paddingTop: 14 },
   gamesLabel: { paddingHorizontal: 20, marginBottom: 8, fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
   gamesTrack: { paddingHorizontal: 20, gap: 10, alignItems: "flex-start" },
   gamesEmpty: { minHeight: 64, marginHorizontal: 20, paddingHorizontal: 14, justifyContent: "center", borderRadius: Radius.row, borderWidth: 1, borderStyle: "dashed", borderColor: Colors.dashed },
