@@ -674,7 +674,7 @@ function ToggleSettingsRow({
           disabled={disabled}
           ios_backgroundColor={Colors.borderLight}
           onValueChange={onValueChange}
-          style={styles.notificationSwitch}
+          thumbColor={Colors.white}
           trackColor={{ false: Colors.borderLight, true: Colors.accent }}
           value={value}
         />

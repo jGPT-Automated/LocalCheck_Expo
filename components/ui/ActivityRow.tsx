@@ -174,6 +174,9 @@ function IconTile({ item, kind }: { item: FeedItem; kind: Kind }) {
                     : "map-marker-radius"
           }
           size={15}
+          // Check-out mirrors the check-in arrow so the two point opposite
+          // ways (in, out), not only differ in colour.
+          style={kind === "out" ? styles.mirrored : undefined}
         />
       )}
     </View>
@@ -189,6 +192,7 @@ function DayHeader({ label, first }: { label: string; first: boolean }) {
 }
 
 const styles = StyleSheet.create({
+  mirrored: { transform: [{ scaleX: -1 }] },
   row: {
     minHeight: 60,
     marginHorizontal: Layout.screenGutter,

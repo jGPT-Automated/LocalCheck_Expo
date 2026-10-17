@@ -5,8 +5,8 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Colors, Radius } from "@/constants/colors";
 import { Layout, Space } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
+import { parseDayOrInstant } from "@/lib/activityPresentation";
 import {
-  firstName,
   type HeadToHeadSummary as Summary,
   seriesStatus,
   signed,
@@ -42,13 +42,19 @@ export function HeadToHeadSummary({
   const eloNet = summary.eloNet;
   return (
     <View style={styles.card}>
+      {/* Names get the full card width on their own row, mirrored left and
+          right, so a long name and a four-digit rating never squeeze into the
+          score column. */}
+      <View style={styles.labels}>
+        <Text numberOfLines={1} style={styles.sideLabel}>You{me.elo != null ? ` · ${me.elo}` : ""}</Text>
+        <Text numberOfLines={1} style={[styles.sideLabel, styles.sideLabelRight]}>
+          {them.name}{them.elo != null ? ` · ${them.elo}` : ""}
+        </Text>
+      </View>
       <View style={styles.scores}>
         <View style={styles.side}>
           <PlayerAvatar initials={me.initials} name={me.name} playerId={me.id} size={AVATAR} />
-          <View style={styles.sideCopy}>
-            <Text numberOfLines={1} style={styles.sideLabel}>You{me.elo != null ? ` · ${me.elo}` : ""}</Text>
-            <Text numberOfLines={1} style={[styles.score, myTone]}>{summary.myWins}</Text>
-          </View>
+          <Text numberOfLines={1} style={[styles.score, myTone]}>{summary.myWins}</Text>
         </View>
         <View accessibilityRole="header" style={styles.status}>
           <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={2} style={styles.statusText}>
@@ -56,12 +62,7 @@ export function HeadToHeadSummary({
           </Text>
         </View>
         <View style={[styles.side, styles.sideRight]}>
-          <View style={[styles.sideCopy, styles.sideCopyRight]}>
-            <Text numberOfLines={1} style={[styles.sideLabel, styles.sideLabelRight]}>
-              {firstName(them.name)}{them.elo != null ? ` · ${them.elo}` : ""}
-            </Text>
-            <Text numberOfLines={1} style={[styles.score, theirTone]}>{summary.theirWins}</Text>
-          </View>
+          <Text numberOfLines={1} style={[styles.score, theirTone]}>{summary.theirWins}</Text>
           <PlayerAvatar initials={them.initials} name={them.name} playerId={them.id} size={AVATAR} />
         </View>
       </View>
@@ -102,7 +103,7 @@ export function HeadToHeadSummary({
 }
 
 function shortDay(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return parseDayOrInstant(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 const AVATAR = 38;
@@ -119,18 +120,22 @@ const styles = StyleSheet.create({
     borderRadius: Radius.panel,
     backgroundColor: Colors.panel,
   },
-  scores: {
+  labels: {
     paddingHorizontal: Space.md,
     paddingTop: Space.md,
+    flexDirection: "row",
+    gap: Space.md,
+  },
+  scores: {
+    paddingHorizontal: Space.md,
+    paddingTop: Space.sm,
     flexDirection: "row",
     alignItems: "center",
     gap: Space.sm,
   },
   side: { flex: 1, flexBasis: 0, minWidth: 0, flexDirection: "row", alignItems: "center", gap: Space.sm },
   sideRight: { justifyContent: "flex-end" },
-  sideCopy: { flexShrink: 1, minWidth: 0 },
-  sideCopyRight: { alignItems: "flex-end" },
-  sideLabel: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.textSecondary },
+  sideLabel: { flex: 1, flexBasis: 0, minWidth: 0, fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.textSecondary },
   sideLabelRight: { textAlign: "right" },
   score: { fontFamily: Typography.headingBold, fontSize: 32, lineHeight: 34, letterSpacing: -0.8, fontVariant: ["tabular-nums"], color: Colors.text },
   scoreLeader: { color: Colors.accent },
@@ -153,8 +158,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.hairline,
   },
-  statLine: { flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.muted },
+  // Label and value share one line box so both groups sit on one baseline.
+  statLine: { flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 9, lineHeight: 16, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.muted },
   statLineRight: { textAlign: "right" },
-  statValue: { fontFamily: Typography.headingSemiBold, fontSize: 13, letterSpacing: 0, color: Colors.text, fontVariant: ["tabular-nums"] },
+  statValue: { fontFamily: Typography.headingSemiBold, fontSize: 13, lineHeight: 16, letterSpacing: 0, color: Colors.text, fontVariant: ["tabular-nums"] },
   statValueHighlight: { color: Colors.accent },
 });

@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   metaRow: {
     height: 26,
     marginTop: 14,
-    paddingLeft: 18,
+    paddingHorizontal: 18,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

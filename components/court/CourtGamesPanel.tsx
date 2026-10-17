@@ -4,7 +4,7 @@
 // Tapping the card opens the game page (app/run/[id].tsx).
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, type StyleProp, StyleSheet, Text, View, type ViewStyle } from "react-native";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { formatForMaxPlayers } from "@/components/schedule/scheduledGameModel";
@@ -25,8 +25,18 @@ function dayLabel(date: Date): string {
   return date.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
 }
 
-export function CourtGamesPanel({ games, onOpen }: { games: GameRun[]; onOpen: (game: GameRun) => void }) {
-  const { currentUser, joinRun } = useApp();
+export function CourtGamesPanel({
+  games,
+  onOpen,
+  onCreate,
+}: {
+  games: GameRun[];
+  onOpen: (game: GameRun) => void;
+  /** Adds a quiet "Create a game" row under the list, so a short list ends
+   * on the next thing to do instead of empty space. */
+  onCreate?: () => void;
+}) {
+  const { joinRun } = useApp();
   const [joiningId, setJoiningId] = React.useState<string | null>(null);
 
   if (games.length === 0) {
@@ -36,6 +46,7 @@ export function CourtGamesPanel({ games, onOpen }: { games: GameRun[]; onOpen: (
         <View style={styles.emptyBox}>
           <Text style={styles.empty}>Nothing scheduled. Post a game and locals see it.</Text>
         </View>
+        {onCreate ? <CreateGameRow onPress={onCreate} /> : null}
       </View>
     );
   }
@@ -60,80 +71,111 @@ export function CourtGamesPanel({ games, onOpen }: { games: GameRun[]; onOpen: (
       {groups.map((group) => (
         <View key={group.label} style={styles.group}>
           <Text style={[styles.day, group.today && styles.dayToday]}>{group.label}</Text>
-          {group.games.map((game) => {
-            const start = new Date(game.startTimeIso);
-            const hours = start.getHours();
-            const going = game.participants.length;
-            const max = Math.max(game.maxPlayers, 1);
-            const joined = game.participants.some((player) => player.id === currentUser.id);
-            const full = going >= game.maxPlayers;
-            // Choose-teams games pick a side on the game page.
-            const canQuickJoin = !joined && !full && game.teamAssignmentMode !== "choose_teams";
-            const format = formatForMaxPlayers(game.maxPlayers);
-            return (
-              <PressableScale
-                accessibilityLabel={`${game.title}, ${going} of ${game.maxPlayers} going`}
-                accessibilityRole="button"
-                key={game.id}
-                onPress={() => onOpen(game)}
-                style={styles.card}
-              >
-                <View style={styles.top}>
-                  <View style={styles.timeCol}>
-                    <Text style={styles.time}>
-                      {hours % 12 === 0 ? 12 : hours % 12}
-                      {start.getMinutes() ? `:${String(start.getMinutes()).padStart(2, "0")}` : ""}
-                    </Text>
-                    <Text style={styles.ampm}>{hours >= 12 ? "PM" : "AM"}</Text>
-                  </View>
-                  <View style={styles.body}>
-                    <Text numberOfLines={1} style={styles.title}>{game.title}</Text>
-                    <Text numberOfLines={1} style={styles.sub}>
-                      {[format?.toLowerCase(), game.skillLevel === "ALL LEVELS" ? "All levels" : game.skillLevel.charAt(0) + game.skillLevel.slice(1).toLowerCase(), game.hostName ? `Host ${game.hostName.split(" ")[0]}` : null]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </Text>
-                  </View>
-                  <Feather color={Colors.muted} name="chevron-right" size={16} />
-                </View>
-                <View style={styles.bottom}>
-                  <View style={styles.faces}>
-                    {game.participants.slice(0, 4).map((player, index) => (
-                      <View key={player.id} style={[styles.face, index > 0 && styles.faceOverlap]}>
-                        <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={24} />
-                      </View>
-                    ))}
-                  </View>
-                  <View style={styles.going}>
-                    <Text numberOfLines={1} style={styles.goingText}>{going} of {game.maxPlayers} going</Text>
-                    <View style={styles.bar}>
-                      <View style={[styles.fill, { width: `${Math.min(100, (going / max) * 100)}%` }]} />
-                    </View>
-                  </View>
-                  <Pressable
-                    accessibilityLabel={joined ? "You're going" : full ? "Game full" : `Join ${game.title}`}
-                    accessibilityRole="button"
-                    disabled={joined || full}
-                    hitSlop={6}
-                    onPress={() => (canQuickJoin ? void join(game) : onOpen(game))}
-                    style={({ pressed }) => [styles.cta, joined && styles.ctaJoined, pressed && styles.pressed]}
-                  >
-                    {joiningId === game.id ? (
-                      <ActivityIndicator color={Colors.text} size="small" />
-                    ) : (
-                      <Text style={[styles.ctaText, full && !joined && styles.ctaTextMuted]}>
-                        {joined ? "Going" : full ? "Full" : "Join"}
-                      </Text>
-                    )}
-                  </Pressable>
-                </View>
-              </PressableScale>
-            );
-          })}
+          {group.games.map((game) => (
+            <ScheduledGameCard game={game} joining={joiningId === game.id} key={game.id} onJoin={join} onOpen={onOpen} />
+          ))}
         </View>
       ))}
+      {onCreate ? <CreateGameRow onPress={onCreate} /> : null}
     </View>
   );
+}
+
+function CreateGameRow({ onPress }: { onPress: () => void }) {
+  return (
+    <PressableScale accessibilityRole="button" onPress={onPress} style={styles.createRow}>
+      <Feather color={Colors.inkSoft} name="plus" size={14} />
+      <Text style={styles.createText}>Create a game</Text>
+    </PressableScale>
+  );
+}
+
+/**
+ * One upcoming game: time, title, format and host, then faces, "x of y
+ * going" with a fill bar, and Join / Going / Full. Shared by the court page's
+ * Games tab and the Schedule tab's swipeable row (`style` sets its width).
+ */
+export function ScheduledGameCard({
+  game,
+  joining,
+  onJoin,
+  onOpen,
+  style,
+}: {
+  game: GameRun;
+  joining: boolean;
+  onJoin: (game: GameRun) => void;
+  onOpen: (game: GameRun) => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const { currentUser } = useApp();
+      const start = new Date(game.startTimeIso);
+      const hours = start.getHours();
+      const going = game.participants.length;
+      const max = Math.max(game.maxPlayers, 1);
+      const joined = game.participants.some((player) => player.id === currentUser.id);
+      const full = going >= game.maxPlayers;
+      // Choose-teams games pick a side on the game page.
+      const canQuickJoin = !joined && !full && game.teamAssignmentMode !== "choose_teams";
+      const format = formatForMaxPlayers(game.maxPlayers);
+      return (
+        <PressableScale
+          accessibilityLabel={`${game.title}, ${going} of ${game.maxPlayers} going`}
+          accessibilityRole="button"
+                    onPress={() => onOpen(game)}
+          style={[styles.card, style]}
+        >
+          <View style={styles.top}>
+            <View style={styles.timeCol}>
+              <Text style={styles.time}>
+                {hours % 12 === 0 ? 12 : hours % 12}
+                {start.getMinutes() ? `:${String(start.getMinutes()).padStart(2, "0")}` : ""}
+              </Text>
+              <Text style={styles.ampm}>{hours >= 12 ? "PM" : "AM"}</Text>
+            </View>
+            <View style={styles.body}>
+              <Text numberOfLines={1} style={styles.title}>{game.title}</Text>
+              <Text numberOfLines={1} style={styles.sub}>
+                {[format?.toLowerCase(), game.skillLevel === "ALL LEVELS" ? "All levels" : game.skillLevel.charAt(0) + game.skillLevel.slice(1).toLowerCase(), game.hostName ? `Host ${game.hostName.split(" ")[0]}` : null]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </Text>
+            </View>
+            <Feather color={Colors.muted} name="chevron-right" size={16} />
+          </View>
+          <View style={styles.bottom}>
+            <View style={styles.faces}>
+              {game.participants.slice(0, 4).map((player, index) => (
+                <View key={player.id} style={[styles.face, index > 0 && styles.faceOverlap]}>
+                  <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={24} />
+                </View>
+              ))}
+            </View>
+            <View style={styles.going}>
+              <Text numberOfLines={1} style={styles.goingText}>{going} of {game.maxPlayers} going</Text>
+              <View style={styles.bar}>
+                <View style={[styles.fill, { width: `${Math.min(100, (going / max) * 100)}%` }]} />
+              </View>
+            </View>
+            <Pressable
+              accessibilityLabel={joined ? "You're going" : full ? "Game full" : `Join ${game.title}`}
+              accessibilityRole="button"
+              disabled={joined || full}
+              hitSlop={6}
+              onPress={() => (canQuickJoin ? onJoin(game) : onOpen(game))}
+              style={({ pressed }) => [styles.cta, joined && styles.ctaJoined, pressed && styles.pressed]}
+            >
+              {joining ? (
+                <ActivityIndicator color={Colors.text} size="small" />
+              ) : (
+                <Text style={[styles.ctaText, full && !joined && styles.ctaTextMuted]}>
+                  {joined ? "Going" : full ? "Full" : "Join"}
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        </PressableScale>
+      );
 }
 
 const styles = StyleSheet.create({
@@ -165,4 +207,6 @@ const styles = StyleSheet.create({
   ctaText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.text },
   ctaTextMuted: { color: Colors.muted },
   pressed: { opacity: 0.7 },
+  createRow: { height: 48, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: Radius.panel, borderWidth: 1, borderStyle: "dashed", borderColor: Colors.dashed },
+  createText: { fontFamily: Typography.bodyBold, fontSize: 10, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.inkSoft },
 });

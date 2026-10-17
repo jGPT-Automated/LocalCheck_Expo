@@ -151,6 +151,16 @@ export function buildGameActivity(
   return [played, ...timed, ...waiting];
 }
 
+/**
+ * Played is a bare day ("2026-10-16"); read it as local midnight, not UTC
+ * (same rule as parseDayOrInstant in lib/activityPresentation.ts; lib files
+ * stay import-free so the node tests can load them directly).
+ */
+function parseDayOrInstant(value: string): Date {
+  const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  return day ? new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3])) : new Date(value);
+}
+
 /** "OCT 8" the first time a day appears in the list, otherwise null. */
 export function activityDayLabels(
   events: GameActivityEvent[],
@@ -159,7 +169,7 @@ export function activityDayLabels(
   let lastDay = "";
   return events.map((event) => {
     if (!event.at) return null;
-    const date = new Date(event.at);
+    const date = parseDayOrInstant(event.at);
     if (Number.isNaN(date.getTime())) return null;
     const day = date.toDateString();
     if (day === lastDay) return null;

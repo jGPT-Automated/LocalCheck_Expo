@@ -27,6 +27,7 @@ export function RunFlowSheet({
   contentBottomPadding = 44,
   snapPoints: providedSnapPoints,
   dynamic = false,
+  scroll = true,
   children,
 }: {
   visible: boolean;
@@ -45,6 +46,9 @@ export function RunFlowSheet({
   /** Size the sheet to its content — no fixed detent, no inner scroll. For
    *  short single-action forms (Add Court steps). */
   dynamic?: boolean;
+  /** false: the children bring their own scroll view (a form with its own
+   *  keyboard handling); the sheet just gives them the space below the title. */
+  scroll?: boolean;
   children: React.ReactNode;
 }) {
   const modalRef = useRef<BottomSheetModal>(null);
@@ -108,6 +112,13 @@ export function RunFlowSheet({
           {header}
           <View style={styles.content}>{children}</View>
         </BottomSheetView>
+      ) : !scroll ? (
+        // A plain flex view (not BottomSheetView, which sizes to its content)
+        // so the form's own scroll view and pinned button fill the detent.
+        <View style={styles.fill}>
+          {header}
+          <View style={styles.fill}>{children}</View>
+        </View>
       ) : (
         <>
           {header}
@@ -158,4 +169,5 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   content: { paddingHorizontal: 20, paddingTop: 18 },
+  fill: { flex: 1, minHeight: 0 },
 });

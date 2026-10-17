@@ -310,7 +310,7 @@ export default function MatchReviewScreen() {
       {/* With nothing to approve, Hide score sits at the bottom like the
           other screens' actions, not in the middle of the page. */}
       {!showActions && hideToggle ? (
-        <View style={[styles.footer, { paddingBottom: Math.max(bottom, Space.md) }]}>{hideToggle}</View>
+        <View style={[styles.footer, { paddingBottom: Math.max(bottom, Space.sm) }]}>{hideToggle}</View>
       ) : null}
 
       {canUpdate ? (
@@ -359,7 +359,7 @@ export default function MatchReviewScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
   footer: {
-    paddingTop: Space.md,
+    paddingTop: Space.sm,
     paddingHorizontal: Layout.screenGutter,
     borderTopWidth: 1,
     borderTopColor: Colors.hairline,

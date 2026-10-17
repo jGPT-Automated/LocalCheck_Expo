@@ -62,15 +62,3 @@ export function formatTimeOnCourt(checkedInAtIso: string | undefined, now: numbe
   const m = minutes % 60;
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
-
-/** Next game time in the strip: "6:30P", or a dash when nothing is scheduled. */
-export function formatNextGame(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "—";
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
-  const suffix = hours >= 12 ? "P" : "A";
-  const h12 = hours % 12 === 0 ? 12 : hours % 12;
-  return minutes === 0 ? `${h12}${suffix}` : `${h12}:${String(minutes).padStart(2, "0")}${suffix}`;
-}

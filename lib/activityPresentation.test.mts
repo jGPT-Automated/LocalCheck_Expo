@@ -6,6 +6,7 @@ import {
   shortAgo,
   describeTimelineItem,
   formatDayLabel,
+  parseDayOrInstant,
   formatDurationMinutes,
   groupCheckinBursts,
   pairVisits,
@@ -308,4 +309,13 @@ test("pairVisits with splitToday keeps today's check-in and check-out apart", ()
   assert.deepEqual(result.map((item) => item.type), ["checkout", "checkin", "visit"]);
   assert.equal(result[0].visit?.durationMinutes, 120);
   assert.equal(result[2].visit?.durationMinutes, 60);
+});
+
+test("parseDayOrInstant reads a bare day as local midnight", () => {
+  const day = parseDayOrInstant("2026-10-16");
+  assert.equal(day.getFullYear(), 2026);
+  assert.equal(day.getMonth(), 9);
+  assert.equal(day.getDate(), 16);
+  assert.equal(day.getHours(), 0);
+  assert.equal(formatDayLabel("2026-10-16", new Date(2026, 9, 17, 18)), "Yesterday");
 });

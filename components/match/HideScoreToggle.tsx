@@ -46,11 +46,10 @@ export function HideScoreToggle({
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: Layout.minTouchTarget + Space.sm,
+    minHeight: Layout.minTouchTarget,
     flexDirection: "row",
     alignItems: "center",
     gap: Space.md,
-    paddingHorizontal: Space.xs,
   },
   copy: { flex: 1, minWidth: 0, gap: 1 },
   label: { ...TextStyles.listName, color: Colors.text },

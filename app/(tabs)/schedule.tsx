@@ -16,6 +16,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -24,6 +25,7 @@ import { Feather } from "@expo/vector-icons";
 import { Colors, Radius } from "@/constants/colors";
 import {
   Court,
+  type GameRun,
   PlannedVisit,
   TeamAssignmentMode,
   getSportColor,
@@ -35,8 +37,8 @@ import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
 import { SearchField } from "@/components/ui/SearchField";
 import { SpeedDialFab } from "@/components/ui/SpeedDialFab";
 import { useBottomFloor } from "@/components/ui/TabFloor";
-import { CourtGamesPanel } from "@/components/court/CourtGamesPanel";
-import { SportLabel } from "@/components/court/CourtParts";
+import { ScheduledGameCard } from "@/components/court/CourtGamesPanel";
+import { BrutalistButton } from "@/components/BrutalistButton";
 import {
   scheduleSlotIndex,
   scheduleSlotLabel,
@@ -832,6 +834,7 @@ export default function ScheduleScreen() {
     addPlannedVisit,
     removePlannedVisit,
     savePlannedVisitBatch,
+    joinRun,
   } = useApp();
   const params = useLocalSearchParams<{
     courtId?: string;
@@ -839,6 +842,17 @@ export default function ScheduleScreen() {
   }>();
   const { top, bottom } = useSafeAreaInsets();
   const tabFloor = useBottomFloor();
+  const { width: screenWidth } = useWindowDimensions();
+  // One card plus a peek of the next, so the row reads as swipeable and the
+  // FAB only ever covers the peek.
+  const gameCardWidth = Math.min(screenWidth, 520) - 40 - 64;
+  const [joiningRunId, setJoiningRunId] = useState<string | null>(null);
+  const joinFromCard = async (game: GameRun) => {
+    if (joiningRunId) return;
+    setJoiningRunId(game.id);
+    await joinRun(game.id);
+    setJoiningRunId(null);
+  };
 
   const [showHost, setShowHost] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -1316,16 +1330,11 @@ export default function ScheduleScreen() {
           onPress={() => setShowPicker(true)}
           testID="schedule-court-selector"
         >
-          <View style={styles.courtSelectorCopy}>
-            {court ? <SportLabel sport={court.sport} /> : null}
-            <Text style={styles.courtSelectorText} numberOfLines={1}>
-              {court ? court.shortName || court.name : "Pick a court"}
-            </Text>
-          </View>
-          <View style={styles.courtSelectorChange}>
-            <Text style={styles.courtSelectorChangeText}>Change</Text>
-            <Feather name="chevron-down" size={13} color={Colors.inkSoft} />
-          </View>
+          <Feather name="map-pin" size={13} color={Colors.accent} />
+          <Text style={styles.courtSelectorText} numberOfLines={1}>
+            {court ? court.shortName || court.name : "Pick a court"}
+          </Text>
+          <Feather name="chevron-down" size={15} color={Colors.muted} />
         </Pressable>
 
         {/* One restrained instruction above the time grid. The running tally
@@ -1631,54 +1640,59 @@ export default function ScheduleScreen() {
                       {total} going{gameCount > 0 ? ` · ${gameCount} ${gameCount === 1 ? "game" : "games"}` : ""}
                     </Text>
                   </View>
-                  <View style={styles.slotPeople}>
+                  <View style={styles.slotBody}>
                     {total > 0 ? (
-                      <>
-                        {visible.slice(0, 6).map((a) => (
+                      <ScrollView
+                        contentContainerStyle={styles.slotPeople}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        style={styles.slotPeopleScroll}
+                      >
+                        {visible.map((a) => (
                           <Pressable
                             key={a.id}
                             style={styles.slotAvatarItem}
                             onPress={() => router.push(`/player/${a.id}`)}
                           >
-                            <PlayerAvatar accent={a.isMine} initials={a.initials} name={a.name} playerId={a.id} size={32} />
+                            <PlayerAvatar accent={a.isMine} initials={a.initials} name={a.name} playerId={a.id} size={30} />
                             <Text style={styles.slotAvatarName} numberOfLines={1}>
                               {a.isMine ? "You" : a.name.split(" ")[0]}
                             </Text>
                           </Pressable>
                         ))}
-                        {visible.length > 6 || hidden > 0 ? (
+                        {hidden > 0 ? (
                           <View style={styles.slotAvatarItem}>
                             <View style={styles.slotMore}>
-                              <Text style={styles.slotMoreText}>+{Math.max(0, visible.length - 6) + hidden}</Text>
+                              <Text style={styles.slotMoreText}>+{hidden}</Text>
                             </View>
-                            <Text style={styles.slotAvatarName}>{hidden > 0 ? "private" : "more"}</Text>
+                            <Text style={styles.slotAvatarName}>private</Text>
                           </View>
                         ) : null}
-                      </>
+                      </ScrollView>
                     ) : (
-                      <Text style={styles.slotEmpty}>Nobody yet. Add your time so people know to pull up.</Text>
+                      <Text numberOfLines={2} style={styles.slotEmpty}>Nobody yet. Add your time so people know to pull up.</Text>
                     )}
-                  </View>
-                  <View style={styles.slotActions}>
                     {mine?.visitId ? (
-                      <Pressable
-                        style={({ pressed }) => [styles.slotButton, pressed && styles.slotButtonPressed]}
-                        onPress={() => removePlannedVisit(mine.visitId!)}
+                      <BrutalistButton
+                        icon={<Feather name="x" size={12} color={Colors.textSecondary} />}
+                        label="Remove my time"
+                        onPress={() => void removePlannedVisit(mine.visitId!)}
+                        size="sm"
+                        style={styles.slotAction}
                         testID={`remove-visit-${mine.visitId}`}
-                      >
-                        <Feather name="x" size={12} color={Colors.textSecondary} />
-                        <Text style={styles.slotButtonText}>Remove my time</Text>
-                      </Pressable>
+                        variant="dark"
+                      />
                     ) : canAdd ? (
-                      <Pressable
-                        style={({ pressed }) => [styles.slotButton, pressed && styles.slotButtonPressed]}
+                      <BrutalistButton
+                        icon={<Feather name="plus" size={12} color={Colors.text} />}
+                        label="Add my time"
+                        loading={addingSelectedTime}
                         onPress={() => void handleAddSelectedTime()}
-                        disabled={addingSelectedTime}
+                        size="sm"
+                        style={styles.slotAction}
                         testID="add-selected-visit"
-                      >
-                        <Feather name="plus" size={12} color={Colors.text} />
-                        <Text style={styles.slotButtonText}>{addingSelectedTime ? "Adding…" : "Add my time"}</Text>
-                      </Pressable>
+                        variant="dark"
+                      />
                     ) : null}
                   </View>
                 </View>
@@ -1686,15 +1700,38 @@ export default function ScheduleScreen() {
             })()
           : null}
 
-        {/* ── Scheduled games: the same cards as the court page's Games tab ── */}
+        {/* ── Scheduled games: the court page's cards in one row you swipe
+            left and right (Oct 17), so the page itself never scrolls ── */}
         {scheduleMode === "VIEW" ? (
-          <ScrollView
-            contentContainerStyle={{ paddingBottom: tabFloor + 88 }}
-            showsVerticalScrollIndicator={false}
-            style={styles.flexArea}
-          >
-            <CourtGamesPanel games={courtRuns} onOpen={(run) => router.push(`/run/${run.id}`)} />
-          </ScrollView>
+          <View style={styles.gamesRow}>
+            <Text style={styles.gamesLabel}>Upcoming · {courtRuns.length}</Text>
+            {courtRuns.length > 0 ? (
+              <ScrollView
+                contentContainerStyle={styles.gamesTrack}
+                decelerationRate="fast"
+                disableIntervalMomentum
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                snapToAlignment="start"
+                snapToInterval={gameCardWidth + 10}
+              >
+                {courtRuns.map((run) => (
+                  <ScheduledGameCard
+                    game={run}
+                    joining={joiningRunId === run.id}
+                    key={run.id}
+                    onJoin={(game) => void joinFromCard(game)}
+                    onOpen={(game) => router.push(`/run/${game.id}`)}
+                    style={{ width: gameCardWidth }}
+                  />
+                ))}
+              </ScrollView>
+            ) : (
+              <View style={styles.gamesEmpty}>
+                <Text style={styles.gamesEmptyText}>Nothing scheduled. Post a game and locals see it.</Text>
+              </View>
+            )}
+          </View>
         ) : null}
       </View>
 
@@ -1794,34 +1831,21 @@ const styles = StyleSheet.create({
   courtSelector: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 8,
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 12,
+    paddingVertical: 13,
     borderBottomWidth: 1,
     borderBottomColor: Colors.hairline,
   },
   courtSelectorPressed: { opacity: 0.75 },
-  courtSelectorCopy: { flex: 1, minWidth: 0, gap: 4 },
   courtSelectorText: {
-    fontFamily: Typography.headingBold,
-    fontSize: 26,
-    lineHeight: 28,
-    letterSpacing: -0.6,
-    textTransform: "uppercase",
+    flex: 1,
+    minWidth: 0,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 14,
     color: Colors.text,
+    letterSpacing: 0.2,
   },
-  courtSelectorChange: {
-    height: 30,
-    paddingHorizontal: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "rgba(242,242,246,0.13)",
-  },
-  courtSelectorChangeText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.inkSoft },
   scheduleModeRow: {
     paddingHorizontal: 20,
     paddingTop: 12,
@@ -2120,48 +2144,44 @@ const styles = StyleSheet.create({
 
   // ── Slot detail card (fixed height) ──
   slotCard: {
-    height: 138,
     marginHorizontal: 20,
-    marginTop: 12,
+    marginTop: 10,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingTop: 11,
+    paddingBottom: 12,
     borderWidth: 1,
     borderColor: Colors.hairlineCard,
     borderRadius: Radius.panel,
     backgroundColor: Colors.panel,
   },
   slotHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10 },
-  slotCardTitle: { flexShrink: 1, fontFamily: Typography.headingSemiBold, fontSize: 16, letterSpacing: 0.2, textTransform: "uppercase", color: Colors.text },
+  slotCardTitle: { flexShrink: 1, fontFamily: Typography.headingSemiBold, fontSize: 15, letterSpacing: 0.2, textTransform: "uppercase", color: Colors.text },
   slotCardGoing: { flexShrink: 0, fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.textSecondary },
   slotCardGoingLive: { color: Colors.liveInk },
-  slotPeople: { height: 52, marginTop: 10, flexDirection: "row", alignItems: "center", gap: 10, overflow: "hidden" },
-  slotAvatarItem: { alignItems: "center", width: 40 },
-  slotAvatarName: { fontFamily: Typography.bodySemiBold, fontSize: 9, color: Colors.textSecondary, marginTop: 3 },
+  // Names and the action share one row: one fixed height, empty or full.
+  slotBody: { height: 50, marginTop: 8, flexDirection: "row", alignItems: "center", gap: 12 },
+  slotPeopleScroll: { flex: 1, minWidth: 0 },
+  slotPeople: { alignItems: "center", gap: 8 },
+  slotAvatarItem: { alignItems: "center", width: 54 },
+  slotAvatarName: { maxWidth: 54, fontFamily: Typography.bodySemiBold, fontSize: 9, color: Colors.textSecondary, marginTop: 3 },
   slotMore: {
-    width: 32,
-    height: 32,
-    borderRadius: 9,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: Colors.dashed,
+    width: 30,
+    height: 30,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: Colors.border,
   },
   slotMoreText: { fontFamily: Typography.headingSemiBold, fontSize: 11, color: Colors.textSecondary },
-  slotEmpty: { flex: 1, fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary, lineHeight: 17 },
-  slotActions: { height: 32, marginTop: 8, flexDirection: "row" },
-  slotButton: {
-    height: 32,
-    paddingHorizontal: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderRadius: Radius.button,
-    borderWidth: 1,
-    borderColor: Colors.hairlineChrome,
-  },
-  slotButtonPressed: { opacity: 0.7 },
-  slotButtonText: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.text },
+  slotEmpty: { flex: 1, minWidth: 0, fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary, lineHeight: 17 },
+  slotAction: { flexShrink: 0 },
+  gamesRow: { flex: 1, minHeight: 0, paddingTop: 14 },
+  gamesLabel: { paddingHorizontal: 20, marginBottom: 8, fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
+  gamesTrack: { paddingHorizontal: 20, gap: 10, alignItems: "flex-start" },
+  gamesEmpty: { minHeight: 64, marginHorizontal: 20, paddingHorizontal: 14, justifyContent: "center", borderRadius: Radius.row, borderWidth: 1, borderStyle: "dashed", borderColor: Colors.dashed },
+  gamesEmptyText: { fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
 
   // ── Scheduled runs ──
   runsSection: { paddingHorizontal: 20, paddingTop: 12 },

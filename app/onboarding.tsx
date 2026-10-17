@@ -1,8 +1,10 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,6 +16,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrutalistButton } from "@/components/BrutalistButton";
+import { CourtArt } from "@/components/court/CourtArt";
 import { LogoLockup, LogoMark } from "@/components/brand/LogoMark";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { OptionRow } from "@/components/ui/OptionRow";
@@ -51,6 +54,8 @@ const SPORT_ROWS: { value: CourtSport; label: string }[] = [
   { value: "BASKETBALL", label: "Basketball" },
   { value: "PICKLEBALL", label: "Pickleball" },
 ];
+
+const WELCOME_ART = require("@/assets/brand/splash-artwork.png");
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -274,6 +279,7 @@ export default function OnboardingScreen() {
   const courtName = selectedCourt ? selectedCourt.shortName || selectedCourt.name : "your court";
   // Small phones list two rows so the map keeps its room.
   const nearest = courtOptions.slice(0, windowHeight < 760 ? 2 : 3);
+  const heroHeight = Math.round(windowHeight * 0.5);
 
   const primary =
     step === 0
@@ -341,35 +347,63 @@ export default function OnboardingScreen() {
       {header}
 
       {step === 0 ? (
-        <View style={[styles.welcome, { paddingTop: top + Space.xxl }]}>
-          <LogoLockup width={176} />
-          <View style={styles.welcomeCopy}>
-            <Text style={styles.title}>
-              Know who's{"\n"}running<Text style={styles.titleDot}>.</Text>
-            </Text>
-            <Text style={styles.subtitle}>
-              LocalCheck is your court, live: who's on now, who's coming this week, and where you rank.
-            </Text>
+        <View style={styles.welcome}>
+          {/* The sign-in artwork carries on into the welcome (Oct 17): full
+              bleed at the top, fading into the page under the headline. */}
+          <View style={[styles.hero, { height: heroHeight }]}>
+            <Image
+              accessibilityLabel="An abstract basketball player rising toward the rim"
+              resizeMode="contain"
+              source={WELCOME_ART}
+              style={[styles.heroArt, { height: heroHeight * 1.3, width: heroHeight * 1.3 * (2 / 3) }]}
+            />
+            <LinearGradient
+              colors={[Colors.background, "rgba(13,13,16,0)"]}
+              pointerEvents="none"
+              style={[styles.heroFadeTop, { height: top + 96 }]}
+            />
+            <LinearGradient
+              colors={["rgba(13,13,16,0)", Colors.background]}
+              pointerEvents="none"
+              style={styles.heroFadeBottom}
+            />
+            <View style={[styles.heroLogo, { top: top + Space.lg }]}>
+              <LogoLockup width={164} />
+            </View>
           </View>
-          <View style={styles.howList}>
-            <HowRow
-              body="Tap in at the court, or let it happen when you walk up. Locals see who's on now."
-              icon="map-pin"
-              title="Check in"
-            />
-            <HowRow
-              body="Tap the hours you'll play this week. Everyone sees when your court gets busy."
-              icon="calendar"
-              title="Plan the week"
-            />
-            <HowRow
-              body="Log the score after you play. Wins move you up your court's ranking."
-              icon="award"
-              title="Log games, rank up"
-            />
+          <View style={styles.welcomeBody}>
+            <View style={styles.welcomeCopy}>
+              <Text style={[styles.title, styles.welcomeTitle]}>
+                Know who's{"\n"}running<Text style={styles.titleDot}>.</Text>
+              </Text>
+              <Text style={styles.subtitle}>
+                LocalCheck is your court, live: who's on now, who's coming this week, and where you rank.
+              </Text>
+            </View>
+            <View style={styles.welcomeHow}>
+              <HowRow
+                body="Tap in at the court, or let it happen when you walk up. Locals see who's on now."
+                icon="map-pin"
+                title="Check in"
+              />
+              <HowRow
+                body="Tap the hours you'll play this week. Everyone sees when your court gets busy."
+                icon="calendar"
+                title="Plan the week"
+              />
+              <HowRow
+                body="Log the score after you play. Wins move you up your court's ranking."
+                icon="award"
+                title="Log games, rank up"
+              />
+            </View>
           </View>
         </View>
       ) : null}
+
+      {/* The court trace from Home and the court page sits behind the step
+          titles, so setup already looks like the app it leads into. */}
+      {step === 1 || step === 3 || step === 4 ? <CourtArt sport={sport ?? "BASKETBALL"} top={top + 52} /> : null}
 
       {step === 1 ? (
         <KeyboardAwareScrollViewCompat
@@ -674,8 +708,21 @@ const styles = StyleSheet.create({
   progressSegment: { flex: 1, height: 3, borderRadius: 2, backgroundColor: Colors.surfaceHigh },
   progressFilled: { backgroundColor: Colors.accent },
 
-  welcome: { flex: 1, paddingHorizontal: Layout.screenGutter, gap: Space.xxl },
+  welcome: { flex: 1 },
+  hero: { position: "relative", overflow: "hidden" },
+  heroArt: { position: "absolute", right: -24, top: -12 },
+  heroFadeTop: { position: "absolute", top: 0, left: 0, right: 0 },
+  heroFadeBottom: { position: "absolute", left: 0, right: 0, bottom: 0, height: "55%" },
+  heroLogo: { position: "absolute", left: Layout.screenGutter },
+  welcomeBody: { flex: 1, marginTop: -96, paddingHorizontal: Layout.screenGutter, justifyContent: "space-between", paddingBottom: Space.lg },
   welcomeCopy: { gap: Space.md },
+  welcomeTitle: { fontSize: 44, lineHeight: 44 },
+  welcomeHow: {
+    gap: Space.md,
+    paddingTop: Space.lg,
+    borderTopWidth: 1,
+    borderTopColor: Colors.hairline,
+  },
 
   stepTitle: { gap: Space.sm },
   eyebrow: { fontFamily: Typography.bodyBold, fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", color: Colors.textSecondary },

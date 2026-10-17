@@ -18,8 +18,9 @@ const DAYS_AHEAD = 6;
  * How busy the court gets through a day, like a maps app's popular times.
  * Hours gone show who was actually on court (check-ins), hours ahead show
  * planned visits plus players signed up for games (outlined), and this hour
- * is orange. Step a week back or a week ahead with the arrows. Used at the
- * top of the court page's Live tab and as Today in the expanded drawer.
+ * is orange. Step a week back or a week ahead with the arrows. Used in the
+ * court page header (`variant="header"`: no title, the caption sits beside
+ * the day stepper) and as Today in the expanded drawer.
  */
 export function CourtBusyChart({
   courtId,
@@ -27,6 +28,7 @@ export function CourtBusyChart({
   title = "Busy times",
   height = 52,
   refreshKey,
+  variant = "section",
 }: {
   courtId: string;
   games: GameRun[];
@@ -34,6 +36,7 @@ export function CourtBusyChart({
   height?: number;
   /** Re-read when this changes (presence changed). */
   refreshKey?: number | string;
+  variant?: "section" | "header";
 }) {
   const [dayOffset, setDayOffset] = React.useState(0);
   const [spans, setSpans] = React.useState<CheckInSpan[]>([]);
@@ -66,9 +69,12 @@ export function CourtBusyChart({
   const max = Math.max(4, ...bars.map((bar) => bar.value));
   const labelEvery = 4;
 
+  const caption = busyCaption(bars, dayOffset);
+  const header = variant === "header";
+
   return (
     <View>
-      <SectionHead meta={busyCaption(bars, dayOffset)} title={title} />
+      {header ? null : <SectionHead meta={caption} title={title} />}
       <View style={styles.stepper}>
         <Pressable
           accessibilityLabel="Previous day"
@@ -91,9 +97,10 @@ export function CourtBusyChart({
         >
           <Feather color={Colors.textSecondary} name="chevron-right" size={16} />
         </Pressable>
+        {header ? <Text numberOfLines={1} style={styles.headerCaption}>{caption}</Text> : null}
       </View>
       <View
-        accessibilityLabel={`${busyDayLabel(dayOffset, now)}: ${busyCaption(bars, dayOffset)}`}
+        accessibilityLabel={`${busyDayLabel(dayOffset, now)}: ${caption}`}
         style={[styles.bars, { height }]}
       >
         {bars.map((bar) => (
@@ -109,12 +116,19 @@ export function CourtBusyChart({
           />
         ))}
       </View>
+      {/* Labels sit centred under their bar but may be wider than it, so
+          "Now" never clips to a bar's width. */}
       <View style={styles.labels}>
         {bars.map((bar, index) => {
           const show = bar.kind === "now" || (index % labelEvery === 0 && !bars.slice(Math.max(0, index - 1), index + 2).some((b) => b.kind === "now"));
+          if (!show) return null;
           return (
-            <Text key={bar.hour} numberOfLines={1} style={[styles.label, bar.kind === "now" && styles.labelNow]}>
-              {show ? (bar.kind === "now" ? "Now" : hourLabel(bar.hour)) : ""}
+            <Text
+              key={bar.hour}
+              numberOfLines={1}
+              style={[styles.label, { left: `${((index + 0.5) / bars.length) * 100}%` }, bar.kind === "now" && styles.labelNow]}
+            >
+              {bar.kind === "now" ? "Now" : hourLabel(bar.hour)}
             </Text>
           );
         })}
@@ -135,7 +149,8 @@ const styles = StyleSheet.create({
   barNow: { backgroundColor: Colors.accent },
   barPlanned: { borderWidth: 1, borderColor: Colors.inkSoft, backgroundColor: "transparent" },
   barEmpty: { backgroundColor: Colors.surfaceHigh },
-  labels: { flexDirection: "row", gap: 3, marginTop: 5 },
-  label: { flex: 1, textAlign: "center", fontFamily: Typography.bodyBold, fontSize: 7.5, letterSpacing: 0.4, textTransform: "uppercase", color: Colors.muted },
+  headerCaption: { flex: 1, minWidth: 0, textAlign: "right", fontFamily: Typography.bodySemiBold, fontSize: 10, color: Colors.muted },
+  labels: { height: 12, marginTop: 6 },
+  label: { position: "absolute", top: 0, width: 36, marginLeft: -18, textAlign: "center", fontFamily: Typography.bodyBold, fontSize: 8, lineHeight: 12, letterSpacing: 0.4, textTransform: "uppercase", color: Colors.muted },
   labelNow: { color: Colors.liveInk },
 });

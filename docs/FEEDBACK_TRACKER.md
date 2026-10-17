@@ -21,6 +21,37 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-17 — Pre-submission polish pass (`claude/kind-pascal-4c174r`, stacked on #75)
+
+From the Oct 16 precision handoff (comments 1–16, A1–A4) and Jesse's Oct 17
+voice notes. Checked in a local web render at 393×852 against mocked data
+(see the PR); not on a phone yet.
+
+| Item | Status |
+|------|--------|
+| #1 Home LOCAL pill → small house marker (also Explore card) | ✅ needs device check |
+| #2 Week heatmap: month/hour labels against the grid, readable size | ✅ |
+| #3 Plan / Check in / Court one height, Plan and Court matching | ✅ |
+| #4 Game activity rail: markers on the sentence's line (web dropped the spacer height) | ✅ |
+| #5 Court header: live On court number + today's busy times above the tabs | ✅ |
+| #6 Court Games: list ends on a Create a game row, no dead space | ✅ |
+| #7 Week card: empty text centred, columns line up with the buttons | ✅ |
+| #8 "38h": unit a size smaller with a thin space | ✅ |
+| #9 Week card: shared buttons, shorter card | ✅ |
+| #10 / A4 Game page: court and format once; Submit result pinned in the footer | ✅ needs 5v5 device check |
+| #11 Inbox countdown centred | ✅ needs a pending game to see |
+| #12 Hide score row compact, same left edge as the buttons | ✅ |
+| #13 / #14 Head-to-head: full name + rating on their own row; footer baselines | ✅ |
+| #15 / #16 / A2 Schedule: original dropdown, one-row time card, no page scroll, games swipe | ✅ |
+| A1 Check-out icon points the opposite way to check-in | ✅ |
+| A3 Map legend | ⬜ still needs a working-map capture (no Mapbox token on the preview) |
+| One drawer everywhere: FormSheet, How score review works, player QR | ✅ device check (keyboard in Log game) |
+| Onboarding welcome: artwork hero; court trace behind step titles | ✅ |
+| Me tab tabs match the other profile | ✅ |
+| Played day showed one day early in the timeline / head-to-head | ✅ |
+| Settings push switch thumb turned teal on web | ✅ |
+| Vercel INP 655 ms input delay | ⬜ not reproduced (100–300 ms tasks at 6× CPU throttle, same before and after) |
+
 ## 2026-10-15 — Court-flow UI pass, frontend only (`claude/court-flow-ui-pass`)
 
 | Item | Status |

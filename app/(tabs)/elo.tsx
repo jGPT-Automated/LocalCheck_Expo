@@ -827,6 +827,8 @@ function ProfileTabButton({
 }) {
   return (
     <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected: active }}
       onPress={onPress}
       style={[styles.tab, active && styles.tabActive]}
     >
@@ -972,26 +974,28 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     marginTop: 3,
   },
+  // Same tab bar as the other player's profile and the court page
+  // (CourtTabBar): Inter caps, orange underline on the active tab.
   tabs: {
-    minHeight: 52,
     flexDirection: "row",
-    backgroundColor: Colors.surfaceDark,
+    paddingHorizontal: 6,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.hairline,
   },
   tab: {
     flex: 1,
-    minHeight: 52,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
     borderBottomWidth: 2,
-    borderBottomColor: Colors.surfaceDark,
+    borderBottomColor: "transparent",
   },
   tabActive: { borderBottomColor: Colors.accent },
   tabText: {
-    fontFamily: Typography.headingRegular,
-    fontSize: 14,
-    letterSpacing: 1.4,
+    fontFamily: Typography.bodyBold,
+    fontSize: 9.5,
+    letterSpacing: 1,
+    textTransform: "uppercase",
     color: Colors.muted,
   },
   tabTextActive: { color: Colors.text },

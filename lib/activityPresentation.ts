@@ -200,8 +200,18 @@ function joinTeam(names: string[]): string {
 }
 
 /** "Today", "Yesterday", "Sep 6" (adds the year when it is not this year). */
+/**
+ * A `played_at` is often a bare day ("2026-10-16"). `new Date()` reads that
+ * as UTC midnight, which is the evening before anywhere in the Americas, so
+ * read a bare day as local midnight; full timestamps parse as usual.
+ */
+export function parseDayOrInstant(value: string): Date {
+  const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  return day ? new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3])) : new Date(value);
+}
+
 export function formatDayLabel(iso: string, now: Date = new Date()): string {
-  const date = new Date(iso);
+  const date = parseDayOrInstant(iso);
   if (Number.isNaN(date.getTime())) return "";
   const startOfDay = (d: Date) =>
     new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();

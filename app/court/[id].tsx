@@ -11,7 +11,7 @@ import { CourtArt } from "@/components/court/CourtArt";
 import { CourtBusyChart } from "@/components/court/CourtBusyChart";
 import { CourtGamesPanel } from "@/components/court/CourtGamesPanel";
 import { CourtInfoPanel } from "@/components/court/CourtInfoPanel";
-import { CheckInButton, CourtTabBar, LocalPill, MetricStrip, SportLabel } from "@/components/court/CourtParts";
+import { CheckInButton, CourtTabBar, LiveDot, LocalPill, SportLabel } from "@/components/court/CourtParts";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { GameResultModal } from "@/components/ui/GameResultModal";
 import { PersonTile } from "@/components/ui/PersonTile";
@@ -33,7 +33,6 @@ import {
   courtHours,
   formatAverageSession,
   formatCourtHours,
-  formatNextGame,
   type CourtHours,
 } from "@/lib/courtHours";
 import { fetchCourtById, fetchCourtWeekSpans } from "@/services/courtService";
@@ -259,21 +258,31 @@ export default function CourtProfileScreen() {
           </Pressable>
           <LocalPill isLocal={isMyLocal} onPress={() => void setLocalCourt(isMyLocal ? null : court.id, court)} />
         </View>
-        <View style={styles.titleBlock}>
-          <SportLabel sport={court.sport} />
-          <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
-            {court.shortName || court.name}
-          </Text>
-          {place ? <Text numberOfLines={1} style={styles.place}>{place}</Text> : null}
+        {/* Name left, the live number right (Oct 17 header reference), then
+            today's busy times above the tabs so every tab shares them. */}
+        <View style={styles.titleRow}>
+          <View style={styles.titleBlock}>
+            <SportLabel sport={court.sport} />
+            <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
+              {court.shortName || court.name}
+            </Text>
+            {place ? <Text numberOfLines={1} style={styles.place}>{place}</Text> : null}
+          </View>
+          <View
+            accessibilityLabel={`${hiddenCount > 0 ? "About " : ""}${activeCount} on court`}
+            style={styles.liveBlock}
+          >
+            <Text style={[styles.liveValue, activeCount > 0 && styles.liveValueOn]}>
+              {hiddenCount > 0 ? `~${activeCount}` : activeCount}
+            </Text>
+            <View style={styles.liveLabelRow}>
+              {activeCount > 0 ? <LiveDot /> : null}
+              <Text style={styles.liveLabel}>On court</Text>
+            </View>
+          </View>
         </View>
-        <View style={styles.stripWrap}>
-          <MetricStrip
-            cells={[
-              { label: "On court", value: hiddenCount > 0 ? `~${activeCount}` : activeCount, live: activeCount > 0 },
-              { label: "Court hours · wk", value: hoursLabel },
-              { label: "Next game", value: formatNextGame(upcomingGames[0]?.startTimeIso) },
-            ]}
-          />
+        <View style={styles.busyHeader}>
+          <CourtBusyChart courtId={court.id} games={upcomingGames} height={34} refreshKey={roster.length} variant="header" />
         </View>
         <CourtTabBar active={activeTab} onChange={setActiveTab} tabs={COURT_TABS} />
       </View>
@@ -281,9 +290,6 @@ export default function CourtProfileScreen() {
       <View style={styles.tabContent}>
         {activeTab === "live" ? (
           <ScrollView contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
-            <View style={styles.busy}>
-              <CourtBusyChart courtId={court.id} games={upcomingGames} refreshKey={roster.length} />
-            </View>
             <View style={styles.onCourt}>
               <Text style={styles.eyebrow}>On court · {hiddenCount > 0 ? `~${activeCount}` : activeCount}</Text>
               {roster.length > 0 || hiddenCount > 0 ? (
@@ -347,7 +353,11 @@ export default function CourtProfileScreen() {
 
         {activeTab === "games" ? (
           <ScrollView contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
-            <CourtGamesPanel games={upcomingGames} onOpen={(game) => router.push(`/run/${game.id}`)} />
+            <CourtGamesPanel
+              games={upcomingGames}
+              onCreate={() => router.push({ pathname: "/(tabs)/schedule", params: { courtId: court.id, openCreate: "1" } })}
+              onOpen={(game) => router.push(`/run/${game.id}`)}
+            />
           </ScrollView>
         ) : null}
 
@@ -456,22 +466,27 @@ const styles = StyleSheet.create({
   header: { position: "relative", overflow: "hidden" },
   navRow: { height: 44, paddingLeft: 12, paddingRight: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   back: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
-  titleBlock: { paddingHorizontal: 20, paddingTop: 6, gap: 6 },
+  titleRow: { flexDirection: "row", alignItems: "flex-end", gap: 16, paddingHorizontal: 20, paddingTop: 6 },
+  titleBlock: { flex: 1, minWidth: 0, gap: 6 },
+  liveBlock: { flexShrink: 0, alignItems: "flex-end", paddingBottom: 1 },
+  liveValue: { fontFamily: Typography.headingBold, fontSize: 46, lineHeight: 48, letterSpacing: -1.4, color: Colors.text, fontVariant: ["tabular-nums"] },
+  liveValueOn: { color: Colors.liveInk },
+  liveLabelRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
+  liveLabel: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.textSecondary },
+  busyHeader: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14 },
   name: {
     fontFamily: Typography.headingBold,
-    fontSize: 38,
-    lineHeight: 40,
-    letterSpacing: -1.2,
+    fontSize: 34,
+    lineHeight: 37,
+    letterSpacing: -1.1,
     textTransform: "uppercase",
     color: Colors.text,
     textShadowColor: Colors.sheet,
     textShadowRadius: 6,
   },
   place: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
-  stripWrap: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 12 },
   tabContent: { flex: 1, minHeight: 0 },
   scheduleView: { flex: 1, minHeight: 0, overflow: "hidden" },
-  busy: { paddingHorizontal: 20, paddingTop: 16 },
   onCourt: { paddingTop: 16, gap: 10 },
   eyebrow: { paddingHorizontal: 20, fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
   roster: { paddingHorizontal: 20, gap: Space.md, alignItems: "center" },

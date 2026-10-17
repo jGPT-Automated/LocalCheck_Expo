@@ -164,8 +164,6 @@ export default function RunScreen() {
       ? teamsAreAssigned ? "ELO balance · locked" : "ELO balance · set when full"
       : "Choose teams · pick a side"],
     ["Level", run.skillLevel.charAt(0) + run.skillLevel.slice(1).toLowerCase()],
-    ["Where", run.courtName],
-    ["Host", run.hostName || "Court local"],
   ];
   const renderPlayer = (player: Player, compact = false) => (
     <Pressable
@@ -217,12 +215,11 @@ export default function RunScreen() {
         style={styles.content}
       >
         <View style={styles.titleBlock}>
-          <SportLabel sport={run.sport} suffix={format} />
+          <SportLabel sport={run.sport} />
           <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={2} style={styles.title}>
             {run.title}
           </Text>
           <Text style={styles.when}>{whenLabel}</Text>
-          <Text numberOfLines={1} style={styles.where}>{run.courtName}</Text>
         </View>
 
         <MetricStrip
@@ -306,45 +303,9 @@ export default function RunScreen() {
           </View>
         ) : null}
 
-        {/* The scheduled game owns its result. Only its creator enters teams and
-            score; every participant then receives the shared review state. */}
-        {resultAction.kind !== "none" ? (
-          <View style={styles.section}>
-            <Text style={styles.eyebrow}>
-              {resultAction.kind === "submit" ? "Game done? Submit the result" : "Result status"}
-            </Text>
-            <View style={styles.resultButtons}>
-              {resultAction.kind === "submit" ? (
-                <BrutalistButton
-                  label="Submit result"
-                  onPress={() => setShowResult(true)}
-                  variant="accent"
-                  style={styles.resultBtn}
-                  testID="log-game-btn"
-                />
-              ) : resultAction.kind === "review" ? (
-                <BrutalistButton
-                  label="View result"
-                  onPress={() => router.push(`/match/${resultAction.matchId}`)}
-                  variant="primary"
-                  style={styles.resultBtn}
-                  testID="view-result-btn"
-                />
-              ) : (
-                <View style={styles.awaitingResult}>
-                  <Text style={styles.awaitingResultTitle}>
-                    {resultAction.kind === "submitted" ? "Result submitted" : "Waiting on the creator"}
-                  </Text>
-                  <Text style={styles.awaitingResultCopy}>
-                    {resultAction.kind === "submitted"
-                      ? "The score is ready for participant review."
-                      : "You’ll be notified when the score is ready to review."}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        ) : isHost ? (
+        {/* The scheduled game owns its result; its action lives in the
+            pinned footer so a long roster never hides it. */}
+        {resultAction.kind === "none" && isHost ? (
           <View style={styles.section}>
             <Text style={styles.eyebrow}>Manage this game</Text>
             <View style={styles.resultButtons}>
@@ -395,7 +356,36 @@ export default function RunScreen() {
 
       <View style={[styles.footer, { paddingBottom: (Platform.OS === "web" ? 34 : bottom) + 12 }]}>
         {joinError && <Text style={styles.joinError}>Something went wrong. Try again.</Text>}
-        {run.teamAssignmentMode === "choose_teams" && !isJoined && !isFull ? (
+        {resultAction.kind === "submit" ? (
+          <BrutalistButton
+            label="Submit result"
+            onPress={() => setShowResult(true)}
+            variant="accent"
+            size="lg"
+            style={{ flex: 1 }}
+            testID="log-game-btn"
+          />
+        ) : resultAction.kind === "review" ? (
+          <BrutalistButton
+            label="View result"
+            onPress={() => router.push(`/match/${resultAction.matchId}`)}
+            variant="primary"
+            size="lg"
+            style={{ flex: 1 }}
+            testID="view-result-btn"
+          />
+        ) : resultAction.kind !== "none" ? (
+          <View style={styles.awaitingResult}>
+            <Text style={styles.awaitingResultTitle}>
+              {resultAction.kind === "submitted" ? "Result submitted" : "Waiting on the creator"}
+            </Text>
+            <Text style={styles.awaitingResultCopy}>
+              {resultAction.kind === "submitted"
+                ? "The score is ready for participant review."
+                : "You’ll be notified when the score is ready to review."}
+            </Text>
+          </View>
+        ) : run.teamAssignmentMode === "choose_teams" && !isJoined && !isFull ? (
           <View style={styles.joinSideRow}>
             {(["a", "b"] as const).map((side) => {
               const sideIsFull = sidePlayers(side).length >= teamSize;
@@ -669,7 +659,6 @@ const styles = StyleSheet.create({
   titleBlock: { paddingHorizontal: 20, gap: 8 },
   title: { fontFamily: Typography.headingBold, fontSize: 40, lineHeight: 40, letterSpacing: -1.4, textTransform: "uppercase", color: Colors.text },
   when: { fontFamily: Typography.bodySemiBold, fontSize: 13, color: Colors.inkSoft },
-  where: { fontFamily: Typography.bodyMedium, fontSize: 11.5, color: Colors.textSecondary },
   spots: { paddingHorizontal: 20, gap: 6 },
   spotBar: { flexDirection: "row", gap: 3 },
   spot: { flex: 1, height: 6, borderRadius: 2, backgroundColor: "rgba(242,242,246,0.1)" },

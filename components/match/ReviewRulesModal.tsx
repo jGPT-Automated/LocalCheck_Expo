@@ -1,9 +1,9 @@
-import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
-import { Colors, Radius } from "@/constants/colors";
-import { Layout, Space } from "@/constants/layout";
+import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
+import { Colors } from "@/constants/colors";
+import { Space } from "@/constants/layout";
 import { TextStyles } from "@/constants/typography";
 
 export const REVIEW_RULES = [
@@ -15,9 +15,9 @@ export const REVIEW_RULES = [
 ];
 
 /**
- * "How score review works" as a centred pop-up (D47), opened from the info
- * button in the game page header. Read once, closed with the X or a tap
- * outside.
+ * "How score review works" (D47), opened from the info button in the game
+ * page header. The same drawer as every other sheet (Oct 17): drag down or
+ * tap outside to close.
  */
 export function ReviewRulesModal({
   visible,
@@ -27,66 +27,22 @@ export function ReviewRulesModal({
   onClose: () => void;
 }) {
   return (
-    <Modal animationType="fade" onRequestClose={onClose} transparent visible={visible}>
-      <Pressable accessibilityLabel="Close" onPress={onClose} style={styles.backdrop}>
-        <Pressable onPress={() => undefined} style={styles.card}>
-          <View style={styles.header}>
-            <Text style={styles.title}>HOW SCORE REVIEW WORKS</Text>
-            <Pressable
-              accessibilityLabel="Close"
-              accessibilityRole="button"
-              hitSlop={10}
-              onPress={onClose}
-              style={styles.close}
-            >
-              <Feather color={Colors.textSecondary} name="x" size={18} />
-            </Pressable>
+    <RunFlowSheet dynamic onClose={onClose} title="How score review works" visible={visible}>
+      <View style={styles.rows}>
+        {REVIEW_RULES.map((rule, index) => (
+          <View key={rule} style={styles.row}>
+            <View style={styles.index}>
+              <Text style={styles.indexText}>{index + 1}</Text>
+            </View>
+            <Text style={styles.text}>{rule}</Text>
           </View>
-          <ScrollView contentContainerStyle={styles.rows} showsVerticalScrollIndicator={false}>
-            {REVIEW_RULES.map((rule, index) => (
-              <View key={rule} style={styles.row}>
-                <View style={styles.index}>
-                  <Text style={styles.indexText}>{index + 1}</Text>
-                </View>
-                <Text style={styles.text}>{rule}</Text>
-              </View>
-            ))}
-          </ScrollView>
-        </Pressable>
-      </Pressable>
-    </Modal>
+        ))}
+      </View>
+    </RunFlowSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: Layout.screenGutter,
-    backgroundColor: "rgba(0,0,0,0.62)",
-  },
-  card: {
-    width: "100%",
-    maxWidth: 420,
-    maxHeight: "80%",
-    padding: Space.lg,
-    gap: Space.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-    borderRadius: Radius.card,
-    backgroundColor: Colors.surface,
-  },
-  header: { flexDirection: "row", alignItems: "center", gap: Space.md },
-  title: { ...TextStyles.label, flex: 1, color: Colors.text, letterSpacing: 1.2 },
-  close: {
-    width: 32,
-    height: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 16,
-    backgroundColor: Colors.surfaceHigh,
-  },
   rows: { gap: Space.lg },
   row: { flexDirection: "row", alignItems: "flex-start", gap: Space.md },
   index: {

@@ -771,5 +771,5 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   compactScoreWin: { color: Colors.text },
-  compactNote: { ...TextStyles.metadata, color: Colors.muted },
+  compactNote: { ...TextStyles.metadata, color: Colors.muted, textAlign: "center", alignSelf: "stretch" },
 });

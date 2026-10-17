@@ -8,8 +8,10 @@ import {
   ActivityIndicator,
   Animated,
   Pressable,
+  type StyleProp,
   StyleSheet,
   Text,
+  type TextStyle,
   View,
 } from "react-native";
 
@@ -82,14 +84,14 @@ export function LocalPill({ isLocal, onPress }: { isLocal: boolean; onPress?: ()
 }
 
 /**
- * Home's "Local" tag: a label hanging off the right edge of the screen (no
- * right corners), so the court reads as yours without a second button.
+ * The "your local court" marker on Home and the Explore card (Oct 17): a
+ * small house in a hairline square, sitting inside the gutter. Not a button;
+ * changing your local court lives on the court page.
  */
 export function LocalTag() {
   return (
-    <View accessibilityLabel="Your local court" style={styles.localTag}>
-      <Feather color={Colors.text} name="home" size={11} />
-      <Text style={styles.localTagText}>Local</Text>
+    <View accessibilityLabel="Your local court" accessible style={styles.localTag}>
+      <Feather color={Colors.text} name="home" size={13} />
     </View>
   );
 }
@@ -113,16 +115,15 @@ export function MetricStrip({ cells, size = "page" }: { cells: StripCell[]; size
           key={cell.label}
           style={[styles.cell, size === "drawer" && styles.cellDrawer, size === "card" && styles.cellCard, index > 0 && styles.cellDivider]}
         >
-          <Text
+          <MetricValue
             style={[
               styles.cellValue,
               size === "drawer" && styles.cellValueDrawer,
               size === "card" && styles.cellValueCard,
               cell.live && styles.cellValueLive,
             ]}
-          >
-            {cell.value}
-          </Text>
+            value={cell.value}
+          />
           <View style={styles.cellLabelRow}>
             {cell.live ? <LiveDot /> : null}
             <Text numberOfLines={1} style={styles.cellLabel}>{cell.label}</Text>
@@ -130,6 +131,21 @@ export function MetricStrip({ cells, size = "page" }: { cells: StripCell[]; size
         </View>
       ))}
     </View>
+  );
+}
+
+/**
+ * A strip number. A trailing unit ("38h", "8P") is set a size smaller with a
+ * hair of space, so it reads as the unit of the number instead of touching it.
+ */
+function MetricValue({ value, style }: { value: string | number; style: StyleProp<TextStyle> }) {
+  const match = /^(~?\d+)([A-Za-z]+)$/.exec(String(value));
+  if (!match) return <Text style={style}>{value}</Text>;
+  return (
+    <Text style={style}>
+      {match[1]}
+      <Text style={styles.cellUnit}>{"\u2009"}{match[2]}</Text>
+    </Text>
   );
 }
 
@@ -268,20 +284,15 @@ const styles = StyleSheet.create({
   pillText: { fontFamily: Typography.bodyBold, fontSize: 8.5, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.textSecondary },
   pillTextActive: { color: Colors.text },
   localTag: {
+    width: 28,
     height: 28,
-    paddingLeft: 12,
-    paddingRight: 16,
-    flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    borderTopLeftRadius: 999,
-    borderBottomLeftRadius: 999,
+    justifyContent: "center",
+    borderRadius: Radius.button,
     borderWidth: 1,
-    borderRightWidth: 0,
-    borderColor: "rgba(242,242,246,0.18)",
-    backgroundColor: Colors.tile,
+    borderColor: "rgba(242,242,246,0.14)",
+    backgroundColor: "rgba(242,242,246,0.04)",
   },
-  localTagText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.4, textTransform: "uppercase", color: Colors.text },
   pressed: { opacity: 0.72 },
   strip: {
     flexDirection: "row",
@@ -293,6 +304,7 @@ const styles = StyleSheet.create({
   cellDivider: { borderLeftWidth: 1, borderLeftColor: Colors.hairline },
   cellValue: { fontFamily: Typography.headingSemiBold, fontSize: 25, lineHeight: 27, letterSpacing: -0.6, color: Colors.text },
   cellValueLive: { color: Colors.liveInk },
+  cellUnit: { fontSize: 16, letterSpacing: 0 },
   stripCard: { borderBottomWidth: 0, backgroundColor: "rgba(12,12,15,0.38)" },
   cellDrawer: { height: 62 },
   cellCard: { height: 54, gap: 4 },

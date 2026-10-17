@@ -94,6 +94,23 @@ Each claim says which of these it is, because they are often confused:
     court route entry) and the court page section of `docs/product/DESIGN.md`.
   - Not in this pass: Players sorts (Active / Newest / All), the Live
     scoreboard rows, Phosphor icons, the drawer.
+- Pre-submission polish pass (Oct 17, D57; **on a branch**,
+  `claude/kind-pascal-4c174r`, stacked on #75, not merged, not on a device).
+  Frontend only: no database, function or native change.
+  - Court page header: live On court number and today's busy times on every
+    tab (`app/court/[id].tsx`, `CourtBusyChart` `variant="header"`).
+  - Home: house marker (`LocalTag`), Plan | Check in | Court one height.
+  - Schedule tab: original court dropdown, one-row time card, games in a
+    swipeable row; the page never scrolls (`app/(tabs)/schedule.tsx`,
+    `ScheduledGameCard` from `components/court/CourtGamesPanel.tsx`).
+  - Week heatmap (`components/CourtSchedulePanel.tsx`): readable labels,
+    equal columns, shared buttons.
+  - Game page: court and format shown once; result actions in the footer.
+  - Drawers: `FormSheet`, `ReviewRulesModal`, `PlayerQrModal` are all
+    `RunFlowSheet` / `AppBottomSheetModal` now.
+  - Fixes: game activity markers line up on web; a bare played day shows the
+    right day (`parseDayOrInstant`); Me tab tabs; Settings switch thumb.
+  - Onboarding welcome uses the sign-in artwork.
 - Court-flow UI pass, frontend only (Oct 15, D56; **on a branch**,
   `claude/court-flow-ui-pass`, not merged, not on a device). No database,
   function or native change.

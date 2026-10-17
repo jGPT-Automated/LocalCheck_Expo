@@ -11,7 +11,7 @@ import { Typography } from "@/constants/typography";
 
 /**
  * Home's local court header (Oct 16): full width, not a card. Court trace on
- * the right, sport on the left with the Local tag hanging off the right edge,
+ * the right, sport on the left with the small house marker on the right,
  * the centred name, city · distance, then On court / Court hours · wk /
  * Locals. Kept short so the feed gets the screen; the actions live in
  * HomeCourtActions at the bottom, where the thumb is.
@@ -60,8 +60,8 @@ export function HomeCourtHero({
 }
 
 /**
- * Home's reachable action row, pinned above the tab bar: Plan visit (small),
- * Check in (most of the width) and a square Court ↗ into the court page.
+ * Home's reachable action row, pinned above the tab bar: Plan and Court ↗ as
+ * matching icon-over-label buttons either side of Check in, all one height.
  */
 export function HomeCourtActions({
   courtName,
@@ -98,9 +98,10 @@ export function HomeCourtActions({
         accessibilityLabel={`View ${courtName}`}
         accessibilityRole="button"
         onPress={onViewCourt}
-        style={styles.square}
+        style={styles.plan}
       >
-        <Feather color={Colors.text} name="arrow-up-right" size={20} />
+        <Feather color={Colors.inkSoft} name="arrow-up-right" size={14} />
+        <Text style={styles.planText}>Court</Text>
       </PressableScale>
     </View>
   );
@@ -108,7 +109,7 @@ export function HomeCourtActions({
 
 const styles = StyleSheet.create({
   header: { position: "relative", overflow: "hidden", paddingTop: 6 },
-  metaRow: { height: 28, paddingLeft: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  metaRow: { height: 28, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   name: {
     marginTop: 4,
     paddingHorizontal: 20,
@@ -137,7 +138,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   plan: {
-    width: 76,
+    width: 68,
     height: 52,
     alignItems: "center",
     justifyContent: "center",
@@ -149,14 +150,4 @@ const styles = StyleSheet.create({
   },
   planText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.inkSoft },
   checkSlot: { flex: 1, minWidth: 0 },
-  square: {
-    width: 52,
-    height: 52,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: Radius.button,
-    borderWidth: 1,
-    borderColor: Colors.hairlineChrome,
-    backgroundColor: Colors.panel,
-  },
 });

@@ -13,6 +13,11 @@ import {
 const TIME_COLUMN = 90;
 const RAIL = 20;
 const MARKER = 9;
+/** Every column lines up on the centre of the sentence's first line. */
+const ROW_PAD = Space.sm;
+const LINE = TextStyles.bodySmall.lineHeight;
+const DAY_LINE = TextStyles.labelSmall.lineHeight;
+const TIME_LINE = TextStyles.metadata.lineHeight;
 
 /**
  * Game activity (D47) on the game page: the same rail as the activity feed.
@@ -36,7 +41,7 @@ export function GameActivityList({ events }: { events: GameActivityEvent[] }) {
               : styles.markerDone;
         return (
           <View key={event.key} style={styles.row}>
-            <View style={styles.when}>
+            <View style={[styles.when, { paddingTop: ROW_PAD + (LINE - (days[index] ? DAY_LINE : TIME_LINE)) / 2 }]}>
               {days[index] ? (
                 <Text numberOfLines={1} style={styles.day}>
                   {days[index]}
@@ -47,7 +52,7 @@ export function GameActivityList({ events }: { events: GameActivityEvent[] }) {
               </Text>
             </View>
             <View style={styles.rail}>
-              <View style={[styles.segment, styles.segmentTop, first && styles.segmentHidden]} />
+              <View style={[styles.segmentTop, first && styles.segmentHidden]} />
               <View style={[styles.marker, marker]} />
               <View style={[styles.segment, last && styles.segmentHidden]} />
             </View>
@@ -72,7 +77,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "stretch", minHeight: 48 },
   when: {
     width: TIME_COLUMN,
-    paddingTop: Space.sm + 1,
     paddingRight: Space.sm,
     alignItems: "flex-end",
     gap: 2,
@@ -81,7 +85,9 @@ const styles = StyleSheet.create({
   time: { ...TextStyles.metadata, color: Colors.muted, fontVariant: ["tabular-nums"] },
   rail: { width: RAIL, alignItems: "center" },
   segment: { flex: 1, width: StyleSheet.hairlineWidth, backgroundColor: Colors.borderLight },
-  segmentTop: { flex: 0, height: Space.sm + 5 },
+  // Its own style, not segment + flex: 0: web keeps flex's zero basis and
+  // drops the height, which floated every marker above its line.
+  segmentTop: { width: StyleSheet.hairlineWidth, height: ROW_PAD + (LINE - MARKER) / 2, backgroundColor: Colors.borderLight },
   segmentHidden: { backgroundColor: "transparent" },
   marker: { width: MARKER, height: MARKER, borderRadius: MARKER / 2 },
   markerPlayed: { backgroundColor: Colors.accent },
@@ -95,7 +101,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     paddingLeft: Space.sm,
-    paddingTop: Space.sm,
+    paddingTop: ROW_PAD,
     paddingBottom: Space.md,
     gap: 2,
   },
