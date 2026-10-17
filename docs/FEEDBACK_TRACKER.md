@@ -21,7 +21,7 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
-## 2026-10-17 — Pre-submission polish pass (`claude/kind-pascal-4c174r`, stacked on #75)
+## 2026-10-17 — Pre-submission polish pass (`claude/kind-pascal-4c174r`, PR #77 into `main`, carries #75)
 
 From the Oct 16 precision handoff (comments 1–16, A1–A4) and Jesse's Oct 17
 voice notes. Checked in a local web render at 393×852 against mocked data

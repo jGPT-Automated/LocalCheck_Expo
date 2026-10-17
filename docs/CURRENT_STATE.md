@@ -95,7 +95,7 @@ Each claim says which of these it is, because they are often confused:
   - Not in this pass: Players sorts (Active / Newest / All), the Live
     scoreboard rows, Phosphor icons, the drawer.
 - Pre-submission polish pass (Oct 17, D57; **on a branch**,
-  `claude/kind-pascal-4c174r`, stacked on #75, not merged, not on a device).
+  `claude/kind-pascal-4c174r`, PR #77 into `main`; it carries #75, not merged, not on a device).
   Frontend only: no database, function or native change.
   - Court page header: live On court number and today's busy times on every
     tab (`app/court/[id].tsx`, `CourtBusyChart` `variant="header"`).
