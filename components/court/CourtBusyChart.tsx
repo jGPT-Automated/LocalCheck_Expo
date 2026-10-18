@@ -29,6 +29,7 @@ export function CourtBusyChart({
   height = 52,
   refreshKey,
   variant = "section",
+  maxBack = DAYS_BACK,
   selected = null,
   onSelect,
 }: {
@@ -38,7 +39,9 @@ export function CourtBusyChart({
   height?: number;
   /** Re-read when this changes (presence changed). */
   refreshKey?: number | string;
-  variant?: "section" | "header";
+  variant?: "section" | "header" | "inline";
+  /** How many days back the arrows go (Home looks ahead only). */
+  maxBack?: number;
   /** The tapped hour, highlighted when it is on the day being shown. */
   selected?: { dayOffset: number; hour: number } | null;
   /** Makes today-and-later bars tappable (past hours have no plans to show). */
@@ -77,19 +80,22 @@ export function CourtBusyChart({
 
   const caption = busyCaption(bars, dayOffset);
   const header = variant === "header";
+  const inline = variant === "inline";
+  const peak = bars.reduce((best, bar) => (bar.value > best.value ? bar : best), bars[0]);
+  const peakCaption = peak && peak.value > 0 ? `Most active at ${peak.hour % 12 === 0 ? 12 : peak.hour % 12} ${peak.hour < 12 ? "AM" : "PM"}` : "Quiet day";
 
   return (
     <View>
-      {header ? null : <SectionHead meta={caption} title={title} />}
+      {header || inline ? null : <SectionHead meta={caption} title={title} />}
       {header ? null : (
       <View style={styles.stepper}>
           <Pressable
             accessibilityLabel="Previous day"
             accessibilityRole="button"
-            disabled={dayOffset <= -DAYS_BACK}
+            disabled={dayOffset <= -maxBack}
             hitSlop={10}
-            onPress={() => setDayOffset((day) => Math.max(-DAYS_BACK, day - 1))}
-            style={[styles.step, dayOffset <= -DAYS_BACK && styles.stepOff]}
+            onPress={() => setDayOffset((day) => Math.max(-maxBack, day - 1))}
+            style={[styles.step, dayOffset <= -maxBack && styles.stepOff]}
           >
             <View style={styles.stepRing}><Feather color={Colors.textSecondary} name="chevron-left" size={16} /></View>
           </Pressable>
@@ -104,6 +110,7 @@ export function CourtBusyChart({
           >
             <View style={styles.stepRing}><Feather color={Colors.textSecondary} name="chevron-right" size={16} /></View>
           </Pressable>
+        {inline ? <Text numberOfLines={1} style={styles.inlineCaption}>{peakCaption}</Text> : null}
           </View>
       )}
       <View
@@ -167,6 +174,7 @@ const styles = StyleSheet.create({
   dayLabel: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
   dayLabelToday: { color: Colors.text },
   bars: { flexDirection: "row", alignItems: "flex-end", gap: 3 },
+  inlineCaption: { flex: 1, minWidth: 0, textAlign: "right", fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.muted },
   barSlot: { flex: 1, height: "100%", justifyContent: "flex-end" },
   bar: { borderRadius: 3 },
   barSelected: { borderWidth: 2, borderColor: Colors.text },

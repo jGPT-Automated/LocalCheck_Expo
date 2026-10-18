@@ -68,44 +68,66 @@ export function SportLabel({ sport, suffix }: { sport: CourtSport; suffix?: stri
   );
 }
 
+const MARK = 56;
+
 /**
- * Your local court: the house inside the logo's corner brackets. The house is
- * orange when this is your local court and quiet grey when it isn't; only the
- * house changes, the brackets stay. Pass `onPress` where a tap should make it
- * your local (once it is, the mark does nothing: Settings changes it).
+ * Your local court, as a quarter-circle in the card's top-right corner: a +
+ * while it isn't your local, a glowing orange check (like the logo's) once it
+ * is. Render it as a direct child of the card so it sits flush in the corner.
+ * Where it isn't your local, a tap makes it your local and the check springs
+ * in; once it is, the mark does nothing (Settings changes it).
  */
-export function LocalMark({ active, onPress }: { active: boolean; onPress?: () => void }) {
+export function LocalMark({ active, onPress, top = 0 }: { active: boolean; onPress?: () => void; top?: number }) {
+  const pop = React.useRef(new Animated.Value(active ? 1 : 0)).current;
+  const wasActive = React.useRef(active);
+  React.useEffect(() => {
+    if (active && !wasActive.current) {
+      pop.setValue(0);
+      void AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
+        if (reduce) pop.setValue(1);
+        else Animated.spring(pop, { toValue: 1, friction: 5, tension: 120, useNativeDriver: true }).start();
+      });
+    } else if (!active) {
+      pop.setValue(0);
+    } else {
+      pop.setValue(1);
+    }
+    wasActive.current = active;
+  }, [active, pop]);
+
   const tappable = Boolean(onPress) && !active;
-  const frame = Colors.hairlineChrome;
-  const mark = (
-    <View style={styles.localMark}>
-      <Svg height={32} style={StyleSheet.absoluteFill} width={32}>
-        {[
-          "M2 10V2H10",
-          "M22 2H30V10",
-          "M30 22V30H22",
-          "M10 30H2V22",
-        ].map((d) => (
-          <Path d={d} fill="none" key={d} stroke={frame} strokeWidth={2} />
-        ))}
-      </Svg>
-      <Feather color={active ? Colors.accent : Colors.muted} name="home" size={14} />
+  const body = (
+    <View style={[styles.markArc, active && styles.markArcOn]}>
+      {active ? (
+        <Animated.View
+          style={[styles.markIcon, { opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] }]}
+        >
+          <Feather color={Colors.accent} name="check" size={22} style={styles.markCheckGlow} />
+        </Animated.View>
+      ) : (
+        <View style={styles.markIcon}>
+          <Feather color={Colors.textSecondary} name="plus" size={22} />
+        </View>
+      )}
     </View>
   );
-  return tappable ? (
-    <Pressable
-      accessibilityHint="Sets this as your local court"
-      accessibilityLabel="Set as local court"
-      accessibilityRole="button"
-      hitSlop={8}
-      onPress={onPress}
-      style={({ pressed }) => pressed && styles.pressed}
-    >
-      {mark}
-    </Pressable>
-  ) : (
-    <View accessibilityLabel={active ? "Your local court" : "Not your local court"} accessible>
-      {mark}
+  return (
+    <View pointerEvents="box-none" style={[styles.markWrap, { top }]}>
+      {tappable ? (
+        <Pressable
+          accessibilityHint="Sets this as your local court"
+          accessibilityLabel="Set as local court"
+          accessibilityRole="button"
+          onPress={onPress}
+          style={({ pressed }) => pressed && styles.pressed}
+        >
+          {body}
+        </Pressable>
+      ) : (
+        <View accessibilityLabel={active ? "Your local court" : "Not your local court"} accessible>
+          {body}
+        </View>
+      )}
     </View>
   );
 }
@@ -283,7 +305,24 @@ const styles = StyleSheet.create({
   sportRow: { flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 1 },
   sportDot: { width: 6, height: 6, borderRadius: 3 },
   sportText: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.5, textTransform: "uppercase", flexShrink: 1 },
-  localMark: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+  markWrap: { position: "absolute", right: 0, width: MARK, height: MARK },
+  markArc: {
+    width: MARK,
+    height: MARK,
+    borderBottomLeftRadius: MARK,
+    borderLeftWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: Colors.hairlineChrome,
+  },
+  markArcOn: {
+    borderColor: Colors.accentBorderStrong,
+    shadowColor: Colors.accent,
+    shadowOpacity: 0.6,
+    shadowRadius: 10,
+    shadowOffset: { width: -2, height: 2 },
+  },
+  markIcon: { position: "absolute", top: 10, right: 10 },
+  markCheckGlow: { textShadowColor: Colors.accent, textShadowRadius: 10 },
   pressed: { opacity: 0.72 },
   strip: {
     flexDirection: "row",

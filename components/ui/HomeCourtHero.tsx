@@ -17,7 +17,6 @@ export function HomeCourtTop({ court }: { court: Court }) {
   return (
     <View style={styles.metaRow}>
       <SportLabel sport={court.sport} />
-      <LocalMark active />
     </View>
   );
 }
@@ -45,6 +44,7 @@ export function HomeCourtHero({
   return (
     <View style={styles.header}>
       <CourtArt sport={court.sport} />
+      <LocalMark active />
       <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
         {court.shortName || court.name}
       </Text>
@@ -91,7 +91,7 @@ export function HomeCourtActions({
 
 const styles = StyleSheet.create({
   header: { position: "relative", overflow: "hidden", paddingTop: 4, backgroundColor: Colors.background },
-  metaRow: { height: 32, paddingLeft: 20, paddingRight: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  metaRow: { height: 28, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   name: {
     marginTop: 4,
     paddingHorizontal: 20,

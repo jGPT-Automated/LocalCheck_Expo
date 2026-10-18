@@ -41,8 +41,8 @@ export function CourtListItem({ court, onPress, isLocalCourt, hoursLabel }: Cour
       <CourtArt sport={court.sport} />
       <View style={styles.metaRow}>
         <SportLabel sport={court.sport} />
-        {isLocalCourt ? <LocalMark active /> : null}
       </View>
+      {isLocalCourt ? <LocalMark active /> : null}
       <Text numberOfLines={1} style={styles.name}>
         {court.shortName || court.name}
       </Text>
@@ -72,10 +72,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.sheet,
   },
   metaRow: {
-    height: 32,
-    marginTop: 8,
-    paddingLeft: 18,
-    paddingRight: 8,
+    height: 26,
+    marginTop: 14,
+    paddingHorizontal: 18,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

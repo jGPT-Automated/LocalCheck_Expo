@@ -1,4 +1,4 @@
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import React, {
   useCallback,
   useEffect,
@@ -8,8 +8,6 @@ import React, {
 } from "react";
 import {
   Modal,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -29,14 +27,13 @@ import {
   PlannedVisit,
   getSportColor,
 } from "@/constants/data";
-import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { FormSheet } from "@/components/sheet/FormSheet";
+import { SlotCard } from "@/components/court/SlotCard";
 import { ScheduleGameSheet } from "@/components/schedule/ScheduleGameSheet";
 import { SearchField } from "@/components/ui/SearchField";
 import { SpeedDialFab } from "@/components/ui/SpeedDialFab";
 import { useBottomFloor } from "@/components/ui/TabFloor";
-import { ScheduledGameCard } from "@/components/court/CourtGamesPanel";
 import {
   scheduleSlotIndex,
   scheduleSlotLabel,
@@ -68,14 +65,10 @@ const RUN_TIMES = [
   "23:00",
 ];
 
-const TIME_ROW_PITCH = 28;
+/** Everything on the Schedule page that isn't a heat-map row (header, court, labels, legend, slot card). */
+const SCHEDULE_CHROME = 330;
 /** Room under the last row for the floating + button (56) and its gap. */
 const FAB_CLEARANCE = 72;
-const TIME_WINDOW_ROW_COUNT = 8;
-const LATE_TIME_WINDOW_START_INDEX = 7;
-const LATE_TIME_WINDOW_OFFSET = LATE_TIME_WINDOW_START_INDEX * TIME_ROW_PITCH;
-const TIME_WINDOW_HEIGHT = TIME_WINDOW_ROW_COUNT * TIME_ROW_PITCH;
-type TimeWindow = "EARLY" | "LATE";
 
 // Rolling next-7-days window (today first) — matches the product model of
 // "who's going this week" and the [today, +7d] data fetch window. A calendar
@@ -603,10 +596,15 @@ export default function ScheduleScreen() {
   }>();
   const { top, bottom } = useSafeAreaInsets();
   const tabFloor = useBottomFloor();
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  // Every hour fits on screen with no scrolling: the rows take what the slot
+  // card and chrome leave (a short phone scrolls the page instead of squeezing).
+  const rowPitch = Math.max(
+    20,
+    Math.min(28, Math.floor((screenHeight - top - tabFloor - SCHEDULE_CHROME) / SLOT_HOURS.length)),
+  );
   // One card plus a peek of the next, so the row reads as swipeable and the
   // FAB only ever covers the peek.
-  const gameCardWidth = Math.min(screenWidth, 520) - 40 - 48;
   const [joiningRunId, setJoiningRunId] = useState<string | null>(null);
   const joinFromCard = async (game: GameRun) => {
     if (joiningRunId) return;
@@ -623,14 +621,6 @@ export default function ScheduleScreen() {
     slot: number;
   } | null>(null);
   const [scheduleMode, setScheduleMode] = useState<"VIEW" | "EDIT">("VIEW");
-  const initialTimeWindowRef = useRef<TimeWindow>(
-    scheduleSlotIndex(new Date().getHours()) >= LATE_TIME_WINDOW_START_INDEX
-      ? "LATE"
-      : "EARLY",
-  );
-  const [timeWindow, setTimeWindow] = useState<TimeWindow>(
-    initialTimeWindowRef.current,
-  );
   const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
   const [editVisibility, setEditVisibility] = useState<Visibility>("public");
   const [savingTimes, setSavingTimes] = useState(false);
@@ -646,8 +636,6 @@ export default function ScheduleScreen() {
   );
   const consumedCourtParamRef = useRef<string | null>(null);
   const consumedCreateParamRef = useRef<string | null>(null);
-  const timeScrollRef = useRef<ScrollView>(null);
-  const positionedInitialTimeWindowRef = useRef(false);
   const saveNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -893,34 +881,6 @@ export default function ScheduleScreen() {
     scheduleSlotIndex(new Date().getHours()),
   );
   const currentKey = `0:${currentSlotIndex}`;
-  const showTimeWindow = useCallback(
-    (nextWindow: TimeWindow, animated = true) => {
-      setTimeWindow(nextWindow);
-      timeScrollRef.current?.scrollTo({
-        animated,
-        x: 0,
-        y: nextWindow === "LATE" ? LATE_TIME_WINDOW_OFFSET : 0,
-      });
-    },
-    [],
-  );
-  const positionInitialTimeWindow = useCallback(() => {
-    if (positionedInitialTimeWindowRef.current) return;
-    positionedInitialTimeWindowRef.current = true;
-    showTimeWindow(initialTimeWindowRef.current, false);
-  }, [showTimeWindow]);
-  const syncTimeWindow = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const nextWindow =
-        event.nativeEvent.contentOffset.y >= LATE_TIME_WINDOW_OFFSET / 2
-          ? "LATE"
-          : "EARLY";
-      setTimeWindow((current) =>
-        current === nextWindow ? current : nextWindow,
-      );
-    },
-    [],
-  );
 
   // Returning to Schedule should always answer "what is happening now?" first.
   // A deliberate tap can still move the detail card to any other slot.
@@ -928,10 +888,8 @@ export default function ScheduleScreen() {
     useCallback(() => {
       if (scheduleMode === "VIEW") {
         setSelectedSlot({ day: 0, slot: currentSlotIndex });
-        // ...and the time grid shows the hour you're in.
-        showTimeWindow(currentSlotIndex >= LATE_TIME_WINDOW_START_INDEX ? "LATE" : "EARLY", false);
       }
-    }, [currentSlotIndex, scheduleMode, showTimeWindow]),
+    }, [currentSlotIndex, scheduleMode]),
   );
 
   const beginEditingTimes = () => {
@@ -1144,39 +1102,11 @@ export default function ScheduleScreen() {
               );
             })}
           </View>
-          {timeWindow === "LATE" ? (
-            <View style={[styles.timeCueRow, styles.timeCueRowAbove]}>
-              <Pressable
-                accessibilityLabel="Show earlier times"
-                accessibilityRole="button"
-                hitSlop={10}
-                onPress={() => showTimeWindow("EARLY")}
-                style={({ pressed }) => [
-                  styles.timeWindowCue,
-                  pressed && styles.timeWindowCuePressed,
-                ]}
-              >
-                <Feather
-                  color={Colors.textSecondary}
-                  name="chevron-up"
-                  size={16}
-                />
-              </Pressable>
-            </View>
-          ) : null}
           <ScrollView
-            ref={timeScrollRef}
             contentContainerStyle={styles.timeRows}
-            decelerationRate="fast"
-            disableIntervalMomentum
-            nestedScrollEnabled
-            onContentSizeChange={positionInitialTimeWindow}
-            onScroll={syncTimeWindow}
-            scrollEventThrottle={16}
-            snapToAlignment="start"
-            snapToOffsets={[0, LATE_TIME_WINDOW_OFFSET]}
+            scrollEnabled={false}
             showsVerticalScrollIndicator={false}
-            style={styles.timeScroller}
+            style={{ height: SLOT_HOURS.length * rowPitch }}
           >
             {SLOT_HOURS.map((h, slotIdx) => (
               <View key={h} style={styles.heatRow}>
@@ -1218,6 +1148,7 @@ export default function ScheduleScreen() {
                       key={dayIdx}
                       style={[
                         styles.heatCell,
+                        { height: rowPitch - 3 },
                         heatStyle(previewCount),
                         isCurrent && styles.heatCellCurrent,
                         isSelected && styles.heatCellSelected,
@@ -1266,26 +1197,6 @@ export default function ScheduleScreen() {
               </View>
             ))}
           </ScrollView>
-          {timeWindow === "EARLY" ? (
-            <View style={styles.timeCueRow}>
-              <Pressable
-                accessibilityLabel="Show later times"
-                accessibilityRole="button"
-                hitSlop={10}
-                onPress={() => showTimeWindow("LATE")}
-                style={({ pressed }) => [
-                  styles.timeWindowCue,
-                  pressed && styles.timeWindowCuePressed,
-                ]}
-              >
-                <Feather
-                  color={Colors.textSecondary}
-                  name="chevron-down"
-                  size={16}
-                />
-              </Pressable>
-            </View>
-          ) : null}
           {/* Legend */}
           <View style={styles.legendRow}>
             <View style={styles.legendScale}>
@@ -1391,129 +1302,37 @@ export default function ScheduleScreen() {
             never jumps when you tap around the grid ── */}
         {scheduleMode === "VIEW" && selectedSlot && selectedDate && selectedKey
           ? (() => {
-              const total = slotTotal(selectedKey);
               const hidden = slotHidden(selectedKey);
               const visible = selectedEntry?.attendees ?? [];
-              const gameCount = selectedEntry?.runCount ?? 0;
               const mine = selectedEntry?.attendees.find((a) => a.isMine && a.visitId);
               const slotEnd = new Date(selectedDate);
               slotEnd.setHours(SLOT_HOURS[selectedSlot.slot] + 1, 0, 0, 0);
               const canAdd = !mine?.visitId && court?.id === localCourt?.id && slotEnd.getTime() > Date.now();
               const slotRuns = courtRuns.filter((run) => bucketKey(run.startTimeIso) === selectedKey);
+              const slotHour = SLOT_HOURS[selectedSlot.slot];
+              const now = new Date();
+              const isNow = selectedSlot.day === 0 && now.getHours() === slotHour;
               return (
-                <View style={styles.slotCard}>
-                  <View style={styles.slotHead}>
-                    <Text numberOfLines={1} style={styles.slotCardTitle}>
-                      {DAYS[selectedDate.getDay()]} {selectedDate.getDate()} · {scheduleSlotLabel(SLOT_HOURS[selectedSlot.slot])}
-                    </Text>
-                    <Text numberOfLines={1} style={[styles.slotCardGoing, total > 0 && styles.slotCardGoingLive]}>
-                      {total} going{gameCount > 0 ? ` · ${gameCount} ${gameCount === 1 ? "game" : "games"}` : ""}
-                    </Text>
-                  </View>
-                  <View style={styles.slotBody}>
-                    {/* Action first, on the left (same as the court page's Week card). */}
-                    {mine?.visitId || canAdd ? (
-                      <Pressable
-                        accessibilityLabel={mine?.visitId ? "I'm not coming" : "I'm coming"}
-                        accessibilityRole="button"
-                        accessibilityState={{ busy: addingSelectedTime, selected: Boolean(mine?.visitId) }}
-                        disabled={addingSelectedTime}
-                        onPress={() =>
-                          mine?.visitId ? void removePlannedVisit(mine.visitId) : void handleAddSelectedTime()
-                        }
-                        style={[styles.slotPlus, mine?.visitId && styles.slotPlusOn]}
-                        testID={mine?.visitId ? `remove-visit-${mine.visitId}` : "add-selected-visit"}
-                      >
-                        <Feather
-                          color={mine?.visitId ? Colors.background : Colors.textSecondary}
-                          name={mine?.visitId ? "check" : "plus"}
-                          size={16}
-                        />
-                      </Pressable>
-                    ) : null}
-                    <ScrollView
-                      contentContainerStyle={styles.slotPeople}
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      style={styles.slotPeopleScroll}
-                    >
-                      {visible.map((a) => (
-                        <Pressable
-                          accessibilityLabel={a.isMine ? "You" : a.name}
-                          accessibilityRole="button"
-                          key={a.id}
-                          onPress={() => router.push(`/player/${a.id}`)}
-                        >
-                          <PlayerAvatar accent={a.isMine} initials={a.initials} name={a.name} playerId={a.id} size={36} />
-                        </Pressable>
-                      ))}
-                      {hidden > 0 ? (
-                        <View style={styles.slotMore}>
-                          <Text style={styles.slotMoreText}>+{hidden}</Text>
-                        </View>
-                      ) : null}
-                    </ScrollView>
-                  </View>
-                  {slotRuns.length > 0 ? (
-                    slotRuns.map((run) => (
-                      <View key={run.id} style={styles.slotGame}>
-                        <Pressable
-                          accessibilityLabel={`Open ${run.title}`}
-                          accessibilityRole="button"
-                          onPress={() => router.push(`/run/${run.id}`)}
-                          style={styles.slotJoin}
-                        >
-                          <Text style={styles.slotJoinText}>Join</Text>
-                        </Pressable>
-                        <View style={styles.slotGameCopy}>
-                          <Text numberOfLines={1} style={styles.slotGameTitle}>{run.title}</Text>
-                          <Text numberOfLines={1} style={styles.slotGameSub}>
-                            {run.participants.length}/{run.maxPlayers} spots
-                          </Text>
-                        </View>
-                      </View>
-                    ))
-                  ) : (
-                    <Text style={styles.slotNoGame}>No game at this time</Text>
-                  )}
+                <View style={styles.slotWrap}>
+                  <SlotCard
+                    attendees={visible}
+                    current={isNow}
+                    hidden={hidden}
+                    mine={Boolean(mine?.visitId)}
+                    mode={mine?.visitId || canAdd ? "full" : "view"}
+                    onCreate={() => setShowHost(true)}
+                    onToggle={() =>
+                      mine?.visitId ? void removePlannedVisit(mine.visitId) : void handleAddSelectedTime()
+                    }
+                    runs={slotRuns}
+                    saving={addingSelectedTime}
+                    title={`${DAYS[selectedDate.getDay()]} ${selectedDate.getDate()} · ${scheduleSlotLabel(slotHour)}`}
+                  />
                 </View>
               );
             })()
           : null}
 
-        {/* ── Scheduled games: the court page's cards in one row you swipe
-            left and right (Oct 17), so the page itself never scrolls ── */}
-        {scheduleMode === "VIEW" ? (
-          <View style={styles.gamesRow}>
-            <Text style={styles.gamesLabel}>Upcoming · {courtRuns.length}</Text>
-            {courtRuns.length > 0 ? (
-              <ScrollView
-                contentContainerStyle={styles.gamesTrack}
-                decelerationRate="fast"
-                disableIntervalMomentum
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                snapToAlignment="start"
-                snapToInterval={gameCardWidth + 10}
-              >
-                {courtRuns.map((run) => (
-                  <ScheduledGameCard
-                    game={run}
-                    joining={joiningRunId === run.id}
-                    key={run.id}
-                    onJoin={(game) => void joinFromCard(game)}
-                    onOpen={(game) => router.push(`/run/${game.id}`)}
-                    style={{ width: gameCardWidth }}
-                  />
-                ))}
-              </ScrollView>
-            ) : (
-              <View style={styles.gamesEmpty}>
-                <Text style={styles.gamesEmptyText}>Nothing scheduled. Post a game and locals see it.</Text>
-              </View>
-            )}
-          </View>
-        ) : null}
       </ScrollView>
 
       {scheduleMode === "VIEW" && court?.id === localCourt?.id ? (
@@ -1804,15 +1623,7 @@ const styles = StyleSheet.create({
 
   // ── Heatmap ──
   heatmap: { paddingHorizontal: 20 },
-  timeScroller: { height: TIME_WINDOW_HEIGHT, maxHeight: TIME_WINDOW_HEIGHT },
   timeRows: { paddingBottom: 2 },
-  timeCueRow: {
-    width: 44,
-    height: 16,
-    marginTop: 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   timeCueRowAbove: {
     height: 16,
     marginTop: 0,
@@ -1927,6 +1738,7 @@ const styles = StyleSheet.create({
   },
 
   // ── Slot detail card (fixed height) ──
+  slotWrap: { marginHorizontal: 20, marginTop: 10 },
   slotCard: {
     marginHorizontal: 20,
     marginTop: 10,

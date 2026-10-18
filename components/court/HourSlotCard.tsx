@@ -86,9 +86,10 @@ export function HourSlotCard({ court, dayOffset, hour }: { court: Court; dayOffs
   return (
     <SlotCard
       attendees={attendees}
-      canToggle={!over}
+      current={from <= Date.now() && Date.now() < to}
       hidden={Math.max(0, anonymous - plannedVisible)}
       mine={Boolean(mine)}
+      mode={over ? "view" : "plan"}
       notice={notice}
       onToggle={() => void toggle()}
       runs={slotRuns}

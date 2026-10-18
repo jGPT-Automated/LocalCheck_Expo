@@ -21,6 +21,18 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-18 (final round) — corner mark, thin slot card, Schedule (`claude/kind-pascal-4c174r`, PR #77)
+
+Not verified in a render; Jesse is checking it. Not merged; no OTA yet.
+
+| Item | Status |
+|------|--------|
+| Corner quarter-circle mark: + / glowing check, animated on set | ✅ |
+| Week slot card: one thin row, small title, count inline, people left, game on the right third, no dot, collapses when empty | ✅ |
+| Court Week is view only; Here / Going / Join / Create on the Schedule page; Here / Going on Home | ✅ |
+| Home chart: one set of arrows, dynamic day label, "Most active at …", 7 days ahead | ✅ |
+| Schedule page: whole heat map visible, no Upcoming row | ✅ |
+
 ## 2026-10-18 (latest) — three priorities + Home notes (`claude/kind-pascal-4c174r`, PR #77)
 
 Not verified in a render; Jesse is checking it. No OTA until he says so.

@@ -196,9 +196,10 @@ export function HomeScreen() {
             courtId={localCourt.id}
             games={upcoming}
             onSelect={setPicked}
+            maxBack={0}
             refreshKey={roster.length}
             selected={picked}
-            title="Today"
+            variant="inline"
           />
         </View>
         {picked ? (

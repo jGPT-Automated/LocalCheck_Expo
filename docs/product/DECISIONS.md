@@ -5,7 +5,7 @@ superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D60, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D61, Jesse's plan doc)
 
 Numbers match Jesse's plan doc (Decisions tab). These supersede older entries
 below wherever they disagree.
@@ -80,6 +80,20 @@ below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D61 Corner mark, thin slot card, Schedule fits one screen (Oct 18,
+  revises D60):** The local mark becomes a quarter-circle in the card's
+  top-right corner: a + while it isn't your local, a glowing orange check (the
+  logo's) that springs in once it is; the house and brackets are gone. The
+  Week and Home slot card is one thin row: a small title with "N planning to
+  go" on the same line, the people on the left two thirds and the game on the
+  right third, collapsed to the title row when the slot is empty; no dot beside
+  the game. The court page's Week only views (no Here / Going / Join). The
+  buttons are Here (the current block) or Going, and Join (a game exists) or
+  Create (none); Home's chart has Here / Going only, the Schedule page has all
+  four. Home's chart has one set of arrows, a day label that follows them, and
+  "Most active at 7 PM"; it looks seven days ahead, never back. The Schedule
+  page shows every hour with no inner scrolling and no Upcoming row (games live
+  on the court's Games tab).
 - **D60 Drawer scroll, one drawer look, pinned name only, local mark (Oct 18,
   revises D59):** The expanded Explore drawer scrolls, and the LocalPlus panel
   sits near the top of it (the content is the same length for every court, so
@@ -89,7 +103,7 @@ below wherever they disagree.
   card are gone. Home pins only the court name and its three numbers; Check in,
   Here now and the rest scroll (D59's pinned Check in + Here now is revised).
   The "Your local" pill becomes the logo's corner brackets around a house:
-  orange house when it is your local, grey when it isn't, in the card's corner.
+  orange house when it is your local, grey when it isn't, in the card's corner. (Revised by D61: the mark is now a corner quarter-circle with + / check.)
   Court becomes a centred ">" beside Check in. A failed LocalPlus sign-in is
   retried quietly and, if it still fails, says it can't reach the store.
 - **D59 Inbox challenges, hourly Home chart, Players ranked only (Oct 18,

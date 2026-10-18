@@ -188,6 +188,7 @@ export function CourtSheetContent({
   return (
     <BottomSheetView>
       <CourtArt sport={court.sport} />
+      <LocalMark active={isMyLocal} onPress={cooldown.restricted ? undefined : setAsLocal} />
       {/* ── Drawer: its measured height owns the first sheet detent ── */}
       <View
         onLayout={(event) => {
@@ -203,7 +204,6 @@ export function CourtSheetContent({
         >
           <View style={styles.metaRow}>
             <SportLabel sport={court.sport} />
-            <LocalMark active={isMyLocal} onPress={cooldown.restricted ? undefined : setAsLocal} />
           </View>
           <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
             {name}
@@ -420,10 +420,9 @@ function CourtDrawerGate({
 const styles = StyleSheet.create({
   loading: { alignItems: "center", justifyContent: "center", paddingVertical: 64 },
   metaRow: {
-    height: 36,
-    paddingTop: 4,
-    paddingLeft: 20,
-    paddingRight: 8,
+    height: 34,
+    paddingTop: 6,
+    paddingHorizontal: 20,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

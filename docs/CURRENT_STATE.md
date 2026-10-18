@@ -94,6 +94,18 @@ Each claim says which of these it is, because they are often confused:
     court route entry) and the court page section of `docs/product/DESIGN.md`.
   - Not in this pass: Players sorts (Active / Newest / All), the Live
     scoreboard rows, Phosphor icons, the drawer.
+- Oct 18 follow-up 3 (D61; **on a branch**, PR #77, not merged, not on a device;
+  not checked in a render, Jesse is verifying). Frontend only.
+  - `LocalMark` (`components/court/CourtParts.tsx`): corner quarter-circle with
+    + / animated glowing check, a direct child of the card (court header,
+    Explore card, drawer, Home's pinned header).
+  - `components/court/SlotCard.tsx`: one thin row, `mode` view / plan / full;
+    used by the court Week (view), Home's chart via `HourSlotCard` (plan) and
+    the Schedule page (full). `CourtBusyChart` has `variant="inline"` and
+    `maxBack` (Home: one set of arrows, "Most active at …", no past days).
+  - Schedule page (`app/(tabs)/schedule.tsx`): all 14 hour rows fit with no
+    inner scroll (row height from the window height, min 20); the Upcoming games
+    row is gone; the AM/PM window arrows are gone.
 - Oct 18 follow-up 2 (D60; **on a branch**, PR #77, not merged, not on a device;
   not checked in a render, Jesse is verifying). Frontend only.
   - Explore drawer (`components/sheet/CourtSheetContent.tsx`): the expanded

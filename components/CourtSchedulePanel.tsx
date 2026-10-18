@@ -51,7 +51,7 @@ export function CourtSchedulePanel({
   /** Space under the last card (the home-indicator inset). */
   bottomInset?: number;
 }) {
-  const { currentUser, plannedVisits, runs, addPlannedVisit, removePlannedVisit } = useApp();
+  const { currentUser, plannedVisits, runs } = useApp();
   const dayStamp = new Date().toDateString();
   const weekStart = useMemo(() => {
     const value = new Date(dayStamp);
@@ -73,8 +73,6 @@ export function CourtSchedulePanel({
   const currentRow = Math.max(0, Math.min(ROW_HOURS.length - 1, Math.floor((nowHour - FIRST_HOUR) / 2)));
   const [selected, setSelected] = useState({ day: todayIndex, row: currentRow });
   const [plannedBuckets, setPlannedBuckets] = useState<Record<string, number>>({});
-  const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const bucketKey = useCallback(
     (iso: string): string | null => {
@@ -188,18 +186,6 @@ export function CourtSchedulePanel({
   selectedDate.setHours(ROW_HOURS[selected.row], 0, 0, 0);
   const slotTitle = `${selected.day === todayIndex ? "Today" : DAYS[selectedDate.getDay()]} · ${longLabel(ROW_HOURS[selected.row])}`;
 
-  const handleAttendance = async () => {
-    if (saving) return;
-    const plannedAt = new Date(Math.max(selectedDate.getTime(), Date.now() + 60_000));
-    setSaving(true);
-    setNotice(null);
-    const ok = myVisit?.visitId
-      ? await removePlannedVisit(myVisit.visitId)
-      : await addPlannedVisit(court.id, plannedAt.toISOString(), undefined, "public");
-    setSaving(false);
-    if (!ok) setNotice("Could not save your time. Try again.");
-  };
-
   return (
     <ScrollView
       alwaysBounceVertical={false}
@@ -242,7 +228,6 @@ export function CourtSchedulePanel({
                   key={key}
                   onPress={() => {
                     setSelected({ day, row });
-                    setNotice(null);
                   }}
                   style={[
                     styles.cell,
@@ -275,13 +260,10 @@ export function CourtSchedulePanel({
 
       <SlotCard
         attendees={selectedEntry?.attendees ?? []}
-        canToggle
         hidden={hiddenCount(selectedKey)}
         mine={Boolean(myVisit)}
-        notice={notice}
-        onToggle={() => void handleAttendance()}
+        mode="view"
         runs={selectedRuns}
-        saving={saving}
         title={slotTitle}
       />
     </ScrollView>
