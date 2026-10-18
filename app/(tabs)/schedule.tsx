@@ -27,34 +27,23 @@ import {
   Court,
   type GameRun,
   PlannedVisit,
-  TeamAssignmentMode,
   getSportColor,
 } from "@/constants/data";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { FormSheet } from "@/components/sheet/FormSheet";
-import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
+import { ScheduleGameSheet } from "@/components/schedule/ScheduleGameSheet";
 import { SearchField } from "@/components/ui/SearchField";
 import { SpeedDialFab } from "@/components/ui/SpeedDialFab";
 import { useBottomFloor } from "@/components/ui/TabFloor";
 import { ScheduledGameCard } from "@/components/court/CourtGamesPanel";
-import { BrutalistButton } from "@/components/BrutalistButton";
 import {
   scheduleSlotIndex,
   scheduleSlotLabel,
   SLOT_HOURS,
 } from "@/components/schedule/scheduleModel";
-import {
-  formatScheduledGameTime,
-  generatedScheduledGameTitle,
-  maxPlayersForFormat,
-  scheduledFormatsForSport,
-  shiftScheduledGameTime,
-  type ScheduledGameFormat,
-} from "@/components/schedule/scheduledGameModel";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
-import { createScheduledGame } from "@/services/scheduledGameService";
 import { fetchCourtPlannedTimes } from "@/services/plannedVisitService";
 import { fetchCourtById, searchCourts } from "@/services/courtService";
 
@@ -363,236 +352,6 @@ function TimeGrid({
         </View>
       ))}
     </View>
-  );
-}
-
-function HostRunModal({
-  visible,
-  onClose,
-  defaultCourt,
-  organizerId,
-  organizerName,
-  onCreated,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  defaultCourt: Court | null;
-  organizerId: string;
-  organizerName: string;
-  onCreated: () => Promise<void>;
-}) {
-  const [note, setNote] = useState("");
-  const [court, setCourt] = useState<Court | null>(defaultCourt);
-  const [dayOffset, setDayOffset] = useState(0);
-  const [time, setTime] = useState("18:00");
-  const [format, setFormat] = useState<ScheduledGameFormat>("5V5");
-  const [teamAssignmentMode, setTeamAssignmentMode] =
-    useState<TeamAssignmentMode>("elo_balance");
-  const [submitting, setSubmitting] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  const formats = scheduledFormatsForSport(court?.sport ?? "BASKETBALL");
-  const generatedTitle = generatedScheduledGameTitle(organizerName, format);
-
-  // Re-default the court each time the sheet opens (ref so the 30s context
-  // poll can't reset a court the user picked mid-edit).
-  const defaultCourtRef = useRef(defaultCourt);
-  defaultCourtRef.current = defaultCourt;
-  useEffect(() => {
-    if (visible) {
-      setCourt(defaultCourtRef.current);
-      const nextHour = new Date().getHours() + 1;
-      setDayOffset(nextHour > 23 ? 1 : 0);
-      setTime(
-        `${String(nextHour > 23 ? 18 : Math.max(8, nextHour)).padStart(2, "0")}:00`,
-      );
-      setFailed(false);
-      setTeamAssignmentMode("elo_balance");
-    }
-  }, [visible]);
-
-  useEffect(() => {
-    if (!formats.includes(format)) setFormat(formats[0]);
-  }, [format, formats]);
-
-  // Past times are disabled in the picker — never silently reschedule a past
-  // slot to a different date than the one the user tapped.
-  const startTime = offsetDate(dayOffset, time);
-  const canSubmit = !!court && startTime.getTime() > Date.now() && !submitting;
-
-  const handleCreate = async () => {
-    if (!canSubmit || !court) return;
-    setSubmitting(true);
-    setFailed(false);
-    const created = await createScheduledGame({
-      courtId: court.id,
-      organizerId,
-      title: generatedTitle,
-      startTime: startTime.toISOString(),
-      maxPlayers: maxPlayersForFormat(format),
-      teamAssignmentMode,
-      note: note.trim() || undefined,
-    });
-    setSubmitting(false);
-    if (!created) {
-      setFailed(true);
-      return;
-    }
-    await onCreated();
-    setNote("");
-    onClose();
-  };
-
-  return (
-    <RunFlowSheet
-      visible={visible}
-      onClose={onClose}
-      eyebrow="SCHEDULED GAME"
-      title="Create game"
-    >
-      <View style={styles.gamePreview}>
-        <View style={styles.gamePreviewTop}>
-          <Text style={styles.gamePreviewTitle}>{generatedTitle}</Text>
-          <Text style={styles.gamePreviewTime}>
-            {formatScheduledGameTime(time)}
-          </Text>
-        </View>
-        <Text style={styles.gamePreviewCourt} numberOfLines={1}>
-          {court?.name.toUpperCase() ?? "SELECT A COURT"}
-        </Text>
-        <Text style={styles.gamePreviewMeta}>
-          ONE GAME · TWO TEAMS · OFFICIAL RESULT
-        </Text>
-      </View>
-
-      <Text style={styles.fieldLabel}>FORMAT</Text>
-      <View style={styles.formatRow}>
-        {formats.map((option) => (
-          <Pressable
-            key={option}
-            accessibilityRole="button"
-            accessibilityState={{ selected: option === format }}
-            onPress={() => setFormat(option)}
-            style={[
-              styles.formatOption,
-              option === format && styles.formatOptionActive,
-            ]}
-          >
-            <Text
-              style={[
-                styles.formatOptionText,
-                option === format && styles.formatOptionTextActive,
-              ]}
-            >
-              {option}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <Text style={styles.fieldLabel}>TEAMS</Text>
-      <View style={styles.teamModeRow}>
-        {([
-          { value: "elo_balance", label: "ELO BALANCE" },
-          { value: "choose_teams", label: "CHOOSE TEAMS" },
-        ] as const).map((option) => (
-          <Pressable
-            key={option.value}
-            accessibilityRole="button"
-            accessibilityState={{ selected: option.value === teamAssignmentMode }}
-            onPress={() => setTeamAssignmentMode(option.value)}
-            style={[
-              styles.teamModeOption,
-              option.value === teamAssignmentMode && styles.teamModeOptionActive,
-            ]}
-          >
-            <Feather
-              name={option.value === "elo_balance" ? "shuffle" : "users"}
-              size={15}
-              color={option.value === teamAssignmentMode ? Colors.accent : Colors.muted}
-            />
-            <Text
-              style={[
-                styles.teamModeOptionText,
-                option.value === teamAssignmentMode && styles.teamModeOptionTextActive,
-              ]}
-            >
-              {option.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-      <View style={styles.teamModeHelp}>
-        <Feather name="info" size={14} color={Colors.accent} />
-        <Text style={styles.teamModeHelpText}>
-          {teamAssignmentMode === "elo_balance"
-            ? "Players join the roster. When it fills, LocalCheck splits the two sides by ELO."
-            : "You start on Side A. Each player chooses a side when they join."}
-        </Text>
-      </View>
-
-      <Text style={styles.fieldLabel}>COURT</Text>
-      <CourtField
-        selected={court}
-        onSelect={setCourt}
-        onClear={() => setCourt(null)}
-      />
-
-      <Text style={styles.fieldLabel}>DAY · NEXT 7 DAYS</Text>
-      <DayGrid
-        selected={dayOffset}
-        onSelect={setDayOffset}
-        days={RUN_PICKER_DAYS}
-      />
-
-      <Text style={styles.fieldLabel}>START TIME</Text>
-      <View style={styles.timeStepper}>
-        <Pressable
-          accessibilityLabel="One hour earlier"
-          onPress={() => setTime((value) => shiftScheduledGameTime(value, -1))}
-          style={styles.timeStepButton}
-        >
-          <Feather name="minus" size={20} color={Colors.textSecondary} />
-        </Pressable>
-        <View style={styles.timeStepValue}>
-          <Text style={styles.timeStepText}>
-            {formatScheduledGameTime(time)}
-          </Text>
-        </View>
-        <Pressable
-          accessibilityLabel="One hour later"
-          onPress={() => setTime((value) => shiftScheduledGameTime(value, 1))}
-          style={styles.timeStepButton}
-        >
-          <Feather name="plus" size={20} color={Colors.textSecondary} />
-        </Pressable>
-      </View>
-
-      <Text style={styles.fieldLabel}>NOTE (OPTIONAL)</Text>
-      <TextInput
-        style={styles.fieldInput}
-        value={note}
-        onChangeText={setNote}
-        placeholder="Bring a dark shirt"
-        placeholderTextColor={Colors.mutedDark}
-      />
-
-      {failed && (
-        <Text style={styles.createError}>
-          COULD NOT SCHEDULE GAME — TRY AGAIN
-        </Text>
-      )}
-
-      <Pressable
-        style={[styles.createBtn, !canSubmit && styles.createBtnDisabled]}
-        onPress={handleCreate}
-        disabled={!canSubmit}
-      >
-        <Text style={styles.createBtnText}>
-          {submitting ? "CREATING…" : "SCHEDULE GAME"}
-        </Text>
-      </Pressable>
-    </RunFlowSheet>
   );
 }
 
@@ -1813,7 +1572,7 @@ export default function ScheduleScreen() {
         </View>
       ) : null}
 
-      <HostRunModal
+      <ScheduleGameSheet
         visible={showHost}
         onClose={() => setShowHost(false)}
         defaultCourt={court}

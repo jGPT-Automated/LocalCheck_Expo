@@ -1,5 +1,5 @@
 import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
-import { BottomSheetView } from "@gorhom/bottom-sheet";
+import { BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { router } from "expo-router";
@@ -21,7 +21,7 @@ import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewS
 import {
   CheckInButton,
   CourtLinkButton,
-  LocalPill,
+  LocalMark,
   MetricStrip,
   SectionHead,
   SportLabel,
@@ -203,7 +203,7 @@ export function CourtSheetContent({
         >
           <View style={styles.metaRow}>
             <SportLabel sport={court.sport} />
-            <LocalPill isLocal={isMyLocal} onPress={isMyLocal || cooldown.restricted ? undefined : setAsLocal} />
+            <LocalMark active={isMyLocal} onPress={cooldown.restricted ? undefined : setAsLocal} />
           </View>
           <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
             {name}
@@ -236,8 +236,12 @@ export function CourtSheetContent({
         <View style={styles.peekFoot} />
       </View>
 
-      {/* ── Expanded: fixed height, never scrolls ── */}
-      <View style={[styles.detailArea, { height: detailHeight }]}>
+      {/* ── Expanded: a fixed-height window that scrolls ── */}
+      <BottomSheetScrollView
+        contentContainerStyle={styles.detailContent}
+        showsVerticalScrollIndicator={false}
+        style={{ height: detailHeight }}
+      >
         <CourtDrawerGate
           cooldown={cooldown}
           courtName={name}
@@ -270,7 +274,7 @@ export function CourtSheetContent({
             )}
           </View>
         </CourtDrawerGate>
-      </View>
+      </BottomSheetScrollView>
 
       {!gated ? (
         <View style={[styles.chips, { paddingBottom: drawerFooterGap(bottom) }]}>
@@ -416,10 +420,10 @@ function CourtDrawerGate({
 const styles = StyleSheet.create({
   loading: { alignItems: "center", justifyContent: "center", paddingVertical: 64 },
   metaRow: {
-    height: 34,
-    paddingTop: 6,
+    height: 36,
+    paddingTop: 4,
     paddingLeft: 20,
-    paddingRight: 16,
+    paddingRight: 8,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -451,7 +455,7 @@ const styles = StyleSheet.create({
   checkSlot: { flex: 1, minWidth: 0 },
   peekFoot: { height: 16 },
 
-  detailArea: { overflow: "hidden" },
+  detailContent: { flexGrow: 1 },
   section: { paddingHorizontal: 20, paddingBottom: 14 },
   emptyText: { fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
 
@@ -490,9 +494,10 @@ const styles = StyleSheet.create({
   },
   chipText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.inkSoft },
 
-  gateWrap: { flex: 1 },
+  gateWrap: { flexGrow: 1 },
   gateShade: { backgroundColor: "rgba(18,18,22,0.55)" },
-  gateOverlay: { alignItems: "center", justifyContent: "center", gap: 12, paddingHorizontal: 34 },
+  // Near the top, not the middle: on a short phone the middle is off screen.
+  gateOverlay: { alignItems: "center", justifyContent: "flex-start", gap: 12, paddingTop: 20, paddingHorizontal: 34 },
   gateEyebrow: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.6, textTransform: "uppercase", color: Colors.textSecondary },
   gateTitle: {
     textAlign: "center",

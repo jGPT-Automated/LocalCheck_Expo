@@ -188,7 +188,7 @@ export async function purchaseLocalPlus(
   if (identityState !== "ready") {
     return {
       outcome: "error",
-      message: "Couldn't verify your account. Try again in a moment.",
+      message: "Can't reach the store right now. Check your connection and try again.",
     };
   }
   try {
@@ -239,7 +239,7 @@ export async function redeemOfferCode(): Promise<RedeemOfferCodeResult> {
   if (identityState !== "ready") {
     return {
       outcome: "unavailable",
-      message: "Couldn't verify your account. Try again in a moment.",
+      message: "Can't reach the store right now. Check your connection and try again.",
     };
   }
   try {

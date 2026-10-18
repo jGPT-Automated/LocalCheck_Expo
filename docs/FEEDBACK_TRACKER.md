@@ -21,6 +21,19 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-18 (latest) — three priorities + Home notes (`claude/kind-pascal-4c174r`, PR #77)
+
+Not verified in a render; Jesse is checking it. No OTA until he says so.
+
+| Item | Status |
+|------|--------|
+| Explore drawer expanded: scrolls; LocalPlus panel near the top | ✅ |
+| Schedule-a-game drawer = Challenge / Log game drawer (court search, day + time strips, format + sides) | ✅ |
+| Home scroll leaves only the court name + numbers pinned | ✅ |
+| LocalPlus: no "Couldn't verify"; quiet retry, then "Can't reach the store right now" | ✅ |
+| "Your local" → brackets + house (orange when local), in the card corner | ✅ |
+| Court button → centred ">" | ✅ |
+
 ## 2026-10-18 (later) — Vercel-toolbar notes (`claude/kind-pascal-4c174r`, PR #77)
 
 Not verified in a render; Jesse is checking it. No OTA until he says so.

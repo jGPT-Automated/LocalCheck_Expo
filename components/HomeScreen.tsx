@@ -13,7 +13,7 @@ import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewS
 import { SectionHead } from "@/components/court/CourtParts";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { GameResultModal } from "@/components/ui/GameResultModal";
-import { HomeCourtActions, HomeCourtHero } from "@/components/ui/HomeCourtHero";
+import { HomeCourtActions, HomeCourtHero, HomeCourtTop } from "@/components/ui/HomeCourtHero";
 import { ScreenViewport } from "@/components/ui/ScreenViewport";
 import { useBottomFloor } from "@/components/ui/TabFloor";
 import { useToast } from "@/components/ui/Toast";
@@ -29,8 +29,8 @@ import { courtHours, formatCourtHours } from "@/lib/courtHours";
 import { fetchCourtWeekSpans } from "@/services/courtService";
 
 /**
- * Home: one page, no tabs. The court header scrolls away; Check in / Court and
- * Here now pin to the top while Up next, Today and the court feed scroll under.
+ * Home: one page, no tabs. Only the court name and its numbers stay pinned;
+ * Check in, Here now, Up next, Today and the court feed scroll under them.
  */
 export function HomeScreen() {
   const {
@@ -160,6 +160,8 @@ export function HomeScreen() {
         stickyHeaderIndices={[1]}
         style={styles.scroll}
       >
+        <HomeCourtTop court={localCourt} />
+        {/* Pinned: just the court name and its numbers. */}
         <HomeCourtHero
           activeCount={activeLabel}
           court={localCourt}
@@ -167,24 +169,21 @@ export function HomeScreen() {
           live={activeTotal > 0}
           localCount={localCount}
         />
-        {/* Pinned once the court header has scrolled away. */}
-        <View style={styles.pinned}>
-          <HomeCourtActions
-            courtName={localCourt.shortName || localCourt.name}
-            isCheckedIn={isCheckedIn}
-            isChecking={isChecking}
-            onCheckIn={() => void handleCheckIn()}
-            onViewCourt={() => router.push(`/court/${localCourt.id}`)}
+        <HomeCourtActions
+          courtName={localCourt.shortName || localCourt.name}
+          isCheckedIn={isCheckedIn}
+          isChecking={isChecking}
+          onCheckIn={() => void handleCheckIn()}
+          onViewCourt={() => router.push(`/court/${localCourt.id}`)}
+        />
+        <AutoCheckInNote courtId={localCourt.id} />
+        <View style={styles.hereNow}>
+          <HereNowSection
+            isFriend={isFriend}
+            onMore={() => router.push(`/court/${localCourt.id}?tab=players`)}
+            onPlayer={(id) => router.push(`/player/${id}`)}
+            roster={roster}
           />
-          <AutoCheckInNote courtId={localCourt.id} />
-          <View style={styles.hereNow}>
-            <HereNowSection
-              isFriend={isFriend}
-              onMore={() => router.push(`/court/${localCourt.id}?tab=players`)}
-              onPlayer={(id) => router.push(`/player/${id}`)}
-              roster={roster}
-            />
-          </View>
         </View>
         <View style={styles.upNext}>
           <UpNextSection
@@ -267,7 +266,6 @@ function NoCourtState({ isSignedIn }: { isSignedIn: boolean }) {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, minHeight: 0 },
-  pinned: { backgroundColor: Colors.background },
   hereNow: { paddingTop: Space.lg, borderBottomWidth: 1, borderBottomColor: Colors.hairline },
   upNext: { paddingTop: Space.lg },
   today: { paddingHorizontal: Layout.screenGutter, paddingBottom: Space.lg },

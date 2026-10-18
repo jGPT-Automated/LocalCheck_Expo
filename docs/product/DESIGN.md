@@ -268,10 +268,11 @@ Player profile actions by friend state: not friends Log game | Add friend
 request | Log game (orange); friends remove icon | Log game | Challenge
 (white). Log game opens as a sheet over the profile.
 
-Home (D58, Oct 18): one scrolling page, no tabs. The court header (sport,
-house marker `LocalTag`, name, city, 3-number strip) scrolls away; Check in
-beside Court ↗ (`HomeCourtActions`: the drawer's `CheckInButton` and
-`CourtLinkButton`) and Here now (`HereNowSection`) pin at the top; under them
+Home (D58, D60): one scrolling page, no tabs. Only the court name, city and
+3-number strip (`HomeCourtHero`) stay pinned; the sport row with the local mark
+(`HomeCourtTop`) scrolls away. Under the pinned part: Check in beside a centred
+> (`HomeCourtActions`: the drawer's `CheckInButton` and `CourtLinkButton`),
+Here now (`HereNowSection`), then
 Up next (`UpNextSection`, plain text count, not a link), Today
 (`CourtBusyChart`) and Recent activity (every court feed row, `ActivityRow`).
 Here now and Up next are the Explore drawer's own sections
@@ -540,3 +541,15 @@ interaction with supported installed primitives and record that decision here.
 ## MVP scope guardrail
 
 Do not trade the working product for unfinished complexity. Use established libraries already in the project, improve shared components instead of spot-editing screens, note non-blocking polish, and keep moving toward TestFlight external testing.
+
+Local mark (D60): the logo's corner brackets around a house (`LocalMark`), in the
+corner of the card (Home, Explore card, drawer, court page). Orange house when
+the court is your local, grey house when it isn't; only the house changes. Where
+it is not your local, tapping it makes it your local; once it is, it does
+nothing (Settings changes it). It replaces the "Your local" pill.
+
+Drawers (D60): the Challenge and Log game drawers are the baseline for every
+form drawer (`RunFlowSheet`, WHERE `CourtSearchPicker`, WHEN `RecentDatePicker`
++ `TimeStrip`, `SegmentedControl`, one accent button). Schedule a game
+(`ScheduleGameSheet`) follows it. The expanded Explore drawer scrolls; its
+LocalPlus panel is top-aligned.

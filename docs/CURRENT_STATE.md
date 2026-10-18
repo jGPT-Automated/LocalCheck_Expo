@@ -94,6 +94,22 @@ Each claim says which of these it is, because they are often confused:
     court route entry) and the court page section of `docs/product/DESIGN.md`.
   - Not in this pass: Players sorts (Active / Newest / All), the Live
     scoreboard rows, Phosphor icons, the drawer.
+- Oct 18 follow-up 2 (D60; **on a branch**, PR #77, not merged, not on a device;
+  not checked in a render, Jesse is verifying). Frontend only.
+  - Explore drawer (`components/sheet/CourtSheetContent.tsx`): the expanded
+    detail area is a `BottomSheetScrollView`; the LocalPlus panel is top-aligned.
+  - Schedule a game: `components/schedule/ScheduleGameSheet.tsx` (replaces
+    `HostRunModal`), built on `RunFlowSheet`, the new shared
+    `components/ui/CourtSearchPicker.tsx` (also used by `ChallengeSheet`),
+    `RecentDatePicker`, `TimeStrip` and `SegmentedControl`. The optional note
+    is gone.
+  - Home: only `HomeCourtHero` (name + numbers) is a sticky header
+    (`stickyHeaderIndices`); `HomeCourtTop` and everything else scroll.
+  - `LocalMark` (`components/court/CourtParts.tsx`) replaces `LocalTag` and
+    `LocalPill` (Home, Explore card, drawer, court page). `CourtLinkButton` is
+    a centred ">".
+  - LocalPlus: `app/localplus.tsx` retries sign-in before buying and only then
+    alerts "Can't reach the store right now" (`services/purchasesService.ts`).
 - Oct 18 follow-up (D59; **on a branch**, PR #77, not merged, not on a device;
   not checked in a render, Jesse is verifying). Frontend only.
   - Challenges: `lib/challengeModel.ts` `challengeAction` takes the time; an

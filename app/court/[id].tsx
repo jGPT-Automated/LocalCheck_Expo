@@ -10,7 +10,7 @@ import { CourtBusyChart } from "@/components/court/CourtBusyChart";
 import { CourtGamesPanel } from "@/components/court/CourtGamesPanel";
 import { CourtInfoPanel } from "@/components/court/CourtInfoPanel";
 import { CourtPlayersPanel } from "@/components/court/CourtPlayersPanel";
-import { CourtTabBar, LiveDot, LocalPill, SportLabel } from "@/components/court/CourtParts";
+import { CourtTabBar, LiveDot, LocalMark, SportLabel } from "@/components/court/CourtParts";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { GameResultModal } from "@/components/ui/GameResultModal";
 import { PersonTile } from "@/components/ui/PersonTile";
@@ -225,7 +225,7 @@ export default function CourtProfileScreen() {
           >
             <Feather color={Colors.text} name="arrow-left" size={22} />
           </Pressable>
-          <LocalPill isLocal={isMyLocal} onPress={() => void setLocalCourt(court.id, court)} />
+          <LocalMark active={isMyLocal} onPress={() => void setLocalCourt(court.id, court)} />
         </View>
         {/* Name left, the live number right (Oct 17 header reference), then
             today's busy times above the tabs so every tab shares them. */}
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
   retryButton: { minHeight: 44, paddingHorizontal: Space.xl, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
   retryText: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.text, letterSpacing: 1.2 },
   header: { position: "relative", overflow: "hidden" },
-  navRow: { height: 44, paddingLeft: 12, paddingRight: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  navRow: { height: 44, paddingLeft: 12, paddingRight: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   back: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
   titleRow: { flexDirection: "row", alignItems: "flex-end", gap: 16, paddingHorizontal: 20, paddingTop: 6 },
   titleBlock: { flex: 1, minWidth: 0, gap: 6 },

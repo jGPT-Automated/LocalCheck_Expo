@@ -15,6 +15,8 @@ import {
   View,
 } from "react-native";
 
+import Svg, { Path } from "react-native-svg";
+
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
 import type { CourtSport } from "@/constants/data";
@@ -67,36 +69,43 @@ export function SportLabel({ sport, suffix }: { sport: CourtSport; suffix?: stri
 }
 
 /**
- * Your local court, as the same house square as `LocalTag`. Solid when this is
- * your local; dashed when it isn't, and then a tap makes it your local. Once it
- * is yours the square does nothing (changing it lives in Settings), so a stray
- * tap can't un-set it.
+ * Your local court: the house inside the logo's corner brackets. The house is
+ * orange when this is your local court and quiet grey when it isn't; only the
+ * house changes, the brackets stay. Pass `onPress` where a tap should make it
+ * your local (once it is, the mark does nothing: Settings changes it).
  */
-export function LocalPill({ isLocal, onPress }: { isLocal: boolean; onPress?: () => void }) {
-  return (
+export function LocalMark({ active, onPress }: { active: boolean; onPress?: () => void }) {
+  const tappable = Boolean(onPress) && !active;
+  const frame = Colors.hairlineChrome;
+  const mark = (
+    <View style={styles.localMark}>
+      <Svg height={32} style={StyleSheet.absoluteFill} width={32}>
+        {[
+          "M2 10V2H10",
+          "M22 2H30V10",
+          "M30 22V30H22",
+          "M10 30H2V22",
+        ].map((d) => (
+          <Path d={d} fill="none" key={d} stroke={frame} strokeWidth={2} />
+        ))}
+      </Svg>
+      <Feather color={active ? Colors.accent : Colors.muted} name="home" size={14} />
+    </View>
+  );
+  return tappable ? (
     <Pressable
-      accessibilityHint={isLocal ? undefined : "Sets this as your local court"}
-      accessibilityLabel={isLocal ? "Your local court" : "Set as local court"}
-      accessibilityRole={isLocal ? "image" : "button"}
-      disabled={isLocal || !onPress}
+      accessibilityHint="Sets this as your local court"
+      accessibilityLabel="Set as local court"
+      accessibilityRole="button"
       hitSlop={8}
       onPress={onPress}
-      style={({ pressed }) => [styles.localTag, !isLocal && styles.localTagOff, pressed && styles.pressed]}
+      style={({ pressed }) => pressed && styles.pressed}
     >
-      <Feather color={isLocal ? Colors.text : Colors.textSecondary} name="home" size={13} />
+      {mark}
     </Pressable>
-  );
-}
-
-/**
- * The "your local court" marker on Home and the Explore card (Oct 17): a
- * small house in a hairline square, sitting inside the gutter. Not a button;
- * changing your local court lives on the court page.
- */
-export function LocalTag() {
-  return (
-    <View accessibilityLabel="Your local court" accessible style={styles.localTag}>
-      <Feather color={Colors.text} name="home" size={13} />
+  ) : (
+    <View accessibilityLabel={active ? "Your local court" : "Not your local court"} accessible>
+      {mark}
     </View>
   );
 }
@@ -216,7 +225,7 @@ export function CheckInButton({
   );
 }
 
-/** "Court ↗": opens the full court page from the drawer. */
+/** A centred ">" that opens the full court page. */
 export function CourtLinkButton({ onPress, courtName }: { onPress: () => void; courtName: string }) {
   return (
     <PressableScale
@@ -226,8 +235,7 @@ export function CourtLinkButton({ onPress, courtName }: { onPress: () => void; c
       onPress={onPress}
       style={[styles.action, styles.courtLink]}
     >
-      <Text style={styles.courtLinkText}>Court</Text>
-      <Feather color={Colors.text} name="arrow-up-right" size={18} />
+      <Feather color={Colors.text} name="chevron-right" size={24} />
     </PressableScale>
   );
 }
@@ -275,17 +283,7 @@ const styles = StyleSheet.create({
   sportRow: { flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 1 },
   sportDot: { width: 6, height: 6, borderRadius: 3 },
   sportText: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.5, textTransform: "uppercase", flexShrink: 1 },
-  localTag: {
-    width: 28,
-    height: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: Radius.button,
-    borderWidth: 1,
-    borderColor: "rgba(242,242,246,0.14)",
-    backgroundColor: "rgba(242,242,246,0.04)",
-  },
-  localTagOff: { borderStyle: "dashed", backgroundColor: "transparent" },
+  localMark: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
   pressed: { opacity: 0.72 },
   strip: {
     flexDirection: "row",
@@ -312,8 +310,7 @@ const styles = StyleSheet.create({
   checkOut: { borderWidth: 1.5, borderColor: Colors.accentBorderStrong, backgroundColor: Colors.surfaceDark },
   checkInText: { fontFamily: Typography.bodyBold, fontSize: 12, letterSpacing: 1.7, textTransform: "uppercase", color: Colors.background },
   checkOutText: { flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.liveInk },
-  courtLink: { height: 50, paddingLeft: 16, paddingRight: 14, gap: 8, backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
-  courtLinkText: { fontFamily: Typography.bodyBold, fontSize: 10, letterSpacing: 1.4, textTransform: "uppercase", color: Colors.inkSoft },
+  courtLink: { width: 64, height: 50, backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
   cellLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   cellLabel: { fontFamily: Typography.bodyBold, fontSize: 7.5, letterSpacing: 0.9, textTransform: "uppercase", color: Colors.textSecondary },
   tabs: { flexDirection: "row", paddingHorizontal: 6, borderBottomWidth: 1, borderBottomColor: Colors.hairline },

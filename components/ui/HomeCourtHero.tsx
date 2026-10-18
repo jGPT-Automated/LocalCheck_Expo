@@ -2,17 +2,27 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { CourtArt } from "@/components/court/CourtArt";
-import { CheckInButton, CourtLinkButton, LocalTag, MetricStrip, SportLabel } from "@/components/court/CourtParts";
+import { CheckInButton, CourtLinkButton, LocalMark, MetricStrip, SportLabel } from "@/components/court/CourtParts";
 import { Colors } from "@/constants/colors";
 import type { Court } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 
 /**
- * Home's local court header (Oct 16): full width, not a card. Court trace on
- * the right, sport on the left with the small house marker on the right,
- * the centred name, city · distance, then On court / Court hours · wk /
- * Locals. HomeCourtActions sits right under it.
+ * Home's local court header: full width, not a card. `HomeCourtTop` (sport on
+ * the left, the house mark in the corner) scrolls away; `HomeCourtHero` (court
+ * trace, centred name, city · distance, On court / Court hours · wk / Locals)
+ * stays pinned under the app header. HomeCourtActions follows.
  */
+export function HomeCourtTop({ court }: { court: Court }) {
+  return (
+    <View style={styles.metaRow}>
+      <SportLabel sport={court.sport} />
+      <LocalMark active />
+    </View>
+  );
+}
+
+/** The court name and its numbers: the part of Home that stays pinned. */
 export function HomeCourtHero({
   court,
   activeCount,
@@ -35,10 +45,6 @@ export function HomeCourtHero({
   return (
     <View style={styles.header}>
       <CourtArt sport={court.sport} />
-      <View style={styles.metaRow}>
-        <SportLabel sport={court.sport} />
-        <LocalTag />
-      </View>
       <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
         {court.shortName || court.name}
       </Text>
@@ -84,8 +90,8 @@ export function HomeCourtActions({
 }
 
 const styles = StyleSheet.create({
-  header: { position: "relative", overflow: "hidden", paddingTop: 6 },
-  metaRow: { height: 28, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  header: { position: "relative", overflow: "hidden", paddingTop: 4, backgroundColor: Colors.background },
+  metaRow: { height: 32, paddingLeft: 20, paddingRight: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   name: {
     marginTop: 4,
     paddingHorizontal: 20,

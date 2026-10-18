@@ -5,7 +5,7 @@ superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D59, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D60, Jesse's plan doc)
 
 Numbers match Jesse's plan doc (Decisions tab). These supersede older entries
 below wherever they disagree.
@@ -80,6 +80,18 @@ below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D60 Drawer scroll, one drawer look, pinned name only, local mark (Oct 18,
+  revises D59):** The expanded Explore drawer scrolls, and the LocalPlus panel
+  sits near the top of it (the content is the same length for every court, so
+  the old centred, never-scrolling panel is gone). Scheduling a game uses the
+  Challenge / Log game drawer (WHERE court search, WHEN day strip + time strip,
+  then the format and how sides are picked); the old note field and preview
+  card are gone. Home pins only the court name and its three numbers; Check in,
+  Here now and the rest scroll (D59's pinned Check in + Here now is revised).
+  The "Your local" pill becomes the logo's corner brackets around a house:
+  orange house when it is your local, grey when it isn't, in the card's corner.
+  Court becomes a centred ">" beside Check in. A failed LocalPlus sign-in is
+  retried quietly and, if it still fails, says it can't reach the store.
 - **D59 Inbox challenges, hourly Home chart, Players ranked only (Oct 18,
   revises D58):** Jesse's Vercel-toolbar notes. A challenge card reads "Ranked
   game with Name" over court and when, with no arrow; tapping any open
@@ -94,7 +106,7 @@ below wherever they disagree.
   lists only players with a game at this court ("9 of 27 locals have a ranked
   game"); Active and Newest list everyone, Active with "N check-ins at this
   court". Info adds Date added and calls the hours "Hours this week". A failed
-  LocalPlus sign-in keeps the price label on the button.
+  LocalPlus sign-in keeps the price label on the button. (Revised by D60: Home's pinned part, the Your local pill, the Court button label.)
 - **D58 Home is one page; the court page loses its bottom bar (Oct 18,
   revises D57):** Jesse's redesign notes with new reference screenshots.
   Home has no tabs: the court header (name, On court / Court hours · wk /
