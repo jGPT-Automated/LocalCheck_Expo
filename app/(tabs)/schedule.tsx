@@ -1640,6 +1640,7 @@ export default function ScheduleScreen() {
               const slotEnd = new Date(selectedDate);
               slotEnd.setHours(SLOT_HOURS[selectedSlot.slot] + 1, 0, 0, 0);
               const canAdd = !mine?.visitId && court?.id === localCourt?.id && slotEnd.getTime() > Date.now();
+              const slotRuns = courtRuns.filter((run) => bucketKey(run.startTimeIso) === selectedKey);
               return (
                 <View style={styles.slotCard}>
                   <View style={styles.slotHead}>
@@ -1651,62 +1652,71 @@ export default function ScheduleScreen() {
                     </Text>
                   </View>
                   <View style={styles.slotBody}>
-                    {/* Action first, on the left: the + button floats over
-                        the right edge on short phones, never over this. */}
-                    {mine?.visitId ? (
-                      <BrutalistButton
-                        icon={<Feather name="x" size={12} color={Colors.textSecondary} />}
-                        label="Remove my time"
-                        onPress={() => void removePlannedVisit(mine.visitId!)}
-                        size="sm"
-                        style={styles.slotAction}
-                        testID={`remove-visit-${mine.visitId}`}
-                        variant="dark"
-                      />
-                    ) : canAdd ? (
-                      <BrutalistButton
-                        icon={<Feather name="plus" size={12} color={Colors.text} />}
-                        label="Add my time"
-                        loading={addingSelectedTime}
-                        onPress={() => void handleAddSelectedTime()}
-                        size="sm"
-                        style={styles.slotAction}
-                        testID="add-selected-visit"
-                        variant="dark"
-                      />
-                    ) : null}
-                    {total > 0 ? (
-                      <ScrollView
-                        contentContainerStyle={styles.slotPeople}
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        style={styles.slotPeopleScroll}
+                    {/* Action first, on the left (same as the court page's Week card). */}
+                    {mine?.visitId || canAdd ? (
+                      <Pressable
+                        accessibilityLabel={mine?.visitId ? "I'm not coming" : "I'm coming"}
+                        accessibilityRole="button"
+                        accessibilityState={{ busy: addingSelectedTime, selected: Boolean(mine?.visitId) }}
+                        disabled={addingSelectedTime}
+                        onPress={() =>
+                          mine?.visitId ? void removePlannedVisit(mine.visitId) : void handleAddSelectedTime()
+                        }
+                        style={[styles.slotPlus, mine?.visitId && styles.slotPlusOn]}
+                        testID={mine?.visitId ? `remove-visit-${mine.visitId}` : "add-selected-visit"}
                       >
-                        {visible.map((a) => (
-                          <Pressable
-                            key={a.id}
-                            style={styles.slotAvatarItem}
-                            onPress={() => router.push(`/player/${a.id}`)}
-                          >
-                            <PlayerAvatar accent={a.isMine} initials={a.initials} name={a.name} playerId={a.id} size={30} />
-                            <Text style={styles.slotAvatarName} numberOfLines={1}>
-                              {a.isMine ? "You" : a.name.split(" ")[0]}
-                            </Text>
-                          </Pressable>
-                        ))}
-                        {hidden > 0 ? (
-                          <View style={styles.slotAvatarItem}>
-                            <View style={styles.slotMore}>
-                              <Text style={styles.slotMoreText}>+{hidden}</Text>
-                            </View>
-                            <Text style={styles.slotAvatarName}>private</Text>
-                          </View>
-                        ) : null}
-                      </ScrollView>
-                    ) : (
-                      <Text numberOfLines={2} style={styles.slotEmpty}>Nobody yet. Add your time so people know to pull up.</Text>
-                    )}
+                        <Feather
+                          color={mine?.visitId ? Colors.background : Colors.textSecondary}
+                          name={mine?.visitId ? "check" : "plus"}
+                          size={16}
+                        />
+                      </Pressable>
+                    ) : null}
+                    <ScrollView
+                      contentContainerStyle={styles.slotPeople}
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      style={styles.slotPeopleScroll}
+                    >
+                      {visible.map((a) => (
+                        <Pressable
+                          accessibilityLabel={a.isMine ? "You" : a.name}
+                          accessibilityRole="button"
+                          key={a.id}
+                          onPress={() => router.push(`/player/${a.id}`)}
+                        >
+                          <PlayerAvatar accent={a.isMine} initials={a.initials} name={a.name} playerId={a.id} size={36} />
+                        </Pressable>
+                      ))}
+                      {hidden > 0 ? (
+                        <View style={styles.slotMore}>
+                          <Text style={styles.slotMoreText}>+{hidden}</Text>
+                        </View>
+                      ) : null}
+                    </ScrollView>
                   </View>
+                  {slotRuns.length > 0 ? (
+                    slotRuns.map((run) => (
+                      <View key={run.id} style={styles.slotGame}>
+                        <Pressable
+                          accessibilityLabel={`Open ${run.title}`}
+                          accessibilityRole="button"
+                          onPress={() => router.push(`/run/${run.id}`)}
+                          style={styles.slotJoin}
+                        >
+                          <Text style={styles.slotJoinText}>Join</Text>
+                        </Pressable>
+                        <View style={styles.slotGameCopy}>
+                          <Text numberOfLines={1} style={styles.slotGameTitle}>{run.title}</Text>
+                          <Text numberOfLines={1} style={styles.slotGameSub}>
+                            {run.participants.length}/{run.maxPlayers} spots
+                          </Text>
+                        </View>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.slotNoGame}>No game at this time</Text>
+                  )}
                 </View>
               );
             })()
@@ -2174,11 +2184,18 @@ const styles = StyleSheet.create({
   slotCardGoing: { flexShrink: 0, fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.textSecondary },
   slotCardGoingLive: { color: Colors.liveInk },
   // Names and the action share one row: one fixed height, empty or full.
-  slotBody: { height: 50, marginTop: 8, flexDirection: "row", alignItems: "center", gap: 12 },
+  slotBody: { height: 40, marginTop: 10, flexDirection: "row", alignItems: "center", gap: 8 },
+  slotPlus: { width: 36, height: 36, borderRadius: Radius.sm, borderWidth: 1, borderColor: Colors.hairlineChrome, alignItems: "center", justifyContent: "center" },
+  slotPlusOn: { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  slotGame: { height: 48, marginTop: 10, flexDirection: "row", alignItems: "center", gap: 12, borderTopWidth: 1, borderTopColor: Colors.hairline, paddingTop: 10 },
+  slotJoin: { minWidth: 72, height: 38, paddingHorizontal: 14, borderRadius: Radius.button, borderWidth: 1, borderColor: Colors.text, alignItems: "center", justifyContent: "center" },
+  slotJoinText: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.text },
+  slotGameCopy: { flex: 1, minWidth: 0 },
+  slotGameTitle: { fontFamily: Typography.headingSemiBold, fontSize: 16, textTransform: "uppercase", color: Colors.text },
+  slotGameSub: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
+  slotNoGame: { height: 48, marginTop: 10, paddingTop: 14, borderTopWidth: 1, borderTopColor: Colors.hairline, fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
   slotPeopleScroll: { flex: 1, minWidth: 0 },
   slotPeople: { alignItems: "center", gap: 8 },
-  slotAvatarItem: { alignItems: "center", width: 54 },
-  slotAvatarName: { maxWidth: 54, fontFamily: Typography.bodySemiBold, fontSize: 9, color: Colors.textSecondary, marginTop: 3 },
   slotMore: {
     width: 30,
     height: 30,
@@ -2190,8 +2207,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   slotMoreText: { fontFamily: Typography.headingSemiBold, fontSize: 11, color: Colors.textSecondary },
-  slotEmpty: { flex: 1, minWidth: 0, fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary, lineHeight: 17 },
-  slotAction: { flexShrink: 0 },
   gamesRow: { flexGrow: 1, minHeight: 168, paddingTop: 14 },
   gamesLabel: { paddingHorizontal: 20, marginBottom: 8, fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
   gamesTrack: { paddingHorizontal: 20, gap: 10, alignItems: "flex-start" },

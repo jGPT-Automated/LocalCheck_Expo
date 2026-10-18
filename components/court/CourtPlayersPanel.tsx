@@ -9,7 +9,9 @@ import { Layout } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import {
   type CourtPlayer,
+  formatCheckIns,
   formatRecord,
+  isRanked,
   type PlayersSort,
   pointsToNextRank,
   rankByElo,
@@ -22,11 +24,6 @@ const SORTS = [
   { value: "newest", label: "Newest" },
 ] as const;
 
-const SORT_NOTE: Record<PlayersSort, string> = {
-  ranking: "ranked after every ranked game here",
-  active: "most recent check-in first",
-  newest: "newest locals first",
-};
 
 /**
  * The court page's Players tab: this court's locals only (who is on court
@@ -51,7 +48,13 @@ export function CourtPlayersPanel({
 }) {
   const [sort, setSort] = React.useState<PlayersSort>("ranking");
   const ranks = React.useMemo(() => rankByElo(players), [players]);
-  const sorted = React.useMemo(() => sortCourtPlayers(players, sort), [players, sort]);
+  // Ranking lists only players with a game at this court; Active and Newest
+  // list every local.
+  const sorted = React.useMemo(
+    () => sortCourtPlayers(sort === "ranking" ? players.filter(isRanked) : players, sort),
+    [players, sort],
+  );
+  const rankedCount = players.filter(isRanked).length;
   const me = players.find((player) => player.id === meId);
   const toNext = me ? pointsToNextRank(players, meId) : null;
   const total = players.length + hiddenLocals;
@@ -65,7 +68,11 @@ export function CourtPlayersPanel({
         <View style={styles.controls}>
           <SegmentedControl accessibilityLabel="Sort players" compact items={SORTS} onChange={setSort} value={sort} />
           <Text style={styles.note}>
-            {total} {total === 1 ? "local" : "locals"} · {SORT_NOTE[sort]}
+            {sort === "ranking"
+              ? `${rankedCount} of ${total} locals have a ranked game`
+              : sort === "newest"
+                ? `All ${total} locals · newest first`
+                : `All ${total} locals · latest check-in first`}
           </Text>
         </View>
         {sorted.length > 0 ? (
@@ -74,14 +81,14 @@ export function CourtPlayersPanel({
               friend={isFriend(player.id)}
               key={player.id}
               onPress={() => onPlayer(player.id)}
+              detail={sort === "active" ? formatCheckIns(player.checkIns) : undefined}
               player={player}
-              rank={ranks.get(player.id) ?? 0}
+              rank={ranks.get(player.id)}
             />
           ))
         ) : (
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>No visible local profiles</Text>
-            <Text style={styles.emptyBody}>Locals appear here after choosing this as their home court.</Text>
+            <Text style={styles.emptyTitle}>{sort === "ranking" ? "No ranked games yet" : "No visible local profiles"}</Text>
           </View>
         )}
         {hiddenLocals > 0 ? (
@@ -91,16 +98,17 @@ export function CourtPlayersPanel({
       {me ? (
         <View style={[styles.meBar, { paddingBottom: bottomInset }]}>
           <PlayerRankRow
-            detail={[
-              me.wins + me.losses === 0 ? "No games here yet" : `${me.wins}–${me.losses}`,
-              toNext ? `${toNext.points} pts to #${toNext.rank}` : null,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
+            detail={
+              isRanked(me)
+                ? [`${me.wins}–${me.losses}`, toNext ? `${toNext.points} pts to #${toNext.rank}` : null]
+                    .filter(Boolean)
+                    .join(" · ")
+                : "No ranked games yet"
+            }
             me
             onPress={() => onPlayer(me.id)}
             player={me}
-            rank={ranks.get(me.id) ?? 0}
+            rank={ranks.get(me.id)}
           />
         </View>
       ) : null}
@@ -117,7 +125,7 @@ function PlayerRankRow({
   onPress,
 }: {
   player: CourtPlayer;
-  rank: number;
+  rank?: number;
   friend?: boolean;
   me?: boolean;
   detail?: string;
@@ -131,7 +139,7 @@ function PlayerRankRow({
       onPress={onPress}
       style={({ pressed }) => [styles.row, me && styles.rowMe, pressed && styles.pressed]}
     >
-      <Text style={[styles.rank, rank > 3 && styles.rankQuiet]}>{rank}</Text>
+      <Text style={[styles.rank, (!rank || rank > 3) && styles.rankQuiet]}>{rank ?? "–"}</Text>
       <View>
         <PlayerAvatar friend={friend} initials={player.avatar} name={player.name} playerId={player.id} size={42} />
         {player.activeNow ? <View style={styles.activeDot} /> : null}

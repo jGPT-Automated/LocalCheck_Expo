@@ -1,4 +1,3 @@
-import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -25,16 +24,16 @@ function bannerFor(challenge: Challenge, viewerId: string, otherName: string): B
   const action = challengeAction(challenge, viewerId);
   if (action === "accept_decline") return { kind: "action", label: "WAITING ON YOU" };
   if (action === "waiting") return { kind: "waiting", label: waitingBannerLabel(otherName) };
-  // An accepted ranked game is the viewer's move: log the score.
-  if (action === "log_score") return { kind: "action", label: "GAME ON" };
+  // Once the game time has passed it is the viewer's move: log the score.
+  if (action === "log_score" || action === "casual_on") return { kind: "action", label: "GAME ON" };
   return challengeBanner(challenge, viewerId);
 }
 
 /**
  * Inbox card for an open challenge. Same shell as a game waiting for review
- * (state banner on top, quiet body with no avatar), minus the scores: line 1 is "Ranked game"
- * or "Casual game", line 2 is who, where and when. Incoming ones are answered in
- * place with a check or an X; tapping the card opens it.
+ * (state banner on top, quiet body with no avatar, no arrow), minus the scores:
+ * line 1 is "Ranked game with Name", line 2 is where and when. Incoming ones
+ * are answered in place with a check or an X; tapping the card opens it.
  */
 export function ChallengeInboxRow({
   challenge,
@@ -78,9 +77,7 @@ export function ChallengeInboxRow({
             onAccept={() => onRespond(true)}
             onDecline={() => onRespond(false)}
           />
-        ) : (
-          <Feather color={Colors.muted} name="chevron-right" size={16} />
-        )}
+        ) : null}
       </View>
     </PressableScale>
   );

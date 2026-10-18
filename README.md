@@ -87,6 +87,6 @@ docs/                 current engineering and product guidance
 - [`docs/GITHUB.md`](docs/GITHUB.md) — CI checks, branch protection (not yet set), merge rules
 - [`docs/product/README.md`](docs/product/README.md) — product/design material
 - [`docs/product/DESIGN.md`](docs/product/DESIGN.md) — tokens, canonical components, motion and feedback rules
-- [`docs/product/DECISIONS.md`](docs/product/DECISIONS.md) — settled product decisions (D0–D58)
+- [`docs/product/DECISIONS.md`](docs/product/DECISIONS.md) — settled product decisions (D0–D59)
 - [`docs/runbooks/`](docs/runbooks/) — account tags + test data, RevenueCat
 - [`docs/product/ELO_AND_NOTIFICATIONS.md`](docs/product/ELO_AND_NOTIFICATIONS.md) — Compete ranking and actionable-vs-informational notification contract

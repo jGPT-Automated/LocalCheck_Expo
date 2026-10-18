@@ -29,6 +29,8 @@ export function CourtBusyChart({
   height = 52,
   refreshKey,
   variant = "section",
+  selected = null,
+  onSelect,
 }: {
   courtId: string;
   games: GameRun[];
@@ -37,6 +39,10 @@ export function CourtBusyChart({
   /** Re-read when this changes (presence changed). */
   refreshKey?: number | string;
   variant?: "section" | "header";
+  /** The tapped hour, highlighted when it is on the day being shown. */
+  selected?: { dayOffset: number; hour: number } | null;
+  /** Makes today-and-later bars tappable (past hours have no plans to show). */
+  onSelect?: (pick: { dayOffset: number; hour: number }) => void;
 }) {
   const [dayOffset, setDayOffset] = React.useState(0);
   const [spans, setSpans] = React.useState<CheckInSpan[]>([]);
@@ -104,18 +110,32 @@ export function CourtBusyChart({
         accessibilityLabel={`${busyDayLabel(dayOffset, now)}: ${caption}`}
         style={[styles.bars, { height }]}
       >
-        {bars.map((bar) => (
-          <View
-            key={bar.hour}
-            style={[
-              styles.bar,
-              { height: Math.max(3, Math.round((bar.value / max) * height)) },
-              bar.kind === "past" && styles.barPast,
-              bar.kind === "now" && styles.barNow,
-              bar.kind === "planned" && (bar.value > 0 ? styles.barPlanned : styles.barEmpty),
-            ]}
-          />
-        ))}
+        {bars.map((bar) => {
+          const pickable = Boolean(onSelect) && bar.kind !== "past";
+          const isSelected = selected?.dayOffset === dayOffset && selected.hour === bar.hour;
+          return (
+            <Pressable
+              accessibilityLabel={`${hourLabel(bar.hour)}, ${bar.value} going`}
+              accessibilityRole={pickable ? "button" : undefined}
+              accessibilityState={{ selected: isSelected }}
+              disabled={!pickable}
+              key={bar.hour}
+              onPress={() => onSelect?.({ dayOffset, hour: bar.hour })}
+              style={styles.barSlot}
+            >
+              <View
+                style={[
+                  styles.bar,
+                  { height: Math.max(3, Math.round((bar.value / max) * height)) },
+                  bar.kind === "past" && styles.barPast,
+                  bar.kind === "now" && styles.barNow,
+                  bar.kind === "planned" && (bar.value > 0 ? styles.barPlanned : styles.barEmpty),
+                  isSelected && styles.barSelected,
+                ]}
+              />
+            </Pressable>
+          );
+        })}
       </View>
       {/* Labels sit centred under their bar but may be wider than it, so
           "Now" never clips to a bar's width. */}
@@ -147,7 +167,9 @@ const styles = StyleSheet.create({
   dayLabel: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
   dayLabelToday: { color: Colors.text },
   bars: { flexDirection: "row", alignItems: "flex-end", gap: 3 },
-  bar: { flex: 1, borderRadius: 3 },
+  barSlot: { flex: 1, height: "100%", justifyContent: "flex-end" },
+  bar: { borderRadius: 3 },
+  barSelected: { borderWidth: 2, borderColor: Colors.text },
   barPast: { backgroundColor: Colors.grabber },
   barNow: { backgroundColor: Colors.accent },
   barPlanned: { borderWidth: 1, borderColor: Colors.inkSoft, backgroundColor: "transparent" },

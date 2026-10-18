@@ -1,5 +1,5 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -37,8 +37,9 @@ import {
 
 /**
  * One challenge, from either player's side. Pending: the opponent accepts or
- * declines. Accepted: either player enters the score, which logs a normal 1v1
- * that the other confirms. Completed: links to the game.
+ * declines. Accepted, before the game time: call it off. After it: log the
+ * score (a normal 1v1 the other confirms) or say you missed it. Completed:
+ * links to the game.
  */
 export default function ChallengeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -63,19 +64,7 @@ export default function ChallengeScreen() {
   }, [id]);
   useFocusEffect(load);
 
-  // An accepted ranked challenge is a game to log: it opens the Log Game flow,
-  // filled in with the opponent, court and day.
-  const needsScore =
-    challenge != null &&
-    !challenge.matchId &&
-    challengeAction(challenge, currentUser.id) === "log_score";
-  useEffect(() => {
-    if (needsScore && challenge) {
-      router.replace(`/(tabs)/compete?tab=log&challengeId=${challenge.id}`);
-    }
-  }, [needsScore, challenge, router]);
-
-  if (loading || needsScore) {
+  if (loading) {
     return (
       <View style={styles.screen}>
         <DetailHeader onBack={() => router.back()} title="CHALLENGE" />
@@ -118,6 +107,12 @@ export default function ChallengeScreen() {
       { text: "Keep it", style: "cancel" },
       { text: "Call it off", style: "destructive", onPress: () => void run(() => cancelChallenge(challenge.id)) },
     ]);
+  // After the game time: it never happened.
+  const missed = () =>
+    Alert.alert("Mark as didn't happen?", "They'll be told.", [
+      { text: "Keep it", style: "cancel" },
+      { text: "Didn't happen", style: "destructive", onPress: () => void run(() => cancelChallenge(challenge.id)) },
+    ]);
 
   const footer = (() => {
     switch (action) {
@@ -138,10 +133,23 @@ export default function ChallengeScreen() {
           />
         );
       case "waiting":
+      case "scheduled":
         return (
           <StickyActionBar
             bottomInset={bottom}
             primary={{ label: "CALL IT OFF", tone: "light", disabled: busy, onPress: callOff }}
+          />
+        );
+      case "log_score":
+        return (
+          <StickyActionBar
+            bottomInset={bottom}
+            primary={{
+              label: "LOG SCORE",
+              disabled: busy,
+              onPress: () => router.push(`/(tabs)/compete?tab=log&challengeId=${challenge.id}`),
+            }}
+            secondary={{ label: "I MISSED IT", disabled: busy, onPress: missed }}
           />
         );
       case "casual_on":
@@ -153,7 +161,7 @@ export default function ChallengeScreen() {
               disabled: busy,
               onPress: () => void run(() => finishCasualChallenge(challenge.id)),
             }}
-            secondary={{ label: "CALL IT OFF", disabled: busy, onPress: callOff }}
+            secondary={{ label: "I MISSED IT", disabled: busy, onPress: missed }}
           />
         );
       case "view_game":

@@ -176,13 +176,14 @@ export default function CourtProfileScreen() {
   const activeCount = Math.max(roster.length, statsActive);
   const hiddenCount = Math.max(0, activeCount - roster.length);
   const hereNowIds = new Set(roster.map((player) => player.id));
-  const courtPlayers: CourtPlayer[] = locals.map(({ player, lastCheckInAt, joinedAt }) => ({
+  const courtPlayers: CourtPlayer[] = locals.map(({ player, lastCheckInAt, joinedAt, checkInCount }) => ({
     id: player.id,
     name: player.name,
     avatar: player.avatar,
     elo: player.elo,
     wins: records[player.id]?.wins ?? 0,
     losses: records[player.id]?.losses ?? 0,
+    checkIns: checkInCount,
     lastCheckInAt,
     joinedAt,
     activeNow: hereNowIds.has(player.id),
@@ -224,7 +225,7 @@ export default function CourtProfileScreen() {
           >
             <Feather color={Colors.text} name="arrow-left" size={22} />
           </Pressable>
-          <LocalPill isLocal={isMyLocal} onPress={() => void setLocalCourt(isMyLocal ? null : court.id, court)} />
+          <LocalPill isLocal={isMyLocal} onPress={() => void setLocalCourt(court.id, court)} />
         </View>
         {/* Name left, the live number right (Oct 17 header reference), then
             today's busy times above the tabs so every tab shares them. */}

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  formatCheckIns,
   formatRecord,
   pointsToNextRank,
   rankByElo,
@@ -16,6 +17,7 @@ const player = (id: string, extra: Partial<CourtPlayer> = {}): CourtPlayer => ({
   elo: 1200,
   wins: 0,
   losses: 0,
+  checkIns: 0,
   lastCheckInAt: null,
   joinedAt: null,
   activeNow: false,
@@ -23,9 +25,9 @@ const player = (id: string, extra: Partial<CourtPlayer> = {}): CourtPlayer => ({
 });
 
 const players = [
-  player("ade", { elo: 1201, lastCheckInAt: "2026-10-10T10:00:00Z", joinedAt: "2026-09-01T00:00:00Z" }),
+  player("ade", { elo: 1201, wins: 1, lastCheckInAt: "2026-10-10T10:00:00Z", joinedAt: "2026-09-01T00:00:00Z" }),
   player("marcus", { elo: 1342, wins: 31, losses: 9, lastCheckInAt: "2026-10-17T10:00:00Z", joinedAt: "2026-07-01T00:00:00Z" }),
-  player("luis", { elo: 1240, lastCheckInAt: "2026-10-18T09:00:00Z", activeNow: true, joinedAt: "2026-10-01T00:00:00Z" }),
+  player("luis", { elo: 1240, wins: 2, lastCheckInAt: "2026-10-18T09:00:00Z", activeNow: true, joinedAt: "2026-10-01T00:00:00Z" }),
   player("newbie", { elo: 1200 }),
 ];
 
@@ -45,12 +47,18 @@ test("newest puts the most recent local first and unknown dates last", () => {
 test("rank is by rating in every sort", () => {
   const ranks = rankByElo(players);
   assert.equal(ranks.get("marcus"), 1);
-  assert.equal(ranks.get("newbie"), 4);
+  assert.equal(ranks.get("ade"), 3);
+  assert.equal(ranks.has("newbie"), false);
 });
 
 test("points to the next rank up", () => {
   assert.deepEqual(pointsToNextRank(players, "ade"), { points: 39, rank: 2 });
   assert.equal(pointsToNextRank(players, "marcus"), null);
+});
+
+test("check-in copy", () => {
+  assert.equal(formatCheckIns(1), "1 check-in at this court");
+  assert.equal(formatCheckIns(4), "4 check-ins at this court");
 });
 
 test("record copy", () => {

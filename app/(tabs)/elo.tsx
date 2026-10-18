@@ -200,7 +200,7 @@ export default function MeScreen() {
     setRespondingId(challenge.id);
     const result = await respondToChallenge(challenge.id, accept);
     setRespondingId(null);
-    // An accepted ranked game goes straight into Log Game, filled in.
+    // An accepted challenge opens its own page.
     if (result.ok && accept) openChallenge({ ...challenge, status: "accepted" });
     refreshChallenges();
   };
@@ -209,8 +209,6 @@ export default function MeScreen() {
     // there), never a second Log Game.
     if (challenge.matchId) {
       router.push(`/match/${challenge.matchId}`);
-    } else if (challenge.status === "accepted" && challenge.ranked) {
-      router.push(`/(tabs)/compete?tab=log&challengeId=${challenge.id}`);
     } else {
       router.push(`/challenge/${challenge.id}`);
     }

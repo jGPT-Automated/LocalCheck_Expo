@@ -5,7 +5,7 @@ superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D58, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D59, Jesse's plan doc)
 
 Numbers match Jesse's plan doc (Decisions tab). These supersede older entries
 below wherever they disagree.
@@ -80,6 +80,21 @@ below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D59 Inbox challenges, hourly Home chart, Players ranked only (Oct 18,
+  revises D58):** Jesse's Vercel-toolbar notes. A challenge card reads "Ranked
+  game with Name" over court and when, with no arrow; tapping any open
+  challenge opens its own page, never Compete. Before the game time that
+  page offers Call it off; after it, Log score (ranked) or We played
+  (casual) with a small I missed it. Home's Today chart keeps its day
+  arrows and each bar from now on is tappable: it opens who's going that hour
+  with + and Join (the same card as the court page's Week). The Schedule
+  tab's selected-time card matches it (+ left of the faces, Join on the left of
+  the game). The court page shows a house square instead of "Your local" and
+  tapping it can only set, never un-set (Settings removes). Players: Ranking
+  lists only players with a game at this court ("9 of 27 locals have a ranked
+  game"); Active and Newest list everyone, Active with "N check-ins at this
+  court". Info adds Date added and calls the hours "Hours this week". A failed
+  LocalPlus sign-in keeps the price label on the button.
 - **D58 Home is one page; the court page loses its bottom bar (Oct 18,
   revises D57):** Jesse's redesign notes with new reference screenshots.
   Home has no tabs: the court header (name, On court / Court hours · wk /
@@ -89,7 +104,7 @@ below wherever they disagree.
   Feed / Locals / Schedule tabs are gone. Feed icons: a small solid orange dot
   for a check-in, the same grey dot for a check-out, VS for a game result, the
   calendar stays for a scheduled game. The court page has no Plan visit / Check
-  in bar. Players shows only the court's locals (Here now moved to Live), as a
+  in bar. (Home's Today chart, the Players lists and the Your local pill are revised by D59.) Players shows only the court's locals (Here now moved to Live), as a
   Ranking / Active / Newest list with each player's record at this court and
   your own row pinned (Newest = the most recent to make this their local first).
   Week keeps days across and times down but follows the new reference: a

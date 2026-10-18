@@ -18,6 +18,13 @@ function accessLabel(value?: string): string {
   return value.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 }
 
+function addedLabel(value?: string): string {
+  if (!value) return "—";
+  const [y, m, d] = value.split("-").map(Number);
+  if (!y || !m || !d) return "—";
+  return new Date(y, m - 1, d, 12).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 export function CourtInfoPanel({
   court,
   hoursLabel,
@@ -54,6 +61,7 @@ export function CourtInfoPanel({
     ["Courts", court.courtCount != null ? String(court.courtCount) : "—"],
     ["Lights", court.lights == null ? "—" : court.lights ? "Yes" : "No"],
     ["Access", accessLabel(court.access)],
+    ["Date added", addedLabel(court.addedDate)],
   ];
 
   return (
@@ -88,7 +96,7 @@ export function CourtInfoPanel({
 
       <View style={styles.stats}>
         {[
-          [hoursLabel, "Court hours · wk"],
+          [hoursLabel, "Hours this week"],
           [averageSession, "Avg session"],
           [String(locals), "Locals"],
         ].map(([value, label], index) => (

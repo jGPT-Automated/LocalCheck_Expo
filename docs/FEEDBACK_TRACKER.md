@@ -21,6 +21,22 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-18 (later) — Vercel-toolbar notes (`claude/kind-pascal-4c174r`, PR #77)
+
+Not verified in a render; Jesse is checking it. No OTA until he says so.
+
+| Item | Status |
+|------|--------|
+| Inbox challenge card: "Ranked game with Name", no arrow, symmetrical | ✅ |
+| Open challenge never goes to Compete; Call it off before the time, Log score + I missed it after | ✅ |
+| Home Today chart: tap a bar to see who's going that hour, + and Join | ✅ |
+| Schedule slot card matches the Week card; + not "Add my time"; FAB shadow | ✅ |
+| Court page: house icon instead of "Your local"; can't un-set from it | ✅ |
+| Info: Date added; "Hours this week" | ✅ |
+| Players: ranked only in Ranking, "N of M locals have a ranked game", check-ins on Active, All on Newest | ✅ |
+| LocalPlus "Couldn't verify — tap to retry" label removed | ✅ |
+| Home names cut off / Up next spacing | ✅ already fixed in 6d2e762 |
+
 ## 2026-10-18 — Home and court page redesign (`claude/kind-pascal-4c174r`, PR #77 into `main`)
 
 From Jesse's Oct 18 notes and five reference screenshots (Home overview,

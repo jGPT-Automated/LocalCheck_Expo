@@ -168,19 +168,18 @@ export default function LocalPlusScreen() {
     }
   };
 
+  // A failed sign-in keeps the normal price label; tapping it retries quietly.
   const purchaseDisabled = purchasing || (identityState === "ready" && !pkg);
   const purchaseLabel =
     identityState === "pending"
       ? "SIGNING YOU IN…"
-      : identityState === "error"
-        ? "COULDN'T VERIFY — TAP TO RETRY"
-        : purchasing
-          ? "SUBSCRIBING…"
-          : pkg
-            ? buttonLabel(planPrice(pkg), plan)
-            : offeringChecked
-              ? "NOT AVAILABLE YET"
-              : "LOADING…";
+      : purchasing
+        ? "SUBSCRIBING…"
+        : pkg
+          ? buttonLabel(planPrice(pkg), plan)
+          : offeringChecked
+            ? "NOT AVAILABLE YET"
+            : "LOADING…";
   const yearlyPrice = packages.yearly ? planPrice(packages.yearly) : null;
   const monthlyPrice = packages.monthly ? planPrice(packages.monthly) : null;
   const savings = yearlyPrice && monthlyPrice ? yearlySavingsPercent(yearlyPrice, monthlyPrice) : null;

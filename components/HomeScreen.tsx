@@ -8,6 +8,7 @@ import { BrutalistButton } from "@/components/BrutalistButton";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
 import { CourtBusyChart } from "@/components/court/CourtBusyChart";
+import { HourSlotCard } from "@/components/court/HourSlotCard";
 import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewSections";
 import { SectionHead } from "@/components/court/CourtParts";
 import { ActivityRow } from "@/components/ui/ActivityRow";
@@ -51,6 +52,7 @@ export function HomeScreen() {
   const { user } = useAuth();
   const tabFloor = useBottomFloor();
   const [isChecking, setIsChecking] = useState(false);
+  const [picked, setPicked] = useState<{ dayOffset: number; hour: number } | null>(null);
   const [hoursLabel, setHoursLabel] = useState("0h");
   const { showToast } = useToast();
   const [selectedResult, setSelectedResult] = useState<{
@@ -81,6 +83,7 @@ export function HomeScreen() {
 
   useEffect(() => {
     setSelectedResult(null);
+    setPicked(null);
   }, [localCourtId]);
 
   // Kept above the no-court early return so the hook count never changes
@@ -190,8 +193,20 @@ export function HomeScreen() {
           />
         </View>
         <View style={styles.today}>
-          <CourtBusyChart courtId={localCourt.id} games={upcoming} refreshKey={roster.length} title="Today" />
+          <CourtBusyChart
+            courtId={localCourt.id}
+            games={upcoming}
+            onSelect={setPicked}
+            refreshKey={roster.length}
+            selected={picked}
+            title="Today"
+          />
         </View>
+        {picked ? (
+          <View style={styles.today}>
+            <HourSlotCard court={localCourt} dayOffset={picked.dayOffset} hour={picked.hour} />
+          </View>
+        ) : null}
         <View style={styles.today}>
           <SectionHead title="Recent activity" />
         </View>

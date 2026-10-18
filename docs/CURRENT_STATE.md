@@ -94,6 +94,19 @@ Each claim says which of these it is, because they are often confused:
     court route entry) and the court page section of `docs/product/DESIGN.md`.
   - Not in this pass: Players sorts (Active / Newest / All), the Live
     scoreboard rows, Phosphor icons, the drawer.
+- Oct 18 follow-up (D59; **on a branch**, PR #77, not merged, not on a device;
+  not checked in a render, Jesse is verifying). Frontend only.
+  - Challenges: `lib/challengeModel.ts` `challengeAction` takes the time; an
+    accepted challenge is `scheduled` (Call it off) until its game time, then
+    `log_score` / `casual_on` with I missed it (`cancelChallenge`).
+    `app/challenge/[id].tsx` no longer redirects to Compete; the inbox opens it
+    for every open challenge (`app/(tabs)/elo.tsx`). Card text: `challengeCardLines`.
+  - Home: tapping a Today bar opens `HourSlotCard` (shared `SlotCard`, also the
+    court Week's card and, restyled in place, the Schedule tab's slot card).
+  - Court page: `LocalPill` is an icon-only house square that only sets;
+    Players ranks only players with a game here (`isRanked`); Info adds Date
+    added; Schedule FAB shadow stronger; LocalPlus button keeps the price label
+    when sign-in fails.
 - Home and court page redesign (Oct 18, D58; **on a branch**,
   `claude/kind-pascal-4c174r`, PR #77, not merged, not on a device; checked in
   a local web render at 375x667, 393x852 and 430x932 against mocked data).

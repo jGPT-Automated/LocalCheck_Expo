@@ -1,11 +1,8 @@
-import { Feather } from "@expo/vector-icons";
-import { router } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { formatForMaxPlayers } from "@/components/schedule/scheduledGameModel";
-import { Colors, Radius } from "@/constants/colors";
+import { SlotCard, type SlotAttendee } from "@/components/court/SlotCard";
+import { Colors } from "@/constants/colors";
 import type { Court, GameRun } from "@/constants/data";
 import { Layout } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
@@ -17,16 +14,7 @@ const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 const ROW_HOURS = [7, 9, 11, 13, 15, 17, 19, 21];
 const FIRST_HOUR = ROW_HOURS[0];
 const LAST_HOUR = 22;
-const AVATARS_MAX = 5;
 const LEGEND = [Colors.surfaceHigh, Colors.heat1, Colors.heat2, Colors.heat3, Colors.accent];
-
-interface SlotAttendee {
-  id: string;
-  name: string;
-  initials: string;
-  isMine: boolean;
-  visitId?: string;
-}
 
 interface SlotEntry {
   attendees: SlotAttendee[];
@@ -196,7 +184,6 @@ export function CourtSchedulePanel({
   const selectedEntry = slotMap.get(selectedKey);
   const selectedRuns = selectedEntry?.runs ?? [];
   const myVisit = selectedEntry?.attendees.find((attendee) => attendee.isMine && attendee.visitId);
-  const total = slotTotal(selectedKey);
   const selectedDate = new Date(weekDays[selected.day]);
   selectedDate.setHours(ROW_HOURS[selected.row], 0, 0, 0);
   const slotTitle = `${selected.day === todayIndex ? "Today" : DAYS[selectedDate.getDay()]} · ${longLabel(ROW_HOURS[selected.row])}`;
@@ -286,81 +273,17 @@ export function CourtSchedulePanel({
         </View>
       </View>
 
-      <View style={styles.card}>
-        <View style={styles.slotHead}>
-          <Text style={styles.slotTitle}>{slotTitle}</Text>
-          <Text style={styles.cardMeta}>{total} planning to go</Text>
-        </View>
-        <View style={styles.peopleRow}>
-          <Pressable
-            accessibilityLabel={myVisit ? "I'm not coming" : "I'm coming"}
-            accessibilityRole="button"
-            accessibilityState={{ busy: saving, selected: Boolean(myVisit) }}
-            disabled={saving}
-            onPress={() => void handleAttendance()}
-            style={[styles.addButton, myVisit && styles.addButtonOn]}
-          >
-            <Feather color={myVisit ? Colors.background : Colors.textSecondary} name={myVisit ? "check" : "plus"} size={16} />
-          </Pressable>
-          <ScrollView contentContainerStyle={styles.avatars} horizontal showsHorizontalScrollIndicator={false} style={styles.avatarScroll}>
-            {(selectedEntry?.attendees ?? []).slice(0, AVATARS_MAX).map((attendee) => (
-              <Pressable
-                accessibilityLabel={attendee.isMine ? "You" : attendee.name}
-                accessibilityRole="button"
-                key={attendee.id}
-                onPress={() => router.push(`/player/${attendee.id}`)}
-                style={styles.avatar}
-              >
-                <PlayerAvatar
-                  accent={attendee.isMine}
-                  initials={attendee.initials}
-                  name={attendee.name}
-                  playerId={attendee.id}
-                  size={36}
-                />
-              </Pressable>
-            ))}
-            {hiddenCount(selectedKey) + Math.max(0, (selectedEntry?.attendees.length ?? 0) - AVATARS_MAX) > 0 ? (
-              <View style={styles.moreTile}>
-                <Text style={styles.moreText}>
-                  +{hiddenCount(selectedKey) + Math.max(0, (selectedEntry?.attendees.length ?? 0) - AVATARS_MAX)}
-                </Text>
-              </View>
-            ) : null}
-          </ScrollView>
-        </View>
-        {notice ? <Text style={styles.notice}>{notice}</Text> : null}
-        <View style={styles.divider} />
-        {selectedRuns.length > 0 ? (
-          selectedRuns.map((run) => {
-            const format = formatForMaxPlayers(run.maxPlayers);
-            const skill = run.skillLevel.charAt(0) + run.skillLevel.slice(1).toLowerCase();
-            return (
-              <View key={run.id} style={styles.gameRow}>
-                <Pressable
-                  accessibilityLabel={`Open ${run.title}`}
-                  accessibilityRole="button"
-                  onPress={() => router.push(`/run/${run.id}`)}
-                  style={({ pressed }) => [styles.joinButton, pressed && styles.pressed]}
-                >
-                  <Text style={styles.joinText}>Join</Text>
-                </Pressable>
-                <View style={styles.gameCopy}>
-                  <View style={styles.gameTitleRow}>
-                    <View style={styles.gameDot2} />
-                    <Text numberOfLines={1} style={styles.gameTitle}>{run.title}</Text>
-                  </View>
-                  <Text numberOfLines={1} style={styles.gameSub}>
-                    {[format?.toLowerCase(), skill, `${run.participants.length}/${run.maxPlayers} spots`].filter(Boolean).join(" · ")}
-                  </Text>
-                </View>
-              </View>
-            );
-          })
-        ) : (
-          <Text style={styles.noGame}>No game scheduled for this time.</Text>
-        )}
-      </View>
+      <SlotCard
+        attendees={selectedEntry?.attendees ?? []}
+        canToggle
+        hidden={hiddenCount(selectedKey)}
+        mine={Boolean(myVisit)}
+        notice={notice}
+        onToggle={() => void handleAttendance()}
+        runs={selectedRuns}
+        saving={saving}
+        title={slotTitle}
+      />
     </ScrollView>
   );
 }
@@ -399,51 +322,4 @@ const styles = StyleSheet.create({
   legendScale: { flexDirection: "row", alignItems: "center", gap: 5 },
   legendText: { fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.muted },
   swatch: { width: 11, height: 11, borderRadius: 3, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.hairlineChrome },
-  slotHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10 },
-  slotTitle: { fontFamily: Typography.headingBold, fontSize: 24, lineHeight: 28, letterSpacing: -0.4, textTransform: "uppercase", color: Colors.text },
-  peopleRow: { marginTop: 12, flexDirection: "row", alignItems: "center", gap: 8 },
-  avatarScroll: { flex: 1, minWidth: 0 },
-  avatars: { flexDirection: "row", alignItems: "center", gap: 8 },
-  avatar: { borderRadius: 8 },
-  moreTile: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: Colors.dashed,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  moreText: { fontFamily: Typography.headingSemiBold, fontSize: 12, color: Colors.textSecondary },
-  addButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.hairlineChrome,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  addButtonOn: { backgroundColor: Colors.accent, borderColor: Colors.accent },
-  notice: { marginTop: 8, fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.loss },
-  divider: { height: 1, marginVertical: 14, backgroundColor: Colors.hairline },
-  gameRow: { minHeight: 48, marginTop: 4, flexDirection: "row", alignItems: "center", gap: 12 },
-  gameCopy: { flex: 1, minWidth: 0, gap: 3 },
-  gameTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  gameTitle: { flexShrink: 1, fontFamily: Typography.headingSemiBold, fontSize: 20, lineHeight: 24, textTransform: "uppercase", color: Colors.text },
-  gameSub: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
-  joinButton: {
-    minWidth: 84,
-    height: 44,
-    paddingHorizontal: 16,
-    borderRadius: Radius.button,
-    borderWidth: 1,
-    borderColor: Colors.text,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  joinText: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.4, textTransform: "uppercase", color: Colors.text },
-  noGame: { fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
-  pressed: { opacity: 0.72 },
 });

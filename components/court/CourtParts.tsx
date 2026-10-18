@@ -66,19 +66,24 @@ export function SportLabel({ sport, suffix }: { sport: CourtSport; suffix?: stri
   );
 }
 
+/**
+ * Your local court, as the same house square as `LocalTag`. Solid when this is
+ * your local; dashed when it isn't, and then a tap makes it your local. Once it
+ * is yours the square does nothing (changing it lives in Settings), so a stray
+ * tap can't un-set it.
+ */
 export function LocalPill({ isLocal, onPress }: { isLocal: boolean; onPress?: () => void }) {
   return (
     <Pressable
-      accessibilityHint={isLocal ? "Removes this as your local court" : "Sets this as your local court"}
+      accessibilityHint={isLocal ? undefined : "Sets this as your local court"}
       accessibilityLabel={isLocal ? "Your local court" : "Set as local court"}
-      accessibilityRole="button"
-      disabled={!onPress}
+      accessibilityRole={isLocal ? "image" : "button"}
+      disabled={isLocal || !onPress}
       hitSlop={8}
       onPress={onPress}
-      style={({ pressed }) => [styles.pill, isLocal && styles.pillActive, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.localTag, !isLocal && styles.localTagOff, pressed && styles.pressed]}
     >
-      <Feather color={isLocal ? Colors.text : Colors.textSecondary} name={isLocal ? "home" : "plus"} size={10} />
-      <Text style={[styles.pillText, isLocal && styles.pillTextActive]}>{isLocal ? "Your local" : "Set as local"}</Text>
+      <Feather color={isLocal ? Colors.text : Colors.textSecondary} name="home" size={13} />
     </Pressable>
   );
 }
@@ -270,19 +275,6 @@ const styles = StyleSheet.create({
   sportRow: { flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 1 },
   sportDot: { width: 6, height: 6, borderRadius: 3 },
   sportText: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.5, textTransform: "uppercase", flexShrink: 1 },
-  pill: {
-    height: 28,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderWidth: 1,
-    borderColor: "rgba(242,242,246,0.12)",
-  },
-  pillActive: { backgroundColor: "rgba(242,242,246,0.08)", borderColor: "rgba(242,242,246,0.18)" },
-  pillText: { fontFamily: Typography.bodyBold, fontSize: 8.5, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.textSecondary },
-  pillTextActive: { color: Colors.text },
   localTag: {
     width: 28,
     height: 28,
@@ -293,6 +285,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(242,242,246,0.14)",
     backgroundColor: "rgba(242,242,246,0.04)",
   },
+  localTagOff: { borderStyle: "dashed", backgroundColor: "transparent" },
   pressed: { opacity: 0.72 },
   strip: {
     flexDirection: "row",
