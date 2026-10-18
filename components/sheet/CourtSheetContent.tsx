@@ -15,9 +15,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { CourtArt } from "@/components/court/CourtArt";
 import { CourtBusyChart } from "@/components/court/CourtBusyChart";
+import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewSections";
 import {
   CheckInButton,
   CourtLinkButton,
@@ -26,7 +26,6 @@ import {
   SectionHead,
   SportLabel,
 } from "@/components/court/CourtParts";
-import { formatForMaxPlayers } from "@/components/schedule/scheduledGameModel";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { useToast } from "@/components/ui/Toast";
 import { Colors, Radius } from "@/constants/colors";
@@ -38,34 +37,19 @@ import { usePresence } from "@/context/CourtPresenceContext";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
 import { useLocalPlusPurchase } from "@/hooks/useLocalPlusPurchase";
 import { describeTimelineItem } from "@/lib/activityPresentation";
-import { courtHours, formatCourtHours, formatTimeOnCourt } from "@/lib/courtHours";
+import { courtHours, formatCourtHours } from "@/lib/courtHours";
 import { drawerDetailHeight, drawerFooterGap } from "@/lib/courtDrawerLayout";
 import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/planModel";
 import { fetchCourtById, fetchCourtWeekSpans } from "@/services/courtService";
 import { fetchFeed } from "@/services/feedService";
 
-const HERE_MAX = 4;
 const DRAWER_CHIPS = [
   { label: "Games", tab: "games" },
   { label: "Players", tab: "players" },
   { label: "Feed", tab: "live" },
   { label: "Week", tab: "week" },
 ] as const;
-
-function dayShort(iso: string): string {
-  const date = new Date(iso);
-  const today = new Date();
-  if (date.toDateString() === today.toDateString()) return "Today";
-  return date.toLocaleDateString("en-US", { weekday: "short" });
-}
-
-function clock(iso: string): string {
-  const date = new Date(iso);
-  const h = date.getHours() % 12 === 0 ? 12 : date.getHours() % 12;
-  const m = date.getMinutes();
-  return m === 0 ? `${h}` : `${h}:${String(m).padStart(2, "0")}`;
-}
 
 /**
  * Court drawer content (Claude Design court flow), rendered inside the root
@@ -170,8 +154,6 @@ export function CourtSheetContent({
   const upcoming: GameRun[] = runs
     .filter((run) => run.courtId === court.id && Date.parse(run.startTimeIso) >= now - 60 * 60_000)
     .sort((a, b) => a.startTimeIso.localeCompare(b.startTimeIso));
-  const weekAhead = upcoming.filter((run) => Date.parse(run.startTimeIso) < now + 7 * 86_400_000);
-  const next = upcoming[0];
 
   const handleCheckIn = async () => {
     if (isChecking) return;
@@ -263,93 +245,17 @@ export function CourtSheetContent({
           onOpenLocalPlus={() => go("/localplus")}
           onSetLocal={setAsLocal}
         >
-          <View style={styles.section}>
-            <SectionHead meta={live ? `${activeCount} on court` : "Live check-ins"} title="Here now" />
-            {live ? (
-              <View style={styles.hereRow}>
-                {roster.slice(0, HERE_MAX).map((player) => (
-                  <Pressable
-                    accessibilityLabel={player.name}
-                    accessibilityRole="button"
-                    key={player.id}
-                    onPress={() => go(`/player/${player.id}`)}
-                    style={styles.hereItem}
-                  >
-                    <PlayerAvatar
-                      friend={isFriend(player.id)}
-                      initials={player.avatar}
-                      name={player.name}
-                      playerId={player.id}
-                      size={40}
-                      status="active"
-                    />
-                    <Text numberOfLines={1} style={styles.hereName}>{player.name.split(" ")[0]}</Text>
-                    <Text style={styles.hereSub}>{formatTimeOnCourt(player.checkedInAt) ?? player.elo}</Text>
-                  </Pressable>
-                ))}
-                {roster.length > HERE_MAX ? (
-                  <Pressable
-                    accessibilityLabel={`${roster.length - HERE_MAX} more on court`}
-                    accessibilityRole="button"
-                    onPress={() => go(`/court/${court.id}?tab=players`)}
-                    style={styles.hereItem}
-                  >
-                    <View style={styles.moreTile}>
-                      <Text style={styles.moreTileText}>+{roster.length - HERE_MAX}</Text>
-                    </View>
-                    <Text style={styles.hereSub}>More</Text>
-                  </Pressable>
-                ) : null}
-              </View>
-            ) : (
-              <View style={styles.emptyBox}>
-                <Text numberOfLines={2} style={styles.emptyText}>Nobody yet. Check in and you're first.</Text>
-              </View>
-            )}
-          </View>
-
-          <View style={styles.section}>
-            <SectionHead
-              meta={weekAhead.length ? `${weekAhead.length} this week` : "None this week"}
-              onMetaPress={weekAhead.length ? () => go(`/court/${court.id}?tab=games`) : undefined}
-              title="Up next"
-            />
-            {next ? (
-              <PressableScale
-                accessibilityLabel={`${next.title}, ${next.participants.length} of ${next.maxPlayers} going`}
-                accessibilityRole="button"
-                onPress={() => go(`/run/${next.id}`)}
-                style={styles.nextRow}
-              >
-                <View style={styles.nextWhen}>
-                  <Text style={styles.nextDay}>{dayShort(next.startTimeIso)}</Text>
-                  <Text style={styles.nextTime}>
-                    {clock(next.startTimeIso)}
-                    {new Date(next.startTimeIso).getHours() >= 12 ? "P" : "A"}
-                  </Text>
-                </View>
-                <View style={styles.nextBody}>
-                  <Text numberOfLines={1} style={styles.nextTitle}>{next.title}</Text>
-                  <Text numberOfLines={1} style={styles.nextSub}>
-                    {[formatForMaxPlayers(next.maxPlayers), `${next.participants.length} of ${next.maxPlayers} going`]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </Text>
-                </View>
-                <View style={styles.faces}>
-                  {next.participants.slice(0, 3).map((player, index) => (
-                    <View key={player.id} style={[styles.face, index > 0 && styles.faceOverlap]}>
-                      <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={24} />
-                    </View>
-                  ))}
-                </View>
-              </PressableScale>
-            ) : (
-              <View style={styles.emptyBox}>
-                <Text numberOfLines={2} style={styles.emptyText}>No games scheduled. Post one and locals see it.</Text>
-              </View>
-            )}
-          </View>
+          <HereNowSection
+            isFriend={isFriend}
+            onMore={() => go(`/court/${court.id}?tab=players`)}
+            onPlayer={(id) => go(`/player/${id}`)}
+            roster={roster}
+          />
+          <UpNextSection
+            onOpenRun={(id) => go(`/run/${id}`)}
+            onSeeAll={() => go(`/court/${court.id}?tab=games`)}
+            upcoming={upcoming}
+          />
 
           <View style={styles.section}>
             <CourtBusyChart courtId={court.id} games={upcoming} refreshKey={roster.length} title="Today" />
@@ -546,53 +452,9 @@ const styles = StyleSheet.create({
   peekFoot: { height: 16 },
 
   detailArea: { overflow: "hidden" },
-  section: { paddingHorizontal: 20, paddingBottom: 16 },
-  hereRow: { height: 62, flexDirection: "row", gap: 8, overflow: "hidden" },
-  hereItem: { width: 58, alignItems: "center", gap: 4 },
-  hereName: { maxWidth: 58, fontFamily: Typography.bodySemiBold, fontSize: 10, color: Colors.inkSoft },
-  hereSub: { fontFamily: Typography.bodySemiBold, fontSize: 9, lineHeight: 10, color: Colors.muted },
-  moreTile: {
-    width: 40,
-    height: 40,
-    borderRadius: 11,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: Colors.dashed,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  moreTileText: { fontFamily: Typography.headingSemiBold, fontSize: 13, color: Colors.textSecondary },
-  emptyBox: {
-    height: 60,
-    paddingHorizontal: 14,
-    justifyContent: "center",
-    borderRadius: Radius.row,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: Colors.dashed,
-  },
+  section: { paddingHorizontal: 20, paddingBottom: 14 },
   emptyText: { fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
 
-  nextRow: {
-    height: 60,
-    paddingHorizontal: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderRadius: Radius.row,
-    borderWidth: 1,
-    borderColor: Colors.hairlineCard,
-    backgroundColor: Colors.panel,
-  },
-  nextWhen: { width: 52, paddingRight: 10, alignItems: "center", borderRightWidth: 1, borderRightColor: Colors.hairline },
-  nextDay: { fontFamily: Typography.bodyBold, fontSize: 8, letterSpacing: 1, textTransform: "uppercase", color: Colors.textSecondary },
-  nextTime: { fontFamily: Typography.headingSemiBold, fontSize: 17, lineHeight: 19, color: Colors.text },
-  nextBody: { flex: 1, minWidth: 0 },
-  nextTitle: { fontFamily: Typography.bodyBold, fontSize: 12.5, color: Colors.text },
-  nextSub: { marginTop: 2, fontFamily: Typography.bodyMedium, fontSize: 10.5, color: Colors.textSecondary },
-  faces: { flexDirection: "row", flexShrink: 0 },
-  face: { borderRadius: 9, borderWidth: 2, borderColor: Colors.panel },
-  faceOverlap: { marginLeft: -8 },
 
 
   recentRow: {

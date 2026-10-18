@@ -36,6 +36,8 @@ export interface SupabaseProfile {
    *  account-tags migration is applied; null for an ordinary player. */
   account_tag?: AccountTag | null;
   visibility?: "public" | "friends" | "private";
+  /** Stamped whenever local_court_id changes: when they became a local here. */
+  local_court_changed_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -135,6 +137,8 @@ export interface LocalWithLastCheckIn {
   lastCheckInAt: string | null;
   /** Visible check-ins at this court. Kept presentation-only; RLS still owns visibility. */
   checkInCount: number;
+  /** When they set this as their local court (falls back to joining the app). */
+  joinedAt: string | null;
 }
 
 /**
@@ -144,6 +148,7 @@ export interface LocalWithLastCheckIn {
  */
 export async function fetchLocalsWithLastCheckIn(
   courtId: string,
+  sport?: CourtSport | null,
 ): Promise<LocalWithLastCheckIn[]> {
   try {
     const [
@@ -175,9 +180,10 @@ export async function fetchLocalsWithLastCheckIn(
         .map((row) => {
           const activity = byPlayer.get(row.id);
           return {
-            player: mapProfileToPlayer(row),
+            player: mapProfileToPlayer(row, sport),
             lastCheckInAt: activity?.latest ?? null,
             checkInCount: activity?.count ?? 0,
+            joinedAt: row.local_court_changed_at ?? row.created_at ?? null,
           };
         })
         // Most recently active first; never-checked-in at the end.

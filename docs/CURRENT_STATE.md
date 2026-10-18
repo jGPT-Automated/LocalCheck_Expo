@@ -94,6 +94,36 @@ Each claim says which of these it is, because they are often confused:
     court route entry) and the court page section of `docs/product/DESIGN.md`.
   - Not in this pass: Players sorts (Active / Newest / All), the Live
     scoreboard rows, Phosphor icons, the drawer.
+- Home and court page redesign (Oct 18, D58; **on a branch**,
+  `claude/kind-pascal-4c174r`, PR #77, not merged, not on a device; checked in
+  a local web render at 375x667, 393x852 and 430x932 against mocked data).
+  Frontend only: no database, function or native change.
+  - Home (`components/HomeScreen.tsx`): one scrolling page, no tabs. The court
+    header scrolls away; Check in + Court and Here now pin at the top; Up next,
+    Today and the full court feed scroll under them. The Plan | Check in |
+    Court row, the Feed / Locals / Schedule tabs and `HomeCourtActions`' Plan
+    button are gone.
+  - Shared sections: `components/court/CourtOverviewSections.tsx`
+    (`HereNowSection`, `UpNextSection`) now serve the Explore drawer and Home.
+  - Feed icons (`components/ui/ActivityRow.tsx`): small solid orange dot for
+    check-in, grey dot for check-out, VS for a game result.
+  - Court page (`app/court/[id].tsx`): the Plan visit / Check in bottom bar is
+    gone. Players is `components/court/CourtPlayersPanel.tsx`: locals only,
+    Ranking / Active / Newest, record at this court, your row pinned
+    (`lib/courtPlayersModel.ts`, tested in `lib/courtPlayersModel.test.mts`).
+    Week is the rebuilt `components/CourtSchedulePanel.tsx` (Planned visits
+    card + Today card with Join).
+  - Data: `fetchCourtRecords` (`services/courtService.ts`) reads confirmed
+    `matches` + `match_participants` at the court, so a player's record is
+    only what RLS lets the viewer see; `fetchLocalsWithLastCheckIn` now takes
+    the court's sport (sport-specific rating) and returns `joinedAt`
+    (`profiles.local_court_changed_at`, falling back to `created_at`). Both
+    are reads of existing columns. Not checked against LocalCheckProd.
+  - Visual QA: `scripts/visual-qa/screens.mjs` drops the Home Locals/Schedule
+    rows and adds Home scrolled, Players sorted by Active and Newest, the
+    Week Today card and the expanded Explore drawer. The court Week grid has
+    56 cells under 44pt (seven columns cannot reach 44pt on a phone), so its
+    `smallTarget` baseline went up at 375x667; see the PR.
 - Pre-submission polish pass (Oct 17, D57; **on a branch**,
   `claude/kind-pascal-4c174r`, PR #77 into `main`; it carries #75, not merged, not on a device).
   Frontend only: no database, function or native change.

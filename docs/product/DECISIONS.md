@@ -5,7 +5,7 @@ superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D57, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D58, Jesse's plan doc)
 
 Numbers match Jesse's plan doc (Decisions tab). These supersede older entries
 below wherever they disagree.
@@ -80,6 +80,21 @@ below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D58 Home is one page; the court page loses its bottom bar (Oct 18,
+  revises D57):** Jesse's redesign notes with new reference screenshots.
+  Home has no tabs: the court header (name, On court / Court hours · wk /
+  Locals) scrolls away, Check in beside Court (the drawer's pair; Court opens
+  the court page) and Here now pin to the top, and Up next, Today and the
+  court feed scroll under them. D57's Plan | Check in | Court row and Home's
+  Feed / Locals / Schedule tabs are gone. Feed icons: a small solid orange dot
+  for a check-in, the same grey dot for a check-out, VS for a game result, the
+  calendar stays for a scheduled game. The court page has no Plan visit / Check
+  in bar. Players shows only the court's locals (Here now moved to Live), as a
+  Ranking / Active / Newest list with each player's record at this court and
+  your own row pinned (Newest = the most recent to make this their local first).
+  Week keeps days across and times down but follows the new reference: a
+  Planned visits card (Busiest, Fewer to More, Game dot) and a Today card
+  (who's going, +, Join).
 - **D57 Pre-submission polish pass (Oct 17, revises D55):** Jesse's voice
   notes and the Oct 16 precision handoff. The court page header is the
   court's own: name left, a large live On court number right, and today's
@@ -94,7 +109,8 @@ below wherever they disagree.
   `FormSheet`, How score review works and the player QR now use it.
   Onboarding's welcome carries the sign-in artwork. The game page shows the
   court and format once and keeps Submit result / View result pinned at the
-  bottom.
+  bottom. (Revised by D58: Home's Plan / Check in / Court row and its tabs,
+  and the court page's bottom bar, are gone.)
 - **D56 The rest of the app follows the court-flow design, frontend only
   (Oct 15):** Jesse asked for one consistent front end matched to
   `CourtFlowPhone2` with no backend changes, focusing on the expanded

@@ -146,6 +146,45 @@ export interface CourtActivityMetrics {
   activeLocalTrend: number | null;
 }
 
+export interface CourtRecord {
+  wins: number;
+  losses: number;
+}
+
+/**
+ * Every player's win-loss in confirmed games at this court (what the Players
+ * tab shows as "31–9 at this court"). Visibility is RLS's call; a player with
+ * no visible games here is simply absent.
+ */
+export async function fetchCourtRecords(
+  courtId: string,
+): Promise<Record<string, CourtRecord>> {
+  try {
+    const { data, error } = await supabase
+      .from("matches")
+      .select("winner_side,match_participants(user_id,side)")
+      .eq("court_id", courtId)
+      .eq("status", "confirmed")
+      .limit(5000);
+    if (error || !data) return {};
+    const records: Record<string, CourtRecord> = {};
+    for (const match of data as unknown as Array<{
+      winner_side: "a" | "b" | null;
+      match_participants: Array<{ user_id: string; side: "a" | "b" }> | null;
+    }>) {
+      if (!match.winner_side) continue;
+      for (const participant of match.match_participants ?? []) {
+        const record = (records[participant.user_id] ??= { wins: 0, losses: 0 });
+        if (participant.side === match.winner_side) record.wins += 1;
+        else record.losses += 1;
+      }
+    }
+    return records;
+  } catch {
+    return {};
+  }
+}
+
 /**
  * Read-only dashboard metrics derived from existing authoritative rows. The
  * three-month "active local" state is deliberately calculated, not persisted,

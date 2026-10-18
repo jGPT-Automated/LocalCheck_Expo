@@ -268,12 +268,19 @@ Player profile actions by friend state: not friends Log game | Add friend
 request | Log game (orange); friends remove icon | Log game | Challenge
 (white). Log game opens as a sheet over the profile.
 
-Home (Oct 16, D57 Oct 17): the local court is a full-width header (no card),
-with a small house marker (`LocalTag`: house icon in a 28pt hairline square,
-inside the gutter; also on the Explore card); Plan | Check in | Court ↗ are
-one row pinned above the tab bar, all 52pt tall, Plan and Court matching
-icon-over-label buttons. Feed rows: icon tile, sentence + detail, score and
-time on the right, all one height (`ActivityRow`).
+Home (D58, Oct 18): one scrolling page, no tabs. The court header (sport,
+house marker `LocalTag`, name, city, 3-number strip) scrolls away; Check in
+beside Court ↗ (`HomeCourtActions`: the drawer's `CheckInButton` and
+`CourtLinkButton`) and Here now (`HereNowSection`) pin at the top; under them
+Up next (`UpNextSection`, plain text count, not a link), Today
+(`CourtBusyChart`) and Recent activity (every court feed row, `ActivityRow`).
+Here now and Up next are the Explore drawer's own sections
+(`components/court/CourtOverviewSections.tsx`), shared with the drawer.
+
+Feed rows (`ActivityRow`): 32pt tile, sentence + detail, score and time on
+the right, all one height. The tile: small solid orange dot (8pt) for a
+check-in, the same grey dot for a check-out, VS for a game result, the
+calendar for a scheduled game, the people icon for a burst of check-ins.
 
 Busy times (`CourtBusyChart`): past hours filled grey (check-ins), now
 orange, later hours outlined (planned visits + game sign-ups). Hour labels
@@ -284,14 +291,18 @@ stepper (court page header).
 Strip numbers with a unit ("38h", "8P") set the unit a size smaller after a
 thin space (`MetricStrip`).
 
-Week heatmap (`CourtSchedulePanel`, Home → Schedule and court → Week): hour
-and month labels right-aligned against the grid at the day names' size; the
-selected-time card is two equal columns (Who's going | Game) lined up with
-the two `BrutalistButton` `sm` actions under them; empty text centred.
+Week (`CourtSchedulePanel`, court page; D58): days across (Monday to Sunday,
+today white), two-hour rows down (7A to 9P), in a Planned visits · this week
+card with the Busiest slot at the top right and a Fewer → More ramp plus a
+Game dot at the bottom. Cells are 34pt, five heat levels, past cells dim and
+disabled, the selected cell outlined in white. The Today card below (title is
+the selected slot) lists who's going (+ adds or removes you), then each game in
+that slot with Join (opens the game page) and a dashed Create a game row. The
+panel scrolls on every phone; there is no bottom bar under it.
 
-Small phones (D57): the week heatmap keeps at least five hour rows and the
-Schedule tab its full slot card and games row; when that can't fit (iPhone
-SE) the panel or page scrolls rather than squeezing or clipping. Floating
+Small phones (D57): the Schedule tab keeps its full slot card and games row;
+when that can't fit (iPhone SE) the page scrolls rather than squeezing or
+clipping. The court page's Week panel always scrolls (D58). Floating
 buttons get bottom clearance so nothing ends under them.
 
 Schedule tab (D57): never scrolls as a page when it fits. One-line court dropdown (pin,
@@ -340,15 +351,23 @@ the canonical geographic court service, and an animated camera move before the
 same court drawer opens; it never substitutes a fabricated location after a
 permission denial.
 
-The court page (D55, Oct 14; header revised by D57, Oct 17) follows the court-flow design (`components/court/`). The header is fixed: back arrow and Your local pill; court line art pinned top right; sport label, name (Oswald, one line, shrinks to fit), city · distance on the left, a large live On court number on the right (orange with the live dot when anyone is on); then today's busy times (`CourtBusyChart` header variant) on every tab. Court hours · wk sits on Info, the next game on Games. Under it the tabs Live · Games · Players · Week · Info, with an orange underline on the active tab. A bottom bar holds Plan visit (opens Week) and Check in (orange) or Check out (outlined, live dot). Only the selected tab's content scrolls:
+The court page (D55, Oct 14; header revised by D57, Oct 17) follows the court-flow design (`components/court/`). The header is fixed: back arrow and Your local pill; court line art pinned top right; sport label, name (Oswald, one line, shrinks to fit), city · distance on the left, a large live On court number on the right (orange with the live dot when anyone is on); then today's busy times (`CourtBusyChart` header variant) on every tab. Court hours · wk sits on Info, the next game on Games. Under it the tabs Live · Games · Players · Week · Info, with an orange underline on the active tab. There is no bottom bar (D58): Home and the Explore drawer own Check in. Only the selected tab's content scrolls:
 
 - Live: On court tiles (busy times moved to the header, D57) ("Nobody yet. Check in and you're first." when empty), All / Games / Check-ins chips, then the activity timeline and game-result modal.
 - Games: upcoming scheduled games by day (Today, Tomorrow, then the date), time, title, "x of y going" and a fill bar; tapping opens the game page. The list ends on a dashed Create a game row.
-- Players: Here now and Locals, as before.
-- Week: the shared heatmap (`CourtSchedulePanel`) with "I'm coming" and Create a game.
+- Players (D58, `CourtPlayersPanel`): this court's locals only, no Here now
+  section. A Ranking / Active / Newest control (`SegmentedControl` `compact`)
+  and "N locals · ranked after every ranked game here". Each row: rank by
+  rating (1-3 bright), avatar with an orange dot when checked in, name, "W–L at
+  this court" (from `fetchCourtRecords`), ELO. Ranking is rating, then wins
+  here; Active is checked in now, then latest check-in; Newest is the most
+  recent to make this their local first (`profiles.local_court_changed_at`).
+  Your own row ("You", W–L, points to the next rank) is pinned under the list
+  with an orange left edge.
+- Week: the heatmap and Today card above (`CourtSchedulePanel`).
 - Info: map with Directions, Court hours · wk / Avg session / Locals, then Courts, Lights, Access. A value the database doesn't have shows a dash.
 
-Home's local court card uses the same pieces: line art, sport label, Your local, name, city · distance, On court / Court hours · wk / Locals, then Check in and View court (arrow pointing right).
+Home's court header uses the same pieces: line art, sport label, house marker, name, city · distance, On court / Court hours · wk / Locals, then Check in and Court (arrow pointing right).
 
 Replaced by the above on Oct 14 (D55), kept for history: the court detail page keeps the brand/detail header, six-metric court panel, and tabs fixed. Metric values remain optically centered. A metric with comparison data uses a consistent top-right trend corner; tapping the full 44-point-or-larger tile reveals the percentage and comparison period, with an accessible expanded state and a reduced-motion crossfade. Only the selected tab's content scrolls when needed:
 

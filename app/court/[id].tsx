@@ -1,22 +1,19 @@
 import { Feather } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import React from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CourtSchedulePanel } from "@/components/CourtSchedulePanel";
-import { SectionHeader } from "@/components/ScreenHeader";
 import { CourtArt } from "@/components/court/CourtArt";
 import { CourtBusyChart } from "@/components/court/CourtBusyChart";
 import { CourtGamesPanel } from "@/components/court/CourtGamesPanel";
 import { CourtInfoPanel } from "@/components/court/CourtInfoPanel";
-import { CheckInButton, CourtTabBar, LiveDot, LocalPill, SportLabel } from "@/components/court/CourtParts";
+import { CourtPlayersPanel } from "@/components/court/CourtPlayersPanel";
+import { CourtTabBar, LiveDot, LocalPill, SportLabel } from "@/components/court/CourtParts";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { GameResultModal } from "@/components/ui/GameResultModal";
 import { PersonTile } from "@/components/ui/PersonTile";
-import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
-import { useToast } from "@/components/ui/Toast";
 import { Colors, Radius } from "@/constants/colors";
 import type { FeedItem, FeedMatchSummary, Court } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
@@ -27,7 +24,6 @@ import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
 import { useRealtimeHub } from "@/context/RealtimeHubContext";
 import { batchHasResource, type RealtimeTopic } from "@/lib/realtimeHub";
 import { openCourtInMaps } from "@/lib/openMaps";
-import { isInactiveLocal, relativeTime } from "@/lib/localPresence";
 import { groupCheckinBursts, pairVisits } from "@/lib/activityPresentation";
 import {
   courtHours,
@@ -35,10 +31,10 @@ import {
   formatCourtHours,
   type CourtHours,
 } from "@/lib/courtHours";
-import { fetchCourtById, fetchCourtWeekSpans } from "@/services/courtService";
+import { type CourtRecord, fetchCourtById, fetchCourtRecords, fetchCourtWeekSpans } from "@/services/courtService";
+import { type CourtPlayer } from "@/lib/courtPlayersModel";
 import { fetchFeed } from "@/services/feedService";
 import {
-  fetchLeaderboard,
   fetchLocalsWithLastCheckIn,
   type LocalWithLastCheckIn,
 } from "@/services/profileService";
@@ -71,14 +67,8 @@ export default function CourtProfileScreen() {
     setLocalCourt,
     isFriend,
     runs,
-    checkedInCourtId,
-    pendingAutoCheckIn,
-    hideAutoCheckIn,
-    checkIn,
-    checkOut,
   } = useApp();
   const { top, bottom } = useSafeAreaInsets();
-  const { showToast } = useToast();
   const hasLocalPlus = useLocalPlus();
   const courtId = id ? String(id) : null;
   // The drawer's Games / Players / Feed / Week chips open the page on that tab.
@@ -86,18 +76,17 @@ export default function CourtProfileScreen() {
     COURT_TABS.some((item) => item.value === tab) ? (tab as CourtTab) : "live",
   );
   const [feedFilter, setFeedFilter] = React.useState<FeedFilter>("all");
-  const [isChecking, setIsChecking] = React.useState(false);
   const [court, setCourt] = React.useState<Court | null>(
     courts.find((item) => item.id === id) ?? (contextLocalCourt?.id === id ? contextLocalCourt : null),
   );
   const [fetchError, setFetchError] = React.useState(false);
   const [locals, setLocals] = React.useState<LocalWithLastCheckIn[]>([]);
+  const [records, setRecords] = React.useState<Record<string, CourtRecord>>({});
   const [courtFeed, setCourtFeed] = React.useState<Awaited<ReturnType<typeof fetchFeed>>>([]);
   const groupedCourtFeed = React.useMemo(
     () => groupCheckinBursts(pairVisits(courtFeed, { splitToday: true })),
     [courtFeed],
   );
-  const [rankedIds, setRankedIds] = React.useState<Set<string>>(new Set());
   const [feedVisible, setFeedVisible] = React.useState(FEED_PAGE);
   const [week, setWeek] = React.useState<CourtHours>({ hours: 0, sessions: 0 });
   const [selectedResult, setSelectedResult] = React.useState<{
@@ -118,19 +107,22 @@ export default function CourtProfileScreen() {
     });
   }, [courtId, court?.id]);
 
+  const courtSport = court?.sport;
   React.useEffect(() => {
     if (!courtId) return;
     let cancelled = false;
     void Promise.all([
-      fetchLocalsWithLastCheckIn(courtId),
+      fetchLocalsWithLastCheckIn(courtId, courtSport),
       fetchCourtWeekSpans(courtId),
-    ]).then(([nextLocals, spans]) => {
+      fetchCourtRecords(courtId),
+    ]).then(([nextLocals, spans, nextRecords]) => {
       if (cancelled) return;
       setLocals(nextLocals);
       setWeek(courtHours(spans));
+      setRecords(nextRecords);
     });
     return () => { cancelled = true; };
-  }, [courtId]);
+  }, [courtId, courtSport]);
 
   const refreshCourtFeed = React.useCallback(async () => {
     if (!courtId) return setCourtFeed([]);
@@ -148,15 +140,6 @@ export default function CourtProfileScreen() {
       if (batchHasResource(batch, COURT_FEED_RESOURCES)) void refreshCourtFeed();
     });
   }, [courtId, realtimeHub, refreshCourtFeed]);
-
-  React.useEffect(() => {
-    if (!court) return;
-    let cancelled = false;
-    void fetchLeaderboard("LOCAL", court.id, court.sport).then((players) => {
-      if (!cancelled) setRankedIds(new Set(players.slice(0, 10).map((player) => player.id)));
-    });
-    return () => { cancelled = true; };
-  }, [court]);
 
   // Full player-level detail is the headline LocalPlus perk — see
   // docs/product/DECISIONS.md. Your own local court always stays free.
@@ -193,7 +176,17 @@ export default function CourtProfileScreen() {
   const activeCount = Math.max(roster.length, statsActive);
   const hiddenCount = Math.max(0, activeCount - roster.length);
   const hereNowIds = new Set(roster.map((player) => player.id));
-  const visibleLocals = locals.filter(({ player }) => !hereNowIds.has(player.id));
+  const courtPlayers: CourtPlayer[] = locals.map(({ player, lastCheckInAt, joinedAt }) => ({
+    id: player.id,
+    name: player.name,
+    avatar: player.avatar,
+    elo: player.elo,
+    wins: records[player.id]?.wins ?? 0,
+    losses: records[player.id]?.losses ?? 0,
+    lastCheckInAt,
+    joinedAt,
+    activeNow: hereNowIds.has(player.id),
+  }));
   const privateLocalCount = Math.max(0, localCount - locals.length);
   const now = Date.now();
   const upcomingGames = runs
@@ -207,38 +200,13 @@ export default function CourtProfileScreen() {
     ? `${(court.distanceKm * 0.621371).toFixed(1)} mi`
     : null;
   const place = [court.city || court.market || court.neighborhood, distance].filter(Boolean).join(" · ");
-  const waitingToPost = pendingAutoCheckIn?.courtId === court.id && checkedInCourtId !== court.id;
-  const isCheckedIn = checkedInCourtId === court.id || waitingToPost;
-  const listPad = 24;
-  const barBottom = Platform.OS === "web" ? 16 : Math.max(bottom, 16);
+  const listPad = Math.max(bottom, 16) + 8;
 
   const openActivity = (item: FeedItem) => {
     if (item.type === "game_result" && item.match) {
       setSelectedResult({ match: item.match, sport: item.sport, courtName: item.courtName });
     } else if (item.playerId) {
       router.push(`/player/${item.playerId}`);
-    }
-  };
-
-  const handleCheckIn = async () => {
-    if (isChecking) return;
-    setIsChecking(true);
-    try {
-      if (waitingToPost) {
-        if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        await hideAutoCheckIn();
-      } else if (isCheckedIn) {
-        if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        await checkOut();
-      } else if (await checkIn(court.id)) {
-        showToast({
-          title: `CHECKED IN · ${(court.shortName || court.name).toUpperCase()}`,
-          body: "Check out when you leave.",
-          icon: "map-pin",
-        });
-      }
-    } finally {
-      setIsChecking(false);
     }
   };
 
@@ -362,44 +330,19 @@ export default function CourtProfileScreen() {
         ) : null}
 
         {activeTab === "players" ? (
-          <ScrollView contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
-            <SectionHeader count={activeCount} title="Here now" />
-            {roster.length > 0 ? roster.map((player) => {
-              const history = locals.find((entry) => entry.player.id === player.id);
-              return (
-                <PlayerSummaryRow
-                  checkInCount={history?.checkInCount}
-                  detail={rankedIds.has(player.id) ? "Active now · Top 10" : "Active now"}
-                  friend={isFriend(player.id)}
-                  key={player.id}
-                  onPress={() => router.push(`/player/${player.id}`)}
-                  player={player}
-                  ranked={rankedIds.has(player.id)}
-                />
-              );
-            }) : <EmptyState title="Nobody publicly checked in" body="Private check-ins remain included in the live total." />}
-            {hiddenCount > 0 ? <Text style={styles.privateNote}>+{hiddenCount} private {hiddenCount === 1 ? "player" : "players"}</Text> : null}
-
-            <SectionHeader count={localCount} title="Locals" />
-            {visibleLocals.length > 0 ? visibleLocals.map(({ player, lastCheckInAt, checkInCount }) => (
-              <PlayerSummaryRow
-                checkInCount={checkInCount}
-                detail={lastCheckInAt ? `Last here · ${relativeTime(lastCheckInAt)}` : "No check-ins yet"}
-                friend={isFriend(player.id)}
-                inactive={isInactiveLocal(lastCheckInAt)}
-                key={player.id}
-                onPress={() => router.push(`/player/${player.id}`)}
-                player={player}
-                ranked={rankedIds.has(player.id)}
-              />
-            )) : <EmptyState title="No visible local profiles" body="Locals appear here after choosing this as their home court." />}
-            {privateLocalCount > 0 ? <Text style={styles.privateNote}>+{privateLocalCount} private {privateLocalCount === 1 ? "local" : "locals"}</Text> : null}
-          </ScrollView>
+          <CourtPlayersPanel
+            bottomInset={listPad}
+            hiddenLocals={privateLocalCount}
+            isFriend={isFriend}
+            meId={currentUser.id}
+            onPlayer={(playerId) => router.push(`/player/${playerId}`)}
+            players={courtPlayers}
+          />
         ) : null}
 
         {activeTab === "week" ? (
           <View style={styles.scheduleView}>
-            <CourtSchedulePanel bottomInset={12} court={court} />
+            <CourtSchedulePanel bottomInset={bottom} court={court} />
           </View>
         ) : null}
 
@@ -414,27 +357,6 @@ export default function CourtProfileScreen() {
             />
           </ScrollView>
         ) : null}
-      </View>
-
-      <View style={[styles.bottomBar, { paddingBottom: barBottom }]}>
-        <Pressable
-          accessibilityHint="Opens the week view to plan a visit"
-          accessibilityRole="button"
-          onPress={() => setActiveTab("week")}
-          style={({ pressed }) => [styles.barButton, styles.planButton, pressed && styles.pressed]}
-        >
-          <Text style={styles.planText}>Plan visit</Text>
-        </Pressable>
-        <View style={styles.barSlot}>
-          <CheckInButton
-            busy={isChecking}
-            checkedIn={isCheckedIn}
-            checkedLabel="Check out"
-            courtName={court.shortName || court.name}
-            height={52}
-            onPress={() => void handleCheckIn()}
-          />
-        </View>
       </View>
 
       <GameResultModal
@@ -499,12 +421,6 @@ const styles = StyleSheet.create({
   chipTextActive: { color: Colors.text },
   moreButton: { minHeight: 48, marginHorizontal: Layout.screenGutter, marginTop: Space.md, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Space.sm, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md },
   moreText: { fontFamily: Typography.bodyBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.2 },
-  privateNote: { paddingHorizontal: Layout.screenGutter, paddingVertical: Space.md, fontFamily: Typography.bodyMedium, fontSize: 9, color: Colors.muted },
-  bottomBar: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: Colors.hairline, backgroundColor: Colors.background },
-  barButton: { flex: 1, height: 52, borderRadius: 4, alignItems: "center", justifyContent: "center" },
-  planButton: { backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
-  planText: { fontFamily: Typography.bodyBold, fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", color: Colors.text },
-  barSlot: { flex: 1 },
   empty: { minHeight: 72, paddingHorizontal: Layout.screenGutter, paddingVertical: Space.md, alignItems: "center", justifyContent: "center" },
   emptyTitle: { fontFamily: Typography.heading, fontSize: 16, color: Colors.text, textAlign: "center" },
   emptyBody: { maxWidth: 300, marginTop: Space.sm, fontFamily: Typography.body, fontSize: 11, lineHeight: 17, color: Colors.muted, textAlign: "center" },

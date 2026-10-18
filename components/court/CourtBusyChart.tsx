@@ -84,7 +84,7 @@ export function CourtBusyChart({
           onPress={() => setDayOffset((day) => Math.max(-DAYS_BACK, day - 1))}
           style={[styles.step, dayOffset <= -DAYS_BACK && styles.stepOff]}
         >
-          <Feather color={Colors.textSecondary} name="chevron-left" size={16} />
+          <View style={styles.stepRing}><Feather color={Colors.textSecondary} name="chevron-left" size={16} /></View>
         </Pressable>
         <Text style={[styles.dayLabel, dayOffset === 0 && styles.dayLabelToday]}>{busyDayLabel(dayOffset, now)}</Text>
         <Pressable
@@ -95,7 +95,7 @@ export function CourtBusyChart({
           onPress={() => setDayOffset((day) => Math.min(DAYS_AHEAD, day + 1))}
           style={[styles.step, dayOffset >= DAYS_AHEAD && styles.stepOff]}
         >
-          <Feather color={Colors.textSecondary} name="chevron-right" size={16} />
+          <View style={styles.stepRing}><Feather color={Colors.textSecondary} name="chevron-right" size={16} /></View>
         </Pressable>
         {header ? <Text numberOfLines={2} style={styles.headerCaption}>{caption}</Text> : null}
       </View>
@@ -139,9 +139,11 @@ export function CourtBusyChart({
 
 const styles = StyleSheet.create({
   stepper: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
-  step: { width: 24, height: 24, alignItems: "center", justifyContent: "center", borderRadius: 12, borderWidth: 1, borderColor: "rgba(242,242,246,0.12)" },
+  // A 44pt hit box around the 24pt ring; the negative margin keeps the row tight.
+  step: { width: 44, height: 44, margin: -10, alignItems: "center", justifyContent: "center" },
+  stepRing: { width: 24, height: 24, alignItems: "center", justifyContent: "center", borderRadius: 12, borderWidth: 1, borderColor: "rgba(242,242,246,0.12)" },
   stepOff: { opacity: 0.35 },
-  dayLabel: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
+  dayLabel: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
   dayLabelToday: { color: Colors.text },
   bars: { flexDirection: "row", alignItems: "flex-end", gap: 3 },
   bar: { flex: 1, borderRadius: 3 },
@@ -149,8 +151,8 @@ const styles = StyleSheet.create({
   barNow: { backgroundColor: Colors.accent },
   barPlanned: { borderWidth: 1, borderColor: Colors.inkSoft, backgroundColor: "transparent" },
   barEmpty: { backgroundColor: Colors.surfaceHigh },
-  headerCaption: { flex: 1, minWidth: 0, textAlign: "right", fontFamily: Typography.bodySemiBold, fontSize: 10, lineHeight: 13, color: Colors.muted },
+  headerCaption: { flex: 1, minWidth: 0, textAlign: "right", fontFamily: Typography.bodySemiBold, fontSize: 11, lineHeight: 14, color: Colors.muted },
   labels: { height: 12, marginTop: 6 },
-  label: { position: "absolute", top: 0, width: 36, marginLeft: -18, textAlign: "center", fontFamily: Typography.bodyBold, fontSize: 8, lineHeight: 12, letterSpacing: 0.4, textTransform: "uppercase", color: Colors.muted },
+  label: { position: "absolute", top: 0, width: 36, marginLeft: -18, textAlign: "center", fontFamily: Typography.bodyBold, fontSize: 11, lineHeight: 12, letterSpacing: 0.2, textTransform: "uppercase", color: Colors.muted },
   labelNow: { color: Colors.liveInk },
 });

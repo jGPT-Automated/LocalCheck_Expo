@@ -3,17 +3,23 @@ import { router } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { formatForMaxPlayers } from "@/components/schedule/scheduledGameModel";
 import { Colors, Radius } from "@/constants/colors";
-import { Court, GameRun } from "@/constants/data";
+import type { Court, GameRun } from "@/constants/data";
+import { Layout } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { fetchCourtPlannedTimes } from "@/services/plannedVisitService";
-import { scheduleSlotIndex, scheduleSlotLabel, SLOT_HOURS } from "@/components/schedule/scheduleModel";
-import { formatForMaxPlayers } from "@/components/schedule/scheduledGameModel";
-import { BrutalistButton } from "./BrutalistButton";
-import { PlayerAvatar } from "./PlayerAvatar";
 
 const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+/** Two-hour rows, 7 AM to 11 PM; a row covers its start hour and the next. */
+const ROW_HOURS = [7, 9, 11, 13, 15, 17, 19, 21];
+const FIRST_HOUR = ROW_HOURS[0];
+const LAST_HOUR = 22;
+const AVATARS_MAX = 5;
+const LEGEND = [Colors.surfaceHigh, Colors.heat1, Colors.heat2, Colors.heat3, Colors.accent];
+
 interface SlotAttendee {
   id: string;
   name: string;
@@ -25,56 +31,44 @@ interface SlotAttendee {
 interface SlotEntry {
   attendees: SlotAttendee[];
   plannedVisible: number;
-  runCount: number;
   runs: GameRun[];
 }
 
+function rowLabel(hour: number): string {
+  return `${hour % 12 === 0 ? 12 : hour % 12}${hour >= 12 ? "P" : "A"}`;
+}
+
+function longLabel(hour: number): string {
+  return `${hour % 12 === 0 ? 12 : hour % 12} ${hour >= 12 ? "PM" : "AM"}`;
+}
+
+/** 0 quiet … 4 busiest, the five swatches in the legend. */
+function heatLevel(count: number): number {
+  if (count >= 7) return 4;
+  if (count >= 4) return 3;
+  if (count >= 2) return 2;
+  return count >= 1 ? 1 : 0;
+}
+
+/**
+ * Week › planned visits: Monday to Sunday across, two-hour rows down, busier
+ * cells brighter, a white dot where a game is scheduled. The selected slot's
+ * card below lists who's going and the games, with a + to add yourself.
+ */
 export function CourtSchedulePanel({
   court,
-  interactive = true,
   bottomInset = 0,
 }: {
   court: Court;
-  interactive?: boolean;
-  /** Space to leave under the pinned slot card (floating tab bar on Home,
-   * safe-area inset on the court detail screen). */
+  /** Space under the last card (the home-indicator inset). */
   bottomInset?: number;
 }) {
-  const {
-    currentUser,
-    plannedVisits,
-    runs,
-    addPlannedVisit,
-    removePlannedVisit,
-  } = useApp();
-  const currentSlot = Math.max(
-    0,
-    Math.min(
-      SLOT_HOURS.length - 1,
-      scheduleSlotIndex(new Date().getHours()),
-    ),
-  );
-  const [selected, setSelected] = useState<{
-    day: number;
-    slot: number;
-  } | null>({ day: 0, slot: currentSlot });
-  const [plannedBuckets, setPlannedBuckets] = useState<Record<string, number>>(
-    {},
-  );
-  // Open on the hour you're in: scroll it into view (two rows of context).
-  const timeScrollRef = React.useRef<ScrollView>(null);
-  const scrolledToNow = React.useRef(false);
-  const [saving, setSaving] = useState(false);
-  // The grid takes what the slot card leaves; below GRID_MIN_HEIGHT (short
-  // phones) the panel scrolls instead of squeezing the grid.
-  const [viewHeight, setViewHeight] = useState(0);
-  const [cardHeight, setCardHeight] = useState(0);
-  const [notice, setNotice] = useState<string | null>(null);
-
+  const { currentUser, plannedVisits, runs, addPlannedVisit, removePlannedVisit } = useApp();
   const dayStamp = new Date().toDateString();
   const weekStart = useMemo(() => {
     const value = new Date(dayStamp);
     value.setHours(0, 0, 0, 0);
+    value.setDate(value.getDate() - ((value.getDay() + 6) % 7)); // Monday
     return value;
   }, [dayStamp]);
   const weekDays = useMemo(
@@ -86,27 +80,23 @@ export function CourtSchedulePanel({
       }),
     [weekStart],
   );
-  const monthLabel = useMemo(
-    () =>
-      weekDays[0]
-        .toLocaleDateString("en-US", { month: "short" })
-        .toUpperCase(),
-    [weekDays],
-  );
+  const todayIndex = (new Date(dayStamp).getDay() + 6) % 7;
+  const nowHour = new Date().getHours();
+  const currentRow = Math.max(0, Math.min(ROW_HOURS.length - 1, Math.floor((nowHour - FIRST_HOUR) / 2)));
+  const [selected, setSelected] = useState({ day: todayIndex, row: currentRow });
+  const [plannedBuckets, setPlannedBuckets] = useState<Record<string, number>>({});
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const bucketKey = useCallback(
     (iso: string): string | null => {
       const value = new Date(iso);
       const localDay = new Date(value);
       localDay.setHours(0, 0, 0, 0);
-      const day = Math.round(
-        (localDay.getTime() - weekStart.getTime()) / 86_400_000,
-      );
-      if (day < 0 || day > 6) return null;
+      const day = Math.round((localDay.getTime() - weekStart.getTime()) / 86_400_000);
       const hour = value.getHours();
-      if (hour < SLOT_HOURS[0] || hour >= SLOT_HOURS[SLOT_HOURS.length - 1] + 1)
-        return null;
-      return `${day}:${hour - SLOT_HOURS[0]}`;
+      if (day < 0 || day > 6 || hour < FIRST_HOUR || hour > LAST_HOUR) return null;
+      return `${day}:${Math.floor((hour - FIRST_HOUR) / 2)}`;
     },
     [weekStart],
   );
@@ -115,7 +105,7 @@ export function CourtSchedulePanel({
     let cancelled = false;
     const end = new Date(weekStart);
     end.setDate(end.getDate() + 7);
-    fetchCourtPlannedTimes(court.id, weekStart, end).then((times) => {
+    void fetchCourtPlannedTimes(court.id, weekStart, end).then((times) => {
       if (cancelled) return;
       const next: Record<string, number> = {};
       times.forEach((time) => {
@@ -131,15 +121,15 @@ export function CourtSchedulePanel({
 
   const slotMap = useMemo(() => {
     const map = new Map<string, SlotEntry>();
+    const entryFor = (key: string) => {
+      const entry = map.get(key) ?? { attendees: [], plannedVisible: 0, runs: [] };
+      map.set(key, entry);
+      return entry;
+    };
     const add = (iso: string, attendee: SlotAttendee, planned: boolean) => {
       const key = bucketKey(iso);
       if (!key) return;
-      const entry = map.get(key) ?? {
-        attendees: [],
-        plannedVisible: 0,
-        runCount: 0,
-        runs: [],
-      };
+      const entry = entryFor(key);
       const existing = entry.attendees.find((item) => item.id === attendee.id);
       if (!existing) {
         entry.attendees.push(attendee);
@@ -147,9 +137,7 @@ export function CourtSchedulePanel({
       } else if (attendee.visitId && !existing.visitId) {
         existing.visitId = attendee.visitId;
       }
-      map.set(key, entry);
     };
-
     plannedVisits.forEach((visit) => {
       if (visit.courtId !== court.id) return;
       add(
@@ -167,26 +155,11 @@ export function CourtSchedulePanel({
     runs.forEach((run) => {
       if (run.courtId !== court.id) return;
       const key = bucketKey(run.startTimeIso);
-      if (key) {
-        const entry = map.get(key) ?? {
-          attendees: [],
-          plannedVisible: 0,
-          runCount: 0,
-          runs: [],
-        };
-        entry.runCount += 1;
-        entry.runs.push(run);
-        map.set(key, entry);
-      }
+      if (key) entryFor(key).runs.push(run);
       run.participants.forEach((player) =>
         add(
           run.startTimeIso,
-          {
-            id: player.id,
-            name: player.name,
-            initials: player.avatar,
-            isMine: player.id === currentUser.id,
-          },
+          { id: player.id, name: player.name, initials: player.avatar, isMine: player.id === currentUser.id },
           false,
         ),
       );
@@ -195,555 +168,306 @@ export function CourtSchedulePanel({
   }, [bucketKey, court.id, currentUser.id, plannedVisits, runs]);
 
   const hiddenCount = useCallback(
-    (key: string) => {
-      const anonymousCount = plannedBuckets[key] ?? 0;
-      const visiblePlanned = slotMap.get(key)?.plannedVisible ?? 0;
-      return Math.max(0, anonymousCount - visiblePlanned);
-    },
+    (key: string) =>
+      Math.max(0, (plannedBuckets[key] ?? 0) - (slotMap.get(key)?.plannedVisible ?? 0)),
     [plannedBuckets, slotMap],
   );
   const slotTotal = useCallback(
-    (key: string) =>
-      (slotMap.get(key)?.attendees.length ?? 0) + hiddenCount(key),
+    (key: string) => (slotMap.get(key)?.attendees.length ?? 0) + hiddenCount(key),
     [hiddenCount, slotMap],
   );
 
-  const selectedKey = selected ? `${selected.day}:${selected.slot}` : null;
-  const selectedEntry = selectedKey ? slotMap.get(selectedKey) : undefined;
+  let busiest: { key: string; total: number } | null = null;
+  for (let day = 0; day < 7; day += 1) {
+    for (let row = 0; row < ROW_HOURS.length; row += 1) {
+      const key = `${day}:${row}`;
+      const total = slotTotal(key);
+      if (total > (busiest?.total ?? 0)) busiest = { key, total };
+    }
+  }
+  const busiestLabel = busiest
+    ? (() => {
+        const [day, row] = busiest.key.split(":").map(Number);
+        return `Busiest: ${DAYS[weekDays[day].getDay()]} ${longLabel(ROW_HOURS[row])}`;
+      })()
+    : "No plans yet";
+
+  const selectedKey = `${selected.day}:${selected.row}`;
+  const selectedEntry = slotMap.get(selectedKey);
   const selectedRuns = selectedEntry?.runs ?? [];
-  const myVisit = selectedEntry?.attendees.find(
-    (attendee) => attendee.isMine && attendee.visitId,
-  );
-  const selectedDate = selected ? new Date(weekDays[selected.day]) : null;
-  if (selectedDate && selected)
-    selectedDate.setHours(SLOT_HOURS[selected.slot], 0, 0, 0);
+  const myVisit = selectedEntry?.attendees.find((attendee) => attendee.isMine && attendee.visitId);
+  const total = slotTotal(selectedKey);
+  const selectedDate = new Date(weekDays[selected.day]);
+  selectedDate.setHours(ROW_HOURS[selected.row], 0, 0, 0);
+  const slotTitle = `${selected.day === todayIndex ? "Today" : DAYS[selectedDate.getDay()]} · ${longLabel(ROW_HOURS[selected.row])}`;
 
   const handleAttendance = async () => {
-    if (!selectedDate || saving) return;
-    const plannedAt = new Date(
-      Math.max(selectedDate.getTime(), Date.now() + 60_000),
-    );
+    if (saving) return;
+    const plannedAt = new Date(Math.max(selectedDate.getTime(), Date.now() + 60_000));
     setSaving(true);
     setNotice(null);
     const ok = myVisit?.visitId
       ? await removePlannedVisit(myVisit.visitId)
-      : await addPlannedVisit(
-          court.id,
-          plannedAt.toISOString(),
-          undefined,
-          "public",
-        );
+      : await addPlannedVisit(court.id, plannedAt.toISOString(), undefined, "public");
     setSaving(false);
-    if (!ok) setNotice("COULD NOT SAVE YOUR TIME. TRY AGAIN.");
-  };
-
-  const heatStyle = (count: number) => {
-    if (count >= 5) return styles.heatHigh;
-    if (count >= 2) return styles.heatMid;
-    if (count >= 1) return styles.heatLow;
-    return null;
+    if (!ok) setNotice("Could not save your time. Try again.");
   };
 
   return (
-    // Tall phones: the grid fills the space and nothing scrolls. Short phones
-    // (iPhone SE) can't fit the grid and the slot card, so the panel scrolls
-    // instead of squeezing the grid to a single row.
     <ScrollView
       alwaysBounceVertical={false}
-      contentContainerStyle={styles.panel}
-      nestedScrollEnabled
-      onLayout={(event) => setViewHeight(event.nativeEvent.layout.height)}
+      contentContainerStyle={[styles.panel, { paddingBottom: bottomInset + 12 }]}
       showsVerticalScrollIndicator={false}
-      style={styles.panelScroll}
+      style={styles.scroll}
     >
-      <View
-        style={[
-          styles.gridArea,
-          viewHeight > 0 && { height: Math.max(GRID_MIN_HEIGHT, viewHeight - PANEL_TOP - cardHeight) },
-        ]}
-      >
-      <View style={styles.heatmap}>
-        <View style={styles.heatRow}>
-          <View style={[styles.timeColumn, styles.monthCorner]}>
-            <Text style={styles.monthLabel}>{monthLabel}</Text>
-          </View>
+      <View style={styles.card}>
+        <View style={styles.cardHead}>
+          <Text style={styles.cardTitle}>Planned visits · this week</Text>
+          <Text numberOfLines={1} style={styles.cardMeta}>{busiestLabel}</Text>
+        </View>
+        <View style={styles.gridRow}>
+          <View style={styles.timeColumn} />
           {weekDays.map((date, index) => (
-            <View key={date.toISOString()} style={styles.dayHeader}>
-              <Text style={[styles.dayName, index === 0 && styles.today]}>
-                {DAYS[date.getDay()]}
-              </Text>
-              <Text style={[styles.dayDate, index === 0 && styles.today]}>
-                {date.getDate()}
-              </Text>
-            </View>
+            <Text key={date.toISOString()} style={[styles.dayName, index === todayIndex && styles.dayToday]}>
+              {DAYS[date.getDay()]}
+            </Text>
           ))}
         </View>
-        <ScrollView
-          contentContainerStyle={styles.timeRows}
-          nestedScrollEnabled
-          onContentSizeChange={() => {
-            if (scrolledToNow.current) return;
-            scrolledToNow.current = true;
-            timeScrollRef.current?.scrollTo({ y: Math.max(0, (currentSlot - 2) * ROW_PITCH), animated: false });
-          }}
-          ref={timeScrollRef}
-          showsVerticalScrollIndicator={false}
-          style={styles.timeScroller}
-        >
-        {SLOT_HOURS.map((hour, slot) => (
-          <View key={hour} style={styles.heatRow}>
+        {ROW_HOURS.map((hour, row) => (
+          <View key={hour} style={styles.gridRow}>
             <View style={styles.timeColumn}>
-              <Text style={[styles.timeLabel, slot === currentSlot && styles.today]}>{scheduleSlotLabel(hour)}</Text>
+              <Text style={styles.timeLabel}>{rowLabel(hour)}</Text>
             </View>
             {weekDays.map((date, day) => {
-              const key = `${day}:${slot}`;
+              const key = `${day}:${row}`;
               const count = slotTotal(key);
-              const active = selected?.day === day && selected.slot === slot;
-              const cellDate = new Date(date);
-              cellDate.setHours(hour + 1, 0, 0, 0);
-              const past = cellDate.getTime() <= Date.now();
+              const runCount = slotMap.get(key)?.runs.length ?? 0;
+              const active = selected.day === day && selected.row === row;
+              const cellEnd = new Date(date);
+              cellEnd.setHours(hour + 2, 0, 0, 0);
+              const past = cellEnd.getTime() <= Date.now();
               return (
                 <Pressable
+                  accessibilityLabel={`${DAYS[date.getDay()]} ${date.getDate()}, ${longLabel(hour)}, ${count} going${runCount > 0 ? `, ${runCount} scheduled ${runCount === 1 ? "game" : "games"}` : ""}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active, disabled: past }}
+                  disabled={past}
                   key={key}
                   onPress={() => {
-                    setSelected({ day, slot });
+                    setSelected({ day, row });
                     setNotice(null);
                   }}
-                  disabled={past}
                   style={[
                     styles.cell,
-                    heatStyle(count),
-                    day === 0 && slot === currentSlot && styles.cellNow,
-                    active && styles.cellSelected,
+                    { backgroundColor: LEGEND[heatLevel(count)] },
                     past && styles.cellPast,
+                    active && styles.cellSelected,
                   ]}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${DAYS[date.getDay()]} ${date.getDate()}, ${scheduleSlotLabel(hour)}, ${count} going${(slotMap.get(key)?.runCount ?? 0) > 0 ? `, ${slotMap.get(key)?.runCount} scheduled ${(slotMap.get(key)?.runCount ?? 0) === 1 ? "game" : "games"}` : ""}`}
-                  accessibilityState={{
-                    selected: active,
-                    disabled: past,
-                  }}
+                  testID={`week-${day}-${row}`}
                 >
-                  {(active || count >= 5) && count > 0 ? (
-                    <Text style={[styles.cellCount, count >= 5 && styles.cellCountOnAccent]}>{count}</Text>
-                  ) : null}
-                  {(slotMap.get(key)?.runCount ?? 0) > 0 ? (
-                    <View style={styles.runDot} />
-                  ) : null}
+                  {runCount > 0 ? <View style={styles.gameDot} /> : null}
                 </Pressable>
               );
             })}
           </View>
         ))}
-        </ScrollView>
         <View style={styles.legend}>
           <View style={styles.legendScale}>
-            <Text style={styles.legendText}>QUIET</Text>
-            {[
-              Colors.surfaceHigh,
-              Colors.heat1,
-              Colors.heat2,
-              Colors.accent,
-            ].map((color) => (
-              <View
-                key={color}
-                style={[styles.legendSwatch, { backgroundColor: color }]}
-              />
+            <Text style={styles.legendText}>Fewer</Text>
+            {LEGEND.map((color) => (
+              <View key={color} style={[styles.swatch, { backgroundColor: color }]} />
             ))}
-            <Text style={styles.legendText}>BUSY</Text>
+            <Text style={styles.legendText}>More</Text>
           </View>
-          <Text style={styles.legendText}>LOCAL TIME</Text>
+          <View style={styles.legendScale}>
+            <View style={styles.gameDot2} />
+            <Text style={styles.legendText}>Game</Text>
+          </View>
         </View>
-      </View>
       </View>
 
-      {selected && selectedKey && selectedDate ? (
-        <View
-          onLayout={(event) => setCardHeight(event.nativeEvent.layout.height + 8 + bottomInset + 8)}
-          style={[styles.slotCard, { marginBottom: bottomInset + 8 }]}
+      <View style={styles.card}>
+        <View style={styles.slotHead}>
+          <Text style={styles.slotTitle}>{slotTitle}</Text>
+          <Text style={styles.cardMeta}>{total} planning to go</Text>
+        </View>
+        <ScrollView
+          contentContainerStyle={styles.avatars}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.avatarScroll}
         >
-          <View style={styles.slotHeader}>
-            <Text style={styles.slotTitle}>
-              {DAYS[selectedDate.getDay()]} {selectedDate.getDate()} · {scheduleSlotLabel(SLOT_HOURS[selected.slot])}
-            </Text>
-            <Text style={styles.slotMeta}>
-              {slotTotal(selectedKey)} GOING
-              {selectedRuns.length > 0
-                ? ` · ${selectedRuns.length} ${selectedRuns.length === 1 ? "GAME" : "GAMES"}`
-                : ""}
-            </Text>
-          </View>
-          <View style={styles.slotContent}>
-            <View style={styles.peopleArea}>
-              <Text style={styles.sectionLabel}>WHO'S GOING</Text>
-              {slotTotal(selectedKey) === 0 ? (
-                <Text style={styles.empty}>Nobody yet</Text>
-              ) : (
-                <ScrollView
-                  contentContainerStyle={styles.avatars}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                >
-                  {(selectedEntry?.attendees ?? []).slice(0, 5).map((attendee) => (
-                    <Pressable
-                      key={attendee.id}
-                      style={styles.avatar}
-                      onPress={() => router.push(`/player/${attendee.id}`)}
-                    >
-                      <PlayerAvatar
-                        initials={attendee.initials}
-                        name={attendee.name}
-                        playerId={attendee.id}
-                        size={28}
-                        accent={attendee.isMine}
-                      />
-                      <Text style={styles.avatarName} numberOfLines={1}>
-                        {attendee.isMine ? "YOU" : attendee.name.split(" ")[0]}
-                      </Text>
-                    </Pressable>
-                  ))}
-                  {hiddenCount(selectedKey) > 0 ? (
-                    <View style={styles.avatar}>
-                      <View style={styles.hiddenAvatar}>
-                        <Text style={styles.hiddenText}>
-                          +{hiddenCount(selectedKey)}
-                        </Text>
-                      </View>
-                      <Text style={styles.avatarName}>PRIVATE</Text>
-                    </View>
-                  ) : null}
-                </ScrollView>
-              )}
-            </View>
-            <View style={styles.gameArea}>
-              <Text style={styles.sectionLabel}>{selectedRuns.length === 1 ? "GAME" : "GAMES"}</Text>
-              {selectedRuns.length > 0 ? (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  {selectedRuns.map((run) => {
-                    const format = formatForMaxPlayers(run.maxPlayers) ?? "GAME";
-                    const spots = Math.max(0, run.maxPlayers - run.participants.length);
-                    return (
-                      <Pressable
-                        accessibilityHint="Opens scheduled game details"
-                        accessibilityLabel={`${format}, ${run.participants.length} joined, ${spots} open`}
-                        accessibilityRole="button"
-                        key={run.id}
-                        onPress={() => router.push(`/run/${run.id}`)}
-                        style={({ pressed }) => [styles.gameTile, pressed && styles.gameTilePressed]}
-                      >
-                        <View style={styles.gameIcon}>
-                          <Feather color={Colors.black} name="calendar" size={11} />
-                        </View>
-                        <View style={styles.gameCopy}>
-                          <Text style={styles.gameTitle}>{format}</Text>
-                          <Text style={styles.gameMeta}>{run.participants.length}/{run.maxPlayers} going</Text>
-                        </View>
-                        <Feather color={Colors.textSecondary} name="chevron-right" size={13} />
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
-              ) : (
-                <Text style={styles.noGame}>No game scheduled</Text>
-              )}
-            </View>
-          </View>
-          {interactive ? (
-            <View style={styles.actions}>
-              <BrutalistButton
-                disabled={!selectedDate}
-                label={myVisit ? "I'm not coming" : "I'm coming"}
-                loading={saving}
-                onPress={() => void handleAttendance()}
-                size="sm"
-                style={styles.action}
-                variant="dark"
+          {(selectedEntry?.attendees ?? []).slice(0, AVATARS_MAX).map((attendee) => (
+            <Pressable
+              accessibilityLabel={attendee.isMine ? "You" : attendee.name}
+              accessibilityRole="button"
+              key={attendee.id}
+              onPress={() => router.push(`/player/${attendee.id}`)}
+              style={styles.avatar}
+            >
+              <PlayerAvatar
+                accent={attendee.isMine}
+                initials={attendee.initials}
+                name={attendee.name}
+                playerId={attendee.id}
+                size={36}
               />
-              <BrutalistButton
-                label="Create a game"
-                onPress={() =>
-                  router.push({
-                    pathname: "/(tabs)/schedule",
-                    params: { courtId: court.id, openCreate: "1" },
-                  })
-                }
-                size="sm"
-                style={styles.action}
-                variant="dark"
-              />
+            </Pressable>
+          ))}
+          {hiddenCount(selectedKey) + Math.max(0, (selectedEntry?.attendees.length ?? 0) - AVATARS_MAX) > 0 ? (
+            <View style={styles.moreTile}>
+              <Text style={styles.moreText}>
+                +{hiddenCount(selectedKey) + Math.max(0, (selectedEntry?.attendees.length ?? 0) - AVATARS_MAX)}
+              </Text>
             </View>
           ) : null}
-          {notice ? <Text style={styles.notice}>{notice}</Text> : null}
-        </View>
-      ) : null}
+          <Pressable
+            accessibilityLabel={myVisit ? "I'm not coming" : "I'm coming"}
+            accessibilityRole="button"
+            accessibilityState={{ busy: saving, selected: Boolean(myVisit) }}
+            disabled={saving}
+            onPress={() => void handleAttendance()}
+            style={[styles.addButton, myVisit && styles.addButtonOn]}
+          >
+            <Feather color={myVisit ? Colors.background : Colors.textSecondary} name={myVisit ? "check" : "plus"} size={16} />
+          </Pressable>
+        </ScrollView>
+        {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+        <View style={styles.divider} />
+        {selectedRuns.length > 0 ? (
+          selectedRuns.map((run) => {
+            const format = formatForMaxPlayers(run.maxPlayers);
+            const skill = run.skillLevel.charAt(0) + run.skillLevel.slice(1).toLowerCase();
+            return (
+              <View key={run.id} style={styles.gameRow}>
+                <View style={styles.gameCopy}>
+                  <View style={styles.gameTitleRow}>
+                    <View style={styles.gameDot2} />
+                    <Text numberOfLines={1} style={styles.gameTitle}>{run.title}</Text>
+                  </View>
+                  <Text numberOfLines={1} style={styles.gameSub}>
+                    {[format?.toLowerCase(), skill, `${run.participants.length}/${run.maxPlayers} spots`].filter(Boolean).join(" · ")}
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityLabel={`Open ${run.title}`}
+                  accessibilityRole="button"
+                  onPress={() => router.push(`/run/${run.id}`)}
+                  style={({ pressed }) => [styles.joinButton, pressed && styles.pressed]}
+                >
+                  <Text style={styles.joinText}>Join</Text>
+                </Pressable>
+              </View>
+            );
+          })
+        ) : (
+          <Text style={styles.noGame}>No game scheduled for this time.</Text>
+        )}
+        <Pressable
+          accessibilityRole="button"
+          onPress={() =>
+            router.push({ pathname: "/(tabs)/schedule", params: { courtId: court.id, openCreate: "1" } })
+          }
+          style={({ pressed }) => [styles.createRow, pressed && styles.pressed]}
+        >
+          <Feather color={Colors.textSecondary} name="plus" size={14} />
+          <Text style={styles.createText}>Create a game</Text>
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
 
-/** One time row: 27pt cell + 2pt gap. */
-const ROW_PITCH = 29;
-const PANEL_TOP = 6;
-/** Day row + five hour rows + legend. */
-const GRID_MIN_HEIGHT = 34 + 5 * ROW_PITCH + 24;
-
 const styles = StyleSheet.create({
-  panelScroll: { flex: 1, minHeight: 0 },
-  panel: { flexGrow: 1, paddingTop: PANEL_TOP },
-  // The grid fills the space above the pinned slot card and scrolls its own
-  // rows, so the card sits at the bottom edge instead of floating in dead
-  // space or getting clipped.
-  gridArea: { flexGrow: 1, flexShrink: 0, minHeight: GRID_MIN_HEIGHT },
-  heatmap: { flex: 1, minHeight: 0, paddingHorizontal: 12 },
-  timeScroller: { flex: 1, minHeight: 0 },
-  timeRows: { paddingBottom: 2 },
-  heatRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    marginBottom: 2,
-  },
-  // Hour and month labels sit right against the grid (right-aligned) and
-  // share the day names' size, so each label reads with its own row.
-  timeColumn: { width: 38, paddingRight: 6, alignItems: "flex-end" },
-  monthCorner: {
-    height: 34,
-    justifyContent: "center",
-  },
-  monthLabel: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.textSecondary,
-    letterSpacing: 0.8,
-  },
-  timeLabel: {
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 9,
-    lineHeight: 12,
-    color: Colors.muted,
-    letterSpacing: 0.2,
-  },
-  dayHeader: {
-    flex: 1,
-    height: 34,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dayName: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.muted,
-    letterSpacing: 0.8,
-  },
-  dayDate: {
-    fontFamily: Typography.heading,
-    fontSize: 13,
-    color: Colors.textSecondary,
-    marginTop: 1,
-  },
-  today: { color: Colors.liveInk },
-  // Same cells as the Schedule tab: soft corners, the shared orange ramp.
-  cell: {
-    position: "relative",
-    flex: 1,
-    height: 27,
-    borderRadius: 6,
-    backgroundColor: Colors.surfaceHigh,
-    borderWidth: 1.5,
-    borderColor: "transparent",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heatLow: { backgroundColor: Colors.heat1 },
-  heatMid: { backgroundColor: Colors.heat2 },
-  heatHigh: { backgroundColor: Colors.accent },
-  cellNow: { borderColor: Colors.accentBorderStrong },
-  cellSelected: { borderColor: Colors.text },
-  cellPast: { opacity: 0.34 },
-  // Dark on the orange cell, like the Check in button (white was 3:1).
-  cellCountOnAccent: { color: Colors.background },
-  cellCount: {
-    fontFamily: Typography.heading,
-    fontSize: 11,
-    color: Colors.text,
-  },
-  runDot: {
-    position: "absolute",
-    right: 3,
-    top: 3,
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: Colors.accent,
-  },
-  legend: {
-    marginTop: 7,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  legendScale: { flexDirection: "row", alignItems: "center", gap: 4 },
-  legendText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 8,
-    color: Colors.muted,
-    letterSpacing: 0.7,
-  },
-  legendSwatch: {
-    width: 9,
-    height: 9,
-    borderRadius: 2,
-    borderWidth: 0.5,
-    borderColor: Colors.borderSubtle,
-  },
-  slotCard: {
-    marginHorizontal: 12,
-    marginTop: 8,
+  scroll: { flex: 1, minHeight: 0 },
+  panel: { paddingHorizontal: Layout.screenGutter - 8, paddingTop: 12, gap: 12 },
+  card: {
+    padding: 14,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: Colors.hairlineCard,
-    borderRadius: Radius.row,
     backgroundColor: Colors.panel,
-    overflow: "hidden",
   },
-  slotHeader: {
-    height: 30,
-    paddingHorizontal: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
-  },
-  slotTitle: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    color: Colors.text,
-    letterSpacing: 1,
-  },
-  slotMeta: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 10,
-    color: Colors.accent,
-    letterSpacing: 0.8,
-    textAlign: "right",
-  },
-  // Two equal columns, one height whether the slot is empty or full, so
-  // nothing jumps; the divider lines up with the gap between the buttons.
-  slotContent: {
-    height: 68,
-    flexDirection: "row",
-    overflow: "hidden",
-  },
-  peopleArea: {
+  cardHead: { marginBottom: 10, flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10 },
+  cardTitle: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.text },
+  cardMeta: { flexShrink: 1, fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.muted },
+  gridRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 },
+  timeColumn: { width: 26 },
+  timeLabel: { fontFamily: Typography.bodyBold, fontSize: 11, color: Colors.muted },
+  dayName: { flex: 1, flexBasis: 0, textAlign: "center", fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 0.4, color: Colors.muted },
+  dayToday: { color: Colors.text },
+  cell: {
     flex: 1,
     flexBasis: 0,
-    minWidth: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    height: 34,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: "transparent",
   },
-  gameArea: {
-    flex: 1,
-    flexBasis: 0,
-    minWidth: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderLeftColor: Colors.border,
-  },
-  sectionLabel: {
-    marginBottom: 5,
-    fontFamily: Typography.bodyBold,
-    fontSize: 8,
-    color: Colors.muted,
-    letterSpacing: 1,
-  },
-  avatars: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
-  avatar: { width: 50, alignItems: "center" },
-  avatarName: {
-    width: 50,
-    marginTop: 2,
-    textAlign: "center",
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 8,
-    color: Colors.textSecondary,
-  },
-  hiddenAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: Radius.sm,
+  cellPast: { opacity: 0.4 },
+  cellSelected: { borderColor: Colors.text, opacity: 1 },
+  gameDot: { position: "absolute", top: 3, right: 3, width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.text },
+  gameDot2: { width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.text },
+  legend: { marginTop: 6, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  legendScale: { flexDirection: "row", alignItems: "center", gap: 5 },
+  legendText: { fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.muted },
+  swatch: { width: 11, height: 11, borderRadius: 3, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.hairlineChrome },
+  slotHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10 },
+  slotTitle: { fontFamily: Typography.headingBold, fontSize: 24, lineHeight: 28, letterSpacing: -0.4, textTransform: "uppercase", color: Colors.text },
+  avatarScroll: { marginTop: 12, flexGrow: 0 },
+  avatars: { flexDirection: "row", alignItems: "center", gap: 8 },
+  avatar: { borderRadius: 8 },
+  moreTile: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
     borderWidth: 1,
     borderStyle: "dashed",
-    borderColor: Colors.border,
+    borderColor: Colors.dashed,
     alignItems: "center",
     justifyContent: "center",
   },
-  hiddenText: {
-    fontFamily: Typography.heading,
-    fontSize: 10,
-    color: Colors.muted,
-  },
-  empty: {
-    flex: 1,
-    paddingTop: 6,
-    textAlign: "center",
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    color: Colors.muted,
-  },
-  gameTile: {
-    width: 140,
+  moreText: { fontFamily: Typography.headingSemiBold, fontSize: 12, color: Colors.textSecondary },
+  addButton: {
+    width: 36,
     height: 36,
-    paddingRight: 6,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.accentDim,
-    overflow: "hidden",
-  },
-  gameTilePressed: { backgroundColor: Colors.accentGlow },
-  gameIcon: {
-    width: 26,
-    alignSelf: "stretch",
+    borderColor: Colors.hairlineChrome,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.accent,
   },
-  gameCopy: { flex: 1, minWidth: 0 },
-  gameTitle: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
-    lineHeight: 14,
-    color: Colors.text,
+  addButtonOn: { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  notice: { marginTop: 8, fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.loss },
+  divider: { height: 1, marginVertical: 14, backgroundColor: Colors.hairline },
+  gameRow: { minHeight: 48, marginBottom: 8, flexDirection: "row", alignItems: "center", gap: 12 },
+  gameCopy: { flex: 1, minWidth: 0, gap: 3 },
+  gameTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  gameTitle: { flexShrink: 1, fontFamily: Typography.headingSemiBold, fontSize: 20, lineHeight: 24, textTransform: "uppercase", color: Colors.text },
+  gameSub: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
+  joinButton: {
+    minWidth: 84,
+    height: 44,
+    paddingHorizontal: 16,
+    borderRadius: Radius.button,
+    borderWidth: 1,
+    borderColor: Colors.text,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  gameMeta: {
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 8,
-    color: Colors.textSecondary,
-    letterSpacing: 0.3,
-  },
-  noGame: {
-    paddingTop: 6,
-    textAlign: "center",
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    color: Colors.muted,
-  },
-  actions: {
-    paddingHorizontal: 10,
-    paddingBottom: 8,
+  joinText: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.4, textTransform: "uppercase", color: Colors.text },
+  noGame: { fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary, marginBottom: 8 },
+  createRow: {
+    height: 44,
     flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
+    borderRadius: Radius.row,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: Colors.dashed,
   },
-  action: { flex: 1, flexBasis: 0, paddingHorizontal: 8 },
-  notice: {
-    paddingHorizontal: 10,
-    paddingBottom: 8,
-    fontFamily: Typography.bodyBold,
-    fontSize: 8,
-    color: Colors.loss,
-    letterSpacing: 0.6,
-  },
+  createText: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.textSecondary },
+  pressed: { opacity: 0.72 },
 });

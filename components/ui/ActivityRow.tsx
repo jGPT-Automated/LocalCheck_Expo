@@ -2,7 +2,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { SportEmblem } from "@/components/ui/SportEmblem";
 import { Colors, Radius } from "@/constants/colors";
 import type { FeedItem } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
@@ -38,8 +37,8 @@ function kindOf(item: FeedItem): Kind {
 
 /**
  * The one shared activity row (court-flow feed): every row the same height,
- * an icon tile on the left that says what happened (orange arrow in for a
- * check-in, grey arrow out for a check-out, the sport ball for a game, a
+ * an icon tile on the left that says what happened (small orange dot for a
+ * check-in, small grey dot for a check-out, VS for a game result, a
  * calendar for a scheduled game), the sentence and a quiet detail line, then
  * the score and time on the right. Day headers split the days.
  *
@@ -147,38 +146,21 @@ export function ActivityRow({
   );
 }
 
-/** The tile that says what happened, drawn with library icons only. */
+/**
+ * The tile that says what happened: a small solid dot (orange in, grey out),
+ * VS for a game result, a calendar for a scheduled game. Library icons only.
+ */
 function IconTile({ item, kind }: { item: FeedItem; kind: Kind }) {
   return (
-    <View style={[styles.tile, kind === "in" && styles.tileLive]}>
-      {kind === "game" && item.sport ? (
-        <SportEmblem
-          color={item.sport === "PICKLEBALL" ? Colors.pickleballMeta : Colors.basketballMeta}
-          size={15}
-          sport={item.sport}
-        />
-      ) : (
-        <MaterialCommunityIcons
-          color={kind === "in" ? Colors.accent : kind === "plan" ? Colors.inkSoft : Colors.muted}
-          name={
-            kind === "in"
-              ? item.type === "checkin_burst"
-                ? "account-group"
-                : "login-variant"
-              : kind === "out"
-                ? "logout-variant"
-                : kind === "plan"
-                  ? "calendar-check"
-                  : kind === "game"
-                    ? "trophy-outline"
-                    : "map-marker-radius"
-          }
-          size={15}
-          // Check-out mirrors the check-in arrow so the two point opposite
-          // ways (in, out), not only differ in colour.
-          style={kind === "out" ? styles.mirrored : undefined}
-        />
-      )}
+    <View style={styles.tile}>
+      {kind === "in" && item.type !== "checkin_burst" ? <View style={[styles.dot, styles.dotIn]} /> : null}
+      {kind === "out" ? <View style={[styles.dot, styles.dotOut]} /> : null}
+      {kind === "game" ? <Text style={styles.vs}>VS</Text> : null}
+      {kind === "in" && item.type === "checkin_burst" ? (
+        <MaterialCommunityIcons color={Colors.accent} name="account-group" size={15} />
+      ) : null}
+      {kind === "plan" ? <MaterialCommunityIcons color={Colors.inkSoft} name="calendar-check" size={15} /> : null}
+      {kind === "other" ? <MaterialCommunityIcons color={Colors.muted} name="map-marker-radius" size={15} /> : null}
     </View>
   );
 }
@@ -192,7 +174,6 @@ function DayHeader({ label, first }: { label: string; first: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  mirrored: { transform: [{ scaleX: -1 }] },
   row: {
     minHeight: 60,
     marginHorizontal: Layout.screenGutter,
@@ -214,14 +195,10 @@ const styles = StyleSheet.create({
     borderColor: "rgba(242,242,246,0.08)",
     backgroundColor: Colors.panel,
   },
-  // A live check-in glows a little, like the On court dot.
-  tileLive: {
-    borderColor: Colors.accentBorder,
-    shadowColor: Colors.accent,
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 0 },
-  },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  dotIn: { backgroundColor: Colors.accent },
+  dotOut: { backgroundColor: Colors.checkOutDot },
+  vs: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 0.6, color: Colors.textSecondary },
   copy: { flex: 1, minWidth: 0, gap: 2 },
   title: { fontFamily: Typography.bodyMedium, fontSize: 13, lineHeight: 18, color: Colors.textSecondary },
   who: { fontFamily: Typography.bodySemiBold, color: Colors.text },

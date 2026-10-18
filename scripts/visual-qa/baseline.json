@@ -10,44 +10,54 @@
     "smallTarget": 0
   },
   "375x667/home-feed": {
-    "smallText": 21,
+    "smallText": 13,
     "lowContrast": 0,
     "smallTarget": 0
   },
-  "375x667/home-locals": {
-    "smallText": 15,
+  "375x667/home-scrolled": {
+    "smallText": 11,
     "lowContrast": 0,
     "smallTarget": 0
-  },
-  "375x667/home-schedule": {
-    "smallText": 27,
-    "lowContrast": 0,
-    "smallTarget": 42
   },
   "375x667/court-live": {
-    "smallText": 24,
-    "lowContrast": 0,
-    "smallTarget": 7
-  },
-  "375x667/court-games": {
-    "smallText": 27,
+    "smallText": 19,
     "lowContrast": 0,
     "smallTarget": 5
   },
-  "375x667/court-players": {
-    "smallText": 16,
+  "375x667/court-games": {
+    "smallText": 25,
     "lowContrast": 0,
     "smallTarget": 4
+  },
+  "375x667/court-players": {
+    "smallText": 11,
+    "lowContrast": 0,
+    "smallTarget": 2
   },
   "375x667/court-week": {
-    "smallText": 34,
+    "smallText": 8,
     "lowContrast": 0,
-    "smallTarget": 39
+    "smallTarget": 51
+  },
+  "375x667/court-players-active": {
+    "smallText": 11,
+    "lowContrast": 0,
+    "smallTarget": 2
+  },
+  "375x667/court-players-newest": {
+    "smallText": 11,
+    "lowContrast": 0,
+    "smallTarget": 2
+  },
+  "375x667/court-week-today-card": {
+    "smallText": 8,
+    "lowContrast": 0,
+    "smallTarget": 15
   },
   "375x667/court-info": {
-    "smallText": 19,
+    "smallText": 13,
     "lowContrast": 0,
-    "smallTarget": 4
+    "smallTarget": 2
   },
   "375x667/schedule": {
     "smallText": 19,
@@ -170,7 +180,7 @@
     "smallTarget": 0
   },
   "375x667/explore-drawer": {
-    "smallText": 8,
+    "smallText": 6,
     "lowContrast": 0,
     "smallTarget": 1
   },
@@ -200,44 +210,54 @@
     "smallTarget": 0
   },
   "393x852/home-feed": {
-    "smallText": 23,
+    "smallText": 13,
     "lowContrast": 0,
     "smallTarget": 0
   },
-  "393x852/home-locals": {
-    "smallText": 17,
+  "393x852/home-scrolled": {
+    "smallText": 13,
     "lowContrast": 0,
     "smallTarget": 0
-  },
-  "393x852/home-schedule": {
-    "smallText": 35,
-    "lowContrast": 0,
-    "smallTarget": 49
   },
   "393x852/court-live": {
-    "smallText": 27,
+    "smallText": 22,
     "lowContrast": 0,
-    "smallTarget": 7
+    "smallTarget": 5
   },
   "393x852/court-games": {
-    "smallText": 33,
+    "smallText": 26,
     "lowContrast": 0,
-    "smallTarget": 6
+    "smallTarget": 4
   },
   "393x852/court-players": {
-    "smallText": 18,
+    "smallText": 14,
     "lowContrast": 0,
-    "smallTarget": 4
+    "smallTarget": 2
   },
   "393x852/court-week": {
-    "smallText": 45,
+    "smallText": 8,
     "lowContrast": 0,
-    "smallTarget": 63
+    "smallTarget": 64
+  },
+  "393x852/court-players-active": {
+    "smallText": 14,
+    "lowContrast": 0,
+    "smallTarget": 2
+  },
+  "393x852/court-players-newest": {
+    "smallText": 14,
+    "lowContrast": 0,
+    "smallTarget": 2
+  },
+  "393x852/court-week-today-card": {
+    "smallText": 8,
+    "lowContrast": 0,
+    "smallTarget": 50
   },
   "393x852/court-info": {
-    "smallText": 23,
+    "smallText": 16,
     "lowContrast": 0,
-    "smallTarget": 4
+    "smallTarget": 2
   },
   "393x852/schedule": {
     "smallText": 30,
@@ -390,44 +410,54 @@
     "smallTarget": 0
   },
   "430x932/home-feed": {
-    "smallText": 25,
+    "smallText": 14,
     "lowContrast": 0,
     "smallTarget": 0
   },
-  "430x932/home-locals": {
-    "smallText": 17,
+  "430x932/home-scrolled": {
+    "smallText": 14,
     "lowContrast": 0,
     "smallTarget": 0
-  },
-  "430x932/home-schedule": {
-    "smallText": 38,
-    "lowContrast": 0,
-    "smallTarget": 70
   },
   "430x932/court-live": {
-    "smallText": 29,
-    "lowContrast": 0,
-    "smallTarget": 7
-  },
-  "430x932/court-games": {
-    "smallText": 33,
-    "lowContrast": 0,
-    "smallTarget": 6
-  },
-  "430x932/court-players": {
-    "smallText": 18,
-    "lowContrast": 0,
-    "smallTarget": 4
-  },
-  "430x932/court-week": {
-    "smallText": 49,
-    "lowContrast": 0,
-    "smallTarget": 77
-  },
-  "430x932/court-info": {
     "smallText": 23,
     "lowContrast": 0,
+    "smallTarget": 5
+  },
+  "430x932/court-games": {
+    "smallText": 26,
+    "lowContrast": 0,
     "smallTarget": 4
+  },
+  "430x932/court-players": {
+    "smallText": 16,
+    "lowContrast": 0,
+    "smallTarget": 2
+  },
+  "430x932/court-week": {
+    "smallText": 8,
+    "lowContrast": 0,
+    "smallTarget": 64
+  },
+  "430x932/court-players-active": {
+    "smallText": 16,
+    "lowContrast": 0,
+    "smallTarget": 2
+  },
+  "430x932/court-players-newest": {
+    "smallText": 16,
+    "lowContrast": 0,
+    "smallTarget": 2
+  },
+  "430x932/court-week-today-card": {
+    "smallText": 8,
+    "lowContrast": 0,
+    "smallTarget": 64
+  },
+  "430x932/court-info": {
+    "smallText": 16,
+    "lowContrast": 0,
+    "smallTarget": 2
   },
   "430x932/schedule": {
     "smallText": 31,

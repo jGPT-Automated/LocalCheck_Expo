@@ -41,7 +41,7 @@ for (const root of ROOTS) {
 }
 
 const ownership = [
-  ["components/HomeScreen.tsx", ["ScreenHeader", "HomeCourtHero", "PlayerSummaryRow", "ActivityRow"]],
+  ["components/HomeScreen.tsx", ["ScreenHeader", "HomeCourtHero", "HomeCourtActions", "HereNowSection", "ActivityRow"]],
   ["components/CourtsScreen.tsx", ["ScreenHeader", "CourtListItem", "CompactSelect", "ModeTabs"]],
   ["app/(tabs)/elo.tsx", ["ScreenHeader", "HeaderIconAction", "ProfileHero", "ProfileStats", "PlayerSummaryRow"]],
   ["app/player/[id].tsx", ["ProfileHero", "ProfileStats", "HeadToHeadSummary"]],

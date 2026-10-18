@@ -21,6 +21,22 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-18 — Home and court page redesign (`claude/kind-pascal-4c174r`, PR #77 into `main`)
+
+From Jesse's Oct 18 notes and five reference screenshots (Home overview,
+Players list, Week heatmap, Live feed). Checked in a local web render at three
+phone sizes against mocked data; not on a phone yet.
+
+| Item | Status |
+|------|--------|
+| Home: no tabs, the Explore drawer's layout; court header scrolls away, Check in + Here now pinned, Up next / Today / feed scroll | ✅ needs device check |
+| Home Court button next to Check in opens the court page | ✅ |
+| Feed icons: solid orange dot (check-in), grey dot (check-out), VS (game result); calendar kept | ✅ |
+| Court page: no Plan visit / Check in bar | ✅ |
+| Players: locals only, Ranking / Active / Newest, record at this court, You pinned | ✅ needs real-data check (records come from `matches`) |
+| Week: the reference's cards (days across, times down kept), Today card with Join | ✅ |
+| Live, Games, Info unchanged | ✅ |
+
 ## 2026-10-17 — Pre-submission polish pass (`claude/kind-pascal-4c174r`, PR #77 into `main`, carries #75)
 
 From the Oct 16 precision handoff (comments 1–16, A1–A4) and Jesse's Oct 17

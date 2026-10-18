@@ -1,11 +1,9 @@
-import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { CourtArt } from "@/components/court/CourtArt";
-import { CheckInButton, LocalTag, MetricStrip, SportLabel } from "@/components/court/CourtParts";
-import { PressableScale } from "@/components/ui/PressableScale";
-import { Colors, Radius } from "@/constants/colors";
+import { CheckInButton, CourtLinkButton, LocalTag, MetricStrip, SportLabel } from "@/components/court/CourtParts";
+import { Colors } from "@/constants/colors";
 import type { Court } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 
@@ -13,8 +11,7 @@ import { Typography } from "@/constants/typography";
  * Home's local court header (Oct 16): full width, not a card. Court trace on
  * the right, sport on the left with the small house marker on the right,
  * the centred name, city · distance, then On court / Court hours · wk /
- * Locals. Kept short so the feed gets the screen; the actions live in
- * HomeCourtActions at the bottom, where the thumb is.
+ * Locals. HomeCourtActions sits right under it.
  */
 export function HomeCourtHero({
   court,
@@ -60,49 +57,28 @@ export function HomeCourtHero({
 }
 
 /**
- * Home's reachable action row, pinned above the tab bar: Plan and Court ↗ as
- * matching icon-over-label buttons either side of Check in, all one height.
+ * Home's action row, the Explore drawer's: Check in (or Check out) beside
+ * Court, which opens the court page.
  */
 export function HomeCourtActions({
   courtName,
   isCheckedIn,
   isChecking,
   onCheckIn,
-  onPlanVisit,
   onViewCourt,
 }: {
   courtName: string;
   isCheckedIn: boolean;
   isChecking: boolean;
   onCheckIn: () => void;
-  onPlanVisit: () => void;
   onViewCourt: () => void;
 }) {
   return (
     <View style={styles.actions}>
-      <PressableScale
-        accessibilityHint="Opens the week to plan when you'll play"
-        accessibilityLabel="Plan visit"
-        accessibilityRole="button"
-        onPress={onPlanVisit}
-        style={styles.plan}
-      >
-        <Feather color={Colors.inkSoft} name="calendar" size={14} />
-        <Text style={styles.planText}>Plan</Text>
-      </PressableScale>
       <View style={styles.checkSlot}>
-        <CheckInButton busy={isChecking} checkedIn={isCheckedIn} courtName={courtName} height={52} onPress={onCheckIn} />
+        <CheckInButton busy={isChecking} checkedIn={isCheckedIn} courtName={courtName} onPress={onCheckIn} />
       </View>
-      <PressableScale
-        accessibilityHint="Opens the full court page"
-        accessibilityLabel={`View ${courtName}`}
-        accessibilityRole="button"
-        onPress={onViewCourt}
-        style={styles.plan}
-      >
-        <Feather color={Colors.inkSoft} name="arrow-up-right" size={14} />
-        <Text style={styles.planText}>Court</Text>
-      </PressableScale>
+      <CourtLinkButton courtName={courtName} onPress={onViewCourt} />
     </View>
   );
 }
@@ -126,28 +102,6 @@ const styles = StyleSheet.create({
   place: { marginTop: 2, textAlign: "center", fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
   strip: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 },
 
-  actions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
-    borderTopWidth: 1,
-    borderTopColor: Colors.hairline,
-    backgroundColor: Colors.background,
-  },
-  plan: {
-    width: 68,
-    height: 52,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 3,
-    borderRadius: Radius.button,
-    borderWidth: 1,
-    borderColor: Colors.hairlineChrome,
-    backgroundColor: Colors.panel,
-  },
-  planText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.inkSoft },
+  actions: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 14 },
   checkSlot: { flex: 1, minWidth: 0 },
 });
