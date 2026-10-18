@@ -213,7 +213,7 @@ export default function CourtProfileScreen() {
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: Platform.OS === "web" ? 44 : top }]}>
-        <CourtArt sport={court.sport} top={(Platform.OS === "web" ? 44 : top) + 44} />
+        <CourtArt faint sport={court.sport} top={(Platform.OS === "web" ? 44 : top) + 44} />
         <View style={styles.navRow}>
           <Pressable
             accessibilityLabel="Back"
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
   liveValueOn: { color: Colors.liveInk },
   liveLabelRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
   liveLabel: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.textSecondary },
-  busyHeader: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14 },
+  busyHeader: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10 },
   name: {
     fontFamily: Typography.headingBold,
     fontSize: 34,

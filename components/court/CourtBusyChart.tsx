@@ -19,8 +19,8 @@ const DAYS_AHEAD = 6;
  * Hours gone show who was actually on court (check-ins), hours ahead show
  * planned visits plus players signed up for games (outlined), and this hour
  * is orange. Step a week back or a week ahead with the arrows. Used in the
- * court page header (`variant="header"`: no title, the caption sits beside
- * the day stepper) and as Today in the expanded drawer.
+ * court page header (`variant="header"`: today only, no title, stepper or
+ * caption) and as Today in the expanded drawer.
  */
 export function CourtBusyChart({
   courtId,
@@ -75,30 +75,31 @@ export function CourtBusyChart({
   return (
     <View>
       {header ? null : <SectionHead meta={caption} title={title} />}
+      {header ? null : (
       <View style={styles.stepper}>
-        <Pressable
-          accessibilityLabel="Previous day"
-          accessibilityRole="button"
-          disabled={dayOffset <= -DAYS_BACK}
-          hitSlop={10}
-          onPress={() => setDayOffset((day) => Math.max(-DAYS_BACK, day - 1))}
-          style={[styles.step, dayOffset <= -DAYS_BACK && styles.stepOff]}
-        >
-          <View style={styles.stepRing}><Feather color={Colors.textSecondary} name="chevron-left" size={16} /></View>
-        </Pressable>
-        <Text style={[styles.dayLabel, dayOffset === 0 && styles.dayLabelToday]}>{busyDayLabel(dayOffset, now)}</Text>
-        <Pressable
-          accessibilityLabel="Next day"
-          accessibilityRole="button"
-          disabled={dayOffset >= DAYS_AHEAD}
-          hitSlop={10}
-          onPress={() => setDayOffset((day) => Math.min(DAYS_AHEAD, day + 1))}
-          style={[styles.step, dayOffset >= DAYS_AHEAD && styles.stepOff]}
-        >
-          <View style={styles.stepRing}><Feather color={Colors.textSecondary} name="chevron-right" size={16} /></View>
-        </Pressable>
-        {header ? <Text numberOfLines={2} style={styles.headerCaption}>{caption}</Text> : null}
-      </View>
+          <Pressable
+            accessibilityLabel="Previous day"
+            accessibilityRole="button"
+            disabled={dayOffset <= -DAYS_BACK}
+            hitSlop={10}
+            onPress={() => setDayOffset((day) => Math.max(-DAYS_BACK, day - 1))}
+            style={[styles.step, dayOffset <= -DAYS_BACK && styles.stepOff]}
+          >
+            <View style={styles.stepRing}><Feather color={Colors.textSecondary} name="chevron-left" size={16} /></View>
+          </Pressable>
+          <Text style={[styles.dayLabel, dayOffset === 0 && styles.dayLabelToday]}>{busyDayLabel(dayOffset, now)}</Text>
+          <Pressable
+            accessibilityLabel="Next day"
+            accessibilityRole="button"
+            disabled={dayOffset >= DAYS_AHEAD}
+            hitSlop={10}
+            onPress={() => setDayOffset((day) => Math.min(DAYS_AHEAD, day + 1))}
+            style={[styles.step, dayOffset >= DAYS_AHEAD && styles.stepOff]}
+          >
+            <View style={styles.stepRing}><Feather color={Colors.textSecondary} name="chevron-right" size={16} /></View>
+          </Pressable>
+          </View>
+      )}
       <View
         accessibilityLabel={`${busyDayLabel(dayOffset, now)}: ${caption}`}
         style={[styles.bars, { height }]}
@@ -151,7 +152,6 @@ const styles = StyleSheet.create({
   barNow: { backgroundColor: Colors.accent },
   barPlanned: { borderWidth: 1, borderColor: Colors.inkSoft, backgroundColor: "transparent" },
   barEmpty: { backgroundColor: Colors.surfaceHigh },
-  headerCaption: { flex: 1, minWidth: 0, textAlign: "right", fontFamily: Typography.bodySemiBold, fontSize: 11, lineHeight: 14, color: Colors.muted },
   labels: { height: 12, marginTop: 6 },
   label: { position: "absolute", top: 0, width: 36, marginLeft: -18, textAlign: "center", fontFamily: Typography.bodyBold, fontSize: 11, lineHeight: 12, letterSpacing: 0.2, textTransform: "uppercase", color: Colors.muted },
   labelNow: { color: Colors.liveInk },

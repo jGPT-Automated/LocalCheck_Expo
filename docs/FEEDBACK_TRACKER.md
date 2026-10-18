@@ -35,6 +35,8 @@ phone sizes against mocked data; not on a phone yet.
 | Court page: no Plan visit / Check in bar | ✅ |
 | Players: locals only, Ranking / Active / Newest, record at this court, You pinned | ✅ needs real-data check (records come from `matches`) |
 | Week: the reference's cards (days across, times down kept), Today card with Join | ✅ |
+| Court header: no day arrows or "Busiest" caption, chart moved up, court art dimmer | ✅ |
+| Week Today card: + and Join on the left; Create a game removed | ✅ |
 | Live, Games, Info unchanged | ✅ |
 
 ## 2026-10-17 — Pre-submission polish pass (`claude/kind-pascal-4c174r`, PR #77 into `main`, carries #75)

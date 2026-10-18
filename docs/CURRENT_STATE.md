@@ -112,7 +112,9 @@ Each claim says which of these it is, because they are often confused:
     Ranking / Active / Newest, record at this court, your row pinned
     (`lib/courtPlayersModel.ts`, tested in `lib/courtPlayersModel.test.mts`).
     Week is the rebuilt `components/CourtSchedulePanel.tsx` (Planned visits
-    card + Today card with Join).
+    card + Today card; + and Join sit on the left; no Create a game here).
+    The court header's busy chart is today only (no day arrows or caption),
+    sits closer to the title, and the court trace behind it is dimmer.
   - Data: `fetchCourtRecords` (`services/courtService.ts`) reads confirmed
     `matches` + `match_participants` at the court, so a player's record is
     only what RLS lets the viewer see; `fetchLocalsWithLastCheckIn` now takes

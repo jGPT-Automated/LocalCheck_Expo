@@ -285,8 +285,8 @@ calendar for a scheduled game, the people icon for a burst of check-ins.
 Busy times (`CourtBusyChart`): past hours filled grey (check-ins), now
 orange, later hours outlined (planned visits + game sign-ups). Hour labels
 sit centred under their bar and may be wider than it ("Now" never clips).
-`variant="header"` drops the title and puts the caption beside the day
-stepper (court page header).
+`variant="header"` is today only: no title, day stepper or caption (court
+page header).
 
 Strip numbers with a unit ("38h", "8P") set the unit a size smaller after a
 thin space (`MetricStrip`).
@@ -296,8 +296,10 @@ today white), two-hour rows down (7A to 9P), in a Planned visits · this week
 card with the Busiest slot at the top right and a Fewer → More ramp plus a
 Game dot at the bottom. Cells are 34pt, five heat levels, past cells dim and
 disabled, the selected cell outlined in white. The Today card below (title is
-the selected slot) lists who's going (+ adds or removes you), then each game in
-that slot with Join (opens the game page) and a dashed Create a game row. The
+the selected slot) lists who's going with the + (adds or removes you) fixed on
+the left of the faces, then each game in that slot with Join fixed on the left
+of its title (opens the game page), so the actions stay put however many people
+or games there are. Create a game is not here (it lives on Games and Schedule). The
 panel scrolls on every phone; there is no bottom bar under it.
 
 Small phones (D57): the Schedule tab keeps its full slot card and games row;
@@ -351,7 +353,7 @@ the canonical geographic court service, and an animated camera move before the
 same court drawer opens; it never substitutes a fabricated location after a
 permission denial.
 
-The court page (D55, Oct 14; header revised by D57, Oct 17) follows the court-flow design (`components/court/`). The header is fixed: back arrow and Your local pill; court line art pinned top right; sport label, name (Oswald, one line, shrinks to fit), city · distance on the left, a large live On court number on the right (orange with the live dot when anyone is on); then today's busy times (`CourtBusyChart` header variant) on every tab. Court hours · wk sits on Info, the next game on Games. Under it the tabs Live · Games · Players · Week · Info, with an orange underline on the active tab. There is no bottom bar (D58): Home and the Explore drawer own Check in. Only the selected tab's content scrolls:
+The court page (D55, Oct 14; header revised by D57, Oct 17) follows the court-flow design (`components/court/`). The header is fixed: back arrow and Your local pill; court line art pinned top right; sport label, name (Oswald, one line, shrinks to fit), city · distance on the left, a large live On court number on the right (orange with the live dot when anyone is on); then today's busy times (`CourtBusyChart` header variant: today only, no day arrows or caption) on every tab; the court trace behind the header is dimmed (`CourtArt` `faint`) so text stands out. Court hours · wk sits on Info, the next game on Games. Under it the tabs Live · Games · Players · Week · Info, with an orange underline on the active tab. There is no bottom bar (D58): Home and the Explore drawer own Check in. Only the selected tab's content scrolls:
 
 - Live: On court tiles (busy times moved to the header, D57) ("Nobody yet. Check in and you're first." when empty), All / Games / Check-ins chips, then the activity timeline and game-result modal.
 - Games: upcoming scheduled games by day (Today, Tomorrow, then the date), time, title, "x of y going" and a fill bar; tapping opens the game page. The list ends on a dashed Create a game row.
