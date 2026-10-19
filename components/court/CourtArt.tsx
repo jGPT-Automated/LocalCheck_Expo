@@ -25,7 +25,7 @@ export function CourtArt({
   local?: boolean;
 }) {
   const pickleball = sport === "PICKLEBALL";
-  const stroke = local ? "rgba(252,76,2,0.42)" : pickleball ? Colors.pickleballTrace : Colors.basketballTrace;
+  const stroke = local ? Colors.accentBorder : pickleball ? Colors.pickleballTrace : Colors.basketballTrace;
   return (
     <View pointerEvents="none" style={{ position: "absolute", top, right: 0, width: W, height: H, opacity: faint ? 0.35 : 1 }}>
       <Svg height={H} width={W}>
