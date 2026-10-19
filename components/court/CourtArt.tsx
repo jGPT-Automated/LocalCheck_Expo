@@ -12,9 +12,20 @@ const W = 160;
 const H = 132;
 
 /** `faint` dims the trace further where text sits over it (court page header). */
-export function CourtArt({ sport, top = 0, faint = false }: { sport: CourtSport; top?: number; faint?: boolean }) {
+export function CourtArt({
+  sport,
+  top = 0,
+  faint = false,
+  local = false,
+}: {
+  sport: CourtSport;
+  top?: number;
+  faint?: boolean;
+  /** Your local court: the trace turns orange. */
+  local?: boolean;
+}) {
   const pickleball = sport === "PICKLEBALL";
-  const stroke = pickleball ? Colors.pickleballTrace : Colors.basketballTrace;
+  const stroke = local ? "rgba(252,76,2,0.42)" : pickleball ? Colors.pickleballTrace : Colors.basketballTrace;
   return (
     <View pointerEvents="none" style={{ position: "absolute", top, right: 0, width: W, height: H, opacity: faint ? 0.35 : 1 }}>
       <Svg height={H} width={W}>

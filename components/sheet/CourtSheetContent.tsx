@@ -187,7 +187,7 @@ export function CourtSheetContent({
 
   return (
     <BottomSheetView>
-      <CourtArt sport={court.sport} />
+      <CourtArt local={isMyLocal} sport={court.sport} />
       <LocalMark active={isMyLocal} onPress={cooldown.restricted ? undefined : setAsLocal} />
       {/* ── Drawer: its measured height owns the first sheet detent ── */}
       <View

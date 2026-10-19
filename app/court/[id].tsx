@@ -219,7 +219,7 @@ export default function CourtProfileScreen() {
           onPress={() => void setLocalCourt(court.id, court)}
           top={Platform.OS === "web" ? 44 : top}
         />
-        <CourtArt faint sport={court.sport} top={(Platform.OS === "web" ? 44 : top) + 44} />
+        <CourtArt faint local={isMyLocal} sport={court.sport} top={(Platform.OS === "web" ? 44 : top) + 44} />
         <View style={styles.navRow}>
           <Pressable
             accessibilityLabel="Back"

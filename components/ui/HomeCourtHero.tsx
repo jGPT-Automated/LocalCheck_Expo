@@ -43,7 +43,7 @@ export function HomeCourtHero({
 
   return (
     <View style={styles.header}>
-      <CourtArt sport={court.sport} />
+      <CourtArt local sport={court.sport} />
       <LocalMark active />
       <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
         {court.shortName || court.name}

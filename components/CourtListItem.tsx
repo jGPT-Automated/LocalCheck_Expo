@@ -38,7 +38,7 @@ export function CourtListItem({ court, onPress, isLocalCourt, hoursLabel }: Cour
       style={styles.card}
       testID={`court-${court.id}`}
     >
-      <CourtArt sport={court.sport} />
+      <CourtArt local={Boolean(isLocalCourt)} sport={court.sport} />
       <View style={styles.metaRow}>
         <SportLabel sport={court.sport} />
       </View>

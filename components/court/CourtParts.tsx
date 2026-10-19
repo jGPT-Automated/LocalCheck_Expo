@@ -15,7 +15,7 @@ import {
   View,
 } from "react-native";
 
-import Svg, { Path } from "react-native-svg";
+import Svg, { Defs, Path, RadialGradient, Stop } from "react-native-svg";
 
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
@@ -69,13 +69,20 @@ export function SportLabel({ sport, suffix }: { sport: CourtSport; suffix?: stri
 }
 
 const MARK = 56;
+// The arc is a quarter circle centred on the card's top-right corner; the
+// icon sits at its middle (about 22pt in from both edges).
+const ARC = `M0 0 A${MARK} ${MARK} 0 0 0 ${MARK} ${MARK}`;
+const ICON_X = MARK - 22;
+const ICON_Y = 22;
+const CHECK = `M${ICON_X - 8} ${ICON_Y + 1} L${ICON_X - 2.5} ${ICON_Y + 6.5} L${ICON_X + 8} ${ICON_Y - 6}`;
 
 /**
- * Your local court, as a quarter-circle in the card's top-right corner: a +
- * while it isn't your local, a glowing orange check (like the logo's) once it
- * is. Render it as a direct child of the card so it sits flush in the corner.
- * Where it isn't your local, a tap makes it your local and the check springs
- * in; once it is, the mark does nothing (Settings changes it).
+ * Your local court, as a quarter-circle in the card's top-right corner: a thin
+ * + while it isn't your local; once it is, an orange arc with a glow that fills
+ * the corner and a thick white check with an orange halo (the logo's check).
+ * Render it as a direct child of the card so it sits flush in the corner. Where
+ * it isn't your local a tap makes it your local and the check springs in; once
+ * it is, the mark does nothing (Settings changes it).
  */
 export function LocalMark({ active, onPress, top = 0 }: { active: boolean; onPress?: () => void; top?: number }) {
   const pop = React.useRef(new Animated.Value(active ? 1 : 0)).current;
@@ -87,28 +94,50 @@ export function LocalMark({ active, onPress, top = 0 }: { active: boolean; onPre
         if (reduce) pop.setValue(1);
         else Animated.spring(pop, { toValue: 1, friction: 5, tension: 120, useNativeDriver: true }).start();
       });
-    } else if (!active) {
-      pop.setValue(0);
     } else {
-      pop.setValue(1);
+      pop.setValue(active ? 1 : 0);
     }
     wasActive.current = active;
   }, [active, pop]);
 
   const tappable = Boolean(onPress) && !active;
   const body = (
-    <View style={[styles.markArc, active && styles.markArcOn]}>
+    <View style={styles.markBox}>
+      <Svg height={MARK} style={StyleSheet.absoluteFill} width={MARK}>
+        <Defs>
+          <RadialGradient cx={MARK} cy={0} gradientUnits="userSpaceOnUse" id="markGlow" r={MARK}>
+            <Stop offset="0" stopColor={Colors.accent} stopOpacity={0.16} />
+            <Stop offset="0.7" stopColor={Colors.accent} stopOpacity={0.05} />
+            <Stop offset="1" stopColor={Colors.accent} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        {active ? (
+          <>
+            <Path d={`${ARC} L${MARK} 0 Z`} fill="url(#markGlow)" />
+            <Path d={ARC} fill="none" stroke={Colors.accent} strokeOpacity={0.16} strokeWidth={4} />
+            <Path d={ARC} fill="none" stroke={Colors.accent} strokeOpacity={0.95} strokeWidth={1.5} />
+          </>
+        ) : (
+          <>
+            <Path d={ARC} fill="none" stroke={Colors.hairlineChrome} strokeWidth={1} />
+            <Path d={`M${ICON_X - 7} ${ICON_Y} H${ICON_X + 7} M${ICON_X} ${ICON_Y - 7} V${ICON_Y + 7}`} fill="none" stroke={Colors.text} strokeLinecap="round" strokeWidth={1.8} />
+          </>
+        )}
+      </Svg>
       {active ? (
         <Animated.View
-          style={[styles.markIcon, { opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] }]}
+          style={[
+            StyleSheet.absoluteFill,
+            { opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] },
+          ]}
         >
-          <Feather color={Colors.accent} name="check" size={22} style={styles.markCheckGlow} />
+          <Svg height={MARK} width={MARK}>
+            <Path d={CHECK} fill="none" stroke={Colors.accent} strokeLinecap="round" strokeLinejoin="round" strokeOpacity={0.16} strokeWidth={10} />
+            <Path d={CHECK} fill="none" stroke={Colors.accent} strokeLinecap="round" strokeLinejoin="round" strokeOpacity={0.32} strokeWidth={6} />
+            <Path d={CHECK} fill="none" stroke={Colors.text} strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.2} />
+          </Svg>
         </Animated.View>
-      ) : (
-        <View style={styles.markIcon}>
-          <Feather color={Colors.textSecondary} name="plus" size={22} />
-        </View>
-      )}
+      ) : null}
     </View>
   );
   return (
@@ -306,23 +335,7 @@ const styles = StyleSheet.create({
   sportDot: { width: 6, height: 6, borderRadius: 3 },
   sportText: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.5, textTransform: "uppercase", flexShrink: 1 },
   markWrap: { position: "absolute", right: 0, width: MARK, height: MARK },
-  markArc: {
-    width: MARK,
-    height: MARK,
-    borderBottomLeftRadius: MARK,
-    borderLeftWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: Colors.hairlineChrome,
-  },
-  markArcOn: {
-    borderColor: Colors.accentBorderStrong,
-    shadowColor: Colors.accent,
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-    shadowOffset: { width: -2, height: 2 },
-  },
-  markIcon: { position: "absolute", top: 10, right: 10 },
-  markCheckGlow: { textShadowColor: Colors.accent, textShadowRadius: 10 },
+  markBox: { width: MARK, height: MARK },
   pressed: { opacity: 0.72 },
   strip: {
     flexDirection: "row",

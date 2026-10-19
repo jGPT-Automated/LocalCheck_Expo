@@ -542,11 +542,14 @@ interaction with supported installed primitives and record that decision here.
 
 Do not trade the working product for unfinished complexity. Use established libraries already in the project, improve shared components instead of spot-editing screens, note non-blocking polish, and keep moving toward TestFlight external testing.
 
-Local mark (D60): the logo's corner brackets around a house (`LocalMark`), in the
-corner of the card (Home, Explore card, drawer, court page). Orange house when
-the court is your local, grey house when it isn't; only the house changes. Where
-it is not your local, tapping it makes it your local; once it is, it does
-nothing (Settings changes it). It replaces the "Your local" pill.
+Local mark (D60, D61): a quarter-circle flush in the card's top-right corner
+(`LocalMark`, a direct child of the card: court header, Explore card, drawer,
+Home's pinned header). Not your local: a hairline arc with a thin white +.
+Your local: a thin orange arc with a soft glow filling the corner, a thick white
+check with an orange halo, and the court trace behind it turned orange
+(`CourtArt` `local`). Tapping the + makes it your local and the check springs
+in; once it is, the mark does nothing (Settings changes it). It replaces the
+"Your local" pill. Built to the Oct 18 mock-up.
 
 Drawers (D60): the Challenge and Log game drawers are the baseline for every
 form drawer (`RunFlowSheet`, WHERE `CourtSearchPicker`, WHEN `RecentDatePicker`
