@@ -88,7 +88,7 @@ export async function fetchActiveCheckIns(courtId: string): Promise<Player[]> {
   try {
     const { data, error } = await supabase
       .from("check_ins")
-      .select("user_id, profiles(*)")
+      .select("user_id, checked_in_at, profiles(*)")
       .eq("court_id", courtId)
       .is("checked_out_at", null)
       .or(freshFilter())
@@ -97,9 +97,9 @@ export async function fetchActiveCheckIns(courtId: string): Promise<Player[]> {
     if (error || !data) return [];
 
     const players: Player[] = [];
-    for (const row of data as unknown as Array<{ user_id: string; profiles: SupabaseProfile | null }>) {
+    for (const row of data as unknown as Array<{ user_id: string; checked_in_at: string; profiles: SupabaseProfile | null }>) {
       if (!row.profiles) continue;
-      players.push(mapProfileToPlayer(row.profiles));
+      players.push({ ...mapProfileToPlayer(row.profiles), checkedInAt: row.checked_in_at });
     }
     return players;
   } catch {

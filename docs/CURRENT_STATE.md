@@ -94,6 +94,233 @@ Each claim says which of these it is, because they are often confused:
     court route entry) and the court page section of `docs/product/DESIGN.md`.
   - Not in this pass: Players sorts (Active / Newest / All), the Live
     scoreboard rows, Phosphor icons, the drawer.
+- Oct 18 follow-up 3 (D61; **on a branch**, PR #77, not merged, not on a device;
+  not checked in a render, Jesse is verifying). Frontend only.
+  - `LocalMark` (`components/court/CourtParts.tsx`): corner quarter-circle with
+    + / animated glowing check, a direct child of the card (court header,
+    Explore card, drawer, Home's pinned header).
+  - `components/court/SlotCard.tsx`: one thin row, `mode` view / plan / full;
+    used by the court Week (view), Home's chart via `HourSlotCard` (plan) and
+    the Schedule page (full). `CourtBusyChart` has `variant="inline"` and
+    `maxBack` (Home: one set of arrows, "Most active at …", no past days).
+  - Schedule page (`app/(tabs)/schedule.tsx`): all 14 hour rows fit with no
+    inner scroll (row height from the window height, min 20); the Upcoming games
+    row is gone; the AM/PM window arrows are gone.
+- Oct 18 follow-up 2 (D60; **on a branch**, PR #77, not merged, not on a device;
+  not checked in a render, Jesse is verifying). Frontend only.
+  - Explore drawer (`components/sheet/CourtSheetContent.tsx`): the expanded
+    detail area is a `BottomSheetScrollView`; the LocalPlus panel is top-aligned.
+  - Schedule a game: `components/schedule/ScheduleGameSheet.tsx` (replaces
+    `HostRunModal`), built on `RunFlowSheet`, the new shared
+    `components/ui/CourtSearchPicker.tsx` (also used by `ChallengeSheet`),
+    `RecentDatePicker`, `TimeStrip` and `SegmentedControl`. The optional note
+    is gone.
+  - Home: only `HomeCourtHero` (name + numbers) is a sticky header
+    (`stickyHeaderIndices`); `HomeCourtTop` and everything else scroll.
+  - `LocalMark` (`components/court/CourtParts.tsx`) replaces `LocalTag` and
+    `LocalPill` (Home, Explore card, drawer, court page). `CourtLinkButton` is
+    a centred ">".
+  - LocalPlus: `app/localplus.tsx` retries sign-in before buying and only then
+    alerts "Can't reach the store right now" (`services/purchasesService.ts`).
+- Oct 18 follow-up (D59; **on a branch**, PR #77, not merged, not on a device;
+  not checked in a render, Jesse is verifying). Frontend only.
+  - Challenges: `lib/challengeModel.ts` `challengeAction` takes the time; an
+    accepted challenge is `scheduled` (Call it off) until its game time, then
+    `log_score` / `casual_on` with I missed it (`cancelChallenge`).
+    `app/challenge/[id].tsx` no longer redirects to Compete; the inbox opens it
+    for every open challenge (`app/(tabs)/elo.tsx`). Card text: `challengeCardLines`.
+  - Home: tapping a Today bar opens `HourSlotCard` (shared `SlotCard`, also the
+    court Week's card and, restyled in place, the Schedule tab's slot card).
+  - Court page: `LocalPill` is an icon-only house square that only sets;
+    Players ranks only players with a game here (`isRanked`); Info adds Date
+    added; Schedule FAB shadow stronger; LocalPlus button keeps the price label
+    when sign-in fails.
+- Home and court page redesign (Oct 18, D58; **on a branch**,
+  `claude/kind-pascal-4c174r`, PR #77, not merged, not on a device; checked in
+  a local web render at 375x667, 393x852 and 430x932 against mocked data).
+  Frontend only: no database, function or native change.
+  - Home (`components/HomeScreen.tsx`): one scrolling page, no tabs. The court
+    header scrolls away; Check in + Court and Here now pin at the top; Up next,
+    Today and the full court feed scroll under them. The Plan | Check in |
+    Court row, the Feed / Locals / Schedule tabs and `HomeCourtActions`' Plan
+    button are gone.
+  - Shared sections: `components/court/CourtOverviewSections.tsx`
+    (`HereNowSection`, `UpNextSection`) now serve the Explore drawer and Home.
+  - Feed icons (`components/ui/ActivityRow.tsx`): small solid orange dot for
+    check-in, grey dot for check-out, VS for a game result.
+  - Court page (`app/court/[id].tsx`): the Plan visit / Check in bottom bar is
+    gone. Players is `components/court/CourtPlayersPanel.tsx`: locals only,
+    Ranking / Active / Newest, record at this court, your row pinned
+    (`lib/courtPlayersModel.ts`, tested in `lib/courtPlayersModel.test.mts`).
+    Week is the rebuilt `components/CourtSchedulePanel.tsx` (Planned visits
+    card + Today card; + and Join sit on the left; no Create a game here).
+    The court header's busy chart is today only (no day arrows or caption),
+    sits closer to the title, and the court trace behind it is dimmer.
+  - Data: `fetchCourtRecords` (`services/courtService.ts`) reads confirmed
+    `matches` + `match_participants` at the court, so a player's record is
+    only what RLS lets the viewer see; `fetchLocalsWithLastCheckIn` now takes
+    the court's sport (sport-specific rating) and returns `joinedAt`
+    (`profiles.local_court_changed_at`, falling back to `created_at`). Both
+    are reads of existing columns. Not checked against LocalCheckProd.
+  - Visual QA: `scripts/visual-qa/screens.mjs` drops the Home Locals/Schedule
+    rows and adds Home scrolled, Players sorted by Active and Newest, the
+    Week Today card and the expanded Explore drawer. The court Week grid has
+    56 cells under 44pt (seven columns cannot reach 44pt on a phone), so its
+    `smallTarget` baseline went up at 375x667; see the PR.
+- Pre-submission polish pass (Oct 17, D57; **on a branch**,
+  `claude/kind-pascal-4c174r`, PR #77 into `main`; it carries #75, not merged, not on a device).
+  Frontend only: no database, function or native change.
+  - Court page header: live On court number and today's busy times on every
+    tab (`app/court/[id].tsx`, `CourtBusyChart` `variant="header"`).
+  - Home: house marker (`LocalTag`), Plan | Check in | Court one height.
+  - Schedule tab: original court dropdown, one-row time card, games in a
+    swipeable row; the page never scrolls (`app/(tabs)/schedule.tsx`,
+    `ScheduledGameCard` from `components/court/CourtGamesPanel.tsx`).
+  - Week heatmap (`components/CourtSchedulePanel.tsx`): readable labels,
+    equal columns, shared buttons.
+  - Game page: court and format shown once; result actions in the footer.
+  - Drawers: `FormSheet`, `ReviewRulesModal`, `PlayerQrModal` are all
+    `RunFlowSheet` / `AppBottomSheetModal` now.
+  - UI definition of done (Oct 17): `.claude/skills/ui-done/SKILL.md` (Apple
+    UI tips, the layout rules, UX checks) and `pnpm qa:visual`, which renders
+    38 screens at 375x667, 393x852 and 430x932 against mocked data, fails on
+    cut-off, clipped, overlapping or off-screen text and sideways scroll, and
+    ratchets text under 11pt, contrast under 4.5:1 and targets under 44pt
+    against `scripts/visual-qa/baseline.json`. Local only for now:
+    the Explore drawer peek at 375x667 is flaky (about 1 run in 2).
+  - Contrast: muted text #6E6E7A -> #8A8A96 (3.3:1 -> 4.8:1 on the dark
+    surfaces); inactive tab labels use it; counts on the orange heatmap cells
+    are dark.
+  - Open for Jesse: about 500 labels per screen size are 9-10pt uppercase
+    (below Apple's 11pt). Raising them is a type-scale decision, not done.
+  - Fixes: game activity markers line up on web; a bare played day shows the
+    right day (`parseDayOrInstant`); Me tab tabs; Settings switch thumb.
+  - Onboarding welcome uses the sign-in artwork, centred on its subject.
+  - Self-QA at 375×667, 393×852 and 430×932 with an automated clipped /
+    overlapping text check (Oct 17): small phones scroll the week heatmap
+    and Schedule tab instead of squeezing them; cut-off button and name text
+    fixed; the court drawer settles on its measured height; Notifications
+    uses the shared detail header.
+- Court-flow UI pass, frontend only (Oct 15, D56; **on a branch**,
+  `claude/court-flow-ui-pass`, not merged, not on a device). No database,
+  function or native change.
+  - Court drawer (`components/sheet/CourtSheetContent.tsx`) rebuilt to the
+    design: sport + Your local / Set as local, centred name, city ·
+    distance, On court / Court hours · wk / Locals, Check in + Court ↗.
+    Expanded: Here now (4 + More), Up next (next game), Today (planned
+    visits in 2-hour bars, read with `fetchCourtPlannedTimes`), Recent
+    activity (3 lines), then Games / Players / Feed / Week chips that open
+    the court page on that tab (`/court/[id]?tab=`). Gate: blurred content
+    under "See who runs {court}", white Unlock with LocalPlus (Apple Yearly
+    sheet, terms row kept) and "Or make this your local court — always free".
+    The Set as local pill only sets; removing a local stays on the court
+    page.
+  - Explore card (`components/CourtListItem.tsx`): court art, sport, Your
+    local pill, Oswald name, city · distance, On court / Court hours · wk /
+    Locals. List orders live courts first (most on court), then nearest.
+    Court hours for the list come from one read-only batched query
+    (`fetchCourtsWeekSpans`, `hooks/useCourtHours.ts`).
+  - Game page (`app/run/[id].tsx`): sport · format, Oswald title, when,
+    where, Going / Avg ELO / Format strip, spots bar, Who's going (Host tag,
+    W–L, ELO), details card (Teams, Level, Where, Host), white Join game;
+    joined players get "You're in · Leave". Join, leave, sides, invites,
+    edit, cancel and result flows unchanged.
+  - Shared pieces: `CheckInButton`, `CourtLinkButton`, `SectionHead` and a
+    `size` on `MetricStrip` in `components/court/CourtParts.tsx`; the court
+    page and Home card use the same Check in button. `BrutalistButton`
+    (every button) now uses 4pt corners, Inter bold labels, 50pt main size,
+    white primary. `SectionHeader`, the shared sheet (`#121216`, 22pt
+    corners, grab bar), notifications screen and Log game form restyled to
+    the same tokens (new `Colors.tile`, `grabber`, `dashed`, `liveInk`,
+    `inkSoft`, `checkOutDot`, `heat1–3`; `Radius.button/chip/row/panel/
+    courtCard/sheet`). Orange is kept for live, check-in and selection only.
+  - Checked: `pnpm typecheck`, `pnpm test`, `pnpm check:design`, web export
+    compiles. Not checked: a connected preview or phone screenshots (this
+    session had no `.env.local` or test sign-in).
+- Second pass on the same branch (Oct 15, Jesse's feedback; frontend only,
+  **on a branch**, not on a device):
+  - Onboarding (`app/onboarding.tsx`): a welcome screen (check in, plan the
+    week, log games), then name + sport, then Pick your court on a map
+    (`components/onboarding/CourtPickerMap.tsx`: Mapbox static map fitted to
+    you and the 8 closest courts, tappable pins, zooms in when location or a
+    city comes back; math in `lib/courtPickerMapModel.ts` with tests), then
+    a full-screen auto check-in step with the privacy explanation (only the
+    150 m circle; turned on through `useAutoCheckIn().turnOn`), then alerts
+    (Turn on alerts / Not now). The auto check-in sheet no longer pops up
+    right after onboarding (`context/AutoCheckInContext.tsx`).
+  - Player profile: one button layout per friend state (not friends: Log
+    game | Add friend; they asked: Log game | Accept request; you asked:
+    Cancel request | Log game; friends: remove | Log game | Challenge). Log
+    game opens a sheet over the profile (`components/game/LogGameSheet.tsx`)
+    instead of jumping to Compete. Head to head card is one compact row with
+    the status in the middle; the existing sticky line still takes over on
+    scroll.
+  - Log game form moved to `components/game/LogGameForm.tsx` (Compete and
+    the profile sheet share it): no repeated "Log game" title, court first,
+    then the day, players, score; Hide score is no longer on the form (it
+    stays on the pending game); the form clears the tab bar via TabFloor.
+  - Busy times (`components/court/CourtBusyChart.tsx`, model
+    `lib/courtBusyModel.ts` with tests): hour-by-hour bars for any day a week
+    back to a week ahead; past hours from check-ins, later hours from planned
+    visits plus players signed up for games, now in orange. Top of the court
+    page's Live tab and Today in the expanded drawer. The Week heatmap stays.
+  - Drawer Here now shows time on court ("38m"), from the active check-in's
+    `checked_in_at` (now selected in `fetchActiveCheckIns`).
+  - `StickyActionBar` restyled to the court-flow buttons.
+- Third pass on the same branch (Oct 16, Jesse's feedback; frontend only,
+  **on a branch**, not on a device):
+  - Home: the local court is a full-width header, not a card (court art,
+    sport, a Local tag hanging off the right edge, centred name, the 3-number
+    strip), shorter than before. Plan / Check in / Court ↗ sit in one row
+    pinned above the tab bar (`HomeCourtActions` in
+    `components/ui/HomeCourtHero.tsx`); Plan opens the court page's Week.
+  - Check-out label is just "Check out" with the live dot (no more
+    "Checked in · Check out" spilling out of the button).
+  - Feed rows (`components/ui/ActivityRow.tsx`, used by Home, the court page
+    and profiles): equal-height rows, an icon tile (orange arrow in for a
+    check-in, grey arrow out for a check-out or visit, the sport ball in the
+    sport colour for a game, a calendar for a scheduled game), the sentence,
+    a detail line ("Played 1h 40m", "Ranked"), score and short time on the
+    right (`shortAgo` in `lib/activityPresentation.ts`). The rail is gone.
+  - Court page Games tab cards follow the mock: time, title, faces, "x of y
+    going" with a bar, Join / Going / Full (Join right from the card unless
+    the game picks sides).
+  - Court Info map: tilted, with the 150 m auto check-in circle drawn in
+    orange with a soft glow (`lib/geofenceShape.ts`, tests), easing in on
+    load. Stat values centred.
+  - Explore map: legend, a slimmer Nearest button and locate-me share one
+    bottom row; the live count sits top centre.
+  - Inbox: a challenge that already has a logged game opens that game's
+    score page (approve / dispute there), never Log game again.
+  - Game score: with nothing to approve, Hide score sits at the bottom.
+  - Log game: Log game button pinned above the tab bar; YOU · VS · OPPONENT
+    columns with the QR scan on the right of the opponent box.
+  - Challenge sheet: the day is the circle-day strip (today and the next
+    days), the time a horizontal strip; `WheelPicker` removed. The chosen
+    day circle is outlined in the sport colour (orange basketball, sea green
+    pickleball) here and in Log game.
+  - Explore card: the local court uses the same edge Local tag.
+- Fourth pass on the same branch (Oct 16, before Jesse merges; frontend only,
+  **on a branch**, not on a device):
+  - Schedule tab (`app/(tabs)/schedule.tsx`) brought onto the court-flow
+    look without touching its planning logic: court header (sport label,
+    Oswald name, Change), "Who's going" label, the shared heat ramp and 6pt
+    cells, white ring for the chosen slot, orange edge for the hour you're
+    in. The page no longer scrolls: court, heatmap and the slot card stay
+    put; only the games list (now `CourtGamesPanel`, same cards as the court
+    page) or the edit summary scrolls. Each visit selects the current hour
+    and moves the grid to it. `RunCard` removed (no longer used).
+  - Slot card has one fixed height on both the Schedule tab and the court
+    page's Week (`CourtSchedulePanel`), so tapping around never makes it
+    jump; Week also scrolls to the current hour and marks it.
+  - Court feeds (Home, court page): today keeps check-in and check-out as two
+    rows (the check-out shows time played); earlier days collapse into one
+    "played 1h 40m" row with the check-out time (`pairVisits(..,
+    { splitToday: true })`, tested). Profiles still collapse every visit.
+  - Explore map: the legend is one slim row centred under the live count;
+    Nearest sits centred at the bottom with locate-me on the right.
+  - Not built: favourite courts / switching Home between courts (needs a
+    place to store favourites, so a backend change).
 - Expo SDK 54 patches on #67 (Oct 14, Jesse's OK in chat): `expo` 54.0.37,
   `expo-constants` 18.0.14, `expo-updates` 29.0.20. Lockfile also moves
   `@expo/cli` 54.0.27, `expo-file-system` 19.0.24 and

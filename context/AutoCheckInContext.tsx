@@ -29,6 +29,8 @@ type AutoCheckInValue = {
   courtName: string | null;
   /** Opens the explainer sheet (Settings switch turning on). */
   offer: () => void;
+  /** Asks iPhone for location and starts the circle (onboarding's own step). */
+  turnOn: () => Promise<void>;
   turnOff: () => Promise<void>;
   openSettings: () => void;
 };
@@ -119,9 +121,10 @@ export function AutoCheckInProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (!profile) return;
     const current = profile.local_court_id ?? null;
-    // Not mid-onboarding: the offer waits until onboarding is done.
+    // Onboarding asks about auto check-in on its own full screen, so a court
+    // picked there is the baseline, not a change to offer about afterwards.
     if (profileNeedsOnboarding(profile)) {
-      if (baselineCourt.current === undefined) baselineCourt.current = null;
+      baselineCourt.current = current;
       return;
     }
     if (baselineCourt.current === undefined) {
@@ -194,8 +197,8 @@ export function AutoCheckInProvider({ children }: { children: React.ReactNode })
   }, [court]);
 
   const value = useMemo(
-    () => ({ state, busy, courtName: court?.name ?? null, offer, turnOff, openSettings }),
-    [state, busy, court?.name, offer, turnOff, openSettings],
+    () => ({ state, busy, courtName: court?.name ?? null, offer, turnOn, turnOff, openSettings }),
+    [state, busy, court?.name, offer, turnOn, turnOff, openSettings],
   );
 
   return (

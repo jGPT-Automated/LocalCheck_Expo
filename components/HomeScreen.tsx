@@ -2,27 +2,20 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { CourtSchedulePanel } from "@/components/CourtSchedulePanel";
-import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { ScreenHeader, SectionHeader } from "@/components/ScreenHeader";
+import { BrutalistButton } from "@/components/BrutalistButton";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
+import { CourtBusyChart } from "@/components/court/CourtBusyChart";
+import { HourSlotCard } from "@/components/court/HourSlotCard";
+import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewSections";
+import { SectionHead } from "@/components/court/CourtParts";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { GameResultModal } from "@/components/ui/GameResultModal";
-import { HomeCourtHero } from "@/components/ui/HomeCourtHero";
-import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
-import { PersonTile } from "@/components/ui/PersonTile";
+import { HomeCourtActions, HomeCourtHero, HomeCourtTop } from "@/components/ui/HomeCourtHero";
 import { ScreenViewport } from "@/components/ui/ScreenViewport";
-import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
-import { CourtTabBar } from "@/components/court/CourtParts";
+import { useBottomFloor } from "@/components/ui/TabFloor";
 import { useToast } from "@/components/ui/Toast";
 import { Colors, Radius } from "@/constants/colors";
 import type { FeedItem, FeedMatchSummary } from "@/constants/data";
@@ -31,22 +24,14 @@ import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
-import { isInactiveLocal, relativeTime } from "@/lib/localPresence";
 import { groupCheckinBursts, pairVisits } from "@/lib/activityPresentation";
 import { courtHours, formatCourtHours } from "@/lib/courtHours";
 import { fetchCourtWeekSpans } from "@/services/courtService";
-import {
-  fetchLocalsWithLastCheckIn,
-  type LocalWithLastCheckIn,
-} from "@/services/profileService";
 
-type HomeTab = "feed" | "locals" | "schedule";
-const HOME_TABS = [
-  { value: "feed", label: "Feed" },
-  { value: "locals", label: "Locals" },
-  { value: "schedule", label: "Schedule" },
-] as const;
-
+/**
+ * Home: one page, no tabs. Only the court name and its numbers stay pinned;
+ * Check in, Here now, Up next, Today and the court feed scroll under them.
+ */
 export function HomeScreen() {
   const {
     localCourt,
@@ -58,16 +43,16 @@ export function HomeScreen() {
     checkOut,
     feed,
     isFriend,
+    runs,
     refreshCheckedIn,
     refreshFeed,
   } = useApp();
   const { roster, localCount } = usePresence(localCourtId);
   const liveCounts = useCourtCounts(localCourt ? [localCourt] : []);
   const { user } = useAuth();
-  const { bottom } = useSafeAreaInsets();
-  const [activeTab, setActiveTab] = useState<HomeTab>("feed");
-  const [locals, setLocals] = useState<LocalWithLastCheckIn[]>([]);
+  const tabFloor = useBottomFloor();
   const [isChecking, setIsChecking] = useState(false);
+  const [picked, setPicked] = useState<{ dayOffset: number; hour: number } | null>(null);
   const [hoursLabel, setHoursLabel] = useState("0h");
   const { showToast } = useToast();
   const [selectedResult, setSelectedResult] = useState<{
@@ -76,26 +61,11 @@ export function HomeScreen() {
     courtName?: string;
   } | null>(null);
 
-  const refreshLocals = useCallback(() => {
-    if (!localCourtId) {
-      setLocals([]);
-      return;
-    }
-    let active = true;
-    void fetchLocalsWithLastCheckIn(localCourtId).then((result) => {
-      if (active) setLocals(result);
-    });
-    return () => {
-      active = false;
-    };
-  }, [localCourtId]);
-
   useFocusEffect(
     useCallback(() => {
       void refreshCheckedIn();
       void refreshFeed();
-      return refreshLocals();
-    }, [refreshCheckedIn, refreshFeed, refreshLocals]),
+    }, [refreshCheckedIn, refreshFeed]),
   );
 
   useFocusEffect(
@@ -112,36 +82,18 @@ export function HomeScreen() {
   );
 
   useEffect(() => {
-    setActiveTab("feed");
     setSelectedResult(null);
+    setPicked(null);
   }, [localCourtId]);
-
-  const sortedPlayers = useMemo(
-    () =>
-      [...roster].sort((a, b) => {
-        const friendshipDifference =
-          Number(isFriend(b.id)) - Number(isFriend(a.id));
-        return friendshipDifference || b.elo - a.elo;
-      }),
-    [isFriend, roster],
-  );
 
   // Kept above the no-court early return so the hook count never changes
   // between renders — the "Rendered fewer hooks than expected" crash a brand-new
   // account hit the first time it set a local court. `courtFeed` is null-safe.
   const courtFeed = feed.filter((item) => item.courtId === localCourt?.id);
   const groupedCourtFeed = useMemo(
-    () => groupCheckinBursts(pairVisits(courtFeed)),
+    () => groupCheckinBursts(pairVisits(courtFeed, { splitToday: true })),
     [courtFeed],
   );
-  const recentArrivalCount = useMemo(() => {
-    const hourAgo = Date.now() - 60 * 60_000;
-    return courtFeed.filter(
-      (item) =>
-        item.type === "checkin" &&
-        new Date(item.occurredAtIso).getTime() >= hourAgo,
-    ).length;
-  }, [courtFeed]);
 
   if (!localCourt) {
     return <NoCourtState isSignedIn={Boolean(user)} />;
@@ -152,13 +104,11 @@ export function HomeScreen() {
   const isCheckedIn = checkedInCourtId === localCourt.id || waitingToPost;
   const statsActive = liveCounts[localCourt.id]?.activeCount ?? 0;
   const activeTotal = Math.max(roster.length, statsActive);
-  const hiddenCount = Math.max(0, activeTotal - roster.length);
-  const activeLabel = `${hiddenCount > 0 ? "~" : ""}${activeTotal}`;
-  const hereNowIds = new Set(roster.map((player) => player.id));
-  const visibleLocals = locals.filter(
-    ({ player }) => !hereNowIds.has(player.id),
-  );
-  const privateLocalCount = Math.max(0, localCount - locals.length);
+  const activeLabel = `${activeTotal > roster.length ? "~" : ""}${activeTotal}`;
+  const now = Date.now();
+  const upcoming = runs
+    .filter((run) => run.courtId === localCourt.id && Date.parse(run.startTimeIso) >= now - 60 * 60_000)
+    .sort((a, b) => a.startTimeIso.localeCompare(b.startTimeIso));
 
   const handleCheckIn = async () => {
     if (isChecking) return;
@@ -200,190 +150,81 @@ export function HomeScreen() {
     if (item.playerId) router.push(`/player/${item.playerId}`);
   };
 
-  const scrollBottom =
-    Platform.OS === "web" ? Layout.tabBarClearance + 24 : bottom + 92;
-
   return (
     <ScreenViewport>
       <ScreenHeader title="LOCALCHECK" />
 
-      <HomeCourtHero
-        activeCount={activeLabel}
-        court={localCourt}
-        hoursLabel={hoursLabel}
-        isCheckedIn={isCheckedIn}
-        isChecking={isChecking}
-        live={activeTotal > 0}
-        localCount={localCount}
-        onCheckIn={() => void handleCheckIn()}
-        onViewCourt={() => router.push(`/court/${localCourt.id}`)}
-      />
-      <AutoCheckInNote courtId={localCourt.id} />
-
-      <CourtTabBar active={activeTab} onChange={setActiveTab} tabs={HOME_TABS} />
-
-      <View style={styles.tabBody}>
-        {activeTab === "feed" ? (
-          <ScrollView
-            contentContainerStyle={{ paddingBottom: scrollBottom }}
-            showsVerticalScrollIndicator={false}
-          >
-            <View
-              style={[
-                styles.peopleSection,
-                activeTotal === 0 && styles.peopleSectionEmpty,
-              ]}
-            >
-              <SectionHeader count={activeLabel} title="Checked in" />
-              {activeTotal === 0 ? (
-                <View style={styles.emptyPeople}>
-                  <Text style={styles.emptyText}>Nobody here yet.</Text>
-                </View>
-              ) : (
-                <ScrollView
-                  contentContainerStyle={styles.roster}
-                  horizontal
-                  nestedScrollEnabled
-                  showsHorizontalScrollIndicator={false}
-                >
-                  {sortedPlayers.map((player) => (
-                    <PersonTile
-                      friend={isFriend(player.id)}
-                      key={player.id}
-                      onPress={() => router.push(`/player/${player.id}`)}
-                      player={player}
-                    />
-                  ))}
-                  {hiddenCount > 0 ? (
-                    <HiddenPeopleTile count={hiddenCount} />
-                  ) : null}
-                </ScrollView>
-              )}
-            </View>
-
-            <View style={styles.activitySection}>
-              <SectionHeader
-                count={courtFeed.length || undefined}
-                title="Court activity"
-              />
-              {recentArrivalCount > 0 ? (
-                <Text style={styles.activitySummary}>
-                  {recentArrivalCount} arrival
-                  {recentArrivalCount === 1 ? "" : "s"} in the last hour
-                </Text>
-              ) : null}
-              {groupedCourtFeed.length > 0 ? (
-                groupedCourtFeed.map((item, index) => (
-                  <ActivityRow
-                    isLast={index === groupedCourtFeed.length - 1}
-                    item={item}
-                    key={item.id}
-                    previous={groupedCourtFeed[index - 1]}
-                    showActor
-                    onActorPress={
-                      item.playerId
-                        ? () => router.push(`/player/${item.playerId}`)
-                        : undefined
-                    }
-                    onPress={
-                      item.type === "game_result" && !item.match
-                        ? undefined
-                        : () => openActivity(item)
-                    }
-                  />
-                ))
-              ) : (
-                <View style={styles.activityEmpty}>
-                  <Text style={styles.emptyText}>
-                    No activity yet. Check in to start the court story.
-                  </Text>
-                </View>
-              )}
-            </View>
-          </ScrollView>
-        ) : null}
-
-        {activeTab === "locals" ? (
-          <ScrollView
-            contentContainerStyle={{ paddingBottom: scrollBottom }}
-            showsVerticalScrollIndicator={false}
-          >
-            <SectionHeader count={activeLabel} title="Here now" />
-            <View style={styles.peopleList}>
-              {sortedPlayers.length > 0 ? (
-                sortedPlayers.map((player) => {
-                  const localHistory = locals.find(
-                    (entry) => entry.player.id === player.id,
-                  );
-                  return (
-                    <PlayerSummaryRow
-                      checkInCount={localHistory?.checkInCount}
-                      detail="Active now"
-                      friend={isFriend(player.id)}
-                      key={player.id}
-                      onPress={() => router.push(`/player/${player.id}`)}
-                      player={player}
-                    />
-                  );
-                })
-              ) : (
-                <Text style={styles.listEmpty}>
-                  No visible players checked in.
-                </Text>
-              )}
-              {hiddenCount > 0 ? (
-                <Text style={styles.privateNote}>
-                  +{hiddenCount} PRIVATE{" "}
-                  {hiddenCount === 1 ? "PLAYER" : "PLAYERS"} INCLUDED IN THE
-                  LIVE COUNT
-                </Text>
-              ) : null}
-            </View>
-
-            <SectionHeader count={localCount} title="Locals" />
-            <View style={styles.peopleList}>
-              {visibleLocals.length > 0 ? (
-                visibleLocals.map(({ player, lastCheckInAt, checkInCount }) => (
-                  <PlayerSummaryRow
-                    checkInCount={checkInCount}
-                    detail={
-                      lastCheckInAt
-                        ? `Last here · ${relativeTime(lastCheckInAt)}`
-                        : "Local player"
-                    }
-                    friend={isFriend(player.id)}
-                    inactive={isInactiveLocal(lastCheckInAt)}
-                    key={player.id}
-                    onPress={() => router.push(`/player/${player.id}`)}
-                    player={player}
-                  />
-                ))
-              ) : (
-                <Text style={styles.listEmpty}>
-                  No other visible local profiles yet.
-                </Text>
-              )}
-              {privateLocalCount > 0 ? (
-                <Text style={styles.privateNote}>
-                  +{privateLocalCount} PRIVATE{" "}
-                  {privateLocalCount === 1 ? "LOCAL" : "LOCALS"} INCLUDED IN THE
-                  COUNT
-                </Text>
-              ) : null}
-            </View>
-          </ScrollView>
-        ) : null}
-
-        {activeTab === "schedule" ? (
-          <View style={styles.scheduleTab}>
-            <CourtSchedulePanel
-              bottomInset={Layout.tabBarClearance}
-              court={localCourt}
-              interactive={false}
-            />
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: tabFloor + Space.lg }}
+        showsVerticalScrollIndicator={false}
+        stickyHeaderIndices={[1]}
+        style={styles.scroll}
+      >
+        <HomeCourtTop court={localCourt} />
+        {/* Pinned: just the court name and its numbers. */}
+        <HomeCourtHero
+          activeCount={activeLabel}
+          court={localCourt}
+          hoursLabel={hoursLabel}
+          live={activeTotal > 0}
+          localCount={localCount}
+        />
+        <HomeCourtActions
+          courtName={localCourt.shortName || localCourt.name}
+          isCheckedIn={isCheckedIn}
+          isChecking={isChecking}
+          onCheckIn={() => void handleCheckIn()}
+          onViewCourt={() => router.push(`/court/${localCourt.id}`)}
+        />
+        <AutoCheckInNote courtId={localCourt.id} />
+        <View style={styles.hereNow}>
+          <HereNowSection
+            isFriend={isFriend}
+            onMore={() => router.push(`/court/${localCourt.id}?tab=players`)}
+            onPlayer={(id) => router.push(`/player/${id}`)}
+            roster={roster}
+          />
+        </View>
+        <View style={styles.upNext}>
+          <UpNextSection
+            onOpenRun={(id) => router.push(`/run/${id}`)}
+            upcoming={upcoming}
+          />
+        </View>
+        <View style={styles.today}>
+          <CourtBusyChart
+            courtId={localCourt.id}
+            games={upcoming}
+            onSelect={setPicked}
+            maxBack={0}
+            refreshKey={roster.length}
+            selected={picked}
+            variant="inline"
+          />
+        </View>
+        {picked ? (
+          <View style={styles.today}>
+            <HourSlotCard court={localCourt} dayOffset={picked.dayOffset} hour={picked.hour} />
           </View>
         ) : null}
-      </View>
+        <View style={styles.today}>
+          <SectionHead title="Recent activity" />
+        </View>
+        {groupedCourtFeed.length > 0 ? (
+          groupedCourtFeed.map((item, index) => (
+            <ActivityRow
+              item={item}
+              key={item.id}
+              previous={groupedCourtFeed[index - 1]}
+              showActor
+              onActorPress={item.playerId ? () => router.push(`/player/${item.playerId}`) : undefined}
+              onPress={item.type === "game_result" && !item.match ? undefined : () => openActivity(item)}
+            />
+          ))
+        ) : (
+          <Text style={styles.emptyText}>No activity yet. Check in to start the court story.</Text>
+        )}
+      </ScrollView>
 
       <GameResultModal
         courtName={selectedResult?.courtName}
@@ -393,20 +234,6 @@ export function HomeScreen() {
         visible={Boolean(selectedResult)}
       />
     </ScreenViewport>
-  );
-}
-
-function HiddenPeopleTile({ count }: { count: number }) {
-  return (
-    <View
-      accessibilityLabel={`${count} more people with private visibility`}
-      style={styles.hiddenTile}
-    >
-      <View style={styles.hiddenAvatar}>
-        <Text style={styles.hiddenCount}>+{count}</Text>
-      </View>
-      <Text style={styles.hiddenLabel}>Private</Text>
-    </View>
   );
 }
 
@@ -426,19 +253,12 @@ function NoCourtState({ isSignedIn }: { isSignedIn: boolean }) {
             ? "Choose a home court to see who's there, upcoming runs, and live activity."
             : "Sign in to check in, find runs, and see who is playing nearby."}
         </Text>
-        <Pressable
-          accessibilityRole="button"
+        <BrutalistButton
+          icon={<Feather color={Colors.background} name="arrow-right" size={15} />}
+          label={isSignedIn ? "Explore courts" : "Sign in"}
           onPress={() => router.push(isSignedIn ? "/(tabs)/explore" : "/auth")}
-          style={({ pressed }) => [
-            styles.noCourtButton,
-            pressed && styles.buttonPressed,
-          ]}
-        >
-          <Text style={styles.noCourtButtonText}>
-            {isSignedIn ? "EXPLORE COURTS" : "SIGN IN"}
-          </Text>
-          <Feather color={Colors.black} name="arrow-right" size={15} />
-        </Pressable>
+          style={styles.noCourtButton}
+        />
       </View>
     </ScreenViewport>
   );
@@ -446,125 +266,15 @@ function NoCourtState({ isSignedIn }: { isSignedIn: boolean }) {
 
 
 const styles = StyleSheet.create({
-  tabBody: {
-    flex: 1,
-    minHeight: 0,
-  },
-  scheduleTab: { flex: 1, minHeight: 0 },
-  peopleSection: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.borderSubtle,
-  },
-  peopleSectionEmpty: { minHeight: 0 },
-  roster: {
-    paddingHorizontal: Layout.screenGutter,
-    paddingTop: Space.sm,
-    paddingBottom: Space.md,
-    gap: Space.md,
-  },
-  emptyPeople: {
-    minHeight: Layout.minTouchTarget,
-    paddingHorizontal: Layout.screenGutter,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  activitySection: {
-    minHeight: 150,
-  },
-  activitySummary: {
-    marginTop: Space.md,
-    marginBottom: Space.xs,
-    paddingHorizontal: Layout.screenGutter,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    color: Colors.muted,
-  },
-  activityEmpty: {
-    minHeight: 120,
-    paddingHorizontal: Layout.screenGutter,
-    justifyContent: "center",
-  },
+  scroll: { flex: 1, minHeight: 0 },
+  hereNow: { paddingTop: Space.lg, borderBottomWidth: 1, borderBottomColor: Colors.hairline },
+  upNext: { paddingTop: Space.lg },
+  today: { paddingHorizontal: Layout.screenGutter, paddingBottom: Space.lg },
   emptyText: {
-    fontFamily: Typography.body,
-    fontSize: 12,
-    lineHeight: 18,
-    color: Colors.muted,
-    textAlign: "center",
-  },
-  hiddenTile: {
-    width: 62,
-    alignItems: "center",
-    gap: Space.sm,
-    paddingTop: Space.xs,
-  },
-  hiddenAvatar: {
-    width: 42,
-    height: 42,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.lg,
-    borderStyle: "dashed",
-    backgroundColor: Colors.surface,
-  },
-  hiddenCount: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    color: Colors.textSecondary,
-  },
-  hiddenLabel: {
+    paddingHorizontal: Layout.screenGutter,
     fontFamily: Typography.bodyMedium,
-    fontSize: 9,
-    color: Colors.muted,
-  },
-  peopleList: {
-    paddingBottom: Space.lg,
-  },
-  privateNote: {
-    marginTop: Space.md,
-    marginHorizontal: Layout.screenGutter,
-    fontFamily: Typography.bodyBold,
-    fontSize: 8,
-    lineHeight: 13,
-    color: Colors.muted,
-    letterSpacing: 1,
-  },
-  listEmpty: {
-    paddingHorizontal: Layout.screenGutter,
-    paddingVertical: Space.xl,
-    fontFamily: Typography.body,
-    fontSize: 11,
-    lineHeight: 17,
-    color: Colors.muted,
-  },
-  scheduleDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.border,
-  },
-  scheduleRuns: {
-    paddingHorizontal: Layout.screenGutter,
-    paddingBottom: Space.xl,
-    gap: Space.sm,
-  },
-  openSchedule: {
-    minHeight: 48,
-    marginTop: Space.sm,
-    paddingHorizontal: Space.lg,
-    borderRadius: Radius.sm,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Space.sm,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  openScheduleText: {
-    fontFamily: Typography.heading,
-    fontSize: 11,
-    color: Colors.text,
-    letterSpacing: 1.2,
+    fontSize: 12,
+    color: Colors.textSecondary,
   },
   noCourt: {
     flex: 1,
@@ -600,23 +310,5 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: "center",
   },
-  noCourtButton: {
-    minHeight: 48,
-    marginTop: Space.xxl,
-    paddingHorizontal: Space.xl,
-    borderRadius: Radius.sm,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Space.sm,
-    backgroundColor: Colors.accent,
-  },
-  noCourtButtonText: {
-    fontFamily: Typography.headingBold,
-    fontSize: 12,
-    color: Colors.black,
-    letterSpacing: 1.35,
-  },
-  buttonPressed: {
-    opacity: 0.72,
-  },
+  noCourtButton: { marginTop: Space.xxl },
 });

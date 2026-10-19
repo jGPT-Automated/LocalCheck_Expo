@@ -146,6 +146,45 @@ export interface CourtActivityMetrics {
   activeLocalTrend: number | null;
 }
 
+export interface CourtRecord {
+  wins: number;
+  losses: number;
+}
+
+/**
+ * Every player's win-loss in confirmed games at this court (what the Players
+ * tab shows as "31–9 at this court"). Visibility is RLS's call; a player with
+ * no visible games here is simply absent.
+ */
+export async function fetchCourtRecords(
+  courtId: string,
+): Promise<Record<string, CourtRecord>> {
+  try {
+    const { data, error } = await supabase
+      .from("matches")
+      .select("winner_side,match_participants(user_id,side)")
+      .eq("court_id", courtId)
+      .eq("status", "confirmed")
+      .limit(5000);
+    if (error || !data) return {};
+    const records: Record<string, CourtRecord> = {};
+    for (const match of data as unknown as Array<{
+      winner_side: "a" | "b" | null;
+      match_participants: Array<{ user_id: string; side: "a" | "b" }> | null;
+    }>) {
+      if (!match.winner_side) continue;
+      for (const participant of match.match_participants ?? []) {
+        const record = (records[participant.user_id] ??= { wins: 0, losses: 0 });
+        if (participant.side === match.winner_side) record.wins += 1;
+        else record.losses += 1;
+      }
+    }
+    return records;
+  } catch {
+    return {};
+  }
+}
+
 /**
  * Read-only dashboard metrics derived from existing authoritative rows. The
  * three-month "active local" state is deliberately calculated, not persisted,
@@ -245,6 +284,31 @@ export async function fetchCourtWeekSpans(courtId: string): Promise<CheckInSpan[
     return data as CheckInSpan[];
   } catch {
     return [];
+  }
+}
+
+/**
+ * Last-7-day check-in spans for several courts in one read (the Explore list),
+ * grouped by court. Courts with no check-ins come back as []. Read-only.
+ */
+export async function fetchCourtsWeekSpans(courtIds: string[]): Promise<Record<string, CheckInSpan[]>> {
+  const result: Record<string, CheckInSpan[]> = Object.fromEntries(courtIds.map((id) => [id, []]));
+  if (courtIds.length === 0) return result;
+  const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+  try {
+    const { data, error } = await supabase
+      .from("check_ins")
+      .select("court_id,checked_in_at,checked_out_at")
+      .in("court_id", courtIds)
+      .gte("checked_in_at", weekAgo)
+      .limit(10000);
+    if (error || !data) return result;
+    for (const row of data as Array<CheckInSpan & { court_id: string }>) {
+      result[row.court_id]?.push(row);
+    }
+    return result;
+  } catch {
+    return result;
   }
 }
 

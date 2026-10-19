@@ -60,6 +60,16 @@ number and device/iOS version.
 
 ## Visual acceptance
 
+Every visible change follows `.claude/skills/ui-done/SKILL.md` and passes
+`pnpm qa:visual` (`scripts/visual-qa/`): every screen and state in
+`screens.mjs` at 375x667, 393x852 and 430x932, signed in against an in-memory
+Supabase stand-in with the clock pinned. It fails on cut-off, clipped,
+overlapping or off-screen text and sideways scroll, and on any screen whose
+sub-11pt text, sub-4.5:1 text or sub-44pt control count rises above
+`baseline.json` (lower the baseline when a change improves it). Not in CI yet:
+the Explore drawer peek is flaky at 375x667. It does not see
+off-centre art, uneven spacing or colour; open the PNGs.
+
 For a visual change, include a browser screenshot and an iPhone screenshot of
 the same meaningful state. Compare against the applicable reference under
 `docs/product/`. Exercise empty, loading, error, populated, and long-content

@@ -31,6 +31,8 @@ export const AppBottomSheetModal = forwardRef<
     children: React.ReactNode;
     index?: number;
     onDismiss?: () => void;
+    /** Called with the detent index the sheet settles on. */
+    onChange?: (index: number) => void;
     snapPoints: Array<string | number>;
     /** Size to content instead of the fixed detents. */
     dynamic?: boolean;
@@ -44,6 +46,7 @@ export const AppBottomSheetModal = forwardRef<
     children,
     index = 0,
     onDismiss,
+    onChange,
     snapPoints,
     dynamic = false,
     maxDynamicContentSize,
@@ -77,6 +80,7 @@ export const AppBottomSheetModal = forwardRef<
         handleIndicatorStyle={styles.handle}
         handleStyle={compactHandle ? styles.handleRowCompact : undefined}
         onDismiss={onDismiss}
+        onChange={onChange}
         keyboardBehavior="interactive"
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
@@ -87,16 +91,19 @@ export const AppBottomSheetModal = forwardRef<
 });
 
 const styles = StyleSheet.create({
+  // Court-flow sheet: #121216, 22pt corners, one hairline along the top.
   background: {
-    backgroundColor: Colors.background,
-    borderTopLeftRadius: Radius.card,
-    borderTopRightRadius: Radius.card,
+    backgroundColor: Colors.sheet,
+    borderTopLeftRadius: Radius.sheet,
+    borderTopRightRadius: Radius.sheet,
+    borderTopWidth: 1,
+    borderColor: Colors.hairlineCard,
   },
   // 8 above the 4pt grabber, nothing below: a 12pt row (DRAWER_HANDLE_HEIGHT).
   handleRowCompact: { paddingTop: 8, paddingBottom: 0 },
   handle: {
-    width: 38,
+    width: 36,
     height: 4,
-    backgroundColor: Colors.muted,
+    backgroundColor: Colors.grabber,
   },
 });

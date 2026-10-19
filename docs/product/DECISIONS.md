@@ -5,7 +5,7 @@ superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D55, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D61, Jesse's plan doc)
 
 Numbers match Jesse's plan doc (Decisions tab). These supersede older entries
 below wherever they disagree.
@@ -80,6 +80,88 @@ below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D61 Corner mark, thin slot card, Schedule fits one screen (Oct 18,
+  revises D60):** The local mark becomes a quarter-circle in the card's
+  top-right corner: a + while it isn't your local, a glowing orange check (the
+  logo's) that springs in once it is; the house and brackets are gone. The
+  Week and Home slot card is one thin row: a small title with "N planning to
+  go" on the same line, the people on the left two thirds and the game on the
+  right third, collapsed to the title row when the slot is empty; no dot beside
+  the game. The court page's Week only views (no Here / Going / Join). The
+  buttons are Here (the current block) or Going, and Join (a game exists) or
+  Create (none); Home's chart has Here / Going only, the Schedule page has all
+  four. Home's chart has one set of arrows, a day label that follows them, and
+  "Most active at 7 PM"; it looks seven days ahead, never back. The Schedule
+  page shows every hour with no inner scrolling and no Upcoming row (games live
+  on the court's Games tab).
+- **D60 Drawer scroll, one drawer look, pinned name only, local mark (Oct 18,
+  revises D59):** The expanded Explore drawer scrolls, and the LocalPlus panel
+  sits near the top of it (the content is the same length for every court, so
+  the old centred, never-scrolling panel is gone). Scheduling a game uses the
+  Challenge / Log game drawer (WHERE court search, WHEN day strip + time strip,
+  then the format and how sides are picked); the old note field and preview
+  card are gone. Home pins only the court name and its three numbers; Check in,
+  Here now and the rest scroll (D59's pinned Check in + Here now is revised).
+  The "Your local" pill becomes the logo's corner brackets around a house:
+  orange house when it is your local, grey when it isn't, in the card's corner. (Revised by D61: the mark is now a corner quarter-circle with + / check.)
+  Court becomes a centred ">" beside Check in. A failed LocalPlus sign-in is
+  retried quietly and, if it still fails, says it can't reach the store.
+- **D59 Inbox challenges, hourly Home chart, Players ranked only (Oct 18,
+  revises D58):** Jesse's Vercel-toolbar notes. A challenge card reads "Ranked
+  game with Name" over court and when, with no arrow; tapping any open
+  challenge opens its own page, never Compete. Before the game time that
+  page offers Call it off; after it, Log score (ranked) or We played
+  (casual) with a small I missed it. Home's Today chart keeps its day
+  arrows and each bar from now on is tappable: it opens who's going that hour
+  with + and Join (the same card as the court page's Week). The Schedule
+  tab's selected-time card matches it (+ left of the faces, Join on the left of
+  the game). The court page shows a house square instead of "Your local" and
+  tapping it can only set, never un-set (Settings removes). Players: Ranking
+  lists only players with a game at this court ("9 of 27 locals have a ranked
+  game"); Active and Newest list everyone, Active with "N check-ins at this
+  court". Info adds Date added and calls the hours "Hours this week". A failed
+  LocalPlus sign-in keeps the price label on the button. (Revised by D60: Home's pinned part, the Your local pill, the Court button label.)
+- **D58 Home is one page; the court page loses its bottom bar (Oct 18,
+  revises D57):** Jesse's redesign notes with new reference screenshots.
+  Home has no tabs: the court header (name, On court / Court hours · wk /
+  Locals) scrolls away, Check in beside Court (the drawer's pair; Court opens
+  the court page) and Here now pin to the top, and Up next, Today and the
+  court feed scroll under them. D57's Plan | Check in | Court row and Home's
+  Feed / Locals / Schedule tabs are gone. Feed icons: a small solid orange dot
+  for a check-in, the same grey dot for a check-out, VS for a game result, the
+  calendar stays for a scheduled game. The court page has no Plan visit / Check
+  in bar. (Home's Today chart, the Players lists and the Your local pill are revised by D59.) Players shows only the court's locals (Here now moved to Live), as a
+  Ranking / Active / Newest list with each player's record at this court and
+  your own row pinned (Newest = the most recent to make this their local first).
+  Week keeps days across and times down but follows the new reference: a
+  Planned visits card (Busiest, Fewer to More, Game dot) and a Today card
+  (who's going, +, Join).
+- **D57 Pre-submission polish pass (Oct 17, revises D55):** Jesse's voice
+  notes and the Oct 16 precision handoff. The court page header is the
+  court's own: name left, a large live On court number right, and today's
+  busy times (day stepper, outlined planned bars) above the tabs on every
+  tab; the 3-number strip stays on Home, the drawer and Explore. Home's
+  LOCAL pill becomes a small house marker (option A; no favourites). Home
+  keeps Plan / Check in / Court as one row, all one height (option C).
+  The Schedule tab never scrolls as a page: the original one-line court
+  dropdown is back, the selected-time card is one row (names, then Add my
+  time / Remove my time), and upcoming games are one row you swipe left and
+  right. Every drawer is the Explore drawer (`AppBottomSheetModal`):
+  `FormSheet`, How score review works and the player QR now use it.
+  Onboarding's welcome carries the sign-in artwork. The game page shows the
+  court and format once and keeps Submit result / View result pinned at the
+  bottom. (Revised by D58: Home's Plan / Check in / Court row and its tabs,
+  and the court page's bottom bar, are gone.)
+- **D56 The rest of the app follows the court-flow design, frontend only
+  (Oct 15):** Jesse asked for one consistent front end matched to
+  `CourtFlowPhone2` with no backend changes, focusing on the expanded
+  drawer, Home, and one-off screens (a game open to join, logging a game,
+  notifications). D55 stays as decided: Week keeps today's heatmap and a
+  court that isn't your local, without LocalPlus, still jumps to the
+  LocalPlus screen from the court page. The drawer shows the blurred gate in
+  place. The drawer may set a local court (not remove one). White is the
+  neutral primary button (Join game, Unlock, Log game); orange is for live,
+  check-in and selection. Builds on D55.
 - **D55 Court page and Home card follow the court-flow design (Oct 14):**
   built from the Claude Design handoff (`CourtFlowPhone2`), Jesse's picks
   in chat Oct 14. Court page header: court line art, sport, name, city ·
@@ -93,7 +175,8 @@ below wherever they disagree.
   hours · wk / Locals, Check in, View court with the arrow pointing right).
   Court hours: the last 7 days' sessions, each capped at 4 h, a session with
   no check-out closed at 3 h. Supersedes the 2026-08-09 "Court routes are
-  read-only place dashboards" entry.
+  read-only place dashboards" entry. (Revised by D57: the court page header
+  shows a live On court number and today's busy times instead of the strip.)
 - **D54 Docs are updated on every push, and CI checks it (Oct 13):** any
   change outside `docs/` counts as affecting the docs; there is no "not
   affected." Every push to a pull request updates `docs/CURRENT_STATE.md`, plus

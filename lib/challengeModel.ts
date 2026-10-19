@@ -37,6 +37,7 @@ export type Challenge = {
 export type ChallengeAction =
   | "accept_decline"
   | "waiting"
+  | "scheduled"
   | "log_score"
   | "casual_on"
   | "view_game"
@@ -51,11 +52,33 @@ export function otherPlayer(challenge: Challenge, viewerId: string): ChallengePl
   return challenge.challenger.id === viewerId ? challenge.opponent : challenge.challenger;
 }
 
-export function challengeAction(challenge: Challenge, viewerId: string): ChallengeAction {
+/**
+ * True once an accepted challenge's game time has passed. With no time it is
+ * the day: undated, or today or earlier, counts as started.
+ */
+export function hasStarted(
+  challenge: Pick<Challenge, "playOn" | "playAt">,
+  now: Date = new Date(),
+): boolean {
+  if (challenge.playAt) {
+    const at = Date.parse(challenge.playAt);
+    if (!Number.isNaN(at)) return at <= now.getTime();
+  }
+  return !challenge.playOn || challenge.playOn <= localDateValue(now);
+}
+
+export function challengeAction(
+  challenge: Challenge,
+  viewerId: string,
+  now: Date = new Date(),
+): ChallengeAction {
   switch (challenge.status) {
     case "pending":
       return challenge.opponent.id === viewerId ? "accept_decline" : "waiting";
     case "accepted":
+      // Before the game time it can only be called off; after it, log the
+      // score (ranked) or say you played (casual).
+      if (!hasStarted(challenge, now)) return "scheduled";
       return challenge.ranked ? "log_score" : "casual_on";
     case "completed":
       return challenge.matchId ? "view_game" : "closed";
@@ -285,7 +308,7 @@ export function relativeWhen(
 
 /**
  * The two lines of a challenge card in the inbox:
- * "Ranked game" / "Casual game", then "MaximJ · Rancho Courts · In 3 days".
+ * "Ranked game with MaximJ", then "Rancho Courts · In 3 days".
  */
 export function challengeCardLines(
   challenge: Challenge,
@@ -293,9 +316,8 @@ export function challengeCardLines(
   today: Date = new Date(),
 ): { title: string; subtitle: string } {
   return {
-    title: challenge.ranked ? "Ranked game" : "Casual game",
+    title: `${challenge.ranked ? "Ranked game" : "Casual game"} with ${otherPlayer(challenge, viewerId).name}`,
     subtitle: [
-      otherPlayer(challenge, viewerId).name,
       challenge.courtName,
       relativeWhen(challenge, today),
     ]

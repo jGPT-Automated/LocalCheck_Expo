@@ -50,6 +50,15 @@ test("pending: opponent answers, challenger waits", () => {
   assert.equal(otherPlayer(base, "me").id, "ty");
 });
 
+test("accepted before its time can only be called off", () => {
+  const c = { ...base, status: "accepted" as const, playAt: "2026-10-22T21:00:00Z" };
+  const now = new Date("2026-10-18T12:00:00Z");
+  assert.equal(challengeAction(c, "me", now), "scheduled");
+  assert.equal(challengeAction({ ...c, ranked: false }, "ty", now), "scheduled");
+  assert.equal(challengeAction(c, "me", new Date("2026-10-22T21:00:01Z")), "log_score");
+  assert.equal(challengeAction({ ...c, ranked: false }, "me", new Date("2026-10-23T01:00:00Z")), "casual_on");
+});
+
 test("accepted: either player logs the score", () => {
   const c = { ...base, status: "accepted" as const };
   assert.equal(challengeAction(c, "me"), "log_score");
@@ -201,14 +210,14 @@ test("challenge card: game type, then who, where and when", () => {
   const today = new Date(2026, 9, 11, 9);
   const c = { ...base, courtName: "Rancho Courts", playOn: "2026-10-14" };
   assert.deepEqual(challengeCardLines(c, "ty", today), {
-    title: "Ranked game",
-    subtitle: "Jesse Harrick · Rancho Courts · In 3 days",
+    title: "Ranked game with Jesse Harrick",
+    subtitle: "Rancho Courts · In 3 days",
   });
   assert.deepEqual(challengeCardLines({ ...c, ranked: false, playOn: "2026-10-12" }, "me", today), {
-    title: "Casual game",
-    subtitle: "Tyler B · Rancho Courts · Tomorrow",
+    title: "Casual game with Tyler B",
+    subtitle: "Rancho Courts · Tomorrow",
   });
-  assert.equal(challengeCardLines({ ...c, courtName: null, playOn: null }, "me", today).subtitle, "Tyler B");
+  assert.equal(challengeCardLines({ ...c, courtName: null, playOn: null }, "me", today).subtitle, "");
 });
 
 test("wheel: today plus four days, 15-minute steps", () => {

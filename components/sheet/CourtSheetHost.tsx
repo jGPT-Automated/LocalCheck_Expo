@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useContext,
   useMemo,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -78,6 +79,16 @@ export function CourtSheetProvider({
     () => [peekHeight, "92%"],
     [peekHeight],
   );
+  // The drawer opens before its compact block is measured; once the real
+  // height arrives, settle a collapsed drawer onto it so it ends exactly at
+  // the Check in row instead of showing half of the next row.
+  const sheetIndex = useRef(-1);
+  const resnapPending = useRef(false);
+  useEffect(() => {
+    // Next frame: the sheet picks up the new snap points first.
+    if (sheetIndex.current === 0) requestAnimationFrame(() => modalRef.current?.snapToIndex(0));
+    else resnapPending.current = true;
+  }, [peekHeight]);
 
   return (
     <CourtSheetContext.Provider value={api}>
@@ -86,6 +97,13 @@ export function CourtSheetProvider({
         ref={modalRef}
         snapPoints={snapPoints}
         compactHandle
+        onChange={(index) => {
+          sheetIndex.current = index;
+          if (index === 0 && resnapPending.current) {
+            resnapPending.current = false;
+            requestAnimationFrame(() => modalRef.current?.snapToIndex(0));
+          }
+        }}
         onDismiss={() => setArgs(null)}
       >
         {args && (

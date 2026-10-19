@@ -231,14 +231,16 @@ const styles = StyleSheet.create({
     marginLeft: 32,
     textTransform: "uppercase" as const,
   },
+  // Court-flow section label: small bold uppercase on the left with a quiet
+  // count beside it, a hairline under the row.
   sectionRow: {
     minHeight: Layout.minTouchTarget,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: Layout.screenGutter,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.borderSubtle,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.hairline,
   },
   sectionIdentity: {
     flexDirection: "row",
@@ -246,22 +248,21 @@ const styles = StyleSheet.create({
     gap: Space.sm,
   },
   sectionTitle: {
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 11,
-    color: Colors.textSecondary,
-    letterSpacing: 2,
+    fontFamily: Typography.bodyBold,
+    fontSize: 10,
+    color: Colors.text,
+    letterSpacing: 1.4,
     textTransform: "uppercase" as const,
   },
   sectionAccent: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 9,
-    color: Colors.accent,
-    letterSpacing: 1.5,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 10,
+    color: Colors.muted,
   },
   sectionCount: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    color: Colors.text,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 10,
+    color: Colors.muted,
   },
   sectionAction: {
     minHeight: Layout.minTouchTarget,

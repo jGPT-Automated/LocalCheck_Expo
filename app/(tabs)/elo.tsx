@@ -200,13 +200,15 @@ export default function MeScreen() {
     setRespondingId(challenge.id);
     const result = await respondToChallenge(challenge.id, accept);
     setRespondingId(null);
-    // An accepted ranked game goes straight into Log Game, filled in.
+    // An accepted challenge opens its own page.
     if (result.ok && accept) openChallenge({ ...challenge, status: "accepted" });
     refreshChallenges();
   };
   const openChallenge = (challenge: Challenge) => {
-    if (challenge.status === "accepted" && challenge.ranked) {
-      router.push(`/(tabs)/compete?tab=log&challengeId=${challenge.id}`);
+    // A game already logged for it opens its score page (approve or dispute
+    // there), never a second Log Game.
+    if (challenge.matchId) {
+      router.push(`/match/${challenge.matchId}`);
     } else {
       router.push(`/challenge/${challenge.id}`);
     }
@@ -823,6 +825,8 @@ function ProfileTabButton({
 }) {
   return (
     <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected: active }}
       onPress={onPress}
       style={[styles.tab, active && styles.tabActive]}
     >
@@ -968,26 +972,28 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     marginTop: 3,
   },
+  // Same tab bar as the other player's profile and the court page
+  // (CourtTabBar): Inter caps, orange underline on the active tab.
   tabs: {
-    minHeight: 52,
     flexDirection: "row",
-    backgroundColor: Colors.surfaceDark,
+    paddingHorizontal: 6,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.hairline,
   },
   tab: {
     flex: 1,
-    minHeight: 52,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
     borderBottomWidth: 2,
-    borderBottomColor: Colors.surfaceDark,
+    borderBottomColor: "transparent",
   },
   tabActive: { borderBottomColor: Colors.accent },
   tabText: {
-    fontFamily: Typography.headingRegular,
-    fontSize: 14,
-    letterSpacing: 1.4,
+    fontFamily: Typography.bodyBold,
+    fontSize: 9.5,
+    letterSpacing: 1,
+    textTransform: "uppercase",
     color: Colors.muted,
   },
   tabTextActive: { color: Colors.text },

@@ -50,4 +50,7 @@ yarn-error.*
 # Supabase CLI local state
 supabase/.branches/
 supabase/.temp/
-.claude/
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/ui-done/

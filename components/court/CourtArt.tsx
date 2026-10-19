@@ -11,11 +11,12 @@ import type { CourtSport } from "@/constants/data";
 const W = 160;
 const H = 132;
 
-export function CourtArt({ sport, top = 0 }: { sport: CourtSport; top?: number }) {
+/** `faint` dims the trace further where text sits over it (court page header). */
+export function CourtArt({ sport, top = 0, faint = false }: { sport: CourtSport; top?: number; faint?: boolean }) {
   const pickleball = sport === "PICKLEBALL";
   const stroke = pickleball ? Colors.pickleballTrace : Colors.basketballTrace;
   return (
-    <View pointerEvents="none" style={{ position: "absolute", top, right: 0, width: W, height: H }}>
+    <View pointerEvents="none" style={{ position: "absolute", top, right: 0, width: W, height: H, opacity: faint ? 0.35 : 1 }}>
       <Svg height={H} width={W}>
         <Defs>
           <LinearGradient gradientUnits="userSpaceOnUse" id="courtArtFade" x1={W} x2="0" y1="0" y2="0">

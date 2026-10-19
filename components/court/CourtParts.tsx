@@ -3,9 +3,22 @@
 // bar. Used by the Home court card and the court page so both read the same.
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { AccessibilityInfo, Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  AccessibilityInfo,
+  ActivityIndicator,
+  Animated,
+  Pressable,
+  type StyleProp,
+  StyleSheet,
+  Text,
+  type TextStyle,
+  View,
+} from "react-native";
 
-import { Colors } from "@/constants/colors";
+import Svg, { Path } from "react-native-svg";
+
+import { PressableScale } from "@/components/ui/PressableScale";
+import { Colors, Radius } from "@/constants/colors";
 import type { CourtSport } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 
@@ -55,20 +68,67 @@ export function SportLabel({ sport, suffix }: { sport: CourtSport; suffix?: stri
   );
 }
 
-export function LocalPill({ isLocal, onPress }: { isLocal: boolean; onPress?: () => void }) {
+const MARK = 56;
+
+/**
+ * Your local court, as a quarter-circle in the card's top-right corner: a +
+ * while it isn't your local, a glowing orange check (like the logo's) once it
+ * is. Render it as a direct child of the card so it sits flush in the corner.
+ * Where it isn't your local, a tap makes it your local and the check springs
+ * in; once it is, the mark does nothing (Settings changes it).
+ */
+export function LocalMark({ active, onPress, top = 0 }: { active: boolean; onPress?: () => void; top?: number }) {
+  const pop = React.useRef(new Animated.Value(active ? 1 : 0)).current;
+  const wasActive = React.useRef(active);
+  React.useEffect(() => {
+    if (active && !wasActive.current) {
+      pop.setValue(0);
+      void AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
+        if (reduce) pop.setValue(1);
+        else Animated.spring(pop, { toValue: 1, friction: 5, tension: 120, useNativeDriver: true }).start();
+      });
+    } else if (!active) {
+      pop.setValue(0);
+    } else {
+      pop.setValue(1);
+    }
+    wasActive.current = active;
+  }, [active, pop]);
+
+  const tappable = Boolean(onPress) && !active;
+  const body = (
+    <View style={[styles.markArc, active && styles.markArcOn]}>
+      {active ? (
+        <Animated.View
+          style={[styles.markIcon, { opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] }]}
+        >
+          <Feather color={Colors.accent} name="check" size={22} style={styles.markCheckGlow} />
+        </Animated.View>
+      ) : (
+        <View style={styles.markIcon}>
+          <Feather color={Colors.textSecondary} name="plus" size={22} />
+        </View>
+      )}
+    </View>
+  );
   return (
-    <Pressable
-      accessibilityHint={isLocal ? "Removes this as your local court" : "Sets this as your local court"}
-      accessibilityLabel={isLocal ? "Your local court" : "Set as local court"}
-      accessibilityRole="button"
-      disabled={!onPress}
-      hitSlop={8}
-      onPress={onPress}
-      style={({ pressed }) => [styles.pill, isLocal && styles.pillActive, pressed && styles.pressed]}
-    >
-      <Feather color={isLocal ? Colors.text : Colors.textSecondary} name={isLocal ? "home" : "plus"} size={10} />
-      <Text style={[styles.pillText, isLocal && styles.pillTextActive]}>{isLocal ? "Your local" : "Set as local"}</Text>
-    </Pressable>
+    <View pointerEvents="box-none" style={[styles.markWrap, { top }]}>
+      {tappable ? (
+        <Pressable
+          accessibilityHint="Sets this as your local court"
+          accessibilityLabel="Set as local court"
+          accessibilityRole="button"
+          onPress={onPress}
+          style={({ pressed }) => pressed && styles.pressed}
+        >
+          {body}
+        </Pressable>
+      ) : (
+        <View accessibilityLabel={active ? "Your local court" : "Not your local court"} accessible>
+          {body}
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -78,12 +138,28 @@ export interface StripCell {
   live?: boolean;
 }
 
-export function MetricStrip({ cells }: { cells: StripCell[] }) {
+/**
+ * The 3-number strip. `page` is the court page header (58 tall, 25pt
+ * numbers), `drawer` the court drawer (62, 28pt) and `card` the Explore card
+ * (54, 22pt, sits on a darker band along the card's bottom edge).
+ */
+export function MetricStrip({ cells, size = "page" }: { cells: StripCell[]; size?: "page" | "drawer" | "card" }) {
   return (
-    <View style={styles.strip}>
+    <View style={[styles.strip, size === "card" && styles.stripCard]}>
       {cells.map((cell, index) => (
-        <View key={cell.label} style={[styles.cell, index > 0 && styles.cellDivider]}>
-          <Text style={[styles.cellValue, cell.live && styles.cellValueLive]}>{cell.value}</Text>
+        <View
+          key={cell.label}
+          style={[styles.cell, size === "drawer" && styles.cellDrawer, size === "card" && styles.cellCard, index > 0 && styles.cellDivider]}
+        >
+          <MetricValue
+            style={[
+              styles.cellValue,
+              size === "drawer" && styles.cellValueDrawer,
+              size === "card" && styles.cellValueCard,
+              cell.live && styles.cellValueLive,
+            ]}
+            value={cell.value}
+          />
           <View style={styles.cellLabelRow}>
             {cell.live ? <LiveDot /> : null}
             <Text numberOfLines={1} style={styles.cellLabel}>{cell.label}</Text>
@@ -91,6 +167,98 @@ export function MetricStrip({ cells }: { cells: StripCell[] }) {
         </View>
       ))}
     </View>
+  );
+}
+
+/**
+ * A strip number. A trailing unit ("38h", "8P") is set a size smaller with a
+ * hair of space, so it reads as the unit of the number instead of touching it.
+ */
+function MetricValue({ value, style }: { value: string | number; style: StyleProp<TextStyle> }) {
+  const match = /^(~?\d+)([A-Za-z]+)$/.exec(String(value));
+  if (!match) return <Text style={style}>{value}</Text>;
+  return (
+    <Text style={style}>
+      {match[1]}
+      <Text style={styles.cellUnit}>{"\u2009"}{match[2]}</Text>
+    </Text>
+  );
+}
+
+/** Section heading inside the drawer and court page: label left, quiet meta right. */
+export function SectionHead({ title, meta, onMetaPress }: { title: string; meta?: string; onMetaPress?: () => void }) {
+  return (
+    <View style={styles.sectionHead}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {meta ? (
+        onMetaPress ? (
+          <Pressable accessibilityRole="button" hitSlop={10} onPress={onMetaPress}>
+            <Text numberOfLines={1} style={styles.sectionMeta}>{meta} ›</Text>
+          </Pressable>
+        ) : (
+          <Text numberOfLines={1} style={styles.sectionMeta}>{meta}</Text>
+        )
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * The one Check in / Check out button. Orange and solid to check in; outlined
+ * with the live dot once you're in ("Check out"; the dot says you're in, so
+ * the label stays short and never spills out of the button).
+ */
+export function CheckInButton({
+  checkedIn,
+  busy,
+  onPress,
+  courtName,
+  checkedLabel = "Check out",
+  height = 50,
+}: {
+  checkedIn: boolean;
+  busy: boolean;
+  onPress: () => void;
+  courtName: string;
+  checkedLabel?: string;
+  height?: number;
+}) {
+  return (
+    <PressableScale
+      accessibilityLabel={checkedIn ? `Check out of ${courtName}` : `Check in to ${courtName}`}
+      accessibilityRole="button"
+      accessibilityState={{ busy, selected: checkedIn }}
+      disabled={busy}
+      onPress={onPress}
+      style={[styles.action, { height }, checkedIn ? styles.checkOut : styles.checkIn]}
+      testID="check-in-btn"
+    >
+      {busy ? (
+        <ActivityIndicator color={checkedIn ? Colors.text : Colors.black} size="small" />
+      ) : checkedIn ? (
+        <View style={styles.actionRow}>
+          <LiveDot />
+          <Text numberOfLines={1} style={styles.checkOutText}>{checkedLabel}</Text>
+        </View>
+      ) : (
+        <Text style={styles.checkInText}>Check in</Text>
+      )}
+    </PressableScale>
+  );
+}
+
+/** A centred ">" that opens the full court page. */
+export function CourtLinkButton({ onPress, courtName }: { onPress: () => void; courtName: string }) {
+  return (
+    <PressableScale
+      accessibilityHint="Opens the full court page"
+      accessibilityLabel={`Open ${courtName}`}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={[styles.action, styles.courtLink]}
+    >
+      <Feather color={Colors.text} name="chevron-right" size={24} />
+    </PressableScale>
   );
 }
 
@@ -137,19 +305,24 @@ const styles = StyleSheet.create({
   sportRow: { flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 1 },
   sportDot: { width: 6, height: 6, borderRadius: 3 },
   sportText: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.5, textTransform: "uppercase", flexShrink: 1 },
-  pill: {
-    height: 28,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderWidth: 1,
-    borderColor: "rgba(242,242,246,0.12)",
+  markWrap: { position: "absolute", right: 0, width: MARK, height: MARK },
+  markArc: {
+    width: MARK,
+    height: MARK,
+    borderBottomLeftRadius: MARK,
+    borderLeftWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: Colors.hairlineChrome,
   },
-  pillActive: { backgroundColor: "rgba(242,242,246,0.08)", borderColor: "rgba(242,242,246,0.18)" },
-  pillText: { fontFamily: Typography.bodyBold, fontSize: 8.5, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.textSecondary },
-  pillTextActive: { color: Colors.text },
+  markArcOn: {
+    borderColor: Colors.accentBorderStrong,
+    shadowColor: Colors.accent,
+    shadowOpacity: 0.6,
+    shadowRadius: 10,
+    shadowOffset: { width: -2, height: 2 },
+  },
+  markIcon: { position: "absolute", top: 10, right: 10 },
+  markCheckGlow: { textShadowColor: Colors.accent, textShadowRadius: 10 },
   pressed: { opacity: 0.72 },
   strip: {
     flexDirection: "row",
@@ -160,7 +333,23 @@ const styles = StyleSheet.create({
   cell: { flex: 1, height: 58, alignItems: "center", justifyContent: "center", gap: 6 },
   cellDivider: { borderLeftWidth: 1, borderLeftColor: Colors.hairline },
   cellValue: { fontFamily: Typography.headingSemiBold, fontSize: 25, lineHeight: 27, letterSpacing: -0.6, color: Colors.text },
-  cellValueLive: { color: Colors.accent },
+  cellValueLive: { color: Colors.liveInk },
+  cellUnit: { fontSize: 16, letterSpacing: 0 },
+  stripCard: { borderBottomWidth: 0, backgroundColor: "rgba(12,12,15,0.38)" },
+  cellDrawer: { height: 62 },
+  cellCard: { height: 54, gap: 4 },
+  cellValueDrawer: { fontSize: 28, lineHeight: 30 },
+  cellValueCard: { fontSize: 22, lineHeight: 24 },
+  sectionHead: { height: 16, marginBottom: 8, flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 12 },
+  sectionTitle: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.4, textTransform: "uppercase", color: Colors.text },
+  sectionMeta: { flexShrink: 1, fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.muted },
+  action: { borderRadius: Radius.button, alignItems: "center", justifyContent: "center", flexDirection: "row" },
+  actionRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 10 },
+  checkIn: { backgroundColor: Colors.accent },
+  checkOut: { borderWidth: 1.5, borderColor: Colors.accentBorderStrong, backgroundColor: Colors.surfaceDark },
+  checkInText: { fontFamily: Typography.bodyBold, fontSize: 12, letterSpacing: 1.7, textTransform: "uppercase", color: Colors.background },
+  checkOutText: { flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.liveInk },
+  courtLink: { width: 64, height: 50, backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
   cellLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   cellLabel: { fontFamily: Typography.bodyBold, fontSize: 7.5, letterSpacing: 0.9, textTransform: "uppercase", color: Colors.textSecondary },
   tabs: { flexDirection: "row", paddingHorizontal: 6, borderBottomWidth: 1, borderBottomColor: Colors.hairline },

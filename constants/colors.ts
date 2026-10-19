@@ -17,7 +17,8 @@ export const Colors = {
   borderSubtle: "#202027",
   text: "#F2F2F6",
   textSecondary: "#9C9CA6",
-  muted: "#6E6E7A",
+  // 4.8–5.7:1 on every surface (Apple contrast minimum 4.5:1); was #6E6E7A at 3.3–3.9:1.
+  muted: "#8A8A96",
   mutedDark: "#4E4E58",
   accent: "#FC4C02",
   brandMark: "#FD6A03",
@@ -54,6 +55,19 @@ export const Colors = {
   hairlineChrome: "rgba(242,242,246,0.16)",
   panel: "#18181D",
   sheet: "#121216",
+  // Court flow chrome: raised tile/avatar fill, the sheet grab bar, quiet
+  // dashed outlines for empty states, the live ink on dark (On court counts),
+  // and the light secondary ink used on chips and the Court ↗ button.
+  tile: "#24242C",
+  grabber: "#3A3A44",
+  dashed: "rgba(242,242,246,0.14)",
+  liveInk: "#FF7B4B",
+  inkSoft: "#D1D1D9",
+  checkOutDot: "#4D4D56",
+  // Planned-visit heat ramp (Week heatmap, drawer Today bars): fewer → more.
+  heat1: "rgba(252,76,2,0.2)",
+  heat2: "rgba(252,76,2,0.38)",
+  heat3: "rgba(252,76,2,0.62)",
 
   tier: {
     platinum: "#E8E8FF",
@@ -69,6 +83,14 @@ export const Radius = {
   md: 5,
   lg: 8,
   card: 16,
+  // Court flow radii (HANDOFF.md › Brand rules): buttons 4, chips 9,
+  // rows 13, panels 16, cards 20, sheet 22.
+  button: 4,
+  chip: 9,
+  row: 13,
+  panel: 16,
+  courtCard: 20,
+  sheet: 22,
 };
 
 export default Colors;

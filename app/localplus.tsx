@@ -116,15 +116,21 @@ export default function LocalPlusScreen() {
     };
   }, [hasLocalPlus]);
 
+  // A purchase before RevenueCat knows the account would charge the App Store
+  // and credit no one, so wait for it. If sign-in failed, try again quietly
+  // and only say something if it still can't connect.
+  const ensureIdentified = async (): Promise<boolean> => {
+    if (identityState === "error") await retryIdentifyPurchaser();
+    if (getIdentityState() === "ready") return true;
+    if (getIdentityState() === "error") {
+      Alert.alert("Can't reach the store right now", "Check your connection and try again in a moment.");
+    }
+    return false;
+  };
+
   const handlePurchase = async () => {
     if (purchasing) return;
-    // Identification not ready — a purchase now would charge the App Store
-    // but land on RevenueCat's anonymous id with no account to credit. Retry
-    // identifying instead of buying.
-    if (identityState !== "ready") {
-      if (identityState === "error") void retryIdentifyPurchaser();
-      return;
-    }
+    if (!(await ensureIdentified())) return;
     if (!pkg) return;
     setPurchasing(true);
     const result = await purchaseLocalPlus(pkg);
@@ -158,29 +164,25 @@ export default function LocalPlusScreen() {
     // Same reasoning as handlePurchase, sharper stakes: offer codes are
     // scarce and one-time-use — redeeming one while unidentified burns it
     // with no account to credit.
-    if (identityState !== "ready") {
-      if (identityState === "error") void retryIdentifyPurchaser();
-      return;
-    }
+    if (!(await ensureIdentified())) return;
     const result = await redeemOfferCode();
     if (result.outcome === "unavailable") {
       Alert.alert("Couldn't open redemption", result.message);
     }
   };
 
+  // A failed sign-in keeps the normal price label; tapping it retries quietly.
   const purchaseDisabled = purchasing || (identityState === "ready" && !pkg);
   const purchaseLabel =
     identityState === "pending"
       ? "SIGNING YOU IN…"
-      : identityState === "error"
-        ? "COULDN'T VERIFY YOUR ACCOUNT — TAP TO RETRY"
-        : purchasing
-          ? "SUBSCRIBING…"
-          : pkg
-            ? buttonLabel(planPrice(pkg), plan)
-            : offeringChecked
-              ? "NOT AVAILABLE YET"
-              : "LOADING…";
+      : purchasing
+        ? "SUBSCRIBING…"
+        : pkg
+          ? buttonLabel(planPrice(pkg), plan)
+          : offeringChecked
+            ? "NOT AVAILABLE YET"
+            : "LOADING…";
   const yearlyPrice = packages.yearly ? planPrice(packages.yearly) : null;
   const monthlyPrice = packages.monthly ? planPrice(packages.monthly) : null;
   const savings = yearlyPrice && monthlyPrice ? yearlySavingsPercent(yearlyPrice, monthlyPrice) : null;
@@ -541,7 +543,7 @@ const styles = StyleSheet.create({
   },
   fine: {
     ...TextStyles.caption,
-    color: Colors.mutedDark,
+    color: Colors.muted,
     lineHeight: 15,
   },
 });

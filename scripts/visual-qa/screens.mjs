@@ -1,0 +1,49 @@
+// Every screen and state the visual QA run opens. Add a row when you add a
+// screen or a state that changes layout (a sheet, a selected slot, a tab).
+// actions: click (exact text), label (accessibility label), testId, tab
+// (a role=tab whose text matches), wait (ms), swipe [x1,y1,x2,y2].
+const COURT = "abe05196-a2d2-469e-b919-0435a056d9a3";
+const tab = (name) => ({ eval: `[...document.querySelectorAll('[role=tab]')].find(e=>new RegExp('^${name}$','i').test(e.innerText.trim()))?.click()` });
+
+export const SCREENS = [
+  { name: "onboarding-welcome", path: "/onboarding", onboarding: true },
+  { name: "onboarding-name", path: "/onboarding", onboarding: true, actions: [{ click: "Get started" }, { click: "Basketball" }] },
+  { name: "home-feed", path: "/" },
+  { name: "home-scrolled", path: "/", actions: [{ eval: `document.querySelectorAll('*').forEach((e)=>{if(e.scrollHeight>e.clientHeight+50&&e.clientHeight>200)e.scrollTop=500})` }] },
+  { name: "court-live", path: `/court/${COURT}` },
+  { name: "court-games", path: `/court/${COURT}?tab=games` },
+  { name: "court-players", path: `/court/${COURT}?tab=players` },
+  { name: "court-week", path: `/court/${COURT}?tab=week`, actions: [{ testId: "week-5-6" }] },
+  { name: "court-players-active", path: `/court/${COURT}?tab=players`, actions: [{ click: "Active" }] },
+  { name: "court-players-newest", path: `/court/${COURT}?tab=players`, actions: [{ click: "Newest" }] },
+  { name: "court-week-today-card", path: `/court/${COURT}?tab=week`, actions: [{ eval: `document.querySelectorAll('*').forEach((e)=>{if(e.scrollHeight>e.clientHeight+50&&e.clientHeight>200)e.scrollTop=2000})` }] },
+  { name: "court-info", path: `/court/${COURT}?tab=info` },
+  { name: "schedule", path: "/schedule" },
+  { name: "schedule-slot", path: "/schedule", actions: [{ testId: "heat-0-12" }] },
+  { name: "schedule-mine", path: "/schedule", actions: [{ testId: "heat-4-12" }] },
+  { name: "schedule-actions", path: "/schedule", actions: [{ label: "Open schedule actions" }] },
+  { name: "schedule-court-picker", path: "/schedule", actions: [{ testId: "schedule-court-selector", wait: 1500 }] },
+  { name: "game-open", path: "/run/2257e97a-1116-4317-a2a1-3c0261b6e8f8" },
+  { name: "game-5v5", path: "/run/e5e5e5e5-5555-4555-8555-555555555555" },
+  { name: "game-started", path: "/run/f5f5f5f5-5555-4555-8555-555555555555" },
+  { name: "score-final", path: "/match/9e8e21c8-175b-4ed5-9732-3e67194cf4c9" },
+  { name: "score-timeline", path: "/match/c5fc9aac-810c-44f5-808c-fbf76ccb6c69" },
+  { name: "score-pending", path: "/match/abababab-abab-4bab-8bab-abababababab" },
+  { name: "score-team", path: "/match/cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd" },
+  { name: "score-rules", path: "/match/c5fc9aac-810c-44f5-808c-fbf76ccb6c69", actions: [{ label: "How score review works", wait: 1500 }] },
+  { name: "player-h2h", path: "/player/22222222-2222-4222-8222-222222222222" },
+  { name: "player-longest-name", path: "/player/77777777-7777-4777-8777-777777777777" },
+  { name: "player-activity", path: "/player/22222222-2222-4222-8222-222222222222", actions: [tab("activity")] },
+  { name: "player-details", path: "/player/22222222-2222-4222-8222-222222222222", actions: [tab("details")] },
+  { name: "player-log-game", path: "/player/22222222-2222-4222-8222-222222222222", actions: [{ click: "Log game", exact: false, wait: 1500 }] },
+  { name: "me-activity", path: "/elo" },
+  { name: "me-friends", path: "/elo", actions: [tab("friends")] },
+  { name: "me-inbox", path: "/elo", actions: [tab("inbox")] },
+  { name: "compete", path: "/compete" },
+  { name: "compete-log-game", path: "/compete", actions: [{ click: "LOG GAME", exact: false }] },
+  { name: "explore", path: "/explore" },
+  { name: "explore-drawer", path: "/explore", actions: [{ testId: `court-${COURT}`, wait: 4000 }] },
+  { name: "settings", path: "/settings" },
+  { name: "notifications", path: "/notifications" },
+  { name: "localplus", path: "/localplus" },
+];
