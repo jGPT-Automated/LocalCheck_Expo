@@ -16,6 +16,16 @@ Each claim says which of these it is, because they are often confused:
 
 ## Production checkpoint
 
+- Oct 16 (branch `codex/court-verify-debug`, function not deployed): court
+  verification testing mode until launch (Jesse). Only the photo and the pin
+  are required: a missing address is filled from the pin (OpenStreetMap
+  reverse lookup), missing names become "Community Court". No confidence bar
+  and no sport match: a photo is turned down only when Gemini says it isn't a
+  court and saw no basketball or pickleball. The result screen and the
+  `verify-court` logs (`gemini_exchange`) show what was sent to Gemini and its
+  answer (free text up to 500 characters). Still on: offensive-name check,
+  duplicate court at the same pin, 2 tries then cooldown (database).
+  `COURT_VERIFY_DEBUG=off` hides the panel.
 - Source truth: `origin/main` @ `541632c` — #65 squash-merged (forgot
   password, onboarding, Expo Go previews, court drawer + Yearly upgrade).
 - PR #67 open (base `main`, app version 1.0.4): everything from #66 (other-
