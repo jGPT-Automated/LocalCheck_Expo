@@ -40,7 +40,7 @@ Each claim says which of these it is, because they are often confused:
 - Claude Code cloud sessions (Oct 21, on a branch): a SessionStart hook
   (`.claude/hooks/session-start.sh`, `.claude/settings.json`, un-ignored in
   `.gitignore`) runs `pnpm install` so typecheck and tests work at session
-  start. Checked by running the hook, `pnpm typecheck` and `pnpm test:leaderboard`
+  start (startup and resume only, `--frozen-lockfile` like CI). Checked by running the hook, `pnpm typecheck` and `pnpm test:leaderboard`
   in a cloud container; no app or backend change.
 - Docs check (Oct 13, D54): CI job `docs updated` fails any push to a pull
   request that changes anything outside `docs/` without adding lines to this
