@@ -32,6 +32,11 @@ its current migration ledger, tables, functions, policies, and deployed Edge
 Functions with the repository. Do not introduce a separate backend environment
 or mutate production unless the task explicitly authorizes that action.
 
+Claude Code cloud sessions run `.claude/hooks/session-start.sh` (registered in
+`.claude/settings.json`), which runs `pnpm install` when `CLAUDE_CODE_REMOTE=true`
+so `pnpm typecheck` and `pnpm test` work from the first command. It does
+nothing on a Mac.
+
 Watchman is optional but enables hot reload for larger Expo web trees on macOS.
 
 ## Daily branch workflow
