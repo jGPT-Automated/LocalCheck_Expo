@@ -51,6 +51,8 @@ yarn-error.*
 supabase/.branches/
 supabase/.temp/
 .claude/*
+!.claude/settings.json
+!.claude/hooks/
 !.claude/skills/
 .claude/skills/*
 !.claude/skills/ui-done/

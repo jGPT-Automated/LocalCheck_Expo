@@ -37,6 +37,11 @@ Each claim says which of these it is, because they are often confused:
   the push went out at 9:14:32 PM. Front-end handoff (includes the matching
   I'm still here change):
   `docs/handoffs/2026-10-13-frontend-timers-and-auto-check-in.md`.
+- Claude Code cloud sessions (Oct 21, on a branch): a SessionStart hook
+  (`.claude/hooks/session-start.sh`, `.claude/settings.json`, un-ignored in
+  `.gitignore`) runs `pnpm install` so typecheck and tests work at session
+  start. Checked by running the hook, `pnpm typecheck` and `pnpm test:leaderboard`
+  in a cloud container; no app or backend change.
 - Docs check (Oct 13, D54): CI job `docs updated` fails any push to a pull
   request that changes anything outside `docs/` without adding lines to this
   file, and anything under `supabase/` without adding lines to
