@@ -16,6 +16,15 @@ Each claim says which of these it is, because they are often confused:
 
 ## Production checkpoint
 
+- App Store readiness (Oct 22; **on a branch**, not in any build): removed the
+  dead `ios.buildProperties` key from `app.json` (`expo-doctor` now 18/18) and
+  declared email, name, user id, purchase history, device id and gameplay
+  content in the privacy manifest. Added `docs/runbooks/APP_STORE_SUBMISSION.md`
+  (listing text, privacy and review answers). Found: the live privacy policy
+  and support page say location is foreground-only, but auto check-in uses
+  background location; the website needs a fix before submission. EAS build
+  list Oct 22: newest iOS build is 1.0.4 (45), Oct 15.
+
 - Source truth: `origin/main` @ `541632c` — #65 squash-merged (forgot
   password, onboarding, Expo Go previews, court drawer + Yearly upgrade).
 - PR #67 open (base `main`, app version 1.0.4): everything from #66 (other-

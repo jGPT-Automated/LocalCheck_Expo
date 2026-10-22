@@ -104,3 +104,7 @@ shows these pushes without buttons; tapping opens the court page.
 Apply additive database changes before the client that depends on them. Edge
 Functions and migrations are separate production actions: merging their
 source deploys nothing.
+
+## App Store Connect content
+
+Listing text, privacy answers, age rating and review notes live in `docs/runbooks/APP_STORE_SUBMISSION.md`. `app.json` no longer has `ios.buildProperties` (not a valid key); the privacy manifest now lists email, name, user id, purchase history, device id and gameplay content, and the App Store Connect privacy answers must match.
