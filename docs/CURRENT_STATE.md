@@ -16,6 +16,10 @@ Each claim says which of these it is, because they are often confused:
 
 ## Production checkpoint
 
+- Oct 15 (branch `codex/edge-swipe-back`): back on detail screens is the
+  iOS edge swipe only (`fullScreenGestureEnabled: false` in
+  `app/_layout.tsx`). In build 45 a sideways swipe anywhere closed the court
+  page and Settings, and scrolls felt stiff. Needs a phone check.
 - Source truth: `origin/main` @ `541632c` — #65 squash-merged (forgot
   password, onboarding, Expo Go previews, court drawer + Yearly upgrade).
 - PR #67 open (base `main`, app version 1.0.4): everything from #66 (other-
