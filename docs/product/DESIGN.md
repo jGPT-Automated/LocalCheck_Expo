@@ -479,7 +479,10 @@ value comes from `constants/motion.ts`:
 Table stakes, checked on every UI change:
 
 - **Anything that looks like a drawer is a real drawer**: `AppBottomSheetModal`
-  (gorhom), swipe down and tap-out dismiss it. No faked modals.
+  (gorhom), swipe down and tap-out dismiss it. No faked modals. A drawer
+  holding a form is dragged by its grabber only (`contentPanning={false}`), so
+  scrolling or tapping in the form never moves it. Detail screens go back by
+  the left-edge swipe only.
 - **Every tappable card, row and button gives press feedback** through
   `PressableScale` (or `BrutalistButton`, which uses it).
 - **Numbers that change roll** (`RollingNumber`): scores, ELO, stats.

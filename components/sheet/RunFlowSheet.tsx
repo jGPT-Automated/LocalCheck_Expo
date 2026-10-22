@@ -100,6 +100,7 @@ export function RunFlowSheet({
       ref={modalRef}
       snapPoints={snapPoints}
       dynamic={dynamic}
+      contentPanning={scroll || dynamic}
       maxDynamicContentSize={Dimensions.get("window").height * 0.82}
       backdropOpacity={backdropOpacity}
       onDismiss={() => {

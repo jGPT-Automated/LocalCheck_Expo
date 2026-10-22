@@ -72,8 +72,11 @@ const detailScreenOptions = {
   headerShown: false,
   presentation: "card" as const,
   animation: "slide_from_right" as const,
+  // Back is the iOS edge swipe only. fullScreenGestureEnabled made a sideways
+  // swipe anywhere pop the screen mid-scroll and cancel scroll touches
+  // (react-native-screens #3161).
   gestureEnabled: true,
-  fullScreenGestureEnabled: true,
+  fullScreenGestureEnabled: false,
   animationMatchesGesture: true,
 };
 

@@ -21,6 +21,15 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-22 — swipe gestures (`claude/project-thread-n9q7zp`)
+
+Jesse: swipe gestures are not the iOS standard, scrolling keeps swiping him out
+of the screen, and drawers that should not be swipeable are, then force back up.
+
+- 🚧 Back is the left-edge swipe only on detail screens (`app/_layout.tsx`).
+- 🚧 Form drawers drag by the grabber only (`AppBottomSheetModal`
+  `contentPanning`). Web gesture test before/after is in the PR.
+
 ## 2026-10-18 (final round) — corner mark, thin slot card, Schedule (`claude/kind-pascal-4c174r`, PR #77)
 
 Not verified in a render; Jesse is checking it. Not merged; no OTA yet.

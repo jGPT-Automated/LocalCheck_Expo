@@ -14,6 +14,18 @@ Each claim says which of these it is, because they are often confused:
   installed build, merged or not.
 - **Tested on device:** seen working on a real iPhone build, with the date.
 
+## Gestures (Oct 22, on branch `claude/project-thread-n9q7zp`, not on `main`)
+
+- Detail screens go back by the iOS left-edge swipe only
+  (`fullScreenGestureEnabled: false`, `app/_layout.tsx`). Same change as PR #72.
+- Form drawers (`FormSheet`, any `RunFlowSheet` with `scroll={false}`) are
+  dragged by the grabber row only (`contentPanning={false}` on
+  `AppBottomSheetModal`). Dragging inside the form no longer pulls the drawer
+  down. Checked in a web gesture test (mouse drag on the Log game drawer):
+  before, a 200px drag inside the form moved the drawer 183px and it snapped
+  back; after, it stays put, and a grabber drag still moves it. Not tested on
+  a phone.
+
 ## Production checkpoint
 
 - Source truth: `origin/main` @ `541632c` — #65 squash-merged (forgot

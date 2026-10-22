@@ -39,6 +39,9 @@ export const AppBottomSheetModal = forwardRef<
     maxDynamicContentSize?: number;
     /** Tighter grabber row, so content can start near the top edge. */
     compactHandle?: boolean;
+    /** false: only the grabber row drags the sheet. Forms use this so scrolling
+     * or selecting inside them never pulls the drawer down. */
+    contentPanning?: boolean;
   }
 >(function AppBottomSheetModal(
   {
@@ -51,6 +54,7 @@ export const AppBottomSheetModal = forwardRef<
     dynamic = false,
     maxDynamicContentSize,
     compactHandle = false,
+    contentPanning = true,
   },
   ref,
 ) {
@@ -75,6 +79,7 @@ export const AppBottomSheetModal = forwardRef<
         enableDynamicSizing={dynamic}
         maxDynamicContentSize={maxDynamicContentSize}
         enablePanDownToClose
+        enableContentPanningGesture={contentPanning}
         backdropComponent={renderBackdrop}
         backgroundStyle={styles.background}
         handleIndicatorStyle={styles.handle}
