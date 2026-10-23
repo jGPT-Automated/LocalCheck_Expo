@@ -110,6 +110,10 @@ force-push shared branches, or include unrelated user changes.
   the connected preview or device evidence, then move to the next surface.
 - Treat prior agent summaries, plans, and comments as leads rather than facts.
   Verify current Git, deployed-service, and runtime state directly.
+- Resolve conflicting or outdated docs as soon as they surface: tell Jesse
+  what conflicts, verify the fact or ask him when that is quicker, then update
+  the existing authority doc and tracker immediately. Keep unverified claims
+  explicit; a merge does not establish deployment or device verification.
 - Explain external actions before taking them. Production database changes,
   Edge Function deployment, EAS Update, TestFlight work, GitHub merge, and
   branch deletion require explicit authorization for that exact action.
