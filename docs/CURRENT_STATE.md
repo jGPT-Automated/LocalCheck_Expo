@@ -5,6 +5,17 @@ at `d5d9ebc` and the GitHub API. PRs #67 and #77 are merged. Backend and EAS
 records below were last reconciled on 2026-10-14; they were not rechecked
 during this documentation correction. A merge is not a release or device test.
 
+Documentation corrections on `codex/docs-onboarding` (PR #81): launch timing,
+sheet placement, the D61 local mark and username stress-case guidance now match
+their current source/authority contracts. Documentation only; no app behavior
+changed and no new visual or device verification is claimed.
+
+The same PR records Jesse's UI-only finishing scope and pilot audience in
+`docs/product/DECISIONS.md`, candidate agent skills in `docs/product/REFERENCES.md`,
+and the paired-session capture procedure in `docs/product/screen-library/README.md`.
+The ordered tweaks and latest draft are still pending; no UI implementation
+or paired-action verification has started.
+
 Each claim says which of these it is, because they are often confused:
 
 - **Decided:** Jesse approved it (`docs/product/DECISIONS.md`).
@@ -515,7 +526,9 @@ specific missing behavior only after verifying it against current `main`.
   confirmation, and durable push delivery have been recovered into the clean
   root-level app and covered by focused source and unit contracts.
 - The approved splash artwork is present; signed-out launch uses the full
-  reveal and signed-in launch completes pin → W → check in 1.6 seconds.
+  reveal. Signed-in launch uses the static check with a corner sweep, then
+  solid corners; its normal minimum is approximately two seconds
+  (`components/onboarding/LaunchTransition.tsx`, source checked Oct 22).
 - Detail-header logo geometry is explicitly clipped to its requested square,
   the Me notification bell is restored while Inbox remains, and profile Log
   Game fetches an opponent by ID rather than leaderboard membership.

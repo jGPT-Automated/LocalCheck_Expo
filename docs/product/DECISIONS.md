@@ -5,6 +5,36 @@ superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
+## 2026-10-22 — finish existing UI and test with connected communities
+
+Jesse's scope:
+
+> the app is almost done,
+> there's ui tweaks,
+> and that's it
+
+Finish the agreed UI tweaks in small, reviewable changes. This engagement
+does not open a general feature or architecture expansion.
+
+Pace:
+
+> we work with speed , effort, and care,
+> we dont delay or take time, but we also dont rush something bad out
+
+No calendar deadline was supplied.
+
+Initial testing audience: Jesse has contacts who take basketball seriously
+and frequent three Houston courts, including a potential TikTok promoter with
+hundreds of thousands of followers. Jesse told him to test first. He also has
+a connection to a very active pickleball court in Austin. These are audience
+contacts, not a claim that those courts are configured in production.
+
+Capture common actions from both participants' sessions for verification and
+explainers, with possible later website/promo use. Use the existing
+`screen-library/README.md` capture contract. A browser screenshot does not
+establish native-device behavior, and a QA capture is not an approved promo
+asset until it has been reviewed for that use.
+
 ## 2026-10 — Launch decisions (D0–D61, Jesse's plan doc)
 
 Numbers match Jesse's plan doc (Decisions tab). These supersede older entries

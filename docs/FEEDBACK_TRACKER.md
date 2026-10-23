@@ -23,6 +23,20 @@ point.
 
 ## 2026-10-22 — documentation reconciliation
 
+Scope decided by Jesse: "the app is almost done, there's ui tweaks, and
+that's it." Houston basketball contacts at three courts and an active Austin
+pickleball court are the initial testing connections; test before promotion.
+Pace and audience recorded in `docs/product/DECISIONS.md`.
+
+- ⬜ Await Jesse's ordered UI tweaks and latest draft design before assigning
+  implementation work. No new feature/architecture work agreed.
+- ⬜ Paired action screenshots: use the existing screen library's capture
+  contract. Account pairing, flow selection and accessible image capture
+  remain to be settled.
+- ✅ Researched candidate skills in the requested AgenticSkills directory;
+  shortlist and SDK 54 compatibility limits in `docs/product/REFERENCES.md`.
+  No external skills installed.
+
 Jesse: resolve conflicting/outdated docs immediately; verify the fact or ask
 him when that is cheaper/quicker, then correct the existing docs. Recorded in
 `AGENTS.md` under Collaboration contract.
@@ -31,6 +45,13 @@ him when that is cheaper/quicker, then correct the existing docs. Recorded in
   merge commit `d5d9ebc`, GitHub API and fetched `origin/main` checked Oct 22.
 - ✅ Corrected #67's open status and obsolete branch-start instructions;
   merge commit `f53c17c`, GitHub API checked Oct 22.
+- ✅ Corrected contradictory launch, sheet and local-mark guidance in
+  `docs/product/DESIGN.md` / `docs/TESTING.md` against their owning components;
+  aligned `ui-done` with the existing 24-character layout stress case.
+  Documentation correction on PR #81; no app behavior changed.
+- ✅ Corrected the screen library's obsolete claim that build 13 is current;
+  it now points to the dated build checkpoint and requires actual build
+  identification before capture.
 - ⬜ Device, OTA and post-Oct-14 backend/build status need separate evidence.
   The older visual entries below retain their original verification limits.
 
