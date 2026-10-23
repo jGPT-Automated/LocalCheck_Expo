@@ -5,6 +5,9 @@ Status: Authoritative MVP contract
 Version: 3.0.4
 Last verified source: 2026-08-29
 
+Targeted source corrections: 2026-10-22 for launch timing, sheet placement,
+and the D61 local mark. This is not a new full visual/device verification.
+
 This document describes the current product. It replaces earlier competing design notes. The reproducible source artwork and specs live in the LocalCheck Brand Asset Sheet; app tokens live in `constants/` and shared components live in `components/ui/`.
 
 ## Product idea
@@ -29,20 +32,20 @@ The product should feel premium, athletic, editorial, local, and direct. It shou
   any launch animation.
 - `components/onboarding/LaunchTransition.tsx` is the one loading/launch
   indicator for the whole auth journey: a static, always-solid checkmark with
-  the four corner brackets sweeping clockwise (one bright with a fading trail
-  into the next) for exactly as long as its `loading` prop is true — tied to
-  real async work, never a cosmetic timer. When loading resolves, the sweep
-  stops, all four corners snap solid together, a brief breathing pulse plays,
-  then it hands off. It appears once per journey: after a successful
+  the four corner brackets sweeping clockwise while loading. The current
+  implementation has a minimum of three sweeps (1,560 ms), then a 220 ms
+  transition to solid corners and a 220 ms hold; no breathing pulse. Reduce
+  Motion shows the solid mark and hands off 80 ms after loading resolves.
+  It appears once per journey: after a successful
   sign-in/sign-up/Apple submit in `app/auth.tsx`, or once on cold open for an
   already-signed-in session in `app/_layout.tsx`'s `AuthGate` — never both,
   never as a separate pre-form splash, and never a bare `ActivityIndicator`
   anywhere in this flow.
 - Every primary tab header, including Home, uses `ScreenHeader`'s same
   `LogoMark` + title treatment. Detail pages use `DetailHeader`, whose
-  icon and title gap follows the source lockup geometry. Court detail replaces
-  the star with a compact outlined `LOCAL` / `SET LOCAL` control whose selected
-  state uses the action accent without becoming a second primary button.
+  icon and title gap follows the source lockup geometry. Court identity uses
+  the shared `LocalMark` quarter-circle + / check control (D61, described
+  below), replacing the earlier `LOCAL` / `SET LOCAL` treatment.
 - Home section content uses symmetrical vertical spacing beneath section
   dividers. Horizontal player tiles use `Space.lg` above and below so their
   visual boxes never touch either boundary.
@@ -135,11 +138,11 @@ Rules:
   `useSheetBottomPadding()` (home indicator only).
 - **Tab bar floor, details.** Nothing on a screen renders under it.
   `components/ui/TabFloor.tsx` carries the real tab bar height (0 on stack
-  screens). `AppBottomSheetModal` sets the sheet's `bottomInset` from it, so a
-  sheet opened in a tab rises from the top of the tab bar. Sheet content pads
-  its bottom with `useSheetBottomPadding()`; scroll content with
-  `useBottomFloor(extra)`. Never add `Layout.tabBarClearance` or the safe area
-  by hand inside a sheet.
+  screens); screen scroll content uses `useBottomFloor(extra)`. Sheets render
+  through the root modal host in front of the tab bar; `AppBottomSheetModal`
+  does not set a tab-height `bottomInset`. Sheet content uses
+  `useSheetBottomPadding()` for home-indicator clearance. Never add
+  `Layout.tabBarClearance` or the safe area by hand inside a sheet.
 - **No overlaps, no squish.** Every row that holds a name or number is built
   for a 24-character username and four-digit values: the text child gets
   `flexShrink: 1`, `minWidth: 0`, `numberOfLines={1}`; labels beside it get
@@ -491,7 +494,8 @@ Table stakes, checked on every UI change:
 - Only Expo Go-safe libraries (Reanimated 4 CSS transitions and springs,
   worklets `scheduleOnRN`, gesture-handler, expo-haptics).
 - Court metric tiles: 220ms; Reduce Motion swaps the 3D flip for a crossfade.
-- Signed-in cold starts use a 1.6-second mark sequence: pin → W → check.
+- Signed-in cold starts use `LaunchTransition`'s static check and corner
+  sweep, with the approximately two-second minimum described under Identity.
   Signed-out cold starts give the artwork and lockup the full reveal before
   the form is interactive. Reduce Motion shows the final static state.
 
@@ -542,11 +546,12 @@ interaction with supported installed primitives and record that decision here.
 
 Do not trade the working product for unfinished complexity. Use established libraries already in the project, improve shared components instead of spot-editing screens, note non-blocking polish, and keep moving toward TestFlight external testing.
 
-Local mark (D60): the logo's corner brackets around a house (`LocalMark`), in the
-corner of the card (Home, Explore card, drawer, court page). Orange house when
-the court is your local, grey house when it isn't; only the house changes. Where
-it is not your local, tapping it makes it your local; once it is, it does
-nothing (Settings changes it). It replaces the "Your local" pill.
+Local mark (D61, revises D60): `LocalMark` is a quarter-circle flush with the
+card's top-right corner (Home, Explore card, drawer, court page). It shows a +
+when the court is not your local, and a glowing orange check when it is.
+Tapping + sets the local court; the check springs in once (immediate with
+Reduce Motion). Once selected, the mark does nothing; Settings changes it.
+This replaces D60's bracketed house and the earlier "Your local" pill.
 
 Drawers (D60): the Challenge and Log game drawers are the baseline for every
 form drawer (`RunFlowSheet`, WHERE `CourtSearchPicker`, WHEN `RecentDatePicker`

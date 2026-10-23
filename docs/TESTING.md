@@ -81,8 +81,9 @@ reachable. For Schedule, test a compact phone with a selected slot and upcoming
 runs; the one-hour heatmap remains usable and content below it remains
 reachable.
 
-Inspect the signed-out artwork reveal, the signed-in pin → W → check launch,
-and Reduce Motion. At compact and desktop browser widths, open court, run,
+Inspect the signed-out artwork reveal, the signed-in static check with its
+corner sweep and solid finish (`LaunchTransition`), and Reduce Motion. At
+compact and desktop browser widths, open court, run,
 player, match, notification, and settings detail headers and confirm the shared
 back-logo frame does not overflow.
 

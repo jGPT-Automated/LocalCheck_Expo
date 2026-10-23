@@ -1,14 +1,26 @@
 # Current state
 
-Last reconciled: 2026-10-14 against `origin/main` at `541632c` (#65), PR #67
-(`codex/auto-check-in`), LocalCheckProd (read-only queries), the GitHub API and
-the EAS build list.
+Code and merge status reconciled: 2026-10-22 against fetched `origin/main`
+at `d5d9ebc` and the GitHub API. PRs #67 and #77 are merged. Backend and EAS
+records below were last reconciled on 2026-10-14; they were not rechecked
+during this documentation correction. A merge is not a release or device test.
+
+Documentation corrections on `codex/docs-onboarding` (PR #81): launch timing,
+sheet placement, the D61 local mark and username stress-case guidance now match
+their current source/authority contracts. Documentation only; no app behavior
+changed and no new visual or device verification is claimed.
+
+The same PR records Jesse's UI-only finishing scope and pilot audience in
+`docs/product/DECISIONS.md`, candidate agent skills in `docs/product/REFERENCES.md`,
+and the paired-session capture procedure in `docs/product/screen-library/README.md`.
+The ordered tweaks and latest draft are still pending; no UI implementation
+or paired-action verification has started.
 
 Each claim says which of these it is, because they are often confused:
 
 - **Decided:** Jesse approved it (`docs/product/DECISIONS.md`).
-- **On #67:** the code is on the PR #67 branch, not on `main` and not in any
-  installed build.
+- **Merged:** the code is on `main`; installed-build and deployment status
+  require separate evidence.
 - **Live backend:** the database change or Edge Function is in production,
   checked by a query or the function list. Live backend applies to every
   installed build, merged or not.
@@ -16,13 +28,15 @@ Each claim says which of these it is, because they are often confused:
 
 ## Production checkpoint
 
-- Source truth: `origin/main` @ `541632c` — #65 squash-merged (forgot
-  password, onboarding, Expo Go previews, court drawer + Yearly upgrade).
-- PR #67 open (base `main`, app version 1.0.4): everything from #66 (other-
+- Source truth: fetched `origin/main` @ `d5d9ebc` — PR #77 merged
+  (`2026-10-19T00:57:36Z`, Oct 18 Central), including the D57–D61 visual
+  work described below. GitHub merge status and local ancestry checked Oct 22.
+- PR #67 merged (`f53c17c`, `2026-10-15T03:06:25Z`, Oct 14 Central;
+  GitHub API checked Oct 22, app version 1.0.4): everything from #66 (other-
   player profile, Challenges, hide score, game card and real game sheet,
   motion pass, Yearly + Monthly picker, test-data hiding, store-review fixes)
   plus auto check-in (D35–D38) and the Oct 8 preview fixes (D39–D41). #66 is
-  superseded; close it when #67 merges.
+  superseded; its closure status was not rechecked during this correction.
 - Applied Oct 12 by Jesse: `20261010120000` and `20261012120000` (challenge
   time, short usernames, friend alert wording) and, at about 8:33 PM Central,
   `20261012180000_qstash_timers.sql` (D50, D51): timed work runs on QStash,
@@ -94,8 +108,8 @@ Each claim says which of these it is, because they are often confused:
     court route entry) and the court page section of `docs/product/DESIGN.md`.
   - Not in this pass: Players sorts (Active / Newest / All), the Live
     scoreboard rows, Phosphor icons, the drawer.
-- Oct 18 follow-up 3 (D61; **on a branch**, PR #77, not merged, not on a device;
-  not checked in a render, Jesse is verifying). Frontend only.
+- Oct 18 follow-up 3 (D61; **merged**, PR #77; device verification not recorded;
+  render verification not recorded for this follow-up). Frontend only.
   - `LocalMark` (`components/court/CourtParts.tsx`): corner quarter-circle with
     + / animated glowing check, a direct child of the card (court header,
     Explore card, drawer, Home's pinned header).
@@ -106,8 +120,8 @@ Each claim says which of these it is, because they are often confused:
   - Schedule page (`app/(tabs)/schedule.tsx`): all 14 hour rows fit with no
     inner scroll (row height from the window height, min 20); the Upcoming games
     row is gone; the AM/PM window arrows are gone.
-- Oct 18 follow-up 2 (D60; **on a branch**, PR #77, not merged, not on a device;
-  not checked in a render, Jesse is verifying). Frontend only.
+- Oct 18 follow-up 2 (D60; **merged**, PR #77; device verification not recorded;
+  render verification not recorded for this follow-up). Frontend only.
   - Explore drawer (`components/sheet/CourtSheetContent.tsx`): the expanded
     detail area is a `BottomSheetScrollView`; the LocalPlus panel is top-aligned.
   - Schedule a game: `components/schedule/ScheduleGameSheet.tsx` (replaces
@@ -122,8 +136,8 @@ Each claim says which of these it is, because they are often confused:
     a centred ">".
   - LocalPlus: `app/localplus.tsx` retries sign-in before buying and only then
     alerts "Can't reach the store right now" (`services/purchasesService.ts`).
-- Oct 18 follow-up (D59; **on a branch**, PR #77, not merged, not on a device;
-  not checked in a render, Jesse is verifying). Frontend only.
+- Oct 18 follow-up (D59; **merged**, PR #77; device verification not recorded;
+  render verification not recorded for this follow-up). Frontend only.
   - Challenges: `lib/challengeModel.ts` `challengeAction` takes the time; an
     accepted challenge is `scheduled` (Call it off) until its game time, then
     `log_score` / `casual_on` with I missed it (`cancelChallenge`).
@@ -135,8 +149,8 @@ Each claim says which of these it is, because they are often confused:
     Players ranks only players with a game here (`isRanked`); Info adds Date
     added; Schedule FAB shadow stronger; LocalPlus button keeps the price label
     when sign-in fails.
-- Home and court page redesign (Oct 18, D58; **on a branch**,
-  `claude/kind-pascal-4c174r`, PR #77, not merged, not on a device; checked in
+- Home and court page redesign (Oct 18, D58; **merged**, PR #77;
+  device verification not recorded; checked in
   a local web render at 375x667, 393x852 and 430x932 against mocked data).
   Frontend only: no database, function or native change.
   - Home (`components/HomeScreen.tsx`): one scrolling page, no tabs. The court
@@ -167,8 +181,8 @@ Each claim says which of these it is, because they are often confused:
     Week Today card and the expanded Explore drawer. The court Week grid has
     56 cells under 44pt (seven columns cannot reach 44pt on a phone), so its
     `smallTarget` baseline went up at 375x667; see the PR.
-- Pre-submission polish pass (Oct 17, D57; **on a branch**,
-  `claude/kind-pascal-4c174r`, PR #77 into `main`; it carries #75, not merged, not on a device).
+- Pre-submission polish pass (Oct 17, D57; **merged**, PR #77 into `main`;
+  it carries #75; device verification not recorded).
   Frontend only: no database, function or native change.
   - Court page header: live On court number and today's busy times on every
     tab (`app/court/[id].tsx`, `CourtBusyChart` `variant="header"`).
@@ -371,7 +385,7 @@ Each claim says which of these it is, because they are often confused:
 - Account tags: `profiles.account_tag` (`FOUNDER` / `STARTER` / `REVIEWER` /
   `TEST` / null). Only FOUNDER / STARTER show as a label or ME title.
   Server-managed.
-- Challenges (D25–D27r, D50; **on #67, live backend**; the full two-phone flow
+- Challenges (D25–D27r, D50; **merged via #67, live backend**; the full two-phone flow
   is not yet tested): friends only, from a player's profile. Court,
   day and time required, up to 7 days ahead; unanswered ones expire at the
   game time; once accepted both players get a reminder 30 minutes before. **Ranked**: either player logs the score after, it goes through
@@ -383,7 +397,7 @@ Each claim says which of these it is, because they are often confused:
   won. It still counts for ELO, rank, record and head-to-head.
 - Game visibility (D31): a game shows outside its players only if every
   player is Public.
-- Auto check-in (D35, D52, D53; **on #67, live backend, never tested on a
+- Auto check-in (D35, D52, D53; **merged via #67, live backend, never tested on a
   device** — build 33 doesn't have it): one 150 m geofence on the
   player's local court. Arriving checks in privately and shows "Checked in at
   …" with Hide at once; 5 minutes later it posts (source `auto`, check-in time
@@ -428,7 +442,8 @@ development and testing.
 
 ## Known release risks
 
-- **Open bugs on #67, found Oct 13–14** (details in the project's PR 67 review
+- **Bugs reported on #67, found Oct 13–14; resolution not rechecked after merge**
+  (details in the project's PR 67 review
   doc): "I'm still here" after a *manual* check-in always calls
   `resume_auto_check_in` (`context/NotificationContext.tsx`, `auto_check_out`
   branch), which fails off the home court and starts 1.5 hours instead of 45
@@ -511,7 +526,9 @@ specific missing behavior only after verifying it against current `main`.
   confirmation, and durable push delivery have been recovered into the clean
   root-level app and covered by focused source and unit contracts.
 - The approved splash artwork is present; signed-out launch uses the full
-  reveal and signed-in launch completes pin → W → check in 1.6 seconds.
+  reveal. Signed-in launch uses the static check with a corner sweep, then
+  solid corners; its normal minimum is approximately two seconds
+  (`components/onboarding/LaunchTransition.tsx`, source checked Oct 22).
 - Detail-header logo geometry is explicitly clipped to its requested square,
   the Me notification bell is restored while Inbox remains, and profile Log
   Game fetches an opponent by ID rather than leaderboard membership.
@@ -698,8 +715,10 @@ focused branch; `pending` means no completion claim has been made.
 
 ## Immediate gates
 
-1. Fix the open #67 bugs above that Jesse approves, then merge #67 and run one
-   TestFlight build (1.0.4).
+1. Recheck the reported #67 bugs against current `main`, fix any confirmed
+   issues Jesse prioritizes, then have Jesse authorize/start the 1.0.4
+   TestFlight build. #67 and #77 are already merged; build status since the
+   Oct 14 EAS check still needs verification.
 2. On that build: auto check-in (arrive, Hide, leave, 1.5-hour checkout),
    manual check-in checkout at 45 minutes, and a challenge sent, accepted and
    reminded on two phones.
@@ -713,8 +732,9 @@ ad-hoc-team migrations"; all three were applied Sep 3 (live ledger).
 
 ## Next-agent starting point
 
-- Until #67 merges, begin from `codex/auto-check-in` (PR #67); `main` is
-  older. Do not resume PR #25, #26, or #27.
+- Begin from fetched `origin/main` (`d5d9ebc` at the Oct 22 check). PRs #67
+  and #77 are merged; their old branches are not the starting point.
+  Do not resume PR #25, #26, or #27.
 - The installed baseline is TestFlight `1.0.3` (33), Sep 14 (EAS build list,
   Oct 14). Build 14 was the August baseline.
 - Push token registration and one background friend-request delivery are

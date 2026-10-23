@@ -21,9 +21,44 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-22 — documentation reconciliation
+
+Scope decided by Jesse: "the app is almost done, there's ui tweaks, and
+that's it." Houston basketball contacts at three courts and an active Austin
+pickleball court are the initial testing connections; test before promotion.
+Pace and audience recorded in `docs/product/DECISIONS.md`.
+
+- ⬜ Await Jesse's ordered UI tweaks and latest draft design before assigning
+  implementation work. No new feature/architecture work agreed.
+- ⬜ Paired action screenshots: use the existing screen library's capture
+  contract. Account pairing, flow selection and accessible image capture
+  remain to be settled.
+- ✅ Researched candidate skills in the requested AgenticSkills directory;
+  shortlist and SDK 54 compatibility limits in `docs/product/REFERENCES.md`.
+  No external skills installed.
+
+Jesse: resolve conflicting/outdated docs immediately; verify the fact or ask
+him when that is cheaper/quicker, then correct the existing docs. Recorded in
+`AGENTS.md` under Collaboration contract.
+
+- ✅ Corrected PR #77's merge status below and in `docs/CURRENT_STATE.md`;
+  merge commit `d5d9ebc`, GitHub API and fetched `origin/main` checked Oct 22.
+- ✅ Corrected #67's open status and obsolete branch-start instructions;
+  merge commit `f53c17c`, GitHub API checked Oct 22.
+- ✅ Corrected contradictory launch, sheet and local-mark guidance in
+  `docs/product/DESIGN.md` / `docs/TESTING.md` against their owning components;
+  aligned `ui-done` with the existing 24-character layout stress case.
+  Documentation correction on PR #81; no app behavior changed.
+- ✅ Corrected the screen library's obsolete claim that build 13 is current;
+  it now points to the dated build checkpoint and requires actual build
+  identification before capture.
+- ⬜ Device, OTA and post-Oct-14 backend/build status need separate evidence.
+  The older visual entries below retain their original verification limits.
+
 ## 2026-10-18 (final round) — corner mark, thin slot card, Schedule (`claude/kind-pascal-4c174r`, PR #77)
 
-Not verified in a render; Jesse is checking it. Not merged; no OTA yet.
+Merged via PR #77 (`d5d9ebc`). Render/device verification for this follow-up
+and OTA status are not recorded here.
 
 | Item | Status |
 |------|--------|
@@ -35,7 +70,8 @@ Not verified in a render; Jesse is checking it. Not merged; no OTA yet.
 
 ## 2026-10-18 (latest) — three priorities + Home notes (`claude/kind-pascal-4c174r`, PR #77)
 
-Not verified in a render; Jesse is checking it. No OTA until he says so.
+Merged via PR #77 (`d5d9ebc`). Render/device verification for this follow-up
+and OTA status are not recorded here.
 
 | Item | Status |
 |------|--------|
@@ -48,7 +84,8 @@ Not verified in a render; Jesse is checking it. No OTA until he says so.
 
 ## 2026-10-18 (later) — Vercel-toolbar notes (`claude/kind-pascal-4c174r`, PR #77)
 
-Not verified in a render; Jesse is checking it. No OTA until he says so.
+Merged via PR #77 (`d5d9ebc`). Render/device verification for this follow-up
+and OTA status are not recorded here.
 
 | Item | Status |
 |------|--------|
@@ -210,23 +247,15 @@ voice notes. Checked in a local web render at 393×852 against mocked data
 
 ## Branch / PR status
 
-- **PRs #42–#57 merged to `main`** (through the paywall UX / gate-architecture
-  / shared-TierPill batch). `codex/onboarding-flow` (**PR #58**, open) adds
-  the post-signup onboarding screen, a location-fallback rework, and a
-  Settings reorg — see the 2026-09-15 entry below.
-- **LocalCheckProd migrations pending (source only, not applied):**
-  `20260910000000_friendly_usernames.sql`,
-  `20260911000000_subscriptions_webhook_support.sql`,
-  `20260914120000_profile_onboarding_completed.sql`,
-  `20260915000000_update_username_syncs_display_name.sql`. See
-  `docs/SUPABASE.md` for what each does and why shipping ahead of them is
-  safe.
-- **Release loop:** opening a PR against `main` auto-publishes a scannable Expo
-  Go preview; merging to `main` auto-triggers the TestFlight build (ignores
-  `docs/**` / `**/*.md`). The build+submit step used to report green the
-  instant EAS *accepted* the job, without waiting for the actual build or
-  App Store Connect submission to succeed — fixed on PR #58 (`release-ios.yml`
-  now waits for the real outcome). See `docs/RELEASE.md`.
+- **Merged:** PR #67 (`f53c17c`) and PR #77 (`d5d9ebc`); fetched
+  `origin/main` is `d5d9ebc`. Checked against GitHub on Oct 22. Start new
+  work from current `origin/main`, not the earlier feature branches.
+- **Backend:** use the migration ledger checkpoint in `docs/SUPABASE.md`.
+  This replaces the obsolete September pending-migration list here;
+  production was not rechecked during the Oct 22 documentation correction.
+- **Release loop:** opening/pushing a PR publishes an Expo Go preview;
+  TestFlight builds and production OTA are manual, started by Jesse
+  (`docs/RELEASE.md`, D22). Merging does not start a build or OTA.
 
 ## Status legend
 

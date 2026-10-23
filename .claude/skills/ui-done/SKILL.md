@@ -37,9 +37,9 @@ the new baseline in the same PR.
 ### LocalCheck hard rules (docs/product/DESIGN.md "Layout rules")
 
 - The tab bar is a floor; sheets open in front of it. Nothing renders under it.
-- Every row holding a name or a number is built for the longest username
-  (10 characters, the signup limit) and four-digit values. No ellipsis on a
-  name that short, no clipped button label at any size.
+- Every row holding a name or number passes the 24-character username stress
+  case and four-digit values required by AGENTS.md and DESIGN.md. Signup
+  currently allows 3–10 characters; even those names must never be clipped.
 - One rhythm per list; equal columns use `flex: 1, flexBasis: 0`; numbers
   that line up use tabular figures.
 - Centre status labels optically. No box inside a box.
