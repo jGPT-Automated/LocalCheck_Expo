@@ -41,6 +41,7 @@ import {
 } from "@/components/schedule/scheduleModel";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { usePresence } from "@/context/CourtPresenceContext";
 import { fetchCourtPlannedTimes } from "@/services/plannedVisitService";
 import { fetchCourtById, searchCourts } from "@/services/courtService";
 
@@ -584,6 +585,7 @@ export default function ScheduleScreen() {
     runs,
     plannedVisits,
     currentUser,
+    checkedInCourtId,
     refreshRuns,
     addPlannedVisit,
     removePlannedVisit,
@@ -648,6 +650,8 @@ export default function ScheduleScreen() {
 
   // Default to the local court once it hydrates; an explicit pick wins.
   const court = pickedCourt ?? localCourt;
+  // The hour you are in counts the people on court right now.
+  const { roster: courtRoster } = usePresence(court?.id);
 
   // Court Details deep-links here with the court already selected. Resolve it
   // from the in-memory discovery set first, then fall back to one direct read.
@@ -1035,6 +1039,7 @@ export default function ScheduleScreen() {
     <View style={styles.container}>
       <ScreenHeader
         title="SCHEDULE"
+        hideRightWhenLive
         right={<Text style={styles.headerDate}>{weekLabel}</Text>}
       />
 
@@ -1312,11 +1317,25 @@ export default function ScheduleScreen() {
               const slotHour = SLOT_HOURS[selectedSlot.slot];
               const now = new Date();
               const isNow = selectedSlot.day === 0 && now.getHours() === slotHour;
+              const onCourt = isNow
+                ? courtRoster.map((player) => ({
+                    id: player.id,
+                    name: player.name,
+                    initials: player.avatar,
+                    isMine: player.id === currentUser.id,
+                  }))
+                : [];
+              const slotAttendees = [
+                ...onCourt,
+                ...visible.filter((a) => !onCourt.some((p) => p.id === a.id)),
+              ];
               return (
                 <View style={styles.slotWrap}>
                   <SlotCard
-                    attendees={visible}
+                    attendees={slotAttendees}
+                    checkedIn={isNow && checkedInCourtId === court?.id}
                     current={isNow}
+                    here={onCourt.length}
                     hidden={hidden}
                     mine={Boolean(mine?.visitId)}
                     mode={mine?.visitId || canAdd ? "full" : "view"}

@@ -15,8 +15,6 @@ import {
   View,
 } from "react-native";
 
-import Svg, { Path } from "react-native-svg";
-
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
 import type { CourtSport } from "@/constants/data";
@@ -68,66 +66,74 @@ export function SportLabel({ sport, suffix }: { sport: CourtSport; suffix?: stri
   );
 }
 
-const MARK = 56;
+/**
+ * Small glass icon button that sits beside Check in: a frosted fill and a
+ * hairline, no solid colour, so it never competes with the main action.
+ */
+function GlassIconButton({
+  icon,
+  accessibilityLabel,
+  accessibilityHint,
+  onPress,
+  active = false,
+  height = 50,
+}: {
+  icon: React.ComponentProps<typeof Feather>["name"];
+  accessibilityLabel: string;
+  accessibilityHint?: string;
+  onPress?: () => void;
+  active?: boolean;
+  height?: number;
+}) {
+  return (
+    <PressableScale
+      accessibilityHint={accessibilityHint}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !onPress, selected: active }}
+      disabled={!onPress}
+      onPress={onPress}
+      style={[styles.glass, { height }, active && styles.glassOn]}
+    >
+      <Feather color={active ? Colors.accent : Colors.inkSoft} name={icon} size={20} />
+    </PressableScale>
+  );
+}
 
 /**
- * Your local court, as a quarter-circle in the card's top-right corner: a +
- * while it isn't your local, a glowing orange check (like the logo's) once it
- * is. Render it as a direct child of the card so it sits flush in the corner.
- * Where it isn't your local, a tap makes it your local and the check springs
- * in; once it is, the mark does nothing (Settings changes it).
+ * Your local court. Orange once it is; before that a tap makes this court your
+ * local (Settings changes it afterwards). The slot beside Check in is also
+ * where saved courts will live.
  */
-export function LocalMark({ active, onPress, top = 0 }: { active: boolean; onPress?: () => void; top?: number }) {
-  const pop = React.useRef(new Animated.Value(active ? 1 : 0)).current;
-  const wasActive = React.useRef(active);
-  React.useEffect(() => {
-    if (active && !wasActive.current) {
-      pop.setValue(0);
-      void AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
-        if (reduce) pop.setValue(1);
-        else Animated.spring(pop, { toValue: 1, friction: 5, tension: 120, useNativeDriver: true }).start();
-      });
-    } else if (!active) {
-      pop.setValue(0);
-    } else {
-      pop.setValue(1);
-    }
-    wasActive.current = active;
-  }, [active, pop]);
-
-  const tappable = Boolean(onPress) && !active;
-  const body = (
-    <View style={[styles.markArc, active && styles.markArcOn]}>
-      {active ? (
-        <Animated.View
-          style={[styles.markIcon, { opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] }]}
-        >
-          <Feather color={Colors.accent} name="check" size={22} style={styles.markCheckGlow} />
-        </Animated.View>
-      ) : (
-        <View style={styles.markIcon}>
-          <Feather color={Colors.textSecondary} name="plus" size={22} />
-        </View>
-      )}
-    </View>
-  );
+export function LocalButton({
+  active,
+  onPress,
+  courtName,
+  height,
+}: {
+  active: boolean;
+  onPress?: () => void;
+  courtName: string;
+  height?: number;
+}) {
   return (
-    <View pointerEvents="box-none" style={[styles.markWrap, { top }]}>
-      {tappable ? (
-        <Pressable
-          accessibilityHint="Sets this as your local court"
-          accessibilityLabel="Set as local court"
-          accessibilityRole="button"
-          onPress={onPress}
-          style={({ pressed }) => pressed && styles.pressed}
-        >
-          {body}
-        </Pressable>
-      ) : (
-        <View accessibilityLabel={active ? "Your local court" : "Not your local court"} accessible>
-          {body}
-        </View>
-      )}
+    <GlassIconButton
+      accessibilityHint={active ? undefined : "Sets this as your local court"}
+      accessibilityLabel={active ? `${courtName} is your local court` : `Set ${courtName} as your local court`}
+      active={active}
+      height={height}
+      icon="home"
+      onPress={active ? undefined : onPress}
+    />
+  );
+}
+
+/** Your local court, as a small tag on a card: a house and LOCAL. Not a button. */
+export function LocalTag() {
+  return (
+    <View accessibilityLabel="Your local court" accessible style={styles.localTag}>
+      <Feather color={Colors.accent} name="home" size={12} />
+      <Text style={styles.localTagText}>Local</Text>
     </View>
   );
 }
@@ -247,18 +253,16 @@ export function CheckInButton({
   );
 }
 
-/** A centred ">" that opens the full court page. */
-export function CourtLinkButton({ onPress, courtName }: { onPress: () => void; courtName: string }) {
+/** A small glass ">" that opens the full court page. */
+export function CourtLinkButton({ onPress, courtName, height }: { onPress: () => void; courtName: string; height?: number }) {
   return (
-    <PressableScale
+    <GlassIconButton
       accessibilityHint="Opens the full court page"
       accessibilityLabel={`Open ${courtName}`}
-      accessibilityRole="button"
+      height={height}
+      icon="chevron-right"
       onPress={onPress}
-      style={[styles.action, styles.courtLink]}
-    >
-      <Feather color={Colors.text} name="chevron-right" size={24} />
-    </PressableScale>
+    />
   );
 }
 
@@ -305,24 +309,6 @@ const styles = StyleSheet.create({
   sportRow: { flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 1 },
   sportDot: { width: 6, height: 6, borderRadius: 3 },
   sportText: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.5, textTransform: "uppercase", flexShrink: 1 },
-  markWrap: { position: "absolute", right: 0, width: MARK, height: MARK },
-  markArc: {
-    width: MARK,
-    height: MARK,
-    borderBottomLeftRadius: MARK,
-    borderLeftWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: Colors.hairlineChrome,
-  },
-  markArcOn: {
-    borderColor: Colors.accentBorderStrong,
-    shadowColor: Colors.accent,
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-    shadowOffset: { width: -2, height: 2 },
-  },
-  markIcon: { position: "absolute", top: 10, right: 10 },
-  markCheckGlow: { textShadowColor: Colors.accent, textShadowRadius: 10 },
   pressed: { opacity: 0.72 },
   strip: {
     flexDirection: "row",
@@ -349,7 +335,18 @@ const styles = StyleSheet.create({
   checkOut: { borderWidth: 1.5, borderColor: Colors.accentBorderStrong, backgroundColor: Colors.surfaceDark },
   checkInText: { fontFamily: Typography.bodyBold, fontSize: 12, letterSpacing: 1.7, textTransform: "uppercase", color: Colors.background },
   checkOutText: { flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.liveInk },
-  courtLink: { width: 64, height: 50, backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
+  glass: {
+    width: 48,
+    borderRadius: Radius.chip,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.glass,
+    borderWidth: 1,
+    borderColor: Colors.hairlineChrome,
+  },
+  glassOn: { backgroundColor: Colors.liveQuiet, borderColor: Colors.accentBorder },
+  localTag: { flexDirection: "row", alignItems: "center", gap: 5 },
+  localTagText: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.liveInk },
   cellLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   cellLabel: { fontFamily: Typography.bodyBold, fontSize: 7.5, letterSpacing: 0.9, textTransform: "uppercase", color: Colors.textSecondary },
   tabs: { flexDirection: "row", paddingHorizontal: 6, borderBottomWidth: 1, borderBottomColor: Colors.hairline },

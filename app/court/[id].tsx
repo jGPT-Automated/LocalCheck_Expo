@@ -10,7 +10,7 @@ import { CourtBusyChart } from "@/components/court/CourtBusyChart";
 import { CourtGamesPanel } from "@/components/court/CourtGamesPanel";
 import { CourtInfoPanel } from "@/components/court/CourtInfoPanel";
 import { CourtPlayersPanel } from "@/components/court/CourtPlayersPanel";
-import { CourtTabBar, LiveDot, LocalMark, SportLabel } from "@/components/court/CourtParts";
+import { CourtTabBar, LiveDot, LocalButton, SportLabel } from "@/components/court/CourtParts";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { GameResultModal } from "@/components/ui/GameResultModal";
 import { PersonTile } from "@/components/ui/PersonTile";
@@ -214,11 +214,6 @@ export default function CourtProfileScreen() {
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: Platform.OS === "web" ? 44 : top }]}>
-        <LocalMark
-          active={isMyLocal}
-          onPress={() => void setLocalCourt(court.id, court)}
-          top={Platform.OS === "web" ? 44 : top}
-        />
         <CourtArt faint sport={court.sport} top={(Platform.OS === "web" ? 44 : top) + 44} />
         <View style={styles.navRow}>
           <Pressable
@@ -230,6 +225,12 @@ export default function CourtProfileScreen() {
           >
             <Feather color={Colors.text} name="arrow-left" size={22} />
           </Pressable>
+          <LocalButton
+            active={isMyLocal}
+            courtName={court.shortName || court.name}
+            height={44}
+            onPress={() => void setLocalCourt(court.id, court)}
+          />
         </View>
         {/* Name left, the live number right (Oct 17 header reference), then
             today's busy times above the tabs so every tab shares them. */}

@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { ScreenHeader } from "@/components/ScreenHeader";
@@ -55,6 +55,9 @@ export function HomeScreen() {
   const [picked, setPicked] = useState<{ dayOffset: number; hour: number } | null>(null);
   const [hoursLabel, setHoursLabel] = useState("0h");
   const { showToast } = useToast();
+  // On a short phone (iPhone SE) the fixed block would leave too little room to
+  // scroll, so the busy chart moves into the scrolling page.
+  const compact = useWindowDimensions().height < 720;
   const [selectedResult, setSelectedResult] = useState<{
     match: FeedMatchSummary;
     sport: FeedItem["sport"];
@@ -150,18 +153,26 @@ export function HomeScreen() {
     if (item.playerId) router.push(`/player/${item.playerId}`);
   };
 
+  const busyChart = (
+    <View style={styles.chart}>
+      <CourtBusyChart
+        courtId={localCourt.id}
+        games={upcoming}
+        onSelect={setPicked}
+        refreshKey={roster.length}
+        selected={picked}
+        variant="header"
+      />
+    </View>
+  );
+
   return (
     <ScreenViewport>
       <ScreenHeader title="LOCALCHECK" />
 
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: tabFloor + Space.lg }}
-        showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[1]}
-        style={styles.scroll}
-      >
+      {/* Fixed: the court, its numbers, Check in and today's busy times. */}
+      <View style={styles.fixed}>
         <HomeCourtTop court={localCourt} />
-        {/* Pinned: just the court name and its numbers. */}
         <HomeCourtHero
           activeCount={activeLabel}
           court={localCourt}
@@ -177,6 +188,20 @@ export function HomeScreen() {
           onViewCourt={() => router.push(`/court/${localCourt.id}`)}
         />
         <AutoCheckInNote courtId={localCourt.id} />
+        {compact ? null : busyChart}
+      </View>
+
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: tabFloor + Space.lg }}
+        showsVerticalScrollIndicator={false}
+        style={styles.scroll}
+      >
+        {compact ? busyChart : null}
+        {picked ? (
+          <View style={styles.pickedSlot}>
+            <HourSlotCard court={localCourt} dayOffset={picked.dayOffset} hour={picked.hour} />
+          </View>
+        ) : null}
         <View style={styles.hereNow}>
           <HereNowSection
             isFriend={isFriend}
@@ -191,22 +216,6 @@ export function HomeScreen() {
             upcoming={upcoming}
           />
         </View>
-        <View style={styles.today}>
-          <CourtBusyChart
-            courtId={localCourt.id}
-            games={upcoming}
-            onSelect={setPicked}
-            maxBack={0}
-            refreshKey={roster.length}
-            selected={picked}
-            variant="inline"
-          />
-        </View>
-        {picked ? (
-          <View style={styles.today}>
-            <HourSlotCard court={localCourt} dayOffset={picked.dayOffset} hour={picked.hour} />
-          </View>
-        ) : null}
         <View style={styles.today}>
           <SectionHead title="Recent activity" />
         </View>
@@ -266,9 +275,12 @@ function NoCourtState({ isSignedIn }: { isSignedIn: boolean }) {
 
 
 const styles = StyleSheet.create({
+  fixed: { borderBottomWidth: 1, borderBottomColor: Colors.hairline },
   scroll: { flex: 1, minHeight: 0 },
+  chart: { paddingHorizontal: Layout.screenGutter, paddingTop: Space.md, paddingBottom: Space.md },
   hereNow: { paddingTop: Space.lg, borderBottomWidth: 1, borderBottomColor: Colors.hairline },
   upNext: { paddingTop: Space.lg },
+  pickedSlot: { paddingHorizontal: Layout.screenGutter, paddingTop: Space.md },
   today: { paddingHorizontal: Layout.screenGutter, paddingBottom: Space.lg },
   emptyText: {
     paddingHorizontal: Layout.screenGutter,

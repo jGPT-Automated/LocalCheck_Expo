@@ -275,6 +275,14 @@ const friendships = [
   { id: "f2", requester_id: U.tired, addressee_id: U.me, status: "accepted", created_at: iso(now - 10 * D) },
 ];
 
+/** The signed-in player, checked in at the main court for 12 minutes. */
+const ME_LIVE = checkIn(U.me, COURT, now - 12 * 60_000, null);
+export function setCheckedIn(on) {
+  const at = check_ins.indexOf(ME_LIVE);
+  if (on && at < 0) check_ins.push(ME_LIVE);
+  if (!on && at >= 0) check_ins.splice(at, 1);
+}
+
 /** Onboarding screens need a player who hasn't finished setup. */
 export function setOnboarding(on) {
   Object.assign(profiles[0], on ? { onboarding_completed: false, local_court_id: null } : { onboarding_completed: true, local_court_id: COURT });

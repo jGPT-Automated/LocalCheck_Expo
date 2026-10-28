@@ -21,6 +21,25 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-28 — fixed headers, orange check-in bar, glass buttons (`claude/bold-cerf-5cudc7`)
+
+Checked in a rendered web export at three phone sizes, not on a phone. Jesse is
+checking the gestures. Not merged; no OTA yet.
+
+| Item | Status |
+|------|--------|
+| Home: whole court header stays fixed; only the lower sections scroll | ✅ |
+| Compete: tabs and filters stay fixed; only the ranking list scrolls | ✅ |
+| Checked in: header turns orange, logo inverts, timer and PUBLIC / FRIENDS / PRIVATE on the right | ✅ |
+| Half-circle mark gone; small glass house button left of Check in; narrower glass court button | ✅ |
+| Home: busy-times chart under Check in | ✅ |
+| Home hour card said "0 planning to go" while checked in | ✅ |
+| Explore card: text centred, court drawing no longer behind the name | ✅ |
+| Swipe back leaves the page during a vertical scroll (full-screen swipe off) | ✅ (needs device check) |
+| Explore drawer: one scroll root, chips pinned, no re-snap after opening | ❌ not done, needs a device |
+| Saved / favourite courts in the new button slot | backlog (needs a table) |
+| Pickleball colours and card art from the design file | backlog (file needs login) |
+
 ## 2026-10-18 (final round) — corner mark, thin slot card, Schedule (`claude/kind-pascal-4c174r`, PR #77)
 
 Not verified in a render; Jesse is checking it. Not merged; no OTA yet.

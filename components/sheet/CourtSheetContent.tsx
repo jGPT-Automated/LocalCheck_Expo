@@ -21,7 +21,8 @@ import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewS
 import {
   CheckInButton,
   CourtLinkButton,
-  LocalMark,
+  LocalButton,
+  LocalTag,
   MetricStrip,
   SectionHead,
   SportLabel,
@@ -188,7 +189,6 @@ export function CourtSheetContent({
   return (
     <BottomSheetView>
       <CourtArt sport={court.sport} />
-      <LocalMark active={isMyLocal} onPress={cooldown.restricted ? undefined : setAsLocal} />
       {/* ── Drawer: its measured height owns the first sheet detent ── */}
       <View
         onLayout={(event) => {
@@ -204,6 +204,7 @@ export function CourtSheetContent({
         >
           <View style={styles.metaRow}>
             <SportLabel sport={court.sport} />
+            {isMyLocal ? <LocalTag /> : null}
           </View>
           <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
             {name}
@@ -222,6 +223,11 @@ export function CourtSheetContent({
         </Pressable>
 
         <View style={styles.actions}>
+          <LocalButton
+            active={isMyLocal}
+            courtName={name}
+            onPress={cooldown.restricted ? undefined : setAsLocal}
+          />
           <View style={styles.checkSlot}>
             <CheckInButton
               busy={isChecking}
@@ -450,7 +456,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   strip: { paddingHorizontal: 20, paddingTop: 12 },
-  actions: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 14 },
+  actions: { flexDirection: "row", gap: 8, paddingHorizontal: 20, paddingTop: 14 },
   checkSlot: { flex: 1, minWidth: 0 },
   peekFoot: { height: 16 },
 

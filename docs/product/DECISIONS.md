@@ -5,7 +5,7 @@ superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D61, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D62, Jesse's plan doc)
 
 Numbers match Jesse's plan doc (Decisions tab). These supersede older entries
 below wherever they disagree.
@@ -80,6 +80,24 @@ below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D62 Fixed headers, orange check-in bar, glass buttons (Oct 28, revises D60
+  and D61):** From Jesse's device screenshots. Home's whole court block (sport
+  row, name, city, the three numbers, the buttons) stays fixed, with today's
+  busy-times chart under Check in; only Here now, Up next and Recent activity
+  scroll (under 720pt tall, the chart scrolls with the page). Compete keeps its
+  tabs and its sport and scope filters fixed; only the ranking list scrolls.
+  While you are checked in every tab header turns bright orange, the logo
+  inverts to dark, and the far right shows a timer (m:ss, then h:mm:ss) with
+  who can see the check-in (PUBLIC, FRIENDS or PRIVATE); a screen's own right
+  action sits on a dark chip beside it. The corner quarter-circle mark is gone:
+  the local court is a small glass house button to the left of Check in (orange
+  when it is your local, a tap sets it), the court button is a narrower glass
+  chevron, and that slot is where saved courts will go. Explore cards centre
+  their text, show LOCAL as a small tag, and drop the court drawing behind the
+  text for a soft sport tint. The current hour's card counts the people on
+  court and shows you as Here once you are checked in. Back is the iOS edge
+  swipe only; the full-screen back swipe is off. The plan doc's Decision log
+  needs the matching D62 line (it lives outside the repo).
 - **D61 Corner mark, thin slot card, Schedule fits one screen (Oct 18,
   revises D60):** The local mark becomes a quarter-circle in the card's
   top-right corner: a + while it isn't your local, a glowing orange check (the
@@ -93,7 +111,9 @@ below wherever they disagree.
   four. Home's chart has one set of arrows, a day label that follows them, and
   "Most active at 7 PM"; it looks seven days ahead, never back. The Schedule
   page shows every hour with no inner scrolling and no Upcoming row (games live
-  on the court's Games tab).
+  on the court's Games tab). (Revised by D62: the corner mark is gone, replaced
+  by a glass house button beside Check in; Home's chart sits in the fixed block
+  under Check in, today only, with no arrows.)
 - **D60 Drawer scroll, one drawer look, pinned name only, local mark (Oct 18,
   revises D59):** The expanded Explore drawer scrolls, and the LocalPlus panel
   sits near the top of it (the content is the same length for every court, so
@@ -104,7 +124,9 @@ below wherever they disagree.
   Here now and the rest scroll (D59's pinned Check in + Here now is revised).
   The "Your local" pill becomes the logo's corner brackets around a house:
   orange house when it is your local, grey when it isn't, in the card's corner. (Revised by D61: the mark is now a corner quarter-circle with + / check.)
-  Court becomes a centred ">" beside Check in. A failed LocalPlus sign-in is
+  Court becomes a centred ">" beside Check in. (Revised by D62: Home's whole
+  court block is fixed, not just the name and numbers; Court is a narrower glass
+  chevron.) A failed LocalPlus sign-in is
   retried quietly and, if it still fails, says it can't reach the store.
 - **D59 Inbox challenges, hourly Home chart, Players ranked only (Oct 18,
   revises D58):** Jesse's Vercel-toolbar notes. A challenge card reads "Ranked

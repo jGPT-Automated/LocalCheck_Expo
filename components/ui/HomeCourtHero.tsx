@@ -2,26 +2,27 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { CourtArt } from "@/components/court/CourtArt";
-import { CheckInButton, CourtLinkButton, LocalMark, MetricStrip, SportLabel } from "@/components/court/CourtParts";
+import { CheckInButton, CourtLinkButton, LocalButton, LocalTag, MetricStrip, SportLabel } from "@/components/court/CourtParts";
 import { Colors } from "@/constants/colors";
 import type { Court } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 
 /**
- * Home's local court header: full width, not a card. `HomeCourtTop` (sport on
- * the left, the house mark in the corner) scrolls away; `HomeCourtHero` (court
- * trace, centred name, city · distance, On court / Court hours · wk / Locals)
- * stays pinned under the app header. HomeCourtActions follows.
+ * Home's local court header: full width, not a card, and all of it stays fixed
+ * while the page below scrolls. `HomeCourtTop` (sport on the left, LOCAL on the
+ * right), `HomeCourtHero` (court trace, centred name, city · distance, On court
+ * / Court hours · wk / Locals), then HomeCourtActions.
  */
 export function HomeCourtTop({ court }: { court: Court }) {
   return (
     <View style={styles.metaRow}>
       <SportLabel sport={court.sport} />
+      <LocalTag />
     </View>
   );
 }
 
-/** The court name and its numbers: the part of Home that stays pinned. */
+/** The court name and its numbers. */
 export function HomeCourtHero({
   court,
   activeCount,
@@ -44,7 +45,6 @@ export function HomeCourtHero({
   return (
     <View style={styles.header}>
       <CourtArt sport={court.sport} />
-      <LocalMark active />
       <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
         {court.shortName || court.name}
       </Text>
@@ -63,8 +63,8 @@ export function HomeCourtHero({
 }
 
 /**
- * Home's action row, the Explore drawer's: Check in (or Check out) beside
- * Court, which opens the court page.
+ * Home's action row, the Explore drawer's: your local (glass), Check in (or
+ * Check out), and Court (glass), which opens the court page.
  */
 export function HomeCourtActions({
   courtName,
@@ -81,6 +81,7 @@ export function HomeCourtActions({
 }) {
   return (
     <View style={styles.actions}>
+      <LocalButton active courtName={courtName} />
       <View style={styles.checkSlot}>
         <CheckInButton busy={isChecking} checkedIn={isCheckedIn} courtName={courtName} onPress={onCheckIn} />
       </View>
@@ -108,6 +109,6 @@ const styles = StyleSheet.create({
   place: { marginTop: 2, textAlign: "center", fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
   strip: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 },
 
-  actions: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 14 },
+  actions: { flexDirection: "row", gap: 8, paddingHorizontal: 20, paddingTop: 14 },
   checkSlot: { flex: 1, minWidth: 0 },
 });

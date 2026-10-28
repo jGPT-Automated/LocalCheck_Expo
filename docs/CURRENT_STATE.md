@@ -94,6 +94,40 @@ Each claim says which of these it is, because they are often confused:
     court route entry) and the court page section of `docs/product/DESIGN.md`.
   - Not in this pass: Players sorts (Active / Newest / All), the Live
     scoreboard rows, Phosphor icons, the drawer.
+- Oct 28 (D62; **on a branch**, `claude/bold-cerf-5cudc7`, not merged, not on a
+  device; checked in a rendered web export at 375 / 393 / 430 wide with the
+  visual QA run, gestures not checked). Frontend only.
+  - `app/_layout.tsx`: `fullScreenGestureEnabled` and `animationMatchesGesture`
+    removed from `detailScreenOptions`, so back is the iOS edge swipe only.
+    The Explore drawer rework from the same research (one scroll root, chips in
+    `footerComponent`, one settle of the collapsed snap) is **not** done.
+  - `components/HomeScreen.tsx`: the court block (`HomeCourtTop`,
+    `HomeCourtHero`, `HomeCourtActions`) and today's chart
+    (`CourtBusyChart variant="header"`) are a fixed `View`; only the rest
+    scrolls. Under 720pt tall the chart is the first item of the scroll area.
+  - `app/(tabs)/compete.tsx`: the sport / scope filters and scope label are
+    outside the ranking `ScrollView`.
+  - `components/ScreenHeader.tsx`: checked in = orange bar, `LogoMark
+    tone="dark"`, `CheckInClock`. `context/AppContext.tsx` exposes `checkedInAt`
+    (from `fetchActiveCheckInState`, `services/checkInService.ts`); visibility is
+    the existing profile setting. Manual check-ins end after 45 minutes
+    (D53), so the timer never passes 45:00 for them; auto check-ins run to 1.5 h.
+  - `components/court/CourtParts.tsx`: `LocalMark` is deleted; `LocalButton`,
+    `LocalTag` and a glass `CourtLinkButton` replace it (`Colors.glass`).
+    `components/CourtListItem.tsx` centres its text and uses a sport tint instead
+    of `CourtArt`.
+  - `components/court/HourSlotCard.tsx`, `SlotCard.tsx` and the Schedule page's
+    card (`app/(tabs)/schedule.tsx`): the current hour counts the people on
+    court ("5 on court · 7 planning to go") and shows the checked-in player as
+    Here. The court page's Week is unchanged (its rows are two hours and view
+    only). Models and tests: `lib/slotModel.ts`, `lib/checkInStatus.ts`.
+  - Visual QA (`scripts/visual-qa`): `setCheckedIn` fixture and rows for the
+    checked-in screens. The baseline file is unchanged; `home-feed` and
+    `court-week` were already above it on `main` (hour bars 17-20pt wide).
+  - Not done, noticed: the Home hour bars are still 17-20pt wide (the QA run
+    counts them; the fixed chart now shows them on more screens); the Schedule
+    page's + button covers part of Create on the current-hour card (also on
+    `main`); Here now shows only people checked in at that moment.
 - Oct 18 follow-up 3 (D61; **on a branch**, PR #77, not merged, not on a device;
   not checked in a render, Jesse is verifying). Frontend only.
   - `LocalMark` (`components/court/CourtParts.tsx`): corner quarter-circle with

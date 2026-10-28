@@ -39,7 +39,12 @@ The product should feel premium, athletic, editorial, local, and direct. It shou
   never as a separate pre-form splash, and never a bare `ActivityIndicator`
   anywhere in this flow.
 - Every primary tab header, including Home, uses `ScreenHeader`'s same
-  `LogoMark` + title treatment. Detail pages use `DetailHeader`, whose
+  `LogoMark` + title treatment. While the player is checked in (D62) the whole
+  bar turns `Colors.accent`, the logo inverts to `Colors.background`
+  (`LogoMark tone="dark"`), and the far right shows `CheckInClock`: the time
+  since check-in (m:ss, then h:mm:ss) over PUBLIC / FRIENDS / PRIVATE. A screen's
+  `right` content sits on a dark chip next to it; a label too wide to share the
+  bar (Schedule's week) passes `hideRightWhenLive`. Detail pages use `DetailHeader`, whose
   icon and title gap follows the source lockup geometry. Court detail replaces
   the star with a compact outlined `LOCAL` / `SET LOCAL` control whose selected
   state uses the action accent without becoming a second primary button.
@@ -129,6 +134,15 @@ Rules:
 
 ### Layout rules (hard)
 
+- **Headers and filters stay fixed (D62).** A screen's header, tabs and filter
+  rows never scroll with its list: Home pins the whole court block and the
+  busy-times chart (under 720pt tall the chart scrolls with the page); Compete
+  pins its tabs and sport / scope filters and scrolls only the ranking list.
+  Build it as a fixed `View` above a `ScrollView`, never `stickyHeaderIndices`.
+- **Back is the edge swipe (D62).** Detail screens use the standard iOS edge
+  swipe back; `fullScreenGestureEnabled` is off so a vertical scroll that
+  drifts sideways never leaves the page.
+
 - **The tab bar is a floor for screens (D41); sheets open in front of it
   (D44).** One sheet host at the app root (CourtSheetHost) means every
   `AppBottomSheetModal` covers the tab bar; sheet content pads with
@@ -174,10 +188,12 @@ Canonical component ownership:
 | Court line art (card, page)    | `CourtArt`          |
 | Court 3-number strip           | `MetricStrip` (`size`: page, drawer, card) |
 | Check in / Check out button    | `CheckInButton`     |
-| Court ↗ (drawer → court page)  | `CourtLinkButton`   |
+| Court › (drawer → court page; glass) | `CourtLinkButton`   |
+| Local court (glass house beside Check in) | `LocalButton`   |
+| LOCAL tag on a card            | `LocalTag`          |
+| Checked-in timer + visibility  | `CheckInClock` (inside `ScreenHeader`) |
 | Drawer section label + meta    | `SectionHead`       |
 | Court/Home content tabs        | `CourtTabBar`       |
-| Your local pill                | `LocalPill`         |
 | Sport icon                     | `SportEmblem`       |
 | Player avatar                  | `PlayerAvatar`      |
 | Player list row                | `PlayerSummaryRow`  |
@@ -223,9 +239,13 @@ If one of these elements changes, update the canonical component and search the 
 ## Court card treatment
 
 Since D56 (Oct 15) the Explore card is the court-flow card: `#121216`, 20pt
-corners, one hairline, `CourtArt` top right, sport label and Your local pill,
-Oswald 30 name, city · distance, then On court / Court hours · wk / Locals on
-a darker band. Live courts sort first. The older treatment below is kept for
+corners, one hairline, sport label, Oswald 30 name, city · distance, then On
+court / Court hours · wk / Locals on a darker band. Live courts sort first.
+Since D62 (Oct 28) the name and city are centred, the sport label sits centred
+on the first line with a small LOCAL tag (`LocalTag`) at the right edge when it
+is your local, and the court drawing is gone: a soft sport tint
+(`basketballTint` / `pickleballTint`) fades from the top-right corner instead,
+so nothing is drawn behind the text. The older treatment below is kept for
 history.
 
 Explore court cards use the supplied reference treatment:
@@ -542,11 +562,14 @@ interaction with supported installed primitives and record that decision here.
 
 Do not trade the working product for unfinished complexity. Use established libraries already in the project, improve shared components instead of spot-editing screens, note non-blocking polish, and keep moving toward TestFlight external testing.
 
-Local mark (D60): the logo's corner brackets around a house (`LocalMark`), in the
-corner of the card (Home, Explore card, drawer, court page). Orange house when
-the court is your local, grey house when it isn't; only the house changes. Where
-it is not your local, tapping it makes it your local; once it is, it does
-nothing (Settings changes it). It replaces the "Your local" pill.
+Local court button (D62, replaces the D60 / D61 corner mark): a small glass house
+button (`LocalButton`) to the left of Check in on Home, the Explore drawer and
+the court page header. Orange house when it is your local, light grey when it
+isn't; a tap on a non-local court sets it, on your local it does nothing
+(Settings changes it). The court button (`CourtLinkButton`) is a narrower glass
+chevron to the right. Glass is `Colors.glass` with a `hairlineChrome` border,
+48pt wide, the same height as Check in. The slot is also where saved courts will
+go.
 
 Drawers (D60): the Challenge and Log game drawers are the baseline for every
 form drawer (`RunFlowSheet`, WHERE `CourtSearchPicker`, WHEN `RecentDatePicker`

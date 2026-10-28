@@ -7,6 +7,42 @@ import { LogoLockup, LogoMark } from "@/components/brand/LogoMark";
 import { Colors } from "@/constants/colors";
 import { Layout, Space } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
+import { useApp } from "@/context/AppContext";
+import {
+  checkInVisibilityLabel,
+  formatCheckInElapsed,
+} from "@/lib/checkInStatus";
+
+/**
+ * How long you have been checked in and who can see it: the far right of the
+ * orange header. Ticks once a second; digits are tabular so it never jitters.
+ */
+function CheckInClock({
+  startedAt,
+  visibility,
+}: {
+  startedAt: string | null;
+  visibility: "public" | "friends" | "private";
+}) {
+  const [now, setNow] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const elapsed = startedAt ? formatCheckInElapsed(startedAt, now) : "0:00";
+  return (
+    <View
+      accessibilityLabel={`Checked in for ${elapsed}. Visible to ${checkInVisibilityLabel(visibility).toLowerCase()}.`}
+      accessible
+      style={styles.clock}
+    >
+      <Text style={styles.clockTime}>{elapsed}</Text>
+      <Text style={styles.clockVisibility}>
+        {checkInVisibilityLabel(visibility)}
+      </Text>
+    </View>
+  );
+}
 
 /**
  * Canonical tab-screen header: LC mark + compact Inter title lockup on a
@@ -22,6 +58,7 @@ export function ScreenHeader({
   wordmark = false,
   onBack,
   onLogoPress,
+  hideRightWhenLive = false,
 }: {
   title: string;
   subtitle?: string;
@@ -29,11 +66,18 @@ export function ScreenHeader({
   wordmark?: boolean;
   onBack?: () => void;
   onLogoPress?: () => void;
+  /** Drop the right slot while checked in, for a label too wide to share the bar with the timer. */
+  hideRightWhenLive?: boolean;
 }) {
   const { top } = useSafeAreaInsets();
+  const { checkedInCourtId, checkedInAt, visibility } = useApp();
+  const live = Boolean(checkedInCourtId);
+  const tone = live ? "dark" : "light";
   const topPad = Platform.OS === "web" ? 44 : top;
   return (
-    <View style={[styles.header, { paddingTop: topPad }]}>
+    <View
+      style={[styles.header, live && styles.headerLive, { paddingTop: topPad }]}
+    >
       <View style={styles.contentRow}>
         <View style={styles.titleSlot}>
           {wordmark ? (
@@ -52,7 +96,7 @@ export function ScreenHeader({
                     pressed && styles.pressed,
                   ]}
                 >
-                  <LogoMark size={24} variant="back" />
+                  <LogoMark size={24} tone={tone} variant="back" />
                 </Pressable>
               ) : onLogoPress ? (
                 <Pressable
@@ -63,12 +107,15 @@ export function ScreenHeader({
                   onPress={onLogoPress}
                   style={({ pressed }) => pressed && styles.pressed}
                 >
-                  <LogoMark size={24} />
+                  <LogoMark size={24} tone={tone} />
                 </Pressable>
               ) : (
-                <LogoMark size={24} />
+                <LogoMark size={24} tone={tone} />
               )}
-              <Text numberOfLines={1} style={styles.title}>
+              <Text
+                numberOfLines={1}
+                style={[styles.title, live && styles.titleLive]}
+              >
                 {title}
               </Text>
             </View>
@@ -79,7 +126,14 @@ export function ScreenHeader({
             </Text>
           ) : null}
         </View>
-        {right ? <View style={styles.rightSlot}>{right}</View> : null}
+        {right && !(live && hideRightWhenLive) ? (
+          <View style={[styles.rightSlot, live && styles.rightSlotLive]}>
+            {right}
+          </View>
+        ) : null}
+        {live ? (
+          <CheckInClock startedAt={checkedInAt} visibility={visibility} />
+        ) : null}
       </View>
     </View>
   );
@@ -165,6 +219,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,
   },
+  // Checked in: the whole bar turns orange and the logo inverts.
+  headerLive: {
+    backgroundColor: Colors.accent,
+    borderBottomColor: Colors.accent,
+  },
   contentRow: {
     height: Layout.headerContentHeight,
     paddingHorizontal: Layout.screenGutter,
@@ -182,6 +241,34 @@ const styles = StyleSheet.create({
     marginLeft: Space.md,
     alignItems: "flex-end",
     justifyContent: "center",
+  },
+  // The screen's own action sits on a dark chip so its colours still read on orange.
+  rightSlotLive: {
+    minWidth: 0,
+    paddingHorizontal: Space.sm,
+    borderRadius: 9,
+    backgroundColor: Colors.background,
+  },
+  clock: {
+    minWidth: 76,
+    marginLeft: Space.md,
+    alignItems: "flex-end",
+    justifyContent: "center",
+  },
+  clockTime: {
+    fontFamily: Typography.headingSemiBold,
+    fontSize: 22,
+    lineHeight: 24,
+    letterSpacing: 0.4,
+    color: Colors.background,
+    fontVariant: ["tabular-nums"],
+  },
+  clockVisibility: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    lineHeight: 13,
+    letterSpacing: 1.4,
+    color: Colors.background,
   },
   lockup: {
     flexDirection: "row",
@@ -222,6 +309,7 @@ const styles = StyleSheet.create({
     lineHeight: 25,
     textTransform: "uppercase" as const,
   },
+  titleLive: { color: Colors.background },
   subtitle: {
     fontFamily: Typography.bodyMedium,
     fontSize: 8,

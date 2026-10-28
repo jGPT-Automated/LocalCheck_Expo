@@ -43,6 +43,7 @@ export default function CompeteScreen() {
     localCourtId,
     localCourt,
     courts,
+    checkedInCourtId,
     currentUser,
     getFriendsList,
     visibility,
@@ -66,7 +67,9 @@ export default function CompeteScreen() {
     /** An accepted ranked challenge: Log Game opens filled in from it. */
     challengeId?: string;
   }>();
-  const [linkedChallenge, setLinkedChallenge] = useState<Challenge | null>(null);
+  const [linkedChallenge, setLinkedChallenge] = useState<Challenge | null>(
+    null,
+  );
   const [challengeCourt, setChallengeCourt] = useState<Court | null>(null);
   const challengeId =
     typeof params.challengeId === "string" ? params.challengeId : null;
@@ -143,12 +146,13 @@ export default function CompeteScreen() {
       if (mounted) setGpsAnchorCourt(nearby[0] ?? null);
       return nearby[0]?.id ?? null;
     };
-    void resolveAnchor().then((anchorCourtId) =>
-      fetchLeaderboard(scope, anchorCourtId, rankingSport, {
-        viewerId: currentUser.id,
-        friendIds: friendIdsKey ? friendIdsKey.split(",") : [],
-      }),
-    )
+    void resolveAnchor()
+      .then((anchorCourtId) =>
+        fetchLeaderboard(scope, anchorCourtId, rankingSport, {
+          viewerId: currentUser.id,
+          friendIds: friendIdsKey ? friendIdsKey.split(",") : [],
+        }),
+      )
       .then((players) => {
         if (!mounted) return;
         setAllPlayers(players);
@@ -159,7 +163,15 @@ export default function CompeteScreen() {
     return () => {
       mounted = false;
     };
-  }, [scope, localCourtId, rankingSport, currentUser.elo, currentUser.id, friendIdsKey, deviceCoord]);
+  }, [
+    scope,
+    localCourtId,
+    rankingSport,
+    currentUser.elo,
+    currentUser.id,
+    friendIdsKey,
+    deviceCoord,
+  ]);
 
   // Profile/QR deep links are identity lookups, not leaderboard lookups. A
   // valid opponent can be outside the current local/regional/ranked scope.
@@ -224,9 +236,11 @@ export default function CompeteScreen() {
                   #{myRank}
                   <Text style={styles.myRankTotal}>/{allPlayers.length}</Text>
                 </Text>
-                <Text numberOfLines={1} style={styles.myRankLabel}>
-                  {rankContext}
-                </Text>
+                {checkedInCourtId ? null : (
+                  <Text numberOfLines={1} style={styles.myRankLabel}>
+                    {rankContext}
+                  </Text>
+                )}
               </View>
             ) : null}
           </View>
@@ -365,12 +379,8 @@ function LeaderboardView({
   }, [currentUserId, myRank, players, showMyRank]);
 
   return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{
-        paddingBottom: Platform.OS === "web" ? 84 : bottom + 100,
-      }}
-    >
+    // The sport and scope filters stay fixed; only the ranking list scrolls.
+    <View style={styles.board}>
       {/* Sport and scope are one filter decision, presented on one row. */}
       <View style={styles.filterRow}>
         <View style={styles.sportFilter}>
@@ -440,107 +450,117 @@ function LeaderboardView({
         )}
       </View>
 
-      {loading ? (
-        <View style={styles.emptyState}>
-          <ActivityIndicator color={Colors.accent} />
-        </View>
-      ) : rankedRows.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>NO PLAYERS IN THIS SCOPE</Text>
-        </View>
-      ) : (
-        rankedRows.map((row) => {
-          if (row.kind === "hidden") {
+      <ScrollView
+        contentContainerStyle={{
+          paddingBottom: Platform.OS === "web" ? 84 : bottom + 100,
+        }}
+        showsVerticalScrollIndicator={false}
+        style={styles.boardList}
+      >
+        {loading ? (
+          <View style={styles.emptyState}>
+            <ActivityIndicator color={Colors.accent} />
+          </View>
+        ) : rankedRows.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>NO PLAYERS IN THIS SCOPE</Text>
+          </View>
+        ) : (
+          rankedRows.map((row) => {
+            if (row.kind === "hidden") {
+              return (
+                <Pressable
+                  key="current-user-hidden"
+                  onPress={() => router.push(`/localplus`)}
+                  style={[styles.leaderRow, styles.hiddenLeaderRow]}
+                >
+                  <View style={styles.hiddenDot} />
+                  <Text style={styles.rank}>{row.rank}</Text>
+                  <PlayerAvatar
+                    initials={currentUser.avatar}
+                    name={currentUser.name}
+                    playerId={currentUser.id}
+                    size={40}
+                  />
+                  <View style={styles.playerInfo}>
+                    <View style={styles.playerNameRow}>
+                      <Text numberOfLines={1} style={styles.hiddenPlayerName}>
+                        {currentUser.name}
+                      </Text>
+                      <View style={styles.youChip}>
+                        <Text style={styles.youChipText}>YOU</Text>
+                      </View>
+                    </View>
+                    <View style={styles.playerBadges}>
+                      <Text style={[styles.tierText, { color: Colors.accent }]}>
+                        {rankContext}
+                      </Text>
+                      <Text style={styles.wlText}>
+                        {currentUser.wins}W · {currentUser.losses}L
+                      </Text>
+                    </View>
+                  </View>
+                  <EloStat leaderboard value={currentUser.elo} />
+                </Pressable>
+              );
+            }
+
+            const { player, rank } = row;
             return (
               <Pressable
-                key="current-user-hidden"
-                onPress={() => router.push(`/localplus`)}
-                style={[styles.leaderRow, styles.hiddenLeaderRow]}
+                key={player.id}
+                style={[styles.leaderRow, rank === 1 && styles.leaderRowFirst]}
+                onPress={() => router.push(`/player/${player.id}`)}
               >
-                <View style={styles.hiddenDot} />
-                <Text style={styles.rank}>{row.rank}</Text>
+                <Text style={styles.rank}>{rank}</Text>
                 <PlayerAvatar
-                  initials={currentUser.avatar}
-                  name={currentUser.name}
-                  playerId={currentUser.id}
+                  initials={player.avatar}
+                  name={player.name}
+                  playerId={player.id}
                   size={40}
+                  tag={player.tag}
+                  foregroundColor={rank === 1 ? Colors.black : undefined}
+                  friend={isFriend(player.id)}
+                  style={rank === 1 ? styles.leaderAvatarFirst : undefined}
                 />
                 <View style={styles.playerInfo}>
                   <View style={styles.playerNameRow}>
-                    <Text numberOfLines={1} style={styles.hiddenPlayerName}>
-                      {currentUser.name}
+                    <Text style={styles.playerName} numberOfLines={1}>
+                      {player.name}
                     </Text>
-                    <View style={styles.youChip}>
-                      <Text style={styles.youChipText}>YOU</Text>
-                    </View>
                   </View>
                   <View style={styles.playerBadges}>
-                    <Text style={[styles.tierText, { color: Colors.accent }]}>
-                      {rankContext}
+                    <Text
+                      style={[
+                        styles.tierText,
+                        {
+                          color: player.tag
+                            ? Colors.accent
+                            : getTierColor(player.tier),
+                        },
+                      ]}
+                    >
+                      {playerRankLabel(player)}
                     </Text>
                     <Text style={styles.wlText}>
-                      {currentUser.wins}W · {currentUser.losses}L
+                      {player.wins}W · {player.losses}L
                     </Text>
                   </View>
                 </View>
-                <EloStat leaderboard value={currentUser.elo} />
+                <EloStat leaderboard value={player.elo} />
               </Pressable>
             );
-          }
-
-          const { player, rank } = row;
-          return (
-            <Pressable
-              key={player.id}
-              style={[styles.leaderRow, rank === 1 && styles.leaderRowFirst]}
-              onPress={() => router.push(`/player/${player.id}`)}
-            >
-              <Text style={styles.rank}>{rank}</Text>
-              <PlayerAvatar
-                initials={player.avatar}
-                name={player.name}
-                playerId={player.id}
-                size={40}
-                tag={player.tag}
-                foregroundColor={rank === 1 ? Colors.black : undefined}
-                friend={isFriend(player.id)}
-                style={rank === 1 ? styles.leaderAvatarFirst : undefined}
-              />
-              <View style={styles.playerInfo}>
-                <View style={styles.playerNameRow}>
-                  <Text style={styles.playerName} numberOfLines={1}>
-                    {player.name}
-                  </Text>
-                </View>
-                <View style={styles.playerBadges}>
-                  <Text
-                    style={[
-                      styles.tierText,
-                      {
-                        color: player.tag
-                          ? Colors.accent
-                          : getTierColor(player.tier),
-                      },
-                    ]}
-                  >
-                    {playerRankLabel(player)}
-                  </Text>
-                  <Text style={styles.wlText}>
-                    {player.wins}W · {player.losses}L
-                  </Text>
-                </View>
-              </View>
-              <EloStat leaderboard value={player.elo} />
-            </Pressable>
-          );
-        })
-      )}
-    </ScrollView>
+          })
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  board: { flex: 1, minHeight: 0 },
+  boardList: { flex: 1, minHeight: 0 },
   headerTools: { flexDirection: "row", alignItems: "center", gap: 8 },
   myRankBadge: {
     alignItems: "flex-end",
@@ -747,5 +767,4 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     textTransform: "uppercase" as const,
   },
-
 });

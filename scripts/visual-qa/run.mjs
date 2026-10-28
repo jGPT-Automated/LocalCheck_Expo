@@ -29,7 +29,7 @@ process.env.TZ = "America/Chicago";
 
 const { chromium } = await import("playwright");
 const { handleAuth, handleRest, SESSION } = await import("./mock.mjs");
-const { setOnboarding } = await import("./fixtures.mjs");
+const { setCheckedIn, setOnboarding } = await import("./fixtures.mjs");
 const { SCREENS: ALL_SCREENS } = await import("./screens.mjs");
 // QA_ONLY=home,court-week runs just the screens whose names contain those words.
 const only = process.env.QA_ONLY?.split(",").filter(Boolean);
@@ -83,6 +83,7 @@ for (const vp of VIEWPORTS.filter((v) => !sizes || sizes.includes(v.name))) {
   mkdirSync(join(outDir, vp.name), { recursive: true });
   for (const screen of SCREENS) {
     setOnboarding(Boolean(screen.onboarding));
+    setCheckedIn(Boolean(screen.checkedIn));
     await page.goto(`${base}${screen.path}`, { waitUntil: "networkidle" }).catch(() => {});
     await page.waitForTimeout(2500);
     for (const a of screen.actions ?? []) {

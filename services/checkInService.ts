@@ -185,6 +185,8 @@ export interface ActiveCheckInState {
   visibility: "public" | "friends" | "private";
   /** true = started by the local-court geofence (D35). */
   auto: boolean;
+  /** When the check-in started (ISO), for the header timer. */
+  checkedInAt: string;
 }
 
 /** Get the user's fresh active check-in and its persisted privacy mode. */
@@ -194,7 +196,7 @@ export async function fetchActiveCheckInState(
   try {
     const { data, error } = await supabase
       .from("check_ins")
-      .select("court_id,visibility,source")
+      .select("court_id,visibility,source,checked_in_at")
       .eq("user_id", userId)
       .is("checked_out_at", null)
       .or(freshFilter())
@@ -202,8 +204,18 @@ export async function fetchActiveCheckInState(
       .limit(1)
       .maybeSingle();
     if (error || !data) return null;
-    const row = data as { court_id: string; visibility: ActiveCheckInState["visibility"]; source?: string };
-    return { courtId: row.court_id, visibility: row.visibility, auto: row.source === "auto" };
+    const row = data as {
+      court_id: string;
+      visibility: ActiveCheckInState["visibility"];
+      source?: string;
+      checked_in_at: string;
+    };
+    return {
+      courtId: row.court_id,
+      visibility: row.visibility,
+      auto: row.source === "auto",
+      checkedInAt: row.checked_in_at,
+    };
   } catch {
     return null;
   }

@@ -1,8 +1,8 @@
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { CourtArt } from "@/components/court/CourtArt";
-import { LocalMark, MetricStrip, SportLabel } from "@/components/court/CourtParts";
+import { LocalTag, MetricStrip, SportLabel } from "@/components/court/CourtParts";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
 import type { Court } from "@/constants/data";
@@ -17,9 +17,11 @@ interface CourtListItemProps {
 }
 
 /**
- * Canonical Explore court card (court-flow design): court trace top right,
- * sport + Your local, the name, city · distance, then On court / Court hours
- * · wk / Locals. Actions live in the court drawer, so the card has none.
+ * Canonical Explore court card: a soft sport tint in the top corner, the sport
+ * (and LOCAL when it is yours) on the first line, then the name and city ·
+ * distance centred, then On court / Court hours · wk / Locals. No court
+ * drawing behind the text. Actions live in the court drawer, so the card has
+ * none.
  */
 export function CourtListItem({ court, onPress, isLocalCourt, hoursLabel }: CourtListItemProps) {
   const active = court.activeCount ?? 0;
@@ -38,12 +40,18 @@ export function CourtListItem({ court, onPress, isLocalCourt, hoursLabel }: Cour
       style={styles.card}
       testID={`court-${court.id}`}
     >
-      <CourtArt sport={court.sport} />
+      <LinearGradient
+        colors={[court.sport === "PICKLEBALL" ? Colors.pickleballTint : Colors.basketballTint, "transparent"]}
+        end={{ x: 0.35, y: 0.7 }}
+        pointerEvents="none"
+        start={{ x: 1, y: 0 }}
+        style={StyleSheet.absoluteFill}
+      />
       <View style={styles.metaRow}>
         <SportLabel sport={court.sport} />
+        {isLocalCourt ? <View style={styles.localTag}><LocalTag /></View> : null}
       </View>
-      {isLocalCourt ? <LocalMark active /> : null}
-      <Text numberOfLines={1} style={styles.name}>
+      <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
         {court.shortName || court.name}
       </Text>
       {place ? <Text numberOfLines={1} style={styles.place}>{place}</Text> : null}
@@ -77,11 +85,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
   },
+  localTag: { position: "absolute", right: 18 },
   name: {
     paddingTop: 8,
     paddingHorizontal: 18,
+    textAlign: "center",
     fontFamily: Typography.headingBold,
     fontSize: 30,
     lineHeight: 32,
@@ -91,6 +101,6 @@ const styles = StyleSheet.create({
     textShadowColor: Colors.sheet,
     textShadowRadius: 6,
   },
-  place: { paddingTop: 6, paddingHorizontal: 18, fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
+  place: { paddingTop: 6, paddingHorizontal: 18, textAlign: "center", fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
   strip: { marginTop: 14 },
 });

@@ -7,6 +7,7 @@ import { formatForMaxPlayers } from "@/components/schedule/scheduledGameModel";
 import { Colors, Radius } from "@/constants/colors";
 import type { GameRun } from "@/constants/data";
 import { Typography } from "@/constants/typography";
+import { slotMetaLabel } from "@/lib/slotModel";
 
 export interface SlotAttendee {
   id: string;
@@ -36,6 +37,8 @@ export function SlotCard({
   mine,
   mode,
   current = false,
+  here = 0,
+  checkedIn = false,
   saving = false,
   notice = null,
   onToggle,
@@ -50,6 +53,10 @@ export function SlotCard({
   mode: SlotMode;
   /** The slot is happening now: the button says Here, otherwise Going. */
   current?: boolean;
+  /** People on court right now (already in `attendees`); only the current slot has any. */
+  here?: number;
+  /** You are checked in at this court: the Here button is on and checking out turns it off. */
+  checkedIn?: boolean;
   saving?: boolean;
   notice?: string | null;
   onToggle?: () => void;
@@ -60,25 +67,26 @@ export function SlotCard({
   const extra = hidden + Math.max(0, attendees.length - AVATARS_MAX);
   const acts = mode !== "view";
   const run = runs[0];
+  const on = mine || checkedIn;
   const showBody = acts || total > 0 || Boolean(run);
   return (
     <View style={styles.card}>
       <View style={styles.head}>
         <Text numberOfLines={1} style={styles.title}>{title}</Text>
-        <Text style={styles.meta}>{total} planning to go</Text>
+        <Text style={styles.meta}>{slotMetaLabel({ current, here, planned: Math.max(0, total - here) })}</Text>
       </View>
       {showBody ? (
         <View style={styles.body}>
           {acts ? (
             <Pressable
-              accessibilityLabel={mine ? "I'm not coming" : current ? "I'm here" : "I'm going"}
+              accessibilityLabel={checkedIn ? "You're here" : mine ? "I'm not coming" : current ? "I'm here" : "I'm going"}
               accessibilityRole="button"
-              accessibilityState={{ busy: saving, selected: mine }}
-              disabled={saving}
+              accessibilityState={{ busy: saving, selected: on, disabled: checkedIn }}
+              disabled={saving || checkedIn}
               onPress={onToggle}
-              style={[styles.action, mine && styles.actionOn]}
+              style={[styles.action, on && styles.actionOn]}
             >
-              <Text style={[styles.actionText, mine && styles.actionTextOn]}>{current ? "Here" : "Going"}</Text>
+              <Text style={[styles.actionText, on && styles.actionTextOn]}>{current ? "Here" : "Going"}</Text>
             </Pressable>
           ) : null}
           <ScrollView contentContainerStyle={styles.avatars} horizontal showsHorizontalScrollIndicator={false} style={styles.avatarScroll}>

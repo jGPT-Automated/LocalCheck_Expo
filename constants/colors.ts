@@ -63,6 +63,8 @@ export const Colors = {
   dashed: "rgba(242,242,246,0.14)",
   liveInk: "#FF7B4B",
   inkSoft: "#D1D1D9",
+  // Frosted fill for the small icon buttons beside Check in.
+  glass: "rgba(242,242,246,0.08)",
   checkOutDot: "#4D4D56",
   // Planned-visit heat ramp (Week heatmap, drawer Today bars): fewer → more.
   heat1: "rgba(252,76,2,0.2)",

@@ -3,6 +3,7 @@ import React from "react";
 import { SlotCard, type SlotAttendee } from "@/components/court/SlotCard";
 import type { Court } from "@/constants/data";
 import { useApp } from "@/context/AppContext";
+import { usePresence } from "@/context/CourtPresenceContext";
 import { fetchCourtPlannedTimes } from "@/services/plannedVisitService";
 
 function dayName(dayOffset: number, date: Date): string {
@@ -20,7 +21,8 @@ function hourName(hour: number): string {
  * the bar you tap. Same card as the court page's Week.
  */
 export function HourSlotCard({ court, dayOffset, hour }: { court: Court; dayOffset: number; hour: number }) {
-  const { currentUser, plannedVisits, runs, addPlannedVisit, removePlannedVisit } = useApp();
+  const { currentUser, plannedVisits, runs, checkedInCourtId, addPlannedVisit, removePlannedVisit } = useApp();
+  const { roster } = usePresence(court.id);
   const [anonymous, setAnonymous] = React.useState(0);
   const [saving, setSaving] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
@@ -45,7 +47,22 @@ export function HourSlotCard({ court, dayOffset, hour }: { court: Court; dayOffs
     };
   }, [court.id, from, to, plannedVisits]);
 
+  const current = from <= Date.now() && Date.now() < to;
   const attendees: SlotAttendee[] = [];
+  // The hour you are in starts with the people on court right now.
+  let here = 0;
+  if (current) {
+    for (const player of roster) {
+      if (attendees.some((a) => a.id === player.id)) continue;
+      here += 1;
+      attendees.push({
+        id: player.id,
+        name: player.name,
+        initials: player.avatar,
+        isMine: player.id === currentUser.id,
+      });
+    }
+  }
   let plannedVisible = 0;
   for (const visit of plannedVisits) {
     if (visit.courtId !== court.id || !inSlot(visit.plannedAtIso)) continue;
@@ -69,6 +86,7 @@ export function HourSlotCard({ court, dayOffset, hour }: { court: Court; dayOffs
     }
   }
   const mine = attendees.find((a) => a.isMine && a.visitId);
+  const checkedInHere = current && checkedInCourtId === court.id;
   const over = to <= Date.now();
 
   const toggle = async () => {
@@ -86,7 +104,9 @@ export function HourSlotCard({ court, dayOffset, hour }: { court: Court; dayOffs
   return (
     <SlotCard
       attendees={attendees}
-      current={from <= Date.now() && Date.now() < to}
+      checkedIn={checkedInHere}
+      current={current}
+      here={here}
       hidden={Math.max(0, anonymous - plannedVisible)}
       mine={Boolean(mine)}
       mode={over ? "view" : "plan"}
