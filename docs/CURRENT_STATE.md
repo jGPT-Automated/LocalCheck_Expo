@@ -1,5 +1,8 @@
 # Current state
 
+- Oct 29: handoff for the next agent with every requirement Jesse gave on
+  this branch: `docs/plans/2026-10-29-pr83-handoff.md`. His verdict: the D63
+  visuals are not approved.
 - Oct 29: the scroll/gesture commit below (`98e88e8`, PR #84) is ported onto
   `claude/bold-cerf-5cudc7` (PR #83) and recorded as D64. The drawer keeps its
   one root scroller, pinned chips footer and fixed peek, with the D63 content;
