@@ -12,6 +12,7 @@ import {
   StyleSheet,
   Text,
   type TextStyle,
+  useWindowDimensions,
   View,
   type ViewStyle,
 } from "react-native";
@@ -284,6 +285,9 @@ export function CourtSummary({
 }) {
   const card = size === "card";
   const live = onCourt > 0;
+  // A size down on narrow phones (iPhone SE/mini) so ordinary names stay on
+  // one line everywhere, including the web preview, which can't shrink text.
+  const narrow = useWindowDimensions().width < 390;
   return (
     <View style={style}>
       <SportPlaceRow place={place} sport={sport} style={styles.summaryMeta} />
@@ -294,7 +298,7 @@ export function CourtSummary({
           adjustsFontSizeToFit
           minimumFontScale={0.6}
           numberOfLines={2}
-          style={[styles.summaryName, card && styles.summaryNameCard]}
+          style={[styles.summaryName, narrow && styles.summaryNameNarrow, card && styles.summaryNameCard]}
         >
           {name}
         </Text>
@@ -443,6 +447,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     color: Colors.text,
   },
+  summaryNameNarrow: { fontSize: 29, lineHeight: 31, letterSpacing: -0.8 },
   summaryNameCard: { fontSize: 26, lineHeight: 28, letterSpacing: -0.7 },
   summaryLive: { alignItems: "flex-end", gap: 4 },
   summaryLiveValue: { fontFamily: Typography.headingSemiBold, fontSize: 32, lineHeight: 33, letterSpacing: -0.6, color: Colors.text, fontVariant: ["tabular-nums"] },
