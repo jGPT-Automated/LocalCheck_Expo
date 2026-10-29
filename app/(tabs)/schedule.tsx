@@ -1073,33 +1073,34 @@ export default function ScheduleScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader
-        title="SCHEDULE"
-        right={
-          <Pressable
-            accessibilityHint="Pick another court"
-            accessibilityLabel={court ? `Court, ${court.shortName || court.name}` : "Pick a court"}
-            accessibilityRole="button"
-            hitSlop={8}
-            onPress={() => setShowPicker(true)}
-            style={({ pressed }) => [styles.courtPill, pressed && styles.courtSelectorPressed]}
-            testID="schedule-court-selector"
-          >
-            {court ? (
-              <View
-                style={[
-                  styles.courtPillDot,
-                  { backgroundColor: court.sport === "PICKLEBALL" ? Colors.pickleballMeta : Colors.basketballMeta },
-                ]}
-              />
-            ) : null}
-            <Text numberOfLines={1} style={styles.courtPillText}>
-              {court ? court.shortName || court.name : "Pick a court"}
-            </Text>
-            <Feather color={Colors.textSecondary} name="chevron-down" size={14} />
-          </Pressable>
-        }
-      />
+      <ScreenHeader title="SCHEDULE" />
+
+      {/* The court: its own row so a long name never shares space with the
+          title (D63). */}
+      <View style={styles.courtRow}>
+        <Pressable
+          accessibilityHint="Pick another court"
+          accessibilityLabel={court ? `Court, ${court.shortName || court.name}` : "Pick a court"}
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={() => setShowPicker(true)}
+          style={({ pressed }) => [styles.courtPill, pressed && styles.courtSelectorPressed]}
+          testID="schedule-court-selector"
+        >
+          {court ? (
+            <View
+              style={[
+                styles.courtPillDot,
+                { backgroundColor: court.sport === "PICKLEBALL" ? Colors.pickleballMeta : Colors.basketballMeta },
+              ]}
+            />
+          ) : null}
+          <Text numberOfLines={1} style={styles.courtPillText}>
+            {court ? court.shortName || court.name : "Pick a court"}
+          </Text>
+          <Feather color={Colors.textSecondary} name="chevron-down" size={14} />
+        </Pressable>
+      </View>
 
       {/* The page scrolls: square hours at a readable size, never squeezed
           to fit (Oct 29). */}
@@ -1453,10 +1454,11 @@ const styles = StyleSheet.create({
   scheduleBodyContentEdit: { paddingBottom: 8 },
   pressed: { backgroundColor: Colors.surfaceHigh },
 
+  courtRow: { paddingHorizontal: 20, paddingTop: Space.md, paddingBottom: Space.xs, flexDirection: "row" },
   courtPill: {
-    maxWidth: 190,
-    height: 36,
-    paddingHorizontal: 14,
+    maxWidth: "100%",
+    height: 44,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,

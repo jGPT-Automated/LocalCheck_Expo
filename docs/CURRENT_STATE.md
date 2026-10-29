@@ -150,7 +150,7 @@ Each claim says which of these it is, because they are often confused:
     next, then the chips. Recent activity is gone from the drawer.
   - `components/CourtListItem.tsx`: thin card, `CourtSummary` on the sport
     tint.
-  - `app/(tabs)/schedule.tsx`: court picker pill in the header (the week
+  - `app/(tabs)/schedule.tsx`: court picker pill on its own row under the header (the week
     label is gone); square hours sized by the width, numbers centred, heat
     ramp, today's column outlined, dashed NOW line, white game dot; the page
     scrolls.

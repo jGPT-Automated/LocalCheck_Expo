@@ -288,10 +288,12 @@ export function CourtSummary({
     <View style={style}>
       <SportPlaceRow place={place} sport={sport} style={styles.summaryMeta} />
       <View style={styles.summaryRow}>
+        {/* Shrinks to fit on iOS; where text can't shrink (web) a long name
+            wraps to a second line instead of clipping. */}
         <Text
           adjustsFontSizeToFit
           minimumFontScale={0.6}
-          numberOfLines={1}
+          numberOfLines={2}
           style={[styles.summaryName, card && styles.summaryNameCard]}
         >
           {name}

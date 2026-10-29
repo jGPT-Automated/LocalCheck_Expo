@@ -120,7 +120,7 @@ export function SlotCard({
 
       {run ? (
         <GameRow meId={meId} run={run} />
-      ) : mode === "full" || onCreate ? (
+      ) : acts ? (
         <OpenRunRow onJoin={onCreate} sport={sport} />
       ) : null}
 

@@ -104,7 +104,7 @@ decisions supersede older entries below wherever they disagree.
   next. The expanded drawer is the same dashboard. The court feed stays on the
   court page. Schedule keeps days across and hours down but with square hours
   on the reference's solid brown-to-orange ramp, numbers centred, today's
-  column outlined, a dashed NOW line, the court picker in the header, bigger
+  column outlined, a dashed NOW line, the court picker as a pill under the header, bigger
   chips, and the same hour card under the grid ("7 PM", no "Today ·"). The
   court page gets a bookmark top right, on for your local court; saving other
   courts and open runs that fill themselves are not built yet (no backend in

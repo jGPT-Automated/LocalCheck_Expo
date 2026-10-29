@@ -184,7 +184,10 @@ export function CourtSchedulePanel({
   const myVisit = selectedEntry?.attendees.find((attendee) => attendee.isMine && attendee.visitId);
   const selectedDate = new Date(weekDays[selected.day]);
   selectedDate.setHours(ROW_HOURS[selected.row], 0, 0, 0);
-  const slotTitle = `${selected.day === todayIndex ? "Today" : DAYS[selectedDate.getDay()]} · ${longLabel(ROW_HOURS[selected.row])}`;
+  const slotTitle =
+    selected.day === todayIndex
+      ? longLabel(ROW_HOURS[selected.row])
+      : `${DAYS[selectedDate.getDay()]} · ${longLabel(ROW_HOURS[selected.row])}`;
 
   return (
     <ScrollView
