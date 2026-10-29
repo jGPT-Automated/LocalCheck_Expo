@@ -1,12 +1,12 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { formatForMaxPlayers } from "@/components/schedule/scheduledGameModel";
 import { Colors, Radius } from "@/constants/colors";
-import type { CourtSport, GameRun, Player } from "@/constants/data";
+import type { CourtSport, GameRun } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { slotMetaLabel } from "@/lib/slotModel";
 
@@ -19,19 +19,19 @@ export interface SlotAttendee {
 }
 
 /**
- * view: just look (the court page's Week). plan: + to say you're going
- * (Home, the drawer). full: + and a game action (the Schedule page).
+ * view: just look (the court page's Week). plan / full: I'm going and the
+ * hour's game or open run (Home, the drawer, Schedule).
  */
 export type SlotMode = "view" | "plan" | "full";
 
 const AVATARS_MAX = 5;
-const TILE = 44;
+const FACE = 36;
 
 /**
- * One hour at a court (the Oct 29 schedule reference): the hour and how many
- * are going on top, the people as tiles with a + to add yourself, then the
- * hour's game, or an open run with its empty spots when nobody has scheduled
- * one. `bare` drops the panel so it can sit inside another card (Today).
+ * One hour at a court (Oct 29 Home reference): the hour with how many are
+ * coming beside it, the people on the left and I'm going on the right, then
+ * the hour's game with Join, or an open run when nobody has scheduled one.
+ * `bare` drops the panel so it can sit inside another card (Today).
  */
 export function SlotCard({
   title,
@@ -45,7 +45,6 @@ export function SlotCard({
   saving = false,
   notice = null,
   onToggle,
-  onCreate,
   runs,
   sport = "BASKETBALL",
   meId,
@@ -57,17 +56,15 @@ export function SlotCard({
   hidden: number;
   mine: boolean;
   mode: SlotMode;
-  /** The slot is happening now: the + means "I'm here". */
+  /** The slot is happening now: the button means "I'm here". */
   current?: boolean;
   /** People on court right now, counted but not listed (Here now lists them); only the current slot has any. */
   here?: number;
-  /** You are checked in at this court: the + is on and checking out turns it off. */
+  /** You are checked in at this court: the button is on and checking out turns it off. */
   checkedIn?: boolean;
   saving?: boolean;
   notice?: string | null;
   onToggle?: () => void;
-  /** Starts a game in this hour (the open run's Join until open runs are live). */
-  onCreate?: () => void;
   runs: GameRun[];
   sport?: CourtSport;
   meId?: string;
@@ -78,6 +75,7 @@ export function SlotCard({
   const acts = mode !== "view";
   const run = runs[0];
   const on = mine || checkedIn;
+  const people = attendees.length > 0 || extra > 0;
   return (
     <View style={bare ? null : styles.card}>
       <View style={styles.head}>
@@ -85,43 +83,49 @@ export function SlotCard({
         <Text numberOfLines={1} style={styles.meta}>{slotMetaLabel({ current, here, planned: total })}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.tiles} horizontal showsHorizontalScrollIndicator={false} style={styles.tileRow}>
-        {attendees.slice(0, AVATARS_MAX).map((attendee) => (
-          <Pressable
-            accessibilityLabel={attendee.isMine ? "You" : attendee.name}
-            accessibilityRole="button"
-            key={attendee.id}
-            onPress={() => router.push(`/player/${attendee.id}`)}
-          >
-            <PlayerAvatar accent={attendee.isMine} initials={attendee.initials} name={attendee.name} playerId={attendee.id} size={TILE} />
-          </Pressable>
-        ))}
-        {extra > 0 ? (
-          <View style={styles.more}>
-            <Text style={styles.moreText}>+{extra}</Text>
-          </View>
-        ) : null}
-        {acts ? (
-          <Pressable
-            accessibilityLabel={checkedIn ? "You're here" : mine ? "I'm not coming" : current ? "I'm here" : "I'm going"}
-            accessibilityRole="button"
-            accessibilityState={{ busy: saving, selected: on, disabled: checkedIn }}
-            disabled={saving || checkedIn}
-            onPress={onToggle}
-            style={({ pressed }) => [styles.add, on && styles.addOn, pressed && styles.pressed]}
-          >
-            <Feather color={on ? Colors.background : Colors.text} name={on ? "check" : "plus"} size={18} />
-          </Pressable>
-        ) : null}
-        {!acts && attendees.length === 0 && extra === 0 ? (
-          <View style={styles.emptyTile} />
-        ) : null}
-      </ScrollView>
+      {people || acts ? (
+        <View style={styles.peopleRow}>
+          {people ? (
+            <View style={styles.faces}>
+              {attendees.slice(0, AVATARS_MAX).map((attendee) => (
+                <Pressable
+                  accessibilityLabel={attendee.isMine ? "You" : attendee.name}
+                  accessibilityRole="button"
+                  key={attendee.id}
+                  onPress={() => router.push(`/player/${attendee.id}`)}
+                >
+                  <PlayerAvatar accent={attendee.isMine} initials={attendee.initials} name={attendee.name} playerId={attendee.id} size={FACE} />
+                </Pressable>
+              ))}
+              {extra > 0 ? (
+                <View style={styles.more}>
+                  <Text style={styles.moreText}>+{extra}</Text>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+          {acts ? (
+            <Pressable
+              accessibilityLabel={checkedIn ? "You're here" : mine ? "I'm not coming" : current ? "I'm here" : "I'm going"}
+              accessibilityRole="button"
+              accessibilityState={{ busy: saving, selected: on, disabled: checkedIn }}
+              disabled={saving || checkedIn}
+              onPress={onToggle}
+              style={({ pressed }) => [styles.going, !people && styles.goingWide, on && styles.goingOn, pressed && styles.pressed]}
+            >
+              <Feather color={on ? Colors.background : Colors.text} name={on ? "check" : "plus"} size={14} />
+              <Text style={[styles.goingText, on && styles.goingTextOn]}>
+                {on ? (current ? "Here" : "Going") : current ? "I'm here" : "I'm going"}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
 
       {run ? (
         <GameRow meId={meId} run={run} />
       ) : acts ? (
-        <OpenRunRow onJoin={onCreate} sport={sport} />
+        <OpenRunRow sport={sport} />
       ) : null}
 
       {notice ? <Text style={styles.notice}>{notice}</Text> : null}
@@ -144,7 +148,6 @@ function GameRow({ run, meId }: { run: GameRun; meId?: string }) {
             .filter(Boolean)
             .join(" · ")}
         </Text>
-        <Spots filled={run.participants} max={run.maxPlayers} sport={run.sport} />
       </View>
       <Pressable
         accessibilityLabel={`Open ${run.title}`}
@@ -158,8 +161,11 @@ function GameRow({ run, meId }: { run: GameRun; meId?: string }) {
   );
 }
 
-/** No game this hour: an open run with every spot free. */
-function OpenRunRow({ sport, onJoin }: { sport: CourtSport; onJoin?: () => void }) {
+/**
+ * No game this hour: an open run. Joining one needs the open-run backend
+ * (not built), so it shows the format and count only, no button.
+ */
+function OpenRunRow({ sport }: { sport: CourtSport }) {
   const max = sport === "PICKLEBALL" ? 4 : 10;
   return (
     <View style={styles.game}>
@@ -171,75 +177,25 @@ function OpenRunRow({ sport, onJoin }: { sport: CourtSport; onJoin?: () => void 
         <Text numberOfLines={1} style={styles.gameSub}>
           {[formatForMaxPlayers(max)?.toLowerCase(), `0 of ${max} going`].filter(Boolean).join(" · ")}
         </Text>
-        <Spots filled={[]} max={max} sport={sport} />
       </View>
-      {onJoin ? (
-        <Pressable
-          accessibilityLabel="Join the open run"
-          accessibilityRole="button"
-          onPress={onJoin}
-          style={({ pressed }) => [styles.join, pressed && styles.pressed]}
-        >
-          <Text style={styles.joinText}>Join</Text>
-        </Pressable>
-      ) : null}
-    </View>
-  );
-}
-
-/**
- * A game's spots. Basketball: one small square per player, the two teams on
- * two rows. Pickleball: the court from above, one quarter per player.
- */
-function Spots({ sport, max, filled }: { sport: CourtSport; max: number; filled: Player[] }) {
-  if (sport === "PICKLEBALL") {
-    const quarters = Array.from({ length: 4 }, (_, index) => filled[index]);
-    return (
-      <View style={styles.pbCourt}>
-        {[0, 1].map((half) => (
-          <View key={half} style={[styles.pbHalf, half === 1 && styles.pbHalfRight]}>
-            {[0, 1].map((row) => {
-              const player = quarters[half * 2 + row];
-              return (
-                <View key={row} style={[styles.pbQuarter, row === 1 && styles.pbQuarterBottom]}>
-                  <View style={[styles.pbSpot, player && styles.spotTaken]} />
-                </View>
-              );
-            })}
-          </View>
-        ))}
-      </View>
-    );
-  }
-  const side = Math.max(1, Math.round(max / 2));
-  return (
-    <View style={styles.spots}>
-      {[0, 1].map((team) => (
-        <View key={team} style={styles.spotRow}>
-          {Array.from({ length: side }, (_, index) => {
-            const player = filled[team * side + index];
-            return (
-              <View key={index} style={[styles.spot, player && styles.spotTaken]} />
-            );
-          })}
-        </View>
-      ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: { padding: 16, borderRadius: Radius.panel, borderWidth: 1, borderColor: Colors.hairlineCard, backgroundColor: Colors.panel },
-  head: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 12 },
-  title: { flexShrink: 1, fontFamily: Typography.headingBold, fontSize: 26, lineHeight: 28, letterSpacing: -0.4, textTransform: "uppercase", color: Colors.text },
-  meta: { flexShrink: 0, fontFamily: Typography.bodySemiBold, fontSize: 12, color: Colors.textSecondary },
-  tileRow: { marginTop: 14, flexGrow: 0 },
-  tiles: { flexDirection: "row", alignItems: "center", gap: 8 },
-  more: { width: TILE, height: TILE, borderRadius: Math.round(TILE * 0.18), borderWidth: 1, borderStyle: "dashed", borderColor: Colors.dashed, alignItems: "center", justifyContent: "center" },
-  moreText: { fontFamily: Typography.headingSemiBold, fontSize: 13, color: Colors.textSecondary },
-  add: { width: TILE, height: TILE, borderRadius: Math.round(TILE * 0.18), borderWidth: 1, borderColor: Colors.hairlineChrome, alignItems: "center", justifyContent: "center" },
-  addOn: { backgroundColor: Colors.accent, borderColor: Colors.accent },
-  emptyTile: { width: TILE, height: TILE, borderRadius: Math.round(TILE * 0.18), borderWidth: 1, borderStyle: "dashed", borderColor: Colors.dashed },
+  head: { flexDirection: "row", alignItems: "baseline", gap: 10 },
+  title: { flexShrink: 0, fontFamily: Typography.headingBold, fontSize: 26, lineHeight: 28, letterSpacing: -0.4, textTransform: "uppercase", color: Colors.text },
+  meta: { flexShrink: 1, fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
+  peopleRow: { marginTop: 14, flexDirection: "row", alignItems: "center", gap: 12 },
+  faces: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 6, overflow: "hidden" },
+  more: { width: FACE, height: FACE, borderRadius: Math.round(FACE * 0.18), borderWidth: 1, borderStyle: "dashed", borderColor: Colors.dashed, alignItems: "center", justifyContent: "center" },
+  moreText: { fontFamily: Typography.headingSemiBold, fontSize: 12, color: Colors.textSecondary },
+  going: { height: 44, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: Radius.button, borderWidth: 1, borderColor: Colors.text },
+  goingWide: { flex: 1 },
+  goingOn: { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  goingText: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.4, textTransform: "uppercase", color: Colors.text },
+  goingTextOn: { color: Colors.background },
   pressed: { opacity: 0.72 },
   game: { marginTop: 16, paddingTop: 16, flexDirection: "row", alignItems: "center", gap: 16, borderTopWidth: 1, borderTopColor: Colors.hairline },
   gameBody: { flex: 1, minWidth: 0 },
@@ -248,20 +204,9 @@ const styles = StyleSheet.create({
   gameDotOpen: { backgroundColor: "transparent", borderWidth: 1.5, borderColor: Colors.inkSoft },
   gameTitle: { flexShrink: 1, fontFamily: Typography.headingBold, fontSize: 20, lineHeight: 22, letterSpacing: -0.2, textTransform: "uppercase", color: Colors.text },
   gameSub: { marginTop: 4, fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
-  join: { width: 76, height: 44, borderRadius: Radius.button, borderWidth: 1, borderColor: Colors.text, alignItems: "center", justifyContent: "center" },
+  join: { width: 84, height: 44, borderRadius: Radius.button, borderWidth: 1, borderColor: Colors.text, alignItems: "center", justifyContent: "center" },
   joinOn: { backgroundColor: Colors.text },
   joinText: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.4, textTransform: "uppercase", color: Colors.text },
   joinTextOn: { color: Colors.background },
-  spots: { marginTop: 10, gap: 4 },
-  spotRow: { flexDirection: "row", gap: 4 },
-  spot: { width: 18, height: 18, borderRadius: 4, borderWidth: 1, borderStyle: "dashed", borderColor: Colors.dashed },
-  // A taken spot is solid; the people themselves are the tiles above.
-  spotTaken: { borderStyle: "solid", borderColor: Colors.accent, backgroundColor: Colors.accent },
-  pbSpot: { width: 14, height: 14, borderRadius: 3, borderWidth: 1, borderStyle: "dashed", borderColor: Colors.dashed },
-  pbCourt: { marginTop: 10, width: 88, height: 44, flexDirection: "row", borderRadius: 4, borderWidth: 1, borderColor: Colors.pickleballTrace },
-  pbHalf: { flex: 1 },
-  pbHalfRight: { borderLeftWidth: 2, borderLeftColor: Colors.pickleballMeta },
-  pbQuarter: { flex: 1, alignItems: "center", justifyContent: "center", borderWidth: 0 },
-  pbQuarterBottom: { borderTopWidth: 1, borderTopColor: Colors.pickleballTrace },
   notice: { marginTop: 8, fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.loss },
 });

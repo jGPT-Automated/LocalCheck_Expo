@@ -8,6 +8,11 @@
   `CourtSummary` sets the court name a size down (29pt) under 390pt wide so
   ordinary names stay on one line where text can't shrink (the web preview),
   keeping the fixed peek exact.
+  The hour card (`SlotCard`) follows the Home reference: "6 PM" with its
+  count beside it, faces left and I'm going right (full width when nobody is
+  listed), then the hour's game with Join or an open run with no button
+  (joining needs the open-run backend). The spot grid and the open run's Join
+  into Schedule a game are removed; empty future hour bars show as stubs.
   Court Live's filter chips are the shared `FilterChips`, pinned above the
   list. Home keeps the D63 pinned header with a non-bouncing scroll below.
 - Oct 29 (**on a branch**, `codex/onboard-main`, not merged/released):

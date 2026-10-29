@@ -1363,7 +1363,6 @@ export default function ScheduleScreen() {
                     hidden={hidden}
                     mine={Boolean(mine?.visitId)}
                     mode={mine?.visitId || canAdd ? "full" : "view"}
-                    onCreate={() => setShowHost(true)}
                     onToggle={() =>
                       mine?.visitId ? void removePlannedVisit(mine.visitId) : void handleAddSelectedTime()
                     }

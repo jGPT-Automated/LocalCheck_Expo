@@ -25,12 +25,10 @@ export function TodayPanel({
   court,
   games,
   refreshKey,
-  onCreate,
 }: {
   court: Court;
   games: GameRun[];
   refreshKey?: number | string;
-  onCreate?: (pick: { dayOffset: number; hour: number }) => void;
 }) {
   const [picked, setPicked] = React.useState(() => defaultHour(new Date()));
   React.useEffect(() => {
@@ -54,7 +52,6 @@ export function TodayPanel({
           court={court}
           dayOffset={picked.dayOffset}
           hour={picked.hour}
-          onCreate={onCreate ? () => onCreate(picked) : undefined}
         />
       </View>
     </View>

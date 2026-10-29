@@ -10,7 +10,6 @@ import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
 import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewSections";
 import { CourtActions, CourtSummary, courtPlaceLabel } from "@/components/court/CourtParts";
 import { TodayPanel } from "@/components/court/TodayPanel";
-import { ScheduleGameSheet } from "@/components/schedule/ScheduleGameSheet";
 import { ScreenViewport } from "@/components/ui/ScreenViewport";
 import { useBottomFloor } from "@/components/ui/TabFloor";
 import { useToast } from "@/components/ui/Toast";
@@ -39,15 +38,12 @@ export function HomeScreen() {
     isFriend,
     runs,
     refreshCheckedIn,
-    refreshRuns,
-    currentUser,
   } = useApp();
   const { roster } = usePresence(localCourtId);
   const liveCounts = useCourtCounts(localCourt ? [localCourt] : []);
   const { user } = useAuth();
   const tabFloor = useBottomFloor();
   const [isChecking, setIsChecking] = useState(false);
-  const [hosting, setHosting] = useState(false);
   const { showToast } = useToast();
 
   useFocusEffect(
@@ -135,22 +131,12 @@ export function HomeScreen() {
         <TodayPanel
           court={localCourt}
           games={upcoming}
-          onCreate={() => setHosting(true)}
           refreshKey={roster.length}
         />
         <View style={styles.upNext}>
           <UpNextSection onOpenRun={(id) => router.push(`/run/${id}`)} upcoming={upcoming} />
         </View>
       </ScrollView>
-
-      <ScheduleGameSheet
-        defaultCourt={localCourt}
-        onClose={() => setHosting(false)}
-        onCreated={refreshRuns}
-        organizerId={currentUser.id}
-        organizerName={currentUser.name}
-        visible={hosting}
-      />
     </ScreenViewport>
   );
 }

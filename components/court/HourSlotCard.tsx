@@ -25,14 +25,12 @@ export function HourSlotCard({
   dayOffset,
   hour,
   bare = false,
-  onCreate,
 }: {
   court: Court;
   dayOffset: number;
   hour: number;
   /** No panel of its own (it sits inside the Today card). */
   bare?: boolean;
-  onCreate?: () => void;
 }) {
   const { currentUser, plannedVisits, runs, checkedInCourtId, addPlannedVisit, removePlannedVisit } = useApp();
   const { roster } = usePresence(court.id);
@@ -116,7 +114,6 @@ export function HourSlotCard({
       mode={over ? "view" : "plan"}
       meId={currentUser.id}
       notice={notice}
-      onCreate={over ? undefined : onCreate}
       onToggle={() => void toggle()}
       runs={slotRuns}
       saving={saving}

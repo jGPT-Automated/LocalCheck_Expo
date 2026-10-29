@@ -137,7 +137,7 @@ export function CourtBusyChart({
                   { height: Math.max(3, Math.round((bar.value / max) * height)) },
                   bar.kind === "past" && styles.barPast,
                   bar.kind === "now" && styles.barNow,
-                  bar.kind === "planned" && { backgroundColor: heatColors(bar.value).fill },
+                  bar.kind === "planned" && { backgroundColor: bar.value > 0 ? heatColors(bar.value).fill : Colors.tile },
                   isSelected && styles.barSelected,
                 ]}
               />
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   barSlot: { flex: 1, height: "100%", justifyContent: "flex-end" },
   bar: { borderRadius: 4 },
   barSelected: { borderWidth: 2, borderColor: Colors.text },
-  barPast: { backgroundColor: Colors.heat0 },
+  barPast: { backgroundColor: Colors.grabber },
   barNow: { backgroundColor: Colors.accent },
   labels: { height: 12, marginTop: 6 },
   label: { position: "absolute", top: 0, width: 36, marginLeft: -18, textAlign: "center", fontFamily: Typography.bodyBold, fontSize: 11, lineHeight: 12, letterSpacing: 0.2, textTransform: "uppercase", color: Colors.muted },
