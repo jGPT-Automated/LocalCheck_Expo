@@ -32,7 +32,6 @@ import { Court, CourtSport } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts } from "@/context/CourtPresenceContext";
-import { useCourtHours } from "@/hooks/useCourtHours";
 import { useDeviceLocation } from "@/context/DeviceLocationContext";
 import type { DeviceCoordinate } from "@/context/deviceLocationModel";
 import {
@@ -242,7 +241,6 @@ export function CourtsScreen() {
     .map((court, index) => ({ court, index }))
     .sort((a, b) => (b.court.activeCount ?? 0) - (a.court.activeCount ?? 0) || a.index - b.index)
     .map(({ court }) => court);
-  const hoursFor = useCourtHours(countTargets.map((court) => court.id));
   const visibleCourts =
     isSearchMode || showAll ? listSource : listSource.slice(0, COLLAPSED_LIMIT);
 
@@ -335,7 +333,6 @@ export function CourtsScreen() {
               <Text style={styles.sectionLabel}>MY LOCAL COURT</Text>
               <CourtListItem
                 court={localCourtLive}
-                hoursLabel={hoursFor(localCourtLive.id)}
                 onPress={openCourt}
               />
             </View>
@@ -377,7 +374,6 @@ export function CourtsScreen() {
                 <CourtListItem
                   key={court.id}
                   court={court}
-                  hoursLabel={hoursFor(court.id)}
                   onPress={openCourt}
                 />
               ))

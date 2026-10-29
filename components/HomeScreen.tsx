@@ -1,36 +1,31 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import React, { useCallback, useState } from "react";
+import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
-import { CourtBusyChart } from "@/components/court/CourtBusyChart";
-import { HourSlotCard } from "@/components/court/HourSlotCard";
 import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewSections";
-import { SectionHead } from "@/components/court/CourtParts";
-import { ActivityRow } from "@/components/ui/ActivityRow";
-import { GameResultModal } from "@/components/ui/GameResultModal";
-import { HomeCourtActions, HomeCourtHero, HomeCourtTop } from "@/components/ui/HomeCourtHero";
+import { CourtActions, CourtSummary, courtPlaceLabel } from "@/components/court/CourtParts";
+import { TodayPanel } from "@/components/court/TodayPanel";
+import { ScheduleGameSheet } from "@/components/schedule/ScheduleGameSheet";
 import { ScreenViewport } from "@/components/ui/ScreenViewport";
 import { useBottomFloor } from "@/components/ui/TabFloor";
 import { useToast } from "@/components/ui/Toast";
 import { Colors, Radius } from "@/constants/colors";
-import type { FeedItem, FeedMatchSummary } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
-import { groupCheckinBursts, pairVisits } from "@/lib/activityPresentation";
-import { courtHours, formatCourtHours } from "@/lib/courtHours";
-import { fetchCourtWeekSpans } from "@/services/courtService";
 
 /**
- * Home: one page, no tabs. Only the court name and its numbers stay pinned;
- * Check in, Here now, Up next, Today and the court feed scroll under them.
+ * Home: a dashboard, not a feed (Oct 29). The court header (the same one the
+ * Explore card and drawer use) and Check in stay pinned; Here now, Today
+ * (the hours, who's going, the hour's game or open run) and Up next scroll
+ * under them. The court's feed lives on the court page.
  */
 export function HomeScreen() {
   const {
@@ -41,61 +36,24 @@ export function HomeScreen() {
     hideAutoCheckIn,
     checkIn,
     checkOut,
-    feed,
     isFriend,
     runs,
     refreshCheckedIn,
-    refreshFeed,
+    refreshRuns,
+    currentUser,
   } = useApp();
-  const { roster, localCount } = usePresence(localCourtId);
+  const { roster } = usePresence(localCourtId);
   const liveCounts = useCourtCounts(localCourt ? [localCourt] : []);
   const { user } = useAuth();
   const tabFloor = useBottomFloor();
   const [isChecking, setIsChecking] = useState(false);
-  const [picked, setPicked] = useState<{ dayOffset: number; hour: number } | null>(null);
-  const [hoursLabel, setHoursLabel] = useState("0h");
+  const [hosting, setHosting] = useState(false);
   const { showToast } = useToast();
-  // On a short phone (iPhone SE) the fixed block would leave too little room to
-  // scroll, so the busy chart moves into the scrolling page.
-  const compact = useWindowDimensions().height < 720;
-  const [selectedResult, setSelectedResult] = useState<{
-    match: FeedMatchSummary;
-    sport: FeedItem["sport"];
-    courtName?: string;
-  } | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       void refreshCheckedIn();
-      void refreshFeed();
-    }, [refreshCheckedIn, refreshFeed]),
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!localCourtId) return;
-      let active = true;
-      void fetchCourtWeekSpans(localCourtId).then((spans) => {
-        if (active) setHoursLabel(formatCourtHours(courtHours(spans).hours));
-      });
-      return () => {
-        active = false;
-      };
-    }, [localCourtId]),
-  );
-
-  useEffect(() => {
-    setSelectedResult(null);
-    setPicked(null);
-  }, [localCourtId]);
-
-  // Kept above the no-court early return so the hook count never changes
-  // between renders — the "Rendered fewer hooks than expected" crash a brand-new
-  // account hit the first time it set a local court. `courtFeed` is null-safe.
-  const courtFeed = feed.filter((item) => item.courtId === localCourt?.id);
-  const groupedCourtFeed = useMemo(
-    () => groupCheckinBursts(pairVisits(courtFeed, { splitToday: true })),
-    [courtFeed],
+    }, [refreshCheckedIn]),
   );
 
   if (!localCourt) {
@@ -107,7 +65,6 @@ export function HomeScreen() {
   const isCheckedIn = checkedInCourtId === localCourt.id || waitingToPost;
   const statsActive = liveCounts[localCourt.id]?.activeCount ?? 0;
   const activeTotal = Math.max(roster.length, statsActive);
-  const activeLabel = `${activeTotal > roster.length ? "~" : ""}${activeTotal}`;
   const now = Date.now();
   const upcoming = runs
     .filter((run) => run.courtId === localCourt.id && Date.parse(run.startTimeIso) >= now - 60 * 60_000)
@@ -137,115 +94,61 @@ export function HomeScreen() {
     }
   };
 
-  const openActivity = (item: FeedItem) => {
-    if (item.type === "game_result" && item.match) {
-      setSelectedResult({
-        match: item.match,
-        sport: item.sport,
-        courtName: item.courtName,
-      });
-      return;
-    }
-    if (item.runId) {
-      router.push(`/run/${item.runId}`);
-      return;
-    }
-    if (item.playerId) router.push(`/player/${item.playerId}`);
-  };
-
-  const busyChart = (
-    <View style={styles.chart}>
-      <CourtBusyChart
-        courtId={localCourt.id}
-        games={upcoming}
-        onSelect={setPicked}
-        refreshKey={roster.length}
-        selected={picked}
-        variant="header"
-      />
-    </View>
-  );
-
-  const hereNow = (
-    <View style={styles.hereNow}>
-      <HereNowSection
-        isFriend={isFriend}
-        onMore={() => router.push(`/court/${localCourt.id}?tab=players`)}
-        onPlayer={(id) => router.push(`/player/${id}`)}
-        roster={roster}
-      />
-    </View>
-  );
+  const name = localCourt.shortName || localCourt.name;
 
   return (
     <ScreenViewport>
       <ScreenHeader checkInBar title="LOCALCHECK" />
 
-      {/* Fixed: the court, its numbers, Check in, today's busy times and who is here. */}
+      {/* Pinned: the court and Check in. */}
       <View>
-        <HomeCourtTop court={localCourt} />
-        <HomeCourtHero
-          activeCount={activeLabel}
-          court={localCourt}
-          hoursLabel={hoursLabel}
-          live={activeTotal > 0}
-          localCount={localCount}
+        <CourtSummary
+          approximate={activeTotal > roster.length}
+          name={name}
+          onCourt={activeTotal}
+          place={courtPlaceLabel(localCourt)}
+          sport={localCourt.sport}
+          style={styles.summary}
         />
-        <HomeCourtActions
-          courtName={localCourt.shortName || localCourt.name}
-          isCheckedIn={isCheckedIn}
-          isChecking={isChecking}
+        <CourtActions
+          busy={isChecking}
+          checkedIn={isCheckedIn}
+          courtName={name}
           onCheckIn={() => void handleCheckIn()}
           onViewCourt={() => router.push(`/court/${localCourt.id}`)}
         />
         <AutoCheckInNote courtId={localCourt.id} />
-        {compact ? null : busyChart}
-        {compact ? null : hereNow}
       </View>
 
       <ScrollView
-        contentContainerStyle={{ paddingBottom: tabFloor + Space.lg }}
+        contentContainerStyle={{ paddingTop: Space.sm, paddingBottom: tabFloor + Space.xl }}
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
       >
-        {compact ? busyChart : null}
-        {compact ? hereNow : null}
-        {picked ? (
-          <View style={styles.pickedSlot}>
-            <HourSlotCard court={localCourt} dayOffset={picked.dayOffset} hour={picked.hour} />
-          </View>
-        ) : null}
+        <HereNowSection
+          isFriend={isFriend}
+          onMore={() => router.push(`/court/${localCourt.id}?tab=players`)}
+          onPlayer={(id) => router.push(`/player/${id}`)}
+          roster={roster}
+        />
+        <TodayPanel
+          court={localCourt}
+          games={upcoming}
+          onCreate={() => setHosting(true)}
+          refreshKey={roster.length}
+        />
         <View style={styles.upNext}>
-          <UpNextSection
-            onOpenRun={(id) => router.push(`/run/${id}`)}
-            upcoming={upcoming}
-          />
+          <UpNextSection onOpenRun={(id) => router.push(`/run/${id}`)} upcoming={upcoming} />
         </View>
-        <View style={styles.today}>
-          <SectionHead title="Recent activity" />
-        </View>
-        {groupedCourtFeed.length > 0 ? (
-          groupedCourtFeed.map((item, index) => (
-            <ActivityRow
-              item={item}
-              key={item.id}
-              previous={groupedCourtFeed[index - 1]}
-              showActor
-              onActorPress={item.playerId ? () => router.push(`/player/${item.playerId}`) : undefined}
-              onPress={item.type === "game_result" && !item.match ? undefined : () => openActivity(item)}
-            />
-          ))
-        ) : (
-          <Text style={styles.emptyText}>No activity yet. Check in to start the court story.</Text>
-        )}
       </ScrollView>
 
-      <GameResultModal
-        courtName={selectedResult?.courtName}
-        match={selectedResult?.match ?? null}
-        onClose={() => setSelectedResult(null)}
-        sport={selectedResult?.sport}
-        visible={Boolean(selectedResult)}
+      <ScheduleGameSheet
+        defaultCourt={localCourt}
+        onClose={() => setHosting(false)}
+        onCreated={refreshRuns}
+        organizerId={currentUser.id}
+        organizerName={currentUser.name}
+        visible={hosting}
       />
     </ScreenViewport>
   );
@@ -280,18 +183,9 @@ function NoCourtState({ isSignedIn }: { isSignedIn: boolean }) {
 
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, minHeight: 0 },
-  chart: { paddingHorizontal: Layout.screenGutter, paddingTop: Space.md, paddingBottom: Space.md },
-  hereNow: { paddingTop: Space.lg, borderBottomWidth: 1, borderBottomColor: Colors.hairline },
-  upNext: { paddingTop: Space.lg },
-  pickedSlot: { paddingHorizontal: Layout.screenGutter, paddingTop: Space.md },
-  today: { paddingHorizontal: Layout.screenGutter, paddingBottom: Space.lg },
-  emptyText: {
-    paddingHorizontal: Layout.screenGutter,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 12,
-    color: Colors.textSecondary,
-  },
+  scroll: { flex: 1, minHeight: 0, borderTopWidth: 1, borderTopColor: Colors.hairline },
+  summary: { paddingHorizontal: Layout.screenGutter, paddingTop: Space.lg },
+  upNext: { paddingTop: Space.xl },
   noCourt: {
     flex: 1,
     paddingHorizontal: Layout.screenGutter,

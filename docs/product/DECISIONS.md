@@ -5,7 +5,7 @@ superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D62, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D63, Jesse's plan doc)
 
 Numbers match Jesse's plan doc (Decisions tab). These supersede older entries
 below wherever they disagree.
@@ -80,6 +80,24 @@ below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D63 One court header, Home as a dashboard, Schedule restyle (Oct 29,
+  revises D62):** Jesse's design-pass request (UI only, no backend until he
+  has seen it): the Explore card, the drawer's peek and Home share one court
+  header (`CourtSummary`: sport top left, city · distance top right, the name
+  left-aligned, On court on the right). The house button is gone everywhere;
+  Check in sits beside a square court button the same height. Home is a
+  dashboard, not a feed: Here now, a Today card (the day's hours as bars, then
+  the tapped hour: who's going as tiles with a + to go, and the hour's game or
+  an open run with its spots; pickleball shows the court in quarters), then Up
+  next. The expanded drawer is the same dashboard. The court feed stays on the
+  court page. Schedule keeps days across and hours down but with square hours
+  on the reference's solid brown-to-orange ramp, numbers centred, today's
+  column outlined, a dashed NOW line, the court picker in the header, bigger
+  chips, and the same hour card under the grid ("7 PM", no "Today ·"). The
+  court page gets a bookmark top right, on for your local court; saving other
+  courts and open runs that fill themselves are not built yet (no backend in
+  this pass). An open run's Join starts the existing schedule-a-game flow for
+  that hour until then.
 - **D62 Fixed headers, orange check-in bar, glass buttons (Oct 28, revises D60
   and D61):** From Jesse's device screenshots. Home's whole court block (sport
   row, name, city, the three numbers, the buttons) stays fixed, with today's
@@ -104,7 +122,8 @@ below wherever they disagree.
   and Clear times; the "Who's going / Planned visits + games" line is gone, and
   hours that have passed are dimmed. Scheduling a game is no longer on that page. Back is
   the iOS edge swipe only; the full-screen back swipe is off. The plan doc's Decision log
-  needs the matching D62 line (it lives outside the repo).
+  needs the matching D62 line (it lives outside the repo). (Revised by D63: the
+  house button is gone, the court header is shared and Home is a dashboard.)
 - **D61 Corner mark, thin slot card, Schedule fits one screen (Oct 18,
   revises D60):** The local mark becomes a quarter-circle in the card's
   top-right corner: a + while it isn't your local, a glowing orange check (the

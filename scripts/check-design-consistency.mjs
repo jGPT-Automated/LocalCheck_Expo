@@ -41,12 +41,14 @@ for (const root of ROOTS) {
 }
 
 const ownership = [
-  ["components/HomeScreen.tsx", ["ScreenHeader", "HomeCourtHero", "HomeCourtActions", "HereNowSection", "ActivityRow"]],
+  ["components/HomeScreen.tsx", ["ScreenHeader", "CourtSummary", "CourtActions", "HereNowSection", "TodayPanel"]],
+  ["components/sheet/CourtSheetContent.tsx", ["CourtSummary", "CourtActions", "HereNowSection", "TodayPanel"]],
+  ["components/CourtListItem.tsx", ["CourtSummary"]],
   ["components/CourtsScreen.tsx", ["ScreenHeader", "CourtListItem", "CompactSelect", "ModeTabs"]],
   ["app/(tabs)/elo.tsx", ["ScreenHeader", "HeaderIconAction", "ProfileHero", "ProfileStats", "PlayerSummaryRow"]],
   ["app/player/[id].tsx", ["ProfileHero", "ProfileStats", "HeadToHeadSummary"]],
   ["app/(tabs)/compete.tsx", ["ScreenHeader", "CompactSelect", "EloStat", "ModeTabs"]],
-  ["app/(tabs)/schedule.tsx", ["ScreenHeader", "scheduleSlotIndex"]],
+  ["app/(tabs)/schedule.tsx", ["ScreenHeader", "scheduleSlotIndex", "SlotCard", "FilterChips", "heatColors"]],
 ];
 
 for (const [file, components] of ownership) {

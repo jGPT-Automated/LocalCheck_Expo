@@ -94,6 +94,34 @@ Each claim says which of these it is, because they are often confused:
     court route entry) and the court page section of `docs/product/DESIGN.md`.
   - Not in this pass: Players sorts (Active / Newest / All), the Live
     scoreboard rows, Phosphor icons, the drawer.
+- Oct 29 (D63; **on a branch**, `claude/bold-cerf-5cudc7`, not merged, not on a
+  device; checked in a rendered web export with the visual QA run). Frontend
+  only, no backend or data changes.
+  - `components/court/CourtParts.tsx`: `LocalButton` and the glass icon button
+    are deleted. New `CourtSummary` (the shared court header), `CourtActions`
+    (Check in + square `CourtLinkButton`) and `courtPlaceLabel`. `FilterChips`
+    are 36pt tall with 11pt text.
+  - `components/court/SlotCard.tsx` rewritten: hour title, people as 44pt
+    tiles with a + tile, then the hour's game or an open run with its spots
+    (basketball rows, pickleball quarters). `HourSlotCard` titles today's
+    hours without "Today ·". New `components/court/TodayPanel.tsx` (bars +
+    the tapped hour) and `components/court/heat.ts` / `lib/heatModel.ts` (one
+    heat ramp; `Colors.heat0`–`heat4` are solid).
+  - `components/HomeScreen.tsx`: `CourtSummary` + `CourtActions` pinned; Here
+    now, `TodayPanel`, Up next scroll. Recent activity and the result modal
+    are off Home. An open run's Join opens `ScheduleGameSheet`.
+    `components/ui/HomeCourtHero.tsx` is deleted.
+  - `components/sheet/CourtSheetContent.tsx`: peek = `CourtSummary` +
+    `CourtActions` (no court drawing); expanded = Here now, `TodayPanel`, Up
+    next, then the chips. Recent activity is gone from the drawer.
+  - `components/CourtListItem.tsx`: thin card, `CourtSummary` on the sport
+    tint.
+  - `app/(tabs)/schedule.tsx`: court picker pill in the header (the week
+    label is gone); square hours sized by the width, numbers centred, heat
+    ramp, today's column outlined, dashed NOW line, white game dot; the page
+    scrolls.
+  - `app/court/[id].tsx`: a bookmark in the top row, on for your local court
+    (display only).
 - Oct 28 (D62; **on a branch**, `claude/bold-cerf-5cudc7`, not merged, not on a
   device; checked in a rendered web export at 375 / 393 / 430 wide with the
   visual QA run, gestures not checked). Frontend only.
@@ -262,8 +290,8 @@ Each claim says which of these it is, because they are often confused:
   - Explore card (`components/CourtListItem.tsx`): court art, sport, Your
     local pill, Oswald name, city · distance, On court / Court hours · wk /
     Locals. List orders live courts first (most on court), then nearest.
-    Court hours for the list come from one read-only batched query
-    (`fetchCourtsWeekSpans`, `hooks/useCourtHours.ts`).
+    (Oct 29, D63: the card is thin, `CourtSummary` only; it no longer shows
+    court hours, and `hooks/useCourtHours.ts` is deleted.)
   - Game page (`app/run/[id].tsx`): sport · format, Oswald title, when,
     where, Going / Avg ELO / Format strip, spots bar, Who's going (Host tag,
     W–L, ELO), details card (Teams, Level, Where, Host), white Join game;

@@ -113,5 +113,5 @@ export function busyCaption(bars: BusyBar[], dayOffset: number): string {
   const peak = `Busiest around ${hourLabel(busiest.hour)}`;
   if (dayOffset < 0) return `${peak} · check-ins`;
   if (dayOffset > 0) return `${peak} · planned visits and games`;
-  return `${peak} · outlined bars are planned`;
+  return peak;
 }

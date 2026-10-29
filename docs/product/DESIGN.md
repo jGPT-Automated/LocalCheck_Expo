@@ -185,12 +185,15 @@ Canonical component ownership:
 | Tab header                     | `ScreenHeader`      |
 | Detail/back header             | `DetailHeader`      |
 | Court discovery card           | `CourtListItem`     |
-| Home court hero                | `HomeCourtHero`     |
+| Court header (Explore card, drawer peek, Home) | `CourtSummary` |
+| Check in + court button row    | `CourtActions`      |
+| Today card (hours + the tapped hour) | `TodayPanel`  |
+| One hour: who's going, + to go, its game or open run | `SlotCard` |
+| Heat colours (Schedule, Today bars, Week) | `heatColors` / `HEAT_FILL` (`components/court/heat.ts`) |
 | Court line art (card, page)    | `CourtArt`          |
 | Court 3-number strip           | `MetricStrip` (`size`: page, drawer, card) |
 | Check in / Check out button    | `CheckInButton`     |
-| Court › (drawer → court page; glass) | `CourtLinkButton`   |
-| Local court (glass house beside Check in) | `LocalButton`   |
+| Court › (square, beside Check in) | `CourtLinkButton`   |
 | Sport left, city · distance right | `SportPlaceRow`   |
 | Checked-in timer + visibility  | `CheckInClock` (inside `ScreenHeader`) |
 | Drawer section label + meta    | `SectionHead`       |
@@ -290,15 +293,10 @@ Player profile actions by friend state: not friends Log game | Add friend
 request | Log game (orange); friends remove icon | Log game | Challenge
 (white). Log game opens as a sheet over the profile.
 
-Home (D58, D60): one scrolling page, no tabs. Only the court name, city and
-3-number strip (`HomeCourtHero`) stay pinned; the sport row with the local mark
-(`HomeCourtTop`) scrolls away. Under the pinned part: Check in beside a centred
-> (`HomeCourtActions`: the drawer's `CheckInButton` and `CourtLinkButton`),
-Here now (`HereNowSection`), then
-Up next (`UpNextSection`, plain text count, not a link), Today
-(`CourtBusyChart`) and Recent activity (every court feed row, `ActivityRow`).
-Here now and Up next are the Explore drawer's own sections
-(`components/court/CourtOverviewSections.tsx`), shared with the drawer.
+Home (D63): a dashboard, not a feed. `CourtSummary` and `CourtActions` stay
+pinned; Here now (`HereNowSection`), Today (`TodayPanel`) and Up next
+(`UpNextSection`) scroll under them. The expanded Explore drawer shows the same
+three. The court's feed lives on the court page.
 
 Feed rows (`ActivityRow`): 32pt tile, sentence + detail, score and time on
 the right, all one height. The tile: small solid orange dot (8pt) for a
@@ -306,7 +304,7 @@ check-in, the same grey dot for a check-out, VS for a game result, the
 calendar for a scheduled game, the people icon for a burst of check-ins.
 
 Busy times (`CourtBusyChart`): past hours filled grey (check-ins), now
-orange, later hours outlined (planned visits + game sign-ups). Hour labels
+orange, later hours on the heat ramp (planned visits + game sign-ups). Hour labels
 sit centred under their bar and may be wider than it ("Now" never clips).
 `variant="header"` is today only: no title, day stepper or caption (court
 page header).
@@ -564,14 +562,22 @@ interaction with supported installed primitives and record that decision here.
 
 Do not trade the working product for unfinished complexity. Use established libraries already in the project, improve shared components instead of spot-editing screens, note non-blocking polish, and keep moving toward TestFlight external testing.
 
-Local court button (D62, replaces the D60 / D61 corner mark): a small glass house
-button (`LocalButton`) to the left of Check in on Home and the Explore drawer.
-The court page has none. Orange house when it is your local, light grey when it
-isn't; a tap on a non-local court sets it, on your local it does nothing
-(Settings changes it). The court button (`CourtLinkButton`) is a narrower glass
-chevron to the right. Glass is `Colors.glass` with a `hairlineChrome` border, a
-44pt circle centred against Check in. The slot is also where saved courts will
-go.
+Court header and actions (D63, replaces the D62 house button): the Explore
+card, the drawer's peek and Home share `CourtSummary` (sport top left, city ·
+distance top right, the name left-aligned, On court right-aligned under it).
+Below it on Home and in the drawer, `CourtActions`: Check in, then a square
+`CourtLinkButton` the same height (50pt), 16pt above and below the row. No house
+button anywhere. The court page shows a bookmark in its top row, orange-tinted
+on your local court.
+
+Today and the hour card (D63): `TodayPanel` is one panel card: the day's hours
+as bars on the heat ramp (now orange, past grey, the tapped hour ringed white),
+then `SlotCard` for that hour: the hour ("7 PM"; other days lead with the day),
+how many are going, the people as 44pt tiles with a + tile to go (orange check
+once you are), then the hour's game (title, format, "N of M going", the spots,
+Join) or an open run with every spot free. Basketball spots are two rows of
+squares (the teams), pickleball spots are the court from above in quarters.
+Schedule shows the same `SlotCard` under its grid.
 
 Drawers (D60): the Challenge and Log game drawers are the baseline for every
 form drawer (`RunFlowSheet`, WHERE `CourtSearchPicker`, WHEN `RecentDatePicker`

@@ -6,10 +6,10 @@ import { useApp } from "@/context/AppContext";
 import { usePresence } from "@/context/CourtPresenceContext";
 import { fetchCourtPlannedTimes } from "@/services/plannedVisitService";
 
-function dayName(dayOffset: number, date: Date): string {
-  if (dayOffset === 0) return "Today";
-  if (dayOffset === 1) return "Tomorrow";
-  return date.toLocaleDateString("en-US", { weekday: "short" });
+/** Today's hours are just the hour; other days lead with the day. */
+function slotTitle(dayOffset: number, date: Date, hour: number): string {
+  if (dayOffset === 0) return hourName(hour);
+  return `${date.toLocaleDateString("en-US", { weekday: "short" })} · ${hourName(hour)}`;
 }
 
 function hourName(hour: number): string {
@@ -20,7 +20,20 @@ function hourName(hour: number): string {
  * Who's going in one hour of one day at a court: Home's chart shows it under
  * the bar you tap. Same card as the court page's Week.
  */
-export function HourSlotCard({ court, dayOffset, hour }: { court: Court; dayOffset: number; hour: number }) {
+export function HourSlotCard({
+  court,
+  dayOffset,
+  hour,
+  bare = false,
+  onCreate,
+}: {
+  court: Court;
+  dayOffset: number;
+  hour: number;
+  /** No panel of its own (it sits inside the Today card). */
+  bare?: boolean;
+  onCreate?: () => void;
+}) {
   const { currentUser, plannedVisits, runs, checkedInCourtId, addPlannedVisit, removePlannedVisit } = useApp();
   const { roster } = usePresence(court.id);
   const [anonymous, setAnonymous] = React.useState(0);
@@ -94,17 +107,21 @@ export function HourSlotCard({ court, dayOffset, hour }: { court: Court; dayOffs
   return (
     <SlotCard
       attendees={attendees}
+      bare={bare}
       checkedIn={checkedInHere}
       current={current}
       here={here}
       hidden={Math.max(0, anonymous - plannedVisible)}
       mine={Boolean(mine)}
       mode={over ? "view" : "plan"}
+      meId={currentUser.id}
       notice={notice}
+      onCreate={over ? undefined : onCreate}
       onToggle={() => void toggle()}
       runs={slotRuns}
       saving={saving}
-      title={`${dayName(dayOffset, start)} · ${hourName(hour)}`}
+      sport={court.sport}
+      title={slotTitle(dayOffset, start, hour)}
     />
   );
 }

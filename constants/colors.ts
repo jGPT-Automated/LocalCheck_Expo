@@ -66,10 +66,14 @@ export const Colors = {
   // Frosted fill for the small icon buttons beside Check in.
   glass: "rgba(242,242,246,0.08)",
   checkOutDot: "#4D4D56",
-  // Planned-visit heat ramp (Week heatmap, drawer Today bars): fewer → more.
-  heat1: "rgba(252,76,2,0.2)",
-  heat2: "rgba(252,76,2,0.38)",
-  heat3: "rgba(252,76,2,0.62)",
+  // Planned-visit heat ramp (Schedule grid, Today bars, court Week): solid
+  // browns into the accent, from the Oct 29 schedule reference. heat0 is an
+  // empty hour; accent is the busiest.
+  heat0: "#1D1D23",
+  heat1: "#2C1E1B",
+  heat2: "#43231A",
+  heat3: "#6A2B1A",
+  heat4: "#A63B1C",
 
   tier: {
     platinum: "#E8E8FF",

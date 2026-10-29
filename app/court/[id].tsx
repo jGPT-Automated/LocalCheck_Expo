@@ -224,6 +224,15 @@ export default function CourtProfileScreen() {
           >
             <Feather color={Colors.text} name="arrow-left" size={22} />
           </Pressable>
+          {/* Your courts (Oct 29): the bookmark is on for your local court.
+              Saving other courts to a list comes with LocalPlus courts. */}
+          <View
+            accessibilityLabel={isMyLocal ? "Your local court" : "Not one of your courts"}
+            accessible
+            style={[styles.bookmark, isMyLocal && styles.bookmarkOn]}
+          >
+            <Feather color={isMyLocal ? Colors.accent : Colors.textSecondary} name="bookmark" size={17} />
+          </View>
         </View>
         {/* Name left, the live number right (Oct 17 header reference), then
             today's busy times above the tabs so every tab shares them. */}
@@ -376,6 +385,16 @@ const styles = StyleSheet.create({
   header: { position: "relative", overflow: "hidden" },
   navRow: { height: 44, paddingLeft: 12, paddingRight: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   back: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
+  bookmark: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: Radius.button,
+    borderWidth: 1,
+    borderColor: Colors.hairlineChrome,
+  },
+  bookmarkOn: { backgroundColor: Colors.liveQuiet, borderColor: Colors.accentBorder },
   titleRow: { flexDirection: "row", alignItems: "flex-end", gap: 16, paddingHorizontal: 20, paddingTop: 6 },
   titleBlock: { flex: 1, minWidth: 0, gap: 6 },
   liveBlock: { flexShrink: 0, alignItems: "flex-end", paddingBottom: 1 },

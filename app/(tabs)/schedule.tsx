@@ -32,6 +32,7 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { FormSheet } from "@/components/sheet/FormSheet";
 import { FilterChips } from "@/components/court/CourtParts";
 import { SlotCard } from "@/components/court/SlotCard";
+import { HEAT_FILL, heatColors } from "@/components/court/heat";
 import { ScheduleGameSheet } from "@/components/schedule/ScheduleGameSheet";
 import { SearchField } from "@/components/ui/SearchField";
 import { useBottomFloor } from "@/components/ui/TabFloor";
@@ -68,10 +69,14 @@ const RUN_TIMES = [
   "23:00",
 ];
 
-/** Everything on the Schedule page that isn't a heat-map row (header, court, labels, legend, slot card). */
-const SCHEDULE_CHROME = 330;
-/** Room under the last row for the floating + button (56) and its gap. */
-const FAB_CLEARANCE = 72;
+/** The heat map's time labels and the space between its squares. */
+const HEAT_TIME_COL = 30;
+const HEAT_GAP = 5;
+
+/** "8A", "12P": the grid's hour labels. */
+function scheduleTimeLabel(hour: number): string {
+  return `${hour % 12 === 0 ? 12 : hour % 12}${hour < 12 ? "A" : "P"}`;
+}
 
 // Rolling next-7-days window (today first) — matches the product model of
 // "who's going this week" and the [today, +7d] data fetch window. A calendar
@@ -603,13 +608,14 @@ export default function ScheduleScreen() {
   }>();
   const { top, bottom } = useSafeAreaInsets();
   const tabFloor = useBottomFloor();
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  // Every hour fits on screen with no scrolling: the rows take what the slot
-  // card and chrome leave (a short phone scrolls the page instead of squeezing).
-  const rowPitch = Math.max(
-    20,
-    Math.min(28, Math.floor((screenHeight - top - tabFloor - SCHEDULE_CHROME) / SLOT_HOURS.length)),
+  const { width: screenWidth } = useWindowDimensions();
+  // Square hours sized by the width (Oct 29): seven columns beside the time
+  // labels; the page scrolls rather than squeezing them.
+  const cellSize = Math.min(
+    52,
+    Math.floor((Math.min(screenWidth, 680) - 40 - HEAT_TIME_COL - 7 * HEAT_GAP) / 7),
   );
+  const rowPitch = cellSize + HEAT_GAP;
   // One card plus a peek of the next, so the row reads as swipeable and the
   // FAB only ever covers the peek.
   const [joiningRunId, setJoiningRunId] = useState<string | null>(null);
@@ -713,15 +719,6 @@ export default function ScheduleScreen() {
       }),
     [weekStart],
   );
-
-  const weekLabel = useMemo(() => {
-    const last = weekDays[6];
-    const month = new Intl.DateTimeFormat("en-US", { month: "long" });
-    if (weekStart.getMonth() === last.getMonth()) {
-      return `${month.format(weekStart)} ${weekStart.getDate()} – ${last.getDate()}`;
-    }
-    return `${month.format(weekStart)} ${weekStart.getDate()} – ${month.format(last)} ${last.getDate()}`;
-  }, [weekStart, weekDays]);
 
   const bucketKey = useCallback(
     (iso: string): string | null => {
@@ -891,12 +888,13 @@ export default function ScheduleScreen() {
     : null;
   const selectedEntry = selectedKey ? slotMap.get(selectedKey) : undefined;
   const selectedDate = selectedSlot ? weekDays[selectedSlot.day] : null;
-  const heatStyle = (count: number) => {
-    if (count >= 5) return styles.heatHigh;
-    if (count >= 2) return styles.heatMid;
-    if (count >= 1) return styles.heatLow;
-    return null;
-  };
+  // Hours since the grid's first hour, for the NOW line; null outside it.
+  const nowClock = new Date();
+  const nowHours = nowClock.getHours() + nowClock.getMinutes() / 60;
+  const nowOffset =
+    nowHours >= SLOT_HOURS[0] && nowHours < SLOT_HOURS[SLOT_HOURS.length - 1] + 1
+      ? nowHours - SLOT_HOURS[0]
+      : null;
 
   const currentSlotIndex = Math.max(
     0,
@@ -1077,35 +1075,41 @@ export default function ScheduleScreen() {
     <View style={styles.container}>
       <ScreenHeader
         title="SCHEDULE"
-        right={<Text style={styles.headerDate}>{weekLabel}</Text>}
+        right={
+          <Pressable
+            accessibilityHint="Pick another court"
+            accessibilityLabel={court ? `Court, ${court.shortName || court.name}` : "Pick a court"}
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={() => setShowPicker(true)}
+            style={({ pressed }) => [styles.courtPill, pressed && styles.courtSelectorPressed]}
+            testID="schedule-court-selector"
+          >
+            {court ? (
+              <View
+                style={[
+                  styles.courtPillDot,
+                  { backgroundColor: court.sport === "PICKLEBALL" ? Colors.pickleballMeta : Colors.basketballMeta },
+                ]}
+              />
+            ) : null}
+            <Text numberOfLines={1} style={styles.courtPillText}>
+              {court ? court.shortName || court.name : "Pick a court"}
+            </Text>
+            <Feather color={Colors.textSecondary} name="chevron-down" size={14} />
+          </Pressable>
+        }
       />
 
-      {/* The page doesn't scroll when it fits (Oct 16): court, heatmap, slot
-          card and the swipeable games row. On a short phone (iPhone SE) it
-          scrolls instead of clipping the slot card, and the bottom padding
-          lets the last row clear the + button. */}
+      {/* The page scrolls: square hours at a readable size, never squeezed
+          to fit (Oct 29). */}
       <ScrollView
         alwaysBounceVertical={false}
-        contentContainerStyle={[styles.scheduleBody, { paddingBottom: FAB_CLEARANCE }]}
+        contentContainerStyle={[styles.scheduleBody, { paddingBottom: tabFloor + Space.xl }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         style={styles.scheduleScroll}
       >
-        {/* ── Court selector ── */}
-        <Pressable
-          accessibilityHint="Pick another court"
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.courtSelector, pressed && styles.courtSelectorPressed]}
-          onPress={() => setShowPicker(true)}
-          testID="schedule-court-selector"
-        >
-          <Feather name="map-pin" size={13} color={Colors.accent} />
-          <Text style={styles.courtSelectorText} numberOfLines={1}>
-            {court ? court.shortName || court.name : "Pick a court"}
-          </Text>
-          <Feather name="chevron-down" size={15} color={Colors.muted} />
-        </Pressable>
-
         {/* One restrained instruction above the time grid, only while picking
             times. The running tally lives in a summary block below the grid. */}
         {scheduleMode === "EDIT" ? (
@@ -1114,44 +1118,25 @@ export default function ScheduleScreen() {
           </View>
         ) : null}
 
-        {/* ── Heatmap: the time axis switches between fixed AM and PM states. ── */}
+        {/* ── Heatmap: days across, hours down, one square per hour. ── */}
         <View style={styles.heatmap}>
-          {/* Day header row */}
-          <View style={styles.heatRow}>
+          {/* Day header row: today is the light pill. */}
+          <View style={[styles.heatRow, { gap: HEAT_GAP, marginBottom: HEAT_GAP + 4 }]}>
             <View style={styles.heatTimeCol} />
             {weekDays.map((d, i) => {
               const isToday = d.toDateString() === todayKey;
               return (
-                <View key={i} style={styles.heatDayHeader}>
-                  <Text
-                    style={[
-                      styles.heatDayName,
-                      isToday && styles.heatAxisActive,
-                    ]}
-                  >
-                    {DAYS[d.getDay()]}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.heatDayDate,
-                      isToday && styles.heatAxisActive,
-                    ]}
-                  >
-                    {d.getDate()}
-                  </Text>
+                <View key={i} style={[styles.heatDayHeader, { width: cellSize }, isToday && styles.heatDayHeaderToday]}>
+                  <Text style={[styles.heatDayName, isToday && styles.heatDayInkToday]}>{DAYS[d.getDay()]}</Text>
+                  <Text style={[styles.heatDayDate, isToday && styles.heatDayInkToday]}>{d.getDate()}</Text>
                 </View>
               );
             })}
           </View>
-          <ScrollView
-            contentContainerStyle={styles.timeRows}
-            scrollEnabled={false}
-            showsVerticalScrollIndicator={false}
-            style={{ height: SLOT_HOURS.length * rowPitch }}
-          >
+          <View style={{ height: SLOT_HOURS.length * rowPitch }}>
             {SLOT_HOURS.map((h, slotIdx) => (
-              <View key={h} style={styles.heatRow}>
-                <View style={styles.heatTimeCol}>
+              <View key={h} style={[styles.heatRow, { gap: HEAT_GAP, height: rowPitch }]}>
+                <View style={[styles.heatTimeCol, { height: cellSize }]}>
                   <Text
                     style={[
                       styles.heatTimeText,
@@ -1159,7 +1144,7 @@ export default function ScheduleScreen() {
                       new Date().getHours() > h && styles.heatDimmed,
                     ]}
                   >
-                    {scheduleSlotLabel(h)}
+                    {scheduleTimeLabel(h)}
                   </Text>
                 </View>
                 {weekDays.map((_, dayIdx) => {
@@ -1169,7 +1154,6 @@ export default function ScheduleScreen() {
                   const isSelected =
                     selectedSlot?.day === dayIdx &&
                     selectedSlot?.slot === slotIdx;
-                  const isCurrent = key === currentKey;
                   const isMinePending = pendingKeys.has(key);
                   const wasMine = myVisitsByKey.has(key);
                   const previewCount =
@@ -1182,18 +1166,16 @@ export default function ScheduleScreen() {
                         )
                       : count;
                   const slotDate = new Date(weekDays[dayIdx]);
-                  slotDate.setHours(SLOT_HOURS[slotIdx], 0, 0, 0);
                   slotDate.setHours(SLOT_HOURS[slotIdx] + 1, 0, 0, 0);
                   const isPast = slotDate.getTime() <= Date.now();
+                  const heat = heatColors(previewCount);
                   return (
                     <Pressable
                       key={dayIdx}
                       style={[
                         styles.heatCell,
-                        { height: rowPitch - 3 },
-                        heatStyle(previewCount),
-                        isCurrent && styles.heatCellCurrent,
-                        isSelected && styles.heatCellSelected,
+                        { width: cellSize, height: cellSize, backgroundColor: heat.fill },
+                        isSelected && scheduleMode === "VIEW" && styles.heatCellSelected,
                         scheduleMode === "EDIT" &&
                           isMinePending &&
                           styles.heatCellMine,
@@ -1224,10 +1206,9 @@ export default function ScheduleScreen() {
                       testID={`heat-${dayIdx}-${slotIdx}`}
                     >
                       {scheduleMode === "EDIT" && isMinePending ? (
-                        <Feather name="check" size={13} color={Colors.text} />
-                      ) : (isSelected || previewCount >= 5) &&
-                        previewCount > 0 ? (
-                        <Text style={[styles.heatCellCount, previewCount >= 5 && styles.heatCellCountOnAccent]}>{previewCount}</Text>
+                        <Feather name="check" size={15} color={Colors.text} />
+                      ) : previewCount > 0 ? (
+                        <Text style={[styles.heatCellCount, { color: heat.ink }]}>{previewCount}</Text>
                       ) : null}
                       {runCount > 0 ? (
                         <View accessible={false} style={styles.runMarker} />
@@ -1237,35 +1218,31 @@ export default function ScheduleScreen() {
                 })}
               </View>
             ))}
-          </ScrollView>
+            {/* Today's column, outlined. */}
+            <View
+              pointerEvents="none"
+              style={[
+                styles.todayColumn,
+                {
+                  top: HEAT_GAP / 2 - 3,
+                  left: HEAT_TIME_COL + HEAT_GAP - 3,
+                  width: cellSize + 6,
+                  height: SLOT_HOURS.length * rowPitch - HEAT_GAP + 6,
+                },
+              ]}
+            />
+            {/* Now: a dashed line across at this minute. */}
+            {nowOffset != null ? (
+              <View pointerEvents="none" style={[styles.nowLine, { top: nowOffset * rowPitch + HEAT_GAP / 2 - 1 }]} />
+            ) : null}
+          </View>
           {/* Legend */}
           <View style={styles.legendRow}>
             <View style={styles.legendScale}>
               <Text style={styles.legendText}>Quiet</Text>
-              <View
-                style={[
-                  styles.legendSwatch,
-                  { backgroundColor: Colors.surfaceHigh },
-                ]}
-              />
-              <View
-                style={[
-                  styles.legendSwatch,
-                  { backgroundColor: Colors.heat1 },
-                ]}
-              />
-              <View
-                style={[
-                  styles.legendSwatch,
-                  { backgroundColor: Colors.heat2 },
-                ]}
-              />
-              <View
-                style={[
-                  styles.legendSwatch,
-                  { backgroundColor: Colors.accent },
-                ]}
-              />
+              {HEAT_FILL.map((fill) => (
+                <View key={fill} style={[styles.legendSwatch, { backgroundColor: fill }]} />
+              ))}
               <Text style={styles.legendText}>Busy</Text>
             </View>
             <View style={styles.legendGame}>
@@ -1389,9 +1366,15 @@ export default function ScheduleScreen() {
                     onToggle={() =>
                       mine?.visitId ? void removePlannedVisit(mine.visitId) : void handleAddSelectedTime()
                     }
+                    meId={currentUser.id}
                     runs={slotRuns}
                     saving={addingSelectedTime}
-                    title={`${DAYS[selectedDate.getDay()]} ${selectedDate.getDate()} · ${scheduleSlotLabel(slotHour)}`}
+                    sport={court?.sport}
+                    title={
+                      selectedSlot.day === 0
+                        ? scheduleSlotLabel(slotHour)
+                        : `${DAYS[selectedDate.getDay()]} ${selectedDate.getDate()} · ${scheduleSlotLabel(slotHour)}`
+                    }
                   />
                 </View>
               );
@@ -1470,33 +1453,29 @@ const styles = StyleSheet.create({
   scheduleBodyContentEdit: { paddingBottom: 8 },
   pressed: { backgroundColor: Colors.surfaceHigh },
 
-  headerDate: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 12,
-    lineHeight: 16,
-    color: Colors.text,
-    letterSpacing: 0.1,
-  },
-
-  // ── Court selector ──
-  courtSelector: {
+  courtPill: {
+    maxWidth: 190,
+    height: 36,
+    paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 13,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.hairline,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Colors.hairlineChrome,
   },
-  courtSelectorPressed: { opacity: 0.75 },
-  courtSelectorText: {
-    flex: 1,
-    minWidth: 0,
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 14,
+  courtPillDot: { width: 6, height: 6, borderRadius: 3 },
+  courtPillText: {
+    flexShrink: 1,
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    letterSpacing: 1.3,
+    textTransform: "uppercase",
     color: Colors.text,
-    letterSpacing: 0.2,
   },
+
+  // ── Court selector ──
+  courtSelectorPressed: { opacity: 0.75 },
   scheduleModeRow: {
     paddingHorizontal: 20,
     paddingTop: 12,
@@ -1688,108 +1667,115 @@ const styles = StyleSheet.create({
   timeWindowCuePressed: { opacity: 0.55 },
   heatRow: {
     flexDirection: "row",
-    gap: 3,
-    marginBottom: 3,
     alignItems: "center",
   },
   heatTimeCol: {
-    width: 44,
-    alignItems: "flex-end",
+    width: HEAT_TIME_COL,
+    alignItems: "flex-start",
     justifyContent: "center",
-    paddingRight: 6,
   },
   heatTimeText: {
-    fontFamily: Typography.bodyMedium,
+    fontFamily: Typography.bodyBold,
     fontSize: 11,
     lineHeight: 14,
     color: Colors.muted,
-    letterSpacing: 0,
     fontVariant: ["tabular-nums"],
-    textAlign: "right",
   },
-  heatDayHeader: { flex: 1, alignItems: "center" },
+  heatDayHeader: { height: 50, alignItems: "center", justifyContent: "center", gap: 2, borderRadius: 10 },
+  heatDayHeaderToday: { backgroundColor: Colors.text },
+  heatDayInkToday: { color: Colors.background },
   heatDayName: {
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 9,
-    lineHeight: 12,
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    lineHeight: 13,
     color: Colors.muted,
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
-  heatDayNameToday: { color: Colors.accent },
   heatDayDate: {
-    fontFamily: Typography.heading,
-    fontSize: 14,
-    lineHeight: 17,
-    color: Colors.textSecondary,
+    fontFamily: Typography.headingSemiBold,
+    fontSize: 19,
+    lineHeight: 21,
+    color: Colors.text,
+    fontVariant: ["tabular-nums"],
   },
-  heatDayDateToday: { color: Colors.text },
   heatAxisActive: { color: Colors.liveInk },
-  // Court-flow heatmap: soft 6pt cells, the shared orange ramp, a white
-  // ring for the chosen slot and an orange edge for the hour you're in.
+  // Square hours on the shared heat ramp (components/court/heat.ts), the
+  // number centred, a white ring for the chosen hour.
   heatCell: {
     position: "relative",
-    flex: 1,
-    height: 25,
-    borderRadius: 6,
-    backgroundColor: Colors.surfaceHigh,
-    borderWidth: 1.5,
+    borderRadius: 8,
+    borderWidth: 2,
     borderColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
   },
-  heatLow: { backgroundColor: Colors.heat1 },
-  heatMid: { backgroundColor: Colors.heat2 },
-  heatHigh: { backgroundColor: Colors.accent },
   heatCellSelected: { borderColor: Colors.text },
-  heatCellCurrent: { borderColor: Colors.accentBorderStrong },
   heatCellMine: { borderColor: Colors.text, borderWidth: 2 },
   // Hours that have passed.
   heatDimmed: { opacity: 0.34 },
   // Dark on the orange cell, like the Check in button (white was 3:1).
-  heatCellCountOnAccent: { color: Colors.background },
   heatCellCount: {
-    fontFamily: Typography.heading,
-    fontSize: 12,
-    color: Colors.text,
+    fontFamily: Typography.headingSemiBold,
+    fontSize: 15,
+    lineHeight: 17,
+    fontVariant: ["tabular-nums"],
+  },
+  todayColumn: {
+    position: "absolute",
+    borderRadius: 11,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "rgba(242,242,246,0.4)",
+  },
+  nowLine: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    height: 0,
+    borderTopWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: Colors.accent,
   },
   runMarker: {
     position: "absolute",
     right: 4,
     top: 4,
-    width: 7,
-    height: 7,
+    width: 8,
+    height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.accent,
+    borderWidth: 1.5,
+    borderColor: Colors.background,
+    backgroundColor: Colors.text,
   },
   legendRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Space.xl,
-    marginTop: 8,
+    justifyContent: "space-between",
+    marginTop: Space.md,
   },
   timesChips: { paddingHorizontal: 0, paddingTop: Space.md, paddingBottom: 0 },
-  legendScale: { flexDirection: "row", alignItems: "center", gap: 5 },
-  legendGame: { flexDirection: "row", alignItems: "center", gap: 4 },
+  legendScale: { flexDirection: "row", alignItems: "center", gap: 6 },
+  legendGame: { flexDirection: "row", alignItems: "center", gap: 6 },
   legendGameDot: {
-    width: 7,
-    height: 7,
+    width: 8,
+    height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.text,
   },
   legendSwatch: {
-    width: 10,
-    height: 8,
-    borderRadius: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 3,
   },
   legendText: {
     fontFamily: Typography.bodySemiBold,
-    fontSize: 9.5,
-    lineHeight: 13,
+    fontSize: 11,
+    lineHeight: 14,
     color: Colors.muted,
   },
 
   // ── Slot detail card (fixed height) ──
-  slotWrap: { marginHorizontal: 20, marginTop: 10 },
+  slotWrap: { marginHorizontal: 20, marginTop: Space.lg },
   slotCard: {
     marginHorizontal: 20,
     marginTop: 10,

@@ -21,6 +21,22 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-29 — design pass: Home, Explore, drawer, Schedule (`claude/bold-cerf-5cudc7`)
+
+UI only; no backend until Jesse has seen it. Checked in a rendered web export,
+not on a phone.
+
+| Item | Status |
+|------|--------|
+| House button gone; Check in beside a square court button the same height, even padding | ✅ |
+| One court header on the Explore card, the drawer's peek and Home (sport left, city right, name left, On court right) | ✅ |
+| Home as a dashboard: Here now, Today (hours + who's going + the hour's game or open run), Up next; no feed | ✅ |
+| Expanded drawer = Home's dashboard | ✅ |
+| Schedule: square hours, reference colours, numbers centred, scrolls, no FAB, chips under the grid, "7 PM" not "Today · 7 PM" | ✅ |
+| Pickleball spots as the court in quarters | ✅ (display; joining a quarter needs open runs) |
+| Court page bookmark top right | ✅ display only (on for your local); adding courts needs the backend |
+| Open runs that fill and balance themselves, saved courts list, court switcher, Settings list | ⏳ after Jesse's sign-off |
+
 ## 2026-10-28 — fixed headers, orange check-in bar, glass buttons (`claude/bold-cerf-5cudc7`)
 
 Checked in a rendered web export at three phone sizes, not on a phone. Jesse is

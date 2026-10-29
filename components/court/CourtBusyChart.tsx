@@ -3,6 +3,7 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { SectionHead } from "@/components/court/CourtParts";
+import { heatColors } from "@/components/court/heat";
 import { Colors } from "@/constants/colors";
 import type { GameRun } from "@/constants/data";
 import { Typography } from "@/constants/typography";
@@ -17,7 +18,7 @@ const DAYS_AHEAD = 6;
 /**
  * How busy the court gets through a day, like a maps app's popular times.
  * Hours gone show who was actually on court (check-ins), hours ahead show
- * planned visits plus players signed up for games (outlined), and this hour
+ * planned visits plus players signed up for games (heat colours), and this hour
  * is orange. Step a week back or a week ahead with the arrows. Used in the
  * court page header (`variant="header"`: today only, no title, stepper or
  * caption) and as Today in the expanded drawer.
@@ -136,7 +137,7 @@ export function CourtBusyChart({
                   { height: Math.max(3, Math.round((bar.value / max) * height)) },
                   bar.kind === "past" && styles.barPast,
                   bar.kind === "now" && styles.barNow,
-                  bar.kind === "planned" && (bar.value > 0 ? styles.barPlanned : styles.barEmpty),
+                  bar.kind === "planned" && { backgroundColor: heatColors(bar.value).fill },
                   isSelected && styles.barSelected,
                 ]}
               />
@@ -173,15 +174,13 @@ const styles = StyleSheet.create({
   stepOff: { opacity: 0.35 },
   dayLabel: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
   dayLabelToday: { color: Colors.text },
-  bars: { flexDirection: "row", alignItems: "flex-end", gap: 3 },
+  bars: { flexDirection: "row", alignItems: "flex-end", gap: 4 },
   inlineCaption: { flex: 1, minWidth: 0, textAlign: "right", fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.muted },
   barSlot: { flex: 1, height: "100%", justifyContent: "flex-end" },
-  bar: { borderRadius: 3 },
+  bar: { borderRadius: 4 },
   barSelected: { borderWidth: 2, borderColor: Colors.text },
-  barPast: { backgroundColor: Colors.grabber },
+  barPast: { backgroundColor: Colors.heat0 },
   barNow: { backgroundColor: Colors.accent },
-  barPlanned: { borderWidth: 1, borderColor: Colors.inkSoft, backgroundColor: "transparent" },
-  barEmpty: { backgroundColor: Colors.surfaceHigh },
   labels: { height: 12, marginTop: 6 },
   label: { position: "absolute", top: 0, width: 36, marginLeft: -18, textAlign: "center", fontFamily: Typography.bodyBold, fontSize: 11, lineHeight: 12, letterSpacing: 0.2, textTransform: "uppercase", color: Colors.muted },
   labelNow: { color: Colors.liveInk },

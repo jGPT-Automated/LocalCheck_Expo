@@ -68,63 +68,6 @@ export function SportLabel({ sport, suffix }: { sport: CourtSport; suffix?: stri
 }
 
 /**
- * Small round glass icon button that sits beside Check in: a frosted fill and
- * a hairline, no solid colour, so it never competes with the main action.
- */
-function GlassIconButton({
-  icon,
-  accessibilityLabel,
-  accessibilityHint,
-  onPress,
-  active = false,
-}: {
-  icon: React.ComponentProps<typeof Feather>["name"];
-  accessibilityLabel: string;
-  accessibilityHint?: string;
-  onPress?: () => void;
-  active?: boolean;
-}) {
-  return (
-    <PressableScale
-      accessibilityHint={accessibilityHint}
-      accessibilityLabel={accessibilityLabel}
-      accessibilityRole="button"
-      accessibilityState={{ disabled: !onPress, selected: active }}
-      disabled={!onPress}
-      onPress={onPress}
-      style={[styles.glass, active && styles.glassOn]}
-    >
-      <Feather color={active ? Colors.accent : Colors.inkSoft} name={icon} size={20} />
-    </PressableScale>
-  );
-}
-
-/**
- * Your local court. Orange once it is; before that a tap makes this court your
- * local (Settings changes it afterwards). The slot beside Check in is also
- * where saved courts will live.
- */
-export function LocalButton({
-  active,
-  onPress,
-  courtName,
-}: {
-  active: boolean;
-  onPress?: () => void;
-  courtName: string;
-}) {
-  return (
-    <GlassIconButton
-      accessibilityHint={active ? undefined : "Sets this as your local court"}
-      accessibilityLabel={active ? `${courtName} is your local court` : `Set ${courtName} as your local court`}
-      active={active}
-      icon="home"
-      onPress={active ? undefined : onPress}
-    />
-  );
-}
-
-/**
  * The first line of a court header: the sport on the left, city · distance on
  * the right.
  */
@@ -252,15 +195,122 @@ export function CheckInButton({
   );
 }
 
-/** A small glass ">" that opens the full court page. */
-export function CourtLinkButton({ onPress, courtName }: { onPress: () => void; courtName: string }) {
+/**
+ * The court button beside Check in: a square the same height as Check in,
+ * quiet fill and hairline so the orange button stays the one to press.
+ */
+export function CourtLinkButton({
+  onPress,
+  courtName,
+  size = 50,
+}: {
+  onPress: () => void;
+  courtName: string;
+  size?: number;
+}) {
   return (
-    <GlassIconButton
+    <PressableScale
       accessibilityHint="Opens the full court page"
       accessibilityLabel={`Open ${courtName}`}
-      icon="chevron-right"
+      accessibilityRole="button"
       onPress={onPress}
-    />
+      style={[styles.courtLink, { width: size, height: size }]}
+    >
+      <Feather color={Colors.inkSoft} name="chevron-right" size={20} />
+    </PressableScale>
+  );
+}
+
+/**
+ * Check in and the court button on one row: the row every court surface uses
+ * (Home, the Explore drawer), with equal space above and below.
+ */
+export function CourtActions({
+  checkedIn,
+  busy,
+  courtName,
+  onCheckIn,
+  onViewCourt,
+  style,
+}: {
+  checkedIn: boolean;
+  busy: boolean;
+  courtName: string;
+  onCheckIn: () => void;
+  onViewCourt: () => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <View style={[styles.actions, style]}>
+      <View style={styles.checkSlot}>
+        <CheckInButton busy={busy} checkedIn={checkedIn} courtName={courtName} onPress={onCheckIn} />
+      </View>
+      <CourtLinkButton courtName={courtName} onPress={onViewCourt} />
+    </View>
+  );
+}
+
+/** City · distance for a court header ("Conroe · 1.6 mi"). */
+export function courtPlaceLabel(court: { city?: string | null; market?: string | null; neighborhood?: string | null; distanceKm?: number | null }, distanceKm?: number | null): string {
+  const km = court.distanceKm ?? distanceKm ?? null;
+  const distance = km != null && !Number.isNaN(km) ? `${(km * 0.621371).toFixed(1)} mi` : null;
+  return [court.city || court.market || court.neighborhood, distance].filter(Boolean).join(" · ");
+}
+
+/**
+ * The one court header: sport top left, city · distance top right, then the
+ * name on the left and the live On court number on the right. The Explore
+ * card, the drawer's peek and Home all use it, so the card you tap is the
+ * header that rises, and the same header Home opens on. `size` only scales
+ * the type.
+ */
+export function CourtSummary({
+  sport,
+  name,
+  place,
+  onCourt,
+  approximate = false,
+  size = "drawer",
+  style,
+}: {
+  sport: CourtSport;
+  name: string;
+  place: string;
+  onCourt: number;
+  /** Some people on court are private: the number reads "~N". */
+  approximate?: boolean;
+  size?: "card" | "drawer";
+  style?: StyleProp<ViewStyle>;
+}) {
+  const card = size === "card";
+  const live = onCourt > 0;
+  return (
+    <View style={style}>
+      <SportPlaceRow place={place} sport={sport} style={styles.summaryMeta} />
+      <View style={styles.summaryRow}>
+        <Text
+          adjustsFontSizeToFit
+          minimumFontScale={0.6}
+          numberOfLines={1}
+          style={[styles.summaryName, card && styles.summaryNameCard]}
+        >
+          {name}
+        </Text>
+        <View
+          accessibilityLabel={`${approximate ? "About " : ""}${onCourt} on court`}
+          accessible
+          style={styles.summaryLive}
+        >
+          <Text style={[styles.summaryLiveValue, card && styles.summaryLiveValueCard, live && styles.cellValueLive]}>
+            {approximate ? `~${onCourt}` : onCourt}
+          </Text>
+          <View style={styles.cellLabelRow}>
+            {live ? <LiveDot /> : null}
+            <Text style={styles.summaryLiveLabel}>On court</Text>
+          </View>
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -369,26 +419,41 @@ const styles = StyleSheet.create({
   checkOut: { borderWidth: 1.5, borderColor: Colors.accentBorderStrong, backgroundColor: Colors.surfaceDark },
   checkInText: { fontFamily: Typography.bodyBold, fontSize: 12, letterSpacing: 1.7, textTransform: "uppercase", color: Colors.background },
   checkOutText: { flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.liveInk },
-  glass: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignSelf: "center",
+  courtLink: {
+    borderRadius: Radius.button,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Colors.glass,
     borderWidth: 1,
     borderColor: Colors.hairlineChrome,
   },
-  glassOn: { backgroundColor: Colors.liveQuiet, borderColor: Colors.accentBorder },
+  actions: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 20, paddingVertical: 16 },
+  checkSlot: { flex: 1, minWidth: 0 },
+  summaryMeta: { height: 18 },
+  summaryRow: { marginTop: 8, flexDirection: "row", alignItems: "flex-end", gap: 16 },
+  summaryName: {
+    flex: 1,
+    minWidth: 0,
+    fontFamily: Typography.headingBold,
+    fontSize: 34,
+    lineHeight: 36,
+    letterSpacing: -1,
+    textTransform: "uppercase",
+    color: Colors.text,
+  },
+  summaryNameCard: { fontSize: 26, lineHeight: 28, letterSpacing: -0.7 },
+  summaryLive: { alignItems: "flex-end", gap: 4 },
+  summaryLiveValue: { fontFamily: Typography.headingSemiBold, fontSize: 32, lineHeight: 33, letterSpacing: -0.6, color: Colors.text, fontVariant: ["tabular-nums"] },
+  summaryLiveValueCard: { fontSize: 26, lineHeight: 27 },
+  summaryLiveLabel: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: Colors.textSecondary },
   sportPlaceRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   placeText: { flexShrink: 1, textAlign: "right", fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
   cellLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   cellLabel: { fontFamily: Typography.bodyBold, fontSize: 7.5, letterSpacing: 0.9, textTransform: "uppercase", color: Colors.textSecondary },
-  filters: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6 },
-  chip: { height: 30, paddingHorizontal: 12, borderRadius: 999, justifyContent: "center", borderWidth: 1, borderColor: "rgba(242,242,246,0.12)" },
-  chipActive: { backgroundColor: Colors.tile, borderColor: "rgba(242,242,246,0.2)" },
-  chipText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.textSecondary },
+  filters: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6 },
+  chip: { height: 36, paddingHorizontal: 16, borderRadius: 999, justifyContent: "center", borderWidth: 1, borderColor: "rgba(242,242,246,0.16)" },
+  chipActive: { backgroundColor: Colors.tile, borderColor: "rgba(242,242,246,0.28)" },
+  chipText: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.inkSoft },
   chipTextActive: { color: Colors.text },
   tabs: { flexDirection: "row", paddingHorizontal: 6, borderBottomWidth: 1, borderBottomColor: Colors.hairline },
   tab: { flex: 1, height: 44, alignItems: "center", justifyContent: "center", borderBottomWidth: 2, borderBottomColor: "transparent" },
