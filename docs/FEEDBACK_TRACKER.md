@@ -21,6 +21,17 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-29 — Home / Explore / court reference follow-up (PR #84)
+
+Jesse limited the new reference to Home, Explore/drawer and Court. Court tabs:
+Feed / Schedule / Players / Info; Schedule combines the heat map and games.
+Implemented on branch as the first bounded slice; Home dashboard and the new
+reference styling remain pending. Basketball roster is five per team,
+pickleball two. No Supabase access is authorized. The previous paid Settings
+list is rejected: management must be nested in the existing Settings flow,
+with the established typography and removal pattern. That rework is outside
+this three-screen scope.
+
 ## 2026-10-29 — court-art and local-action correction (PR #84)
 
 Jesse rejected the art removal, redundant arrow and incomplete application

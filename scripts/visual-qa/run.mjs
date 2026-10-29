@@ -66,6 +66,9 @@ mkdirSync(outDir, { recursive: true });
 
 for (const vp of activeViewports) {
   const context = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, timezoneId: "America/Chicago" });
+  // Fixtures must never open a real Realtime connection; HTTP routes below
+  // cover reads/writes, while WebSockets need their own interception.
+  await context.routeWebSocket(/.*/, (socket) => socket.close());
   await context.addInitScript(([key, session]) => localStorage.setItem(key, JSON.stringify(session)), [storageKey, SESSION]);
   await context.clock.setFixedTime(new Date(Number(process.env.FAKE_NOW)));
   await context.route("**/*", async (route) => {

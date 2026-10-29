@@ -24,6 +24,7 @@ import { useLocalPlus } from "@/hooks/useLocalPlus";
 import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
 import { openCourtInMaps } from "@/lib/openMaps";
 import { groupCheckinBursts, pairVisits } from "@/lib/activityPresentation";
+import { COURT_TABS, courtTabFromParam, type CourtTab } from "@/lib/courtNavigation";
 import {
   courtHours,
   formatAverageSession,
@@ -37,15 +38,7 @@ import {
   type LocalWithLastCheckIn,
 } from "@/services/profileService";
 
-type CourtTab = "live" | "games" | "players" | "week" | "info";
 type FeedFilter = "all" | "games" | "checkins";
-const COURT_TABS = [
-  { value: "live", label: "Live" },
-  { value: "games", label: "Games" },
-  { value: "players", label: "Players" },
-  { value: "week", label: "Week" },
-  { value: "info", label: "Info" },
-] as const;
 const FEED_FILTERS: ReadonlyArray<{ value: FeedFilter; label: string }> = [
   { value: "all", label: "All" },
   { value: "games", label: "Games" },
@@ -67,10 +60,8 @@ export default function CourtProfileScreen() {
   const { top, bottom } = useSafeAreaInsets();
   const hasLocalPlus = useLocalPlus();
   const courtId = id ? String(id) : null;
-  // The drawer's Games / Players / Feed / Week chips open the page on that tab.
-  const [activeTab, setActiveTab] = React.useState<CourtTab>(
-    COURT_TABS.some((item) => item.value === tab) ? (tab as CourtTab) : "live",
-  );
+  const [activeTab, setActiveTab] = React.useState<CourtTab>(() => courtTabFromParam(tab));
+  React.useEffect(() => { setActiveTab(courtTabFromParam(tab)); }, [courtId, tab]);
   const [feedFilter, setFeedFilter] = React.useState<FeedFilter>("all");
   const [court, setCourt] = React.useState<Court | null>(
     courts.find((item) => item.id === id) ?? (contextLocalCourt?.id === id ? contextLocalCourt : null),
@@ -240,7 +231,7 @@ export default function CourtProfileScreen() {
       </View>
 
       <View style={styles.tabContent}>
-        {activeTab === "live" ? (
+        {activeTab === "feed" ? (
             <View style={styles.filters}>
               {FEED_FILTERS.map((filter) => {
                 const selected = feedFilter === filter.value;
@@ -262,7 +253,7 @@ export default function CourtProfileScreen() {
             </View>
         ) : null}
 
-        {activeTab === "live" ? (
+        {activeTab === "feed" ? (
           <ScrollView bounces={false} contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
             <View style={styles.onCourt}>
               <Text style={styles.eyebrow}>On court · {hiddenCount > 0 ? `~${activeCount}` : activeCount}</Text>
@@ -306,14 +297,15 @@ export default function CourtProfileScreen() {
           </ScrollView>
         ) : null}
 
-        {activeTab === "games" ? (
-          <ScrollView bounces={false} contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
+        {activeTab === "schedule" ? (
+          <CourtSchedulePanel bottomInset={bottom} court={court}>
             <CourtGamesPanel
               games={upcomingGames}
+              inset={0}
               onCreate={() => router.push({ pathname: "/(tabs)/schedule", params: { courtId: court.id, openCreate: "1" } })}
               onOpen={(game) => router.push(`/run/${game.id}`)}
             />
-          </ScrollView>
+          </CourtSchedulePanel>
         ) : null}
 
         {activeTab === "players" ? (
@@ -325,12 +317,6 @@ export default function CourtProfileScreen() {
             onPlayer={(playerId) => router.push(`/player/${playerId}`)}
             players={courtPlayers}
           />
-        ) : null}
-
-        {activeTab === "week" ? (
-          <View style={styles.scheduleView}>
-            <CourtSchedulePanel bottomInset={bottom} court={court} />
-          </View>
         ) : null}
 
         {activeTab === "info" ? (
@@ -395,7 +381,6 @@ const styles = StyleSheet.create({
   },
   place: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
   tabContent: { flex: 1, minHeight: 0 },
-  scheduleView: { flex: 1, minHeight: 0, overflow: "hidden" },
   onCourt: { paddingTop: 16, gap: 10 },
   eyebrow: { paddingHorizontal: 20, fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
   roster: { paddingHorizontal: 20, gap: Space.md, alignItems: "center" },

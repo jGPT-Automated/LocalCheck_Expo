@@ -288,7 +288,7 @@ Current (D56, Oct 15):
    Check in and Court ↗. Tapping the header or dragging expands it.
 3. Expanded (92%): Here now, Up next, Today (planned visits in 2-hour bars),
    Recent activity. One root BottomSheetScrollView includes the court header,
-   actions and details. Games / Players / Feed / Week are in BottomSheetFooter
+   actions and details. Feed / Schedule / Players / Info are in BottomSheetFooter
    and stay pinned. The opening detent is stable before presentation, with no
    content-layout re-snap; full height is 92%. Content pan and pan-down-to-close
    stay enabled with the shared sheet spring (D62).
@@ -389,10 +389,10 @@ the canonical geographic court service, and an animated camera move before the
 same court drawer opens; it never substitutes a fabricated location after a
 permission denial.
 
-The court page (D55, Oct 14; header revised by D57, Oct 17) follows the court-flow design (`components/court/`). The header is fixed: back arrow and Your local pill; court line art pinned top right; sport label, name (Oswald, one line, shrinks to fit), city · distance on the left, a large live On court number on the right (orange with the live dot when anyone is on); then today's busy times (`CourtBusyChart` header variant: today only, no day arrows or caption) on every tab; the court trace behind the header is dimmed (`CourtArt` `faint`) so text stands out. Court hours · wk sits on Info, the next game on Games. Under it the tabs Live · Games · Players · Week · Info, with an orange underline on the active tab. There is no bottom bar (D58): Home and the Explore drawer own Check in. Only the selected tab's content scrolls:
+The court page (D55, Oct 14; header revised by D57, Oct 17) follows the court-flow design (`components/court/`). The header is fixed: back arrow and Your local pill; court line art pinned top right; sport label, name (Oswald, one line, shrinks to fit), city · distance on the left, a large live On court number on the right (orange with the live dot when anyone is on); then today's busy times (`CourtBusyChart` header variant: today only, no day arrows or caption) on every tab; the court trace behind the header is dimmed (`CourtArt` `faint`) so text stands out. Court hours · wk sits on Info. D66 regroups the tabs as Feed · Schedule · Players · Info, with an orange underline on the active tab. There is no bottom bar (D58): Home and the Explore drawer own Check in. Only the selected tab's content scrolls:
 
-- Live: On court tiles (busy times moved to the header, D57) ("Nobody yet. Check in and you're first." when empty), All / Games / Check-ins chips, then the activity timeline and game-result modal.
-- Games: upcoming scheduled games by day (Today, Tomorrow, then the date), time, title, "x of y going" and a fill bar; tapping opens the game page. The list ends on a dashed Create a game row.
+- Feed: On court tiles (busy times moved to the header, D57) ("Nobody yet. Check in and you're first." when empty), All / Games / Check-ins chips, then the activity timeline and game-result modal.
+- Schedule: the existing planning heat map and selected-slot card, followed by upcoming scheduled games by day (Today, Tomorrow, then the date), time, title, "x of y going" and a fill bar; tapping opens the game page. The list ends on a dashed Create a game row.
 - Players (D58, `CourtPlayersPanel`): this court's locals only, no Here now
   section. A Ranking / Active / Newest control (`SegmentedControl` `compact`)
   and "N locals · ranked after every ranked game here". Each row: rank by
@@ -402,7 +402,9 @@ The court page (D55, Oct 14; header revised by D57, Oct 17) follows the court-fl
   recent to make this their local first (`profiles.local_court_changed_at`).
   Your own row ("You", W–L, points to the next rank) is pinned under the list
   with an orange left edge.
-- Week: the heatmap and Today card above (`CourtSchedulePanel`).
+- Schedule uses `CourtSchedulePanel` as the single vertical scroll owner for
+  the grid, selected-slot card and `CourtGamesPanel`; there is no nested
+  vertical games window. The tab bar remains outside that scroller.
 - Info: map with Directions, Court hours · wk / Avg session / Locals, then Courts, Lights, Access. A value the database doesn't have shows a dash.
 
 Home's court header uses the same pieces: line art, sport label, house marker, name, city · distance, On court / Court hours · wk / Locals, then Check in and Court (arrow pointing right).

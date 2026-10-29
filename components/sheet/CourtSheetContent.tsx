@@ -34,17 +34,11 @@ import { useLocalPlus } from "@/hooks/useLocalPlus";
 import { useLocalPlusPurchase } from "@/hooks/useLocalPlusPurchase";
 import { describeTimelineItem } from "@/lib/activityPresentation";
 import { courtHours, formatCourtHours } from "@/lib/courtHours";
+import { COURT_TABS } from "@/lib/courtNavigation";
 import { useSheetBottomPadding } from "./AppBottomSheetModal";
 import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/planModel";
 import { fetchCourtById, fetchCourtWeekSpans } from "@/services/courtService";
-
-const DRAWER_CHIPS = [
-  { label: "Games", tab: "games" },
-  { label: "Players", tab: "players" },
-  { label: "Feed", tab: "live" },
-  { label: "Week", tab: "week" },
-] as const;
 
 /**
  * Court drawer content (Claude Design court flow), rendered inside the root
@@ -53,8 +47,8 @@ const DRAWER_CHIPS = [
  * - Drawer: sport + Your local, the court name, city · distance, On court /
  *   Court hours · wk / Locals, then Check in and Court ↗. Always free.
  * - Expanded: Here now, Up next, Today (planned visits by hour) and Recent
- *   activity in the same scrolling surface; Games / Players / Feed
- *   / Week chips into the court page. A court that isn't your local, without
+ *   activity in the same scrolling surface; Feed / Schedule / Players
+ *   / Info chips into the court page. A court that isn't your local, without
  *   LocalPlus, shows that area blurred under the LocalPlus panel.
  *
  * `onNavigate` dismisses the sheet before any router.push so the pushed
@@ -214,7 +208,7 @@ export function CourtSheetContent({
         />
         <UpNextSection
           onOpenRun={(id) => go(`/run/${id}`)}
-          onSeeAll={() => go(`/court/${court.id}?tab=games`)}
+          onSeeAll={() => go(`/court/${court.id}?tab=schedule`)}
           upcoming={upcoming}
         />
 
@@ -223,7 +217,7 @@ export function CourtSheetContent({
         </View>
 
         <View style={styles.section}>
-          <SectionHead meta="Feed" onMetaPress={() => go(`/court/${court.id}?tab=live`)} title="Recent activity" />
+          <SectionHead meta="Feed" onMetaPress={() => go(`/court/${court.id}?tab=feed`)} title="Recent activity" />
           {recent.length > 0 ? (
             recent.map((item) => <RecentLine item={item} key={item.id} />)
           ) : (
@@ -248,13 +242,13 @@ export function CourtSheetFooter({ courtId, onNavigate, ...props }: BottomSheetF
   return (
     <BottomSheetFooter {...props}>
       <View testID="court-drawer-footer" style={[styles.chips, { paddingBottom }]}>
-        {DRAWER_CHIPS.map((chip) => (
+        {COURT_TABS.map((chip) => (
           <PressableScale
             accessibilityRole="button"
-            key={chip.tab}
+            key={chip.value}
             onPress={() => {
               onNavigate();
-              router.push(`/court/${courtId}?tab=${chip.tab}`);
+              router.push(`/court/${courtId}?tab=${chip.value}`);
             }}
             style={styles.chip}
           >

@@ -1,5 +1,14 @@
 # Current state
 
+- Oct 29 (**on a branch**, draft PR #84): court navigation now uses Feed /
+  Schedule / Players / Info, shared with the Explore drawer shortcuts.
+  Schedule combines the existing planning heat map, selected slot and upcoming
+  games in one vertical scroll surface. Old Live/Games/Week links resolve to
+  Feed/Schedule. This is the first bounded implementation of D66; the new
+  Home dashboard and reference styling are still pending. No Supabase access
+  or backend change is authorized by this work. The paid top-level Settings
+  list in the previous commit was rejected and is outside this correction.
+
 - Oct 29 (**on a branch**, draft PR #84; backend not deployed): Jesse
   clarified this is LocalPlus: up to five courts, Home count/dropdown, and
   per-court auto check-in toggles in Settings. LocalLite retains one primary

@@ -5,9 +5,9 @@ superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D65, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D66, Jesse's plan doc)
 
-D0–D61 match Jesse's plan doc (Decisions tab); D62–D65 record his Oct 29 chat
+D0–D61 match Jesse's plan doc (Decisions tab); D62–D66 record his Oct 29 chat
 approval (external plan doc not updated from this cloud session). Newer
 decisions supersede older entries below wherever they disagree.
 
@@ -81,6 +81,13 @@ decisions supersede older entries below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D66 Court navigation and Home dashboard (Oct 29, revises D55):**
+  Court tabs are Feed / Schedule / Players / Info. Schedule combines the
+  heat map and upcoming games; Feed replaces the Live label. Home remains
+  an at-a-glance dashboard with current players, an active-game/open-run
+  visual, upcoming games and its feed. Basketball is 5v5 (five per team);
+  pickleball is 2v2. The game lifecycle described in chat is a specification,
+  not an authorization for Supabase work.
 - **D65 LocalPlus has up to five courts (Oct 29, revises D64):** Jesse
   clarified the list is a LocalPlus feature. Free stays at one court with no
   feature change. Plus can add up to five courts, switch the court viewed on
@@ -207,6 +214,8 @@ decisions supersede older entries below wherever they disagree.
   neutral primary button (Join game, Unlock, Log game); orange is for live,
   check-in and selection. Builds on D55.
 - **D55 Court page and Home card follow the court-flow design (Oct 14):**
+  (Revised by D66: court tabs are Feed / Schedule / Players / Info; Home is
+  the visual dashboard described there.)
   built from the Claude Design handoff (`CourtFlowPhone2`), Jesse's picks
   in chat Oct 14. Court page header: court line art, sport, name, city ·
   distance, then On court / Court hours · wk / Next game (the six-metric

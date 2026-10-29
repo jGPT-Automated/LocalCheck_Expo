@@ -26,7 +26,7 @@ are basketball and pickleball.
   counters.
 - Home, Explore, the map sheet, and Court detail use one court identity model at
   different densities.
-- From the court page a player can check in or out and plan a visit (Week ›
+- From the court page a player can check in or out and plan a visit (Schedule ›
   I'm coming), see upcoming games, and read the court's details: courts,
   lights, access, court hours this week and average session (D55, Oct 14).
 - From the court drawer a player sees who's here, the next game, today's
@@ -74,3 +74,11 @@ The existing single active check-in, five-minute hold and timed checkout stay.
 LocalLite stays on its existing single court, local-court editor/cooldown and
 auto setting. It does not receive the paid selector/list or extra geofences.
 Database migration and client changes are on branch, not live.
+
+### Court navigation (D66, on branch)
+
+Feed / Schedule / Players / Info are the court's four destinations. Schedule
+contains the planning heat map, selected-slot details and upcoming games in
+one scrolling page. The drawer links to the same four destinations. Home's
+requested active-game dashboard and the new timed open-run lifecycle remain
+in the reference plan; they are not claimed as implemented or live.
