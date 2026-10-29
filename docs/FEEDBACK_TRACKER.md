@@ -30,8 +30,8 @@ checking the gestures. Not merged; no OTA yet.
 |------|--------|
 | Home: whole court header stays fixed; only the lower sections scroll | ✅ |
 | Compete: tabs and filters stay fixed; only the ranking list scrolls | ✅ |
-| Checked in: header turns orange, logo inverts, timer and PUBLIC / FRIENDS / PRIVATE on the right | ✅ |
-| Half-circle mark gone; small glass house button left of Check in; narrower glass court button | ✅ |
+| Checked in: Home's header turns orange, logo inverts, timer and PUBLIC / FRIENDS / PRIVATE on the right (Home only; other pages keep their header) | ✅ |
+| Half-circle mark gone; small glass house button left of Check in (Home, drawer; none on the court page); narrower glass court button; LOCAL beside the city | ✅ |
 | Home: busy-times chart under Check in | ✅ |
 | Home hour card said "0 planning to go" while checked in | ✅ |
 | Explore card: text centred, court drawing no longer behind the name | ✅ |

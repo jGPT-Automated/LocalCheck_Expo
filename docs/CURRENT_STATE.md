@@ -107,15 +107,17 @@ Each claim says which of these it is, because they are often confused:
     scrolls. Under 720pt tall the chart is the first item of the scroll area.
   - `app/(tabs)/compete.tsx`: the sport / scope filters and scope label are
     outside the ranking `ScrollView`.
-  - `components/ScreenHeader.tsx`: checked in = orange bar, `LogoMark
-    tone="dark"`, `CheckInClock`. `context/AppContext.tsx` exposes `checkedInAt`
+  - `components/ScreenHeader.tsx`: with `checkInBar` (Home only), checked in =
+    orange bar, `LogoMark tone="dark"`, `CheckInClock`. Other screens are
+    unchanged. `context/AppContext.tsx` exposes `checkedInAt`
     (from `fetchActiveCheckInState`, `services/checkInService.ts`); visibility is
     the existing profile setting. Manual check-ins end after 45 minutes
     (D53), so the timer never passes 45:00 for them; auto check-ins run to 1.5 h.
   - `components/court/CourtParts.tsx`: `LocalMark` is deleted; `LocalButton`,
-    `LocalTag` and a glass `CourtLinkButton` replace it (`Colors.glass`).
-    `components/CourtListItem.tsx` centres its text and uses a sport tint instead
-    of `CourtArt`.
+    `PlaceLine` (city line with LOCAL beside it) and a glass `CourtLinkButton`
+    replace it (`Colors.glass`). The court page has no local control.
+    `components/CourtListItem.tsx` keeps the sport label left, centres the name
+    and city, and uses a sport tint instead of `CourtArt`.
   - `components/court/HourSlotCard.tsx`, `SlotCard.tsx` and the Schedule page's
     card (`app/(tabs)/schedule.tsx`): the current hour counts the people on
     court ("5 on court · 7 planning to go") and shows the checked-in player as

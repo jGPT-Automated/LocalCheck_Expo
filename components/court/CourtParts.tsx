@@ -13,6 +13,7 @@ import {
   Text,
   type TextStyle,
   View,
+  type ViewStyle,
 } from "react-native";
 
 import { PressableScale } from "@/components/ui/PressableScale";
@@ -128,12 +129,22 @@ export function LocalButton({
   );
 }
 
-/** Your local court, as a small tag on a card: a house and LOCAL. Not a button. */
-export function LocalTag() {
+/**
+ * The line under a court's name, centred: city · distance, and a small house +
+ * LOCAL beside it when it is your local court. Not a button.
+ */
+export function PlaceLine({ place, local = false, style }: { place: string; local?: boolean; style?: StyleProp<ViewStyle> }) {
+  if (!place && !local) return null;
   return (
-    <View accessibilityLabel="Your local court" accessible style={styles.localTag}>
-      <Feather color={Colors.accent} name="home" size={12} />
-      <Text style={styles.localTagText}>Local</Text>
+    <View style={[styles.placeLine, style]}>
+      {place ? <Text numberOfLines={1} style={styles.placeText}>{place}</Text> : null}
+      {local ? (
+        <View accessibilityLabel="Your local court" accessible style={styles.localTag}>
+          {place ? <Text style={styles.placeText}>·</Text> : null}
+          <Feather color={Colors.accent} name="home" size={12} />
+          <Text style={styles.localTagText}>Local</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -345,7 +356,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.hairlineChrome,
   },
   glassOn: { backgroundColor: Colors.liveQuiet, borderColor: Colors.accentBorder },
-  localTag: { flexDirection: "row", alignItems: "center", gap: 5 },
+  placeLine: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  placeText: { flexShrink: 1, fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
+  localTag: { flexDirection: "row", alignItems: "center", gap: 5, flexShrink: 0 },
   localTagText: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.liveInk },
   cellLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   cellLabel: { fontFamily: Typography.bodyBold, fontSize: 7.5, letterSpacing: 0.9, textTransform: "uppercase", color: Colors.textSecondary },

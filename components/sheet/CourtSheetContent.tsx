@@ -22,7 +22,7 @@ import {
   CheckInButton,
   CourtLinkButton,
   LocalButton,
-  LocalTag,
+  PlaceLine,
   MetricStrip,
   SectionHead,
   SportLabel,
@@ -204,12 +204,11 @@ export function CourtSheetContent({
         >
           <View style={styles.metaRow}>
             <SportLabel sport={court.sport} />
-            {isMyLocal ? <LocalTag /> : null}
           </View>
           <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
             {name}
           </Text>
-          {place ? <Text numberOfLines={1} style={styles.place}>{place}</Text> : null}
+          <PlaceLine local={isMyLocal} place={place} style={styles.place} />
           <View style={styles.strip}>
             <MetricStrip
               cells={[
@@ -447,14 +446,7 @@ const styles = StyleSheet.create({
     textShadowColor: Colors.sheet,
     textShadowRadius: 6,
   },
-  place: {
-    paddingTop: 6,
-    paddingHorizontal: 20,
-    textAlign: "center",
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    color: Colors.textSecondary,
-  },
+  place: { paddingTop: 6, paddingHorizontal: 20 },
   strip: { paddingHorizontal: 20, paddingTop: 12 },
   actions: { flexDirection: "row", gap: 8, paddingHorizontal: 20, paddingTop: 14 },
   checkSlot: { flex: 1, minWidth: 0 },

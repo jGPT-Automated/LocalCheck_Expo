@@ -10,7 +10,7 @@ import { CourtBusyChart } from "@/components/court/CourtBusyChart";
 import { CourtGamesPanel } from "@/components/court/CourtGamesPanel";
 import { CourtInfoPanel } from "@/components/court/CourtInfoPanel";
 import { CourtPlayersPanel } from "@/components/court/CourtPlayersPanel";
-import { CourtTabBar, LiveDot, LocalButton, SportLabel } from "@/components/court/CourtParts";
+import { CourtTabBar, LiveDot, SportLabel } from "@/components/court/CourtParts";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { GameResultModal } from "@/components/ui/GameResultModal";
 import { PersonTile } from "@/components/ui/PersonTile";
@@ -64,7 +64,6 @@ export default function CourtProfileScreen() {
     localCourtId,
     localCourt: contextLocalCourt,
     currentUser,
-    setLocalCourt,
     isFriend,
     runs,
   } = useApp();
@@ -225,12 +224,6 @@ export default function CourtProfileScreen() {
           >
             <Feather color={Colors.text} name="arrow-left" size={22} />
           </Pressable>
-          <LocalButton
-            active={isMyLocal}
-            courtName={court.shortName || court.name}
-            height={44}
-            onPress={() => void setLocalCourt(court.id, court)}
-          />
         </View>
         {/* Name left, the live number right (Oct 17 header reference), then
             today's busy times above the tabs so every tab shares them. */}

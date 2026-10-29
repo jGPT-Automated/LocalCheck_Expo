@@ -86,15 +86,17 @@ below wherever they disagree.
   busy-times chart under Check in; only Here now, Up next and Recent activity
   scroll (under 720pt tall, the chart scrolls with the page). Compete keeps its
   tabs and its sport and scope filters fixed; only the ranking list scrolls.
-  While you are checked in every tab header turns bright orange, the logo
-  inverts to dark, and the far right shows a timer (m:ss, then h:mm:ss) with
-  who can see the check-in (PUBLIC, FRIENDS or PRIVATE); a screen's own right
-  action sits on a dark chip beside it. The corner quarter-circle mark is gone:
+  While you are checked in, Home's header (only Home's) turns bright orange,
+  the logo inverts to dark, and the far right shows a timer (m:ss, then
+  h:mm:ss) with who can see the check-in (PUBLIC, FRIENDS or PRIVATE); every
+  other page keeps its normal header. The corner quarter-circle mark is gone:
   the local court is a small glass house button to the left of Check in (orange
   when it is your local, a tap sets it), the court button is a narrower glass
-  chevron, and that slot is where saved courts will go. Explore cards centre
-  their text, show LOCAL as a small tag, and drop the court drawing behind the
-  text for a soft sport tint. The current hour's card counts the people on
+  chevron, and that slot is where saved courts will go. The court page has no
+  local control (the drawer, Home and Settings set it). Explore cards keep the
+  sport label on the left, centre the name and city, put LOCAL (a small house)
+  beside the city on Explore, the drawer and Home, and drop the court drawing
+  behind the text for a soft sport tint. The current hour's card counts the people on
   court and shows you as Here once you are checked in. Back is the iOS edge
   swipe only; the full-screen back swipe is off. The plan doc's Decision log
   needs the matching D62 line (it lives outside the repo).

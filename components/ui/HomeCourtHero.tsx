@@ -2,22 +2,21 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { CourtArt } from "@/components/court/CourtArt";
-import { CheckInButton, CourtLinkButton, LocalButton, LocalTag, MetricStrip, SportLabel } from "@/components/court/CourtParts";
+import { CheckInButton, CourtLinkButton, LocalButton, MetricStrip, PlaceLine, SportLabel } from "@/components/court/CourtParts";
 import { Colors } from "@/constants/colors";
 import type { Court } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 
 /**
  * Home's local court header: full width, not a card, and all of it stays fixed
- * while the page below scrolls. `HomeCourtTop` (sport on the left, LOCAL on the
- * right), `HomeCourtHero` (court trace, centred name, city · distance, On court
+ * while the page below scrolls. `HomeCourtTop` (sport on the left),
+ * `HomeCourtHero` (court trace, centred name, city · distance · LOCAL, On court
  * / Court hours · wk / Locals), then HomeCourtActions.
  */
 export function HomeCourtTop({ court }: { court: Court }) {
   return (
     <View style={styles.metaRow}>
       <SportLabel sport={court.sport} />
-      <LocalTag />
     </View>
   );
 }
@@ -48,7 +47,7 @@ export function HomeCourtHero({
       <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
         {court.shortName || court.name}
       </Text>
-      {place ? <Text numberOfLines={1} style={styles.place}>{place}</Text> : null}
+      <PlaceLine local place={place} style={styles.place} />
       <View style={styles.strip}>
         <MetricStrip
           cells={[
@@ -106,7 +105,7 @@ const styles = StyleSheet.create({
     textShadowColor: Colors.background,
     textShadowRadius: 6,
   },
-  place: { marginTop: 2, textAlign: "center", fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
+  place: { marginTop: 2 },
   strip: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 },
 
   actions: { flexDirection: "row", gap: 8, paddingHorizontal: 20, paddingTop: 14 },

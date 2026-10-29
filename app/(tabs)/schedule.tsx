@@ -1039,7 +1039,6 @@ export default function ScheduleScreen() {
     <View style={styles.container}>
       <ScreenHeader
         title="SCHEDULE"
-        hideRightWhenLive
         right={<Text style={styles.headerDate}>{weekLabel}</Text>}
       />
 
@@ -1317,25 +1316,16 @@ export default function ScheduleScreen() {
               const slotHour = SLOT_HOURS[selectedSlot.slot];
               const now = new Date();
               const isNow = selectedSlot.day === 0 && now.getHours() === slotHour;
-              const onCourt = isNow
-                ? courtRoster.map((player) => ({
-                    id: player.id,
-                    name: player.name,
-                    initials: player.avatar,
-                    isMine: player.id === currentUser.id,
-                  }))
-                : [];
-              const slotAttendees = [
-                ...onCourt,
-                ...visible.filter((a) => !onCourt.some((p) => p.id === a.id)),
-              ];
+              // People on court now are counted, not listed or counted twice.
+              const onCourt = new Set(isNow ? courtRoster.map((player) => player.id) : []);
+              const slotAttendees = visible.filter((a) => !onCourt.has(a.id));
               return (
                 <View style={styles.slotWrap}>
                   <SlotCard
                     attendees={slotAttendees}
                     checkedIn={isNow && checkedInCourtId === court?.id}
                     current={isNow}
-                    here={onCourt.length}
+                    here={onCourt.size}
                     hidden={hidden}
                     mine={Boolean(mine?.visitId)}
                     mode={mine?.visitId || canAdd ? "full" : "view"}

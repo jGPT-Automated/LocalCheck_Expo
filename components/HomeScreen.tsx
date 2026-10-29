@@ -168,7 +168,7 @@ export function HomeScreen() {
 
   return (
     <ScreenViewport>
-      <ScreenHeader title="LOCALCHECK" />
+      <ScreenHeader checkInBar title="LOCALCHECK" />
 
       {/* Fixed: the court, its numbers, Check in and today's busy times. */}
       <View style={styles.fixed}>

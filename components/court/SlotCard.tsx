@@ -53,7 +53,7 @@ export function SlotCard({
   mode: SlotMode;
   /** The slot is happening now: the button says Here, otherwise Going. */
   current?: boolean;
-  /** People on court right now (already in `attendees`); only the current slot has any. */
+  /** People on court right now, counted but not listed (Here now lists them); only the current slot has any. */
   here?: number;
   /** You are checked in at this court: the Here button is on and checking out turns it off. */
   checkedIn?: boolean;
@@ -73,7 +73,7 @@ export function SlotCard({
     <View style={styles.card}>
       <View style={styles.head}>
         <Text numberOfLines={1} style={styles.title}>{title}</Text>
-        <Text style={styles.meta}>{slotMetaLabel({ current, here, planned: Math.max(0, total - here) })}</Text>
+        <Text style={styles.meta}>{slotMetaLabel({ current, here, planned: total })}</Text>
       </View>
       {showBody ? (
         <View style={styles.body}>

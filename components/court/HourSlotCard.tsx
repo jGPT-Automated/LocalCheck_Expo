@@ -49,24 +49,14 @@ export function HourSlotCard({ court, dayOffset, hour }: { court: Court; dayOffs
 
   const current = from <= Date.now() && Date.now() < to;
   const attendees: SlotAttendee[] = [];
-  // The hour you are in starts with the people on court right now.
-  let here = 0;
-  if (current) {
-    for (const player of roster) {
-      if (attendees.some((a) => a.id === player.id)) continue;
-      here += 1;
-      attendees.push({
-        id: player.id,
-        name: player.name,
-        initials: player.avatar,
-        isMine: player.id === currentUser.id,
-      });
-    }
-  }
+  // The hour you are in counts the people on court right now; they are not
+  // counted again as planned visits or game players.
+  const onCourt = new Set(current ? roster.map((player) => player.id) : []);
+  const here = onCourt.size;
   let plannedVisible = 0;
   for (const visit of plannedVisits) {
     if (visit.courtId !== court.id || !inSlot(visit.plannedAtIso)) continue;
-    if (attendees.some((a) => a.id === visit.userId)) continue;
+    if (onCourt.has(visit.userId) || attendees.some((a) => a.id === visit.userId)) continue;
     plannedVisible += 1;
     attendees.push({
       id: visit.userId,
@@ -81,7 +71,7 @@ export function HourSlotCard({ court, dayOffset, hour }: { court: Court; dayOffs
     .sort((a, b) => a.startTimeIso.localeCompare(b.startTimeIso));
   for (const run of slotRuns) {
     for (const player of run.participants) {
-      if (attendees.some((a) => a.id === player.id)) continue;
+      if (onCourt.has(player.id) || attendees.some((a) => a.id === player.id)) continue;
       attendees.push({ id: player.id, name: player.name, initials: player.avatar, isMine: player.id === currentUser.id });
     }
   }

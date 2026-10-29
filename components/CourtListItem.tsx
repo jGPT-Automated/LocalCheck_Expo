@@ -2,7 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { LocalTag, MetricStrip, SportLabel } from "@/components/court/CourtParts";
+import { MetricStrip, PlaceLine, SportLabel } from "@/components/court/CourtParts";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
 import type { Court } from "@/constants/data";
@@ -18,10 +18,10 @@ interface CourtListItemProps {
 
 /**
  * Canonical Explore court card: a soft sport tint in the top corner, the sport
- * (and LOCAL when it is yours) on the first line, then the name and city ·
- * distance centred, then On court / Court hours · wk / Locals. No court
- * drawing behind the text. Actions live in the court drawer, so the card has
- * none.
+ * on the left of the first line, then the name and city · distance centred
+ * (LOCAL beside the city when it is yours), then On court / Court hours · wk /
+ * Locals. No court drawing behind the text. Actions live in the court drawer,
+ * so the card has none.
  */
 export function CourtListItem({ court, onPress, isLocalCourt, hoursLabel }: CourtListItemProps) {
   const active = court.activeCount ?? 0;
@@ -49,12 +49,11 @@ export function CourtListItem({ court, onPress, isLocalCourt, hoursLabel }: Cour
       />
       <View style={styles.metaRow}>
         <SportLabel sport={court.sport} />
-        {isLocalCourt ? <View style={styles.localTag}><LocalTag /></View> : null}
       </View>
       <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
         {court.shortName || court.name}
       </Text>
-      {place ? <Text numberOfLines={1} style={styles.place}>{place}</Text> : null}
+      <PlaceLine local={isLocalCourt} place={place} style={styles.place} />
       <View style={styles.strip}>
         <MetricStrip
           cells={[
@@ -85,9 +84,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
   },
-  localTag: { position: "absolute", right: 18 },
   name: {
     paddingTop: 8,
     paddingHorizontal: 18,
@@ -101,6 +99,6 @@ const styles = StyleSheet.create({
     textShadowColor: Colors.sheet,
     textShadowRadius: 6,
   },
-  place: { paddingTop: 6, paddingHorizontal: 18, textAlign: "center", fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
+  place: { paddingTop: 6, paddingHorizontal: 18 },
   strip: { marginTop: 14 },
 });
