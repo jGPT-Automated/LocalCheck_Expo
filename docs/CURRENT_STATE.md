@@ -118,9 +118,14 @@ Each claim says which of these it is, because they are often confused:
     distance right) replace it (`Colors.glass`). The court page has no local
     control. `components/CourtListItem.tsx` centres the name and uses a sport
     tint instead of `CourtArt`. Home fixes Here now under the chart too.
-  - `app/(tabs)/schedule.tsx`: `SpeedDialFab` is deleted; Add times and Schedule
-    game are pills under the heat map; the "Who's going" line is gone (the
-    edit-mode instruction stays); passed hours are dimmed.
+  - `app/(tabs)/schedule.tsx`: `SpeedDialFab` is deleted. Under the heat map, the
+    shared `FilterChips` (extracted from the court page's All / Games /
+    Check-ins chips, `components/court/CourtParts.tsx`): Add times, My times,
+    Friends times (filters on the map) and Clear times (removes my planned
+    times after an `Alert` confirm; `Alert` does nothing on web, so it is not
+    exercised in the web export). The "Who's going" line is gone (the edit-mode
+    instruction stays); passed hours are dimmed. The Schedule game action that
+    lived in the FAB has no entry point on this page now.
   - `components/court/HourSlotCard.tsx`, `SlotCard.tsx` and the Schedule page's
     card (`app/(tabs)/schedule.tsx`): the current hour counts the people on
     court ("5 on court · 7 planning to go") and shows the checked-in player as

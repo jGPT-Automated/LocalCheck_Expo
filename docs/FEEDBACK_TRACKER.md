@@ -33,7 +33,7 @@ checking the gestures. Not merged; no OTA yet.
 | Checked in: Home's header turns orange, logo inverts, timer and PUBLIC / FRIENDS / PRIVATE on the right (Home only; other pages keep their header) | ✅ |
 | Half-circle mark gone; small round glass house button left of Check in (Home, drawer; none on the court page); small round glass court button; city on the top right, no LOCAL tag | ✅ |
 | Home: Here now fixed under the chart | ✅ (my reading of the marked region) |
-| Schedule: floating + gone, Add times / Schedule game as pills under the heat map; "Who's going" line gone; passed hours dimmed | ✅ (legend's "Local time · 1-hr slots" dropped; scale and Game kept) |
+| Schedule: floating + gone; the court page's chips under the heat map: Add times, My times, Friends times, Clear times; "Who's going" line gone; passed hours dimmed | ✅ (legend's "Local time · 1-hr slots" dropped; scale and Game kept; Schedule game lost its entry point, tell me where it goes) |
 | Home: busy-times chart under Check in | ✅ |
 | Home hour card said "0 planning to go" while checked in | ✅ |
 | Explore card: text centred, court drawing no longer behind the name | ✅ |

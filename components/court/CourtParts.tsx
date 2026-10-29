@@ -264,6 +264,42 @@ export function CourtLinkButton({ onPress, courtName }: { onPress: () => void; c
   );
 }
 
+/**
+ * The small rounded filter chips under a court's content (All / Games /
+ * Check-ins on the court page, the times chips on Schedule). One selected chip
+ * at most; `active` null leaves them all quiet.
+ */
+export function FilterChips<T extends string>({
+  chips,
+  active = null,
+  onPress,
+  style,
+}: {
+  chips: ReadonlyArray<{ value: T; label: string }>;
+  active?: T | null;
+  onPress: (value: T) => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <View style={[styles.filters, style]}>
+      {chips.map((chip) => {
+        const selected = active === chip.value;
+        return (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            key={chip.value}
+            onPress={() => onPress(chip.value)}
+            style={[styles.chip, selected && styles.chipActive]}
+          >
+            <Text style={[styles.chipText, selected && styles.chipTextActive]}>{chip.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export function CourtTabBar<T extends string>({
   tabs,
   active,
@@ -349,6 +385,11 @@ const styles = StyleSheet.create({
   placeText: { flexShrink: 1, textAlign: "right", fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
   cellLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   cellLabel: { fontFamily: Typography.bodyBold, fontSize: 7.5, letterSpacing: 0.9, textTransform: "uppercase", color: Colors.textSecondary },
+  filters: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6 },
+  chip: { height: 30, paddingHorizontal: 12, borderRadius: 999, justifyContent: "center", borderWidth: 1, borderColor: "rgba(242,242,246,0.12)" },
+  chipActive: { backgroundColor: Colors.tile, borderColor: "rgba(242,242,246,0.2)" },
+  chipText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.textSecondary },
+  chipTextActive: { color: Colors.text },
   tabs: { flexDirection: "row", paddingHorizontal: 6, borderBottomWidth: 1, borderBottomColor: Colors.hairline },
   tab: { flex: 1, height: 44, alignItems: "center", justifyContent: "center", borderBottomWidth: 2, borderBottomColor: "transparent" },
   tabActive: { borderBottomColor: Colors.accent },

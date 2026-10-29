@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 import {
+  Alert,
   Modal,
   Platform,
   Pressable,
@@ -29,6 +30,7 @@ import {
 } from "@/constants/data";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { FormSheet } from "@/components/sheet/FormSheet";
+import { FilterChips } from "@/components/court/CourtParts";
 import { SlotCard } from "@/components/court/SlotCard";
 import { ScheduleGameSheet } from "@/components/schedule/ScheduleGameSheet";
 import { SearchField } from "@/components/ui/SearchField";
@@ -578,6 +580,8 @@ function CourtPickerModal({
   );
 }
 
+type TimesChip = "add" | "mine" | "friends" | "clear";
+
 export default function ScheduleScreen() {
   const {
     courts,
@@ -586,6 +590,7 @@ export default function ScheduleScreen() {
     plannedVisits,
     currentUser,
     checkedInCourtId,
+    isFriend,
     refreshRuns,
     addPlannedVisit,
     removePlannedVisit,
@@ -623,6 +628,8 @@ export default function ScheduleScreen() {
     slot: number;
   } | null>(null);
   const [scheduleMode, setScheduleMode] = useState<"VIEW" | "EDIT">("VIEW");
+  // My times / Friends times narrow the heat map to those people; null shows everyone.
+  const [timesFilter, setTimesFilter] = useState<"mine" | "friends" | null>(null);
   const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
   const [editVisibility, setEditVisibility] = useState<Visibility>("public");
   const [savingTimes, setSavingTimes] = useState(false);
@@ -837,6 +844,17 @@ export default function ScheduleScreen() {
     [slotMap, slotHidden],
   );
 
+  const slotShown = useCallback(
+    (key: string) => {
+      if (!timesFilter || scheduleMode === "EDIT") return slotTotal(key);
+      const people = slotMap.get(key)?.attendees ?? [];
+      return timesFilter === "mine"
+        ? people.filter((a) => a.isMine).length
+        : people.filter((a) => !a.isMine && isFriend(a.id)).length;
+    },
+    [timesFilter, scheduleMode, slotMap, slotTotal, isFriend],
+  );
+
   const myVisitsByKey = useMemo(() => {
     const map = new Map<string, PlannedVisit[]>();
     if (!court) return map;
@@ -911,6 +929,26 @@ export default function ScheduleScreen() {
     setSelectedSlot(null);
     setSaveNotice(null);
     setScheduleMode("EDIT");
+  };
+
+  const clearMyTimes = () => {
+    const mine = Array.from(myVisitsByKey.values()).flat();
+    if (mine.length === 0) return;
+    Alert.alert("Clear your times?", undefined, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Clear",
+        style: "destructive",
+        onPress: () => {
+          void Promise.all(mine.map((visit) => removePlannedVisit(visit.id))).then((results) => {
+            if (results.some((ok) => !ok)) {
+              setSaveNotice("Could not clear every time. Try again.");
+              setTimeout(() => setSaveNotice(null), 3200);
+            }
+          });
+        },
+      },
+    ]);
   };
 
   const cancelEditingTimes = () => {
@@ -1126,7 +1164,7 @@ export default function ScheduleScreen() {
                 </View>
                 {weekDays.map((_, dayIdx) => {
                   const key = `${dayIdx}:${slotIdx}`;
-                  const count = slotTotal(key);
+                  const count = slotShown(key);
                   const runCount = slotMap.get(key)?.runCount ?? 0;
                   const isSelected =
                     selectedSlot?.day === dayIdx &&
@@ -1236,30 +1274,24 @@ export default function ScheduleScreen() {
             </View>
           </View>
 
-          {/* Actions sit under the heat map as pills, not a floating button. */}
+          {/* Add times, narrow the map to mine or friends', clear mine. The
+              same chips as the court page's All / Games / Check-ins. */}
           {scheduleMode === "VIEW" && court?.id === localCourt?.id ? (
-            <View style={styles.actionPills}>
-              <Pressable
-                accessibilityLabel="Add times"
-                accessibilityRole="button"
-                onPress={beginEditingTimes}
-                style={({ pressed }) => [styles.actionPill, pressed && styles.actionPillPressed]}
-                testID="add-times-btn"
-              >
-                <Feather color={Colors.text} name="clock" size={14} />
-                <Text style={styles.actionPillText}>Add times</Text>
-              </Pressable>
-              <Pressable
-                accessibilityLabel="Schedule game"
-                accessibilityRole="button"
-                onPress={() => setShowHost(true)}
-                style={({ pressed }) => [styles.actionPill, pressed && styles.actionPillPressed]}
-                testID="schedule-game-btn"
-              >
-                <Feather color={Colors.text} name="users" size={14} />
-                <Text style={styles.actionPillText}>Schedule game</Text>
-              </Pressable>
-            </View>
+            <FilterChips<TimesChip>
+              active={timesFilter}
+              chips={[
+                { value: "add", label: "Add times" },
+                { value: "mine", label: "My times" },
+                { value: "friends", label: "Friends times" },
+                ...(myVisitsByKey.size > 0 ? [{ value: "clear" as const, label: "Clear times" }] : []),
+              ]}
+              onPress={(value) => {
+                if (value === "add") beginEditingTimes();
+                else if (value === "clear") clearMyTimes();
+                else setTimesFilter((current) => (current === value ? null : value));
+              }}
+              style={styles.timesChips}
+            />
           ) : null}
         </View>
 
@@ -1735,31 +1767,7 @@ const styles = StyleSheet.create({
     gap: Space.xl,
     marginTop: 8,
   },
-  actionPills: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: Space.md,
-    marginTop: Space.lg,
-  },
-  actionPill: {
-    height: 40,
-    paddingHorizontal: Space.lg,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Space.sm,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.hairlineChrome,
-    backgroundColor: Colors.surfaceHigh,
-  },
-  actionPillPressed: { opacity: 0.72 },
-  actionPillText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    letterSpacing: 1.3,
-    textTransform: "uppercase",
-    color: Colors.text,
-  },
+  timesChips: { paddingHorizontal: 0, paddingTop: Space.md, paddingBottom: 0 },
   legendScale: { flexDirection: "row", alignItems: "center", gap: 5 },
   legendGame: { flexDirection: "row", alignItems: "center", gap: 4 },
   legendGameDot: {

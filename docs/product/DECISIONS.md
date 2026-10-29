@@ -99,9 +99,10 @@ below wherever they disagree.
   and the "My local court" heading say it), and drop the court drawing behind
   the text for a soft sport tint. The glass buttons are small and round. The current hour's card counts the people on
   court and shows you as Here once you are checked in. On Home, Here now is fixed
-  under the chart too. Schedule loses its floating + button: Add times and
-  Schedule game are oval pills under the heat map, the "Who's going / Planned
-  visits + games" line is gone, and hours that have passed are dimmed. Back is
+  under the chart too. Schedule loses its floating + button: under the heat map
+  are the court page's chips (`FilterChips`): Add times, My times, Friends times
+  and Clear times; the "Who's going / Planned visits + games" line is gone, and
+  hours that have passed are dimmed. Scheduling a game is no longer on that page. Back is
   the iOS edge swipe only; the full-screen back swipe is off. The plan doc's Decision log
   needs the matching D62 line (it lives outside the repo).
 - **D61 Corner mark, thin slot card, Schedule fits one screen (Oct 18,

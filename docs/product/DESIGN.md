@@ -194,6 +194,7 @@ Canonical component ownership:
 | Checked-in timer + visibility  | `CheckInClock` (inside `ScreenHeader`) |
 | Drawer section label + meta    | `SectionHead`       |
 | Court/Home content tabs        | `CourtTabBar`       |
+| Small rounded filter chips (court Live, Schedule) | `FilterChips` |
 | Sport icon                     | `SportEmblem`       |
 | Player avatar                  | `PlayerAvatar`      |
 | Player list row                | `PlayerSummaryRow`  |
@@ -445,7 +446,7 @@ Replaced by the above on Oct 14 (D55), kept for history: the court detail page k
   and 3–10 PM). A single directional chevron sits below the early window or above
   the late window and is also a tap target. Compact screens may scroll the body so
   selected-slot details and upcoming runs remain reachable.
-- **Add times** and **Schedule game** are two oval pills under the heat map (D62), shown on the local court's schedule; the floating + is gone. The heat map has no heading text (the edit-mode instruction stays), and hours that have passed are dimmed.
+- Under the heat map (D62), on the local court's schedule, `FilterChips` (the court page's All / Games / Check-ins chips): **Add times**, **My times** and **Friends times** (narrow the map to those people; tap again for everyone) and **Clear times** (mine, after a confirm; shown only when you have times). The floating + and its **Schedule game** action are gone. The heat map has no heading text (the edit-mode instruction stays), and hours that have passed are dimmed.
 - Add-times mode supports multi-select cells and one save action.
 - Scheduled run cards show localized 12-hour time, attendees, and remaining spots. They do not waste space on `VIEW` copy or a text arrow.
 - Run detail keeps the two-column roster compact; its body scrolls when a full

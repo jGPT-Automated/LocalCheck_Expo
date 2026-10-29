@@ -10,7 +10,7 @@ import { CourtBusyChart } from "@/components/court/CourtBusyChart";
 import { CourtGamesPanel } from "@/components/court/CourtGamesPanel";
 import { CourtInfoPanel } from "@/components/court/CourtInfoPanel";
 import { CourtPlayersPanel } from "@/components/court/CourtPlayersPanel";
-import { CourtTabBar, LiveDot, SportLabel } from "@/components/court/CourtParts";
+import { CourtTabBar, FilterChips, LiveDot, SportLabel } from "@/components/court/CourtParts";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { GameResultModal } from "@/components/ui/GameResultModal";
 import { PersonTile } from "@/components/ui/PersonTile";
@@ -275,25 +275,14 @@ export default function CourtProfileScreen() {
                 <Text style={styles.emptyLine}>Nobody yet. Check in and you're first.</Text>
               )}
             </View>
-            <View style={styles.filters}>
-              {FEED_FILTERS.map((filter) => {
-                const selected = feedFilter === filter.value;
-                return (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityState={{ selected }}
-                    key={filter.value}
-                    onPress={() => {
-                      setFeedFilter(filter.value);
-                      setFeedVisible(FEED_PAGE);
-                    }}
-                    style={[styles.chip, selected && styles.chipActive]}
-                  >
-                    <Text style={[styles.chipText, selected && styles.chipTextActive]}>{filter.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            <FilterChips
+              active={feedFilter}
+              chips={FEED_FILTERS}
+              onPress={(value) => {
+                setFeedFilter(value);
+                setFeedVisible(FEED_PAGE);
+              }}
+            />
             {filteredFeed.length > 0 ? (
               filteredFeed.slice(0, feedVisible).map((item, index) => (
                 <ActivityRow
@@ -413,11 +402,6 @@ const styles = StyleSheet.create({
   roster: { paddingHorizontal: 20, gap: Space.md, alignItems: "center" },
   privateInline: { fontFamily: Typography.bodyMedium, fontSize: 10, color: Colors.muted },
   emptyLine: { paddingHorizontal: 20, fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
-  filters: { flexDirection: "row", gap: 6, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6 },
-  chip: { height: 30, paddingHorizontal: 12, borderRadius: 999, justifyContent: "center", borderWidth: 1, borderColor: "rgba(242,242,246,0.12)" },
-  chipActive: { backgroundColor: Colors.tile, borderColor: "rgba(242,242,246,0.2)" },
-  chipText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.textSecondary },
-  chipTextActive: { color: Colors.text },
   moreButton: { minHeight: 48, marginHorizontal: Layout.screenGutter, marginTop: Space.md, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Space.sm, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md },
   moreText: { fontFamily: Typography.bodyBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.2 },
   empty: { minHeight: 72, paddingHorizontal: Layout.screenGutter, paddingVertical: Space.md, alignItems: "center", justifyContent: "center" },
