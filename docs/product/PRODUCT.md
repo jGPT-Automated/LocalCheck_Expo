@@ -59,3 +59,11 @@ the native search keyboard is open, then returns. Explore's drawer scrolls as on
 with its destination chips pinned. Log game does not scroll when the form
 fits; extra content and keyboard can enable scrolling. These changes add no
 manual refresh to realtime data.
+
+### Court overview polish (D63, on branch)
+
+Explore cards use a quieter court overview with a clear navigation chevron and
+readable stats. The decorative corner arc/trace is omitted from these cards
+and Home. Home's court title and location align to the left; its identity and
+stats remain pinned while the activity scrolls. Cards support long court
+names over two lines. Opening courts and setting a local court work as before.

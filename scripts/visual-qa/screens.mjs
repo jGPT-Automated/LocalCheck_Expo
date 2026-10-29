@@ -10,6 +10,7 @@ export const SCREENS = [
   { name: "onboarding-name", path: "/onboarding", onboarding: true, actions: [{ click: "Get started" }, { click: "Basketball" }] },
   { name: "home-feed", path: "/" },
   { name: "home-scrolled", path: "/", actions: [{ eval: `document.querySelectorAll('*').forEach((e)=>{if(e.scrollHeight>e.clientHeight+50&&e.clientHeight>200)e.scrollTop=500})` }] },
+  { name: "home-long-court", path: "/", courtStress: true },
   { name: "court-live", path: `/court/${COURT}` },
   { name: "court-games", path: `/court/${COURT}?tab=games` },
   { name: "court-players", path: `/court/${COURT}?tab=players` },
@@ -60,6 +61,7 @@ export const SCREENS = [
     { eval: `const e=document.querySelector('[data-testid="log-game-scroll"]');if(!e||e.scrollHeight<=e.clientHeight||getComputedStyle(e).overflowY==='hidden')throw Error('Team form must retain overflow scrolling');e.scrollTop=e.scrollHeight` },
   ] },
   { name: "explore", path: "/explore" },
+  { name: "explore-long-court", path: "/explore", courtStress: true },
   { name: "explore-drawer", path: "/explore", actions: [{ testId: `court-${COURT}`, wait: 4000 }] },
   { name: "explore-drawer-expanded-scroll", path: "/explore", actions: [
     { testId: `court-${COURT}`, wait: 1500 },

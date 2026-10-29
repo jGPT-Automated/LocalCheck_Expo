@@ -1,8 +1,8 @@
+import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { CourtArt } from "@/components/court/CourtArt";
-import { LocalMark, MetricStrip, SportLabel } from "@/components/court/CourtParts";
+import { MetricStrip, SportLabel } from "@/components/court/CourtParts";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
 import type { Court } from "@/constants/data";
@@ -17,9 +17,8 @@ interface CourtListItemProps {
 }
 
 /**
- * Canonical Explore court card (court-flow design): court trace top right,
- * sport + Your local, the name, city · distance, then On court / Court hours
- * · wk / Locals. Actions live in the court drawer, so the card has none.
+ * Canonical Explore court card: sport, name, city · distance and court stats.
+ * The whole card opens the drawer; its chevron is a cue, not another button.
  */
 export function CourtListItem({ court, onPress, isLocalCourt, hoursLabel }: CourtListItemProps) {
   const active = court.activeCount ?? 0;
@@ -32,18 +31,18 @@ export function CourtListItem({ court, onPress, isLocalCourt, hoursLabel }: Cour
   return (
     <PressableScale
       accessibilityLabel={onPress ? `Open ${court.name}` : undefined}
+      accessibilityHint={isLocalCourt ? "Your local court" : undefined}
       accessibilityRole={onPress ? "button" : undefined}
       disabled={!onPress}
       onPress={onPress ? () => onPress(court) : undefined}
       style={styles.card}
       testID={`court-${court.id}`}
     >
-      <CourtArt sport={court.sport} />
       <View style={styles.metaRow}>
         <SportLabel sport={court.sport} />
+        {onPress ? <Feather accessible={false} color={Colors.textSecondary} name="chevron-right" size={18} /> : null}
       </View>
-      {isLocalCourt ? <LocalMark active /> : null}
-      <Text numberOfLines={1} style={styles.name}>
+      <Text numberOfLines={2} style={styles.name}>
         {court.shortName || court.name}
       </Text>
       {place ? <Text numberOfLines={1} style={styles.place}>{place}</Text> : null}
@@ -66,31 +65,29 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginVertical: 6,
     overflow: "hidden",
-    borderRadius: Radius.courtCard,
+    borderRadius: Radius.panel,
     borderWidth: 1,
-    borderColor: Colors.hairlineCard,
-    backgroundColor: Colors.sheet,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
   },
   metaRow: {
     height: 26,
     marginTop: 14,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
   name: {
-    paddingTop: 8,
-    paddingHorizontal: 18,
+    paddingTop: 6,
+    paddingHorizontal: 16,
     fontFamily: Typography.headingBold,
-    fontSize: 30,
-    lineHeight: 32,
-    letterSpacing: -0.9,
+    fontSize: 26,
+    lineHeight: 30,
+    letterSpacing: -0.6,
     textTransform: "uppercase",
     color: Colors.text,
-    textShadowColor: Colors.sheet,
-    textShadowRadius: 6,
   },
-  place: { paddingTop: 6, paddingHorizontal: 18, fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
+  place: { paddingTop: 6, paddingHorizontal: 16, fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
   strip: { marginTop: 14 },
 });

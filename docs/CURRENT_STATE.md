@@ -1,6 +1,20 @@
 # Current state
 
-- Oct 29 (**on a branch**, `codex/onboard-main`, not merged/released):
+- Oct 29 (**on a branch**, `codex/native-ui-polish`, based on main `d5d9ebc`):
+  Explore cards omit the decorative quarter-circle and court-line art, use
+  semantic surface/border tokens, a 26/30 two-line title, 12pt place and
+  a navigation chevron. Home's court identity is left-aligned without the
+  redundant art/marker; its title/stat region stays sticky. Shared sport/stat
+  captions are 11pt. Existing drawer/detail local-court controls stay intact.
+  No dependency, SDK, backend or native build change. References, scope and
+  design calls: `docs/plans/2026-10-29-native-ui-polish-design.md`.
+  Includes the preceding approved scroll fixes in commit `98e88e8`.
+  `TMPDIR=/tmp pnpm check:release` passes (263 tests). Full 46-state × 3-size
+  visual review: zero hard failures; preexisting accessibility overages fell
+  from 23 to 19, with no limits raised. These remaining overages keep visual
+  QA nonzero, so the PR is a preview/review draft rather than a release sign-off.
+
+- Oct 29 (**on a branch**, `codex/native-ui-polish`, not merged/released):
   approved scroll/gesture follow-up to the audit of main `d5d9ebc`.
   Shared pushed-screen navigation explicitly disables full-screen Back and
   removes animationMatchesGesture. Explore's court drawer has one root

@@ -21,6 +21,18 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-29 — Explore and Home polish (`codex/native-ui-polish`)
+
+Implemented on branch for the requested PR preview; not merged or released.
+
+| Item | Status |
+|------|--------|
+| Remove ugly half-circle on Explore cards | Implemented in CourtListItem; decorative court trace also removed; local grouping/accessibility retained |
+| Fix Home header | Implemented in HomeCourtHero: left-aligned identity, redundant art/local marker removed; sticky stats preserved |
+| Apply design taste and PanelUI guidance | Both docs read fully; 29 collection shots visually inspected; existing palette/components retained, SDK54 compatibility preserved |
+| Readable consistent sport/stat captions | Shared labels increased to 11pt, quieter supporting weight, no tracking that crowds columns |
+| Preview PR and evidence | 138 captures, 0 hard failures; 23→19 existing accessibility overages; 263 tests/check:release pass; preview draft being opened |
+
 ## 2026-10-29 — scrolling and gesture audit (`codex/onboard-main`)
 
 Audit complete; approved fixes implemented **on branch**, not merged or

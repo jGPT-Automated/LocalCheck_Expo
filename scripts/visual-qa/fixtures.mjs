@@ -113,6 +113,17 @@ const courts = [
   court(COURT3, "Candy Cane Park Pickleball", "Candy Cane", "Conroe", "pickleball"),
 ];
 
+const normalLocalCourt = { ...courts[0] };
+/** Layout stress stays inside the stand-in; no real application data changes. */
+export function setCourtPresentationStress(on) {
+  Object.assign(courts[0], on ? {
+    name: "Northside Community Recreation Center",
+    short_name: null,
+    active_check_in_count: 1234,
+    local_player_count: 4567,
+  } : normalLocalCourt);
+}
+
 let ci = 0;
 function checkIn(user, court_id, start, end) {
   ci += 1;

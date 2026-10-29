@@ -1,16 +1,15 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { CourtArt } from "@/components/court/CourtArt";
-import { CheckInButton, CourtLinkButton, LocalMark, MetricStrip, SportLabel } from "@/components/court/CourtParts";
+import { CheckInButton, CourtLinkButton, MetricStrip, SportLabel } from "@/components/court/CourtParts";
 import { Colors } from "@/constants/colors";
 import type { Court } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 
 /**
  * Home's local court header: full width, not a card. `HomeCourtTop` (sport on
- * the left, the house mark in the corner) scrolls away; `HomeCourtHero` (court
- * trace, centred name, city · distance, On court / Court hours · wk / Locals)
+ * the left) scrolls away; `HomeCourtHero` (left-aligned name, city · distance,
+ * On court / Court hours · wk / Locals)
  * stays pinned under the app header. HomeCourtActions follows.
  */
 export function HomeCourtTop({ court }: { court: Court }) {
@@ -43,9 +42,7 @@ export function HomeCourtHero({
 
   return (
     <View style={styles.header}>
-      <CourtArt sport={court.sport} />
-      <LocalMark active />
-      <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
+      <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={2} style={styles.name}>
         {court.shortName || court.name}
       </Text>
       {place ? <Text numberOfLines={1} style={styles.place}>{place}</Text> : null}
@@ -95,17 +92,15 @@ const styles = StyleSheet.create({
   name: {
     marginTop: 4,
     paddingHorizontal: 20,
-    textAlign: "center",
+    textAlign: "left",
     fontFamily: Typography.headingBold,
-    fontSize: 34,
+    fontSize: 32,
     lineHeight: 36,
-    letterSpacing: -1.1,
+    letterSpacing: -0.6,
     textTransform: "uppercase",
     color: Colors.text,
-    textShadowColor: Colors.background,
-    textShadowRadius: 6,
   },
-  place: { marginTop: 2, textAlign: "center", fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
+  place: { marginTop: 2, paddingHorizontal: 20, textAlign: "left", fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
   strip: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 },
 
   actions: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 14 },

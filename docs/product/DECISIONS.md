@@ -5,9 +5,9 @@ superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D62, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D63, Jesse's plan doc)
 
-D0–D61 match Jesse's plan doc (Decisions tab); D62 records his Oct 29 chat
+D0–D61 match Jesse's plan doc (Decisions tab); D62–D63 record his Oct 29 chat
 approval (external plan doc not updated from this cloud session). Newer
 decisions supersede older entries below wherever they disagree.
 
@@ -81,6 +81,14 @@ decisions supersede older entries below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D63 Explore card decoration and Home header polish (Oct 29,
+  revises D61):** Jesse rejected the half-circle on Explore cards and requested
+  Home's header be fixed, using his Dribbble taste collection and the supplied
+  PanelUI docs as guidance, then an unmerged PR for preview. Explore/Home omit
+  the decorative arc and court trace. The implementation direction is the
+  agent's call for PR review: quieter semantic surfaces, a card chevron,
+  left-aligned Home identity and readable shared captions. Existing court
+  drawer/detail set-local controls stay functional. No SDK/library migration.
 - **D62 Edge Back, integrated court drawer and scroll ownership (Oct 29,
   revises D60):** Jesse approved standard edge-only Back for pushed screens;
   full-screen Back interrupts normal reading, confirmed on his iPhone. The
@@ -95,7 +103,8 @@ decisions supersede older entries below wherever they disagree.
 - **D61 Corner mark, thin slot card, Schedule fits one screen (Oct 18,
   revises D60):** The local mark becomes a quarter-circle in the card's
   top-right corner: a + while it isn't your local, a glowing orange check (the
-  logo's) that springs in once it is; the house and brackets are gone. The
+  logo's) that springs in once it is; the house and brackets are gone.
+  (Revised by D63: Explore cards and Home omit this decoration.) The
   Week and Home slot card is one thin row: a small title with "N planning to
   go" on the same line, the people on the left two thirds and the game on the
   right third, collapsed to the title row when the slot is empty; no dot beside

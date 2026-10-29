@@ -29,12 +29,13 @@ process.env.TZ = "America/Chicago";
 
 const { chromium } = await import("playwright");
 const { handleAuth, handleRest, SESSION } = await import("./mock.mjs");
-const { setOnboarding } = await import("./fixtures.mjs");
+const { setOnboarding, setCourtPresentationStress } = await import("./fixtures.mjs");
 const { SCREENS: ALL_SCREENS } = await import("./screens.mjs");
 // QA_ONLY=home,court-week runs just the screens whose names contain those words.
 const only = process.env.QA_ONLY?.split(",").filter(Boolean);
 const SCREENS = only ? ALL_SCREENS.filter((s) => only.some((o) => s.name.includes(o))) : ALL_SCREENS;
 const sizes = process.env.QA_SIZES?.split(",");
+const activeViewports = VIEWPORTS.filter((v) => !sizes || sizes.includes(v.name));
 const AUDIT = readFileSync(join(here, "audit.js"), "utf8");
 
 if (!existsSync(join(dist, "index.html"))) {
@@ -63,7 +64,7 @@ const results = {};
 const failures = [];
 mkdirSync(outDir, { recursive: true });
 
-for (const vp of VIEWPORTS.filter((v) => !sizes || sizes.includes(v.name))) {
+for (const vp of activeViewports) {
   const context = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, timezoneId: "America/Chicago" });
   await context.addInitScript(([key, session]) => localStorage.setItem(key, JSON.stringify(session)), [storageKey, SESSION]);
   await context.clock.setFixedTime(new Date(Number(process.env.FAKE_NOW)));
@@ -83,6 +84,7 @@ for (const vp of VIEWPORTS.filter((v) => !sizes || sizes.includes(v.name))) {
   mkdirSync(join(outDir, vp.name), { recursive: true });
   for (const screen of SCREENS) {
     setOnboarding(Boolean(screen.onboarding));
+    setCourtPresentationStress(Boolean(screen.courtStress));
     await page.goto(`${base}${screen.path}`, { waitUntil: "networkidle" }).catch(() => {});
     await page.waitForTimeout(2500);
     for (const a of screen.actions ?? []) {
@@ -101,6 +103,8 @@ for (const vp of VIEWPORTS.filter((v) => !sizes || sizes.includes(v.name))) {
     const key = `${vp.name}/${screen.name}`;
     results[key] = found;
     for (const [kind, text] of found.fail) failures.push(`${key}: ${kind}: "${text}"`);
+    // Preserve completed checks if a cloud session interrupts a long sweep.
+    writeFileSync(join(outDir, "progress.json"), `${JSON.stringify({ results, failures }, null, 2)}\n`);
   }
   await context.close();
 }
@@ -123,7 +127,7 @@ const total = (m) => Object.values(counts).reduce((s, c) => s + c[m], 0);
 const report = [
   "# Visual QA",
   "",
-  `${SCREENS.length} screens x ${VIEWPORTS.length} sizes. Screenshots in ${outDir}/<size>/<screen>.png.`,
+  `${SCREENS.length} screens x ${activeViewports.length} sizes. Screenshots in ${outDir}/<size>/<screen>.png.`,
   "",
   `## Failures (${failures.length})`,
   ...(failures.length ? failures.map((f) => `- ${f}`) : ["None."]),

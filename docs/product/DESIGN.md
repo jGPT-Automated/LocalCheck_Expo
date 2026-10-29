@@ -241,11 +241,15 @@ If one of these elements changes, update the canonical component and search the 
 
 ## Court card treatment
 
-Since D56 (Oct 15) the Explore card is the court-flow card: `#121216`, 20pt
-corners, one hairline, `CourtArt` top right, sport label and Your local pill,
-Oswald 30 name, city · distance, then On court / Court hours · wk / Locals on
-a darker band. Live courts sort first. The older treatment below is kept for
-history.
+Current (D63, Oct 29): Explore uses the canonical `CourtListItem` on the
+semantic surface with a 16pt panel radius and quiet border. Sport and the
+navigation chevron occupy the top row, followed by a 26/30 Oswald title with
+two-line recovery, 12pt city/distance, then the shared three-column stats.
+The whole card opens the drawer. It has no court-line decoration or corner
+quarter-circle. MY LOCAL COURT groups the local card; its accessibility hint
+retains that status. Sport labels and stat captions are 11pt; captions use
+Inter medium with no added tracking so the weekly label fits narrow columns.
+Live courts still sort first. Earlier treatment below is historical.
 
 Explore court cards use the supplied reference treatment:
 
@@ -290,8 +294,10 @@ Player profile actions by friend state: not friends Log game | Add friend
 request | Log game (orange); friends remove icon | Log game | Challenge
 (white). Log game opens as a sheet over the profile.
 
-Home (D58, D60): one scrolling page, no tabs. Only the court name, city and
-3-number strip (`HomeCourtHero`) stay pinned; the sport row with the local mark
+Home (D58, D60, D63): one scrolling page, no tabs. The court title/place align
+to the left screen gutter, without the decorative trace/local corner mark.
+The title is 32/36 Oswald and supports two lines. Only the court name, city and
+3-number strip (`HomeCourtHero`) stay pinned; the sport row
 (`HomeCourtTop`) scrolls away. Under the pinned part: Check in beside a centred
 > (`HomeCourtActions`: the drawer's `CheckInButton` and `CourtLinkButton`),
 Here now (`HereNowSection`), then
@@ -575,3 +581,8 @@ form drawer (`RunFlowSheet`, WHERE `CourtSearchPicker`, WHEN `RecentDatePicker`
 + `TimeStrip`, `SegmentedControl`, one accent button). Schedule a game
 (`ScheduleGameSheet`) follows it. The Explore drawer uses one scrollable surface and a pinned footer (D62); its
 LocalPlus panel is top-aligned.
+
+PanelUI reference guidance (D63): keep semantic surface/text/action colors and
+familiar platform behavior. This app remains Expo SDK 54; PanelUI's documented
+native rendering needs SDK 56+. No native package or theme migration is part
+of the polish; existing shared components remain authoritative.
