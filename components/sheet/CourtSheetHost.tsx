@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import { useWindowDimensions } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { drawerPeekHeight } from "@/lib/courtDrawerLayout";
 import { Springs } from "@/constants/motion";
 
@@ -52,6 +53,7 @@ export function CourtSheetProvider({
   const modalRef = useRef<BottomSheetModal>(null);
   const [args, setArgs] = useState<OpenArgs | null>(null);
   const { height } = useWindowDimensions();
+  const { bottom } = useSafeAreaInsets();
 
   const openCourtSheet = useCallback((next: OpenArgs) => {
     setArgs(next);
@@ -76,8 +78,8 @@ export function CourtSheetProvider({
   // Stable before presentation: asynchronous data and content layout never
   // move the opening detent. Window changes alone can update the size budget.
   const snapPoints = useMemo<Array<string | number>>(
-    () => [drawerPeekHeight(height), "92%"],
-    [height],
+    () => [drawerPeekHeight(height, bottom), "92%"],
+    [height, bottom],
   );
   const renderFooter = useCallback(
     (props: BottomSheetFooterProps) => args ? (

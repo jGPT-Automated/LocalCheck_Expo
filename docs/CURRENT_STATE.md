@@ -3,7 +3,8 @@
 - Oct 29: the scroll/gesture commit below (`98e88e8`, PR #84) is ported onto
   `claude/bold-cerf-5cudc7` (PR #83) and recorded as D64. The drawer keeps its
   one root scroller, pinned chips footer and fixed peek, with the D63 content;
-  the fixed peek is 264pt (D63's shorter header + Check in row + chips).
+  the fixed peek is 178pt of header + Check in plus the pinned chips footer
+  (238pt on web, 260pt with a 34pt home-indicator inset).
   Court Live's filter chips are the shared `FilterChips`, pinned above the
   list. Home keeps the D63 pinned header with a non-bouncing scroll below.
 - Oct 29 (**on a branch**, `codex/onboard-main`, not merged/released):
