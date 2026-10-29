@@ -265,11 +265,22 @@ export default function CourtProfileScreen() {
 
       <View style={styles.tabContent}>
         {activeTab === "live" ? (
-          <ScrollView contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
+          <FilterChips
+            active={feedFilter}
+            chips={FEED_FILTERS}
+            onPress={(value) => {
+              setFeedFilter(value);
+              setFeedVisible(FEED_PAGE);
+            }}
+          />
+        ) : null}
+
+        {activeTab === "live" ? (
+          <ScrollView bounces={false} contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
             <View style={styles.onCourt}>
               <Text style={styles.eyebrow}>On court · {hiddenCount > 0 ? `~${activeCount}` : activeCount}</Text>
               {roster.length > 0 || hiddenCount > 0 ? (
-                <ScrollView contentContainerStyle={styles.roster} horizontal showsHorizontalScrollIndicator={false}>
+                <ScrollView directionalLockEnabled contentContainerStyle={styles.roster} horizontal showsHorizontalScrollIndicator={false}>
                   {roster.map((player) => (
                     <PersonTile
                       friend={isFriend(player.id)}
@@ -284,14 +295,6 @@ export default function CourtProfileScreen() {
                 <Text style={styles.emptyLine}>Nobody yet. Check in and you're first.</Text>
               )}
             </View>
-            <FilterChips
-              active={feedFilter}
-              chips={FEED_FILTERS}
-              onPress={(value) => {
-                setFeedFilter(value);
-                setFeedVisible(FEED_PAGE);
-              }}
-            />
             {filteredFeed.length > 0 ? (
               filteredFeed.slice(0, feedVisible).map((item, index) => (
                 <ActivityRow
@@ -317,7 +320,7 @@ export default function CourtProfileScreen() {
         ) : null}
 
         {activeTab === "games" ? (
-          <ScrollView contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
+          <ScrollView bounces={false} contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
             <CourtGamesPanel
               games={upcomingGames}
               onCreate={() => router.push({ pathname: "/(tabs)/schedule", params: { courtId: court.id, openCreate: "1" } })}
@@ -344,7 +347,7 @@ export default function CourtProfileScreen() {
         ) : null}
 
         {activeTab === "info" ? (
-          <ScrollView contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
+          <ScrollView bounces={false} contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
             <CourtInfoPanel
               averageSession={formatAverageSession(week)}
               court={court}

@@ -50,3 +50,12 @@ decorative card collections.
 Meet WCAG AA contrast, support bright outdoor use, provide 44x44 minimum touch
 targets, label controls, communicate state without color alone, and replace
 spatial motion with concise alternatives when reduced motion is enabled.
+
+### Scroll behavior (D64, approved Oct 29; on branch)
+
+Back on pushed pages starts at the screen edge. List search and scope controls
+stay visible while results scroll. Friends' profile summary yields space while
+the native search keyboard is open, then returns. Explore's drawer scrolls as one page
+with its destination chips pinned. Log game does not scroll when the form
+fits; extra content and keyboard can enable scrolling. These changes add no
+manual refresh to realtime data.

@@ -76,6 +76,9 @@ const detailScreenOptions = {
   // vertical scroll that drifts sideways, and over the sideways scrollers on
   // the court page (roster, time strip).
   gestureEnabled: true,
+  // Reading drags in the page belong to its scroll view. Back starts at the
+  // edge; keep this explicit because native-stack defaults differ by iOS.
+  fullScreenGestureEnabled: false,
 };
 
 /**

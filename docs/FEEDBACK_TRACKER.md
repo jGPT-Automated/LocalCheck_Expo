@@ -21,6 +21,26 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-29 — scrolling and gesture audit (ported from PR #84 `codex/native-ui-polish` into `claude/bold-cerf-5cudc7`)
+
+Audit complete; approved fixes implemented **on branch**, not merged or
+released. Baseline `main` at `d5d9ebc`. The accidental Back was confirmed by
+Jesse on his iPhone; post-change native automation is a separate check.
+Inventory: `docs/plans/2026-10-29-scroll-gesture-audit.md`. Approved scope and
+verification: `docs/plans/2026-10-29-scroll-gesture-fixes.md`.
+
+| Item | Status |
+|------|--------|
+| Court/Settings/player/match/notifications Back interrupts reading | Implemented: explicit edge-only Back, removed animationMatchesGesture; visible Back retained |
+| Explore drawer rigid inner scrolling window and opening jump | Implemented: one root sheet scroll view, library footer, stable detent, shared spring; no layout re-snaps |
+| Compete scopes, Friends search, Court Live filters/Players sort scroll away | Implemented: controls outside lists; Friends summary yields space while native keyboard is open |
+| Friends inherits Activity's scroll offset | Implemented and browser regression checked: tab-specific keyed scroller resets offset |
+| Log game scrolls even when normal form fits | Implemented: measured overflow, compact spacing, fixed submit; expanded teams can scroll |
+| Blank bands in supplied screenshots | Corrected: active overscroll, not permanent gaps; spacing investigation withdrawn |
+| Bounce and realtime refresh | Bounce disabled on reading/form surfaces; no manual/pull refresh added |
+| Collapsing identity, planner floor, other sheets, virtualization | Separate audit backlog, outside this approved pass |
+| Native regression recording | Attempted agent-device; Linux reports Apple tools require macOS; no remote Apple target configured |
+
 ## 2026-10-29 — design pass: Home, Explore, drawer, Schedule (`claude/bold-cerf-5cudc7`)
 
 UI only; no backend until Jesse has seen it. Checked in a rendered web export,

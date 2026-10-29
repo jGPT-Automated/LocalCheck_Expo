@@ -5,10 +5,11 @@ superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D63, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D64, Jesse's plan doc)
 
-Numbers match Jesse's plan doc (Decisions tab). These supersede older entries
-below wherever they disagree.
+D0–D61 match Jesse's plan doc (Decisions tab); D62–D64 record his Oct 28–29
+chat decisions (external plan doc not updated from this cloud session). Newer
+decisions supersede older entries below wherever they disagree.
 
 - **D0 Plans:** Yearly $49.99 and Monthly $4.99, US only. Yearly is
   preselected on the LocalPlus screen; the drawer upgrade opens Apple's Yearly
@@ -80,6 +81,17 @@ below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D64 Edge Back, integrated court drawer and scroll ownership (Oct 29,
+  revises D60):** Jesse approved standard edge-only Back for pushed screens;
+  full-screen Back interrupts normal reading, confirmed on his iPhone. The
+  court drawer uses one root scroll view, pinned library footer, a stable
+  collapsed detent and the shared spring, without post-layout re-snapping.
+  Friends search, Compete scopes and Court filters/sorts stay outside their
+  lists; Me tabs reset their offsets. Log game stays still when it fits and
+  enables overflow for additional content, keyboard and smaller viewports.
+  Blank bands in the supplied captures are overscroll, not permanent spacing.
+  No pull-to-refresh is added to realtime surfaces. Cloud preview automation
+  is allowed in AGENTS.md; personal browsers must be left alone.
 - **D63 One court header, Home as a dashboard, Schedule restyle (Oct 29,
   revises D62):** Jesse's design-pass request (UI only, no backend until he
   has seen it): the Explore card, the drawer's peek and Home share one court
@@ -150,6 +162,8 @@ below wherever they disagree.
   Here now and the rest scroll (D59's pinned Check in + Here now is revised).
   The "Your local" pill becomes the logo's corner brackets around a house:
   orange house when it is your local, grey when it isn't, in the card's corner. (Revised by D61: the mark is now a corner quarter-circle with + / check.)
+  (Revised by D64: the court drawer has one root scroller, a pinned footer
+  and stable opening detent.)
   Court becomes a centred ">" beside Check in. (Revised by D62: Home's whole
   court block is fixed, not just the name and numbers; Court is a narrower glass
   chevron.) A failed LocalPlus sign-in is

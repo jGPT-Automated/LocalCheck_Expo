@@ -544,6 +544,7 @@ function LeaderboardView({
 }
 
 const styles = StyleSheet.create({
+  leaderboard: { flex: 1, minHeight: 0 },
   container: { flex: 1, backgroundColor: Colors.background },
   board: { flex: 1, minHeight: 0 },
   boardList: { flex: 1, minHeight: 0 },

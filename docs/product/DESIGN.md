@@ -140,9 +140,24 @@ Rules:
   busy-times chart (under 720pt tall the chart scrolls with the page); Compete
   pins its tabs and sport / scope filters and scrolls only the ranking list.
   Build it as a fixed `View` above a `ScrollView`, never `stickyHeaderIndices`.
-- **Back is the edge swipe (D62).** Detail screens use the standard iOS edge
-  swipe back; `fullScreenGestureEnabled` is off so a vertical scroll that
-  drifts sideways never leaves the page.
+- **Scroll and navigation ownership (D64).** Pushed screens use native edge
+  Back (`fullScreenGestureEnabled: false`); reading drags in the middle of a
+  page must not navigate. Keep Back buttons available. Horizontal rosters and
+  time strips retain horizontal scrolling.
+- **Keep list controls anchored.** Friends search, Compete sport/scope,
+  Court Live filters and Players sort sit outside the scrolling list. Changing
+  a Me tab starts that tab at its top rather than inheriting the previous offset.
+  While Friends' native keyboard is open, the profile summary yields space
+  for search and restores on keyboard close.
+- **Overscroll is separate from responsiveness.** Blank bands Jesse captured
+  while dragging are transient overscroll, not evidence of permanent padding.
+  Disable vertical bounce on reading surfaces and forms. Log game measures its
+  body viewport/content: scrolling is off when it fits, on when extra players,
+  search, larger text, errors or the keyboard require overflow. Submit stays
+  above the tab floor. Compact spacing changes spacing, not touch/font sizes.
+- **No automatic pull-to-refresh.** Realtime subscriptions and existing
+  invalidation update leaderboards/activity. A separately approved recovery
+  refresh must show a visible indicator and genuinely refetch data.
 
 - **The tab bar is a floor for screens (D41); sheets open in front of it
   (D44).** One sheet host at the app root (CourtSheetHost) means every
@@ -276,8 +291,11 @@ Current (D56, Oct 15):
    centred name, city · distance, On court / Court hours · wk / Locals,
    Check in and Court ↗. Tapping the header or dragging expands it.
 3. Expanded (92%): Here now, Up next, Today (planned visits in 2-hour bars),
-   Recent activity, then Games / Players / Feed / Week chips that open the
-   court page on that tab. Fixed height, never scrolls.
+   Recent activity. One root BottomSheetScrollView includes the court header,
+   actions and details. Games / Players / Feed / Week are in BottomSheetFooter
+   and stay pinned. The opening detent is stable before presentation, with no
+   content-layout re-snap; full height is 92%. Content pan and pan-down-to-close
+   stay enabled with the shared sheet spring (D62).
 4. Not your local and no LocalPlus: the expanded area is blurred under the
    LocalPlus panel (white Unlock with LocalPlus, terms, "Or make this your
    local court — always free"). Court ↗ goes to the LocalPlus screen.
@@ -582,5 +600,5 @@ Schedule shows the same `SlotCard` under its grid.
 Drawers (D60): the Challenge and Log game drawers are the baseline for every
 form drawer (`RunFlowSheet`, WHERE `CourtSearchPicker`, WHEN `RecentDatePicker`
 + `TimeStrip`, `SegmentedControl`, one accent button). Schedule a game
-(`ScheduleGameSheet`) follows it. The expanded Explore drawer scrolls; its
+(`ScheduleGameSheet`) follows it. The Explore drawer uses one scrollable surface and a pinned footer (D62); its
 LocalPlus panel is top-aligned.
