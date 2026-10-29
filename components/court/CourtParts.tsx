@@ -68,8 +68,8 @@ export function SportLabel({ sport, suffix }: { sport: CourtSport; suffix?: stri
 }
 
 /**
- * Small glass icon button that sits beside Check in: a frosted fill and a
- * hairline, no solid colour, so it never competes with the main action.
+ * Small round glass icon button that sits beside Check in: a frosted fill and
+ * a hairline, no solid colour, so it never competes with the main action.
  */
 function GlassIconButton({
   icon,
@@ -77,14 +77,12 @@ function GlassIconButton({
   accessibilityHint,
   onPress,
   active = false,
-  height = 50,
 }: {
   icon: React.ComponentProps<typeof Feather>["name"];
   accessibilityLabel: string;
   accessibilityHint?: string;
   onPress?: () => void;
   active?: boolean;
-  height?: number;
 }) {
   return (
     <PressableScale
@@ -94,7 +92,7 @@ function GlassIconButton({
       accessibilityState={{ disabled: !onPress, selected: active }}
       disabled={!onPress}
       onPress={onPress}
-      style={[styles.glass, { height }, active && styles.glassOn]}
+      style={[styles.glass, active && styles.glassOn]}
     >
       <Feather color={active ? Colors.accent : Colors.inkSoft} name={icon} size={20} />
     </PressableScale>
@@ -110,19 +108,16 @@ export function LocalButton({
   active,
   onPress,
   courtName,
-  height,
 }: {
   active: boolean;
   onPress?: () => void;
   courtName: string;
-  height?: number;
 }) {
   return (
     <GlassIconButton
       accessibilityHint={active ? undefined : "Sets this as your local court"}
       accessibilityLabel={active ? `${courtName} is your local court` : `Set ${courtName} as your local court`}
       active={active}
-      height={height}
       icon="home"
       onPress={active ? undefined : onPress}
     />
@@ -130,21 +125,14 @@ export function LocalButton({
 }
 
 /**
- * The line under a court's name, centred: city · distance, and a small house +
- * LOCAL beside it when it is your local court. Not a button.
+ * The first line of a court header: the sport on the left, city · distance on
+ * the right.
  */
-export function PlaceLine({ place, local = false, style }: { place: string; local?: boolean; style?: StyleProp<ViewStyle> }) {
-  if (!place && !local) return null;
+export function SportPlaceRow({ sport, place, style }: { sport: CourtSport; place: string; style?: StyleProp<ViewStyle> }) {
   return (
-    <View style={[styles.placeLine, style]}>
+    <View style={[styles.sportPlaceRow, style]}>
+      <SportLabel sport={sport} />
       {place ? <Text numberOfLines={1} style={styles.placeText}>{place}</Text> : null}
-      {local ? (
-        <View accessibilityLabel="Your local court" accessible style={styles.localTag}>
-          {place ? <Text style={styles.placeText}>·</Text> : null}
-          <Feather color={Colors.accent} name="home" size={12} />
-          <Text style={styles.localTagText}>Local</Text>
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -265,12 +253,11 @@ export function CheckInButton({
 }
 
 /** A small glass ">" that opens the full court page. */
-export function CourtLinkButton({ onPress, courtName, height }: { onPress: () => void; courtName: string; height?: number }) {
+export function CourtLinkButton({ onPress, courtName }: { onPress: () => void; courtName: string }) {
   return (
     <GlassIconButton
       accessibilityHint="Opens the full court page"
       accessibilityLabel={`Open ${courtName}`}
-      height={height}
       icon="chevron-right"
       onPress={onPress}
     />
@@ -347,8 +334,10 @@ const styles = StyleSheet.create({
   checkInText: { fontFamily: Typography.bodyBold, fontSize: 12, letterSpacing: 1.7, textTransform: "uppercase", color: Colors.background },
   checkOutText: { flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.liveInk },
   glass: {
-    width: 48,
-    borderRadius: Radius.chip,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Colors.glass,
@@ -356,10 +345,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.hairlineChrome,
   },
   glassOn: { backgroundColor: Colors.liveQuiet, borderColor: Colors.accentBorder },
-  placeLine: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
-  placeText: { flexShrink: 1, fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
-  localTag: { flexDirection: "row", alignItems: "center", gap: 5, flexShrink: 0 },
-  localTagText: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.liveInk },
+  sportPlaceRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  placeText: { flexShrink: 1, textAlign: "right", fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
   cellLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   cellLabel: { fontFamily: Typography.bodyBold, fontSize: 7.5, letterSpacing: 0.9, textTransform: "uppercase", color: Colors.textSecondary },
   tabs: { flexDirection: "row", paddingHorizontal: 6, borderBottomWidth: 1, borderBottomColor: Colors.hairline },

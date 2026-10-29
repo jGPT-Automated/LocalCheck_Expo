@@ -46,7 +46,7 @@ const ownership = [
   ["app/(tabs)/elo.tsx", ["ScreenHeader", "HeaderIconAction", "ProfileHero", "ProfileStats", "PlayerSummaryRow"]],
   ["app/player/[id].tsx", ["ProfileHero", "ProfileStats", "HeadToHeadSummary"]],
   ["app/(tabs)/compete.tsx", ["ScreenHeader", "CompactSelect", "EloStat", "ModeTabs"]],
-  ["app/(tabs)/schedule.tsx", ["ScreenHeader", "SpeedDialFab", "scheduleSlotIndex"]],
+  ["app/(tabs)/schedule.tsx", ["ScreenHeader", "scheduleSlotIndex"]],
 ];
 
 for (const [file, components] of ownership) {

@@ -166,12 +166,23 @@ export function HomeScreen() {
     </View>
   );
 
+  const hereNow = (
+    <View style={styles.hereNow}>
+      <HereNowSection
+        isFriend={isFriend}
+        onMore={() => router.push(`/court/${localCourt.id}?tab=players`)}
+        onPlayer={(id) => router.push(`/player/${id}`)}
+        roster={roster}
+      />
+    </View>
+  );
+
   return (
     <ScreenViewport>
       <ScreenHeader checkInBar title="LOCALCHECK" />
 
-      {/* Fixed: the court, its numbers, Check in and today's busy times. */}
-      <View style={styles.fixed}>
+      {/* Fixed: the court, its numbers, Check in, today's busy times and who is here. */}
+      <View>
         <HomeCourtTop court={localCourt} />
         <HomeCourtHero
           activeCount={activeLabel}
@@ -189,6 +200,7 @@ export function HomeScreen() {
         />
         <AutoCheckInNote courtId={localCourt.id} />
         {compact ? null : busyChart}
+        {compact ? null : hereNow}
       </View>
 
       <ScrollView
@@ -197,19 +209,12 @@ export function HomeScreen() {
         style={styles.scroll}
       >
         {compact ? busyChart : null}
+        {compact ? hereNow : null}
         {picked ? (
           <View style={styles.pickedSlot}>
             <HourSlotCard court={localCourt} dayOffset={picked.dayOffset} hour={picked.hour} />
           </View>
         ) : null}
-        <View style={styles.hereNow}>
-          <HereNowSection
-            isFriend={isFriend}
-            onMore={() => router.push(`/court/${localCourt.id}?tab=players`)}
-            onPlayer={(id) => router.push(`/player/${id}`)}
-            roster={roster}
-          />
-        </View>
         <View style={styles.upNext}>
           <UpNextSection
             onOpenRun={(id) => router.push(`/run/${id}`)}
@@ -275,7 +280,6 @@ function NoCourtState({ isSignedIn }: { isSignedIn: boolean }) {
 
 
 const styles = StyleSheet.create({
-  fixed: { borderBottomWidth: 1, borderBottomColor: Colors.hairline },
   scroll: { flex: 1, minHeight: 0 },
   chart: { paddingHorizontal: Layout.screenGutter, paddingTop: Space.md, paddingBottom: Space.md },
   hereNow: { paddingTop: Space.lg, borderBottomWidth: 1, borderBottomColor: Colors.hairline },

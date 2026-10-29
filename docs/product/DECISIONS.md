@@ -93,12 +93,16 @@ below wherever they disagree.
   the local court is a small glass house button to the left of Check in (orange
   when it is your local, a tap sets it), the court button is a narrower glass
   chevron, and that slot is where saved courts will go. The court page has no
-  local control (the drawer, Home and Settings set it). Explore cards keep the
-  sport label on the left, centre the name and city, put LOCAL (a small house)
-  beside the city on Explore, the drawer and Home, and drop the court drawing
-  behind the text for a soft sport tint. The current hour's card counts the people on
-  court and shows you as Here once you are checked in. Back is the iOS edge
-  swipe only; the full-screen back swipe is off. The plan doc's Decision log
+  local control (the drawer, Home and Settings set it). Explore cards,
+  the drawer and Home put the sport on the left and city · distance on the
+  right of the first line, centre the name, show no LOCAL tag (the house button
+  and the "My local court" heading say it), and drop the court drawing behind
+  the text for a soft sport tint. The glass buttons are small and round. The current hour's card counts the people on
+  court and shows you as Here once you are checked in. On Home, Here now is fixed
+  under the chart too. Schedule loses its floating + button: Add times and
+  Schedule game are oval pills under the heat map, the "Who's going / Planned
+  visits + games" line is gone, and hours that have passed are dimmed. Back is
+  the iOS edge swipe only; the full-screen back swipe is off. The plan doc's Decision log
   needs the matching D62 line (it lives outside the repo).
 - **D61 Corner mark, thin slot card, Schedule fits one screen (Oct 18,
   revises D60):** The local mark becomes a quarter-circle in the card's

@@ -337,7 +337,6 @@ export function CourtsScreen() {
                 court={localCourtLive}
                 hoursLabel={hoursFor(localCourtLive.id)}
                 onPress={openCourt}
-                isLocalCourt
               />
             </View>
           )}
@@ -379,7 +378,6 @@ export function CourtsScreen() {
                   key={court.id}
                   court={court}
                   hoursLabel={hoursFor(court.id)}
-                  isLocalCourt={court.id === localCourtId}
                   onPress={openCourt}
                 />
               ))

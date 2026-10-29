@@ -22,10 +22,9 @@ import {
   CheckInButton,
   CourtLinkButton,
   LocalButton,
-  PlaceLine,
   MetricStrip,
   SectionHead,
-  SportLabel,
+  SportPlaceRow,
 } from "@/components/court/CourtParts";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { useToast } from "@/components/ui/Toast";
@@ -202,13 +201,10 @@ export function CourtSheetContent({
           accessibilityLabel={`${name}, expand`}
           onPress={onExpand}
         >
-          <View style={styles.metaRow}>
-            <SportLabel sport={court.sport} />
-          </View>
+          <SportPlaceRow place={place} sport={court.sport} style={styles.metaRow} />
           <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
             {name}
           </Text>
-          <PlaceLine local={isMyLocal} place={place} style={styles.place} />
           <View style={styles.strip}>
             <MetricStrip
               cells={[
@@ -424,15 +420,7 @@ function CourtDrawerGate({
 
 const styles = StyleSheet.create({
   loading: { alignItems: "center", justifyContent: "center", paddingVertical: 64 },
-  metaRow: {
-    height: 34,
-    paddingTop: 6,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
+  metaRow: { height: 34, paddingTop: 6, paddingHorizontal: 20 },
   name: {
     paddingTop: 10,
     paddingHorizontal: 20,
@@ -446,9 +434,8 @@ const styles = StyleSheet.create({
     textShadowColor: Colors.sheet,
     textShadowRadius: 6,
   },
-  place: { paddingTop: 6, paddingHorizontal: 20 },
   strip: { paddingHorizontal: 20, paddingTop: 12 },
-  actions: { flexDirection: "row", gap: 8, paddingHorizontal: 20, paddingTop: 14 },
+  actions: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 20, paddingTop: 14 },
   checkSlot: { flex: 1, minWidth: 0 },
   peekFoot: { height: 16 },
 

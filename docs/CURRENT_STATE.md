@@ -114,10 +114,13 @@ Each claim says which of these it is, because they are often confused:
     the existing profile setting. Manual check-ins end after 45 minutes
     (D53), so the timer never passes 45:00 for them; auto check-ins run to 1.5 h.
   - `components/court/CourtParts.tsx`: `LocalMark` is deleted; `LocalButton`,
-    `PlaceLine` (city line with LOCAL beside it) and a glass `CourtLinkButton`
-    replace it (`Colors.glass`). The court page has no local control.
-    `components/CourtListItem.tsx` keeps the sport label left, centres the name
-    and city, and uses a sport tint instead of `CourtArt`.
+    a round glass `CourtLinkButton` and `SportPlaceRow` (sport left, city ·
+    distance right) replace it (`Colors.glass`). The court page has no local
+    control. `components/CourtListItem.tsx` centres the name and uses a sport
+    tint instead of `CourtArt`. Home fixes Here now under the chart too.
+  - `app/(tabs)/schedule.tsx`: `SpeedDialFab` is deleted; Add times and Schedule
+    game are pills under the heat map; the "Who's going" line is gone (the
+    edit-mode instruction stays); passed hours are dimmed.
   - `components/court/HourSlotCard.tsx`, `SlotCard.tsx` and the Schedule page's
     card (`app/(tabs)/schedule.tsx`): the current hour counts the people on
     court ("5 on court · 7 planning to go") and shows the checked-in player as

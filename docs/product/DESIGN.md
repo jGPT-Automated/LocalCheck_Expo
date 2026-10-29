@@ -126,7 +126,7 @@ Rules:
   smallest supported viewport, landscape, Dynamic Type, keyboard, and error
   states must still expose every control; use an adaptive outer scroll region
   when a fixed body would clip content.
-- Sticky primary actions belong at the reachable bottom edge through `StickyActionBar` or `SpeedDialFab`.
+- Sticky primary actions belong at the reachable bottom edge through `StickyActionBar`. There is no floating button (D62).
 - Every drawer is the Explore drawer (D57): `AppBottomSheetModal`, through
   `RunFlowSheet` or `FormSheet` (a form that brings its own scroll view uses
   `FormSheet`, which is `RunFlowSheet` with `scroll={false}`). No `Modal`
@@ -190,7 +190,7 @@ Canonical component ownership:
 | Check in / Check out button    | `CheckInButton`     |
 | Court › (drawer → court page; glass) | `CourtLinkButton`   |
 | Local court (glass house beside Check in) | `LocalButton`   |
-| City line with LOCAL beside it | `PlaceLine`         |
+| Sport left, city · distance right | `SportPlaceRow`   |
 | Checked-in timer + visibility  | `CheckInClock` (inside `ScreenHeader`) |
 | Drawer section label + meta    | `SectionHead`       |
 | Court/Home content tabs        | `CourtTabBar`       |
@@ -205,7 +205,6 @@ Canonical component ownership:
 | Scheduled game card            | `CourtGamesPanel`   |
 | Compact menu                   | `CompactSelect`     |
 | Primary two-mode switch        | `ModeTabs`          |
-| Reachable multi-action control | `SpeedDialFab`      |
 | Game/revision date             | `RecentDatePicker`  |
 | Bottom sheet (any drawer)      | `AppBottomSheetModal` |
 | Tab-bar floor / bottom padding | `TabFloor` (`useBottomFloor`, `useSheetBottomPadding`) |
@@ -241,9 +240,9 @@ If one of these elements changes, update the canonical component and search the 
 Since D56 (Oct 15) the Explore card is the court-flow card: `#121216`, 20pt
 corners, one hairline, sport label, Oswald 30 name, city · distance, then On
 court / Court hours · wk / Locals on a darker band. Live courts sort first.
-Since D62 (Oct 28) the sport label stays on the left, the name and city are
-centred with a small house and LOCAL beside the city when it is your local
-(`PlaceLine`, also used by the drawer and Home), and the court drawing is gone:
+Since D62 (Oct 28) the first line is the sport on the left and city · distance
+on the right (`SportPlaceRow`, also used by the drawer and Home), the name is
+centred, and the court drawing is gone:
 a soft sport tint
 (`basketballTint` / `pickleballTint`) fades from the top-right corner instead,
 so nothing is drawn behind the text. The older treatment below is kept for
@@ -446,7 +445,7 @@ Replaced by the above on Oct 14 (D55), kept for history: the court detail page k
   and 3–10 PM). A single directional chevron sits below the early window or above
   the late window and is also a tap target. Compact screens may scroll the body so
   selected-slot details and upcoming runs remain reachable.
-- The reachable `SpeedDialFab` exposes **Add times** and **Create run** using the shared Reanimated component and Feather icons.
+- **Add times** and **Schedule game** are two oval pills under the heat map (D62), shown on the local court's schedule; the floating + is gone. The heat map has no heading text (the edit-mode instruction stays), and hours that have passed are dimmed.
 - Add-times mode supports multi-select cells and one save action.
 - Scheduled run cards show localized 12-hour time, attendees, and remaining spots. They do not waste space on `VIEW` copy or a text arrow.
 - Run detail keeps the two-column roster compact; its body scrolls when a full
@@ -568,8 +567,8 @@ button (`LocalButton`) to the left of Check in on Home and the Explore drawer.
 The court page has none. Orange house when it is your local, light grey when it
 isn't; a tap on a non-local court sets it, on your local it does nothing
 (Settings changes it). The court button (`CourtLinkButton`) is a narrower glass
-chevron to the right. Glass is `Colors.glass` with a `hairlineChrome` border,
-48pt wide, the same height as Check in. The slot is also where saved courts will
+chevron to the right. Glass is `Colors.glass` with a `hairlineChrome` border, a
+44pt circle centred against Check in. The slot is also where saved courts will
 go.
 
 Drawers (D60): the Challenge and Log game drawers are the baseline for every

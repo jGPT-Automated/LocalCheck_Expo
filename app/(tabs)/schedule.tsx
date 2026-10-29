@@ -32,13 +32,13 @@ import { FormSheet } from "@/components/sheet/FormSheet";
 import { SlotCard } from "@/components/court/SlotCard";
 import { ScheduleGameSheet } from "@/components/schedule/ScheduleGameSheet";
 import { SearchField } from "@/components/ui/SearchField";
-import { SpeedDialFab } from "@/components/ui/SpeedDialFab";
 import { useBottomFloor } from "@/components/ui/TabFloor";
 import {
   scheduleSlotIndex,
   scheduleSlotLabel,
   SLOT_HOURS,
 } from "@/components/schedule/scheduleModel";
+import { Space } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { usePresence } from "@/context/CourtPresenceContext";
@@ -1068,14 +1068,13 @@ export default function ScheduleScreen() {
           <Feather name="chevron-down" size={15} color={Colors.muted} />
         </Pressable>
 
-        {/* One restrained instruction above the time grid. The running tally
-            of picked times lives in a summary block below the grid, not here. */}
-        <View style={styles.scheduleModeRow}>
-          <Text style={styles.scheduleModeStatus}>
-            {scheduleMode === "EDIT" ? "Tap the hours you'll play" : "Who's going"}
-          </Text>
-          <Text style={styles.scheduleModeMeta}>Planned visits + games</Text>
-        </View>
+        {/* One restrained instruction above the time grid, only while picking
+            times. The running tally lives in a summary block below the grid. */}
+        {scheduleMode === "EDIT" ? (
+          <View style={styles.scheduleModeRow}>
+            <Text style={styles.scheduleModeStatus}>Tap the hours you'll play</Text>
+          </View>
+        ) : null}
 
         {/* ── Heatmap: the time axis switches between fixed AM and PM states. ── */}
         <View style={styles.heatmap}>
@@ -1119,6 +1118,7 @@ export default function ScheduleScreen() {
                     style={[
                       styles.heatTimeText,
                       slotIdx === currentSlotIndex && styles.heatAxisActive,
+                      new Date().getHours() > h && styles.heatDimmed,
                     ]}
                   >
                     {scheduleSlotLabel(h)}
@@ -1159,10 +1159,9 @@ export default function ScheduleScreen() {
                         scheduleMode === "EDIT" &&
                           isMinePending &&
                           styles.heatCellMine,
-                        scheduleMode === "EDIT" &&
-                          isPast &&
-                          !isMinePending &&
-                          styles.heatCellDisabled,
+                        isPast &&
+                          !(scheduleMode === "EDIT" && isMinePending) &&
+                          styles.heatDimmed,
                       ]}
                       onPress={() =>
                         scheduleMode === "EDIT"
@@ -1235,8 +1234,33 @@ export default function ScheduleScreen() {
               <View style={styles.legendGameDot} />
               <Text style={styles.legendText}>Game</Text>
             </View>
-            <Text style={styles.legendText}>Local time · 1-hr slots</Text>
           </View>
+
+          {/* Actions sit under the heat map as pills, not a floating button. */}
+          {scheduleMode === "VIEW" && court?.id === localCourt?.id ? (
+            <View style={styles.actionPills}>
+              <Pressable
+                accessibilityLabel="Add times"
+                accessibilityRole="button"
+                onPress={beginEditingTimes}
+                style={({ pressed }) => [styles.actionPill, pressed && styles.actionPillPressed]}
+                testID="add-times-btn"
+              >
+                <Feather color={Colors.text} name="clock" size={14} />
+                <Text style={styles.actionPillText}>Add times</Text>
+              </Pressable>
+              <Pressable
+                accessibilityLabel="Schedule game"
+                accessibilityRole="button"
+                onPress={() => setShowHost(true)}
+                style={({ pressed }) => [styles.actionPill, pressed && styles.actionPillPressed]}
+                testID="schedule-game-btn"
+              >
+                <Feather color={Colors.text} name="users" size={14} />
+                <Text style={styles.actionPillText}>Schedule game</Text>
+              </Pressable>
+            </View>
+          ) : null}
         </View>
 
         {scheduleMode === "EDIT" ? (
@@ -1344,21 +1368,6 @@ export default function ScheduleScreen() {
 
       </ScrollView>
 
-      {scheduleMode === "VIEW" && court?.id === localCourt?.id ? (
-        <SpeedDialFab
-          accessibilityLabel="Open schedule actions"
-          actions={[
-            { label: "Add times", icon: "clock", onPress: beginEditingTimes },
-            {
-              label: "Schedule game",
-              icon: "users",
-              onPress: () => setShowHost(true),
-            },
-          ]}
-          bottom={Platform.OS === "web" ? 102 : bottom + 78}
-        />
-      ) : null}
-
       {/* ── Bottom actions ── */}
       {scheduleMode === "EDIT" ? (
         <View
@@ -1464,7 +1473,6 @@ const styles = StyleSheet.create({
     alignItems: "baseline",
     justifyContent: "space-between",
   },
-  scheduleModeMeta: { fontFamily: Typography.bodySemiBold, fontSize: 10, color: Colors.muted },
   modeToggle: {
     flexDirection: "row",
     minHeight: 34,
@@ -1703,7 +1711,8 @@ const styles = StyleSheet.create({
   heatCellSelected: { borderColor: Colors.text },
   heatCellCurrent: { borderColor: Colors.accentBorderStrong },
   heatCellMine: { borderColor: Colors.text, borderWidth: 2 },
-  heatCellDisabled: { opacity: 0.34 },
+  // Hours that have passed.
+  heatDimmed: { opacity: 0.34 },
   // Dark on the orange cell, like the Check in button (white was 3:1).
   heatCellCountOnAccent: { color: Colors.background },
   heatCellCount: {
@@ -1722,9 +1731,34 @@ const styles = StyleSheet.create({
   },
   legendRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    gap: Space.xl,
     marginTop: 8,
+  },
+  actionPills: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: Space.md,
+    marginTop: Space.lg,
+  },
+  actionPill: {
+    height: 40,
+    paddingHorizontal: Space.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Space.sm,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.hairlineChrome,
+    backgroundColor: Colors.surfaceHigh,
+  },
+  actionPillPressed: { opacity: 0.72 },
+  actionPillText: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    letterSpacing: 1.3,
+    textTransform: "uppercase",
+    color: Colors.text,
   },
   legendScale: { flexDirection: "row", alignItems: "center", gap: 5 },
   legendGame: { flexDirection: "row", alignItems: "center", gap: 4 },
