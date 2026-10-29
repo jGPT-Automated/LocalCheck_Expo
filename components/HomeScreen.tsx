@@ -155,6 +155,7 @@ export function HomeScreen() {
       <ScreenHeader title="LOCALCHECK" />
 
       <ScrollView
+        bounces={false}
         contentContainerStyle={{ paddingBottom: tabFloor + Space.lg }}
         showsVerticalScrollIndicator={false}
         stickyHeaderIndices={[1]}

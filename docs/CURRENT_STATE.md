@@ -1,5 +1,33 @@
 # Current state
 
+- Oct 29 (**on a branch**, `codex/onboard-main`, not merged/released):
+  approved scroll/gesture follow-up to the audit of main `d5d9ebc`.
+  Shared pushed-screen navigation explicitly disables full-screen Back and
+  removes animationMatchesGesture. Explore's court drawer has one root
+  sheet-aware scroller, a pinned BottomSheetFooter, stable precomputed peek
+  detent and Springs.sheet; content measurements no longer re-snap it.
+  Friends search, Compete scopes and Court filters/sorts stay outside their
+  lists. Me tab changes reset list offsets. While Friends' native keyboard is
+  open, the profile summary yields space to keep the anchored search reachable
+  on short phones; it returns when the keyboard closes. Log game measures overflow,
+  uses compact spacing on short phones and disables scrolling when it fits;
+  expanded teams/keyboard can still enable scrolling. Reading/form surfaces
+  disable bounce. No manual refresh added; existing realtime behavior stays.
+  Jesse corrected the screenshot interpretation: blank bands were exposed
+  while actively overscrolling, not permanent spacing. His iPhone confirms
+  the original accidental Back bug. This cloud Linux host's agent-device
+  attempt reports Apple tools require macOS; no post-change iOS run claimed.
+  `pnpm check` passes (263 tests); full visual sweep has zero hard layout
+  failures. Its two new compact-form accessibility entries were resolved in
+  the final form rerun (0 above baseline). The same 23 accessibility entries
+  already over baseline on main remain; no limits were raised.
+  Detailed plan/evidence: `docs/plans/2026-10-29-scroll-gesture-fixes.md`.
+
+- Oct 29 (**on a branch**, `codex/onboard-main`): clarified the browser rule
+  in `AGENTS.md` at Jesse's request. Local previews use the built-in app
+  Browser and leave personal browsers alone; cloud sessions may use a cloud
+  browser or headless Playwright for previews and screenshots.
+
 Last reconciled: 2026-10-14 against `origin/main` at `541632c` (#65), PR #67
 (`codex/auto-check-in`), LocalCheckProd (read-only queries), the GitHub API and
 the EAS build list.

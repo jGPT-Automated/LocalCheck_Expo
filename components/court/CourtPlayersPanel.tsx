@@ -61,20 +61,23 @@ export function CourtPlayersPanel({
 
   return (
     <View style={styles.wrap}>
+      <View style={styles.controls}>
+        <SegmentedControl accessibilityLabel="Sort players" compact items={SORTS} onChange={setSort} value={sort} />
+        <Text style={styles.note}>
+          {sort === "ranking"
+            ? `${rankedCount} of ${total} locals have a ranked game`
+            : sort === "newest"
+              ? `All ${total} locals · newest first`
+              : `All ${total} locals · latest check-in first`}
+        </Text>
+      </View>
       <ScrollView
+        key={sort}
+        bounces={false}
+        style={styles.list}
         contentContainerStyle={{ paddingBottom: me ? 12 : bottomInset }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.controls}>
-          <SegmentedControl accessibilityLabel="Sort players" compact items={SORTS} onChange={setSort} value={sort} />
-          <Text style={styles.note}>
-            {sort === "ranking"
-              ? `${rankedCount} of ${total} locals have a ranked game`
-              : sort === "newest"
-                ? `All ${total} locals · newest first`
-                : `All ${total} locals · latest check-in first`}
-          </Text>
-        </View>
         {sorted.length > 0 ? (
           sorted.map((player) => (
             <PlayerRankRow
@@ -155,6 +158,7 @@ function PlayerRankRow({
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, minHeight: 0 },
+  list: { flex: 1, minHeight: 0 },
   controls: { paddingHorizontal: Layout.screenGutter, paddingTop: 14, paddingBottom: 12, gap: 10 },
   note: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.muted },
   row: {

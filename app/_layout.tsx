@@ -73,8 +73,9 @@ const detailScreenOptions = {
   presentation: "card" as const,
   animation: "slide_from_right" as const,
   gestureEnabled: true,
-  fullScreenGestureEnabled: true,
-  animationMatchesGesture: true,
+  // Reading drags in the page belong to its scroll view. Back starts at the
+  // edge; keep this explicit because native-stack defaults differ by iOS.
+  fullScreenGestureEnabled: false,
 };
 
 /**

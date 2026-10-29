@@ -2,6 +2,7 @@ import {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
   BottomSheetModal,
+  type BottomSheetProps,
 } from "@gorhom/bottom-sheet";
 import React, { forwardRef, useCallback } from "react";
 import { StyleSheet } from "react-native";
@@ -39,6 +40,8 @@ export const AppBottomSheetModal = forwardRef<
     maxDynamicContentSize?: number;
     /** Tighter grabber row, so content can start near the top edge. */
     compactHandle?: boolean;
+    footerComponent?: BottomSheetProps["footerComponent"];
+    animationConfigs?: BottomSheetProps["animationConfigs"];
   }
 >(function AppBottomSheetModal(
   {
@@ -51,6 +54,8 @@ export const AppBottomSheetModal = forwardRef<
     dynamic = false,
     maxDynamicContentSize,
     compactHandle = false,
+    footerComponent,
+    animationConfigs,
   },
   ref,
 ) {
@@ -75,6 +80,9 @@ export const AppBottomSheetModal = forwardRef<
         enableDynamicSizing={dynamic}
         maxDynamicContentSize={maxDynamicContentSize}
         enablePanDownToClose
+        enableContentPanningGesture
+        footerComponent={footerComponent}
+        animationConfigs={animationConfigs}
         backdropComponent={renderBackdrop}
         backgroundStyle={styles.background}
         handleIndicatorStyle={styles.handle}
@@ -99,7 +107,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: Colors.hairlineCard,
   },
-  // 8 above the 4pt grabber, nothing below: a 12pt row (DRAWER_HANDLE_HEIGHT).
+  // 8 above the 4pt grabber, nothing below: a 12pt row.
   handleRowCompact: { paddingTop: 8, paddingBottom: 0 },
   handle: {
     width: 36,
