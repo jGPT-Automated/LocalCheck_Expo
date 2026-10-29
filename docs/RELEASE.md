@@ -104,3 +104,17 @@ shows these pushes without buttons; tapping opens the court page.
 Apply additive database changes before the client that depends on them. Edge
 Functions and migrations are separate production actions: merging their
 source deploys nothing.
+
+## PR #84 LocalPlus court list (Oct 29, on branch)
+
+The court-list UI and geofence reconciliation use modules already installed
+(expo-location / expo-task-manager); no native config or dependency changed.
+The saved-courts database migration must be applied and verified before the
+new paid list can work in connected previews. No production update or build
+is started by this work. Expo Go/web can show list/preferences and navigation;
+background geofencing remains unavailable in Expo Go/web.
+
+Paid region identifiers are namespaced inside the existing Expo task and decoded
+before RPC calls. On entitlement downgrade those registrations stop; the
+existing free single-court opt-in remains available. This is JavaScript using
+installed TaskManager APIs, not a native configuration change.

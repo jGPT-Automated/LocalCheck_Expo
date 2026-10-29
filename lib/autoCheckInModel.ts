@@ -142,3 +142,51 @@ export function checkedInNotification(courtName: string, posts: Date): { title: 
     body: `Posts at ${clockTime(posts)}. Not playing? Tap Hide.`,
   };
 }
+
+export function regionsForSavedCourts(
+  plus: boolean,
+  primary: AutoCheckInCourt | null,
+  saved: ReadonlyArray<{ court: AutoCheckInCourt; autoCheckInEnabled: boolean | null }>,
+  legacyRunning: boolean,
+): AutoCheckInRegion[] {
+  const enabled = plus
+    ? saved.filter((entry) => entry.autoCheckInEnabled === true ||
+      (entry.autoCheckInEnabled === null && entry.court.id === primary?.id && legacyRunning)).map((entry) => entry.court)
+    : primary && legacyRunning ? [primary] : [];
+  return enabled.flatMap((court) => {
+    const region = regionFor(court);
+    return region ? [region] : [];
+  });
+}
+
+/** Freeze the inherited primary's preference BEFORE registering any additional
+ * region. Persist uses compare-and-set and returns the authoritative value,
+ * so an explicit preference saved concurrently always wins.
+ */
+export async function resolveLegacyAutoCheckIn<T extends { court: AutoCheckInCourt; autoCheckInEnabled: boolean | null }>(
+  primary: AutoCheckInCourt | null,
+  saved: readonly T[],
+  readRunning: () => Promise<boolean>,
+  persist: (courtId: string, enabled: boolean) => Promise<boolean>,
+): Promise<T[]> {
+  const inherited = saved.find((entry) => entry.court.id === primary?.id && entry.autoCheckInEnabled === null);
+  if (!inherited) return [...saved];
+  const enabled = await persist(inherited.court.id, await readRunning());
+  return saved.map((entry) => entry === inherited ? { ...entry, autoCheckInEnabled: enabled } : entry);
+}
+
+
+/** Distinguish paid registrations across cold starts, so entitlement expiry
+ * retires that set instead of moving an enabled extra onto an opted-out primary.
+ * These identifiers are Expo's existing OS task options, not app persistence.
+ */
+const LOCALPLUS_REGION_PREFIX = "localplus:";
+export function autoCheckInRegionIdentifier(courtId: string, plus: boolean): string {
+  return plus ? `${LOCALPLUS_REGION_PREFIX}${courtId}` : courtId;
+}
+export function courtIdFromAutoCheckInRegion(identifier: string): string {
+  return identifier.startsWith(LOCALPLUS_REGION_PREFIX) ? identifier.slice(LOCALPLUS_REGION_PREFIX.length) : identifier;
+}
+export function hasLocalPlusRegions(options: { regions?: Array<{ identifier?: string }> }): boolean {
+  return options.regions?.some((region) => region.identifier?.startsWith(LOCALPLUS_REGION_PREFIX)) ?? false;
+}

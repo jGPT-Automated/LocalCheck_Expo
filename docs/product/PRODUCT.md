@@ -60,10 +60,17 @@ with its destination chips pinned. Log game does not scroll when the form
 fits; extra content and keyboard can enable scrolling. These changes add no
 manual refresh to realtime data.
 
-### Court overview polish (D63, on branch)
+### Court overview and LocalPlus courts (D64/D65, on branch)
 
-Explore cards use a quieter court overview with a clear navigation chevron and
-readable stats. The decorative corner arc/trace is omitted from these cards
-and Home. Home's court title and location align to the left; its identity and
-stats remain pinned while the activity scrolls. Cards support long court
-names over two lines. Opening courts and setting a local court work as before.
+Explore cards keep their art, city top right and centered court name, matching
+the drawer and Home. A card opens the drawer; check-in and the court-page link
+stay there. On the court page, LocalPlus's header plus adds to a list of up to
+five courts and becomes a check once saved. Home's header count/dropdown
+switches all of its court content and actions. Settings lists the saved courts
+with auto check-in toggles and removal. Each added court starts with auto off;
+the existing primary's legacy device opt-in is preserved until changed.
+The existing single active check-in, five-minute hold and timed checkout stay.
+
+LocalLite stays on its existing single court, local-court editor/cooldown and
+auto setting. It does not receive the paid selector/list or extra geofences.
+Database migration and client changes are on branch, not live.

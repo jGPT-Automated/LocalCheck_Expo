@@ -1,6 +1,7 @@
+import { AppSwitch } from "@/components/ui/AppSwitch";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { StyleSheet, Switch, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { Colors } from "@/constants/colors";
 import { Layout, Space } from "@/constants/layout";
@@ -31,7 +32,7 @@ export function HideScoreToggle({
         <Text style={styles.label}>Hide score</Text>
         {detail ? <Text style={styles.detail}>{detail}</Text> : null}
       </View>
-      <Switch
+      <AppSwitch
         accessibilityHint="Once half the players turn this on, everyone else sees only who won. It still counts for ELO, rank and record."
         accessibilityLabel="Hide score"
         disabled={disabled}

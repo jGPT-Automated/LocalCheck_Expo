@@ -111,6 +111,8 @@ const courts = [
   court(COURT, "Kasmiersky Park", "Kasmiersky Park", "Conroe", "basketball", { active_check_in_count: 4 }),
   court(COURT2, "Rancho Cienega Sports Complex", "Rancho Cienega", "Los Angeles", "basketball", { active_check_in_count: 2 }),
   court(COURT3, "Candy Cane Park Pickleball", "Candy Cane", "Conroe", "pickleball"),
+  court("eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee", "Northside Community Recreation Center", "Northside Rec", "Houston", "basketball"),
+  court("ffffffff-ffff-4fff-8fff-ffffffffffff", "Fonde Recreation Center", "Fonde Rec", "Houston", "basketball"),
 ];
 
 const normalLocalCourt = { ...courts[0] };
@@ -291,7 +293,18 @@ export function setOnboarding(on) {
   Object.assign(profiles[0], on ? { onboarding_completed: false, local_court_id: null } : { onboarding_completed: true, local_court_id: COURT });
 }
 
+const saved_courts = [];
+export function setLocalPlusScenario(count = 0) {
+  profiles[0].is_pro = count > 0;
+  profiles[0].local_court_id = COURT;
+  saved_courts.splice(0, saved_courts.length, ...courts.slice(0, Math.max(1, count)).map((c, i) => ({
+    user_id: ME, court_id: c.id, auto_check_in_enabled: count ? i % 2 === 0 : null, created_at: iso(now - (10-i)*D),
+  })));
+}
+setLocalPlusScenario();
+
 export const tables = {
+  saved_courts,
   profiles,
   courts,
   courts_with_stats: courts,

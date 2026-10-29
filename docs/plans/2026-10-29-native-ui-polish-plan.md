@@ -1,5 +1,11 @@
 # Native UI polish implementation plan
 
+Superseded in part by Jesse's correction (D64): removing CourtArt and adding
+an inert card chevron were rejected. Keep court-line art, remove the corner
+arc across the court flow, and use the shared functional plus/check. The
+historical proposal below records the agent's rejected direction, not the
+current design contract. See DESIGN.md and PR #84 for the correction.
+
 > Execute inline with superpowers:executing-plans; one fresh whole-branch
 > review at the end. User requested implementation and an unmerged preview PR.
 

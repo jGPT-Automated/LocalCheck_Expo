@@ -1,18 +1,29 @@
 # Current state
 
-- Oct 29 (**on a branch**, `codex/native-ui-polish`, based on main `d5d9ebc`):
-  Explore cards omit the decorative quarter-circle and court-line art, use
-  semantic surface/border tokens, a 26/30 two-line title, 12pt place and
-  a navigation chevron. Home's court identity is left-aligned without the
-  redundant art/marker; its title/stat region stays sticky. Shared sport/stat
-  captions are 11pt. Existing drawer/detail local-court controls stay intact.
-  No dependency, SDK, backend or native build change. References, scope and
-  design calls: `docs/plans/2026-10-29-native-ui-polish-design.md`.
-  Includes the preceding approved scroll fixes in commit `98e88e8`.
-  `TMPDIR=/tmp pnpm check:release` passes (263 tests). Full 46-state × 3-size
-  visual review: zero hard failures; preexisting accessibility overages fell
-  from 23 to 19, with no limits raised. These remaining overages keep visual
-  QA nonzero, so the PR is a preview/review draft rather than a release sign-off.
+- Oct 29 (**on a branch**, draft PR #84; backend not deployed): Jesse
+  clarified this is LocalPlus: up to five courts, Home count/dropdown, and
+  per-court auto check-in toggles in Settings. LocalLite retains one primary
+  court, its editor/cooldown, and existing auto check-in. SavedCourtsContext
+  owns only the paid list and viewed-court selection; switching Home updates
+  summary, presence, plans, feed, check-in and links without changing primary.
+  The court-page header plus/check saves paid membership; free uses the
+  existing set-local behavior. Card/drawer/Home compose CourtSummary from
+  CourtArt, SportLabel and MetricStrip: art restored, city top right, centered
+  name, no corner arc or redundant card arrow. Shared useCourtFeed supplies
+  Home/drawer/detail with scoped realtime and foreground refresh.
+  New migration `20261029103544_localplus_saved_courts.sql` seeds the existing
+  primary, applies owner RLS and a server-locked cap of five, and guards
+  arrival/resume/delayed posting by per-court opt-in. The existing Expo task
+  registers enabled paid courts; no new native module or task. Existing
+  primary opt-in is resolved once without overwriting explicit choices;
+  adding another court defaults auto check-in off. Backend remains unchanged in production;
+  production schema was inspected read-only. Plan and deployment boundary:
+  `docs/plans/2026-10-29-localplus-courts.md`.
+  The three-size interactive journey covers saved check/reload, selected
+  Home actions/data, Settings toggle/reload, unavailable removal, five entries,
+  recovery, empty Home and free-tier controls. Rendered fixtures are isolated;
+  PostgreSQL tests use a disposable database. No production write is claimed.
+  Native OS event delivery is not covered by browser screenshots.
 
 - Oct 29 (**on a branch**, `codex/native-ui-polish`, not merged/released):
   approved scroll/gesture follow-up to the audit of main `d5d9ebc`.

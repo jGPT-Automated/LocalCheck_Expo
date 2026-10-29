@@ -239,31 +239,44 @@ If one of these elements changes, update the canonical component and search the 
 - Large choice sets use typeahead or a contextual list. Date selection uses
   `RecentDatePicker`. Do not expose a free-typed date field on iOS.
 
+For a shared UI correction, enumerate its imports and route variants before
+editing. Reuse the owning component; inspect list → drawer → full page and
+alternate entry points after changing it. A corrected first screen is not a
+completed flow. Preserve unrelated art, actions and layout unless requested.
+
+Date/time reference read Oct 29:
+https://panelui.dev/docs/components/date-time-picker. Its combined picker
+represents one moment with one Date and keeps date/time open until Done;
+date-only tasks should remain date-only. LocalCheck already shares
+`RecentDatePicker` across Log Game, match revision, Challenge and Schedule.
+This court-control correction does not replace that picker or add a library.
+
+Switches use `AppSwitch`, an adapter around React Native's installed Switch;
+Settings, auto check-in and Hide score share its thumb color and native hit
+slop. No custom switch implementation. Home and Settings recovery actions show
+a spinner while fetching; realtime surfaces still have no pull-to-refresh.
+Unavailable saved courts remain removable without revealing their metadata.
+
 ## Court card treatment
 
-Current (D63, Oct 29): Explore uses the canonical `CourtListItem` on the
-semantic surface with a 16pt panel radius and quiet border. Sport and the
-navigation chevron occupy the top row, followed by a 26/30 Oswald title with
-two-line recovery, 12pt city/distance, then the shared three-column stats.
-The whole card opens the drawer. It has no court-line decoration or corner
-quarter-circle. MY LOCAL COURT groups the local card; its accessibility hint
-retains that status. Sport labels and stat captions are 11pt; captions use
-Inter medium with no added tracking so the weekly label fits narrow columns.
-Live courts still sort first. Earlier treatment below is historical.
+Current requested direction (D64, Oct 29; implementation in progress):
+`CourtSummary` composes the existing CourtArt, SportLabel and MetricStrip for
+Explore cards, the drawer and Home. Preserve decorative court-line art; sport
+is top left, city top right, court name centered, with balanced vertical gaps.
+There is no corner arc and no redundant arrow/plus on the Explore card.
+The whole card opens the court drawer. Check-in and the court-page link sit
+below the identity in the drawer. The plus/check belongs in the full court-page
+header and means membership in a multi-court list. Home's app header shows
+the count of added courts and a dropdown to switch the displayed court.
+D65: this list is LocalPlus-only, maximum five; free keeps its one court.
+Reuse CompactSelect for the count/dropdown and the existing settings switch
+row for the paid court list. Court-page plus/check reflects saved membership
+for paid users and retains existing set-local behavior for free users. New
+saved courts default auto off; toggles are saved before registering regions.
+Home selection changes all content/actions together and leaves primary intact.
 
-Explore court cards use the supplied reference treatment:
-
-- Base gradient: `#202027` to `#19191E` at 135 degrees.
-- Subtle top-right sport tint fading to transparent.
-- Border: `rgba(242,242,246,0.09)`.
-- Radius: 16.
-- Quiet elevation: an inset gloss highlight and a low-opacity black shadow.
-- A low-contrast court-geometry watermark sits behind content, using the current sport's muted metadata tint; it is decorative and never carries state.
-- Cards remain compact (128 px minimum): sport icon and label at top, shorthand court name, neighborhood, two optically centered live/locals metric columns, and one library chevron affordance.
-- Only the current local court shows the neutral outline star. Other cards do not show an empty star; setting a local court lives on its detail page.
-- Cards do not contain check-in or local-court buttons. Tapping opens the court drawer.
-
-Home uses the same material language as a full-width hero, not a floating card. Its primary check-in action remains bright `#FF5500`.
+No new date/time widget is part of this court correction. Shared sport/stat
+captions remain 11pt. Keep the existing palette and action components.
 
 ## Court flow
 
@@ -294,17 +307,11 @@ Player profile actions by friend state: not friends Log game | Add friend
 request | Log game (orange); friends remove icon | Log game | Challenge
 (white). Log game opens as a sheet over the profile.
 
-Home (D58, D60, D63): one scrolling page, no tabs. The court title/place align
-to the left screen gutter, without the decorative trace/local corner mark.
-The title is 32/36 Oswald and supports two lines. Only the court name, city and
-3-number strip (`HomeCourtHero`) stay pinned; the sport row
-(`HomeCourtTop`) scrolls away. Under the pinned part: Check in beside a centred
-> (`HomeCourtActions`: the drawer's `CheckInButton` and `CourtLinkButton`),
-Here now (`HereNowSection`), then
-Up next (`UpNextSection`, plain text count, not a link), Today
-(`CourtBusyChart`) and Recent activity (every court feed row, `ActivityRow`).
-Here now and Up next are the Explore drawer's own sections
-(`components/court/CourtOverviewSections.tsx`), shared with the drawer.
+Home (D58, D60, D64): one page, no tabs. The shared CourtSummary uses the
+same court art, city corner, centered name and numbers as Explore/the drawer.
+It stays pinned under ScreenHeader; check-in and the court-page action follow,
+then Here now, Up next, Today and Recent activity. Home's header count/dropdown
+will switch the court shown in this whole view, not merely rename its title.
 
 Feed rows (`ActivityRow`): 32pt tile, sentence + detail, score and time on
 the right, all one height. The tile: small solid orange dot (8pt) for a

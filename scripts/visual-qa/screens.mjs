@@ -8,6 +8,12 @@ const tab = (name) => ({ eval: `[...document.querySelectorAll('[role=tab]')].fin
 export const SCREENS = [
   { name: "onboarding-welcome", path: "/onboarding", onboarding: true },
   { name: "onboarding-name", path: "/onboarding", onboarding: true, actions: [{ click: "Get started" }, { click: "Basketball" }] },
+  { name: "plus-home", path: "/", localPlus: 5 },
+  { name: "plus-home-dropdown", path: "/", localPlus: 5, actions: [{ label: "Your courts" }] },
+  { name: "plus-home-switched", path: "/", localPlus: 5, actions: [{ label: "Your courts" }, { click: "Rancho Cienega" }] },
+  { name: "plus-settings", path: "/settings", localPlus: 5, actions: [{eval: `const e=[...document.querySelectorAll('*')].find(e=>e.scrollHeight>e.clientHeight+100&&e.clientHeight>200&&getComputedStyle(e).overflowY==='auto');if(e)e.scrollTop=260`}] },
+  { name: "plus-court-not-added", path: `/court/cccccccc-cccc-4ccc-8ccc-cccccccccccc`, localPlus: 1 },
+  { name: "plus-court-added", path: `/court/cccccccc-cccc-4ccc-8ccc-cccccccccccc`, localPlus: 1, actions: [{ label: "Add court" }] },
   { name: "home-feed", path: "/" },
   { name: "home-scrolled", path: "/", actions: [{ eval: `document.querySelectorAll('*').forEach((e)=>{if(e.scrollHeight>e.clientHeight+50&&e.clientHeight>200)e.scrollTop=500})` }] },
   { name: "home-long-court", path: "/", courtStress: true },

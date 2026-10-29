@@ -13,16 +13,14 @@ import {
   View,
 } from "react-native";
 
-import { CourtArt } from "@/components/court/CourtArt";
+import { useCourtFeed } from "@/hooks/useCourtFeed";
+import { CourtSummary } from "@/components/court/CourtSummary";
 import { CourtBusyChart } from "@/components/court/CourtBusyChart";
 import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewSections";
 import {
   CheckInButton,
   CourtLinkButton,
-  LocalMark,
-  MetricStrip,
   SectionHead,
-  SportLabel,
 } from "@/components/court/CourtParts";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { useToast } from "@/components/ui/Toast";
@@ -40,7 +38,6 @@ import { useSheetBottomPadding } from "./AppBottomSheetModal";
 import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/planModel";
 import { fetchCourtById, fetchCourtWeekSpans } from "@/services/courtService";
-import { fetchFeed } from "@/services/feedService";
 
 const DRAWER_CHIPS = [
   { label: "Games", tab: "games" },
@@ -75,7 +72,7 @@ export function CourtSheetContent({
   onExpand: () => void;
 }) {
   const {
-    courts, localCourt, checkIn, checkOut, checkedInCourtId, currentUser, runs,
+    courts, localCourt, checkIn, checkOut, checkedInCourtId, runs,
     localCourtId, isFriend, setLocalCourt, pendingAutoCheckIn, hideAutoCheckIn,
   } = useApp();
   const { profile } = useAuth();
@@ -89,7 +86,7 @@ export function CourtSheetContent({
   const [court, setCourt] = useState<Court | null>(cached);
   const [courtMissing, setCourtMissing] = useState(false);
   const [hoursLabel, setHoursLabel] = useState("—");
-  const [recent, setRecent] = useState<FeedItem[]>([]);
+  const recent = useCourtFeed(courtId, 3);
   const { roster, localCount } = usePresence(courtId || null);
 
   useEffect(() => {
@@ -102,13 +99,12 @@ export function CourtSheetContent({
   useEffect(() => {
     if (!courtId) return;
     let cancelled = false;
-    void Promise.all([fetchCourtWeekSpans(courtId), fetchFeed(courtId, currentUser.id)]).then(([spans, feed]) => {
+    void fetchCourtWeekSpans(courtId).then((spans) => {
       if (cancelled) return;
       setHoursLabel(formatCourtHours(courtHours(spans).hours));
-      setRecent(feed.slice(0, 3));
     });
     return () => { cancelled = true; };
-  }, [courtId, currentUser.id, roster.length]); // re-pull when presence changes
+  }, [courtId, roster.length]); // re-pull when presence changes
 
   const go = (path: string) => {
     onNavigate();
@@ -134,9 +130,6 @@ export function CourtSheetContent({
   const cooldown = getLocalCourtCooldown(hasLocalPlus, profile?.local_court_changed_at);
   const activeCount = roster.length;
   const live = activeCount > 0;
-  const km = court.distanceKm ?? distanceKm ?? null;
-  const distance = km != null && !Number.isNaN(km) ? `${(km * 0.621371).toFixed(1)} mi` : null;
-  const place = [court.city || court.market || court.neighborhood, distance].filter(Boolean).join(" · ");
   const now = Date.now();
   const upcoming: GameRun[] = runs
     .filter((run) => run.courtId === court.id && Date.parse(run.startTimeIso) >= now - 60 * 60_000)
@@ -181,8 +174,6 @@ export function CourtSheetContent({
       contentContainerStyle={styles.detailContent}
       showsVerticalScrollIndicator={false}
     >
-      <CourtArt sport={court.sport} />
-      <LocalMark active={isMyLocal} onPress={cooldown.restricted ? undefined : setAsLocal} />
       <View>
         <Pressable
           accessibilityHint="Shows who's here, games and today's plans"
@@ -190,23 +181,7 @@ export function CourtSheetContent({
           accessibilityLabel={`${name}, expand`}
           onPress={onExpand}
         >
-          <View style={styles.metaRow}>
-            <SportLabel sport={court.sport} />
-          </View>
-          <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
-            {name}
-          </Text>
-          {place ? <Text numberOfLines={1} style={styles.place}>{place}</Text> : null}
-          <View style={styles.strip}>
-            <MetricStrip
-              cells={[
-                { label: "On court", value: activeCount, live },
-                { label: "Court hours · wk", value: hoursLabel },
-                { label: "Locals", value: localCount },
-              ]}
-              size="drawer"
-            />
-          </View>
+          <CourtSummary court={court} activeCount={activeCount} live={live} localCount={localCount} hoursLabel={hoursLabel} size="drawer" />
         </Pressable>
 
         <View style={styles.actions}>
@@ -416,37 +391,6 @@ function CourtDrawerGate({
 
 const styles = StyleSheet.create({
   loading: { alignItems: "center", justifyContent: "center", paddingVertical: 64 },
-  metaRow: {
-    height: 34,
-    paddingTop: 6,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  name: {
-    paddingTop: 10,
-    paddingHorizontal: 20,
-    textAlign: "center",
-    fontFamily: Typography.headingBold,
-    fontSize: 38,
-    lineHeight: 40,
-    letterSpacing: -1.3,
-    textTransform: "uppercase",
-    color: Colors.text,
-    textShadowColor: Colors.sheet,
-    textShadowRadius: 6,
-  },
-  place: {
-    paddingTop: 6,
-    paddingHorizontal: 20,
-    textAlign: "center",
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    color: Colors.textSecondary,
-  },
-  strip: { paddingHorizontal: 20, paddingTop: 12 },
   actions: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 14 },
   checkSlot: { flex: 1, minWidth: 0 },
   peekFoot: { height: 16 },

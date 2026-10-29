@@ -28,6 +28,9 @@ export function CompactSelect<T extends string>({
   options,
   onChange,
   value,
+  displayLabel,
+  disabled = false,
+  menuWidth: requestedMenuWidth,
   variant = "contained",
   dense = false,
   wide = false,
@@ -37,6 +40,9 @@ export function CompactSelect<T extends string>({
   options: ReadonlyArray<{ label: string; value: T }>;
   onChange: (value: T) => void;
   value: T;
+  displayLabel?: string;
+  disabled?: boolean;
+  menuWidth?: number;
   variant?: "contained" | "plain";
   dense?: boolean;
   /** Full-width form-field treatment; the menu follows the measured trigger. */
@@ -49,7 +55,7 @@ export function CompactSelect<T extends string>({
   const selected = options.find((option) => option.value === value) ?? options[0];
   const menuWidth = wide
     ? Math.min(anchor?.width ?? 280, viewportWidth - 16)
-    : 132;
+    : Math.min(requestedMenuWidth ?? 132, viewportWidth - 16);
   const menuHeight = options.length * 44 + 12;
 
   const openMenu = React.useCallback(() => {
@@ -77,7 +83,8 @@ export function CompactSelect<T extends string>({
         <Pressable
           accessibilityLabel={accessibilityLabel}
           accessibilityRole="button"
-          accessibilityState={{ expanded: open }}
+          accessibilityState={{ expanded: open, disabled }}
+          disabled={disabled}
           hitSlop={variant === "plain" ? 4 : 7}
           onPress={open ? () => setOpen(false) : openMenu}
           style={({ pressed }) => [
@@ -90,9 +97,9 @@ export function CompactSelect<T extends string>({
         >
           <Text
             numberOfLines={1}
-            style={[styles.triggerText, dense && styles.triggerTextDense, wide && styles.triggerTextWide]}
+            style={[styles.triggerText, displayLabel != null && styles.triggerTextWide, dense && styles.triggerTextDense, wide && styles.triggerTextWide]}
           >
-            {selected?.label}
+            {displayLabel ?? selected?.label}
           </Text>
           <Feather
             color={Colors.textSecondary}
@@ -113,6 +120,7 @@ export function CompactSelect<T extends string>({
         <View style={styles.overlay}>
           <Pressable
             accessibilityLabel="Close selector"
+            accessibilityRole="button"
             onPress={() => setOpen(false)}
             style={StyleSheet.absoluteFill}
           />
@@ -135,7 +143,7 @@ export function CompactSelect<T extends string>({
                   pressed && styles.pressed,
                 ]}
               >
-                <Text numberOfLines={1} style={[styles.optionText, option.value === value && styles.optionTextSelected]}>
+                <Text style={[styles.optionText, option.value === value && styles.optionTextSelected]}>
                   {option.label}
                 </Text>
                 {option.value === value ? (

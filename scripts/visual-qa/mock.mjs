@@ -103,10 +103,10 @@ function condTest(row, part) {
   return test(row, part.slice(0, i), part.slice(i + 1));
 }
 
-export function handleRest(method, url, headers) {
+export function handleRest(method, url, headers, body = {}) {
   const u = new URL(url);
   const path = u.pathname.replace(/^\/rest\/v1\//, "");
-  if (path.startsWith("rpc/")) return rpc(path.slice(4), u);
+  if (path.startsWith("rpc/")) return rpc(path.slice(4), u, body);
   if (method !== "GET" && method !== "HEAD") return { status: 201, body: method === "DELETE" ? "" : "[]" };
   const table = path;
   let rows = [...(tables[table] ?? [])];
@@ -143,8 +143,30 @@ export function handleRest(method, url, headers) {
   return { status: 200, body: method === "HEAD" ? "" : JSON.stringify(shaped), headers: { "content-range": contentRange } };
 }
 
-function rpc(name, u) {
+function rpc(name, u, body) {
   switch (name) {
+    case "save_court": {
+      if (tables.saved_courts.some((s) => s.court_id === body.p_court_id && s.user_id === ME)) return { status: 200, body: "true" };
+      if (tables.saved_courts.length >= 5) return { status: 400, body: JSON.stringify({code:"23514",message:"LocalPlus: up to 5 courts"}) };
+      tables.saved_courts.push({user_id:ME,court_id:body.p_court_id,auto_check_in_enabled:false,created_at:new Date().toISOString()});
+      return {status:200,body:"true"};
+    }
+    case "resolve_saved_court_auto_check_in": {
+      const row=tables.saved_courts.find(s=>s.user_id===ME&&s.court_id===body.p_court_id);
+      if(row&&row.auto_check_in_enabled===null)row.auto_check_in_enabled=body.p_enabled;
+      return {status:200,body:JSON.stringify(row?.auto_check_in_enabled??false)};
+    }
+    case "set_saved_court_auto_check_in": {
+      const row=tables.saved_courts.find(s=>s.user_id===ME&&s.court_id===body.p_court_id);
+      if (row) row.auto_check_in_enabled=body.p_enabled;
+      return {status:200,body:JSON.stringify(Boolean(row))};
+    }
+    case "remove_saved_court": {
+      const index=tables.saved_courts.findIndex(s=>s.user_id===ME&&s.court_id===body.p_court_id);
+      if(index>=0)tables.saved_courts.splice(index,1);
+      if(tables.profiles[0].local_court_id===body.p_court_id)tables.profiles[0].local_court_id=tables.saved_courts[0]?.court_id??null;
+      return {status:200,body:"true"};
+    }
     case "court_planned_times":
       return { status: 200, body: JSON.stringify(tables.planned_visits.map((v) => v.planned_at)) };
     case "safety_controls_available":

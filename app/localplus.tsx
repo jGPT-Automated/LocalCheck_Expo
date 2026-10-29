@@ -51,6 +51,11 @@ const PERKS: { icon: React.ComponentProps<typeof Feather>["name"]; title: string
     body: "See the full locals list, schedule, and rankings at any court — not just your own.",
   },
   {
+    icon: "map-pin",
+    title: "UP TO 5 COURTS",
+    body: "Switch between your courts on Home. Toggle auto check-in for each court in Settings.",
+  },
+  {
     icon: "bar-chart-2",
     title: "LEADERBOARD",
     body: "Show up on the local, regional, and global boards. LocalLite accounts stay unranked.",

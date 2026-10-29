@@ -5,6 +5,9 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { BrutalistButton } from "@/components/BrutalistButton";
+import { CompactSelect } from "@/components/ui/CompactSelect";
+import { useSavedCourts } from "@/context/SavedCourtsContext";
+import { useCourtFeed } from "@/hooks/useCourtFeed";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
 import { CourtBusyChart } from "@/components/court/CourtBusyChart";
@@ -13,7 +16,7 @@ import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewS
 import { SectionHead } from "@/components/court/CourtParts";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { GameResultModal } from "@/components/ui/GameResultModal";
-import { HomeCourtActions, HomeCourtHero, HomeCourtTop } from "@/components/ui/HomeCourtHero";
+import { HomeCourtActions, HomeCourtHero } from "@/components/ui/HomeCourtHero";
 import { ScreenViewport } from "@/components/ui/ScreenViewport";
 import { useBottomFloor } from "@/components/ui/TabFloor";
 import { useToast } from "@/components/ui/Toast";
@@ -34,8 +37,6 @@ import { fetchCourtWeekSpans } from "@/services/courtService";
  */
 export function HomeScreen() {
   const {
-    localCourt,
-    localCourtId,
     checkedInCourtId,
     pendingAutoCheckIn,
     hideAutoCheckIn,
@@ -47,6 +48,9 @@ export function HomeScreen() {
     refreshCheckedIn,
     refreshFeed,
   } = useApp();
+  const { hasLocalPlus, homeCourt: localCourt } = useSavedCourts();
+  const localCourtId = localCourt?.id ?? null;
+  const selectedFeed = useCourtFeed(hasLocalPlus ? localCourtId : null);
   const { roster, localCount } = usePresence(localCourtId);
   const liveCounts = useCourtCounts(localCourt ? [localCourt] : []);
   const { user } = useAuth();
@@ -89,7 +93,7 @@ export function HomeScreen() {
   // Kept above the no-court early return so the hook count never changes
   // between renders — the "Rendered fewer hooks than expected" crash a brand-new
   // account hit the first time it set a local court. `courtFeed` is null-safe.
-  const courtFeed = feed.filter((item) => item.courtId === localCourt?.id);
+  const courtFeed = hasLocalPlus ? selectedFeed : feed.filter((item) => item.courtId === localCourt?.id);
   const groupedCourtFeed = useMemo(
     () => groupCheckinBursts(pairVisits(courtFeed, { splitToday: true })),
     [courtFeed],
@@ -152,17 +156,16 @@ export function HomeScreen() {
 
   return (
     <ScreenViewport>
-      <ScreenHeader title="LOCALCHECK" />
+      <HomeHeader />
 
       <ScrollView
         bounces={false}
         contentContainerStyle={{ paddingBottom: tabFloor + Space.lg }}
         showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[1]}
+        stickyHeaderIndices={[0]}
         style={styles.scroll}
       >
-        <HomeCourtTop court={localCourt} />
-        {/* Pinned: just the court name and its numbers. */}
+        {/* Pinned: shared court identity and numbers. */}
         <HomeCourtHero
           activeCount={activeLabel}
           court={localCourt}
@@ -238,10 +241,26 @@ export function HomeScreen() {
   );
 }
 
+/** The same header in populated and empty Home states. */
+function HomeHeader() {
+  const { hasLocalPlus, entries, availableEntries, homeCourt, chooseHomeCourt, loading, refreshing, error, refresh } = useSavedCourts();
+  return <>
+    <ScreenHeader title="LOCALCHECK" right={hasLocalPlus ? (
+      <CompactSelect accessibilityLabel="Your courts" variant="plain"
+        displayLabel={loading || error ? "—" : String(entries.length)}
+        disabled={loading || availableEntries.length === 0} menuWidth={240}
+        options={availableEntries.map((entry) => ({ label: entry.court.shortName || entry.court.name, value: entry.court.id }))}
+        value={homeCourt?.id ?? ""} onChange={chooseHomeCourt}
+      />
+    ) : undefined} />
+    {error ? <BrutalistButton label="Try again" loading={refreshing} onPress={() => void refresh()} /> : null}
+  </>;
+}
+
 function NoCourtState({ isSignedIn }: { isSignedIn: boolean }) {
   return (
     <ScreenViewport>
-      <ScreenHeader title="LOCALCHECK" />
+      <HomeHeader />
       <View style={styles.noCourt}>
         <View style={styles.noCourtIcon}>
           <Feather color={Colors.accent} name="map-pin" size={24} />

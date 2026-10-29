@@ -5,6 +5,7 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-n
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CourtSchedulePanel } from "@/components/CourtSchedulePanel";
+import { useCourtFeed } from "@/hooks/useCourtFeed";
 import { CourtArt } from "@/components/court/CourtArt";
 import { CourtBusyChart } from "@/components/court/CourtBusyChart";
 import { CourtGamesPanel } from "@/components/court/CourtGamesPanel";
@@ -21,8 +22,6 @@ import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
 import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
-import { useRealtimeHub } from "@/context/RealtimeHubContext";
-import { batchHasResource, type RealtimeTopic } from "@/lib/realtimeHub";
 import { openCourtInMaps } from "@/lib/openMaps";
 import { groupCheckinBursts, pairVisits } from "@/lib/activityPresentation";
 import {
@@ -33,7 +32,6 @@ import {
 } from "@/lib/courtHours";
 import { type CourtRecord, fetchCourtById, fetchCourtRecords, fetchCourtWeekSpans } from "@/services/courtService";
 import { type CourtPlayer } from "@/lib/courtPlayersModel";
-import { fetchFeed } from "@/services/feedService";
 import {
   fetchLocalsWithLastCheckIn,
   type LocalWithLastCheckIn,
@@ -54,7 +52,6 @@ const FEED_FILTERS: ReadonlyArray<{ value: FeedFilter; label: string }> = [
   { value: "checkins", label: "Check-ins" },
 ];
 const GAME_TYPES = new Set<FeedItem["type"]>(["game_result", "run_result"]);
-const COURT_FEED_RESOURCES = ["activity_events", "activity_event_likes"] as const;
 const FEED_PAGE = 12;
 
 export default function CourtProfileScreen() {
@@ -64,7 +61,6 @@ export default function CourtProfileScreen() {
     localCourtId,
     localCourt: contextLocalCourt,
     currentUser,
-    setLocalCourt,
     isFriend,
     runs,
   } = useApp();
@@ -82,7 +78,7 @@ export default function CourtProfileScreen() {
   const [fetchError, setFetchError] = React.useState(false);
   const [locals, setLocals] = React.useState<LocalWithLastCheckIn[]>([]);
   const [records, setRecords] = React.useState<Record<string, CourtRecord>>({});
-  const [courtFeed, setCourtFeed] = React.useState<Awaited<ReturnType<typeof fetchFeed>>>([]);
+  const courtFeed = useCourtFeed(courtId);
   const groupedCourtFeed = React.useMemo(
     () => groupCheckinBursts(pairVisits(courtFeed, { splitToday: true })),
     [courtFeed],
@@ -94,7 +90,6 @@ export default function CourtProfileScreen() {
     sport: FeedItem["sport"];
     courtName?: string;
   } | null>(null);
-  const realtimeHub = useRealtimeHub();
   const { roster, localCount } = usePresence(courtId);
   const countMap = useCourtCounts(court ? [court] : []);
 
@@ -124,22 +119,7 @@ export default function CourtProfileScreen() {
     return () => { cancelled = true; };
   }, [courtId, courtSport]);
 
-  const refreshCourtFeed = React.useCallback(async () => {
-    if (!courtId) return setCourtFeed([]);
-    setCourtFeed((await fetchFeed(courtId, currentUser.id)).slice(0, 50));
-  }, [courtId, currentUser.id]);
-
-  React.useEffect(() => {
-    setFeedVisible(FEED_PAGE);
-    void refreshCourtFeed();
-  }, [refreshCourtFeed]);
-
-  React.useEffect(() => {
-    if (!courtId) return;
-    return realtimeHub.subscribe(`court:${courtId}` as RealtimeTopic, (batch) => {
-      if (batchHasResource(batch, COURT_FEED_RESOURCES)) void refreshCourtFeed();
-    });
-  }, [courtId, realtimeHub, refreshCourtFeed]);
+  React.useEffect(() => { setFeedVisible(FEED_PAGE); }, [courtId]);
 
   // Full player-level detail is the headline LocalPlus perk — see
   // docs/product/DECISIONS.md. Your own local court always stays free.
@@ -215,8 +195,7 @@ export default function CourtProfileScreen() {
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: Platform.OS === "web" ? 44 : top }]}>
         <LocalMark
-          active={isMyLocal}
-          onPress={() => void setLocalCourt(court.id, court)}
+          court={court}
           top={Platform.OS === "web" ? 44 : top}
         />
         <CourtArt faint sport={court.sport} top={(Platform.OS === "web" ? 44 : top) + 44} />

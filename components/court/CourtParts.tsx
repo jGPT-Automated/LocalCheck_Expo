@@ -5,6 +5,7 @@ import { Feather } from "@expo/vector-icons";
 import React from "react";
 import {
   AccessibilityInfo,
+  Alert,
   ActivityIndicator,
   Animated,
   Pressable,
@@ -15,12 +16,16 @@ import {
   View,
 } from "react-native";
 
-import Svg, { Path } from "react-native-svg";
-
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
-import type { CourtSport } from "@/constants/data";
+import type { Court, CourtSport } from "@/constants/data";
 import { Typography } from "@/constants/typography";
+import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
+import { useLocalPlus } from "@/hooks/useLocalPlus";
+import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
+import { useSavedCourts } from "@/context/SavedCourtsContext";
+import { useToast } from "@/components/ui/Toast";
 
 export function LiveDot() {
   const pulse = React.useRef(new Animated.Value(0)).current;
@@ -68,66 +73,69 @@ export function SportLabel({ sport, suffix }: { sport: CourtSport; suffix?: stri
   );
 }
 
-const MARK = 56;
-
-/**
- * Your local court, as a quarter-circle in the card's top-right corner: a +
- * while it isn't your local, a glowing orange check (like the logo's) once it
- * is. Render it as a direct child of the card so it sits flush in the corner.
- * Where it isn't your local, a tap makes it your local and the check springs
- * in; once it is, the mark does nothing (Settings changes it).
+/** One local-court action across cards, Home, the drawer and court pages.
+ * The court trace is separate decoration; this 44pt control has no corner arc.
+ * Keep the spinner visible through the optimistic context update, and show
+ * the check only when the existing profile write has finished successfully.
  */
-export function LocalMark({ active, onPress, top = 0 }: { active: boolean; onPress?: () => void; top?: number }) {
-  const pop = React.useRef(new Animated.Value(active ? 1 : 0)).current;
-  const wasActive = React.useRef(active);
-  React.useEffect(() => {
-    if (active && !wasActive.current) {
-      pop.setValue(0);
-      void AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
-        if (reduce) pop.setValue(1);
-        else Animated.spring(pop, { toValue: 1, friction: 5, tension: 120, useNativeDriver: true }).start();
-      });
-    } else if (!active) {
-      pop.setValue(0);
-    } else {
-      pop.setValue(1);
-    }
-    wasActive.current = active;
-  }, [active, pop]);
+export function LocalMark({ court, top = 0 }: { court: Court; top?: number }) {
+  const { localCourtId, setLocalCourt } = useApp();
+  const { profile } = useAuth();
+  const hasLocalPlus = useLocalPlus();
+  const saved = useSavedCourts();
+  const { showToast } = useToast();
+  const [busy, setBusy] = React.useState(false);
+  const saving = React.useRef(false);
+  const active = hasLocalPlus ? saved.entries.some((entry) => entry.courtId === court.id) : localCourtId === court.id;
+  const cooldown = getLocalCourtCooldown(hasLocalPlus, profile?.local_court_changed_at);
+  const disabled = active || busy || (hasLocalPlus && saved.loading);
 
-  const tappable = Boolean(onPress) && !active;
-  const body = (
-    <View style={[styles.markArc, active && styles.markArcOn]}>
-      {active ? (
-        <Animated.View
-          style={[styles.markIcon, { opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] }]}
-        >
-          <Feather color={Colors.accent} name="check" size={22} style={styles.markCheckGlow} />
-        </Animated.View>
-      ) : (
-        <View style={styles.markIcon}>
-          <Feather color={Colors.textSecondary} name="plus" size={22} />
-        </View>
-      )}
-    </View>
-  );
+  const setAsLocal = async () => {
+    if (disabled || saving.current) return;
+    if (!hasLocalPlus && localCourtId && cooldown.restricted) {
+      Alert.alert(
+        "Local court is locked",
+        `LocalPlus changes your local court anytime. On LocalLite, you can change it again in ${formatCooldownRemaining(cooldown.remainingMs)}.`,
+      );
+      return;
+    }
+    saving.current = true;
+    setBusy(true);
+    try {
+      if (hasLocalPlus) {
+        await saved.save(court.id);
+        return;
+      }
+      const ok = await setLocalCourt(court.id, court);
+      if (ok) {
+        showToast({ title: `${(court.shortName || court.name).toUpperCase()} IS YOUR LOCAL`, icon: "home" });
+      } else {
+        Alert.alert("Couldn't save your court. Check your connection and try again.");
+      }
+    } catch (err) {
+      Alert.alert((err as Error).message);
+    } finally {
+      saving.current = false;
+      setBusy(false);
+    }
+  };
+
   return (
     <View pointerEvents="box-none" style={[styles.markWrap, { top }]}>
-      {tappable ? (
-        <Pressable
-          accessibilityHint="Sets this as your local court"
-          accessibilityLabel="Set as local court"
-          accessibilityRole="button"
-          onPress={onPress}
-          style={({ pressed }) => pressed && styles.pressed}
-        >
-          {body}
-        </Pressable>
-      ) : (
-        <View accessibilityLabel={active ? "Your local court" : "Not your local court"} accessible>
-          {body}
-        </View>
-      )}
+      <PressableScale
+        accessibilityHint={active || hasLocalPlus ? undefined : "Sets this as your local court"}
+        accessibilityLabel={hasLocalPlus ? (active ? "Court added" : "Add court") : active ? "Your local court" : "Set as local court"}
+        accessibilityRole="button"
+        accessibilityState={{ selected: active, disabled, busy }}
+        disabled={disabled}
+        onPress={() => void setAsLocal()}
+        style={styles.markButton}
+        testID={`local-court-${court.id}`}
+      >
+        {busy ? <ActivityIndicator color={Colors.accent} size="small" /> : (
+          <Feather color={active ? Colors.accent : Colors.textSecondary} name={active ? "check" : "plus"} size={22} />
+        )}
+      </PressableScale>
     </View>
   );
 }
@@ -305,24 +313,8 @@ const styles = StyleSheet.create({
   sportRow: { flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 1 },
   sportDot: { width: 6, height: 6, borderRadius: 3 },
   sportText: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", flexShrink: 1 },
-  markWrap: { position: "absolute", right: 0, width: MARK, height: MARK },
-  markArc: {
-    width: MARK,
-    height: MARK,
-    borderBottomLeftRadius: MARK,
-    borderLeftWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: Colors.hairlineChrome,
-  },
-  markArcOn: {
-    borderColor: Colors.accentBorderStrong,
-    shadowColor: Colors.accent,
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-    shadowOffset: { width: -2, height: 2 },
-  },
-  markIcon: { position: "absolute", top: 10, right: 10 },
-  markCheckGlow: { textShadowColor: Colors.accent, textShadowRadius: 10 },
+  markWrap: { position: "absolute", right: 12, width: 44, height: 44, zIndex: 1 },
+  markButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   pressed: { opacity: 0.72 },
   strip: {
     flexDirection: "row",

@@ -21,9 +21,23 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-29 — court-art and local-action correction (PR #84)
+
+Jesse rejected the art removal, redundant arrow and incomplete application
+in `4a437b5`. Latest scope: restore art; city top right; centered court name;
+one shared identity on card/drawer/Home; drawer check-in + court-page link;
+plus/check in court-page header; Home saved-court count/dropdown.
+Implemented on branch for draft PR #84. The new saved-court relation exists
+in the pending migration; it is not yet in the live schema. Jesse answered: LocalPlus gets up to five; free stays one. Data/RPCs, Home
+selector, paid Settings list and multi-court geofence extension are now
+implemented and exercised at three sizes; migration remains unapplied to
+production. Shared identity and switches replace separate styling paths. Inspect every relevant route and
+reuse existing components; automation status is not design evidence.
+
 ## 2026-10-29 — Explore and Home polish (`codex/native-ui-polish`)
 
-Implemented on branch for the requested PR preview; not merged or released.
+Original agent direction in `4a437b5`, rejected in part by Jesse; superseded
+by the correction above. Not merged or released.
 
 | Item | Status |
 |------|--------|

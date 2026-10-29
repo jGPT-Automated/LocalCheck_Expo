@@ -29,7 +29,7 @@ process.env.TZ = "America/Chicago";
 
 const { chromium } = await import("playwright");
 const { handleAuth, handleRest, SESSION } = await import("./mock.mjs");
-const { setOnboarding, setCourtPresentationStress } = await import("./fixtures.mjs");
+const { setOnboarding, setCourtPresentationStress, setLocalPlusScenario } = await import("./fixtures.mjs");
 const { SCREENS: ALL_SCREENS } = await import("./screens.mjs");
 // QA_ONLY=home,court-week runs just the screens whose names contain those words.
 const only = process.env.QA_ONLY?.split(",").filter(Boolean);
@@ -73,7 +73,7 @@ for (const vp of activeViewports) {
     const url = req.url();
     if (url.startsWith(base)) return route.continue();
     let result;
-    if (url.includes("/rest/v1/")) result = handleRest(req.method(), url, req.headers());
+    if (url.includes("/rest/v1/")) result = handleRest(req.method(), url, req.headers(), req.postDataJSON() ?? {});
     else if (url.includes("/auth/v1/")) result = handleAuth(url);
     else if (url.includes("/functions/v1/") || url.includes("/storage/v1/")) result = { status: 200, body: "{}" };
     else return route.abort();
@@ -83,6 +83,7 @@ for (const vp of activeViewports) {
   if (process.env.QA_DEBUG) page.on("console", (m) => console.log("console:", m.text().slice(0, 200)));
   mkdirSync(join(outDir, vp.name), { recursive: true });
   for (const screen of SCREENS) {
+    setLocalPlusScenario(screen.localPlus ?? 0);
     setOnboarding(Boolean(screen.onboarding));
     setCourtPresentationStress(Boolean(screen.courtStress));
     await page.goto(`${base}${screen.path}`, { waitUntil: "networkidle" }).catch(() => {});

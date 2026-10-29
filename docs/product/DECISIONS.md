@@ -5,9 +5,9 @@ superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D63, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D65, Jesse's plan doc)
 
-D0–D61 match Jesse's plan doc (Decisions tab); D62–D63 record his Oct 29 chat
+D0–D61 match Jesse's plan doc (Decisions tab); D62–D65 record his Oct 29 chat
 approval (external plan doc not updated from this cloud session). Newer
 decisions supersede older entries below wherever they disagree.
 
@@ -81,6 +81,25 @@ decisions supersede older entries below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D65 LocalPlus has up to five courts (Oct 29, revises D64):** Jesse
+  clarified the list is a LocalPlus feature. Free stays at one court with no
+  feature change. Plus can add up to five courts, switch the court viewed on
+  Home using the header count/dropdown, and toggle auto check-in per court in
+  Settings where the single local-court row previously lived. Reuse the
+  existing entitlement and geofencing paths; the primary still anchors free
+  behavior, while viewing another paid court does not replace it.
+- **D64 Shared court identity and multi-court list (Oct 29, revises D63):**
+  Jesse explicitly requires restoring decorative card art; city at top right;
+  centered court name and evenly spaced text, shared with drawer and Home.
+  Remove the corner half-circle consistently across the flow. The drawer
+  contains check-in and a link to the full court page. The full court-page
+  header has plus/check for adding to a multi-court list; Home's header shows
+  its count and a dropdown to switch courts. The new list's relationship to
+  the existing local court (auto check-in and LocalPlus) is pending an answer;
+  do not substitute single-local-court replacement for list membership.
+  (Revised by D65: the list is LocalPlus-only, capped at five; free stays one.)
+  Reuse existing components and inspect every affected route and intermediate
+  drawer. Build/automation status is not design evidence.
 - **D63 Explore card decoration and Home header polish (Oct 29,
   revises D61):** Jesse rejected the half-circle on Explore cards and requested
   Home's header be fixed, using his Dribbble taste collection and the supplied
@@ -89,6 +108,8 @@ decisions supersede older entries below wherever they disagree.
   agent's call for PR review: quieter semantic surfaces, a card chevron,
   left-aligned Home identity and readable shared captions. Existing court
   drawer/detail set-local controls stay functional. No SDK/library migration.
+  (Revised by D64: art restored, arc removed across the court flow, functional
+  plus/check replaces the card chevron.)
 - **D62 Edge Back, integrated court drawer and scroll ownership (Oct 29,
   revises D60):** Jesse approved standard edge-only Back for pushed screens;
   full-screen Back interrupts normal reading, confirmed on his iPhone. The
