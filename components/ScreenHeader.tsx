@@ -67,15 +67,15 @@ export function ScreenHeader({
   onBack?: () => void;
   onLogoPress?: () => void;
   /**
-   * Home only (D62): while checked in the bar turns orange with the logo
-   * inverted and the check-in timer on the right. Other screens keep the
-   * normal header.
+   * Home only (D62): the check-in timer and visibility on the right of the
+   * orange bar. Every header turns orange while you are checked in; only
+   * Home carries the timer.
    */
   checkInBar?: boolean;
 }) {
   const { top } = useSafeAreaInsets();
   const { checkedInCourtId, checkedInAt, visibility } = useApp();
-  const live = checkInBar && Boolean(checkedInCourtId);
+  const live = Boolean(checkedInCourtId);
   const tone = live ? "dark" : "light";
   const topPad = Platform.OS === "web" ? 44 : top;
   return (
@@ -131,11 +131,11 @@ export function ScreenHeader({
           ) : null}
         </View>
         {right ? (
-          <View style={styles.rightSlot}>
+          <View style={[styles.rightSlot, live && styles.rightSlotLive]}>
             {right}
           </View>
         ) : null}
-        {live ? (
+        {live && checkInBar ? (
           <CheckInClock startedAt={checkedInAt} visibility={visibility} />
         ) : null}
       </View>
@@ -245,6 +245,13 @@ const styles = StyleSheet.create({
     marginLeft: Space.md,
     alignItems: "flex-end",
     justifyContent: "center",
+  },
+  // The screen's own action sits on a dark chip so its colours still read on orange.
+  rightSlotLive: {
+    minWidth: 0,
+    paddingHorizontal: Space.sm,
+    borderRadius: 9,
+    backgroundColor: Colors.background,
   },
   clock: {
     minWidth: 76,

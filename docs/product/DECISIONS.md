@@ -86,10 +86,10 @@ below wherever they disagree.
   busy-times chart under Check in; only Here now, Up next and Recent activity
   scroll (under 720pt tall, the chart scrolls with the page). Compete keeps its
   tabs and its sport and scope filters fixed; only the ranking list scrolls.
-  While you are checked in, Home's header (only Home's) turns bright orange,
-  the logo inverts to dark, and the far right shows a timer (m:ss, then
-  h:mm:ss) with who can see the check-in (PUBLIC, FRIENDS or PRIVATE); every
-  other page keeps its normal header. The corner quarter-circle mark is gone:
+  While you are checked in, every page's header turns bright orange and the
+  logo inverts to dark, with the text unchanged; only Home's also shows a timer
+  (m:ss, then h:mm:ss) on the far right with who can see the check-in (PUBLIC,
+  FRIENDS or PRIVATE). The corner quarter-circle mark is gone:
   the local court is a small glass house button to the left of Check in (orange
   when it is your local, a tap sets it), the court button is a narrower glass
   chevron, and that slot is where saved courts will go. The court page has no

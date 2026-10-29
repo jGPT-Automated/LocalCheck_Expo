@@ -39,12 +39,13 @@ The product should feel premium, athletic, editorial, local, and direct. It shou
   never as a separate pre-form splash, and never a bare `ActivityIndicator`
   anywhere in this flow.
 - Every primary tab header, including Home, uses `ScreenHeader`'s same
-  `LogoMark` + title treatment. On Home only (`checkInBar`, D62), while the
-  player is checked in the whole bar turns `Colors.accent`, the logo inverts to
-  `Colors.background` (`LogoMark tone="dark"`), and the far right shows
-  `CheckInClock`: the time since check-in (m:ss, then h:mm:ss) over PUBLIC /
-  FRIENDS / PRIVATE. Every other screen keeps the normal header, so its title
-  and right action never share the bar with the timer. Detail pages use `DetailHeader`, whose
+  `LogoMark` + title treatment. While the player is checked in (D62),
+  every `ScreenHeader` turns `Colors.accent` and the logo inverts to
+  `Colors.background` (`LogoMark tone="dark"`); titles and a screen's own right
+  action keep their text (the action sits on a dark chip so it reads on orange).
+  Only Home (`checkInBar`) adds `CheckInClock` on the far right: the time since
+  check-in (m:ss, then h:mm:ss) over PUBLIC / FRIENDS / PRIVATE, so no other
+  title ever shares the bar with the timer. Detail pages use `DetailHeader`, whose
   icon and title gap follows the source lockup geometry. Court detail replaces
   the star with a compact outlined `LOCAL` / `SET LOCAL` control whose selected
   state uses the action accent without becoming a second primary button.

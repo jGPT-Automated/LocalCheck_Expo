@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 6,
   },
   strip: { paddingHorizontal: 20, paddingTop: 12 },
-  actions: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 20, paddingTop: 14 },
+  actions: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 14 },
   checkSlot: { flex: 1, minWidth: 0 },
   peekFoot: { height: 16 },
 

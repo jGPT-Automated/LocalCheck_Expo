@@ -30,7 +30,7 @@ checking the gestures. Not merged; no OTA yet.
 |------|--------|
 | Home: whole court header stays fixed; only the lower sections scroll | ✅ |
 | Compete: tabs and filters stay fixed; only the ranking list scrolls | ✅ |
-| Checked in: Home's header turns orange, logo inverts, timer and PUBLIC / FRIENDS / PRIVATE on the right (Home only; other pages keep their header) | ✅ |
+| Checked in: every page's header turns orange with its text unchanged; Home also shows the timer and PUBLIC / FRIENDS / PRIVATE on the right | ✅ |
 | Half-circle mark gone; small round glass house button left of Check in (Home, drawer; none on the court page); small round glass court button; city on the top right, no LOCAL tag | ✅ |
 | Home: Here now fixed under the chart | ✅ (my reading of the marked region) |
 | Schedule: floating + gone; the court page's chips under the heat map: Add times, My times, Friends times, Clear times; "Who's going" line gone; passed hours dimmed | ✅ (legend's "Local time · 1-hr slots" dropped; scale and Game kept; Schedule game lost its entry point, tell me where it goes) |

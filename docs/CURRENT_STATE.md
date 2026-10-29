@@ -107,9 +107,9 @@ Each claim says which of these it is, because they are often confused:
     scrolls. Under 720pt tall the chart is the first item of the scroll area.
   - `app/(tabs)/compete.tsx`: the sport / scope filters and scope label are
     outside the ranking `ScrollView`.
-  - `components/ScreenHeader.tsx`: with `checkInBar` (Home only), checked in =
-    orange bar, `LogoMark tone="dark"`, `CheckInClock`. Other screens are
-    unchanged. `context/AppContext.tsx` exposes `checkedInAt`
+  - `components/ScreenHeader.tsx`: checked in = orange bar and
+    `LogoMark tone="dark"` on every screen (a screen's right action sits on a
+    dark chip); `checkInBar` (Home only) adds `CheckInClock`. `context/AppContext.tsx` exposes `checkedInAt`
     (from `fetchActiveCheckInState`, `services/checkInService.ts`); visibility is
     the existing profile setting. Manual check-ins end after 45 minutes
     (D53), so the timer never passes 45:00 for them; auto check-ins run to 1.5 h.
