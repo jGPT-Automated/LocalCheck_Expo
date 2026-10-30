@@ -5,10 +5,11 @@ superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D61, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D67, Jesse's plan doc)
 
-Numbers match Jesse's plan doc (Decisions tab). These supersede older entries
-below wherever they disagree.
+D0–D61 match Jesse's plan doc (Decisions tab); D62–D67 record his Oct 29–30 chat
+approval (external plan doc not updated from this cloud session). Newer
+decisions supersede older entries below wherever they disagree.
 
 - **D0 Plans:** Yearly $49.99 and Monthly $4.99, US only. Yearly is
   preselected on the LocalPlus screen; the drawer upgrade opens Apple's Yearly
@@ -80,10 +81,69 @@ below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D67 Drawer and Home scope correction (Oct 30, revises D66; revises D62):**
+  Remove the duplicate court-tab pills from the drawer; keep the court page
+  tabs. Preserve existing drawer expansion, scrolling, palette and sport
+  marker. Home stays at a glance: active games and the line have a compact
+  summary opening their own nested view, using the Playtomic reference card
+  structure with existing charcoal styling. Feed belongs only on the court
+  page. The nested Home/queue design is not implemented.
+- **D66 Court navigation and Home dashboard (Oct 29, revises D55):**
+  Court tabs are Feed / Schedule / Players / Info. Schedule combines the
+  heat map and upcoming games; Feed replaces the Live label. Home remains
+  an at-a-glance dashboard with current players, an active-game/open-run
+  visual, upcoming games and its feed. Basketball is 5v5 (five per team);
+  pickleball is 2v2. The game lifecycle described in chat is a specification,
+  not an authorization for Supabase work.
+  (Revised by D67: no drawer-tab pills; Feed moves off Home; games/queue
+  detail belongs in a nested view.)
+- **D65 LocalPlus has up to five courts (Oct 29, revises D64):** Jesse
+  clarified the list is a LocalPlus feature. Free stays at one court with no
+  feature change. Plus can add up to five courts, switch the court viewed on
+  Home using the header count/dropdown, and toggle auto check-in per court in
+  Settings where the single local-court row previously lived. Reuse the
+  existing entitlement and geofencing paths; the primary still anchors free
+  behavior, while viewing another paid court does not replace it.
+- **D64 Shared court identity and multi-court list (Oct 29, revises D63):**
+  Jesse explicitly requires restoring decorative card art; city at top right;
+  centered court name and evenly spaced text, shared with drawer and Home.
+  Remove the corner half-circle consistently across the flow. The drawer
+  contains check-in and a link to the full court page. The full court-page
+  header has plus/check for adding to a multi-court list; Home's header shows
+  its count and a dropdown to switch courts. The new list's relationship to
+  the existing local court (auto check-in and LocalPlus) is pending an answer;
+  do not substitute single-local-court replacement for list membership.
+  (Revised by D65: the list is LocalPlus-only, capped at five; free stays one.)
+  Reuse existing components and inspect every affected route and intermediate
+  drawer. Build/automation status is not design evidence.
+- **D63 Explore card decoration and Home header polish (Oct 29,
+  revises D61):** Jesse rejected the half-circle on Explore cards and requested
+  Home's header be fixed, using his Dribbble taste collection and the supplied
+  PanelUI docs as guidance, then an unmerged PR for preview. Explore/Home omit
+  the decorative arc and court trace. The implementation direction is the
+  agent's call for PR review: quieter semantic surfaces, a card chevron,
+  left-aligned Home identity and readable shared captions. Existing court
+  drawer/detail set-local controls stay functional. No SDK/library migration.
+  (Revised by D64: art restored, arc removed across the court flow, functional
+  plus/check replaces the card chevron.)
+- **D62 Edge Back, integrated court drawer and scroll ownership (Oct 29,
+  revises D60):** Jesse approved standard edge-only Back for pushed screens;
+  full-screen Back interrupts normal reading, confirmed on his iPhone. The
+  court drawer uses one root scroll view, pinned library footer, a stable
+  collapsed detent and the shared spring, without post-layout re-snapping.
+  Friends search, Compete scopes and Court filters/sorts stay outside their
+  lists; Me tabs reset their offsets. Log game stays still when it fits and
+  enables overflow for additional content, keyboard and smaller viewports.
+  Blank bands in the supplied captures are overscroll, not permanent spacing.
+  No pull-to-refresh is added to realtime surfaces. Cloud preview automation
+  is allowed in AGENTS.md; personal browsers must be left alone.
+  (Revised by D67: remove the court drawer footer pills; keep its one
+  scroller, stable detents and shared spring.)
 - **D61 Corner mark, thin slot card, Schedule fits one screen (Oct 18,
   revises D60):** The local mark becomes a quarter-circle in the card's
   top-right corner: a + while it isn't your local, a glowing orange check (the
-  logo's) that springs in once it is; the house and brackets are gone. The
+  logo's) that springs in once it is; the house and brackets are gone.
+  (Revised by D63: Explore cards and Home omit this decoration.) The
   Week and Home slot card is one thin row: a small title with "N planning to
   go" on the same line, the people on the left two thirds and the game on the
   right third, collapsed to the title row when the slot is empty; no dot beside
@@ -104,6 +164,8 @@ below wherever they disagree.
   Here now and the rest scroll (D59's pinned Check in + Here now is revised).
   The "Your local" pill becomes the logo's corner brackets around a house:
   orange house when it is your local, grey when it isn't, in the card's corner. (Revised by D61: the mark is now a corner quarter-circle with + / check.)
+  (Revised by D62: the court drawer has one root scroller, a pinned footer
+  and stable opening detent.)
   Court becomes a centred ">" beside Check in. A failed LocalPlus sign-in is
   retried quietly and, if it still fails, says it can't reach the store.
 - **D59 Inbox challenges, hourly Home chart, Players ranked only (Oct 18,
@@ -163,6 +225,8 @@ below wherever they disagree.
   neutral primary button (Join game, Unlock, Log game); orange is for live,
   check-in and selection. Builds on D55.
 - **D55 Court page and Home card follow the court-flow design (Oct 14):**
+  (Revised by D66: court tabs are Feed / Schedule / Players / Info; Home is
+  the visual dashboard described there.)
   built from the Claude Design handoff (`CourtFlowPhone2`), Jesse's picks
   in chat Oct 14. Court page header: court line art, sport, name, city ·
   distance, then On court / Court hours · wk / Next game (the six-metric

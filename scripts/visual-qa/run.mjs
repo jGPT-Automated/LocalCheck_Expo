@@ -29,12 +29,13 @@ process.env.TZ = "America/Chicago";
 
 const { chromium } = await import("playwright");
 const { handleAuth, handleRest, SESSION } = await import("./mock.mjs");
-const { setOnboarding } = await import("./fixtures.mjs");
+const { setOnboarding, setCourtPresentationStress, setLocalPlusScenario } = await import("./fixtures.mjs");
 const { SCREENS: ALL_SCREENS } = await import("./screens.mjs");
 // QA_ONLY=home,court-week runs just the screens whose names contain those words.
 const only = process.env.QA_ONLY?.split(",").filter(Boolean);
 const SCREENS = only ? ALL_SCREENS.filter((s) => only.some((o) => s.name.includes(o))) : ALL_SCREENS;
 const sizes = process.env.QA_SIZES?.split(",");
+const activeViewports = VIEWPORTS.filter((v) => !sizes || sizes.includes(v.name));
 const AUDIT = readFileSync(join(here, "audit.js"), "utf8");
 
 if (!existsSync(join(dist, "index.html"))) {
@@ -63,8 +64,11 @@ const results = {};
 const failures = [];
 mkdirSync(outDir, { recursive: true });
 
-for (const vp of VIEWPORTS.filter((v) => !sizes || sizes.includes(v.name))) {
+for (const vp of activeViewports) {
   const context = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, timezoneId: "America/Chicago" });
+  // Fixtures must never open a real Realtime connection; HTTP routes below
+  // cover reads/writes, while WebSockets need their own interception.
+  await context.routeWebSocket(/.*/, (socket) => socket.close());
   await context.addInitScript(([key, session]) => localStorage.setItem(key, JSON.stringify(session)), [storageKey, SESSION]);
   await context.clock.setFixedTime(new Date(Number(process.env.FAKE_NOW)));
   await context.route("**/*", async (route) => {
@@ -72,7 +76,7 @@ for (const vp of VIEWPORTS.filter((v) => !sizes || sizes.includes(v.name))) {
     const url = req.url();
     if (url.startsWith(base)) return route.continue();
     let result;
-    if (url.includes("/rest/v1/")) result = handleRest(req.method(), url, req.headers());
+    if (url.includes("/rest/v1/")) result = handleRest(req.method(), url, req.headers(), req.postDataJSON() ?? {});
     else if (url.includes("/auth/v1/")) result = handleAuth(url);
     else if (url.includes("/functions/v1/") || url.includes("/storage/v1/")) result = { status: 200, body: "{}" };
     else return route.abort();
@@ -82,7 +86,9 @@ for (const vp of VIEWPORTS.filter((v) => !sizes || sizes.includes(v.name))) {
   if (process.env.QA_DEBUG) page.on("console", (m) => console.log("console:", m.text().slice(0, 200)));
   mkdirSync(join(outDir, vp.name), { recursive: true });
   for (const screen of SCREENS) {
+    setLocalPlusScenario(screen.localPlus ?? 0);
     setOnboarding(Boolean(screen.onboarding));
+    setCourtPresentationStress(Boolean(screen.courtStress));
     await page.goto(`${base}${screen.path}`, { waitUntil: "networkidle" }).catch(() => {});
     await page.waitForTimeout(2500);
     for (const a of screen.actions ?? []) {
@@ -101,6 +107,8 @@ for (const vp of VIEWPORTS.filter((v) => !sizes || sizes.includes(v.name))) {
     const key = `${vp.name}/${screen.name}`;
     results[key] = found;
     for (const [kind, text] of found.fail) failures.push(`${key}: ${kind}: "${text}"`);
+    // Preserve completed checks if a cloud session interrupts a long sweep.
+    writeFileSync(join(outDir, "progress.json"), `${JSON.stringify({ results, failures }, null, 2)}\n`);
   }
   await context.close();
 }
@@ -123,7 +131,7 @@ const total = (m) => Object.values(counts).reduce((s, c) => s + c[m], 0);
 const report = [
   "# Visual QA",
   "",
-  `${SCREENS.length} screens x ${VIEWPORTS.length} sizes. Screenshots in ${outDir}/<size>/<screen>.png.`,
+  `${SCREENS.length} screens x ${activeViewports.length} sizes. Screenshots in ${outDir}/<size>/<screen>.png.`,
   "",
   `## Failures (${failures.length})`,
   ...(failures.length ? failures.map((f) => `- ${f}`) : ["None."]),

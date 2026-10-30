@@ -1,5 +1,5 @@
 import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
-import { BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { router } from "expo-router";
@@ -10,21 +10,17 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { CourtArt } from "@/components/court/CourtArt";
+import { useCourtFeed } from "@/hooks/useCourtFeed";
+import { CourtSummary } from "@/components/court/CourtSummary";
 import { CourtBusyChart } from "@/components/court/CourtBusyChart";
 import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewSections";
 import {
   CheckInButton,
   CourtLinkButton,
-  LocalMark,
-  MetricStrip,
   SectionHead,
-  SportLabel,
 } from "@/components/court/CourtParts";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { useToast } from "@/components/ui/Toast";
@@ -38,18 +34,10 @@ import { useLocalPlus } from "@/hooks/useLocalPlus";
 import { useLocalPlusPurchase } from "@/hooks/useLocalPlusPurchase";
 import { describeTimelineItem } from "@/lib/activityPresentation";
 import { courtHours, formatCourtHours } from "@/lib/courtHours";
-import { drawerDetailHeight, drawerFooterGap } from "@/lib/courtDrawerLayout";
+import { useSheetBottomPadding } from "./AppBottomSheetModal";
 import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/planModel";
 import { fetchCourtById, fetchCourtWeekSpans } from "@/services/courtService";
-import { fetchFeed } from "@/services/feedService";
-
-const DRAWER_CHIPS = [
-  { label: "Games", tab: "games" },
-  { label: "Players", tab: "players" },
-  { label: "Feed", tab: "live" },
-  { label: "Week", tab: "week" },
-] as const;
 
 /**
  * Court drawer content (Claude Design court flow), rendered inside the root
@@ -58,8 +46,8 @@ const DRAWER_CHIPS = [
  * - Drawer: sport + Your local, the court name, city · distance, On court /
  *   Court hours · wk / Locals, then Check in and Court ↗. Always free.
  * - Expanded: Here now, Up next, Today (planned visits by hour) and Recent
- *   activity in a fixed area that never scrolls, then Games / Players / Feed
- *   / Week chips into the court page. A court that isn't your local, without
+ *   activity in the same scrolling surface. The Court link opens the full
+ *   court page; its tabs stay there. A court that isn't your local, without
  *   LocalPlus, shows that area blurred under the LocalPlus panel.
  *
  * `onNavigate` dismisses the sheet before any router.push so the pushed
@@ -70,24 +58,20 @@ export function CourtSheetContent({
   distanceKm,
   onNavigate,
   onExpand,
-  onPeekHeight,
 }: {
   courtId: string;
   distanceKm?: number;
   onNavigate: () => void;
   onExpand: () => void;
-  onPeekHeight: (height: number) => void;
 }) {
   const {
-    courts, localCourt, checkIn, checkOut, checkedInCourtId, currentUser, runs,
+    courts, localCourt, checkIn, checkOut, checkedInCourtId, runs,
     localCourtId, isFriend, setLocalCourt, pendingAutoCheckIn, hideAutoCheckIn,
   } = useApp();
-  const { bottom } = useSafeAreaInsets();
   const { profile } = useAuth();
   const hasLocalPlus = useLocalPlus();
   const { showToast } = useToast();
-  const { height: windowHeight } = useWindowDimensions();
-  const [peekHeight, setPeekHeight] = useState(0);
+  const bottomPadding = useSheetBottomPadding();
   const [isChecking, setIsChecking] = useState(false);
 
   const cached =
@@ -96,7 +80,7 @@ export function CourtSheetContent({
   const [court, setCourt] = useState<Court | null>(cached);
   const [courtMissing, setCourtMissing] = useState(false);
   const [hoursLabel, setHoursLabel] = useState("—");
-  const [recent, setRecent] = useState<FeedItem[]>([]);
+  const recent = useCourtFeed(courtId, 3);
   const { roster, localCount } = usePresence(courtId || null);
 
   useEffect(() => {
@@ -109,13 +93,12 @@ export function CourtSheetContent({
   useEffect(() => {
     if (!courtId) return;
     let cancelled = false;
-    void Promise.all([fetchCourtWeekSpans(courtId), fetchFeed(courtId, currentUser.id)]).then(([spans, feed]) => {
+    void fetchCourtWeekSpans(courtId).then((spans) => {
       if (cancelled) return;
       setHoursLabel(formatCourtHours(courtHours(spans).hours));
-      setRecent(feed.slice(0, 3));
     });
     return () => { cancelled = true; };
-  }, [courtId, currentUser.id, roster.length]); // re-pull when presence changes
+  }, [courtId, roster.length]); // re-pull when presence changes
 
   const go = (path: string) => {
     onNavigate();
@@ -139,17 +122,8 @@ export function CourtSheetContent({
   // other court's player-level detail is LocalPlus.
   const gated = !isMyLocal && !hasLocalPlus;
   const cooldown = getLocalCourtCooldown(hasLocalPlus, profile?.local_court_changed_at);
-  const detailHeight = drawerDetailHeight({
-    windowHeight,
-    peekHeight,
-    bottomInset: bottom,
-    showViewAll: !gated,
-  });
   const activeCount = roster.length;
   const live = activeCount > 0;
-  const km = court.distanceKm ?? distanceKm ?? null;
-  const distance = km != null && !Number.isNaN(km) ? `${(km * 0.621371).toFixed(1)} mi` : null;
-  const place = [court.city || court.market || court.neighborhood, distance].filter(Boolean).join(" · ");
   const now = Date.now();
   const upcoming: GameRun[] = runs
     .filter((run) => run.courtId === court.id && Date.parse(run.startTimeIso) >= now - 60 * 60_000)
@@ -186,39 +160,21 @@ export function CourtSheetContent({
   };
 
   return (
-    <BottomSheetView>
-      <CourtArt sport={court.sport} />
-      <LocalMark active={isMyLocal} onPress={cooldown.restricted ? undefined : setAsLocal} />
-      {/* ── Drawer: its measured height owns the first sheet detent ── */}
-      <View
-        onLayout={(event) => {
-          const height = event.nativeEvent.layout.height;
-          setPeekHeight(height);
-          onPeekHeight(height);
-        }}
-      >
+    <BottomSheetScrollView
+      testID="court-drawer-scroll"
+      bounces={false}
+      overScrollMode="never"
+      contentContainerStyle={{ paddingBottom: bottomPadding }}
+      showsVerticalScrollIndicator={false}
+    >
+      <View>
         <Pressable
           accessibilityHint="Shows who's here, games and today's plans"
+          accessibilityRole="button"
           accessibilityLabel={`${name}, expand`}
           onPress={onExpand}
         >
-          <View style={styles.metaRow}>
-            <SportLabel sport={court.sport} />
-          </View>
-          <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
-            {name}
-          </Text>
-          {place ? <Text numberOfLines={1} style={styles.place}>{place}</Text> : null}
-          <View style={styles.strip}>
-            <MetricStrip
-              cells={[
-                { label: "On court", value: activeCount, live },
-                { label: "Court hours · wk", value: hoursLabel },
-                { label: "Locals", value: localCount },
-              ]}
-              size="drawer"
-            />
-          </View>
+          <CourtSummary court={court} activeCount={activeCount} live={live} localCount={localCount} hoursLabel={hoursLabel} size="drawer" />
         </Pressable>
 
         <View style={styles.actions}>
@@ -236,61 +192,39 @@ export function CourtSheetContent({
         <View style={styles.peekFoot} />
       </View>
 
-      {/* ── Expanded: a fixed-height window that scrolls ── */}
-      <BottomSheetScrollView
-        contentContainerStyle={styles.detailContent}
-        showsVerticalScrollIndicator={false}
-        style={{ height: detailHeight }}
+      <CourtDrawerGate
+        cooldown={cooldown}
+        courtName={name}
+        gated={gated}
+        onOpenLocalPlus={() => go("/localplus")}
+        onSetLocal={setAsLocal}
       >
-        <CourtDrawerGate
-          cooldown={cooldown}
-          courtName={name}
-          gated={gated}
-          onOpenLocalPlus={() => go("/localplus")}
-          onSetLocal={setAsLocal}
-        >
-          <HereNowSection
-            isFriend={isFriend}
-            onMore={() => go(`/court/${court.id}?tab=players`)}
-            onPlayer={(id) => go(`/player/${id}`)}
-            roster={roster}
-          />
-          <UpNextSection
-            onOpenRun={(id) => go(`/run/${id}`)}
-            onSeeAll={() => go(`/court/${court.id}?tab=games`)}
-            upcoming={upcoming}
-          />
+        <HereNowSection
+          isFriend={isFriend}
+          onMore={() => go(`/court/${court.id}?tab=players`)}
+          onPlayer={(id) => go(`/player/${id}`)}
+          roster={roster}
+        />
+        <UpNextSection
+          onOpenRun={(id) => go(`/run/${id}`)}
+          onSeeAll={() => go(`/court/${court.id}?tab=schedule`)}
+          upcoming={upcoming}
+        />
 
-          <View style={styles.section}>
-            <CourtBusyChart courtId={court.id} games={upcoming} refreshKey={roster.length} title="Today" />
-          </View>
-
-          <View style={styles.section}>
-            <SectionHead meta="Feed" onMetaPress={() => go(`/court/${court.id}?tab=live`)} title="Recent activity" />
-            {recent.length > 0 ? (
-              recent.map((item) => <RecentLine item={item} key={item.id} />)
-            ) : (
-              <Text style={styles.emptyText}>The first check-in or game here will start the feed.</Text>
-            )}
-          </View>
-        </CourtDrawerGate>
-      </BottomSheetScrollView>
-
-      {!gated ? (
-        <View style={[styles.chips, { paddingBottom: drawerFooterGap(bottom) }]}>
-          {DRAWER_CHIPS.map((chip) => (
-            <PressableScale
-              accessibilityRole="button"
-              key={chip.tab}
-              onPress={() => go(`/court/${court.id}?tab=${chip.tab}`)}
-              style={styles.chip}
-            >
-              <Text style={styles.chipText}>{chip.label}</Text>
-            </PressableScale>
-          ))}
+        <View style={styles.section}>
+          <CourtBusyChart courtId={court.id} games={upcoming} refreshKey={roster.length} title="Today" />
         </View>
-      ) : null}
-    </BottomSheetView>
+
+        <View style={styles.section}>
+          <SectionHead meta="Feed" onMetaPress={() => go(`/court/${court.id}?tab=feed`)} title="Recent activity" />
+          {recent.length > 0 ? (
+            recent.map((item) => <RecentLine item={item} key={item.id} />)
+          ) : (
+            <Text style={styles.emptyText}>The first check-in or game here will start the feed.</Text>
+          )}
+        </View>
+      </CourtDrawerGate>
+    </BottomSheetScrollView>
   );
 }
 
@@ -419,42 +353,10 @@ function CourtDrawerGate({
 
 const styles = StyleSheet.create({
   loading: { alignItems: "center", justifyContent: "center", paddingVertical: 64 },
-  metaRow: {
-    height: 34,
-    paddingTop: 6,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  name: {
-    paddingTop: 10,
-    paddingHorizontal: 20,
-    textAlign: "center",
-    fontFamily: Typography.headingBold,
-    fontSize: 38,
-    lineHeight: 40,
-    letterSpacing: -1.3,
-    textTransform: "uppercase",
-    color: Colors.text,
-    textShadowColor: Colors.sheet,
-    textShadowRadius: 6,
-  },
-  place: {
-    paddingTop: 6,
-    paddingHorizontal: 20,
-    textAlign: "center",
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    color: Colors.textSecondary,
-  },
-  strip: { paddingHorizontal: 20, paddingTop: 12 },
   actions: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 14 },
   checkSlot: { flex: 1, minWidth: 0 },
   peekFoot: { height: 16 },
 
-  detailContent: { flexGrow: 1 },
   section: { paddingHorizontal: 20, paddingBottom: 14 },
   emptyText: { fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
 
@@ -472,26 +374,6 @@ const styles = StyleSheet.create({
   recentText: { flex: 1, minWidth: 0, fontFamily: Typography.bodyMedium, fontSize: 12.5, color: Colors.textSecondary },
   recentWho: { fontFamily: Typography.bodySemiBold, color: Colors.text },
   recentAgo: { flexShrink: 0, fontFamily: Typography.bodySemiBold, fontSize: 9, letterSpacing: 0.7, textTransform: "uppercase", color: Colors.muted },
-
-  chips: {
-    flexDirection: "row",
-    gap: 6,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: Colors.hairline,
-    backgroundColor: Colors.sheet,
-  },
-  chip: {
-    flex: 1,
-    height: 30,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "rgba(242,242,246,0.13)",
-  },
-  chipText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.inkSoft },
 
   gateWrap: { flexGrow: 1 },
   gateShade: { backgroundColor: "rgba(18,18,22,0.55)" },

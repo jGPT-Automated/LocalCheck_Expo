@@ -1,5 +1,27 @@
 # Supabase workflow
 
+## Pending LocalPlus court list (Oct 29, PR #84 branch)
+
+`20261029103544_localplus_saved_courts.sql` is prepared locally, not applied
+to LocalCheckProd. Adds owner-only `saved_courts`, `save_court`,
+`remove_saved_court`, `set_saved_court_auto_check_in`, and `resolve_saved_court_auto_check_in` RPCs. Writes lock the
+caller profile, enforce the existing is_pro/TEST entitlement and maximum five.
+Existing primary courts are seeded with nullable legacy auto opt-in; the
+resolver freezes it with compare-and-set so explicit choices win. New saves
+default off. Removing primary atomically selects the oldest remaining saved
+court (or null). LocalLite uses the existing primary and auto rule; saved-list
+mutations are denied. Downgrade reads expose primary only.
+
+Arrive/resume and delayed posting are patched from inspected exact anchors
+without replacing their hold/alert/timer logic. Disabled or removed courts
+cannot post queued arrivals. Existing scoped invalidations notify only the
+owner user topic. `pnpm test:saved-courts-db` runs the migration and auth/limit/
+auto checks in a disposable PostgreSQL 17 container, never against Supabase.
+The manual rollback is `supabase/rollbacks/20261029103544_localplus_saved_courts.sql`;
+the disposable runner also verifies rollback and the restored free arrival.
+Production SQL still follows the Jesse-run editor procedure below.
+
+
 Supabase `LocalCheckProd` (`qkrnmyexzvaxiqfxwwfb`) is the only backend.
 
 ```text

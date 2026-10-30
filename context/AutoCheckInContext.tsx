@@ -4,6 +4,7 @@ import { Alert, AppState, DeviceEventEmitter, Linking } from "react-native";
 import { AutoCheckInSheet } from "@/components/autoCheckIn/AutoCheckInSheet";
 import { useToast } from "@/components/ui/Toast";
 import { useApp } from "@/context/AppContext";
+import { useSavedCourts } from "@/context/SavedCourtsContext";
 import { useAuth } from "@/context/AuthContext";
 import { profileNeedsOnboarding } from "@/lib/onboardingGate";
 import {
@@ -12,10 +13,14 @@ import {
   type AutoCheckInCourt,
   type AutoCheckInState,
   autoCheckInState,
+  regionsForSavedCourts,
+  resolveLegacyAutoCheckIn,
 } from "@/lib/autoCheckInModel";
 import {
   disableAutoCheckIn,
   enableAutoCheckIn,
+  enableAutoCheckInCourts,
+  syncAutoCheckInRegions,
   getAutoCheckInPermission,
   isAutoCheckInAvailable,
   isAutoCheckInRunning,
@@ -33,6 +38,7 @@ type AutoCheckInValue = {
   turnOn: () => Promise<void>;
   turnOff: () => Promise<void>;
   openSettings: () => void;
+  setCourtEnabled: (courtId: string, enabled: boolean) => Promise<void>;
 };
 
 const AutoCheckInContext = createContext<AutoCheckInValue | null>(null);
@@ -44,10 +50,13 @@ const AutoCheckInContext = createContext<AutoCheckInValue | null>(null);
  */
 export function AutoCheckInProvider({ children }: { children: React.ReactNode }) {
   const { user, profile, isLoading } = useAuth();
-  const { localCourt, refreshCheckedIn } = useApp();
+  const { localCourt: freeLocalCourt, refreshCheckedIn } = useApp();
+  const saved = useSavedCourts();
+  const localCourt = saved.hasLocalPlus ? saved.primaryCourt : freeLocalCourt;
   const { showToast } = useToast();
   const [state, setState] = useState<AutoCheckInState>(isAutoCheckInAvailable() ? "off" : "unavailable");
   const [busy, setBusy] = useState(false);
+  const [legacyResolving, setLegacyResolving] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const court: AutoCheckInCourt | null = useMemo(
@@ -63,7 +72,7 @@ export function AutoCheckInProvider({ children }: { children: React.ReactNode })
     [localCourt],
   );
 
-  const hasLocalCourt = Boolean(court);
+  const hasLocalCourt = saved.hasLocalPlus ? saved.availableEntries.length > 0 : Boolean(court);
   const refresh = useCallback(async () => {
     const [running, permission] = await Promise.all([isAutoCheckInRunning(), getAutoCheckInPermission()]);
     setState(
@@ -93,11 +102,26 @@ export function AutoCheckInProvider({ children }: { children: React.ReactNode })
   // for a geofence) the profile and court load a moment after the first
   // render, and an early "no court" must not switch the geofence off.
   const profileCourtId = profile ? (profile.local_court_id ?? null) : undefined;
+  const savedKey = saved.availableEntries.map((entry) => `${entry.court.id}:${entry.autoCheckInEnabled}:${entry.court.latitude}:${entry.court.longitude}`).join("|");
   const courtKey = court ? `${court.id}:${court.latitude}:${court.longitude}` : "none";
   const courtRef = useRef(court);
   courtRef.current = court;
   useEffect(() => {
+    setLegacyResolving(false);
     if (!user || profileCourtId === undefined) return;
+    if (saved.hasLocalPlus) {
+      if (saved.loading || saved.error) return;
+      let cancelled = false;
+      if (!isAutoCheckInAvailable()) return;
+      setLegacyResolving(true);
+      void resolveLegacyAutoCheckIn(courtRef.current, saved.availableEntries, isAutoCheckInRunning, saved.resolveLegacyPreference).then(async (resolved) => {
+        if (cancelled) return;
+        const regions = regionsForSavedCourts(true, courtRef.current, resolved, false);
+        await syncAutoCheckInRegions(regions);
+        if (!cancelled) await refresh();
+      }).catch((err) => console.warn("sync saved court auto check-in failed", err)).finally(() => { if (!cancelled) setLegacyResolving(false); });
+      return () => { cancelled = true; };
+    }
     if (profileCourtId === null) {
       void syncAutoCheckIn(null).then(refresh); // local court removed: stop
       return;
@@ -105,7 +129,7 @@ export function AutoCheckInProvider({ children }: { children: React.ReactNode })
     const current = courtRef.current;
     if (!current || current.id !== profileCourtId) return; // court still loading
     void syncAutoCheckIn(current).then(refresh);
-  }, [courtKey, profileCourtId, user, refresh]);
+  }, [courtKey, profileCourtId, user, refresh, saved.hasLocalPlus, saved.loading, saved.error, savedKey]);
 
   // Signed out (a real sign-out, not the empty first render): stop watching.
   const lastUserId = useRef<string | null>(null);
@@ -167,7 +191,13 @@ export function AutoCheckInProvider({ children }: { children: React.ReactNode })
   const turnOn = useCallback(async () => {
     if (!court || busy) return;
     setBusy(true);
-    const result = await enableAutoCheckIn(court);
+    const result = saved.hasLocalPlus
+      ? await enableAutoCheckInCourts(saved.availableEntries.filter((entry) => entry.autoCheckInEnabled || entry.court.id === court.id).map((entry) => ({ ...entry.court, name: entry.court.shortName || entry.court.name })), true)
+      : await enableAutoCheckIn(court);
+    if (result === "on" && saved.hasLocalPlus) {
+      try { await saved.setAutoCheckIn(court.id, true); }
+      catch (err) { await syncAutoCheckInRegions(regionsForSavedCourts(true, court, saved.availableEntries, false)).catch(() => {}); setBusy(false); Alert.alert((err as Error).message); return; }
+    }
     setBusy(false);
     setSheetOpen(false);
     await refresh();
@@ -185,7 +215,7 @@ export function AutoCheckInProvider({ children }: { children: React.ReactNode })
     } else if (result === "error") {
       showToast({ title: "COULDN'T TURN ON", body: "Try again in a moment.", icon: "alert-circle" });
     }
-  }, [busy, court, openSettings, refresh, showToast]);
+  }, [busy, court, openSettings, refresh, showToast, saved]);
 
   const turnOff = useCallback(async () => {
     await disableAutoCheckIn();
@@ -196,9 +226,40 @@ export function AutoCheckInProvider({ children }: { children: React.ReactNode })
     if (court && isAutoCheckInAvailable()) setSheetOpen(true);
   }, [court]);
 
+  const setCourtEnabled = useCallback(async (courtId: string, enabled: boolean) => {
+    if (!saved.hasLocalPlus || busy) return;
+    const entry = saved.availableEntries.find((item) => item.court.id === courtId);
+    if (!entry) return;
+    setBusy(true);
+    let registered = false;
+    let previousRegions: ReturnType<typeof regionsForSavedCourts> = [];
+    try {
+      if (enabled && isAutoCheckInAvailable()) {
+        const resolved = await resolveLegacyAutoCheckIn(court, saved.availableEntries, isAutoCheckInRunning, saved.resolveLegacyPreference);
+        const regions = regionsForSavedCourts(true, court, resolved, false);
+        previousRegions = regions;
+        const targets = resolved.filter((item) => item.court.id === courtId || regions.some((region) => region.identifier === item.court.id)).map((item) => ({ ...item.court, name: item.court.shortName || item.court.name }));
+        const result = await enableAutoCheckInCourts(targets, true);
+        if (result !== "on") {
+          if (result === "needs_always" || result === "denied") {
+            Alert.alert("Allow location Always", "Auto check-in needs Location set to Always for LocalCheck, so it works with your phone in your pocket.", [
+              { text: "Not now", style: "cancel" }, { text: "Open Settings", onPress: openSettings },
+            ]);
+          } else Alert.alert("COULDN'T TURN ON", "Try again in a moment.");
+          return;
+        }
+        registered = true;
+      }
+      await saved.setAutoCheckIn(courtId, enabled);
+    } catch (err) {
+      Alert.alert((err as Error).message);
+      if (registered) await syncAutoCheckInRegions(previousRegions).catch(() => {});
+    } finally { setBusy(false); await refresh(); }
+  }, [saved, busy, court, openSettings, refresh]);
+
   const value = useMemo(
-    () => ({ state, busy, courtName: court?.name ?? null, offer, turnOn, turnOff, openSettings }),
-    [state, busy, court?.name, offer, turnOn, turnOff, openSettings],
+    () => ({ state, busy: busy || legacyResolving || (saved.hasLocalPlus && saved.loading), courtName: court?.name ?? null, offer, turnOn, turnOff, openSettings, setCourtEnabled }),
+    [state, busy, legacyResolving, court?.id, court?.name, saved, offer, turnOn, turnOff, openSettings, setCourtEnabled],
   );
 
   return (

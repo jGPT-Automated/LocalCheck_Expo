@@ -33,7 +33,7 @@ export function useLocalPlus(): boolean {
 
   useEffect(() => subscribeLocalPlusFastPath(setRcEntitlementActive), []);
 
-  if (isLocalPlus) return true;
+  if (profile?.is_pro || isLocalPlus) return true;
   if (rcEntitlementActive) return true;
   if (profile?.account_tag === "TEST") return true;
   return false;

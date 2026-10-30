@@ -26,7 +26,7 @@ are basketball and pickleball.
   counters.
 - Home, Explore, the map sheet, and Court detail use one court identity model at
   different densities.
-- From the court page a player can check in or out and plan a visit (Week ›
+- From the court page a player can check in or out and plan a visit (Schedule ›
   I'm coming), see upcoming games, and read the court's details: courts,
   lights, access, court hours this week and average session (D55, Oct 14).
 - From the court drawer a player sees who's here, the next game, today's
@@ -50,3 +50,36 @@ decorative card collections.
 Meet WCAG AA contrast, support bright outdoor use, provide 44x44 minimum touch
 targets, label controls, communicate state without color alone, and replace
 spatial motion with concise alternatives when reduced motion is enabled.
+
+### Scroll behavior (D62, approved Oct 29; on branch)
+
+Back on pushed pages starts at the screen edge. List search and scope controls
+stay visible while results scroll. Friends' profile summary yields space while
+the native search keyboard is open, then returns. Explore's drawer scrolls as one page
+with its destination chips pinned. Log game does not scroll when the form
+fits; extra content and keyboard can enable scrolling. These changes add no
+manual refresh to realtime data.
+
+### Court overview and LocalPlus courts (D64/D65, on branch)
+
+Explore cards keep their art, city top right and centered court name, matching
+the drawer and Home. A card opens the drawer; check-in and the court-page link
+stay there. On the court page, LocalPlus's header plus adds to a list of up to
+five courts and becomes a check once saved. Home's header count/dropdown
+switches all of its court content and actions. Settings lists the saved courts
+with auto check-in toggles and removal. Each added court starts with auto off;
+the existing primary's legacy device opt-in is preserved until changed.
+The existing single active check-in, five-minute hold and timed checkout stay.
+
+LocalLite stays on its existing single court, local-court editor/cooldown and
+auto setting. It does not receive the paid selector/list or extra geofences.
+Database migration and client changes are on branch, not live.
+
+### Court navigation (D66, on branch)
+
+Feed / Schedule / Players / Info are the court's four destinations. Schedule
+contains the planning heat map, selected-slot details and upcoming games in
+one scrolling page. D67 removes duplicate tabs from the drawer; its Court
+link opens the full page. Home's
+requested active-game dashboard and the new timed open-run lifecycle remain
+in the reference plan; they are not claimed as implemented or live.

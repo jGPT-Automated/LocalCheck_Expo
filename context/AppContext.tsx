@@ -92,6 +92,7 @@ interface AppContextValue {
   lastVisitedCourtId: string | null;
   localCourtId: string | null;
   localCourt: Court | null;
+  applyPrimaryCourt: (id: string | null, court: Court | null) => void;
   runs: GameRun[];
   plannedVisits: PlannedVisit[];
   feed: FeedItem[];
@@ -327,6 +328,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     hydrateLocalCourt();
   }, [hydrateLocalCourt]);
+
+  // Apply the primary from the paid list's single authoritative snapshot.
+  const applyPrimaryCourt = useCallback((id: string | null, court: Court | null) => {
+    setLocalCourtId(id);
+    setLocalCourtObj(court);
+  }, []);
 
   // ─── Refresh court state: delegates to the shared presence store ────────────
   // Kept as the callable surface older screens use (focus effects, pull to
@@ -906,6 +913,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         lastVisitedCourtId,
         localCourtId,
         localCourt,
+        applyPrimaryCourt,
         runs,
         plannedVisits,
         feed,

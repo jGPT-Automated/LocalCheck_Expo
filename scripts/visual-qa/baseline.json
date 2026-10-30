@@ -10,42 +10,42 @@
     "smallTarget": 0
   },
   "375x667/home-feed": {
-    "smallText": 13,
+    "smallText": 8,
     "lowContrast": 0,
     "smallTarget": 0
   },
   "375x667/home-scrolled": {
-    "smallText": 11,
+    "smallText": 10,
     "lowContrast": 0,
     "smallTarget": 0
   },
   "375x667/court-live": {
-    "smallText": 19,
+    "smallText": 17,
     "lowContrast": 0,
     "smallTarget": 5
   },
   "375x667/court-games": {
-    "smallText": 25,
+    "smallText": 24,
     "lowContrast": 0,
     "smallTarget": 4
   },
   "375x667/court-players": {
-    "smallText": 11,
+    "smallText": 10,
     "lowContrast": 0,
     "smallTarget": 2
   },
   "375x667/court-week": {
-    "smallText": 8,
+    "smallText": 6,
     "lowContrast": 0,
     "smallTarget": 51
   },
   "375x667/court-players-active": {
-    "smallText": 11,
+    "smallText": 10,
     "lowContrast": 0,
     "smallTarget": 2
   },
   "375x667/court-players-newest": {
-    "smallText": 11,
+    "smallText": 10,
     "lowContrast": 0,
     "smallTarget": 2
   },
@@ -175,12 +175,12 @@
     "smallTarget": 3
   },
   "375x667/explore": {
-    "smallText": 14,
+    "smallText": 10,
     "lowContrast": 0,
     "smallTarget": 0
   },
   "375x667/explore-drawer": {
-    "smallText": 6,
+    "smallText": 0,
     "lowContrast": 0,
     "smallTarget": 1
   },
@@ -210,7 +210,7 @@
     "smallTarget": 0
   },
   "393x852/home-feed": {
-    "smallText": 13,
+    "smallText": 8,
     "lowContrast": 0,
     "smallTarget": 0
   },
@@ -220,17 +220,17 @@
     "smallTarget": 0
   },
   "393x852/court-live": {
-    "smallText": 22,
+    "smallText": 20,
     "lowContrast": 0,
     "smallTarget": 5
   },
   "393x852/court-games": {
-    "smallText": 26,
+    "smallText": 24,
     "lowContrast": 0,
     "smallTarget": 4
   },
   "393x852/court-players": {
-    "smallText": 14,
+    "smallText": 13,
     "lowContrast": 0,
     "smallTarget": 2
   },
@@ -240,12 +240,12 @@
     "smallTarget": 64
   },
   "393x852/court-players-active": {
-    "smallText": 14,
+    "smallText": 13,
     "lowContrast": 0,
     "smallTarget": 2
   },
   "393x852/court-players-newest": {
-    "smallText": 14,
+    "smallText": 13,
     "lowContrast": 0,
     "smallTarget": 2
   },
@@ -255,7 +255,7 @@
     "smallTarget": 50
   },
   "393x852/court-info": {
-    "smallText": 16,
+    "smallText": 15,
     "lowContrast": 0,
     "smallTarget": 2
   },
@@ -375,12 +375,12 @@
     "smallTarget": 3
   },
   "393x852/explore": {
-    "smallText": 14,
+    "smallText": 10,
     "lowContrast": 0,
     "smallTarget": 0
   },
   "393x852/explore-drawer": {
-    "smallText": 6,
+    "smallText": 0,
     "lowContrast": 0,
     "smallTarget": 1
   },
@@ -410,27 +410,27 @@
     "smallTarget": 0
   },
   "430x932/home-feed": {
-    "smallText": 14,
+    "smallText": 10,
     "lowContrast": 0,
     "smallTarget": 0
   },
   "430x932/home-scrolled": {
-    "smallText": 14,
+    "smallText": 13,
     "lowContrast": 0,
     "smallTarget": 0
   },
   "430x932/court-live": {
-    "smallText": 23,
+    "smallText": 0,
     "lowContrast": 0,
     "smallTarget": 5
   },
   "430x932/court-games": {
-    "smallText": 26,
+    "smallText": 24,
     "lowContrast": 0,
     "smallTarget": 4
   },
   "430x932/court-players": {
-    "smallText": 16,
+    "smallText": 14,
     "lowContrast": 0,
     "smallTarget": 2
   },
@@ -440,12 +440,12 @@
     "smallTarget": 64
   },
   "430x932/court-players-active": {
-    "smallText": 16,
+    "smallText": 14,
     "lowContrast": 0,
     "smallTarget": 2
   },
   "430x932/court-players-newest": {
-    "smallText": 16,
+    "smallText": 14,
     "lowContrast": 0,
     "smallTarget": 2
   },
@@ -455,7 +455,7 @@
     "smallTarget": 64
   },
   "430x932/court-info": {
-    "smallText": 16,
+    "smallText": 0,
     "lowContrast": 0,
     "smallTarget": 2
   },
@@ -575,12 +575,12 @@
     "smallTarget": 3
   },
   "430x932/explore": {
-    "smallText": 14,
+    "smallText": 10,
     "lowContrast": 0,
     "smallTarget": 0
   },
   "430x932/explore-drawer": {
-    "smallText": 6,
+    "smallText": 0,
     "lowContrast": 0,
     "smallTarget": 1
   },
@@ -596,6 +596,96 @@
   },
   "430x932/localplus": {
     "smallText": 0,
+    "lowContrast": 0,
+    "smallTarget": 2
+  },
+  "375x667/home-long-court": {
+    "smallText": 8,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/me-friends-sticky": {
+    "smallText": 11,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/compete-log-game-fit": {
+    "smallText": 22,
+    "lowContrast": 0,
+    "smallTarget": 3
+  },
+  "375x667/compete-log-game-team-scroll": {
+    "smallText": 10,
+    "lowContrast": 0,
+    "smallTarget": 18
+  },
+  "375x667/explore-long-court": {
+    "smallText": 10,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "375x667/explore-drawer-expanded-scroll": {
+    "smallText": 6,
+    "lowContrast": 0,
+    "smallTarget": 2
+  },
+  "393x852/home-long-court": {
+    "smallText": 8,
+    "lowContrast": 0,
+    "smallTarget": 5
+  },
+  "393x852/me-friends-sticky": {
+    "smallText": 11,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "393x852/compete-log-game-fit": {
+    "smallText": 23,
+    "lowContrast": 0,
+    "smallTarget": 3
+  },
+  "393x852/compete-log-game-team-scroll": {
+    "smallText": 21,
+    "lowContrast": 0,
+    "smallTarget": 18
+  },
+  "393x852/explore-long-court": {
+    "smallText": 10,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "393x852/explore-drawer-expanded-scroll": {
+    "smallText": 6,
+    "lowContrast": 0,
+    "smallTarget": 2
+  },
+  "430x932/home-long-court": {
+    "smallText": 9,
+    "lowContrast": 0,
+    "smallTarget": 5
+  },
+  "430x932/me-friends-sticky": {
+    "smallText": 11,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "430x932/compete-log-game-fit": {
+    "smallText": 23,
+    "lowContrast": 0,
+    "smallTarget": 3
+  },
+  "430x932/compete-log-game-team-scroll": {
+    "smallText": 23,
+    "lowContrast": 0,
+    "smallTarget": 18
+  },
+  "430x932/explore-long-court": {
+    "smallText": 10,
+    "lowContrast": 0,
+    "smallTarget": 0
+  },
+  "430x932/explore-drawer-expanded-scroll": {
+    "smallText": 6,
     "lowContrast": 0,
     "smallTarget": 2
   }

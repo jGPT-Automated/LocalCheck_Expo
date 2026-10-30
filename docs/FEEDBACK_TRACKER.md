@@ -21,6 +21,76 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-30 — remove drawer tabs; keep Home at a glance (PR #84)
+
+Removed the drawer's duplicate tab pills and footer reservation. Kept court
+page tabs, the existing drawer content, stable heights and sheet gesture setup.
+SportLabel, CourtArt and the shared palette were not changed. The paddle was
+in generated mockups only. Three-size rendered walkthrough covers opening,
+expansion, scrolling, stable opening position and opening the court page.
+
+Home design direction: compact summary of games currently playing and people
+in line opens a nested view. Use the supplied Playtomic card as the structure
+and existing charcoal colors; no whole queue/roster dashboard on Home. This
+Home direction is a proposal, not implemented app functionality.
+
+## 2026-10-29 — Home / Explore / court reference follow-up (PR #84)
+
+Jesse limited the new reference to Home, Explore/drawer and Court. Court tabs:
+Feed / Schedule / Players / Info; Schedule combines the heat map and games.
+Implemented on branch as the first bounded slice; Home dashboard and the new
+reference styling remain pending. Basketball roster is five per team,
+pickleball two. No Supabase access is authorized. The previous paid Settings
+list is rejected: management must be nested in the existing Settings flow,
+with the established typography and removal pattern. That rework is outside
+this three-screen scope.
+
+## 2026-10-29 — court-art and local-action correction (PR #84)
+
+Jesse rejected the art removal, redundant arrow and incomplete application
+in `4a437b5`. Latest scope: restore art; city top right; centered court name;
+one shared identity on card/drawer/Home; drawer check-in + court-page link;
+plus/check in court-page header; Home saved-court count/dropdown.
+Implemented on branch for draft PR #84. The new saved-court relation exists
+in the pending migration; it is not yet in the live schema. Jesse answered: LocalPlus gets up to five; free stays one. Data/RPCs, Home
+selector, paid Settings list and multi-court geofence extension are now
+implemented and exercised at three sizes; migration remains unapplied to
+production. Shared identity and switches replace separate styling paths. Inspect every relevant route and
+reuse existing components; automation status is not design evidence.
+
+## 2026-10-29 — Explore and Home polish (`codex/native-ui-polish`)
+
+Original agent direction in `4a437b5`, rejected in part by Jesse; superseded
+by the correction above. Not merged or released.
+
+| Item | Status |
+|------|--------|
+| Remove ugly half-circle on Explore cards | Implemented in CourtListItem; decorative court trace also removed; local grouping/accessibility retained |
+| Fix Home header | Implemented in HomeCourtHero: left-aligned identity, redundant art/local marker removed; sticky stats preserved |
+| Apply design taste and PanelUI guidance | Both docs read fully; 29 collection shots visually inspected; existing palette/components retained, SDK54 compatibility preserved |
+| Readable consistent sport/stat captions | Shared labels increased to 11pt, quieter supporting weight, no tracking that crowds columns |
+| Preview PR and evidence | 138 captures, 0 hard failures; 23→19 existing accessibility overages; 263 tests/check:release pass; preview draft being opened |
+
+## 2026-10-29 — scrolling and gesture audit (`codex/onboard-main`)
+
+Audit complete; approved fixes implemented **on branch**, not merged or
+released. Baseline `main` at `d5d9ebc`. The accidental Back was confirmed by
+Jesse on his iPhone; post-change native automation is a separate check.
+Inventory: `docs/plans/2026-10-29-scroll-gesture-audit.md`. Approved scope and
+verification: `docs/plans/2026-10-29-scroll-gesture-fixes.md`.
+
+| Item | Status |
+|------|--------|
+| Court/Settings/player/match/notifications Back interrupts reading | Implemented: explicit edge-only Back, removed animationMatchesGesture; visible Back retained |
+| Explore drawer rigid inner scrolling window and opening jump | Implemented: one root sheet scroll view, footer removed in D67, stable detent, shared spring; no layout re-snaps |
+| Compete scopes, Friends search, Court Live filters/Players sort scroll away | Implemented: controls outside lists; Friends summary yields space while native keyboard is open |
+| Friends inherits Activity's scroll offset | Implemented and browser regression checked: tab-specific keyed scroller resets offset |
+| Log game scrolls even when normal form fits | Implemented: measured overflow, compact spacing, fixed submit; expanded teams can scroll |
+| Blank bands in supplied screenshots | Corrected: active overscroll, not permanent gaps; spacing investigation withdrawn |
+| Bounce and realtime refresh | Bounce disabled on reading/form surfaces; no manual/pull refresh added |
+| Collapsing identity, planner floor, other sheets, virtualization | Separate audit backlog, outside this approved pass |
+| Native regression recording | Attempted agent-device; Linux reports Apple tools require macOS; no remote Apple target configured |
+
 ## 2026-10-18 (final round) — corner mark, thin slot card, Schedule (`claude/kind-pascal-4c174r`, PR #77)
 
 Not verified in a render; Jesse is checking it. Not merged; no OTA yet.

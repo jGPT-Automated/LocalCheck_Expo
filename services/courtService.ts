@@ -8,7 +8,7 @@ import {
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-interface SupabaseCourtRow {
+export interface SupabaseCourtRow {
   id: string;
   name: string;
   short_name?: string | null;
@@ -58,7 +58,7 @@ function normalizeSport(raw: string | null | undefined): CourtSport {
     : "BASKETBALL";
 }
 
-function mapRow(row: SupabaseCourtRow): Court {
+export function mapCourtRow(row: SupabaseCourtRow): Court {
   return {
     id: String(row.id),
     name: row.name ?? "Unknown Court",
@@ -124,7 +124,7 @@ export async function fetchCourtById(id: string): Promise<Court | null> {
       .select(STATS_COLS)
       .eq("id", id)
       .maybeSingle();
-    if (!error && data) return mapRow(data as unknown as SupabaseCourtRow);
+    if (!error && data) return mapCourtRow(data as unknown as SupabaseCourtRow);
 
     const { data: base, error: baseError } = await supabase
       .from("courts")
@@ -132,7 +132,7 @@ export async function fetchCourtById(id: string): Promise<Court | null> {
       .eq("id", id)
       .maybeSingle();
     if (baseError || !base) return null;
-    return mapRow(base as SupabaseCourtRow);
+    return mapCourtRow(base as SupabaseCourtRow);
   } catch {
     return null;
   }
@@ -350,13 +350,13 @@ export async function fetchCourtsInBounds(
       supabase.from("courts_with_stats").select(STATS_COLS),
     );
     if (!error && data)
-      return (data as unknown as SupabaseCourtRow[]).map(mapRow);
+      return (data as unknown as SupabaseCourtRow[]).map(mapCourtRow);
 
     const { data: base, error: baseError } = await applyFilters(
       supabase.from("courts").select(BASE_COLS),
     );
     if (baseError || !base) return [];
-    return (base as SupabaseCourtRow[]).map(mapRow);
+    return (base as SupabaseCourtRow[]).map(mapCourtRow);
   } catch {
     return [];
   }
@@ -497,7 +497,7 @@ export async function fetchCourtsByMarket(
 
     const { data, error } = await query;
     if (error || !data) return [];
-    return (data as unknown as SupabaseCourtRow[]).map(mapRow);
+    return (data as unknown as SupabaseCourtRow[]).map(mapCourtRow);
   } catch {
     return [];
   }
@@ -653,7 +653,7 @@ export async function createCourt(
           : "This photo could not be verified as a supported court.";
     const court =
       verified && payload.court && typeof payload.court === "object"
-        ? mapRow(payload.court as SupabaseCourtRow)
+        ? mapCourtRow(payload.court as SupabaseCourtRow)
         : undefined;
 
     return {
@@ -707,7 +707,7 @@ export async function searchCourts(
 
     const { data, error } = await q;
     if (!error && data)
-      return (data as unknown as SupabaseCourtRow[]).map(mapRow);
+      return (data as unknown as SupabaseCourtRow[]).map(mapCourtRow);
 
     // Fallback to the base table only if the view read failed.
     let q2 = supabase
@@ -723,7 +723,7 @@ export async function searchCourts(
     }
     const { data: base, error: baseError } = await q2;
     if (baseError || !base) return [];
-    return (base as SupabaseCourtRow[]).map(mapRow);
+    return (base as SupabaseCourtRow[]).map(mapCourtRow);
   } catch {
     return [];
   }

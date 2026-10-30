@@ -11,11 +11,15 @@ import {
   AUTO_CHECK_IN_TASK,
   AUTO_CHECK_IN_UNDO_ACTION,
   type AutoCheckInCourt,
+  type AutoCheckInRegion,
   type AutoCheckInPermission,
   AUTO_CHECK_IN_NOTICE_DELAY_SECONDS,
   checkedInNotification,
   postsAt,
   regionFor,
+  autoCheckInRegionIdentifier,
+  courtIdFromAutoCheckInRegion,
+  hasLocalPlusRegions,
 } from "@/lib/autoCheckInModel";
 import { supabase } from "@/lib/supabase";
 
@@ -90,7 +94,7 @@ if (isAutoCheckInAvailable()) {
     if (error || !data?.region?.identifier) return;
     const { data: session } = await supabase.auth.getSession();
     if (!session.session) return;
-    const courtId = data.region.identifier;
+    const courtId = courtIdFromAutoCheckInRegion(data.region.identifier);
     if (data.eventType === Location.GeofencingEventType.Enter) await onArrive(courtId);
     else if (data.eventType === Location.GeofencingEventType.Exit) await onLeave(courtId);
   });
@@ -127,16 +131,20 @@ export type EnableResult = "on" | "needs_always" | "denied" | "unavailable" | "e
  * change it in Settings.
  */
 export async function enableAutoCheckIn(court: AutoCheckInCourt): Promise<EnableResult> {
+  return enableAutoCheckInCourts([court]);
+}
+
+export async function enableAutoCheckInCourts(courts: AutoCheckInCourt[], plus = false): Promise<EnableResult> {
   if (!isAutoCheckInAvailable()) return "unavailable";
-  const region = regionFor(court);
-  if (!region) return "error";
+  const regions = courts.flatMap((court) => { const region = regionFor(court); return region ? [region] : []; });
+  if (!regions.length || regions.length !== courts.length || regions.length > 5) return "error";
   try {
     const foreground = await Location.requestForegroundPermissionsAsync();
     if (!foreground.granted) return "denied";
     const background = await Location.requestBackgroundPermissionsAsync();
     if (!background.granted) return "needs_always";
     await registerUndoAction();
-    await Location.startGeofencingAsync(AUTO_CHECK_IN_TASK, [region]);
+    await Location.startGeofencingAsync(AUTO_CHECK_IN_TASK, regions.map((region) => ({ ...region, identifier: autoCheckInRegionIdentifier(region.identifier, plus) })));
     return "on";
   } catch (error) {
     console.warn("enable auto check-in failed", error);
@@ -163,12 +171,17 @@ export async function disableAutoCheckIn(): Promise<void> {
  */
 export async function syncAutoCheckIn(court: AutoCheckInCourt | null): Promise<void> {
   if (!(await isAutoCheckInRunning())) return;
-  const region = court ? regionFor(court) : null;
-  if (!region) {
-    await disableAutoCheckIn();
-    return;
-  }
   try {
+    const options = await TaskManager.getTaskOptionsAsync<{ regions?: Array<{identifier?: string}> }>(AUTO_CHECK_IN_TASK);
+    if (hasLocalPlusRegions(options)) {
+      await disableAutoCheckIn();
+      return;
+    }
+    const region = court ? regionFor(court) : null;
+    if (!region) {
+      await disableAutoCheckIn();
+      return;
+    }
     await Location.startGeofencingAsync(AUTO_CHECK_IN_TASK, [region]);
   } catch (error) {
     console.warn("sync auto check-in failed", error);
@@ -233,4 +246,12 @@ export async function undoAutoCheckIn(): Promise<boolean> {
     return false;
   }
   return data === true;
+}
+
+/** Reconcile paid per-court opt-ins without prompting or changing preferences. */
+export async function syncAutoCheckInRegions(regions: AutoCheckInRegion[]): Promise<void> {
+  if (!isAutoCheckInAvailable()) return;
+  if (!regions.length) { await disableAutoCheckIn(); return; }
+  if (regions.length > 5 || await getAutoCheckInPermission() !== "always") return;
+  await Location.startGeofencingAsync(AUTO_CHECK_IN_TASK, regions.map((region) => ({ ...region, identifier: autoCheckInRegionIdentifier(region.identifier, true) })));
 }

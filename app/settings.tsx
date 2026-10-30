@@ -1,3 +1,4 @@
+import { AppSwitch } from "@/components/ui/AppSwitch";
 import Constants from "expo-constants";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
@@ -12,7 +13,6 @@ import {
   Pressable,
   Share,
   StyleSheet,
-  Switch,
   Text,
   View,
 } from "react-native";
@@ -32,6 +32,7 @@ import { Layout, Space } from "@/constants/layout";
 import { TextStyles, Typography } from "@/constants/typography";
 import { useApp, Visibility } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
+import { useSavedCourts } from "@/context/SavedCourtsContext";
 import { useAutoCheckIn } from "@/context/AutoCheckInContext";
 import { useNotifications } from "@/context/NotificationContext";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
@@ -100,6 +101,14 @@ function sportLabel(sport: CourtSport | null): string {
 export default function SettingsScreen() {
   const router = useRouter();
   const autoCheckIn = useAutoCheckIn();
+  const savedCourts = useSavedCourts();
+  const [courtSaving, setCourtSaving] = useState<string | null>(null);
+  const removeCourt = async (courtId: string) => {
+    setCourtSaving(courtId);
+    try { await savedCourts.remove(courtId); }
+    catch (err) { Alert.alert((err as Error).message); }
+    finally { setCourtSaving(null); }
+  };
   const {
     currentUser,
     visibility,
@@ -363,6 +372,7 @@ export default function SettingsScreen() {
             valueMuted={!preferredSport}
             onPress={() => setEditor("sport")}
           />
+          {!hasLocalPlus ? (
           <DrillRow
             icon="map-pin"
             label="LOCAL COURT"
@@ -374,6 +384,7 @@ export default function SettingsScreen() {
             valueMuted={!localCourt}
             onPress={() => setEditor("court")}
           />
+          ) : null}
           <DrillRow
             icon="navigation"
             label="AUTO CHECK-IN"
@@ -383,6 +394,26 @@ export default function SettingsScreen() {
             last
           />
         </Section>
+
+        {hasLocalPlus ? (
+          <Section title={`LOCAL COURTS · ${savedCourts.entries.length}/5`}>
+            {savedCourts.loading ? <ActivityIndicator color={Colors.accent} /> : null}
+            {savedCourts.entries.map((entry, index) => (
+              <ToggleSettingsRow key={entry.courtId} icon="map-pin"
+                label={entry.court?.shortName || entry.court?.name || "Court not found"}
+                detail="AUTO CHECK-IN"
+                disabled={autoCheckIn.busy || courtSaving !== null}
+                switchDisabled={!entry.court}
+                value={entry.autoCheckInEnabled ?? (entry.courtId === localCourt?.id && autoCheckInSwitchValue(autoCheckIn.state))}
+                onValueChange={(enabled) => void autoCheckIn.setCourtEnabled(entry.courtId, enabled)}
+                onRemove={() => void removeCourt(entry.courtId)}
+                last={index === savedCourts.entries.length - 1}
+              />
+            ))}
+            {savedCourts.error ? <SettingsRow icon="refresh-cw" label="Try again" loading={savedCourts.refreshing} onPress={() => void savedCourts.refresh()} last /> : null}
+            {!savedCourts.entries.length && !savedCourts.loading && !savedCourts.error ? <SettingsRow icon="map" label="Explore courts" onPress={() => router.push("/(tabs)/explore")} last /> : null}
+          </Section>
+        ) : null}
 
         <Section title="ALERTS">
           <ToggleSettingsRow
@@ -503,7 +534,8 @@ export default function SettingsScreen() {
         canToggle={
           autoCheckIn.state !== "unavailable" && autoCheckIn.state !== "no_court" && !autoCheckIn.busy
         }
-        courtName={localCourt ? localCourt.shortName || localCourt.name : null}
+        courtName={hasLocalPlus ? "LOCALPLUS" : localCourt ? localCourt.shortName || localCourt.name : null}
+        showCourtToggle={!hasLocalPlus}
         on={autoCheckInSwitchValue(autoCheckIn.state)}
         onClose={() => {
           setAutoSheetOpen(false);
@@ -613,15 +645,17 @@ function SettingsRow({
   detail,
   onPress,
   last,
+  loading = false,
 }: {
   icon: React.ComponentProps<typeof Feather>["name"];
   label: string;
   detail?: string;
   onPress: () => void;
   last?: boolean;
+  loading?: boolean;
 }) {
   return (
-    <Pressable
+    <Pressable accessibilityRole="button" disabled={loading}
       style={({ pressed }) => [
         styles.row,
         last && styles.rowLast,
@@ -636,25 +670,29 @@ function SettingsRow({
         </Text>
         {detail ? <Text style={styles.settingsDetail}>{detail}</Text> : null}
       </View>
-      <Feather name="chevron-right" size={17} color={Colors.muted} />
+      {loading ? <ActivityIndicator color={Colors.accent} /> : <Feather name="chevron-right" size={17} color={Colors.muted} />}
     </Pressable>
   );
 }
 
 function ToggleSettingsRow({
   disabled,
+  switchDisabled,
   icon,
   label,
   detail,
   onValueChange,
+  onRemove,
   value,
   last,
 }: {
   disabled?: boolean;
+  switchDisabled?: boolean;
   icon: React.ComponentProps<typeof Feather>["name"];
   label: string;
   detail?: string;
   onValueChange: (value: boolean) => void;
+  onRemove?: () => void;
   value: boolean;
   last?: boolean;
 }) {
@@ -667,11 +705,17 @@ function ToggleSettingsRow({
         </Text>
         {detail ? <Text style={styles.settingsDetail}>{detail}</Text> : null}
       </View>
+      {onRemove ? (
+        <Pressable accessibilityLabel={`Remove ${label}`} accessibilityRole="button"
+          disabled={disabled} onPress={onRemove} style={styles.courtRemove}>
+          <Feather color={Colors.textSecondary} name="x" size={18} />
+        </Pressable>
+      ) : null}
       <View style={styles.notificationSwitchFrame}>
-        <Switch
+        <AppSwitch
           accessibilityLabel={label}
           accessibilityHint={`Turns ${label.toLowerCase()} on or off`}
-          disabled={disabled}
+          disabled={disabled || switchDisabled}
           ios_backgroundColor={Colors.borderLight}
           onValueChange={onValueChange}
           thumbColor={Colors.white}
@@ -1164,6 +1208,7 @@ function PasswordEditorSheet({
 }
 
 const styles = StyleSheet.create({
+  courtRemove: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   screen: { flex: 1, backgroundColor: Colors.background },
   profileRow: {
     paddingHorizontal: 20,

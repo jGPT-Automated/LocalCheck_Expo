@@ -232,3 +232,12 @@ Offers / Offer Codes** (Apple's naming varies by ASC version — look for
   redeem an Apple offer code); anyone after that just subscribes.
 - Submit the paid subscription (`Add for Review`) with the app version that
   carries the paywall.
+
+## LocalPlus court list (Oct 29, on PR #84 branch)
+
+D65 adds up to five saved courts, a Home count/dropdown and per-court auto
+check-in toggles in Settings. Uses the existing `localplus` entitlement via
+useLocalPlus; server RPCs enforce profiles.is_pro plus the existing TEST
+exception. No offering, product, price or RevenueCat configuration change.
+Free retains its one primary and existing auto behavior. The additive saved-
+courts migration is pending; see docs/SUPABASE.md and the PR before release.

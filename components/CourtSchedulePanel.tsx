@@ -39,17 +39,20 @@ function heatLevel(count: number): number {
 }
 
 /**
- * Week › planned visits: Monday to Sunday across, two-hour rows down, busier
+ * Court Schedule: Monday to Sunday across, two-hour rows down, busier
  * cells brighter, a white dot where a game is scheduled. The selected slot's
  * card below lists who's going and the games, with a + to add yourself.
  */
 export function CourtSchedulePanel({
   court,
   bottomInset = 0,
+  children,
 }: {
   court: Court;
   /** Space under the last card (the home-indicator inset). */
   bottomInset?: number;
+  /** Related court content shares this one vertical scroll surface. */
+  children?: React.ReactNode;
 }) {
   const { currentUser, plannedVisits, runs } = useApp();
   const dayStamp = new Date().toDateString();
@@ -188,7 +191,8 @@ export function CourtSchedulePanel({
 
   return (
     <ScrollView
-      alwaysBounceVertical={false}
+      bounces={false}
+      testID="court-schedule-scroll"
       contentContainerStyle={[styles.panel, { paddingBottom: bottomInset + 12 }]}
       showsVerticalScrollIndicator={false}
       style={styles.scroll}
@@ -266,6 +270,7 @@ export function CourtSchedulePanel({
         runs={selectedRuns}
         title={slotTitle}
       />
+      {children}
     </ScrollView>
   );
 }

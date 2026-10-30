@@ -1,7 +1,8 @@
+import { AppSwitch } from "@/components/ui/AppSwitch";
 import { Feather } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import React from "react";
-import { Platform, Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { GeofenceVisual } from "@/components/autoCheckIn/GeofenceVisual";
 import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
@@ -28,6 +29,7 @@ export function AutoCheckInSettingsSheet({
   onShareAlerts,
   onReceiveAlerts,
   onOpenSettings,
+  showCourtToggle = true,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -41,6 +43,7 @@ export function AutoCheckInSettingsSheet({
   onShareAlerts: (next: boolean) => void;
   onReceiveAlerts: (next: boolean) => void;
   onOpenSettings: () => void;
+  showCourtToggle?: boolean;
 }) {
   const [permission, setPermission] = React.useState<LocationPermissionLabel | null>(null);
 
@@ -74,14 +77,16 @@ export function AutoCheckInSettingsSheet({
       visible={visible}
     >
       <View style={styles.content}>
-        {courtName ? <GeofenceVisual courtName={courtName} /> : null}
+        {courtName && showCourtToggle ? <GeofenceVisual courtName={courtName} /> : null}
         <View>
+          {showCourtToggle ? (
           <ToggleRow
             disabled={!canToggle}
             label="Auto check-in"
             onChange={onToggle}
             value={on}
           />
+          ) : null}
           <View style={styles.row}>
             <Text style={styles.label}>Location</Text>
             <Text style={[styles.value, permission === "ALWAYS" ? styles.valueGood : null]}>
@@ -109,7 +114,7 @@ export function AutoCheckInSettingsSheet({
           />
         </View>
         <Text style={styles.note}>
-          Auto check-in needs Always. LocalCheck only learns when you enter or leave this circle.
+          {showCourtToggle ? "Auto check-in needs Always. LocalCheck only learns when you enter or leave this circle." : "Auto check-in needs Always."}
         </Text>
       </View>
     </RunFlowSheet>
@@ -132,7 +137,7 @@ function ToggleRow({
   return (
     <View style={[styles.row, last ? styles.rowLast : null]}>
       <Text style={styles.label}>{label}</Text>
-      <Switch
+      <AppSwitch
         accessibilityLabel={label}
         disabled={disabled}
         onValueChange={onChange}

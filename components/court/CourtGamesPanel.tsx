@@ -1,4 +1,4 @@
-// Court page › Games (Claude Design handoff): upcoming scheduled games at
+// Court page › Schedule: upcoming scheduled games at
 // this court, grouped by day. Each card: time, title, format, then who's
 // going (faces), "x of y going" with a fill bar, and Join / Going / Full.
 // Tapping the card opens the game page (app/run/[id].tsx).
@@ -29,19 +29,21 @@ export function CourtGamesPanel({
   games,
   onOpen,
   onCreate,
+  inset = 20,
 }: {
   games: GameRun[];
   onOpen: (game: GameRun) => void;
   /** Adds a quiet "Create a game" row under the list, so a short list ends
    * on the next thing to do instead of empty space. */
   onCreate?: () => void;
+  inset?: number;
 }) {
   const { joinRun } = useApp();
   const [joiningId, setJoiningId] = React.useState<string | null>(null);
 
   if (games.length === 0) {
     return (
-      <View style={styles.wrap}>
+      <View style={[styles.wrap, { paddingHorizontal: inset }]}>
         <Text style={styles.eyebrow}>Upcoming</Text>
         <View style={styles.emptyBox}>
           <Text style={styles.empty}>Nothing scheduled. Post a game and locals see it.</Text>
@@ -66,7 +68,7 @@ export function CourtGamesPanel({
   };
 
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, { paddingHorizontal: inset }]}>
       <Text style={styles.eyebrow}>Upcoming · {games.length}</Text>
       {groups.map((group) => (
         <View key={group.label} style={styles.group}>
@@ -93,7 +95,7 @@ function CreateGameRow({ onPress }: { onPress: () => void }) {
 /**
  * One upcoming game: time, title, format and host, then faces, "x of y
  * going" with a fill bar, and Join / Going / Full. Shared by the court page's
- * Games tab and the Schedule tab's swipeable row (`style` sets its width).
+ * Schedule destination and the Schedule tab's swipeable row (`style` sets its width).
  */
 export function ScheduledGameCard({
   game,

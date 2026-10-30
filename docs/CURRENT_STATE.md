@@ -1,5 +1,76 @@
 # Current state
 
+- Oct 30 (**on a branch**, draft PR #84): removed the court drawer tab footer
+  after Jesse rejected it. Drawer content uses the existing sheet scroller,
+  safe-area bottom spacing, opening heights and spring. The full court page
+  retains Feed / Schedule / Players / Info. Open/expand/scroll/court-link and
+  stable opening position checked with isolated data at three phone sizes.
+  No sport glyph or global palette was changed; the generated paddle and
+  queue/Home designs never entered app code. No Supabase access or deployment
+  is authorized. Earlier paid Settings layout remains rejected.
+
+- Oct 29 (**on a branch**, draft PR #84): court navigation now uses Feed /
+  Schedule / Players / Info (the drawer tab footer was later removed, D67).
+  Schedule combines the existing planning heat map, selected slot and upcoming
+  games in one vertical scroll surface. Old Live/Games/Week links resolve to
+  Feed/Schedule. This is the first bounded implementation of D66; the new
+  Home dashboard and reference styling are still pending. No Supabase access
+  or backend change is authorized by this work. The paid top-level Settings
+  list in the previous commit was rejected and is outside this correction.
+
+- Oct 29 (**on a branch**, draft PR #84; backend not deployed): Jesse
+  clarified this is LocalPlus: up to five courts, Home count/dropdown, and
+  per-court auto check-in toggles in Settings. LocalLite retains one primary
+  court, its editor/cooldown, and existing auto check-in. SavedCourtsContext
+  owns only the paid list and viewed-court selection; switching Home updates
+  summary, presence, plans, feed, check-in and links without changing primary.
+  The court-page header plus/check saves paid membership; free uses the
+  existing set-local behavior. Card/drawer/Home compose CourtSummary from
+  CourtArt, SportLabel and MetricStrip: art restored, city top right, centered
+  name, no corner arc or redundant card arrow. Shared useCourtFeed supplies
+  Home/drawer/detail with scoped realtime and foreground refresh.
+  New migration `20261029103544_localplus_saved_courts.sql` seeds the existing
+  primary, applies owner RLS and a server-locked cap of five, and guards
+  arrival/resume/delayed posting by per-court opt-in. The existing Expo task
+  registers enabled paid courts; no new native module or task. Existing
+  primary opt-in is resolved once without overwriting explicit choices;
+  adding another court defaults auto check-in off. Backend remains unchanged in production;
+  production schema was inspected read-only. Plan and deployment boundary:
+  `docs/plans/2026-10-29-localplus-courts.md`.
+  The three-size interactive journey covers saved check/reload, selected
+  Home actions/data, Settings toggle/reload, unavailable removal, five entries,
+  recovery, empty Home and free-tier controls. Rendered fixtures are isolated;
+  PostgreSQL tests use a disposable database. No production write is claimed.
+  Native OS event delivery is not covered by browser screenshots.
+
+- Oct 29 (**on a branch**, `codex/native-ui-polish`, not merged/released):
+  approved scroll/gesture follow-up to the audit of main `d5d9ebc`.
+  Shared pushed-screen navigation explicitly disables full-screen Back and
+  removes animationMatchesGesture. Explore's court drawer has one root
+  sheet-aware scroller, stable precomputed peek
+  detent and Springs.sheet; content measurements no longer re-snap it.
+  Friends search, Compete scopes and Court filters/sorts stay outside their
+  lists. Me tab changes reset list offsets. While Friends' native keyboard is
+  open, the profile summary yields space to keep the anchored search reachable
+  on short phones; it returns when the keyboard closes. Log game measures overflow,
+  uses compact spacing on short phones and disables scrolling when it fits;
+  expanded teams/keyboard can still enable scrolling. Reading/form surfaces
+  disable bounce. No manual refresh added; existing realtime behavior stays.
+  Jesse corrected the screenshot interpretation: blank bands were exposed
+  while actively overscrolling, not permanent spacing. His iPhone confirms
+  the original accidental Back bug. This cloud Linux host's agent-device
+  attempt reports Apple tools require macOS; no post-change iOS run claimed.
+  `pnpm check` passes (263 tests); full visual sweep has zero hard layout
+  failures. Its two new compact-form accessibility entries were resolved in
+  the final form rerun (0 above baseline). The same 23 accessibility entries
+  already over baseline on main remain; no limits were raised.
+  Detailed plan/evidence: `docs/plans/2026-10-29-scroll-gesture-fixes.md`.
+
+- Oct 29 (**on a branch**, `codex/onboard-main`): clarified the browser rule
+  in `AGENTS.md` at Jesse's request. Local previews use the built-in app
+  Browser and leave personal browsers alone; cloud sessions may use a cloud
+  browser or headless Playwright for previews and screenshots.
+
 Last reconciled: 2026-10-14 against `origin/main` at `541632c` (#65), PR #67
 (`codex/auto-check-in`), LocalCheckProd (read-only queries), the GitHub API and
 the EAS build list.

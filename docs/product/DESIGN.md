@@ -129,6 +129,25 @@ Rules:
 
 ### Layout rules (hard)
 
+- **Scroll and navigation ownership (D62).** Pushed screens use native edge
+  Back (`fullScreenGestureEnabled: false`); reading drags in the middle of a
+  page must not navigate. Keep Back buttons available. Horizontal rosters and
+  time strips retain horizontal scrolling.
+- **Keep list controls anchored.** Friends search, Compete sport/scope,
+  Court Live filters and Players sort sit outside the scrolling list. Changing
+  a Me tab starts that tab at its top rather than inheriting the previous offset.
+  While Friends' native keyboard is open, the profile summary yields space
+  for search and restores on keyboard close.
+- **Overscroll is separate from responsiveness.** Blank bands Jesse captured
+  while dragging are transient overscroll, not evidence of permanent padding.
+  Disable vertical bounce on reading surfaces and forms. Log game measures its
+  body viewport/content: scrolling is off when it fits, on when extra players,
+  search, larger text, errors or the keyboard require overflow. Submit stays
+  above the tab floor. Compact spacing changes spacing, not touch/font sizes.
+- **No automatic pull-to-refresh.** Realtime subscriptions and existing
+  invalidation update leaderboards/activity. A separately approved recovery
+  refresh must show a visible indicator and genuinely refetch data.
+
 - **The tab bar is a floor for screens (D41); sheets open in front of it
   (D44).** One sheet host at the app root (CourtSheetHost) means every
   `AppBottomSheetModal` covers the tab bar; sheet content pads with
@@ -220,27 +239,44 @@ If one of these elements changes, update the canonical component and search the 
 - Large choice sets use typeahead or a contextual list. Date selection uses
   `RecentDatePicker`. Do not expose a free-typed date field on iOS.
 
+For a shared UI correction, enumerate its imports and route variants before
+editing. Reuse the owning component; inspect list → drawer → full page and
+alternate entry points after changing it. A corrected first screen is not a
+completed flow. Preserve unrelated art, actions and layout unless requested.
+
+Date/time reference read Oct 29:
+https://panelui.dev/docs/components/date-time-picker. Its combined picker
+represents one moment with one Date and keeps date/time open until Done;
+date-only tasks should remain date-only. LocalCheck already shares
+`RecentDatePicker` across Log Game, match revision, Challenge and Schedule.
+This court-control correction does not replace that picker or add a library.
+
+Switches use `AppSwitch`, an adapter around React Native's installed Switch;
+Settings, auto check-in and Hide score share its thumb color and native hit
+slop. No custom switch implementation. Home and Settings recovery actions show
+a spinner while fetching; realtime surfaces still have no pull-to-refresh.
+Unavailable saved courts remain removable without revealing their metadata.
+
 ## Court card treatment
 
-Since D56 (Oct 15) the Explore card is the court-flow card: `#121216`, 20pt
-corners, one hairline, `CourtArt` top right, sport label and Your local pill,
-Oswald 30 name, city · distance, then On court / Court hours · wk / Locals on
-a darker band. Live courts sort first. The older treatment below is kept for
-history.
+Current requested direction (D64, Oct 29; implementation in progress):
+`CourtSummary` composes the existing CourtArt, SportLabel and MetricStrip for
+Explore cards, the drawer and Home. Preserve decorative court-line art; sport
+is top left, city top right, court name centered, with balanced vertical gaps.
+There is no corner arc and no redundant arrow/plus on the Explore card.
+The whole card opens the court drawer. Check-in and the court-page link sit
+below the identity in the drawer. The plus/check belongs in the full court-page
+header and means membership in a multi-court list. Home's app header shows
+the count of added courts and a dropdown to switch the displayed court.
+D65: this list is LocalPlus-only, maximum five; free keeps its one court.
+Reuse CompactSelect for the count/dropdown and the existing settings switch
+row for the paid court list. Court-page plus/check reflects saved membership
+for paid users and retains existing set-local behavior for free users. New
+saved courts default auto off; toggles are saved before registering regions.
+Home selection changes all content/actions together and leaves primary intact.
 
-Explore court cards use the supplied reference treatment:
-
-- Base gradient: `#202027` to `#19191E` at 135 degrees.
-- Subtle top-right sport tint fading to transparent.
-- Border: `rgba(242,242,246,0.09)`.
-- Radius: 16.
-- Quiet elevation: an inset gloss highlight and a low-opacity black shadow.
-- A low-contrast court-geometry watermark sits behind content, using the current sport's muted metadata tint; it is decorative and never carries state.
-- Cards remain compact (128 px minimum): sport icon and label at top, shorthand court name, neighborhood, two optically centered live/locals metric columns, and one library chevron affordance.
-- Only the current local court shows the neutral outline star. Other cards do not show an empty star; setting a local court lives on its detail page.
-- Cards do not contain check-in or local-court buttons. Tapping opens the court drawer.
-
-Home uses the same material language as a full-width hero, not a floating card. Its primary check-in action remains bright `#FF5500`.
+No new date/time widget is part of this court correction. Shared sport/stat
+captions remain 11pt. Keep the existing palette and action components.
 
 ## Court flow
 
@@ -251,8 +287,11 @@ Current (D56, Oct 15):
    centred name, city · distance, On court / Court hours · wk / Locals,
    Check in and Court ↗. Tapping the header or dragging expands it.
 3. Expanded (92%): Here now, Up next, Today (planned visits in 2-hour bars),
-   Recent activity, then Games / Players / Feed / Week chips that open the
-   court page on that tab. Fixed height, never scrolls.
+   Recent activity. One root BottomSheetScrollView includes the court header,
+   actions and details. D67 removes the duplicate drawer-tab footer; the tabs
+   remain on the full court page. The opening detent is stable before presentation, with no
+   content-layout re-snap; full height is 92%. Content pan and pan-down-to-close
+   stay enabled with the shared sheet spring (D62).
 4. Not your local and no LocalPlus: the expanded area is blurred under the
    LocalPlus panel (white Unlock with LocalPlus, terms, "Or make this your
    local court — always free"). Court ↗ goes to the LocalPlus screen.
@@ -268,15 +307,11 @@ Player profile actions by friend state: not friends Log game | Add friend
 request | Log game (orange); friends remove icon | Log game | Challenge
 (white). Log game opens as a sheet over the profile.
 
-Home (D58, D60): one scrolling page, no tabs. Only the court name, city and
-3-number strip (`HomeCourtHero`) stay pinned; the sport row with the local mark
-(`HomeCourtTop`) scrolls away. Under the pinned part: Check in beside a centred
-> (`HomeCourtActions`: the drawer's `CheckInButton` and `CourtLinkButton`),
-Here now (`HereNowSection`), then
-Up next (`UpNextSection`, plain text count, not a link), Today
-(`CourtBusyChart`) and Recent activity (every court feed row, `ActivityRow`).
-Here now and Up next are the Explore drawer's own sections
-(`components/court/CourtOverviewSections.tsx`), shared with the drawer.
+Home (D58, D60, D64): one page, no tabs. The shared CourtSummary uses the
+same court art, city corner, centered name and numbers as Explore/the drawer.
+It stays pinned under ScreenHeader; check-in and the court-page action follow,
+then Here now, Up next, Today and Recent activity. Home's header count/dropdown
+will switch the court shown in this whole view, not merely rename its title.
 
 Feed rows (`ActivityRow`): 32pt tile, sentence + detail, score and time on
 the right, all one height. The tile: small solid orange dot (8pt) for a
@@ -354,10 +389,10 @@ the canonical geographic court service, and an animated camera move before the
 same court drawer opens; it never substitutes a fabricated location after a
 permission denial.
 
-The court page (D55, Oct 14; header revised by D57, Oct 17) follows the court-flow design (`components/court/`). The header is fixed: back arrow and Your local pill; court line art pinned top right; sport label, name (Oswald, one line, shrinks to fit), city · distance on the left, a large live On court number on the right (orange with the live dot when anyone is on); then today's busy times (`CourtBusyChart` header variant: today only, no day arrows or caption) on every tab; the court trace behind the header is dimmed (`CourtArt` `faint`) so text stands out. Court hours · wk sits on Info, the next game on Games. Under it the tabs Live · Games · Players · Week · Info, with an orange underline on the active tab. There is no bottom bar (D58): Home and the Explore drawer own Check in. Only the selected tab's content scrolls:
+The court page (D55, Oct 14; header revised by D57, Oct 17) follows the court-flow design (`components/court/`). The header is fixed: back arrow and Your local pill; court line art pinned top right; sport label, name (Oswald, one line, shrinks to fit), city · distance on the left, a large live On court number on the right (orange with the live dot when anyone is on); then today's busy times (`CourtBusyChart` header variant: today only, no day arrows or caption) on every tab; the court trace behind the header is dimmed (`CourtArt` `faint`) so text stands out. Court hours · wk sits on Info. D66 regroups the tabs as Feed · Schedule · Players · Info, with an orange underline on the active tab. There is no bottom bar (D58): Home and the Explore drawer own Check in. Only the selected tab's content scrolls:
 
-- Live: On court tiles (busy times moved to the header, D57) ("Nobody yet. Check in and you're first." when empty), All / Games / Check-ins chips, then the activity timeline and game-result modal.
-- Games: upcoming scheduled games by day (Today, Tomorrow, then the date), time, title, "x of y going" and a fill bar; tapping opens the game page. The list ends on a dashed Create a game row.
+- Feed: On court tiles (busy times moved to the header, D57) ("Nobody yet. Check in and you're first." when empty), All / Games / Check-ins chips, then the activity timeline and game-result modal.
+- Schedule: the existing planning heat map and selected-slot card, followed by upcoming scheduled games by day (Today, Tomorrow, then the date), time, title, "x of y going" and a fill bar; tapping opens the game page. The list ends on a dashed Create a game row.
 - Players (D58, `CourtPlayersPanel`): this court's locals only, no Here now
   section. A Ranking / Active / Newest control (`SegmentedControl` `compact`)
   and "N locals · ranked after every ranked game here". Each row: rank by
@@ -367,7 +402,9 @@ The court page (D55, Oct 14; header revised by D57, Oct 17) follows the court-fl
   recent to make this their local first (`profiles.local_court_changed_at`).
   Your own row ("You", W–L, points to the next rank) is pinned under the list
   with an orange left edge.
-- Week: the heatmap and Today card above (`CourtSchedulePanel`).
+- Schedule uses `CourtSchedulePanel` as the single vertical scroll owner for
+  the grid, selected-slot card and `CourtGamesPanel`; there is no nested
+  vertical games window. The tab bar remains outside that scroller.
 - Info: map with Directions, Court hours · wk / Avg session / Locals, then Courts, Lights, Access. A value the database doesn't have shows a dash.
 
 Home's court header uses the same pieces: line art, sport label, house marker, name, city · distance, On court / Court hours · wk / Locals, then Check in and Court (arrow pointing right).
@@ -551,5 +588,19 @@ nothing (Settings changes it). It replaces the "Your local" pill.
 Drawers (D60): the Challenge and Log game drawers are the baseline for every
 form drawer (`RunFlowSheet`, WHERE `CourtSearchPicker`, WHEN `RecentDatePicker`
 + `TimeStrip`, `SegmentedControl`, one accent button). Schedule a game
-(`ScheduleGameSheet`) follows it. The expanded Explore drawer scrolls; its
+(`ScheduleGameSheet`) follows it. The Explore drawer uses one scrollable surface (D62); D67 removes its tab footer. Its
 LocalPlus panel is top-aligned.
+
+PanelUI reference guidance (D63): keep semantic surface/text/action colors and
+familiar platform behavior. This app remains Expo SDK 54; PanelUI's documented
+native rendering needs SDK 56+. No native package or theme migration is part
+of the polish; existing shared components remain authoritative.
+
+### Home reference follow-up (D67; not implemented)
+
+Home shows a compact active-games / waiting-line summary opening a nested view.
+The Playtomic match card is the reference for that detailed view. Keep existing
+charcoal tokens and sport marker; no paddle substitution or new palette. Here
+now and the waiting line use names; Feed belongs on the court page. The active
+game, full line and all game actions must not crowd the Home summary. Generated
+mockups are proposals and have not changed the app's Home screen.

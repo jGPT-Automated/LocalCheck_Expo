@@ -60,7 +60,7 @@ export function BrutalistButton({
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === "accent" ? Colors.black : Colors.white}
+          color={StyleSheet.flatten(styles[`labelVariant_${variant}`]).color}
           size="small"
         />
       ) : (
