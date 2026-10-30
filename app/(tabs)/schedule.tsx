@@ -1273,7 +1273,7 @@ export default function ScheduleScreen() {
                 else if (value === "clear") clearMyTimes();
                 else setTimesFilter((current) => (current === value ? null : value));
               }}
-              scroll
+              grid
               style={styles.timesChips}
             />
           ) : null}
@@ -1747,7 +1747,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: Space.md,
   },
-  timesChips: { marginHorizontal: -20 },
+  timesChips: { paddingHorizontal: 0 },
   legendScale: { flexDirection: "row", alignItems: "center", gap: 6 },
   legendGame: { flexDirection: "row", alignItems: "center", gap: 6 },
   legendGameDot: {

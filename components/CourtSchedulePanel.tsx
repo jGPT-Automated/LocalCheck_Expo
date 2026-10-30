@@ -14,7 +14,7 @@ const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 const ROW_HOURS = [7, 9, 11, 13, 15, 17, 19, 21];
 const FIRST_HOUR = ROW_HOURS[0];
 const LAST_HOUR = 22;
-const LEGEND = [Colors.heat0, Colors.heat1, Colors.heat2, Colors.heat3, Colors.accent];
+const LEGEND = [Colors.surfaceHigh, Colors.heat1, Colors.heat2, Colors.heat3, Colors.accent];
 
 interface SlotEntry {
   attendees: SlotAttendee[];

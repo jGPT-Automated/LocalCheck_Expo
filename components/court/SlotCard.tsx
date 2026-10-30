@@ -24,12 +24,12 @@ export interface SlotAttendee {
  */
 export type SlotMode = "view" | "plan" | "full";
 
-const AVATARS_MAX = 5;
+const AVATARS_MAX = 6;
 const FACE = 36;
 
 /**
  * One hour at a court (Oct 29 Home reference): the hour with how many are
- * coming beside it, the people on the left and I'm going on the right, then
+ * coming beside it, the people, a full-width I'm going, then
  * the hour's game with Join, or an open run when nobody has scheduled one.
  * `bare` drops the panel so it can sit inside another card (Today).
  */
@@ -84,43 +84,39 @@ export function SlotCard({
         <Text numberOfLines={1} style={styles.meta}>{slotMetaLabel({ current, here, planned: total })}</Text>
       </View>
 
-      {people || acts ? (
-        <View style={styles.peopleRow}>
-          {people ? (
-            <View style={styles.faces}>
-              {attendees.slice(0, AVATARS_MAX).map((attendee) => (
-                <Pressable
-                  accessibilityLabel={attendee.isMine ? "You" : attendee.name}
-                  accessibilityRole="button"
-                  key={attendee.id}
-                  onPress={() => router.push(`/player/${attendee.id}`)}
-                >
-                  <PlayerAvatar accent={attendee.isMine} initials={attendee.initials} name={attendee.name} playerId={attendee.id} size={FACE} />
-                </Pressable>
-              ))}
-              {attendees.length > AVATARS_MAX ? (
-                <View style={styles.more}>
-                  <Text style={styles.moreText}>+{attendees.length - AVATARS_MAX}</Text>
-                </View>
-              ) : null}
+      {people ? (
+        <View style={styles.faces}>
+          {attendees.slice(0, AVATARS_MAX).map((attendee) => (
+            <Pressable
+              accessibilityLabel={attendee.isMine ? "You" : attendee.name}
+              accessibilityRole="button"
+              key={attendee.id}
+              onPress={() => router.push(`/player/${attendee.id}`)}
+            >
+              <PlayerAvatar accent={attendee.isMine} initials={attendee.initials} name={attendee.name} playerId={attendee.id} size={FACE} />
+            </Pressable>
+          ))}
+          {attendees.length > AVATARS_MAX ? (
+            <View style={styles.more}>
+              <Text style={styles.moreText}>+{attendees.length - AVATARS_MAX}</Text>
             </View>
           ) : null}
-          {acts ? (
-            <Pressable
-              accessibilityLabel={checkedIn ? "You're here" : mine ? "I'm not coming" : current ? "I'm here" : "I'm going"}
-              accessibilityRole="button"
-              accessibilityState={{ busy: saving, selected: on, disabled: checkedIn }}
-              disabled={saving || checkedIn}
-              onPress={onToggle}
-              style={({ pressed }) => [styles.going, !people && styles.goingWide, on && styles.goingOn, pressed && styles.pressed]}
-            >
-              <Feather color={on ? Colors.background : Colors.text} name={on ? "check" : "plus"} size={14} />
-              <Text style={[styles.goingText, on && styles.goingTextOn]}>
-                {on ? (current ? "Here" : "Going") : current ? "I'm here" : "I'm going"}
-              </Text>
-            </Pressable>
-          ) : null}
         </View>
+      ) : null}
+      {acts ? (
+        <Pressable
+          accessibilityLabel={checkedIn ? "You're here" : mine ? "I'm not coming" : current ? "I'm here" : "I'm going"}
+          accessibilityRole="button"
+          accessibilityState={{ busy: saving, selected: on, disabled: checkedIn }}
+          disabled={saving || checkedIn}
+          onPress={onToggle}
+          style={({ pressed }) => [styles.going, on && styles.goingOn, pressed && styles.pressed]}
+        >
+          <Feather color={on ? Colors.background : Colors.text} name={on ? "check" : "plus"} size={14} />
+          <Text style={[styles.goingText, on && styles.goingTextOn]}>
+            {on ? (current ? "Here" : "Going") : current ? "I'm here" : "I'm going"}
+          </Text>
+        </Pressable>
       ) : null}
 
       {run ? (
@@ -188,12 +184,10 @@ const styles = StyleSheet.create({
   head: { flexDirection: "row", alignItems: "baseline", gap: 10 },
   title: { flexShrink: 0, fontFamily: Typography.headingBold, fontSize: 26, lineHeight: 28, letterSpacing: -0.4, textTransform: "uppercase", color: Colors.text },
   meta: { flexShrink: 1, fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
-  peopleRow: { marginTop: 14, flexDirection: "row", alignItems: "center", gap: 12 },
-  faces: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 6, overflow: "hidden" },
+  faces: { marginTop: 14, flexDirection: "row", alignItems: "center", gap: 6 },
   more: { width: FACE, height: FACE, borderRadius: Math.round(FACE * 0.18), borderWidth: 1, borderStyle: "dashed", borderColor: Colors.dashed, alignItems: "center", justifyContent: "center" },
   moreText: { fontFamily: Typography.headingSemiBold, fontSize: 12, color: Colors.textSecondary },
-  going: { height: 44, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: Radius.button, borderWidth: 1, borderColor: Colors.text },
-  goingWide: { flex: 1 },
+  going: { height: 44, marginTop: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: Radius.button, borderWidth: 1, borderColor: Colors.text },
   goingOn: { backgroundColor: Colors.accent, borderColor: Colors.accent },
   goingText: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.4, textTransform: "uppercase", color: Colors.text },
   goingTextOn: { color: Colors.background },

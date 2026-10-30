@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   Animated,
   Pressable,
-  ScrollView,
   type StyleProp,
   StyleSheet,
   Text,
@@ -331,17 +330,17 @@ export function FilterChips<T extends string>({
   active = null,
   onPress,
   style,
-  scroll = false,
+  grid = false,
 }: {
   chips: ReadonlyArray<{ value: T; label: string }>;
   active?: T | null;
   onPress: (value: T) => void;
   style?: StyleProp<ViewStyle>;
-  /** One row that scrolls sideways instead of wrapping. */
-  scroll?: boolean;
+  /** Two equal columns, so a long set wraps into an even grid. */
+  grid?: boolean;
 }) {
-  const row = (
-    <View style={[styles.filters, scroll && styles.filtersRow, !scroll && style]}>
+  return (
+    <View style={[styles.filters, style]}>
       {chips.map((chip) => {
         const selected = active === chip.value;
         return (
@@ -350,19 +349,13 @@ export function FilterChips<T extends string>({
             accessibilityState={{ selected }}
             key={chip.value}
             onPress={() => onPress(chip.value)}
-            style={[styles.chip, selected && styles.chipActive]}
+            style={[styles.chip, grid && styles.chipGrid, selected && styles.chipActive]}
           >
             <Text style={[styles.chipText, selected && styles.chipTextActive]}>{chip.label}</Text>
           </Pressable>
         );
       })}
     </View>
-  );
-  if (!scroll) return row;
-  return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={style}>
-      {row}
-    </ScrollView>
   );
 }
 
@@ -468,7 +461,7 @@ const styles = StyleSheet.create({
   cellLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   cellLabel: { fontFamily: Typography.bodyBold, fontSize: 7.5, letterSpacing: 0.9, textTransform: "uppercase", color: Colors.textSecondary },
   filters: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6 },
-  filtersRow: { flexWrap: "nowrap" },
+  chipGrid: { flexGrow: 1, flexBasis: "45%", alignItems: "center" },
   chip: { height: 36, paddingHorizontal: 16, borderRadius: 999, justifyContent: "center", borderWidth: 1, borderColor: "rgba(242,242,246,0.16)" },
   chipActive: { backgroundColor: Colors.tile, borderColor: "rgba(242,242,246,0.28)" },
   chipText: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.inkSoft },
