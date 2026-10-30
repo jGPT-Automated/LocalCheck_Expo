@@ -616,6 +616,9 @@ export default function ScheduleScreen() {
     Math.floor((Math.min(screenWidth, 680) - 40 - HEAT_TIME_COL - 7 * HEAT_GAP) / 7),
   );
   const rowPitch = cellSize + HEAT_GAP;
+  // Opens on the hour before now, so the first thing you see is tonight.
+  const scheduleScrollRef = useRef<ScrollView>(null);
+  const scrolledToNow = useRef(false);
   // One card plus a peek of the next, so the row reads as swipeable and the
   // FAB only ever covers the peek.
   const [joiningRunId, setJoiningRunId] = useState<string | null>(null);
@@ -1073,40 +1076,59 @@ export default function ScheduleScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="SCHEDULE" />
+      <ScreenHeader
+        title="SCHEDULE"
+        right={
+          <Pressable
+            accessibilityHint="Pick another court"
+            accessibilityLabel={court ? `Court, ${court.shortName || court.name}` : "Pick a court"}
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={() => setShowPicker(true)}
+            style={({ pressed }) => [styles.courtButton, pressed && styles.courtSelectorPressed]}
+            testID="schedule-court-selector"
+          >
+            {court ? (
+              <View
+                style={[
+                  styles.courtPillDot,
+                  { backgroundColor: court.sport === "PICKLEBALL" ? Colors.pickleballMeta : Colors.basketballMeta },
+                ]}
+              />
+            ) : null}
+            <Text numberOfLines={1} style={styles.courtPillText}>
+              {court ? court.shortName || court.name : "Pick a court"}
+            </Text>
+            <Feather color={Colors.textSecondary} name="chevron-down" size={14} />
+          </Pressable>
+        }
+      />
 
-      {/* The court: its own row so a long name never shares space with the
-          title (D63). */}
-      <View style={styles.courtRow}>
-        <Pressable
-          accessibilityHint="Pick another court"
-          accessibilityLabel={court ? `Court, ${court.shortName || court.name}` : "Pick a court"}
-          accessibilityRole="button"
-          hitSlop={8}
-          onPress={() => setShowPicker(true)}
-          style={({ pressed }) => [styles.courtPill, pressed && styles.courtSelectorPressed]}
-          testID="schedule-court-selector"
-        >
-          {court ? (
-            <View
-              style={[
-                styles.courtPillDot,
-                { backgroundColor: court.sport === "PICKLEBALL" ? Colors.pickleballMeta : Colors.basketballMeta },
-              ]}
-            />
-          ) : null}
-          <Text numberOfLines={1} style={styles.courtPillText}>
-            {court ? court.shortName || court.name : "Pick a court"}
-          </Text>
-          <Feather color={Colors.textSecondary} name="chevron-down" size={14} />
-        </Pressable>
+      {/* The days stay pinned while the hours scroll under them. */}
+      <View style={[styles.heatmap, styles.dayHeader]}>
+        <View style={[styles.heatRow, { gap: HEAT_GAP }]}>
+          <View style={styles.heatTimeCol} />
+          {weekDays.map((d, i) => {
+            const isToday = d.toDateString() === todayKey;
+            return (
+              <View key={i} style={[styles.heatDayHeader, { width: cellSize }, isToday && styles.heatDayHeaderToday]}>
+                <Text style={[styles.heatDayName, isToday && styles.heatDayInkToday]}>{DAYS[d.getDay()]}</Text>
+                <Text style={[styles.heatDayDate, isToday && styles.heatDayInkToday]}>{d.getDate()}</Text>
+              </View>
+            );
+          })}
+        </View>
       </View>
 
-      {/* The page scrolls: square hours at a readable size, never squeezed
-          to fit (Oct 29). */}
       <ScrollView
         alwaysBounceVertical={false}
         contentContainerStyle={[styles.scheduleBody, { paddingBottom: tabFloor + Space.xl }]}
+        ref={scheduleScrollRef}
+        onLayout={() => {
+          if (scrolledToNow.current) return;
+          scrolledToNow.current = true;
+          scheduleScrollRef.current?.scrollTo({ y: Math.max(0, (currentSlotIndex - 1) * rowPitch), animated: false });
+        }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         style={styles.scheduleScroll}
@@ -1121,28 +1143,26 @@ export default function ScheduleScreen() {
 
         {/* ── Heatmap: days across, hours down, one square per hour. ── */}
         <View style={styles.heatmap}>
-          {/* Day header row: today is the light pill. */}
-          <View style={[styles.heatRow, { gap: HEAT_GAP, marginBottom: HEAT_GAP + 4 }]}>
-            <View style={styles.heatTimeCol} />
-            {weekDays.map((d, i) => {
-              const isToday = d.toDateString() === todayKey;
-              return (
-                <View key={i} style={[styles.heatDayHeader, { width: cellSize }, isToday && styles.heatDayHeaderToday]}>
-                  <Text style={[styles.heatDayName, isToday && styles.heatDayInkToday]}>{DAYS[d.getDay()]}</Text>
-                  <Text style={[styles.heatDayDate, isToday && styles.heatDayInkToday]}>{d.getDate()}</Text>
-                </View>
-              );
-            })}
-          </View>
-          <View style={{ height: SLOT_HOURS.length * rowPitch }}>
+          <View style={{ height: SLOT_HOURS.length * rowPitch, marginTop: HEAT_GAP }}>
+            {/* Today's column: a soft band behind it, not an outline. */}
+            <View
+              pointerEvents="none"
+              style={[
+                styles.todayColumn,
+                {
+                  left: HEAT_TIME_COL + HEAT_GAP - 3,
+                  width: cellSize + 6,
+                  height: SLOT_HOURS.length * rowPitch + 3,
+                },
+              ]}
+            />
             {SLOT_HOURS.map((h, slotIdx) => (
               <View key={h} style={[styles.heatRow, { gap: HEAT_GAP, height: rowPitch }]}>
                 <View style={[styles.heatTimeCol, { height: cellSize }]}>
                   <Text
                     style={[
                       styles.heatTimeText,
-                      slotIdx === currentSlotIndex && styles.heatAxisActive,
-                      new Date().getHours() > h && styles.heatDimmed,
+                      slotIdx === currentSlotIndex && nowOffset != null && styles.heatAxisActive,
                     ]}
                   >
                     {scheduleTimeLabel(h)}
@@ -1170,12 +1190,14 @@ export default function ScheduleScreen() {
                   slotDate.setHours(SLOT_HOURS[slotIdx] + 1, 0, 0, 0);
                   const isPast = slotDate.getTime() <= Date.now();
                   const heat = heatColors(previewCount);
+                  const isNow = dayIdx === 0 && slotIdx === currentSlotIndex && nowOffset != null;
                   return (
                     <Pressable
                       key={dayIdx}
                       style={[
                         styles.heatCell,
                         { width: cellSize, height: cellSize, backgroundColor: heat.fill },
+                        isNow && styles.heatCellNow,
                         isSelected && scheduleMode === "VIEW" && styles.heatCellSelected,
                         scheduleMode === "EDIT" &&
                           isMinePending &&
@@ -1219,23 +1241,6 @@ export default function ScheduleScreen() {
                 })}
               </View>
             ))}
-            {/* Today's column, outlined. */}
-            <View
-              pointerEvents="none"
-              style={[
-                styles.todayColumn,
-                {
-                  top: HEAT_GAP / 2 - 3,
-                  left: HEAT_TIME_COL + HEAT_GAP - 3,
-                  width: cellSize + 6,
-                  height: SLOT_HOURS.length * rowPitch - HEAT_GAP + 6,
-                },
-              ]}
-            />
-            {/* Now: a dashed line across at this minute. */}
-            {nowOffset != null ? (
-              <View pointerEvents="none" style={[styles.nowLine, { top: nowOffset * rowPitch + HEAT_GAP / 2 - 1 }]} />
-            ) : null}
           </View>
           {/* Legend */}
           <View style={styles.legendRow}>
@@ -1268,6 +1273,7 @@ export default function ScheduleScreen() {
                 else if (value === "clear") clearMyTimes();
                 else setTimesFilter((current) => (current === value ? null : value));
               }}
+              scroll
               style={styles.timesChips}
             />
           ) : null}
@@ -1453,18 +1459,14 @@ const styles = StyleSheet.create({
   scheduleBodyContentEdit: { paddingBottom: 8 },
   pressed: { backgroundColor: Colors.surfaceHigh },
 
-  courtRow: { paddingHorizontal: 20, paddingTop: Space.md, paddingBottom: Space.xs, flexDirection: "row" },
-  courtPill: {
-    maxWidth: "100%",
+  courtButton: {
+    maxWidth: 200,
     height: 44,
-    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: Colors.hairlineChrome,
+    gap: 7,
   },
+  dayHeader: { paddingTop: Space.md, paddingBottom: Space.sm, borderBottomWidth: 1, borderBottomColor: Colors.hairline },
   courtPillDot: { width: 6, height: 6, borderRadius: 3 },
   courtPillText: {
     flexShrink: 1,
@@ -1723,20 +1725,11 @@ const styles = StyleSheet.create({
   },
   todayColumn: {
     position: "absolute",
+    top: -3,
     borderRadius: 11,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: "rgba(242,242,246,0.4)",
+    backgroundColor: "rgba(242,242,246,0.05)",
   },
-  nowLine: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: 0,
-    borderTopWidth: 1.5,
-    borderStyle: "dashed",
-    borderColor: Colors.accent,
-  },
+  heatCellNow: { borderColor: Colors.accent },
   runMarker: {
     position: "absolute",
     right: 4,
@@ -1754,7 +1747,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: Space.md,
   },
-  timesChips: { paddingHorizontal: 0, paddingTop: Space.md, paddingBottom: 0 },
+  timesChips: { marginHorizontal: -20 },
   legendScale: { flexDirection: "row", alignItems: "center", gap: 6 },
   legendGame: { flexDirection: "row", alignItems: "center", gap: 6 },
   legendGameDot: {

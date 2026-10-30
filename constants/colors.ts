@@ -69,11 +69,11 @@ export const Colors = {
   // Planned-visit heat ramp (Schedule grid, Today bars, court Week): solid
   // browns into the accent, from the Oct 29 schedule reference. heat0 is an
   // empty hour; accent is the busiest.
-  heat0: "#1D1D23",
-  heat1: "#2C1E1B",
-  heat2: "#43231A",
-  heat3: "#6A2B1A",
-  heat4: "#A63B1C",
+  heat0: "#18181D",
+  heat1: "#3A221A",
+  heat2: "#5C2918",
+  heat3: "#8C3416",
+  heat4: "#C8420F",
 
   tier: {
     platinum: "#E8E8FF",

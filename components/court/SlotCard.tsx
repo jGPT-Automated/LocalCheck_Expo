@@ -71,11 +71,12 @@ export function SlotCard({
   bare?: boolean;
 }) {
   const total = attendees.length + hidden;
-  const extra = hidden + Math.max(0, attendees.length - AVATARS_MAX);
   const acts = mode !== "view";
   const run = runs[0];
   const on = mine || checkedIn;
-  const people = attendees.length > 0 || extra > 0;
+  // Faces only; people who keep their name private are counted in the line
+  // above, never as a lone "+N" box.
+  const people = attendees.length > 0;
   return (
     <View style={bare ? null : styles.card}>
       <View style={styles.head}>
@@ -97,9 +98,9 @@ export function SlotCard({
                   <PlayerAvatar accent={attendee.isMine} initials={attendee.initials} name={attendee.name} playerId={attendee.id} size={FACE} />
                 </Pressable>
               ))}
-              {extra > 0 ? (
+              {attendees.length > AVATARS_MAX ? (
                 <View style={styles.more}>
-                  <Text style={styles.moreText}>+{extra}</Text>
+                  <Text style={styles.moreText}>+{attendees.length - AVATARS_MAX}</Text>
                 </View>
               ) : null}
             </View>
