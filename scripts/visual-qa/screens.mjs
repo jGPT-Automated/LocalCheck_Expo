@@ -76,7 +76,7 @@ export const SCREENS = [
     { testId: `court-${COURT}`, wait: 1500 },
     { label: "Kasmiersky Park, expand", wait: 1200 },
     { eval: `const e=document.querySelector('[data-testid="court-drawer-scroll"]');if(!e)throw Error('Missing court drawer scroll owner');e.scrollTop=e.scrollHeight;window.__drawerScroll=e.scrollTop` },
-    { eval: `const e=document.querySelector('[data-testid="court-drawer-scroll"]');if(e.scrollHeight>e.clientHeight&&window.__drawerScroll<=0)throw Error('Drawer content cannot scroll');const f=document.querySelector('[data-testid="court-drawer-footer"]');const r=f?.getBoundingClientRect();if(!r||r.top<0||r.bottom>innerHeight+1)throw Error('Drawer footer is not pinned inside the window')` },
+    { eval: `const e=document.querySelector('[data-testid="court-drawer-scroll"]');if(e.scrollHeight>e.clientHeight&&window.__drawerScroll<=0)throw Error('Drawer content cannot scroll');if(document.querySelector('[data-testid="court-drawer-footer"]'))throw Error('Rejected drawer tabs are still rendered')` },
   ] },
   { name: "settings", path: "/settings" },
   { name: "notifications", path: "/notifications" },

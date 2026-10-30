@@ -79,6 +79,7 @@ Database migration and client changes are on branch, not live.
 
 Feed / Schedule / Players / Info are the court's four destinations. Schedule
 contains the planning heat map, selected-slot details and upcoming games in
-one scrolling page. The drawer links to the same four destinations. Home's
+one scrolling page. D67 removes duplicate tabs from the drawer; its Court
+link opens the full page. Home's
 requested active-game dashboard and the new timed open-run lifecycle remain
 in the reference plan; they are not claimed as implemented or live.

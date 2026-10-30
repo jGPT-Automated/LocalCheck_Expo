@@ -1,5 +1,5 @@
 import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
-import { BottomSheetScrollView, BottomSheetFooter, type BottomSheetFooterProps } from "@gorhom/bottom-sheet";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { router } from "expo-router";
@@ -34,7 +34,6 @@ import { useLocalPlus } from "@/hooks/useLocalPlus";
 import { useLocalPlusPurchase } from "@/hooks/useLocalPlusPurchase";
 import { describeTimelineItem } from "@/lib/activityPresentation";
 import { courtHours, formatCourtHours } from "@/lib/courtHours";
-import { COURT_TABS } from "@/lib/courtNavigation";
 import { useSheetBottomPadding } from "./AppBottomSheetModal";
 import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/planModel";
@@ -47,8 +46,8 @@ import { fetchCourtById, fetchCourtWeekSpans } from "@/services/courtService";
  * - Drawer: sport + Your local, the court name, city · distance, On court /
  *   Court hours · wk / Locals, then Check in and Court ↗. Always free.
  * - Expanded: Here now, Up next, Today (planned visits by hour) and Recent
- *   activity in the same scrolling surface; Feed / Schedule / Players
- *   / Info chips into the court page. A court that isn't your local, without
+ *   activity in the same scrolling surface. The Court link opens the full
+ *   court page; its tabs stay there. A court that isn't your local, without
  *   LocalPlus, shows that area blurred under the LocalPlus panel.
  *
  * `onNavigate` dismisses the sheet before any router.push so the pushed
@@ -72,6 +71,7 @@ export function CourtSheetContent({
   const { profile } = useAuth();
   const hasLocalPlus = useLocalPlus();
   const { showToast } = useToast();
+  const bottomPadding = useSheetBottomPadding();
   const [isChecking, setIsChecking] = useState(false);
 
   const cached =
@@ -162,10 +162,9 @@ export function CourtSheetContent({
   return (
     <BottomSheetScrollView
       testID="court-drawer-scroll"
-      enableFooterMarginAdjustment
       bounces={false}
       overScrollMode="never"
-      contentContainerStyle={styles.detailContent}
+      contentContainerStyle={{ paddingBottom: bottomPadding }}
       showsVerticalScrollIndicator={false}
     >
       <View>
@@ -226,37 +225,6 @@ export function CourtSheetContent({
         </View>
       </CourtDrawerGate>
     </BottomSheetScrollView>
-  );
-}
-
-/** The sheet library positions and measures this footer independently of
- * content scrolling; no fixed-height window or manual footer subtraction. */
-export function CourtSheetFooter({ courtId, onNavigate, ...props }: BottomSheetFooterProps & {
-  courtId: string;
-  onNavigate: () => void;
-}) {
-  const { localCourtId } = useApp();
-  const hasLocalPlus = useLocalPlus();
-  const paddingBottom = useSheetBottomPadding();
-  if (courtId !== localCourtId && !hasLocalPlus) return null;
-  return (
-    <BottomSheetFooter {...props}>
-      <View testID="court-drawer-footer" style={[styles.chips, { paddingBottom }]}>
-        {COURT_TABS.map((chip) => (
-          <PressableScale
-            accessibilityRole="button"
-            key={chip.value}
-            onPress={() => {
-              onNavigate();
-              router.push(`/court/${courtId}?tab=${chip.value}`);
-            }}
-            style={styles.chip}
-          >
-            <Text style={styles.chipText}>{chip.label}</Text>
-          </PressableScale>
-        ))}
-      </View>
-    </BottomSheetFooter>
   );
 }
 
@@ -389,7 +357,6 @@ const styles = StyleSheet.create({
   checkSlot: { flex: 1, minWidth: 0 },
   peekFoot: { height: 16 },
 
-  detailContent: { paddingBottom: 16 },
   section: { paddingHorizontal: 20, paddingBottom: 14 },
   emptyText: { fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
 
@@ -407,26 +374,6 @@ const styles = StyleSheet.create({
   recentText: { flex: 1, minWidth: 0, fontFamily: Typography.bodyMedium, fontSize: 12.5, color: Colors.textSecondary },
   recentWho: { fontFamily: Typography.bodySemiBold, color: Colors.text },
   recentAgo: { flexShrink: 0, fontFamily: Typography.bodySemiBold, fontSize: 9, letterSpacing: 0.7, textTransform: "uppercase", color: Colors.muted },
-
-  chips: {
-    flexDirection: "row",
-    gap: 6,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: Colors.hairline,
-    backgroundColor: Colors.sheet,
-  },
-  chip: {
-    flex: 1,
-    minHeight: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "rgba(242,242,246,0.13)",
-  },
-  chipText: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.inkSoft },
 
   gateWrap: { flexGrow: 1 },
   gateShade: { backgroundColor: "rgba(18,18,22,0.55)" },

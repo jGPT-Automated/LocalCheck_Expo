@@ -118,3 +118,9 @@ Paid region identifiers are namespaced inside the existing Expo task and decoded
 before RPC calls. On entitlement downgrade those registrations stop; the
 existing free single-court opt-in remains available. This is JavaScript using
 installed TaskManager APIs, not a native configuration change.
+
+Oct 30 drawer correction (on PR #84, not released): removes duplicate drawer
+navigation and its footer spacing using the existing JavaScript sheet library.
+No native dependency, runtime config, backend deployment or manual release.
+Rendered evidence uses isolated fixtures; it is not a production account or
+an installed iOS build. The Home/queue concept remains unimplemented.

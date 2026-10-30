@@ -288,8 +288,8 @@ Current (D56, Oct 15):
    Check in and Court ↗. Tapping the header or dragging expands it.
 3. Expanded (92%): Here now, Up next, Today (planned visits in 2-hour bars),
    Recent activity. One root BottomSheetScrollView includes the court header,
-   actions and details. Feed / Schedule / Players / Info are in BottomSheetFooter
-   and stay pinned. The opening detent is stable before presentation, with no
+   actions and details. D67 removes the duplicate drawer-tab footer; the tabs
+   remain on the full court page. The opening detent is stable before presentation, with no
    content-layout re-snap; full height is 92%. Content pan and pan-down-to-close
    stay enabled with the shared sheet spring (D62).
 4. Not your local and no LocalPlus: the expanded area is blurred under the
@@ -588,10 +588,19 @@ nothing (Settings changes it). It replaces the "Your local" pill.
 Drawers (D60): the Challenge and Log game drawers are the baseline for every
 form drawer (`RunFlowSheet`, WHERE `CourtSearchPicker`, WHEN `RecentDatePicker`
 + `TimeStrip`, `SegmentedControl`, one accent button). Schedule a game
-(`ScheduleGameSheet`) follows it. The Explore drawer uses one scrollable surface and a pinned footer (D62); its
+(`ScheduleGameSheet`) follows it. The Explore drawer uses one scrollable surface (D62); D67 removes its tab footer. Its
 LocalPlus panel is top-aligned.
 
 PanelUI reference guidance (D63): keep semantic surface/text/action colors and
 familiar platform behavior. This app remains Expo SDK 54; PanelUI's documented
 native rendering needs SDK 56+. No native package or theme migration is part
 of the polish; existing shared components remain authoritative.
+
+### Home reference follow-up (D67; not implemented)
+
+Home shows a compact active-games / waiting-line summary opening a nested view.
+The Playtomic match card is the reference for that detailed view. Keep existing
+charcoal tokens and sport marker; no paddle substitution or new palette. Here
+now and the waiting line use names; Feed belongs on the court page. The active
+game, full line and all game actions must not crowd the Home summary. Generated
+mockups are proposals and have not changed the app's Home screen.

@@ -1,4 +1,4 @@
-import { BottomSheetModal, type BottomSheetFooterProps } from "@gorhom/bottom-sheet";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import React, {
   createContext,
   useCallback,
@@ -12,7 +12,7 @@ import { drawerPeekHeight } from "@/lib/courtDrawerLayout";
 import { Springs } from "@/constants/motion";
 
 import { AppBottomSheetModal } from "./AppBottomSheetModal";
-import { CourtSheetContent, CourtSheetFooter } from "./CourtSheetContent";
+import { CourtSheetContent } from "./CourtSheetContent";
 
 /**
  * The app-wide court drawer, done the standard way: one @gorhom/bottom-sheet
@@ -79,13 +79,6 @@ export function CourtSheetProvider({
     () => [drawerPeekHeight(height), "92%"],
     [height],
   );
-  const renderFooter = useCallback(
-    (props: BottomSheetFooterProps) => args ? (
-      <CourtSheetFooter {...props} courtId={args.courtId} onNavigate={closeCourtSheet} />
-    ) : null,
-    [args, closeCourtSheet],
-  );
-
   return (
     <CourtSheetContext.Provider value={api}>
       {children}
@@ -93,7 +86,6 @@ export function CourtSheetProvider({
         ref={modalRef}
         snapPoints={snapPoints}
         compactHandle
-        footerComponent={renderFooter}
         animationConfigs={Springs.sheet}
         onDismiss={() => setArgs(null)}
       >

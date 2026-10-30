@@ -5,9 +5,9 @@ superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D66, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D67, Jesse's plan doc)
 
-D0–D61 match Jesse's plan doc (Decisions tab); D62–D66 record his Oct 29 chat
+D0–D61 match Jesse's plan doc (Decisions tab); D62–D67 record his Oct 29–30 chat
 approval (external plan doc not updated from this cloud session). Newer
 decisions supersede older entries below wherever they disagree.
 
@@ -81,6 +81,13 @@ decisions supersede older entries below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D67 Drawer and Home scope correction (Oct 30, revises D66; revises D62):**
+  Remove the duplicate court-tab pills from the drawer; keep the court page
+  tabs. Preserve existing drawer expansion, scrolling, palette and sport
+  marker. Home stays at a glance: active games and the line have a compact
+  summary opening their own nested view, using the Playtomic reference card
+  structure with existing charcoal styling. Feed belongs only on the court
+  page. The nested Home/queue design is not implemented.
 - **D66 Court navigation and Home dashboard (Oct 29, revises D55):**
   Court tabs are Feed / Schedule / Players / Info. Schedule combines the
   heat map and upcoming games; Feed replaces the Live label. Home remains
@@ -88,6 +95,8 @@ decisions supersede older entries below wherever they disagree.
   visual, upcoming games and its feed. Basketball is 5v5 (five per team);
   pickleball is 2v2. The game lifecycle described in chat is a specification,
   not an authorization for Supabase work.
+  (Revised by D67: no drawer-tab pills; Feed moves off Home; games/queue
+  detail belongs in a nested view.)
 - **D65 LocalPlus has up to five courts (Oct 29, revises D64):** Jesse
   clarified the list is a LocalPlus feature. Free stays at one court with no
   feature change. Plus can add up to five courts, switch the court viewed on
@@ -128,6 +137,8 @@ decisions supersede older entries below wherever they disagree.
   Blank bands in the supplied captures are overscroll, not permanent spacing.
   No pull-to-refresh is added to realtime surfaces. Cloud preview automation
   is allowed in AGENTS.md; personal browsers must be left alone.
+  (Revised by D67: remove the court drawer footer pills; keep its one
+  scroller, stable detents and shared spring.)
 - **D61 Corner mark, thin slot card, Schedule fits one screen (Oct 18,
   revises D60):** The local mark becomes a quarter-circle in the card's
   top-right corner: a + while it isn't your local, a glowing orange check (the

@@ -21,6 +21,19 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-30 — remove drawer tabs; keep Home at a glance (PR #84)
+
+Removed the drawer's duplicate tab pills and footer reservation. Kept court
+page tabs, the existing drawer content, stable heights and sheet gesture setup.
+SportLabel, CourtArt and the shared palette were not changed. The paddle was
+in generated mockups only. Three-size rendered walkthrough covers opening,
+expansion, scrolling, stable opening position and opening the court page.
+
+Home design direction: compact summary of games currently playing and people
+in line opens a nested view. Use the supplied Playtomic card as the structure
+and existing charcoal colors; no whole queue/roster dashboard on Home. This
+Home direction is a proposal, not implemented app functionality.
+
 ## 2026-10-29 — Home / Explore / court reference follow-up (PR #84)
 
 Jesse limited the new reference to Home, Explore/drawer and Court. Court tabs:
@@ -69,7 +82,7 @@ verification: `docs/plans/2026-10-29-scroll-gesture-fixes.md`.
 | Item | Status |
 |------|--------|
 | Court/Settings/player/match/notifications Back interrupts reading | Implemented: explicit edge-only Back, removed animationMatchesGesture; visible Back retained |
-| Explore drawer rigid inner scrolling window and opening jump | Implemented: one root sheet scroll view, library footer, stable detent, shared spring; no layout re-snaps |
+| Explore drawer rigid inner scrolling window and opening jump | Implemented: one root sheet scroll view, footer removed in D67, stable detent, shared spring; no layout re-snaps |
 | Compete scopes, Friends search, Court Live filters/Players sort scroll away | Implemented: controls outside lists; Friends summary yields space while native keyboard is open |
 | Friends inherits Activity's scroll offset | Implemented and browser regression checked: tab-specific keyed scroller resets offset |
 | Log game scrolls even when normal form fits | Implemented: measured overflow, compact spacing, fixed submit; expanded teams can scroll |

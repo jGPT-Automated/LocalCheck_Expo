@@ -1,7 +1,16 @@
 # Current state
 
+- Oct 30 (**on a branch**, draft PR #84): removed the court drawer tab footer
+  after Jesse rejected it. Drawer content uses the existing sheet scroller,
+  safe-area bottom spacing, opening heights and spring. The full court page
+  retains Feed / Schedule / Players / Info. Open/expand/scroll/court-link and
+  stable opening position checked with isolated data at three phone sizes.
+  No sport glyph or global palette was changed; the generated paddle and
+  queue/Home designs never entered app code. No Supabase access or deployment
+  is authorized. Earlier paid Settings layout remains rejected.
+
 - Oct 29 (**on a branch**, draft PR #84): court navigation now uses Feed /
-  Schedule / Players / Info, shared with the Explore drawer shortcuts.
+  Schedule / Players / Info (the drawer tab footer was later removed, D67).
   Schedule combines the existing planning heat map, selected slot and upcoming
   games in one vertical scroll surface. Old Live/Games/Week links resolve to
   Feed/Schedule. This is the first bounded implementation of D66; the new
@@ -38,7 +47,7 @@
   approved scroll/gesture follow-up to the audit of main `d5d9ebc`.
   Shared pushed-screen navigation explicitly disables full-screen Back and
   removes animationMatchesGesture. Explore's court drawer has one root
-  sheet-aware scroller, a pinned BottomSheetFooter, stable precomputed peek
+  sheet-aware scroller, stable precomputed peek
   detent and Springs.sheet; content measurements no longer re-snap it.
   Friends search, Compete scopes and Court filters/sorts stay outside their
   lists. Me tab changes reset list offsets. While Friends' native keyboard is

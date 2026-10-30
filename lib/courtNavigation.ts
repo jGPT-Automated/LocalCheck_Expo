@@ -1,4 +1,4 @@
-/** One tab order for the court page and every drawer shortcut. */
+/** The court page's four destinations; the drawer does not render tabs. */
 export const COURT_TABS = [
   { value: "feed", label: "Feed" },
   { value: "schedule", label: "Schedule" },

@@ -20,7 +20,8 @@ No new dependencies, native configuration, build, OTA or merge.
 
 ## First implementation slice
 
-- [x] Share Feed / Schedule / Players / Info between Court and the drawer.
+- [x] Court page has Feed / Schedule / Players / Info. D67 subsequently
+  removes the duplicate drawer tabs; the Court link remains.
 - [x] Combine the existing heat map, slot detail and games in one scroller.
 - [x] Inspect all four tabs, drawer navigation and old links at three sizes.
 - [x] Capture the rendered slice for the draft PR; broader visual/accessibility
@@ -30,13 +31,22 @@ No new dependencies, native configuration, build, OTA or merge.
 
 - Jesse's clarification: Home is an at-a-glance visual dashboard, not a copy
   of the full court page. It shows who's here now, the active game/open run,
-  upcoming games and the feed.
-- Compact HOME header; checked-in state shows the active court, elapsed session
-  time and check-out action as in the reference.
-- Horizontal court selector with paging dots and a name dropdown. Court name
-  and location sit left; Live and Locals metrics sit right.
-- Current players, primary check-in action and a visual active-game/open-run
-  roster with player slots, followed by upcoming-game rows and the feed.
+  queue and upcoming games. His latest revision moves Feed exclusively to the
+  court page. Do not retain a Home feed based on the earlier instruction.
+- Compact HOME header and one coherent court identity area. Sport icon sits
+  below the court name, inline with location/distance. Restore a subtle
+  sport-specific background trace, with clear separation before the avatars.
+- Avoid the crowded name-versus-large-counters split. The presence count
+  belongs with Here now. Court switching must still update the whole view.
+- Check-in and Join queue are compact controls near their sections, not
+  full-width bars. Presence and game membership remain separate states.
+- Monochrome avatar boxes with quiet borders/initials; no multicolored tier
+  rims, active bars or glows. Any future tier distinction should be subtle.
+- Current-game court art is simple. Show it only for a real active game;
+  an empty court does not receive a fictional game, roster or countdown.
+- Current players, a compact games/line summary, and upcoming games. Tapping
+  the summary opens a nested view using the selected Playtomic card structure;
+  active rosters, line positions and game actions belong there, not on Home.
 - Joining and roster state must be clear: already joined, spots available or
   full. Use actual game membership, not court presence, to fill game slots.
 - Pickleball: two players per team, four total. Basketball: five per team,
@@ -51,7 +61,7 @@ No new dependencies, native configuration, build, OTA or merge.
 - Compact header with List/Map control and anchored search.
 - Your Courts and Near You sections, using the same compact court identity
   and Live/Locals metric pair as Home and the drawer.
-- Card opens the existing drawer. Drawer contains court identity, activity
+- No tab pills in the drawer (D67). Card opens the existing drawer, with court identity, activity
   bars, horizontal roster, check-in and explicit court-page navigation.
 - Preserve the existing map, discovery, sport filtering and add-court paths.
   Fit secondary controls into this layout rather than silently deleting them.
@@ -61,7 +71,7 @@ No new dependencies, native configuration, build, OTA or merge.
 
 - Jesse specified four tabs, in order: **Feed / Schedule / Players / Info**.
   Replace the prior proposed Today / Week / Players arrangement. The first
-  tab is called Feed, not Live. Home also retains its feed.
+  tab is called Feed, not Live. Jesse's latest revision puts Feed here only.
 - Schedule combines the heat map with upcoming games. The separate Games
   destination is incorporated there; Players and Info remain accessible.
 - Compact back/save/check-in action row, then shared court identity and metrics.
@@ -73,6 +83,17 @@ No new dependencies, native configuration, build, OTA or merge.
 
 ## Game lifecycle described by Jesse — specification, not shipped behavior
 
+- The rolling queue is an explicit opt-in beyond checking in. A full waiting
+  lobby is ready; it must not be marked as playing while another game occupies
+  the court. Never fill game slots from presence alone.
+- Proposed completion path for review: Finish game opens the existing result
+  form with roster/teams known; recording the end of play and advancing the
+  queue are separate from resolving score/ELO review. Elapsed time is a display,
+  not proof that a game has ended. The local game page currently has a creator-
+  led final-score/review flow; no production behavior has been queried.
+- Winner-stays versus full-group rotation, unattended finishes, and ending
+  without a score are not settled. Do not silently bake those rules into the
+  design or pretend the generated mockup implements them.
 - Scheduled games can be created up to seven days ahead and must start more
   than two hours in the future.
 - Hour slots can hold a scheduled game or an open run. Working interpretation:
