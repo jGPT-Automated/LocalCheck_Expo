@@ -81,7 +81,8 @@ const styles = StyleSheet.create({
   },
   name: {
     paddingTop: 8,
-    paddingHorizontal: 18,
+    paddingLeft: 18,
+    paddingRight: 64,
     fontFamily: Typography.headingBold,
     fontSize: 30,
     lineHeight: 32,

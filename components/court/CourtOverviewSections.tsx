@@ -123,9 +123,11 @@ export function UpNextSection({
         >
           <View style={styles.nextWhen}>
             <Text style={styles.nextDay}>{dayShort(next.startTimeIso)}</Text>
-            <Text style={styles.nextTime}>
+            <Text numberOfLines={1} style={styles.nextTime}>
               {clock(next.startTimeIso)}
-              {new Date(next.startTimeIso).getHours() >= 12 ? "P" : "A"}
+              <Text style={styles.nextMeridiem}>
+                {new Date(next.startTimeIso).getHours() >= 12 ? "P" : "A"}
+              </Text>
             </Text>
           </View>
           <View style={styles.nextBody}>
@@ -139,7 +141,7 @@ export function UpNextSection({
           <View style={styles.faces}>
             {next.participants.slice(0, 3).map((player, index) => (
               <View key={player.id} style={[styles.face, index > 0 && styles.faceOverlap]}>
-                <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={24} />
+                <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={30} />
               </View>
             ))}
           </View>
@@ -181,23 +183,24 @@ const styles = StyleSheet.create({
   },
   emptyText: { fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
   nextRow: {
-    height: 60,
-    paddingHorizontal: 12,
+    height: 64,
+    paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 14,
     borderRadius: Radius.row,
     borderWidth: 1,
     borderColor: Colors.hairlineCard,
     backgroundColor: Colors.panel,
   },
-  nextWhen: { width: 52, paddingRight: 10, alignItems: "center", borderRightWidth: 1, borderRightColor: Colors.hairline },
+  nextWhen: { width: 52, alignItems: "center", borderRightWidth: 1, borderRightColor: Colors.hairline, paddingRight: 8 },
   nextDay: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: Colors.textSecondary },
-  nextTime: { fontFamily: Typography.headingSemiBold, fontSize: 17, lineHeight: 19, color: Colors.text },
+  nextTime: { fontFamily: Typography.headingSemiBold, fontSize: 16, lineHeight: 18, color: Colors.text },
+  nextMeridiem: { fontSize: 11, letterSpacing: 0 },
   nextBody: { flex: 1, minWidth: 0 },
-  nextTitle: { fontFamily: Typography.bodyBold, fontSize: 12.5, color: Colors.text },
+  nextTitle: { fontFamily: Typography.bodyBold, fontSize: 13, color: Colors.text },
   nextSub: { marginTop: 2, fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
   faces: { flexDirection: "row", flexShrink: 0 },
-  face: { borderRadius: 9, borderWidth: 2, borderColor: Colors.panel },
-  faceOverlap: { marginLeft: -8 },
+  face: { borderRadius: 11, borderWidth: 2, borderColor: Colors.panel },
+  faceOverlap: { marginLeft: -10 },
 });
