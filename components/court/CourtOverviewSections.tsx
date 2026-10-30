@@ -123,9 +123,11 @@ export function UpNextSection({
         >
           <View style={styles.nextWhen}>
             <Text style={styles.nextDay}>{dayShort(next.startTimeIso)}</Text>
-            <Text style={styles.nextTime}>
+            <Text numberOfLines={1} style={styles.nextTime}>
               {clock(next.startTimeIso)}
-              {new Date(next.startTimeIso).getHours() >= 12 ? "P" : "A"}
+              <Text style={styles.nextMeridiem}>
+                {new Date(next.startTimeIso).getHours() >= 12 ? "P" : "A"}
+              </Text>
             </Text>
           </View>
           <View style={styles.nextBody}>
@@ -191,9 +193,10 @@ const styles = StyleSheet.create({
     borderColor: Colors.hairlineCard,
     backgroundColor: Colors.panel,
   },
-  nextWhen: { width: 44, alignItems: "center", borderRightWidth: 1, borderRightColor: Colors.hairline, paddingRight: 8 },
+  nextWhen: { width: 52, alignItems: "center", borderRightWidth: 1, borderRightColor: Colors.hairline, paddingRight: 8 },
   nextDay: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: Colors.textSecondary },
   nextTime: { fontFamily: Typography.headingSemiBold, fontSize: 16, lineHeight: 18, color: Colors.text },
+  nextMeridiem: { fontSize: 11, letterSpacing: 0 },
   nextBody: { flex: 1, minWidth: 0 },
   nextTitle: { fontFamily: Typography.bodyBold, fontSize: 13, color: Colors.text },
   nextSub: { marginTop: 2, fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
