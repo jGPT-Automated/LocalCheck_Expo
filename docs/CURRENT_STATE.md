@@ -1,5 +1,16 @@
 # Current state
 
+- Oct 30: Schedule reworked after Jesse's review: the day row is pinned
+  above the scrolling hours, the court picker sits in the header, today's
+  column has a soft band (no dashed outline), the current hour is an orange
+  label plus an orange cell edge (no line through the cells), the heat ramp
+  steps are clearly apart, the grid opens on the hour before now, and the
+  times chips are an even 2-column grid (`FilterChips grid`). The hour card
+  lists faces on their own row (private people only counted, never a lone
+  "+N" box) with a full-width I'm going under them. Court Week's empty cells
+  use `main`'s colour again. Compared screen by screen with `main` at 393 and
+  375; the court page's bookmark is the boxed version Jesse objected to and
+  is left untouched at his request.
 - Oct 29: handoff for the next agent with every requirement Jesse gave on
   this branch: `docs/plans/2026-10-29-pr83-handoff.md`. His verdict: the D63
   visuals are not approved.
