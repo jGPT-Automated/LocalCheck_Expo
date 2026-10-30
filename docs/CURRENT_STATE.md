@@ -722,3 +722,9 @@ ad-hoc-team migrations"; all three were applied Sep 3 (live ledger).
 - Small visual follow-ups must improve the shared owner named in
   `docs/product/DESIGN.md`, include browser and iPhone evidence, and avoid
   introducing a parallel component or token.
+- **On a branch** (`codex/fix-home-layout-polish`): Home layout polish pass —
+  Up Next game card rebalanced (avatars 24→30px, time column 52→44px, time
+  font 17→16px, title 12.5→13px, card height 60→64px), MetricStrip labels
+  7.5→9px (all four usages), court name padding increased to 60px symmetric
+  to clear the 56px LocalMark in HomeCourtHero, CourtSheetContent and
+  CourtListItem.

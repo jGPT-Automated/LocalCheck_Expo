@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   metaRow: { height: 28, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   name: {
     marginTop: 4,
-    paddingHorizontal: 20,
+    paddingHorizontal: 60,
     textAlign: "center",
     fontFamily: Typography.headingBold,
     fontSize: 34,

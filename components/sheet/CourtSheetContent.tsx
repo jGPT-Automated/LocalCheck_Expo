@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
   },
   name: {
     paddingTop: 10,
-    paddingHorizontal: 20,
+    paddingHorizontal: 60,
     textAlign: "center",
     fontFamily: Typography.headingBold,
     fontSize: 38,
