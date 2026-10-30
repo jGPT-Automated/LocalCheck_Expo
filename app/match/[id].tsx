@@ -290,6 +290,7 @@ export default function MatchReviewScreen() {
         title="GAME SCORE"
       />
       <ScrollView
+        bounces={false}
         contentContainerStyle={[
           styles.content,
           showActions && { paddingBottom: 180 + bottom },

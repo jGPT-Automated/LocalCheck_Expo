@@ -21,6 +21,63 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-29 — scrolling and gesture audit (ported from PR #84 `codex/native-ui-polish` into `claude/bold-cerf-5cudc7`)
+
+Audit complete; approved fixes implemented **on branch**, not merged or
+released. Baseline `main` at `d5d9ebc`. The accidental Back was confirmed by
+Jesse on his iPhone; post-change native automation is a separate check.
+Inventory: `docs/plans/2026-10-29-scroll-gesture-audit.md`. Approved scope and
+verification: `docs/plans/2026-10-29-scroll-gesture-fixes.md`.
+
+| Item | Status |
+|------|--------|
+| Court/Settings/player/match/notifications Back interrupts reading | Implemented: explicit edge-only Back, removed animationMatchesGesture; visible Back retained |
+| Explore drawer rigid inner scrolling window and opening jump | Implemented: one root sheet scroll view, library footer, stable detent, shared spring; no layout re-snaps |
+| Compete scopes, Friends search, Court Live filters/Players sort scroll away | Implemented: controls outside lists; Friends summary yields space while native keyboard is open |
+| Friends inherits Activity's scroll offset | Implemented and browser regression checked: tab-specific keyed scroller resets offset |
+| Log game scrolls even when normal form fits | Implemented: measured overflow, compact spacing, fixed submit; expanded teams can scroll |
+| Blank bands in supplied screenshots | Corrected: active overscroll, not permanent gaps; spacing investigation withdrawn |
+| Bounce and realtime refresh | Bounce disabled on reading/form surfaces; no manual/pull refresh added |
+| Collapsing identity, planner floor, other sheets, virtualization | Separate audit backlog, outside this approved pass |
+| Native regression recording | Attempted agent-device; Linux reports Apple tools require macOS; no remote Apple target configured |
+
+## 2026-10-29 — design pass: Home, Explore, drawer, Schedule (`claude/bold-cerf-5cudc7`)
+
+UI only; no backend until Jesse has seen it. Checked in a rendered web export,
+not on a phone.
+
+| Item | Status |
+|------|--------|
+| House button gone; Check in beside a square court button the same height, even padding | ✅ |
+| One court header on the Explore card, the drawer's peek and Home (sport left, city right, name left, On court right) | ✅ |
+| Home as a dashboard: Here now, Today (hours + who's going + the hour's game or open run), Up next; no feed | ✅ |
+| Expanded drawer = Home's dashboard | ✅ |
+| Schedule: square hours, reference colours, numbers centred, scrolls, no FAB, chips under the grid, "7 PM" not "Today · 7 PM" | ✅ |
+| Pickleball spots as the court in quarters | ✅ (display; joining a quarter needs open runs) |
+| Court page bookmark top right | ✅ display only (on for your local); adding courts needs the backend |
+| Open runs that fill and balance themselves, saved courts list, court switcher, Settings list | ⏳ after Jesse's sign-off |
+
+## 2026-10-28 — fixed headers, orange check-in bar, glass buttons (`claude/bold-cerf-5cudc7`)
+
+Checked in a rendered web export at three phone sizes, not on a phone. Jesse is
+checking the gestures. Not merged; no OTA yet.
+
+| Item | Status |
+|------|--------|
+| Home: whole court header stays fixed; only the lower sections scroll | ✅ |
+| Compete: tabs and filters stay fixed; only the ranking list scrolls | ✅ |
+| Checked in: every page's header turns orange with its text unchanged; Home also shows the timer and PUBLIC / FRIENDS / PRIVATE on the right | ✅ |
+| Half-circle mark gone; small round glass house button left of Check in (Home, drawer; none on the court page); small round glass court button; city on the top right, no LOCAL tag | ✅ |
+| Home: Here now fixed under the chart | ✅ (my reading of the marked region) |
+| Schedule: floating + gone; the court page's chips under the heat map: Add times, My times, Friends times, Clear times; "Who's going" line gone; passed hours dimmed | ✅ (legend's "Local time · 1-hr slots" dropped; scale and Game kept; Schedule game lost its entry point, tell me where it goes) |
+| Home: busy-times chart under Check in | ✅ |
+| Home hour card said "0 planning to go" while checked in | ✅ |
+| Explore card: text centred, court drawing no longer behind the name | ✅ |
+| Swipe back leaves the page during a vertical scroll (full-screen swipe off) | ✅ (needs device check) |
+| Explore drawer: one scroll root, chips pinned, no re-snap after opening | ❌ not done, needs a device |
+| Saved / favourite courts in the new button slot | backlog (needs a table) |
+| Pickleball colours and card art from the design file | backlog (file needs login) |
+
 ## 2026-10-18 (final round) — corner mark, thin slot card, Schedule (`claude/kind-pascal-4c174r`, PR #77)
 
 Not verified in a render; Jesse is checking it. Not merged; no OTA yet.

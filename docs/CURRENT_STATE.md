@@ -1,5 +1,62 @@
 # Current state
 
+- Oct 30: Schedule reworked after Jesse's review: the day row is pinned
+  above the scrolling hours, the court picker sits in the header, today's
+  column has a soft band (no dashed outline), the current hour is an orange
+  label plus an orange cell edge (no line through the cells), the heat ramp
+  steps are clearly apart, the grid opens on the hour before now, and the
+  times chips are an even 2-column grid (`FilterChips grid`). The hour card
+  lists faces on their own row (private people only counted, never a lone
+  "+N" box) with a full-width I'm going under them. Court Week's empty cells
+  use `main`'s colour again. Compared screen by screen with `main` at 393 and
+  375; the court page's bookmark is the boxed version Jesse objected to and
+  is left untouched at his request.
+- Oct 29: handoff for the next agent with every requirement Jesse gave on
+  this branch: `docs/plans/2026-10-29-pr83-handoff.md`. His verdict: the D63
+  visuals are not approved.
+- Oct 29: the scroll/gesture commit below (`98e88e8`, PR #84) is ported onto
+  `claude/bold-cerf-5cudc7` (PR #83) and recorded as D64. The drawer keeps its
+  one root scroller, pinned chips footer and fixed peek, with the D63 content;
+  the fixed peek is 178pt of header + Check in plus the pinned chips footer
+  (238pt on web, 260pt with a 34pt home-indicator inset).
+  `CourtSummary` sets the court name a size down (29pt) under 390pt wide so
+  ordinary names stay on one line where text can't shrink (the web preview),
+  keeping the fixed peek exact.
+  The hour card (`SlotCard`) follows the Home reference: "6 PM" with its
+  count beside it, faces left and I'm going right (full width when nobody is
+  listed), then the hour's game with Join or an open run with no button
+  (joining needs the open-run backend). The spot grid and the open run's Join
+  into Schedule a game are removed; empty future hour bars show as stubs.
+  Court Live's filter chips are the shared `FilterChips`, pinned above the
+  list. Home keeps the D63 pinned header with a non-bouncing scroll below.
+- Oct 29 (**on a branch**, `codex/onboard-main`, not merged/released):
+  approved scroll/gesture follow-up to the audit of main `d5d9ebc`.
+  Shared pushed-screen navigation explicitly disables full-screen Back and
+  removes animationMatchesGesture. Explore's court drawer has one root
+  sheet-aware scroller, a pinned BottomSheetFooter, stable precomputed peek
+  detent and Springs.sheet; content measurements no longer re-snap it.
+  Friends search, Compete scopes and Court filters/sorts stay outside their
+  lists. Me tab changes reset list offsets. While Friends' native keyboard is
+  open, the profile summary yields space to keep the anchored search reachable
+  on short phones; it returns when the keyboard closes. Log game measures overflow,
+  uses compact spacing on short phones and disables scrolling when it fits;
+  expanded teams/keyboard can still enable scrolling. Reading/form surfaces
+  disable bounce. No manual refresh added; existing realtime behavior stays.
+  Jesse corrected the screenshot interpretation: blank bands were exposed
+  while actively overscrolling, not permanent spacing. His iPhone confirms
+  the original accidental Back bug. This cloud Linux host's agent-device
+  attempt reports Apple tools require macOS; no post-change iOS run claimed.
+  `pnpm check` passes (263 tests); full visual sweep has zero hard layout
+  failures. Its two new compact-form accessibility entries were resolved in
+  the final form rerun (0 above baseline). The same 23 accessibility entries
+  already over baseline on main remain; no limits were raised.
+  Detailed plan/evidence: `docs/plans/2026-10-29-scroll-gesture-fixes.md`.
+
+- Oct 29 (**on a branch**, `codex/onboard-main`): clarified the browser rule
+  in `AGENTS.md` at Jesse's request. Local previews use the built-in app
+  Browser and leave personal browsers alone; cloud sessions may use a cloud
+  browser or headless Playwright for previews and screenshots.
+
 Last reconciled: 2026-10-14 against `origin/main` at `541632c` (#65), PR #67
 (`codex/auto-check-in`), LocalCheckProd (read-only queries), the GitHub API and
 the EAS build list.
@@ -94,6 +151,78 @@ Each claim says which of these it is, because they are often confused:
     court route entry) and the court page section of `docs/product/DESIGN.md`.
   - Not in this pass: Players sorts (Active / Newest / All), the Live
     scoreboard rows, Phosphor icons, the drawer.
+- Oct 29 (D63; **on a branch**, `claude/bold-cerf-5cudc7`, not merged, not on a
+  device; checked in a rendered web export with the visual QA run). Frontend
+  only, no backend or data changes.
+  - `components/court/CourtParts.tsx`: `LocalButton` and the glass icon button
+    are deleted. New `CourtSummary` (the shared court header), `CourtActions`
+    (Check in + square `CourtLinkButton`) and `courtPlaceLabel`. `FilterChips`
+    are 36pt tall with 11pt text.
+  - `components/court/SlotCard.tsx` rewritten: hour title, people as 44pt
+    tiles with a + tile, then the hour's game or an open run with its spots
+    (basketball rows, pickleball quarters). `HourSlotCard` titles today's
+    hours without "Today ·". New `components/court/TodayPanel.tsx` (bars +
+    the tapped hour) and `components/court/heat.ts` / `lib/heatModel.ts` (one
+    heat ramp; `Colors.heat0`–`heat4` are solid).
+  - `components/HomeScreen.tsx`: `CourtSummary` + `CourtActions` pinned; Here
+    now, `TodayPanel`, Up next scroll. Recent activity and the result modal
+    are off Home. An open run's Join opens `ScheduleGameSheet`.
+    `components/ui/HomeCourtHero.tsx` is deleted.
+  - `components/sheet/CourtSheetContent.tsx`: peek = `CourtSummary` +
+    `CourtActions` (no court drawing); expanded = Here now, `TodayPanel`, Up
+    next, then the chips. Recent activity is gone from the drawer.
+  - `components/CourtListItem.tsx`: thin card, `CourtSummary` on the sport
+    tint.
+  - `app/(tabs)/schedule.tsx`: court picker pill on its own row under the header (the week
+    label is gone); square hours sized by the width, numbers centred, heat
+    ramp, today's column outlined, dashed NOW line, white game dot; the page
+    scrolls.
+  - `app/court/[id].tsx`: a bookmark in the top row, on for your local court
+    (display only).
+- Oct 28 (D62; **on a branch**, `claude/bold-cerf-5cudc7`, not merged, not on a
+  device; checked in a rendered web export at 375 / 393 / 430 wide with the
+  visual QA run, gestures not checked). Frontend only.
+  - `app/_layout.tsx`: `fullScreenGestureEnabled` and `animationMatchesGesture`
+    removed from `detailScreenOptions`, so back is the iOS edge swipe only.
+    The Explore drawer rework from the same research (one scroll root, chips in
+    `footerComponent`, one settle of the collapsed snap) is **not** done.
+  - `components/HomeScreen.tsx`: the court block (`HomeCourtTop`,
+    `HomeCourtHero`, `HomeCourtActions`) and today's chart
+    (`CourtBusyChart variant="header"`) are a fixed `View`; only the rest
+    scrolls. Under 720pt tall the chart is the first item of the scroll area.
+  - `app/(tabs)/compete.tsx`: the sport / scope filters and scope label are
+    outside the ranking `ScrollView`.
+  - `components/ScreenHeader.tsx`: checked in = orange bar and
+    `LogoMark tone="dark"` on every screen (a screen's right action sits on a
+    dark chip); `checkInBar` (Home only) adds `CheckInClock`. `context/AppContext.tsx` exposes `checkedInAt`
+    (from `fetchActiveCheckInState`, `services/checkInService.ts`); visibility is
+    the existing profile setting. Manual check-ins end after 45 minutes
+    (D53), so the timer never passes 45:00 for them; auto check-ins run to 1.5 h.
+  - `components/court/CourtParts.tsx`: `LocalMark` is deleted; `LocalButton`,
+    a round glass `CourtLinkButton` and `SportPlaceRow` (sport left, city ·
+    distance right) replace it (`Colors.glass`). The court page has no local
+    control. `components/CourtListItem.tsx` centres the name and uses a sport
+    tint instead of `CourtArt`. Home fixes Here now under the chart too.
+  - `app/(tabs)/schedule.tsx`: `SpeedDialFab` is deleted. Under the heat map, the
+    shared `FilterChips` (extracted from the court page's All / Games /
+    Check-ins chips, `components/court/CourtParts.tsx`): Add times, My times,
+    Friends times (filters on the map) and Clear times (removes my planned
+    times after an `Alert` confirm; `Alert` does nothing on web, so it is not
+    exercised in the web export). The "Who's going" line is gone (the edit-mode
+    instruction stays); passed hours are dimmed. The Schedule game action that
+    lived in the FAB has no entry point on this page now.
+  - `components/court/HourSlotCard.tsx`, `SlotCard.tsx` and the Schedule page's
+    card (`app/(tabs)/schedule.tsx`): the current hour counts the people on
+    court ("5 on court · 7 planning to go") and shows the checked-in player as
+    Here. The court page's Week is unchanged (its rows are two hours and view
+    only). Models and tests: `lib/slotModel.ts`, `lib/checkInStatus.ts`.
+  - Visual QA (`scripts/visual-qa`): `setCheckedIn` fixture and rows for the
+    checked-in screens. The baseline file is unchanged; `home-feed` and
+    `court-week` were already above it on `main` (hour bars 17-20pt wide).
+  - Not done, noticed: the Home hour bars are still 17-20pt wide (the QA run
+    counts them; the fixed chart now shows them on more screens); the Schedule
+    page's + button covers part of Create on the current-hour card (also on
+    `main`); Here now shows only people checked in at that moment.
 - Oct 18 follow-up 3 (D61; **on a branch**, PR #77, not merged, not on a device;
   not checked in a render, Jesse is verifying). Frontend only.
   - `LocalMark` (`components/court/CourtParts.tsx`): corner quarter-circle with
@@ -218,8 +347,8 @@ Each claim says which of these it is, because they are often confused:
   - Explore card (`components/CourtListItem.tsx`): court art, sport, Your
     local pill, Oswald name, city · distance, On court / Court hours · wk /
     Locals. List orders live courts first (most on court), then nearest.
-    Court hours for the list come from one read-only batched query
-    (`fetchCourtsWeekSpans`, `hooks/useCourtHours.ts`).
+    (Oct 29, D63: the card is thin, `CourtSummary` only; it no longer shows
+    court hours, and `hooks/useCourtHours.ts` is deleted.)
   - Game page (`app/run/[id].tsx`): sport · format, Oswald title, when,
     where, Going / Avg ELO / Format strip, spots bar, Who's going (Host tag,
     W–L, ELO), details card (Teams, Level, Where, Host), white Join game;

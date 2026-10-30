@@ -1,36 +1,30 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
-import { CourtBusyChart } from "@/components/court/CourtBusyChart";
-import { HourSlotCard } from "@/components/court/HourSlotCard";
 import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewSections";
-import { SectionHead } from "@/components/court/CourtParts";
-import { ActivityRow } from "@/components/ui/ActivityRow";
-import { GameResultModal } from "@/components/ui/GameResultModal";
-import { HomeCourtActions, HomeCourtHero, HomeCourtTop } from "@/components/ui/HomeCourtHero";
+import { CourtActions, CourtSummary, courtPlaceLabel } from "@/components/court/CourtParts";
+import { TodayPanel } from "@/components/court/TodayPanel";
 import { ScreenViewport } from "@/components/ui/ScreenViewport";
 import { useBottomFloor } from "@/components/ui/TabFloor";
 import { useToast } from "@/components/ui/Toast";
 import { Colors, Radius } from "@/constants/colors";
-import type { FeedItem, FeedMatchSummary } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
-import { groupCheckinBursts, pairVisits } from "@/lib/activityPresentation";
-import { courtHours, formatCourtHours } from "@/lib/courtHours";
-import { fetchCourtWeekSpans } from "@/services/courtService";
 
 /**
- * Home: one page, no tabs. Only the court name and its numbers stay pinned;
- * Check in, Here now, Up next, Today and the court feed scroll under them.
+ * Home: a dashboard, not a feed (Oct 29). The court header (the same one the
+ * Explore card and drawer use) and Check in stay pinned; Here now, Today
+ * (the hours, who's going, the hour's game or open run) and Up next scroll
+ * under them. The court's feed lives on the court page.
  */
 export function HomeScreen() {
   const {
@@ -41,58 +35,21 @@ export function HomeScreen() {
     hideAutoCheckIn,
     checkIn,
     checkOut,
-    feed,
     isFriend,
     runs,
     refreshCheckedIn,
-    refreshFeed,
   } = useApp();
-  const { roster, localCount } = usePresence(localCourtId);
+  const { roster } = usePresence(localCourtId);
   const liveCounts = useCourtCounts(localCourt ? [localCourt] : []);
   const { user } = useAuth();
   const tabFloor = useBottomFloor();
   const [isChecking, setIsChecking] = useState(false);
-  const [picked, setPicked] = useState<{ dayOffset: number; hour: number } | null>(null);
-  const [hoursLabel, setHoursLabel] = useState("0h");
   const { showToast } = useToast();
-  const [selectedResult, setSelectedResult] = useState<{
-    match: FeedMatchSummary;
-    sport: FeedItem["sport"];
-    courtName?: string;
-  } | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       void refreshCheckedIn();
-      void refreshFeed();
-    }, [refreshCheckedIn, refreshFeed]),
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!localCourtId) return;
-      let active = true;
-      void fetchCourtWeekSpans(localCourtId).then((spans) => {
-        if (active) setHoursLabel(formatCourtHours(courtHours(spans).hours));
-      });
-      return () => {
-        active = false;
-      };
-    }, [localCourtId]),
-  );
-
-  useEffect(() => {
-    setSelectedResult(null);
-    setPicked(null);
-  }, [localCourtId]);
-
-  // Kept above the no-court early return so the hook count never changes
-  // between renders — the "Rendered fewer hooks than expected" crash a brand-new
-  // account hit the first time it set a local court. `courtFeed` is null-safe.
-  const courtFeed = feed.filter((item) => item.courtId === localCourt?.id);
-  const groupedCourtFeed = useMemo(
-    () => groupCheckinBursts(pairVisits(courtFeed, { splitToday: true })),
-    [courtFeed],
+    }, [refreshCheckedIn]),
   );
 
   if (!localCourt) {
@@ -104,7 +61,6 @@ export function HomeScreen() {
   const isCheckedIn = checkedInCourtId === localCourt.id || waitingToPost;
   const statsActive = liveCounts[localCourt.id]?.activeCount ?? 0;
   const activeTotal = Math.max(roster.length, statsActive);
-  const activeLabel = `${activeTotal > roster.length ? "~" : ""}${activeTotal}`;
   const now = Date.now();
   const upcoming = runs
     .filter((run) => run.courtId === localCourt.id && Date.parse(run.startTimeIso) >= now - 60 * 60_000)
@@ -134,105 +90,53 @@ export function HomeScreen() {
     }
   };
 
-  const openActivity = (item: FeedItem) => {
-    if (item.type === "game_result" && item.match) {
-      setSelectedResult({
-        match: item.match,
-        sport: item.sport,
-        courtName: item.courtName,
-      });
-      return;
-    }
-    if (item.runId) {
-      router.push(`/run/${item.runId}`);
-      return;
-    }
-    if (item.playerId) router.push(`/player/${item.playerId}`);
-  };
+  const name = localCourt.shortName || localCourt.name;
 
   return (
     <ScreenViewport>
-      <ScreenHeader title="LOCALCHECK" />
+      <ScreenHeader checkInBar title="LOCALCHECK" />
 
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: tabFloor + Space.lg }}
-        showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[1]}
-        style={styles.scroll}
-      >
-        <HomeCourtTop court={localCourt} />
-        {/* Pinned: just the court name and its numbers. */}
-        <HomeCourtHero
-          activeCount={activeLabel}
-          court={localCourt}
-          hoursLabel={hoursLabel}
-          live={activeTotal > 0}
-          localCount={localCount}
+      {/* Pinned: the court and Check in. */}
+      <View>
+        <CourtSummary
+          approximate={activeTotal > roster.length}
+          name={name}
+          onCourt={activeTotal}
+          place={courtPlaceLabel(localCourt)}
+          sport={localCourt.sport}
+          style={styles.summary}
         />
-        <HomeCourtActions
-          courtName={localCourt.shortName || localCourt.name}
-          isCheckedIn={isCheckedIn}
-          isChecking={isChecking}
+        <CourtActions
+          busy={isChecking}
+          checkedIn={isCheckedIn}
+          courtName={name}
           onCheckIn={() => void handleCheckIn()}
           onViewCourt={() => router.push(`/court/${localCourt.id}`)}
         />
         <AutoCheckInNote courtId={localCourt.id} />
-        <View style={styles.hereNow}>
-          <HereNowSection
-            isFriend={isFriend}
-            onMore={() => router.push(`/court/${localCourt.id}?tab=players`)}
-            onPlayer={(id) => router.push(`/player/${id}`)}
-            roster={roster}
-          />
-        </View>
-        <View style={styles.upNext}>
-          <UpNextSection
-            onOpenRun={(id) => router.push(`/run/${id}`)}
-            upcoming={upcoming}
-          />
-        </View>
-        <View style={styles.today}>
-          <CourtBusyChart
-            courtId={localCourt.id}
-            games={upcoming}
-            onSelect={setPicked}
-            maxBack={0}
-            refreshKey={roster.length}
-            selected={picked}
-            variant="inline"
-          />
-        </View>
-        {picked ? (
-          <View style={styles.today}>
-            <HourSlotCard court={localCourt} dayOffset={picked.dayOffset} hour={picked.hour} />
-          </View>
-        ) : null}
-        <View style={styles.today}>
-          <SectionHead title="Recent activity" />
-        </View>
-        {groupedCourtFeed.length > 0 ? (
-          groupedCourtFeed.map((item, index) => (
-            <ActivityRow
-              item={item}
-              key={item.id}
-              previous={groupedCourtFeed[index - 1]}
-              showActor
-              onActorPress={item.playerId ? () => router.push(`/player/${item.playerId}`) : undefined}
-              onPress={item.type === "game_result" && !item.match ? undefined : () => openActivity(item)}
-            />
-          ))
-        ) : (
-          <Text style={styles.emptyText}>No activity yet. Check in to start the court story.</Text>
-        )}
-      </ScrollView>
+      </View>
 
-      <GameResultModal
-        courtName={selectedResult?.courtName}
-        match={selectedResult?.match ?? null}
-        onClose={() => setSelectedResult(null)}
-        sport={selectedResult?.sport}
-        visible={Boolean(selectedResult)}
-      />
+      <ScrollView
+        bounces={false}
+        contentContainerStyle={{ paddingTop: Space.sm, paddingBottom: tabFloor + Space.xl }}
+        showsVerticalScrollIndicator={false}
+        style={styles.scroll}
+      >
+        <HereNowSection
+          isFriend={isFriend}
+          onMore={() => router.push(`/court/${localCourt.id}?tab=players`)}
+          onPlayer={(id) => router.push(`/player/${id}`)}
+          roster={roster}
+        />
+        <TodayPanel
+          court={localCourt}
+          games={upcoming}
+          refreshKey={roster.length}
+        />
+        <View style={styles.upNext}>
+          <UpNextSection onOpenRun={(id) => router.push(`/run/${id}`)} upcoming={upcoming} />
+        </View>
+      </ScrollView>
     </ScreenViewport>
   );
 }
@@ -266,16 +170,9 @@ function NoCourtState({ isSignedIn }: { isSignedIn: boolean }) {
 
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, minHeight: 0 },
-  hereNow: { paddingTop: Space.lg, borderBottomWidth: 1, borderBottomColor: Colors.hairline },
-  upNext: { paddingTop: Space.lg },
-  today: { paddingHorizontal: Layout.screenGutter, paddingBottom: Space.lg },
-  emptyText: {
-    paddingHorizontal: Layout.screenGutter,
-    fontFamily: Typography.bodyMedium,
-    fontSize: 12,
-    color: Colors.textSecondary,
-  },
+  scroll: { flex: 1, minHeight: 0, borderTopWidth: 1, borderTopColor: Colors.hairline },
+  summary: { paddingHorizontal: Layout.screenGutter, paddingTop: Space.lg },
+  upNext: { paddingTop: Space.xl },
   noCourt: {
     flex: 1,
     paddingHorizontal: Layout.screenGutter,

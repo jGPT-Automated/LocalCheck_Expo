@@ -335,6 +335,20 @@ export function LogGameView({
   // The parent passes 0 for the sheet case; on the tab it needs the real
   // inset so pinned actions clear the floating tab bar.
   const bottom = inSheet ? bottomProp : Math.max(bottomProp, insets.bottom);
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardWillShow", () => setKeyboardVisible(true));
+    const shown = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardVisible(false));
+    return () => { show.remove(); shown.remove(); hide.remove(); };
+  }, []);
+  // Fit the ordinary form to its actual body, not a guessed device height.
+  // Extra players, search results and the keyboard retain scrolling recovery.
+  const compact = viewportHeight > 0 && viewportHeight < 430;
+  const needsScroll = keyboardVisible || contentHeight > viewportHeight + 1;
+
 
   // Default court: preferredCourtId > localCourtId > empty
   const supportedCourts = useMemo(
@@ -990,16 +1004,22 @@ export function LogGameView({
     <View style={styles.formShell}>
     <KeyboardAwareScrollViewCompat
       bottomOffset={112}
+      testID="log-game-scroll"
+      bounces={false}
+      alwaysBounceVertical={false}
+      scrollEnabled={needsScroll}
+      onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
+      onContentSizeChange={(_width, height) => setContentHeight(height)}
       style={styles.formShell}
       onTouchStart={scannerOpen ? killScanner : undefined}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{
         paddingHorizontal: 16,
-        paddingTop: 14,
-        gap: 12,
+        paddingTop: compact ? 4 : 14,
+        gap: compact ? 4 : 12,
         // The submit button clears the tab bar (TabFloor), or the home
         // indicator in a sheet.
-        paddingBottom: 16,
+        paddingBottom: compact ? 4 : 16,
       }}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
@@ -1007,11 +1027,11 @@ export function LogGameView({
 
       {/* Sport drives which courts the picker suggests, so it leads the row. */}
       <View style={styles.fieldRow}>
-        <View style={styles.fieldGroup}>
+        <View style={[styles.fieldGroup, compact && styles.fieldGroupCompact]}>
           <Text style={styles.fieldLabel}>SPORT</Text>
           <SportToggle sport={form.sport} onToggle={toggleSport} />
         </View>
-        <View style={[styles.fieldGroup, styles.courtField]}>
+        <View style={[styles.fieldGroup, compact && styles.fieldGroupCompact, styles.courtField]}>
           <Text style={styles.fieldLabel}>COURT</Text>
           <CourtPickerField
             courts={supportedCourts}
@@ -1025,7 +1045,7 @@ export function LogGameView({
       </View>
 
       {/* The tab (or sheet) already says Log game: court first, then the day. */}
-      <View style={styles.fieldGroup}>
+      <View style={[styles.fieldGroup, compact && styles.fieldGroupCompact]}>
         <View style={styles.dateHead}>
           <Text style={styles.fieldLabel}>Played</Text>
           <Text style={styles.formDate}>{formatCardDate(form.playedOn)}</Text>
@@ -1042,10 +1062,12 @@ export function LogGameView({
 
       {/* Two columns so the matchup stays tight as players are added: YOU on
           the left, OPPONENT on the right. The picker opens full-width below. */}
-      <View style={styles.fieldGroup}>
-        <Text style={styles.fieldLabel}>
-          {form.teamSize === 1 ? "MATCHUP" : `${form.teamSize}V${form.teamSize}`}
-        </Text>
+      <View style={[styles.fieldGroup, compact && styles.fieldGroupCompact]}>
+        {!compact || form.teamSize > 1 ? (
+          <Text style={styles.fieldLabel}>
+            {form.teamSize === 1 ? "MATCHUP" : `${form.teamSize}V${form.teamSize}`}
+          </Text>
+        ) : null}
         <View style={styles.matchColumns}>
           <View style={styles.matchColumn}>
             <Text style={styles.matchColHeading}>
@@ -1085,7 +1107,7 @@ export function LogGameView({
 
         {renderPlayerPicker()}
 
-        <View style={styles.rosterActions}>
+        <View style={[styles.rosterActions, compact && styles.rosterActionsCompact]}>
           {form.teamSize < 5 ? (
             <Pressable
               accessibilityLabel="Add a player to each side"
@@ -1119,7 +1141,7 @@ export function LogGameView({
       </View>
 
       {/* Score */}
-      <View style={styles.scoreGroup}>
+      <View style={[styles.scoreGroup, compact && styles.scoreGroupCompact]}>
         <Text style={styles.fieldLabel}>FINAL SCORE</Text>
         <View style={styles.scoreRow}>
           <View style={styles.scoreBlock}>
@@ -1223,6 +1245,9 @@ const styles = StyleSheet.create({
 
   // ── Log Game ──
   fieldGroup: { gap: 8 },
+  fieldGroupCompact: { gap: 2 },
+  rosterActionsCompact: { marginTop: 0 },
+  scoreGroupCompact: { gap: 4 },
   // Same title and date line as the game card.
   dateHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
   formDate: {
@@ -1504,7 +1529,7 @@ const styles = StyleSheet.create({
   scoreBlock: { flex: 1, alignItems: "center", gap: 6 },
   scorePlayerLabel: {
     fontFamily: Typography.bodyMedium,
-    fontSize: 9,
+    fontSize: 11,
     color: Colors.muted,
     letterSpacing: 1.5,
     textTransform: "uppercase" as const,
@@ -1526,7 +1551,7 @@ const styles = StyleSheet.create({
   scoreDash: {
     fontFamily: Typography.heading,
     fontSize: 28,
-    color: Colors.mutedDark,
+    color: Colors.textSecondary,
   },
   resultHint: {
     fontFamily: Typography.bodyBold,

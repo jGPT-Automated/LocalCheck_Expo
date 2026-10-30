@@ -51,11 +51,11 @@ function FrameRects({ color = Colors.white }: { color?: string }) {
   );
 }
 
-function CornerFrame() {
+function CornerFrame({ frame = Colors.white, check = Colors.brandMark }: { frame?: string; check?: string }) {
   return (
     <>
-      <FrameRects />
-      <Polygon fill={Colors.brandMark} points={MARK_CHECK_POINTS} />
+      <FrameRects color={frame} />
+      <Polygon fill={check} points={MARK_CHECK_POINTS} />
     </>
   );
 }
@@ -219,11 +219,16 @@ function WordmarkPaths() {
 export function LogoMark({
   size = 64,
   variant = "mark",
+  tone = "light",
 }: {
   size?: number;
   /** "plus" is the LocalPlus mark: the same corner frame around an orange plus. */
   variant?: "mark" | "back" | "plus";
+  /** "dark" is the inverted mark for the orange checked-in header. */
+  tone?: "light" | "dark";
 }) {
+  const frame = tone === "dark" ? Colors.background : Colors.white;
+  const accent = tone === "dark" ? Colors.background : Colors.brandMark;
   return (
     <View
       accessibilityElementsHidden={variant !== "mark"}
@@ -239,17 +244,17 @@ export function LogoMark({
       >
         {variant === "plus" ? (
           <>
-            <FrameCorners />
-            <Rect fill={Colors.brandMark} height="24" width="132" x="59" y="108" />
-            <Rect fill={Colors.brandMark} height="124" width="24" x="113" y="58" />
+            <FrameCorners color={frame} />
+            <Rect fill={accent} height="24" width="132" x="59" y="108" />
+            <Rect fill={accent} height="124" width="24" x="113" y="58" />
           </>
         ) : variant === "back" ? (
           <>
-            <FrameCorners />
-            <Polygon fill={Colors.brandMark} points="123,59 62,122 125,184 138,170 91,122 138,73" />
+            <FrameCorners color={frame} />
+            <Polygon fill={accent} points="123,59 62,122 125,184 138,170 91,122 138,73" />
           </>
         ) : (
-          <CornerFrame />
+          <CornerFrame check={accent} frame={frame} />
         )}
       </Svg>
     </View>
@@ -257,17 +262,17 @@ export function LogoMark({
 }
 
 /** Corner brackets shared by the back and plus marks (250 x 240 box). */
-function FrameCorners() {
+function FrameCorners({ color = Colors.white }: { color?: string }) {
   return (
     <>
-      <Rect fill={Colors.white} height="18" width="76" x="0" y="0" />
-      <Rect fill={Colors.white} height="76" width="18" x="0" y="0" />
-      <Rect fill={Colors.white} height="18" width="76" x="174" y="0" />
-      <Rect fill={Colors.white} height="76" width="18" x="232" y="0" />
-      <Rect fill={Colors.white} height="18" width="76" x="0" y="222" />
-      <Rect fill={Colors.white} height="76" width="18" x="0" y="164" />
-      <Rect fill={Colors.white} height="18" width="76" x="174" y="222" />
-      <Rect fill={Colors.white} height="76" width="18" x="232" y="164" />
+      <Rect fill={color} height="18" width="76" x="0" y="0" />
+      <Rect fill={color} height="76" width="18" x="0" y="0" />
+      <Rect fill={color} height="18" width="76" x="174" y="0" />
+      <Rect fill={color} height="76" width="18" x="232" y="0" />
+      <Rect fill={color} height="18" width="76" x="0" y="222" />
+      <Rect fill={color} height="76" width="18" x="0" y="164" />
+      <Rect fill={color} height="18" width="76" x="174" y="222" />
+      <Rect fill={color} height="76" width="18" x="232" y="164" />
     </>
   );
 }

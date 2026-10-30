@@ -74,11 +74,6 @@
     "lowContrast": 0,
     "smallTarget": 58
   },
-  "375x667/schedule-actions": {
-    "smallText": 5,
-    "lowContrast": 0,
-    "smallTarget": 0
-  },
   "375x667/schedule-court-picker": {
     "smallText": 1,
     "lowContrast": 0,
@@ -274,11 +269,6 @@
     "lowContrast": 0,
     "smallTarget": 59
   },
-  "393x852/schedule-actions": {
-    "smallText": 5,
-    "lowContrast": 0,
-    "smallTarget": 0
-  },
   "393x852/schedule-court-picker": {
     "smallText": 1,
     "lowContrast": 0,
@@ -473,11 +463,6 @@
     "smallText": 33,
     "lowContrast": 0,
     "smallTarget": 59
-  },
-  "430x932/schedule-actions": {
-    "smallText": 5,
-    "lowContrast": 0,
-    "smallTarget": 0
   },
   "430x932/schedule-court-picker": {
     "smallText": 1,

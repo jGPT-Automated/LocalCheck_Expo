@@ -1,17 +1,19 @@
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { BottomSheetModal, type BottomSheetFooterProps } from "@gorhom/bottom-sheet";
 import React, {
   createContext,
   useCallback,
   useContext,
   useMemo,
-  useEffect,
   useRef,
   useState,
 } from "react";
-import { DRAWER_HANDLE_HEIGHT } from "@/lib/courtDrawerLayout";
+import { useWindowDimensions } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { drawerPeekHeight } from "@/lib/courtDrawerLayout";
+import { Springs } from "@/constants/motion";
 
 import { AppBottomSheetModal } from "./AppBottomSheetModal";
-import { CourtSheetContent } from "./CourtSheetContent";
+import { CourtSheetContent, CourtSheetFooter } from "./CourtSheetContent";
 
 /**
  * The app-wide court drawer, done the standard way: one @gorhom/bottom-sheet
@@ -23,7 +25,7 @@ import { CourtSheetContent } from "./CourtSheetContent";
  * @gorhom/bottom-sheet runs on reanimated + gesture-handler (both already in
  * the shipped binary → OTA-safe) and gives the DESIGN.md sheet contract on
  * every platform: draggable both directions, interruptible mid-gesture,
- * velocity handoff, snap points at peek (40%) / full (92%), swipe-down or
+ * velocity handoff, snap points at a stable peek / full (92%), swipe-down or
  * backdrop-tap to dismiss.
  */
 
@@ -50,7 +52,8 @@ export function CourtSheetProvider({
 }) {
   const modalRef = useRef<BottomSheetModal>(null);
   const [args, setArgs] = useState<OpenArgs | null>(null);
-  const [peekHeight, setPeekHeight] = useState(320);
+  const { height } = useWindowDimensions();
+  const { bottom } = useSafeAreaInsets();
 
   const openCourtSheet = useCallback((next: OpenArgs) => {
     setArgs(next);
@@ -72,23 +75,18 @@ export function CourtSheetProvider({
     [openCourtSheet, closeCourtSheet],
   );
 
-  // The collapsed drawer ends at the disclosure rail rather than exposing the
-  // beginning of the expanded content. CourtSheetContent reports its actual
-  // compact height so long names and platform font metrics remain supported.
+  // Stable before presentation: asynchronous data and content layout never
+  // move the opening detent. Window changes alone can update the size budget.
   const snapPoints = useMemo<Array<string | number>>(
-    () => [peekHeight, "92%"],
-    [peekHeight],
+    () => [drawerPeekHeight(height, bottom), "92%"],
+    [height, bottom],
   );
-  // The drawer opens before its compact block is measured; once the real
-  // height arrives, settle a collapsed drawer onto it so it ends exactly at
-  // the Check in row instead of showing half of the next row.
-  const sheetIndex = useRef(-1);
-  const resnapPending = useRef(false);
-  useEffect(() => {
-    // Next frame: the sheet picks up the new snap points first.
-    if (sheetIndex.current === 0) requestAnimationFrame(() => modalRef.current?.snapToIndex(0));
-    else resnapPending.current = true;
-  }, [peekHeight]);
+  const renderFooter = useCallback(
+    (props: BottomSheetFooterProps) => args ? (
+      <CourtSheetFooter {...props} courtId={args.courtId} onNavigate={closeCourtSheet} />
+    ) : null,
+    [args, closeCourtSheet],
+  );
 
   return (
     <CourtSheetContext.Provider value={api}>
@@ -97,24 +95,17 @@ export function CourtSheetProvider({
         ref={modalRef}
         snapPoints={snapPoints}
         compactHandle
-        onChange={(index) => {
-          sheetIndex.current = index;
-          if (index === 0 && resnapPending.current) {
-            resnapPending.current = false;
-            requestAnimationFrame(() => modalRef.current?.snapToIndex(0));
-          }
-        }}
+        footerComponent={renderFooter}
+        animationConfigs={Springs.sheet}
         onDismiss={() => setArgs(null)}
       >
         {args && (
           <CourtSheetContent
+            key={args.courtId}
             courtId={args.courtId}
             distanceKm={args.distanceKm}
             onNavigate={closeCourtSheet}
             onExpand={expandCourtSheet}
-            onPeekHeight={(height) =>
-              setPeekHeight(Math.ceil(height + DRAWER_HANDLE_HEIGHT))
-            }
           />
         )}
       </AppBottomSheetModal>

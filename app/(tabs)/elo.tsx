@@ -4,6 +4,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useKeyboardState } from "react-native-keyboard-controller";
 
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { HeaderIconAction, ScreenHeader } from "@/components/ScreenHeader";
@@ -69,6 +70,7 @@ export default function MeScreen() {
   const { bottom } = useSafeAreaInsets();
   const { notifications, openNotification } = useNotifications();
   const [activeTab, setActiveTab] = useState<ProfileTab>("activity");
+  const keyboardVisible = useKeyboardState((state) => state.isVisible);
   const [qrVisible, setQrVisible] = useState(false);
   const [friendQuery, setFriendQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Player[]>([]);
@@ -358,36 +360,40 @@ export default function MeScreen() {
           />
         }
       />
-      <View style={styles.profileTop}>
-        <ProfileHero
-          compact
-          courtLabel={localCourt?.shortName || localCourt?.name}
-          elo={currentUser.elo}
-          eloDelta={recentEloDelta}
-          headline={currentUser.name}
-          initials={currentUser.avatar || "LC"}
-          name={currentUser.name}
-          onOpenQr={() => setQrVisible(true)}
-          playerId={currentUser.id}
-          tag={accountTag}
-          sportLabel={
-            (preferredSport || localCourt?.sport) === "BASKETBALL"
-              ? "BB"
-              : (preferredSport || localCourt?.sport) === "PICKLEBALL"
-                ? "PB"
-                : preferredSport || localCourt?.sport
-          }
-          username={profile?.username || currentUser.username}
-        />
-        <ProfileStats
-          compact
-          metrics={[
-            { value: currentUser.wins, label: "WINS" },
-            { value: currentUser.losses, label: "LOSSES" },
-            { value: currentUser.checkIns, label: "CHECK-INS" },
-          ]}
-        />
-      </View>
+      {/* The anchored search has no scrolling ancestor to lift it above a
+          keyboard on short phones. Let identity yield space while searching. */}
+      {activeTab === "friends" && keyboardVisible ? null : (
+        <View style={styles.profileTop}>
+          <ProfileHero
+            compact
+            courtLabel={localCourt?.shortName || localCourt?.name}
+            elo={currentUser.elo}
+            eloDelta={recentEloDelta}
+            headline={currentUser.name}
+            initials={currentUser.avatar || "LC"}
+            name={currentUser.name}
+            onOpenQr={() => setQrVisible(true)}
+            playerId={currentUser.id}
+            tag={accountTag}
+            sportLabel={
+              (preferredSport || localCourt?.sport) === "BASKETBALL"
+                ? "BB"
+                : (preferredSport || localCourt?.sport) === "PICKLEBALL"
+                  ? "PB"
+                  : preferredSport || localCourt?.sport
+            }
+            username={profile?.username || currentUser.username}
+          />
+          <ProfileStats
+            compact
+            metrics={[
+              { value: currentUser.wins, label: "WINS" },
+              { value: currentUser.losses, label: "LOSSES" },
+              { value: currentUser.checkIns, label: "CHECK-INS" },
+            ]}
+          />
+        </View>
+      )}
 
       <View style={styles.tabs}>
         <ProfileTabButton
@@ -407,6 +413,19 @@ export default function MeScreen() {
           onPress={() => setActiveTab("inbox")}
         />
       </View>
+
+      {activeTab === "friends" ? (
+        <View>
+          <SearchField
+            style={styles.searchWrap}
+            accessibilityLabel="Search players by username"
+            placeholder="Search by username"
+            value={friendQuery}
+            onChangeText={setFriendQuery}
+            onClear={() => setFriendQuery("")}
+          />
+        </View>
+      ) : null}
 
       {activeTab === "inbox" ? (
         <View style={styles.inboxSearchRow}>
@@ -434,6 +453,7 @@ export default function MeScreen() {
       ) : null}
 
       <KeyboardAwareScrollViewCompat
+        key={`${activeTab}:${activeTab === "inbox" ? inboxScope : ""}`}
         bottomOffset={104}
         contentContainerStyle={{
           paddingBottom: Platform.OS === "web" ? 92 : bottom + 104,
@@ -512,14 +532,6 @@ export default function MeScreen() {
           </View>
         ) : activeTab === "friends" ? (
           <View style={styles.content}>
-            <SearchField
-              style={styles.searchWrap}
-              accessibilityLabel="Search players by username"
-              placeholder="Search by username"
-              value={friendQuery}
-              onChangeText={setFriendQuery}
-              onClear={() => setFriendQuery("")}
-            />
             {searchingFriends ? (
               <View style={styles.suggested}>
                 <Text style={styles.suggestedTitle}>SEARCH RESULTS</Text>

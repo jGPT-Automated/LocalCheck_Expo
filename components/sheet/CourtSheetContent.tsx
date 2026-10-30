@@ -1,5 +1,5 @@
 import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
-import { BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
+import { BottomSheetScrollView, BottomSheetFooter, type BottomSheetFooterProps } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { router } from "expo-router";
@@ -10,39 +10,26 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { CourtArt } from "@/components/court/CourtArt";
-import { CourtBusyChart } from "@/components/court/CourtBusyChart";
 import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewSections";
-import {
-  CheckInButton,
-  CourtLinkButton,
-  LocalMark,
-  MetricStrip,
-  SectionHead,
-  SportLabel,
-} from "@/components/court/CourtParts";
+import { CourtActions, CourtSummary, courtPlaceLabel } from "@/components/court/CourtParts";
+import { TodayPanel } from "@/components/court/TodayPanel";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { useToast } from "@/components/ui/Toast";
 import { Colors, Radius } from "@/constants/colors";
-import type { Court, FeedItem, GameRun } from "@/constants/data";
+import type { Court, GameRun } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { usePresence } from "@/context/CourtPresenceContext";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
 import { useLocalPlusPurchase } from "@/hooks/useLocalPlusPurchase";
-import { describeTimelineItem } from "@/lib/activityPresentation";
-import { courtHours, formatCourtHours } from "@/lib/courtHours";
-import { drawerDetailHeight, drawerFooterGap } from "@/lib/courtDrawerLayout";
+import { useSheetBottomPadding } from "./AppBottomSheetModal";
 import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/planModel";
-import { fetchCourtById, fetchCourtWeekSpans } from "@/services/courtService";
-import { fetchFeed } from "@/services/feedService";
+import { fetchCourtById } from "@/services/courtService";
 
 const DRAWER_CHIPS = [
   { label: "Games", tab: "games" },
@@ -55,11 +42,12 @@ const DRAWER_CHIPS = [
  * Court drawer content (Claude Design court flow), rendered inside the root
  * BottomSheetModal (CourtSheetHost). Two detents on one sheet:
  *
- * - Drawer: sport + Your local, the court name, city · distance, On court /
- *   Court hours · wk / Locals, then Check in and Court ↗. Always free.
- * - Expanded: Here now, Up next, Today (planned visits by hour) and Recent
- *   activity in a fixed area that never scrolls, then Games / Players / Feed
- *   / Week chips into the court page. A court that isn't your local, without
+ * - Drawer: `CourtSummary`, the same header as the Explore card you tapped
+ *   (sport, city · distance, the name, On court), then Check in and the
+ *   court button. Always free.
+ * - Expanded: Home's dashboard (Here now, Today, Up next) in the same
+ *   scrolling surface; Games / Players / Feed / Week chips into the court
+ *   page. A court that isn't your local, without
  *   LocalPlus, shows that area blurred under the LocalPlus panel.
  *
  * `onNavigate` dismisses the sheet before any router.push so the pushed
@@ -70,24 +58,19 @@ export function CourtSheetContent({
   distanceKm,
   onNavigate,
   onExpand,
-  onPeekHeight,
 }: {
   courtId: string;
   distanceKm?: number;
   onNavigate: () => void;
   onExpand: () => void;
-  onPeekHeight: (height: number) => void;
 }) {
   const {
     courts, localCourt, checkIn, checkOut, checkedInCourtId, currentUser, runs,
     localCourtId, isFriend, setLocalCourt, pendingAutoCheckIn, hideAutoCheckIn,
   } = useApp();
-  const { bottom } = useSafeAreaInsets();
   const { profile } = useAuth();
   const hasLocalPlus = useLocalPlus();
   const { showToast } = useToast();
-  const { height: windowHeight } = useWindowDimensions();
-  const [peekHeight, setPeekHeight] = useState(0);
   const [isChecking, setIsChecking] = useState(false);
 
   const cached =
@@ -95,9 +78,7 @@ export function CourtSheetContent({
     (localCourt?.id === courtId ? localCourt : null);
   const [court, setCourt] = useState<Court | null>(cached);
   const [courtMissing, setCourtMissing] = useState(false);
-  const [hoursLabel, setHoursLabel] = useState("—");
-  const [recent, setRecent] = useState<FeedItem[]>([]);
-  const { roster, localCount } = usePresence(courtId || null);
+  const { roster } = usePresence(courtId || null);
 
   useEffect(() => {
     if (!courtId || court) return;
@@ -105,17 +86,6 @@ export function CourtSheetContent({
       .then((c) => (c ? setCourt(c) : setCourtMissing(true)))
       .catch(() => setCourtMissing(true));
   }, [courtId, court]);
-
-  useEffect(() => {
-    if (!courtId) return;
-    let cancelled = false;
-    void Promise.all([fetchCourtWeekSpans(courtId), fetchFeed(courtId, currentUser.id)]).then(([spans, feed]) => {
-      if (cancelled) return;
-      setHoursLabel(formatCourtHours(courtHours(spans).hours));
-      setRecent(feed.slice(0, 3));
-    });
-    return () => { cancelled = true; };
-  }, [courtId, currentUser.id, roster.length]); // re-pull when presence changes
 
   const go = (path: string) => {
     onNavigate();
@@ -139,17 +109,7 @@ export function CourtSheetContent({
   // other court's player-level detail is LocalPlus.
   const gated = !isMyLocal && !hasLocalPlus;
   const cooldown = getLocalCourtCooldown(hasLocalPlus, profile?.local_court_changed_at);
-  const detailHeight = drawerDetailHeight({
-    windowHeight,
-    peekHeight,
-    bottomInset: bottom,
-    showViewAll: !gated,
-  });
-  const activeCount = roster.length;
-  const live = activeCount > 0;
-  const km = court.distanceKm ?? distanceKm ?? null;
-  const distance = km != null && !Number.isNaN(km) ? `${(km * 0.621371).toFixed(1)} mi` : null;
-  const place = [court.city || court.market || court.neighborhood, distance].filter(Boolean).join(" · ");
+  const place = courtPlaceLabel(court, distanceKm);
   const now = Date.now();
   const upcoming: GameRun[] = runs
     .filter((run) => run.courtId === court.id && Date.parse(run.startTimeIso) >= now - 60 * 60_000)
@@ -186,143 +146,94 @@ export function CourtSheetContent({
   };
 
   return (
-    <BottomSheetView>
-      <CourtArt sport={court.sport} />
-      <LocalMark active={isMyLocal} onPress={cooldown.restricted ? undefined : setAsLocal} />
-      {/* ── Drawer: its measured height owns the first sheet detent ── */}
-      <View
-        onLayout={(event) => {
-          const height = event.nativeEvent.layout.height;
-          setPeekHeight(height);
-          onPeekHeight(height);
-        }}
-      >
+    <BottomSheetScrollView
+      testID="court-drawer-scroll"
+      enableFooterMarginAdjustment
+      bounces={false}
+      overScrollMode="never"
+      contentContainerStyle={styles.detailContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <View>
         <Pressable
-          accessibilityHint="Shows who's here, games and today's plans"
+          accessibilityHint="Shows who's here, today and games"
+          accessibilityRole="button"
           accessibilityLabel={`${name}, expand`}
           onPress={onExpand}
         >
-          <View style={styles.metaRow}>
-            <SportLabel sport={court.sport} />
-          </View>
-          <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
-            {name}
-          </Text>
-          {place ? <Text numberOfLines={1} style={styles.place}>{place}</Text> : null}
-          <View style={styles.strip}>
-            <MetricStrip
-              cells={[
-                { label: "On court", value: activeCount, live },
-                { label: "Court hours · wk", value: hoursLabel },
-                { label: "Locals", value: localCount },
-              ]}
-              size="drawer"
-            />
-          </View>
+          <CourtSummary
+            name={name}
+            onCourt={roster.length}
+            place={place}
+            sport={court.sport}
+            style={styles.summary}
+          />
         </Pressable>
-
-        <View style={styles.actions}>
-          <View style={styles.checkSlot}>
-            <CheckInButton
-              busy={isChecking}
-              checkedIn={isCheckedIn}
-              courtName={name}
-              onPress={() => void handleCheckIn()}
-            />
-          </View>
-          <CourtLinkButton courtName={name} onPress={() => go(gated ? "/localplus" : `/court/${court.id}`)} />
-        </View>
+        <CourtActions
+          busy={isChecking}
+          checkedIn={isCheckedIn}
+          courtName={name}
+          onCheckIn={() => void handleCheckIn()}
+          onViewCourt={() => go(gated ? "/localplus" : `/court/${court.id}`)}
+        />
         <AutoCheckInNote courtId={court.id} />
         <View style={styles.peekFoot} />
       </View>
 
-      {/* ── Expanded: a fixed-height window that scrolls ── */}
-      <BottomSheetScrollView
-        contentContainerStyle={styles.detailContent}
-        showsVerticalScrollIndicator={false}
-        style={{ height: detailHeight }}
+      <CourtDrawerGate
+        cooldown={cooldown}
+        courtName={name}
+        gated={gated}
+        onOpenLocalPlus={() => go("/localplus")}
+        onSetLocal={setAsLocal}
       >
-        <CourtDrawerGate
-          cooldown={cooldown}
-          courtName={name}
-          gated={gated}
-          onOpenLocalPlus={() => go("/localplus")}
-          onSetLocal={setAsLocal}
-        >
-          <HereNowSection
-            isFriend={isFriend}
-            onMore={() => go(`/court/${court.id}?tab=players`)}
-            onPlayer={(id) => go(`/player/${id}`)}
-            roster={roster}
-          />
+        <HereNowSection
+          isFriend={isFriend}
+          onMore={() => go(`/court/${court.id}?tab=players`)}
+          onPlayer={(id) => go(`/player/${id}`)}
+          roster={roster}
+        />
+        <TodayPanel court={court} games={upcoming} refreshKey={roster.length} />
+        <View style={styles.upNext}>
           <UpNextSection
             onOpenRun={(id) => go(`/run/${id}`)}
             onSeeAll={() => go(`/court/${court.id}?tab=games`)}
             upcoming={upcoming}
           />
-
-          <View style={styles.section}>
-            <CourtBusyChart courtId={court.id} games={upcoming} refreshKey={roster.length} title="Today" />
-          </View>
-
-          <View style={styles.section}>
-            <SectionHead meta="Feed" onMetaPress={() => go(`/court/${court.id}?tab=live`)} title="Recent activity" />
-            {recent.length > 0 ? (
-              recent.map((item) => <RecentLine item={item} key={item.id} />)
-            ) : (
-              <Text style={styles.emptyText}>The first check-in or game here will start the feed.</Text>
-            )}
-          </View>
-        </CourtDrawerGate>
-      </BottomSheetScrollView>
-
-      {!gated ? (
-        <View style={[styles.chips, { paddingBottom: drawerFooterGap(bottom) }]}>
-          {DRAWER_CHIPS.map((chip) => (
-            <PressableScale
-              accessibilityRole="button"
-              key={chip.tab}
-              onPress={() => go(`/court/${court.id}?tab=${chip.tab}`)}
-              style={styles.chip}
-            >
-              <Text style={styles.chipText}>{chip.label}</Text>
-            </PressableScale>
-          ))}
         </View>
-      ) : null}
-    </BottomSheetView>
+      </CourtDrawerGate>
+    </BottomSheetScrollView>
   );
 }
 
-/** One quiet feed line: dot, "Name did this", time. */
-function RecentLine({ item }: { item: FeedItem }) {
-  const model = describeTimelineItem(item, { showActor: true });
-  const dot =
-    model.marker === "game"
-      ? item.sport === "PICKLEBALL" ? Colors.pickleballMeta : Colors.basketballMeta
-      : item.type === "checkin" || item.type === "checkin_burst"
-        ? Colors.accent
-        : Colors.checkOutDot;
-  let who = "";
-  let what = "";
-  if (model.kind === "game") {
-    const [win, lose] = model.lines;
-    who = win.name;
-    what = `def. ${lose.name} ${win.score}–${lose.score}`;
-  } else {
-    const nameSegment = model.segments.find((segment) => segment.tone === "name");
-    who = nameSegment?.text ?? "";
-    what = model.segments.filter((segment) => segment !== nameSegment).map((segment) => segment.text).join(" ").trim();
-  }
+/** The sheet library positions and measures this footer independently of
+ * content scrolling; no fixed-height window or manual footer subtraction. */
+export function CourtSheetFooter({ courtId, onNavigate, ...props }: BottomSheetFooterProps & {
+  courtId: string;
+  onNavigate: () => void;
+}) {
+  const { localCourtId } = useApp();
+  const hasLocalPlus = useLocalPlus();
+  const paddingBottom = useSheetBottomPadding();
+  if (courtId !== localCourtId && !hasLocalPlus) return null;
   return (
-    <View accessibilityLabel={model.accessibilityLabel} style={styles.recentRow}>
-      <View style={[styles.recentDot, { backgroundColor: dot }]} />
-      <Text numberOfLines={1} style={styles.recentText}>
-        {who ? <Text style={styles.recentWho}>{who} </Text> : null}
-        {what}
-      </Text>
-      <Text style={styles.recentAgo}>{item.timestamp}</Text>
-    </View>
+    <BottomSheetFooter {...props}>
+      <View testID="court-drawer-footer" style={[styles.chips, { paddingBottom }]}>
+        {DRAWER_CHIPS.map((chip) => (
+          <PressableScale
+            accessibilityRole="button"
+            key={chip.tab}
+            onPress={() => {
+              onNavigate();
+              router.push(`/court/${courtId}?tab=${chip.tab}`);
+            }}
+            style={styles.chip}
+          >
+            <Text style={styles.chipText}>{chip.label}</Text>
+          </PressableScale>
+        ))}
+      </View>
+    </BottomSheetFooter>
   );
 }
 
@@ -419,59 +330,15 @@ function CourtDrawerGate({
 
 const styles = StyleSheet.create({
   loading: { alignItems: "center", justifyContent: "center", paddingVertical: 64 },
-  metaRow: {
-    height: 34,
-    paddingTop: 6,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  name: {
-    paddingTop: 10,
-    paddingHorizontal: 20,
-    textAlign: "center",
-    fontFamily: Typography.headingBold,
-    fontSize: 38,
-    lineHeight: 40,
-    letterSpacing: -1.3,
-    textTransform: "uppercase",
-    color: Colors.text,
-    textShadowColor: Colors.sheet,
-    textShadowRadius: 6,
-  },
-  place: {
-    paddingTop: 6,
-    paddingHorizontal: 20,
-    textAlign: "center",
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    color: Colors.textSecondary,
-  },
-  strip: { paddingHorizontal: 20, paddingTop: 12 },
-  actions: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 14 },
-  checkSlot: { flex: 1, minWidth: 0 },
-  peekFoot: { height: 16 },
+  summary: { paddingHorizontal: 20, paddingTop: 8 },
+  peekFoot: { height: 4 },
+  upNext: { paddingTop: 20 },
 
-  detailContent: { flexGrow: 1 },
+  detailContent: { paddingBottom: 16 },
   section: { paddingHorizontal: 20, paddingBottom: 14 },
   emptyText: { fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
 
 
-
-  recentRow: {
-    height: 40,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.hairline,
-  },
-  recentDot: { width: 7, height: 7, marginHorizontal: 3.5, borderRadius: 4 },
-  recentText: { flex: 1, minWidth: 0, fontFamily: Typography.bodyMedium, fontSize: 12.5, color: Colors.textSecondary },
-  recentWho: { fontFamily: Typography.bodySemiBold, color: Colors.text },
-  recentAgo: { flexShrink: 0, fontFamily: Typography.bodySemiBold, fontSize: 9, letterSpacing: 0.7, textTransform: "uppercase", color: Colors.muted },
 
   chips: {
     flexDirection: "row",
@@ -484,14 +351,14 @@ const styles = StyleSheet.create({
   },
   chip: {
     flex: 1,
-    height: 30,
+    minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 999,
     borderWidth: 1,
     borderColor: "rgba(242,242,246,0.13)",
   },
-  chipText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.inkSoft },
+  chipText: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.inkSoft },
 
   gateWrap: { flexGrow: 1 },
   gateShade: { backgroundColor: "rgba(18,18,22,0.55)" },

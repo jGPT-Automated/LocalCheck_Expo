@@ -72,9 +72,13 @@ const detailScreenOptions = {
   headerShown: false,
   presentation: "card" as const,
   animation: "slide_from_right" as const,
+  // Back is the standard iOS edge swipe. A full-screen swipe wins over a
+  // vertical scroll that drifts sideways, and over the sideways scrollers on
+  // the court page (roster, time strip).
   gestureEnabled: true,
-  fullScreenGestureEnabled: true,
-  animationMatchesGesture: true,
+  // Reading drags in the page belong to its scroll view. Back starts at the
+  // edge; keep this explicit because native-stack defaults differ by iOS.
+  fullScreenGestureEnabled: false,
 };
 
 /**

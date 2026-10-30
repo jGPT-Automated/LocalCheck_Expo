@@ -12,10 +12,10 @@ import {
   StyleSheet,
   Text,
   type TextStyle,
+  useWindowDimensions,
   View,
+  type ViewStyle,
 } from "react-native";
-
-import Svg, { Path } from "react-native-svg";
 
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
@@ -68,66 +68,15 @@ export function SportLabel({ sport, suffix }: { sport: CourtSport; suffix?: stri
   );
 }
 
-const MARK = 56;
-
 /**
- * Your local court, as a quarter-circle in the card's top-right corner: a +
- * while it isn't your local, a glowing orange check (like the logo's) once it
- * is. Render it as a direct child of the card so it sits flush in the corner.
- * Where it isn't your local, a tap makes it your local and the check springs
- * in; once it is, the mark does nothing (Settings changes it).
+ * The first line of a court header: the sport on the left, city · distance on
+ * the right.
  */
-export function LocalMark({ active, onPress, top = 0 }: { active: boolean; onPress?: () => void; top?: number }) {
-  const pop = React.useRef(new Animated.Value(active ? 1 : 0)).current;
-  const wasActive = React.useRef(active);
-  React.useEffect(() => {
-    if (active && !wasActive.current) {
-      pop.setValue(0);
-      void AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
-        if (reduce) pop.setValue(1);
-        else Animated.spring(pop, { toValue: 1, friction: 5, tension: 120, useNativeDriver: true }).start();
-      });
-    } else if (!active) {
-      pop.setValue(0);
-    } else {
-      pop.setValue(1);
-    }
-    wasActive.current = active;
-  }, [active, pop]);
-
-  const tappable = Boolean(onPress) && !active;
-  const body = (
-    <View style={[styles.markArc, active && styles.markArcOn]}>
-      {active ? (
-        <Animated.View
-          style={[styles.markIcon, { opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] }]}
-        >
-          <Feather color={Colors.accent} name="check" size={22} style={styles.markCheckGlow} />
-        </Animated.View>
-      ) : (
-        <View style={styles.markIcon}>
-          <Feather color={Colors.textSecondary} name="plus" size={22} />
-        </View>
-      )}
-    </View>
-  );
+export function SportPlaceRow({ sport, place, style }: { sport: CourtSport; place: string; style?: StyleProp<ViewStyle> }) {
   return (
-    <View pointerEvents="box-none" style={[styles.markWrap, { top }]}>
-      {tappable ? (
-        <Pressable
-          accessibilityHint="Sets this as your local court"
-          accessibilityLabel="Set as local court"
-          accessibilityRole="button"
-          onPress={onPress}
-          style={({ pressed }) => pressed && styles.pressed}
-        >
-          {body}
-        </Pressable>
-      ) : (
-        <View accessibilityLabel={active ? "Your local court" : "Not your local court"} accessible>
-          {body}
-        </View>
-      )}
+    <View style={[styles.sportPlaceRow, style]}>
+      <SportLabel sport={sport} />
+      {place ? <Text numberOfLines={1} style={styles.placeText}>{place}</Text> : null}
     </View>
   );
 }
@@ -247,18 +196,166 @@ export function CheckInButton({
   );
 }
 
-/** A centred ">" that opens the full court page. */
-export function CourtLinkButton({ onPress, courtName }: { onPress: () => void; courtName: string }) {
+/**
+ * The court button beside Check in: a square the same height as Check in,
+ * quiet fill and hairline so the orange button stays the one to press.
+ */
+export function CourtLinkButton({
+  onPress,
+  courtName,
+  size = 50,
+}: {
+  onPress: () => void;
+  courtName: string;
+  size?: number;
+}) {
   return (
     <PressableScale
       accessibilityHint="Opens the full court page"
       accessibilityLabel={`Open ${courtName}`}
       accessibilityRole="button"
       onPress={onPress}
-      style={[styles.action, styles.courtLink]}
+      style={[styles.courtLink, { width: size, height: size }]}
     >
-      <Feather color={Colors.text} name="chevron-right" size={24} />
+      <Feather color={Colors.inkSoft} name="chevron-right" size={20} />
     </PressableScale>
+  );
+}
+
+/**
+ * Check in and the court button on one row: the row every court surface uses
+ * (Home, the Explore drawer), with equal space above and below.
+ */
+export function CourtActions({
+  checkedIn,
+  busy,
+  courtName,
+  onCheckIn,
+  onViewCourt,
+  style,
+}: {
+  checkedIn: boolean;
+  busy: boolean;
+  courtName: string;
+  onCheckIn: () => void;
+  onViewCourt: () => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <View style={[styles.actions, style]}>
+      <View style={styles.checkSlot}>
+        <CheckInButton busy={busy} checkedIn={checkedIn} courtName={courtName} onPress={onCheckIn} />
+      </View>
+      <CourtLinkButton courtName={courtName} onPress={onViewCourt} />
+    </View>
+  );
+}
+
+/** City · distance for a court header ("Conroe · 1.6 mi"). */
+export function courtPlaceLabel(court: { city?: string | null; market?: string | null; neighborhood?: string | null; distanceKm?: number | null }, distanceKm?: number | null): string {
+  const km = court.distanceKm ?? distanceKm ?? null;
+  const distance = km != null && !Number.isNaN(km) ? `${(km * 0.621371).toFixed(1)} mi` : null;
+  return [court.city || court.market || court.neighborhood, distance].filter(Boolean).join(" · ");
+}
+
+/**
+ * The one court header: sport top left, city · distance top right, then the
+ * name on the left and the live On court number on the right. The Explore
+ * card, the drawer's peek and Home all use it, so the card you tap is the
+ * header that rises, and the same header Home opens on. `size` only scales
+ * the type.
+ */
+export function CourtSummary({
+  sport,
+  name,
+  place,
+  onCourt,
+  approximate = false,
+  size = "drawer",
+  style,
+}: {
+  sport: CourtSport;
+  name: string;
+  place: string;
+  onCourt: number;
+  /** Some people on court are private: the number reads "~N". */
+  approximate?: boolean;
+  size?: "card" | "drawer";
+  style?: StyleProp<ViewStyle>;
+}) {
+  const card = size === "card";
+  const live = onCourt > 0;
+  // A size down on narrow phones (iPhone SE/mini) so ordinary names stay on
+  // one line everywhere, including the web preview, which can't shrink text.
+  const narrow = useWindowDimensions().width < 390;
+  return (
+    <View style={style}>
+      <SportPlaceRow place={place} sport={sport} style={styles.summaryMeta} />
+      <View style={styles.summaryRow}>
+        {/* Shrinks to fit on iOS; where text can't shrink (web) a long name
+            wraps to a second line instead of clipping. */}
+        <Text
+          adjustsFontSizeToFit
+          minimumFontScale={0.6}
+          numberOfLines={2}
+          style={[styles.summaryName, narrow && styles.summaryNameNarrow, card && styles.summaryNameCard]}
+        >
+          {name}
+        </Text>
+        <View
+          accessibilityLabel={`${approximate ? "About " : ""}${onCourt} on court`}
+          accessible
+          style={styles.summaryLive}
+        >
+          <Text style={[styles.summaryLiveValue, card && styles.summaryLiveValueCard, live && styles.cellValueLive]}>
+            {approximate ? `~${onCourt}` : onCourt}
+          </Text>
+          <View style={styles.cellLabelRow}>
+            {live ? <LiveDot /> : null}
+            <Text style={styles.summaryLiveLabel}>On court</Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * The small rounded filter chips under a court's content (All / Games /
+ * Check-ins on the court page, the times chips on Schedule). One selected chip
+ * at most; `active` null leaves them all quiet.
+ */
+export function FilterChips<T extends string>({
+  chips,
+  active = null,
+  onPress,
+  style,
+  grid = false,
+}: {
+  chips: ReadonlyArray<{ value: T; label: string }>;
+  active?: T | null;
+  onPress: (value: T) => void;
+  style?: StyleProp<ViewStyle>;
+  /** Two equal columns, so a long set wraps into an even grid. */
+  grid?: boolean;
+}) {
+  return (
+    <View style={[styles.filters, style]}>
+      {chips.map((chip) => {
+        const selected = active === chip.value;
+        return (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            key={chip.value}
+            onPress={() => onPress(chip.value)}
+            style={[styles.chip, grid && styles.chipGrid, selected && styles.chipActive]}
+          >
+            <Text style={[styles.chipText, selected && styles.chipTextActive]}>{chip.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
@@ -305,24 +402,6 @@ const styles = StyleSheet.create({
   sportRow: { flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 1 },
   sportDot: { width: 6, height: 6, borderRadius: 3 },
   sportText: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.5, textTransform: "uppercase", flexShrink: 1 },
-  markWrap: { position: "absolute", right: 0, width: MARK, height: MARK },
-  markArc: {
-    width: MARK,
-    height: MARK,
-    borderBottomLeftRadius: MARK,
-    borderLeftWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: Colors.hairlineChrome,
-  },
-  markArcOn: {
-    borderColor: Colors.accentBorderStrong,
-    shadowColor: Colors.accent,
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-    shadowOffset: { width: -2, height: 2 },
-  },
-  markIcon: { position: "absolute", top: 10, right: 10 },
-  markCheckGlow: { textShadowColor: Colors.accent, textShadowRadius: 10 },
   pressed: { opacity: 0.72 },
   strip: {
     flexDirection: "row",
@@ -349,9 +428,44 @@ const styles = StyleSheet.create({
   checkOut: { borderWidth: 1.5, borderColor: Colors.accentBorderStrong, backgroundColor: Colors.surfaceDark },
   checkInText: { fontFamily: Typography.bodyBold, fontSize: 12, letterSpacing: 1.7, textTransform: "uppercase", color: Colors.background },
   checkOutText: { flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.liveInk },
-  courtLink: { width: 64, height: 50, backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
+  courtLink: {
+    borderRadius: Radius.button,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.glass,
+    borderWidth: 1,
+    borderColor: Colors.hairlineChrome,
+  },
+  actions: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 20, paddingVertical: 16 },
+  checkSlot: { flex: 1, minWidth: 0 },
+  summaryMeta: { height: 18 },
+  summaryRow: { marginTop: 8, flexDirection: "row", alignItems: "flex-end", gap: 16 },
+  summaryName: {
+    flex: 1,
+    minWidth: 0,
+    fontFamily: Typography.headingBold,
+    fontSize: 34,
+    lineHeight: 36,
+    letterSpacing: -1,
+    textTransform: "uppercase",
+    color: Colors.text,
+  },
+  summaryNameNarrow: { fontSize: 29, lineHeight: 31, letterSpacing: -0.8 },
+  summaryNameCard: { fontSize: 26, lineHeight: 28, letterSpacing: -0.7 },
+  summaryLive: { alignItems: "flex-end", gap: 4 },
+  summaryLiveValue: { fontFamily: Typography.headingSemiBold, fontSize: 32, lineHeight: 33, letterSpacing: -0.6, color: Colors.text, fontVariant: ["tabular-nums"] },
+  summaryLiveValueCard: { fontSize: 26, lineHeight: 27 },
+  summaryLiveLabel: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: Colors.textSecondary },
+  sportPlaceRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  placeText: { flexShrink: 1, textAlign: "right", fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
   cellLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   cellLabel: { fontFamily: Typography.bodyBold, fontSize: 7.5, letterSpacing: 0.9, textTransform: "uppercase", color: Colors.textSecondary },
+  filters: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6 },
+  chipGrid: { flexGrow: 1, flexBasis: "45%", alignItems: "center" },
+  chip: { height: 36, paddingHorizontal: 16, borderRadius: 999, justifyContent: "center", borderWidth: 1, borderColor: "rgba(242,242,246,0.16)" },
+  chipActive: { backgroundColor: Colors.tile, borderColor: "rgba(242,242,246,0.28)" },
+  chipText: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.inkSoft },
+  chipTextActive: { color: Colors.text },
   tabs: { flexDirection: "row", paddingHorizontal: 6, borderBottomWidth: 1, borderBottomColor: Colors.hairline },
   tab: { flex: 1, height: 44, alignItems: "center", justifyContent: "center", borderBottomWidth: 2, borderBottomColor: "transparent" },
   tabActive: { borderBottomColor: Colors.accent },

@@ -365,12 +365,8 @@ function LeaderboardView({
   }, [currentUserId, myRank, players, showMyRank]);
 
   return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{
-        paddingBottom: Platform.OS === "web" ? 84 : bottom + 100,
-      }}
-    >
+    // The sport and scope filters stay fixed; only the ranking list scrolls.
+    <View style={styles.board}>
       {/* Sport and scope are one filter decision, presented on one row. */}
       <View style={styles.filterRow}>
         <View style={styles.sportFilter}>
@@ -440,6 +436,13 @@ function LeaderboardView({
         )}
       </View>
 
+      <ScrollView
+        contentContainerStyle={{
+          paddingBottom: Platform.OS === "web" ? 84 : bottom + 100,
+        }}
+        showsVerticalScrollIndicator={false}
+        style={styles.boardList}
+      >
       {loading ? (
         <View style={styles.emptyState}>
           <ActivityIndicator color={Colors.accent} />
@@ -535,12 +538,16 @@ function LeaderboardView({
           );
         })
       )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  leaderboard: { flex: 1, minHeight: 0 },
   container: { flex: 1, backgroundColor: Colors.background },
+  board: { flex: 1, minHeight: 0 },
+  boardList: { flex: 1, minHeight: 0 },
   headerTools: { flexDirection: "row", alignItems: "center", gap: 8 },
   myRankBadge: {
     alignItems: "flex-end",

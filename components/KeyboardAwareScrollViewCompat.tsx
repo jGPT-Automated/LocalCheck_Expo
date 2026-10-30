@@ -15,6 +15,8 @@ export function KeyboardAwareScrollViewCompat({
   if (Platform.OS === "web") {
     return (
       <ScrollView
+        bounces={false}
+        alwaysBounceVertical={false}
         keyboardShouldPersistTaps={keyboardShouldPersistTaps}
         {...props}
       >
@@ -24,6 +26,8 @@ export function KeyboardAwareScrollViewCompat({
   }
   return (
     <KeyboardAwareScrollView
+      bounces={false}
+      alwaysBounceVertical={false}
       bottomOffset={bottomOffset}
       keyboardShouldPersistTaps={keyboardShouldPersistTaps}
       {...props}
