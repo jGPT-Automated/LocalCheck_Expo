@@ -24,6 +24,9 @@ export interface AppNotification {
   path: string | null;
   readAt: string | null;
   createdAt: string;
+  /** Push delivery: pending, processing, sent, failed or skipped. */
+  pushStatus: string | null;
+  pushSentAt: string | null;
 }
 interface NotificationRow {
   id: string;
@@ -37,6 +40,8 @@ interface NotificationRow {
   data: { path?: unknown } | null;
   read_at: string | null;
   created_at: string;
+  push_status: string | null;
+  push_sent_at: string | null;
 }
 
 function mapNotification(row: NotificationRow): AppNotification {
@@ -52,13 +57,15 @@ function mapNotification(row: NotificationRow): AppNotification {
     path: typeof row.data?.path === "string" ? row.data.path : null,
     readAt: row.read_at,
     createdAt: row.created_at,
+    pushStatus: row.push_status,
+    pushSentAt: row.push_sent_at,
   };
 }
 
-export async function fetchNotifications(limit = 50): Promise<AppNotification[]> {
+export async function fetchNotifications(limit = 200): Promise<AppNotification[]> {
   const { data, error } = await supabase
     .from("notifications")
-    .select("id,type,actor_id,friendship_id,run_id,match_id,title,body,data,read_at,created_at")
+    .select("id,type,actor_id,friendship_id,run_id,match_id,title,body,data,read_at,created_at,push_status,push_sent_at")
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error || !data) {

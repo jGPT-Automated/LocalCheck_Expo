@@ -8,30 +8,8 @@ import { DetailHeader } from "@/components/ui/DetailHeader";
 import { Colors, Radius } from "@/constants/colors";
 import { Typography } from "@/constants/typography";
 import { useNotifications } from "@/context/NotificationContext";
-import { NotificationType } from "@/services/notificationService";
-
-const ICONS: Record<NotificationType, React.ComponentProps<typeof Feather>["name"]> = {
-  friend_request: "user-plus",
-  friend_accepted: "users",
-  run_invite: "calendar",
-  match_review: "check-square",
-  match_confirmed: "award",
-  match_rejected: "alert-circle",
-  challenge: "zap",
-  friend_check_in: "map-pin",
-  auto_check_in: "log-in",
-  auto_check_out: "log-out",
-};
 
 /** "Now", "5m", "2h", "3d": the feed's short time, quieter than the event. */
-function timeAgo(value: string): string {
-  const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
-  if (seconds < 60) return "Now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-  if (seconds < 86_400) return `${Math.floor(seconds / 3600)}h`;
-  return `${Math.floor(seconds / 86_400)}d`;
-}
-
 export default function NotificationsScreen() {
   const router = useRouter();
   const { bottom } = useSafeAreaInsets();
@@ -86,31 +64,36 @@ export default function NotificationsScreen() {
             <Text style={styles.emptyBody}>Friend requests, game invitations, and score reviews will appear here.</Text>
           </View>
         ) : notifications.map((item) => (
+          // A plain log: exactly what was sent, when, and whether the push went out.
           <Pressable
             key={item.id}
-            style={({ pressed }) => [
-              styles.row,
-              !item.readAt && styles.rowUnread,
-              pressed && styles.pressed,
-            ]}
+            style={({ pressed }) => [styles.row, pressed && styles.pressed]}
             onPress={() => void openNotification(item)}
           >
-            <View style={[styles.icon, !item.readAt && styles.iconUnread]}>
-              <Feather name={ICONS[item.type]} size={14} color={!item.readAt ? Colors.text : Colors.textSecondary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <View style={styles.rowTitleLine}>
-                {!item.readAt ? <View style={styles.dot} /> : null}
-                <Text numberOfLines={2} style={styles.rowTitle}>{item.title}</Text>
-              </View>
-              <Text style={styles.rowBody}>{item.body}</Text>
-            </View>
-            <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
+            <Text style={styles.logMeta}>
+              {logTime(item.createdAt)} · {item.type} · {item.readAt ? "read" : "unread"}
+            </Text>
+            <Text style={styles.rowTitle}>{item.title}</Text>
+            {item.body ? <Text style={styles.rowBody}>{item.body}</Text> : null}
+            <Text style={styles.logMeta}>
+              push: {item.pushStatus ?? "unknown"}
+              {item.pushSentAt ? ` · ${logTime(item.pushSentAt)}` : ""}
+            </Text>
           </Pressable>
         ))}
       </ScrollView>
     </View>
   );
+}
+
+function logTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 }
 
 const styles = StyleSheet.create({
@@ -121,7 +104,8 @@ const styles = StyleSheet.create({
   pushIcon: { width: 32, height: 32, alignItems: "center", justifyContent: "center", borderRadius: Radius.chip, backgroundColor: Colors.tile },
   pushTitle: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.text, letterSpacing: 1.2, textTransform: "uppercase" },
   pushBody: { fontFamily: Typography.bodyMedium, fontSize: 11.5, lineHeight: 16, color: Colors.textSecondary, marginTop: 3 },
-  row: { minHeight: 64, flexDirection: "row", alignItems: "flex-start", gap: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "rgba(242,242,246,0.06)" },
+  row: { gap: 3, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "rgba(242,242,246,0.06)" },
+  logMeta: { fontFamily: Typography.bodyMedium, fontSize: 11, lineHeight: 15, color: Colors.muted },
   rowUnread: {},
   icon: { width: 32, height: 32, borderRadius: Radius.chip, alignItems: "center", justifyContent: "center", backgroundColor: Colors.panel, borderWidth: 1, borderColor: "rgba(242,242,246,0.08)" },
   iconUnread: { borderColor: Colors.hairlineChrome },

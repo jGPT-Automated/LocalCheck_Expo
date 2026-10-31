@@ -160,8 +160,6 @@ export function CourtTitleRow({
       <View style={styles.titleBlock}>
         <SportLabel sport={sport} />
         <Text
-          adjustsFontSizeToFit
-          minimumFontScale={0.6}
           numberOfLines={1}
           style={[styles.titleName, page && styles.titleNamePage]}
         >

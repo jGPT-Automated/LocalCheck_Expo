@@ -138,6 +138,12 @@ Each claim says which of these it is, because they are often confused:
     the grid sized from its measured space, and the heat map snaps to the
     nearer window when a scroll settles (web ignores `snapToOffsets`).
     The heat ScrollView is pinned to exactly 12 rows (`flexGrow: 0`).
+  - Court page name no longer uses `adjustsFontSizeToFit` (it collapsed to a
+    sliver on iOS); long names drop a trailing "Courts" instead.
+  - Notification inbox (`app/notifications.tsx`) is a plain log of every
+    `notifications` row for the player (up to 200): exact time, type,
+    read/unread, title, body, and push delivery (`push_status`,
+    `push_sent_at`, now selected by `fetchNotifications`).
   - Up Next (`UpNextSection`, Home and the drawer) renders the Games tab's
     `ScheduledGameCard` under its `GameDayLabel`.
   - `scripts/visual-qa/preview-shots.cjs` takes `SIZES=375` to shoot one width.
