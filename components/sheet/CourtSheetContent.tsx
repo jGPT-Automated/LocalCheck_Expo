@@ -192,7 +192,7 @@ export function CourtSheetContent({
 
   return (
     <BottomSheetView>
-      <CourtArt sport={court.sport} />
+      <CourtArt sport={court.sport} top={-16} />
       {expanded ? <LocalMark active={isMyLocal} onPress={cooldown.restricted ? undefined : setAsLocal} /> : null}
       {/* ── Drawer: its measured height owns the first sheet detent ── */}
       <View
@@ -214,6 +214,7 @@ export function CourtSheetContent({
               liveValue={activeCount}
               name={name}
               place={place || undefined}
+              size="page"
               sport={court.sport}
             />
           </View>
@@ -224,7 +225,7 @@ export function CourtSheetContent({
                 { label: "Court hours · wk", value: hoursLabel },
                 { label: "Locals", value: localCount },
               ]}
-              size="drawer"
+              size="card"
             />
           </View>
         </Pressable>
@@ -440,7 +441,7 @@ function CourtDrawerGate({
 const styles = StyleSheet.create({
   loading: { alignItems: "center", justifyContent: "center", paddingVertical: 64 },
   title: { paddingTop: 12 },
-  strip: { paddingHorizontal: 20, paddingTop: 14 },
+  strip: { paddingTop: 16 },
   actions: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 14 },
   checkSlot: { flex: 1, minWidth: 0 },
   peekFoot: { height: 16 },

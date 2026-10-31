@@ -159,10 +159,6 @@ export function CourtTitleRow({
   clearCornerMark?: boolean;
 }) {
   const page = size === "page";
-  // On the card, long names step down a size so they stay on one line beside
-  // the live number on a 375pt phone; adjustsFontSizeToFit covers the rest on
-  // iOS. The page is wide enough at full size.
-  const long = !page && name.length > 13;
   return (
     <View style={[styles.titleRow, clearCornerMark && styles.titleRowClearMark]}>
       <View style={styles.titleBlock}>
@@ -171,7 +167,7 @@ export function CourtTitleRow({
           adjustsFontSizeToFit
           minimumFontScale={0.6}
           numberOfLines={1}
-          style={[styles.titleName, page && styles.titleNamePage, long && styles.titleNameLong]}
+          style={[styles.titleName, page && styles.titleNamePage]}
         >
           {name}
         </Text>
@@ -425,7 +421,6 @@ const styles = StyleSheet.create({
     textShadowRadius: 6,
   },
   titleNamePage: { fontSize: 34, lineHeight: 37, letterSpacing: -1.1 },
-  titleNameLong: { fontSize: 25, lineHeight: 28, letterSpacing: -0.7 },
   titlePlace: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
   liveBlock: { flexShrink: 0, alignItems: "flex-end", paddingBottom: 1 },
   liveValue: { fontFamily: Typography.headingBold, fontSize: 40, lineHeight: 42, letterSpacing: -1.2, color: Colors.text, fontVariant: ["tabular-nums"] },

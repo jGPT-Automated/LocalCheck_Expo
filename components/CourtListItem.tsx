@@ -35,7 +35,8 @@ export function CourtListItem({ court, onPress }: CourtListItemProps) {
       style={styles.card}
       testID={`court-${court.id}`}
     >
-      <CourtArt sport={court.sport} />
+      {/* Centred on the name, as it was when the card had the numbers strip. */}
+      <CourtArt sport={court.sport} top={-16} />
       <CourtTitleRow
         live={active > 0}
         liveValue={active}
