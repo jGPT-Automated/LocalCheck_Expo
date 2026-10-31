@@ -94,6 +94,12 @@ Each claim says which of these it is, because they are often confused:
     court route entry) and the court page section of `docs/product/DESIGN.md`.
   - Not in this pass: Players sorts (Active / Newest / All), the Live
     scoreboard rows, Phosphor icons, the drawer.
+- Oct 31 edge-only Back (**on a branch**, `claude/edge-swipe-back`, not on a
+  device). `app/_layout.tsx` `detailScreenOptions`: `fullScreenGestureEnabled`
+  is now `false` and `animationMatchesGesture` is gone, so swipe-back starts
+  only at the left edge (the iOS default) and drags anywhere else belong to the
+  page's scroll views. Same change as the gesture part of open PRs #83 and #84,
+  split out so it can merge on its own.
 - Oct 18 follow-up 3 (D61; **on a branch**, PR #77, not merged, not on a device;
   not checked in a render, Jesse is verifying). Frontend only.
   - `LocalMark` (`components/court/CourtParts.tsx`): corner quarter-circle with
