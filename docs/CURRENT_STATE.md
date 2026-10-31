@@ -113,6 +113,13 @@ Each claim says which of these it is, because they are often confused:
     don't shift a cell. `LocalMark` lost its quarter-circle: a plain 44pt +
     / check placed by the caller (court page: the back-arrow row; expanded
     drawer and Home: top-right).
+  - Second review: the local + / check is on the court page only (its
+    back-arrow row); none on the card, drawer or Home. Home's pinned header
+    (`HomeCourtHero`) is the shared title row plus Next game / Court hours ·
+    wk / Locals on the card band, like the drawer; `HomeCourtTop` is gone.
+    Court page art centred on the name. Strip values have a fixed height so a
+    unit no longer drops its label. `nextGameLabel` moved to
+    `lib/nextGameLabel.ts`.
   - QA default (`.claude/skills/ui-done`): the PR's Vercel preview against
     `main`'s live link, only the screens the change affects.
 - Oct 18 follow-up 3 (D61; **on a branch**, PR #77, not merged, not on a device;

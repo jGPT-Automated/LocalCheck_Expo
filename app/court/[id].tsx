@@ -214,7 +214,7 @@ export default function CourtProfileScreen() {
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: Platform.OS === "web" ? 44 : top }]}>
-        <CourtArt faint sport={court.sport} top={(Platform.OS === "web" ? 44 : top) + 44} />
+        <CourtArt faint sport={court.sport} top={(Platform.OS === "web" ? 44 : top) + 22} />
         <View style={styles.navRow}>
           <Pressable
             accessibilityLabel="Back"

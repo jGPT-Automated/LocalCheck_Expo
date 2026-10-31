@@ -22,7 +22,6 @@ import {
   CheckInButton,
   CourtLinkButton,
   CourtTitleRow,
-  LocalMark,
   MetricStrip,
   SectionHead,
 } from "@/components/court/CourtParts";
@@ -43,6 +42,7 @@ import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourt
 import { PRIVACY_URL, TERMS_URL } from "@/lib/planModel";
 import { fetchCourtById, fetchCourtWeekSpans } from "@/services/courtService";
 import { fetchFeed } from "@/services/feedService";
+import { nextGameLabel } from "@/lib/nextGameLabel";
 
 const DRAWER_CHIPS = [
   { label: "Games", tab: "games" },
@@ -57,8 +57,8 @@ const DRAWER_CHIPS = [
  *
  * - Drawer: the Explore card's title row (sport, name, city · distance, live
  *   On court number on the right), then Next game / Court hours · wk / Locals,
- *   then Check in and Court ↗. Always free. The local + / check shows only
- *   once the drawer is expanded, matching Home.
+ *   then Check in and Court ↗. Always free. No local + / check: that lives
+ *   only on the court page.
  * - Expanded: Here now, Up next, Today (planned visits by hour) and Recent
  *   activity in a fixed area that never scrolls, then Games / Players / Feed
  *   / Week chips into the court page. A court that isn't your local, without
@@ -73,15 +73,12 @@ export function CourtSheetContent({
   onNavigate,
   onExpand,
   onPeekHeight,
-  expanded = false,
 }: {
   courtId: string;
   distanceKm?: number;
   onNavigate: () => void;
   onExpand: () => void;
   onPeekHeight: (height: number) => void;
-  /** True while the sheet sits on its expanded detent. */
-  expanded?: boolean;
 }) {
   const {
     courts, localCourt, checkIn, checkOut, checkedInCourtId, currentUser, runs,
@@ -193,11 +190,6 @@ export function CourtSheetContent({
   return (
     <BottomSheetView>
       <CourtArt sport={court.sport} top={-16} />
-      {expanded ? (
-        <View style={styles.localMark}>
-          <LocalMark active={isMyLocal} onPress={cooldown.restricted ? undefined : setAsLocal} />
-        </View>
-      ) : null}
       {/* ── Drawer: its measured height owns the first sheet detent ── */}
       <View
         onLayout={(event) => {
@@ -304,18 +296,6 @@ export function CourtSheetContent({
       ) : null}
     </BottomSheetView>
   );
-}
-
-/** The next game's start for the strip: "Now", "7PM" today, else "SAT". */
-function nextGameLabel(run: GameRun | undefined, now: number): string {
-  if (!run) return "—";
-  const start = new Date(run.startTimeIso);
-  if (start.getTime() <= now) return "Now";
-  if (start.toDateString() !== new Date(now).toDateString()) {
-    return start.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
-  }
-  const hour = start.getHours();
-  return `${hour % 12 || 12}${hour < 12 ? "AM" : "PM"}`;
 }
 
 /** One quiet feed line: dot, "Name did this", time. */
@@ -444,7 +424,6 @@ function CourtDrawerGate({
 const styles = StyleSheet.create({
   loading: { alignItems: "center", justifyContent: "center", paddingVertical: 64 },
   title: { paddingTop: 12 },
-  localMark: { position: "absolute", top: -6, right: 8, zIndex: 2 },
   strip: { paddingTop: 16 },
   actions: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 14 },
   checkSlot: { flex: 1, minWidth: 0 },

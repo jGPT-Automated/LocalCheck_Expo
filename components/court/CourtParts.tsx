@@ -365,13 +365,13 @@ const styles = StyleSheet.create({
   },
   cell: { flex: 1, height: 58, alignItems: "center", justifyContent: "center", gap: 6 },
   cellDivider: { borderLeftWidth: 1, borderLeftColor: Colors.hairline },
-  cellValue: { fontFamily: Typography.headingSemiBold, fontSize: 25, lineHeight: 27, letterSpacing: -0.6, color: Colors.text },
+  cellValue: { height: 27, fontFamily: Typography.headingSemiBold, fontSize: 25, lineHeight: 27, letterSpacing: -0.6, color: Colors.text },
   cellValueLive: { color: Colors.liveInk },
-  cellUnit: { fontSize: 16, letterSpacing: 0 },
+  cellUnit: { fontSize: 16, lineHeight: 16, letterSpacing: 0 },
   stripCard: { borderBottomWidth: 0, backgroundColor: "rgba(12,12,15,0.38)" },
   cellDrawer: { height: 62 },
   cellCard: { height: 54, gap: 4 },
-  cellValueDrawer: { fontSize: 28, lineHeight: 30 },
+  cellValueDrawer: { height: 30, fontSize: 28, lineHeight: 30 },
   // The drawer's strip: quieter than the court name and live number, and a
   // fixed value height so a unit ("1h") can't push its cell off the line.
   cellValueCard: { fontSize: 18, lineHeight: 22, height: 22 },
