@@ -43,6 +43,7 @@ export const SCREENS = [
   { name: "compete-log-game", path: "/compete", actions: [{ click: "LOG GAME", exact: false }] },
   { name: "explore", path: "/explore" },
   { name: "explore-drawer", path: "/explore", actions: [{ testId: `court-${COURT}`, wait: 4000 }] },
+  { name: "explore-drawer-expanded", path: "/explore", actions: [{ testId: `court-${COURT}`, wait: 4000 }, { eval: `document.querySelector('[aria-label$=", expand"]')?.click()`, wait: 2000 }] },
   { name: "settings", path: "/settings" },
   { name: "notifications", path: "/notifications" },
   { name: "localplus", path: "/localplus" },

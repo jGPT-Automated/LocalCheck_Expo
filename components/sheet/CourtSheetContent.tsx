@@ -21,10 +21,10 @@ import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewS
 import {
   CheckInButton,
   CourtLinkButton,
+  CourtTitleRow,
   LocalMark,
   MetricStrip,
   SectionHead,
-  SportLabel,
 } from "@/components/court/CourtParts";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { useToast } from "@/components/ui/Toast";
@@ -55,8 +55,10 @@ const DRAWER_CHIPS = [
  * Court drawer content (Claude Design court flow), rendered inside the root
  * BottomSheetModal (CourtSheetHost). Two detents on one sheet:
  *
- * - Drawer: sport + Your local, the court name, city · distance, On court /
- *   Court hours · wk / Locals, then Check in and Court ↗. Always free.
+ * - Drawer: the Explore card's title row (sport, name, city · distance, live
+ *   On court number on the right), then Next game / Court hours · wk / Locals,
+ *   then Check in and Court ↗. Always free. The local + / check shows only
+ *   once the drawer is expanded, matching Home.
  * - Expanded: Here now, Up next, Today (planned visits by hour) and Recent
  *   activity in a fixed area that never scrolls, then Games / Players / Feed
  *   / Week chips into the court page. A court that isn't your local, without
@@ -71,12 +73,15 @@ export function CourtSheetContent({
   onNavigate,
   onExpand,
   onPeekHeight,
+  expanded = false,
 }: {
   courtId: string;
   distanceKm?: number;
   onNavigate: () => void;
   onExpand: () => void;
   onPeekHeight: (height: number) => void;
+  /** True while the sheet sits on its expanded detent. */
+  expanded?: boolean;
 }) {
   const {
     courts, localCourt, checkIn, checkOut, checkedInCourtId, currentUser, runs,
@@ -188,7 +193,7 @@ export function CourtSheetContent({
   return (
     <BottomSheetView>
       <CourtArt sport={court.sport} />
-      <LocalMark active={isMyLocal} onPress={cooldown.restricted ? undefined : setAsLocal} />
+      {expanded ? <LocalMark active={isMyLocal} onPress={cooldown.restricted ? undefined : setAsLocal} /> : null}
       {/* ── Drawer: its measured height owns the first sheet detent ── */}
       <View
         onLayout={(event) => {
@@ -202,17 +207,19 @@ export function CourtSheetContent({
           accessibilityLabel={`${name}, expand`}
           onPress={onExpand}
         >
-          <View style={styles.metaRow}>
-            <SportLabel sport={court.sport} />
+          <View style={styles.title}>
+            <CourtTitleRow
+              live={live}
+              liveValue={activeCount}
+              name={name}
+              place={place || undefined}
+              sport={court.sport}
+            />
           </View>
-          <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
-            {name}
-          </Text>
-          {place ? <Text numberOfLines={1} style={styles.place}>{place}</Text> : null}
           <View style={styles.strip}>
             <MetricStrip
               cells={[
-                { label: "On court", value: activeCount, live },
+                { label: "Next game", value: nextGameLabel(upcoming[0], now) },
                 { label: "Court hours · wk", value: hoursLabel },
                 { label: "Locals", value: localCount },
               ]}
@@ -292,6 +299,18 @@ export function CourtSheetContent({
       ) : null}
     </BottomSheetView>
   );
+}
+
+/** The next game's start for the strip: "Now", "7PM" today, else "SAT". */
+function nextGameLabel(run: GameRun | undefined, now: number): string {
+  if (!run) return "—";
+  const start = new Date(run.startTimeIso);
+  if (start.getTime() <= now) return "Now";
+  if (start.toDateString() !== new Date(now).toDateString()) {
+    return start.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
+  }
+  const hour = start.getHours();
+  return `${hour % 12 || 12}${hour < 12 ? "AM" : "PM"}`;
 }
 
 /** One quiet feed line: dot, "Name did this", time. */
@@ -419,37 +438,8 @@ function CourtDrawerGate({
 
 const styles = StyleSheet.create({
   loading: { alignItems: "center", justifyContent: "center", paddingVertical: 64 },
-  metaRow: {
-    height: 34,
-    paddingTop: 6,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  name: {
-    paddingTop: 10,
-    paddingHorizontal: 20,
-    textAlign: "center",
-    fontFamily: Typography.headingBold,
-    fontSize: 38,
-    lineHeight: 40,
-    letterSpacing: -1.3,
-    textTransform: "uppercase",
-    color: Colors.text,
-    textShadowColor: Colors.sheet,
-    textShadowRadius: 6,
-  },
-  place: {
-    paddingTop: 6,
-    paddingHorizontal: 20,
-    textAlign: "center",
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    color: Colors.textSecondary,
-  },
-  strip: { paddingHorizontal: 20, paddingTop: 12 },
+  title: { paddingTop: 12 },
+  strip: { paddingHorizontal: 20, paddingTop: 14 },
   actions: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 14 },
   checkSlot: { flex: 1, minWidth: 0 },
   peekFoot: { height: 16 },

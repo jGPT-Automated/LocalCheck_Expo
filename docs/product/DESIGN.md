@@ -170,6 +170,7 @@ Canonical component ownership:
 | Tab header                     | `ScreenHeader`      |
 | Detail/back header             | `DetailHeader`      |
 | Court discovery card           | `CourtListItem`     |
+| Court title row (card, drawer, page) | `CourtTitleRow` |
 | Home court hero                | `HomeCourtHero`     |
 | Court line art (card, page)    | `CourtArt`          |
 | Court 3-number strip           | `MetricStrip` (`size`: page, drawer, card) |
@@ -221,6 +222,14 @@ If one of these elements changes, update the canonical component and search the 
   `RecentDatePicker`. Do not expose a free-typed date field on iOS.
 
 ## Court card treatment
+
+Since Oct 31 (D65) the card, the drawer and the court page share one title row,
+`CourtTitleRow`: sport label, name and city · distance left-aligned, the live
+On court number on the right (orange with the live dot when anyone is on).
+The Explore card is that row only: no numbers strip and no local + / check.
+The drawer's peek adds Next game / Court hours · wk / Locals and Check in +
+Court ›; the local + / check appears only once the drawer is expanded, as on
+Home. The court page header uses the same row at page size.
 
 Since D56 (Oct 15) the Explore card is the court-flow card: `#121216`, 20pt
 corners, one hairline, `CourtArt` top right, sport label and Your local pill,

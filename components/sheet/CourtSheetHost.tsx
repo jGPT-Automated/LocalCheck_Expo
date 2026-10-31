@@ -82,6 +82,7 @@ export function CourtSheetProvider({
   // The drawer opens before its compact block is measured; once the real
   // height arrives, settle a collapsed drawer onto it so it ends exactly at
   // the Check in row instead of showing half of the next row.
+  const [expanded, setExpanded] = useState(false);
   const sheetIndex = useRef(-1);
   const resnapPending = useRef(false);
   useEffect(() => {
@@ -99,18 +100,23 @@ export function CourtSheetProvider({
         compactHandle
         onChange={(index) => {
           sheetIndex.current = index;
+          setExpanded(index >= 1);
           if (index === 0 && resnapPending.current) {
             resnapPending.current = false;
             requestAnimationFrame(() => modalRef.current?.snapToIndex(0));
           }
         }}
-        onDismiss={() => setArgs(null)}
+        onDismiss={() => {
+          setArgs(null);
+          setExpanded(false);
+        }}
       >
         {args && (
           <CourtSheetContent
             courtId={args.courtId}
             distanceKm={args.distanceKm}
             onNavigate={closeCourtSheet}
+            expanded={expanded}
             onExpand={expandCourtSheet}
             onPeekHeight={(height) =>
               setPeekHeight(Math.ceil(height + DRAWER_HANDLE_HEIGHT))

@@ -94,6 +94,18 @@ Each claim says which of these it is, because they are often confused:
     court route entry) and the court page section of `docs/product/DESIGN.md`.
   - Not in this pass: Players sorts (Active / Newest / All), the Live
     scoreboard rows, Phosphor icons, the drawer.
+- Oct 31 court title row (D65; **on a branch**, `claude/explore-card-live`, not
+  merged, not on a device). Frontend only.
+  - `CourtTitleRow` (`components/court/CourtParts.tsx`): sport, name, city ·
+    distance left, live On court number right. Used by `CourtListItem`, the
+    drawer peek (`components/sheet/CourtSheetContent.tsx`) and the court page
+    header (`app/court/[id].tsx`).
+  - Explore card: no `MetricStrip`, no `LocalMark`; `hooks/useCourtHours.ts`
+    removed (the card no longer shows court hours).
+  - Drawer strip: Next game / Court hours · wk / Locals. `CourtSheetHost`
+    tracks the expanded detent and the drawer shows `LocalMark` only there.
+  - Visual QA: new `explore-drawer-expanded` screen in
+    `scripts/visual-qa/screens.mjs`.
 - Oct 18 follow-up 3 (D61; **on a branch**, PR #77, not merged, not on a device;
   not checked in a render, Jesse is verifying). Frontend only.
   - `LocalMark` (`components/court/CourtParts.tsx`): corner quarter-circle with

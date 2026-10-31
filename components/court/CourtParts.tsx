@@ -132,6 +132,59 @@ export function LocalMark({ active, onPress, top = 0 }: { active: boolean; onPre
   );
 }
 
+/**
+ * The court's title row, shared by the Explore card, the court drawer and the
+ * court page so a court reads the same from list to drawer to page: sport,
+ * name and city · distance on the left, the live On court number on the
+ * right. `card` is the Explore card and drawer, `page` the court page.
+ */
+export function CourtTitleRow({
+  sport,
+  name,
+  place,
+  liveValue,
+  live,
+  liveAccessibilityLabel,
+  size = "card",
+}: {
+  sport: CourtSport;
+  name: string;
+  place?: string;
+  liveValue: string | number;
+  live: boolean;
+  liveAccessibilityLabel?: string;
+  size?: "card" | "page";
+}) {
+  const page = size === "page";
+  return (
+    <View style={styles.titleRow}>
+      <View style={styles.titleBlock}>
+        <SportLabel sport={sport} />
+        <Text
+          adjustsFontSizeToFit
+          minimumFontScale={0.6}
+          numberOfLines={1}
+          style={[styles.titleName, page && styles.titleNamePage]}
+        >
+          {name}
+        </Text>
+        {place ? <Text numberOfLines={1} style={styles.titlePlace}>{place}</Text> : null}
+      </View>
+      <View
+        accessibilityLabel={liveAccessibilityLabel ?? `${liveValue} on court`}
+        accessible
+        style={styles.liveBlock}
+      >
+        <Text style={[styles.liveValue, page && styles.liveValuePage, live && styles.liveValueOn]}>{liveValue}</Text>
+        <View style={styles.liveLabelRow}>
+          {live ? <LiveDot /> : null}
+          <Text style={styles.liveLabel}>On court</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 export interface StripCell {
   label: string;
   value: string | number;
@@ -351,6 +404,26 @@ const styles = StyleSheet.create({
   checkOutText: { flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.liveInk },
   courtLink: { width: 64, height: 50, backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
   cellLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  titleRow: { flexDirection: "row", alignItems: "flex-end", gap: 16, paddingHorizontal: 20 },
+  titleBlock: { flex: 1, minWidth: 0, gap: 6 },
+  titleName: {
+    fontFamily: Typography.headingBold,
+    fontSize: 30,
+    lineHeight: 33,
+    letterSpacing: -0.9,
+    textTransform: "uppercase",
+    color: Colors.text,
+    textShadowColor: Colors.sheet,
+    textShadowRadius: 6,
+  },
+  titleNamePage: { fontSize: 34, lineHeight: 37, letterSpacing: -1.1 },
+  titlePlace: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
+  liveBlock: { flexShrink: 0, alignItems: "flex-end", paddingBottom: 1 },
+  liveValue: { fontFamily: Typography.headingBold, fontSize: 40, lineHeight: 42, letterSpacing: -1.2, color: Colors.text, fontVariant: ["tabular-nums"] },
+  liveValuePage: { fontSize: 46, lineHeight: 48, letterSpacing: -1.4 },
+  liveValueOn: { color: Colors.liveInk },
+  liveLabelRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
+  liveLabel: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.textSecondary },
   cellLabel: { fontFamily: Typography.bodyBold, fontSize: 7.5, letterSpacing: 0.9, textTransform: "uppercase", color: Colors.textSecondary },
   tabs: { flexDirection: "row", paddingHorizontal: 6, borderBottomWidth: 1, borderBottomColor: Colors.hairline },
   tab: { flex: 1, height: 44, alignItems: "center", justifyContent: "center", borderBottomWidth: 2, borderBottomColor: "transparent" },
