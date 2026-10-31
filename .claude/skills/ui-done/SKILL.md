@@ -82,39 +82,57 @@ the new baseline in the same PR.
 ## 2. Before you change anything
 
 1. Find the owning component (`rg`) and every screen that uses it. A change to
-   a shared component is a change to all of those screens; check all of them.
-2. Build `main` (or the PR base) and run `pnpm qa:visual` on it once, so you
-   have the before screenshots and the counts to compare against.
-3. Restate the exact scope. An adjacent problem goes in the log, not silently
+   a shared component is a change to all of those screens. That list of
+   screens is your QA list for this change. Nothing else gets screenshotted.
+2. Restate the exact scope. An adjacent problem goes in the log, not silently
    into the change.
 
-## 3. The visual QA run (mandatory)
+## 3. Visual QA: the PR's Vercel preview against live (default)
+
+Do this. Do not build the app locally and do not run the whole screen suite.
+
+1. Push the branch and open the PR. The Vercel bot comments the branch's
+   **Preview** link on the PR (`localcheck-app-preview-git-<branch>-…vercel.app`)
+   within a few minutes. Read it from the PR comments; don't guess it.
+2. The **live** link is `main`'s deployment:
+   `https://localcheck-app-preview-git-main-jgpt-automated.vercel.app`.
+3. In both, sign in with the QA test account. Ask Jesse for the login; never
+   write it into the repo.
+4. Screenshot **only the screens on your QA list** (section 2), each in the
+   states the change affects (e.g. a drawer peeked and expanded), at 375x667
+   and 393x852. Same screen, same state, same size on preview and live.
+5. Put each pair side by side, open them at full size, and check: the change
+   is there, nothing on those screens got worse, nothing is cut off,
+   overlapping or misaligned. Both use real data, so pick a court or player
+   that exists on both.
+6. Post the pairs on the PR (section 4).
+
+Re-checking after a fix: re-screenshot only the screen and size that failed,
+on the new preview. Never redo screens that already passed.
+
+### Fallback: local suite (only when the Vercel preview can't be used)
+
+`pnpm qa:visual` builds the app and checks screens against an in-memory
+Supabase stand-in. It is slow (a full web export every run), so always scope
+it: `QA_ONLY=<screen names>` and `QA_SIZES=375x667,393x852` to the QA list.
+Never run it unscoped, and never run it twice for the same build.
 
 ```bash
 EXPO_PUBLIC_SUPABASE_URL=https://ci-placeholder.invalid \
 EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_ci_placeholder \
 EXPO_PUBLIC_MAPBOX_TOKEN=pk.ci-placeholder \
 pnpm export:web -- --output-dir /tmp/localcheck-ci-export
+QA_ONLY=explore,court-live QA_SIZES=375x667,393x852 \
 pnpm qa:visual /tmp/localcheck-ci-export --out /tmp/localcheck-visual-qa
 ```
 
-It signs in against an in-memory Supabase stand-in (no real data, no network)
-with the clock pinned to a busy Saturday evening, opens every screen and
-state in `scripts/visual-qa/screens.mjs` at 375x667, 393x852 and 430x932,
-saves a screenshot of each and writes `report.md`. It is not in CI yet: the
-Explore drawer sometimes settles at a taller peek at 375x667 (known flake).
-
-Then, by eye, open the full-size PNG of every screen you touched, at 375 and
-393 at least. The run catches clipped and overlapping text; it cannot see
-off-centre art, uneven margins, a dead gap or a wrong colour. You can.
-
-Add a row to `screens.mjs` for any new screen or layout-changing state (a
-sheet, a selected item, a tab) so the run covers it from now on.
+Add a row to `scripts/visual-qa/screens.mjs` for any new screen or state so
+the fallback can reach it.
 
 ## 4. Done means
 
 - [ ] `pnpm check` passes.
-- [ ] `pnpm qa:visual` reports 0 failures and nothing above baseline.
+- [ ] Preview vs live screenshots taken for every screen on the QA list (section 3).
 - [ ] Every touched screen opened at full size at 375 and 393, compared with
       its before screenshot; nothing that was right got worse.
 - [ ] Interactions exercised: tap, back, dismiss, swipe, keyboard, loading,
