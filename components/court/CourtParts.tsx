@@ -146,6 +146,7 @@ export function CourtTitleRow({
   live,
   liveAccessibilityLabel,
   size = "card",
+  clearCornerMark = false,
 }: {
   sport: CourtSport;
   name: string;
@@ -154,20 +155,23 @@ export function CourtTitleRow({
   live: boolean;
   liveAccessibilityLabel?: string;
   size?: "card" | "page";
+  /** Keep the live number clear of a LocalMark in the same top-right corner. */
+  clearCornerMark?: boolean;
 }) {
   const page = size === "page";
-  // Long names step down a size so they stay on one line beside the live
-  // number on a 375pt phone; adjustsFontSizeToFit covers the rest on iOS.
-  const long = name.length > 13;
+  // On the card, long names step down a size so they stay on one line beside
+  // the live number on a 375pt phone; adjustsFontSizeToFit covers the rest on
+  // iOS. The page is wide enough at full size.
+  const long = !page && name.length > 13;
   return (
-    <View style={styles.titleRow}>
+    <View style={[styles.titleRow, clearCornerMark && styles.titleRowClearMark]}>
       <View style={styles.titleBlock}>
         <SportLabel sport={sport} />
         <Text
           adjustsFontSizeToFit
           minimumFontScale={0.6}
           numberOfLines={1}
-          style={[styles.titleName, page && styles.titleNamePage, long && (page ? styles.titleNamePageLong : styles.titleNameLong)]}
+          style={[styles.titleName, page && styles.titleNamePage, long && styles.titleNameLong]}
         >
           {name}
         </Text>
@@ -408,6 +412,7 @@ const styles = StyleSheet.create({
   courtLink: { width: 64, height: 50, backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
   cellLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   titleRow: { flexDirection: "row", alignItems: "flex-end", gap: 16, paddingHorizontal: 20 },
+  titleRowClearMark: { paddingRight: 20 + MARK },
   titleBlock: { flex: 1, minWidth: 0, gap: 6 },
   titleName: {
     fontFamily: Typography.headingBold,
@@ -421,7 +426,6 @@ const styles = StyleSheet.create({
   },
   titleNamePage: { fontSize: 34, lineHeight: 37, letterSpacing: -1.1 },
   titleNameLong: { fontSize: 25, lineHeight: 28, letterSpacing: -0.7 },
-  titleNamePageLong: { fontSize: 28, lineHeight: 31, letterSpacing: -0.8 },
   titlePlace: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
   liveBlock: { flexShrink: 0, alignItems: "flex-end", paddingBottom: 1 },
   liveValue: { fontFamily: Typography.headingBold, fontSize: 40, lineHeight: 42, letterSpacing: -1.2, color: Colors.text, fontVariant: ["tabular-nums"] },

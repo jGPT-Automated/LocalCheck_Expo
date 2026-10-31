@@ -209,6 +209,7 @@ export function CourtSheetContent({
         >
           <View style={styles.title}>
             <CourtTitleRow
+              clearCornerMark={expanded}
               live={live}
               liveValue={activeCount}
               name={name}
