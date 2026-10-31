@@ -191,6 +191,7 @@ Canonical component ownership:
 | Compact menu                   | `CompactSelect`     |
 | Primary two-mode switch        | `ModeTabs`          |
 | Reachable multi-action control | `SpeedDialFab`      |
+| Small toggle (feed filters, Schedule actions) | `Pill` |
 | Game/revision date             | `RecentDatePicker`  |
 | Bottom sheet (any drawer)      | `AppBottomSheetModal` |
 | Tab-bar floor / bottom padding | `TabFloor` (`useBottomFloor`, `useSheetBottomPadding`) |
@@ -431,12 +432,14 @@ Replaced by the above on Oct 14 (D55), kept for history: the court detail page k
 
 ## Schedule and run flow
 
-- Schedule keeps a stable weekly heatmap footprint in view mode. Its one-hour
-  time axis scrolls independently between two overlapping snap windows (8 AM–3 PM
-  and 3–10 PM). A single directional chevron sits below the early window or above
-  the late window and is also a tap target. Compact screens may scroll the body so
-  selected-slot details and upcoming runs remain reachable.
-- The reachable `SpeedDialFab` exposes **Add times** and **Create run** using the shared Reanimated component and Feather icons.
+- Schedule's heat map covers 4 AM–11 PM in one-hour rows and shows 12 rows at a
+  time. A flick snaps between two windows, 4 AM–3 PM and 12 PM–11 PM, which
+  overlap at midday so the jump reads as continuous; it opens on the window
+  holding the current hour. Rows are sized so one window fills the space (26–36pt).
+- No floating button. Under the heat map, the court feed's `Pill` row: **Select**
+  (pick times, then Save), **Only mine** (every slot you haven't planned reads
+  empty) and **Clear mine · N** (opens Select with nothing picked; Save removes
+  them). New games come from the slot card's **+ New game**.
 - Add-times mode supports multi-select cells and one save action.
 - Scheduled run cards show localized 12-hour time, attendees, and remaining spots. They do not waste space on `VIEW` copy or a text arrow.
 - Run detail keeps the two-column roster compact; its body scrolls when a full

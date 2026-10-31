@@ -181,6 +181,32 @@ export function CourtTitleRow({
   );
 }
 
+/** The small rounded toggle used for the court feed filters and the Schedule actions. */
+export function Pill({
+  label,
+  selected = false,
+  disabled = false,
+  onPress,
+}: {
+  label: string;
+  selected?: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected, disabled }}
+      disabled={disabled}
+      hitSlop={7}
+      onPress={onPress}
+      style={[styles.pill, selected && styles.pillActive, disabled && styles.pillDisabled]}
+    >
+      <Text style={[styles.pillText, selected && styles.pillTextActive]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 export interface StripCell {
   label: string;
   value: string | number;
@@ -386,6 +412,11 @@ const styles = StyleSheet.create({
   checkOutText: { flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.liveInk },
   courtLink: { width: 64, height: 50, backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
   cellLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  pill: { height: 30, paddingHorizontal: 12, borderRadius: 999, justifyContent: "center", borderWidth: 1, borderColor: "rgba(242,242,246,0.12)" },
+  pillActive: { backgroundColor: Colors.tile, borderColor: "rgba(242,242,246,0.2)" },
+  pillDisabled: { opacity: 0.4 },
+  pillText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.textSecondary },
+  pillTextActive: { color: Colors.text },
   titleRow: { flexDirection: "row", alignItems: "flex-end", gap: 16, paddingHorizontal: 20 },
   titleBlock: { flex: 1, minWidth: 0, gap: 6 },
   titleName: {

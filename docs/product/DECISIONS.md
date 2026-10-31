@@ -90,7 +90,10 @@ below wherever they disagree.
   on the court page, in its back-arrow row. The drawer's numbers sit on the
   darker band, quieter than the name and live number. The court page header
   and Home's pinned header use the same title row; Home has the drawer's
-  numbers band too. Back is an edge swipe only (PR #87). D62–D64
+  numbers band too. Same PR (Oct 31): Schedule loses its floating button for
+  the feed's pills (Select / Only mine / Clear mine), its heat map snaps between
+  4 AM–3 PM and 12 PM–11 PM, and Up Next (Home, drawer) uses the Games tab's
+  game card. Back is an edge swipe only (PR #87). D62–D64
   are taken by open PR #83.
 - **D61 Corner mark, thin slot card, Schedule fits one screen (Oct 18,
   revises D60):** The local mark becomes a quarter-circle in the card's

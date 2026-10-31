@@ -14,7 +14,7 @@ import type { GameRun } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 
-function dayLabel(date: Date): string {
+export function dayLabel(date: Date): string {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const day = new Date(date);
@@ -79,6 +79,12 @@ export function CourtGamesPanel({
       {onCreate ? <CreateGameRow onPress={onCreate} /> : null}
     </View>
   );
+}
+
+/** The Games tab's day heading ("Today", "Tomorrow", "Monday, Nov 2"). */
+export function GameDayLabel({ iso }: { iso: string }) {
+  const label = dayLabel(new Date(iso));
+  return <Text style={[styles.day, label === "Today" && styles.dayToday]}>{label}</Text>;
 }
 
 function CreateGameRow({ onPress }: { onPress: () => void }) {

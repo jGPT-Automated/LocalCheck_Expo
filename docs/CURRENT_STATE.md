@@ -124,6 +124,14 @@ Each claim says which of these it is, because they are often confused:
     drawer; art centred on the name on all four screens; the gap above the name
     was 14pt vs 11.5pt below, now evened in `CourtTitleRow` (name nudged up
     1.25pt).
+  - Schedule (`app/(tabs)/schedule.tsx`): no `SpeedDialFab`; a `Pill` row
+    (Select / Only mine / Clear mine · N) under the heat map; the legend is
+    gone. `components/schedule/scheduleModel.ts`: axis 4 AM–11 PM, two
+    12-row snap windows (`SCHEDULE_WINDOW_STARTS`), tests updated. `Pill` is
+    the shared toggle (`CourtParts`), also used by the court feed filters.
+    `scripts/check-design-consistency.mjs` now requires `Pill` there.
+  - Up Next (`UpNextSection`, Home and the drawer) renders the Games tab's
+    `ScheduledGameCard` under its `GameDayLabel`.
   - `scripts/visual-qa/preview-shots.cjs` takes `SIZES=375` to shoot one width.
   - `.claude/skills/ui-done` section 3 rewritten as the process: screenshot
     only what changed (preview vs live, `scripts/visual-qa/preview-shots.cjs`),
