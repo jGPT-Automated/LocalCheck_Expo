@@ -140,6 +140,12 @@ Each claim says which of these it is, because they are often confused:
     element looks the same everywhere, change only what was asked.
   - QA default (`.claude/skills/ui-done`): the PR's Vercel preview against
     `main`'s live link, only the screens the change affects.
+- Oct 31 edge-only Back (**on a branch**, `claude/edge-swipe-back`, not on a
+  device). `app/_layout.tsx` `detailScreenOptions`: `fullScreenGestureEnabled`
+  is now `false` and `animationMatchesGesture` is gone, so swipe-back starts
+  only at the left edge (the iOS default) and drags anywhere else belong to the
+  page's scroll views. Same change as the gesture part of open PRs #83 and #84.
+  Folded into PR #88 (Oct 31); PR #87 closed.
 - Oct 18 follow-up 3 (D61; **on a branch**, PR #77, not merged, not on a device;
   not checked in a render, Jesse is verifying). Frontend only.
   - `LocalMark` (`components/court/CourtParts.tsx`): corner quarter-circle with
