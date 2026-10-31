@@ -1115,7 +1115,7 @@ export default function ScheduleScreen() {
             nestedScrollEnabled
             showsVerticalScrollIndicator={false}
             snapToOffsets={SCHEDULE_WINDOW_STARTS.map((start) => start * rowPitch)}
-            style={{ height: SCHEDULE_WINDOW_ROWS * rowPitch }}
+            style={{ height: SCHEDULE_WINDOW_ROWS * rowPitch, flexGrow: 0 }}
             testID="schedule-heat-scroll"
           >
             {SLOT_HOURS.map((h, slotIdx) => (

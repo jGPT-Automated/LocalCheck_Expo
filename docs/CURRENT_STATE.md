@@ -137,6 +137,7 @@ Each claim says which of these it is, because they are often confused:
     "Who's going" row removed), the page is one view above the tab bar with
     the grid sized from its measured space, and the heat map snaps to the
     nearer window when a scroll settles (web ignores `snapToOffsets`).
+    The heat ScrollView is pinned to exactly 12 rows (`flexGrow: 0`).
   - Up Next (`UpNextSection`, Home and the drawer) renders the Games tab's
     `ScheduledGameCard` under its `GameDayLabel`.
   - `scripts/visual-qa/preview-shots.cjs` takes `SIZES=375` to shoot one width.
