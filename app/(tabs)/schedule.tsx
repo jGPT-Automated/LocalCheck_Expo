@@ -1395,7 +1395,7 @@ export default function ScheduleScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  pillRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingHorizontal: 20, paddingTop: 12 },
+  pillRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingTop: 12 },
   scheduleScroll: { flex: 1, minHeight: 0 },
   scheduleBody: { flexGrow: 1 },
   flexArea: { flexGrow: 1, minHeight: 140, marginTop: 8 },

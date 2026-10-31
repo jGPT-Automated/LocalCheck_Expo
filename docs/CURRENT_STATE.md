@@ -130,6 +130,7 @@ Each claim says which of these it is, because they are often confused:
     12-row snap windows (`SCHEDULE_WINDOW_STARTS`), tests updated. `Pill` is
     the shared toggle (`CourtParts`), also used by the court feed filters.
     `scripts/check-design-consistency.mjs` now requires `Pill` there.
+    Pill row shares the heat map's 20pt left edge (was 40pt, measured).
   - Up Next (`UpNextSection`, Home and the drawer) renders the Games tab's
     `ScheduledGameCard` under its `GameDayLabel`.
   - `scripts/visual-qa/preview-shots.cjs` takes `SIZES=375` to shoot one width.

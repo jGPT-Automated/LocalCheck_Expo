@@ -45,6 +45,18 @@ const want = (k) => !ONLY || ONLY.includes(k);
       await p.waitForTimeout(6000);
       await p.screenshot({ path: `shots/${tag}-5-home.png` });
     }
+    if (want('6-schedule')) {
+      await p.goto(base.replace(/\/$/, '') + '/schedule', { waitUntil: 'networkidle', timeout: 90000 });
+      await p.waitForTimeout(6000);
+      await p.screenshot({ path: `shots/${tag}-6-schedule.png` });
+      // The heat map's other snap window.
+      await p.evaluate(() => {
+        const el = document.querySelector('[data-testid="schedule-heat-scroll"]');
+        if (el) el.scrollTop = el.scrollTop > 0 ? 0 : el.scrollHeight;
+      });
+      await p.waitForTimeout(1500);
+      await p.screenshot({ path: `shots/${tag}-6-schedule-other-window.png` });
+    }
     console.log(tag, 'court', id);
     await ctx.close();
   }
