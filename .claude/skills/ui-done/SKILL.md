@@ -89,6 +89,15 @@ the new baseline in the same PR.
 
 ## 3. Visual QA: the PR's Vercel preview against live (default)
 
+> **Hard rule: screenshot only what the change affects.** Screenshot only the
+> screens, states and sizes the diff actually changes. Never screenshot every
+> screen, never run the full local suite, and never re-shoot something that
+> already passed. A wording-only change gets one screenshot of that screen.
+> After a fix, re-shoot only the screen and size that failed. Never delete a
+> screenshot until Jesse has seen it. Send the before/after pairs to Jesse as
+> soon as they exist. Breaking this rule wastes his time and the session's
+> budget, and the work is not done.
+
 Do this. Do not build the app locally and do not run the whole screen suite.
 
 1. Push the branch and open the PR. The Vercel bot comments the branch's
