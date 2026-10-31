@@ -6,7 +6,9 @@
 // Writes shots/<label>-<width>-<screen>.png. Add a step here for a new screen.
 const { chromium } = require('playwright');
 const [base, label] = process.argv.slice(2);
-const SIZES = [[375, 667], [393, 852]];
+const ALL_SIZES = [[375, 667], [393, 852]];
+// SIZES=375 limits it to one width when the change can't differ by width.
+const SIZES = process.env.SIZES ? ALL_SIZES.filter(([w]) => process.env.SIZES.split(',').includes(String(w))) : ALL_SIZES;
 const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null;
 const want = (k) => !ONLY || ONLY.includes(k);
 (async () => {
