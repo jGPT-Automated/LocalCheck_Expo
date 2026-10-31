@@ -87,56 +87,77 @@ the new baseline in the same PR.
 2. Restate the exact scope. An adjacent problem goes in the log, not silently
    into the change.
 
-## 3. Visual QA: the PR's Vercel preview against live (default)
+## 3. Visual QA: how to do it
 
-> **Hard rule: screenshot only what the change affects.** Screenshot only the
-> screens, states and sizes the diff actually changes. Never screenshot every
-> screen, never run the full local suite, and never re-shoot something that
-> already passed. A wording-only change gets one screenshot of that screen.
-> After a fix, re-shoot only the screen and size that failed. Never delete a
-> screenshot until Jesse has seen it. Send the before/after pairs to Jesse as
-> soon as they exist. Breaking this rule wastes his time and the session's
-> budget, and the work is not done.
+Visual QA has three parts: screenshot only what changed, measure it instead
+of eyeballing it, and check that the same element looks the same everywhere it
+appears. Do all three for every visible change.
 
-Do this. Do not build the app locally and do not run the whole screen suite.
+### 3a. Screenshot only what the change affects
 
-1. Push the branch and open the PR. The Vercel bot comments the branch's
-   **Preview** link on the PR (`localcheck-app-preview-git-<branch>-…vercel.app`)
-   within a few minutes. Read it from the PR comments; don't guess it.
-2. The **live** link is `main`'s deployment:
+1. Before touching code, write the QA list: the screens and states the diff
+   changes (from section 2), and the sizes where the change could look
+   different (375x667 and 393x852 when layout or text width is involved; one
+   size for a colour or wording change). Nothing else gets screenshotted.
+2. Push and open the PR. Read the branch's Vercel **Preview** link from the
+   Vercel bot's PR comment. The **live** link is `main`'s deployment:
    `https://localcheck-app-preview-git-main-jgpt-automated.vercel.app`.
-3. In both, sign in with the QA test account. Ask Jesse for the login; never
-   write it into the repo.
-4. Screenshot **only the screens on your QA list** (section 2), each in the
-   states the change affects (e.g. a drawer peeked and expanded), at 375x667
-   and 393x852. Same screen, same state, same size on preview and live.
-5. Put each pair side by side, open them at full size, and check: the change
-   is there, nothing on those screens got worse, nothing is cut off,
-   overlapping or misaligned. Both use real data, so pick a court or player
-   that exists on both.
-6. Post the pairs on the PR (section 4).
+3. Sign in on both with the QA test account (ask Jesse for the login; never
+   write it into the repo) and shoot the QA list on live once and on the
+   preview: `scripts/visual-qa/preview-shots.cjs`, with `ONLY=` set to the
+   QA list. Same court or player, same state, same size on both.
+4. Pair each live/preview shot side by side, labelled BEFORE and AFTER.
+5. Send the pairs to Jesse as soon as they exist, commit them to
+   `docs/product/design-qa/<yyyy-mm-dd>-<topic>/`, and post them in a PR
+   comment. Never delete a screenshot.
+6. After a fix, re-shoot only the screens and sizes the fix touched. Never
+   re-shoot what already passed, never shoot every screen, and never run the
+   local suite unscoped.
 
-Re-checking after a fix: re-screenshot only the screen and size that failed,
-on the new preview. Never redo screens that already passed.
+### 3b. Measure, don't eyeball
+
+For each changed screen, measure these with `scripts/visual-qa/measure.py`
+(ink bands from the PNG) or the DOM (`getBoundingClientRect` on the preview),
+and fix anything that is off before anyone sees it:
+
+- **Stacked text is evenly spaced.** The ink gap above the court name equals
+  the ink gap below it (sport label, name, city).
+- **Things in a row share a line.** In a numbers strip, every value starts on
+  the same row and every label starts on the same row. A unit ("1h") must
+  never push its cell's label down.
+- **Things are centred where they sit.** A number is centred in its cell.
+  Background art is centred on the text it sits behind.
+- **Edges are symmetrical.** Side gutters are equal. A control on the right
+  sits the same distance in from the edge as its partner on the left (back
+  arrow and local mark).
+- **Hierarchy is deliberate.** Exactly one or two things draw the eye (the
+  court name and the live number). Supporting numbers are quieter, never the
+  same size as the headline.
+
+Write the measured numbers in the PR comment next to the pairs.
+
+### 3c. Continuity: one element, one look
+
+When an element appears on several screens, it must look the same on all of
+them. Build it as one shared component, then put the screenshots of every
+place it appears side by side as a set and compare them. The court header is
+`CourtTitleRow`, used by the Explore card, the drawer, the court page and
+Home: same name position and size, same live number on the right, same art
+offset. The numbers band under it is the same on the drawer and Home. A
+control that belongs to one screen (the local + / check is on the court page
+only) appears nowhere else.
+
+### 3d. Change only what was asked
+
+Make the change Jesse asked for and nothing more. If you see something else
+that's off, put it in the PR's handoff or ask, and don't change it silently.
 
 ### Fallback: local suite (only when the Vercel preview can't be used)
 
 `pnpm qa:visual` builds the app and checks screens against an in-memory
 Supabase stand-in. It is slow (a full web export every run), so always scope
-it: `QA_ONLY=<screen names>` and `QA_SIZES=375x667,393x852` to the QA list.
-Never run it unscoped, and never run it twice for the same build.
-
-```bash
-EXPO_PUBLIC_SUPABASE_URL=https://ci-placeholder.invalid \
-EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_ci_placeholder \
-EXPO_PUBLIC_MAPBOX_TOKEN=pk.ci-placeholder \
-pnpm export:web -- --output-dir /tmp/localcheck-ci-export
-QA_ONLY=explore,court-live QA_SIZES=375x667,393x852 \
-pnpm qa:visual /tmp/localcheck-ci-export --out /tmp/localcheck-visual-qa
-```
-
-Add a row to `scripts/visual-qa/screens.mjs` for any new screen or state so
-the fallback can reach it.
+it with `QA_ONLY=<screen names>` and `QA_SIZES=375x667,393x852`, and never
+run it twice for the same build.
 
 ## 4. Done means
 

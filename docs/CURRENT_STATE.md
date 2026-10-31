@@ -120,6 +120,10 @@ Each claim says which of these it is, because they are often confused:
     Court page art centred on the name. Strip values have a fixed height so a
     unit no longer drops its label. `nextGameLabel` moved to
     `lib/nextGameLabel.ts`.
+  - `.claude/skills/ui-done` section 3 rewritten as the process: screenshot
+    only what changed (preview vs live, `scripts/visual-qa/preview-shots.cjs`),
+    measure spacing and alignment (`scripts/visual-qa/measure.py`), check one
+    element looks the same everywhere, change only what was asked.
   - QA default (`.claude/skills/ui-done`): the PR's Vercel preview against
     `main`'s live link, only the screens the change affects.
 - Oct 18 follow-up 3 (D61; **on a branch**, PR #77, not merged, not on a device;
