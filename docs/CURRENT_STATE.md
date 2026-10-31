@@ -120,6 +120,10 @@ Each claim says which of these it is, because they are often confused:
     Court page art centred on the name. Strip values have a fixed height so a
     unit no longer drops its label. `nextGameLabel` moved to
     `lib/nextGameLabel.ts`.
+  - Measured on the preview: strip labels share one pixel row on Home and the
+    drawer; art centred on the name on all four screens; the gap above the name
+    was 14pt vs 11.5pt below, now evened in `CourtTitleRow` (name nudged up
+    1.25pt).
   - `.claude/skills/ui-done` section 3 rewritten as the process: screenshot
     only what changed (preview vs live, `scripts/visual-qa/preview-shots.cjs`),
     measure spacing and alignment (`scripts/visual-qa/measure.py`), check one

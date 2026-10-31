@@ -389,6 +389,10 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: "row", alignItems: "flex-end", gap: 16, paddingHorizontal: 20 },
   titleBlock: { flex: 1, minWidth: 0, gap: 6 },
   titleName: {
+    // Oswald's line box carries more space above the caps than below; this
+    // evens the ink gaps above and below the name (measured: 14pt vs 11.5pt).
+    marginTop: -1.25,
+    marginBottom: 1.25,
     fontFamily: Typography.headingBold,
     fontSize: 30,
     lineHeight: 33,
