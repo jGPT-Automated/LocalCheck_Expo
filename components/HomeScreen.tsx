@@ -157,6 +157,9 @@ export function HomeScreen() {
 
       <ScrollView
         contentContainerStyle={{ paddingBottom: tabFloor + Space.lg }}
+        alwaysBounceVertical={false}
+        bounces={false}
+        overScrollMode="never"
         showsVerticalScrollIndicator={false}
         stickyHeaderIndices={[0]}
         style={styles.scroll}

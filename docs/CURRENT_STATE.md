@@ -131,6 +131,12 @@ Each claim says which of these it is, because they are often confused:
     the shared toggle (`CourtParts`), also used by the court feed filters.
     `scripts/check-design-consistency.mjs` now requires `Pill` there.
     Pill row shares the heat map's 20pt left edge (was 40pt, measured).
+  - Fourth review: long court names drop a trailing "Courts"/"Court" instead
+    of "…"; Home's ScrollView doesn't bounce, so the pinned header can't be
+    pulled down; Schedule's court picker sits in the header row (date range,
+    "Who's going" row removed), the page is one view above the tab bar with
+    the grid sized from its measured space, and the heat map snaps to the
+    nearer window when a scroll settles (web ignores `snapToOffsets`).
   - Up Next (`UpNextSection`, Home and the drawer) renders the Games tab's
     `ScheduledGameCard` under its `GameDayLabel`.
   - `scripts/visual-qa/preview-shots.cjs` takes `SIZES=375` to shoot one width.

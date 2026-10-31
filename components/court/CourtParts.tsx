@@ -152,6 +152,9 @@ export function CourtTitleRow({
   size?: "card" | "page";
 }) {
   const page = size === "page";
+  // A long name loses its trailing "Courts" / "Court" rather than ending in
+  // "…" ("SAND BRANCH COURTS" reads as "SAND BRANCH").
+  const shown = name.length > 14 ? name.replace(/\s+courts?$/i, "") : name;
   return (
     <View style={styles.titleRow}>
       <View style={styles.titleBlock}>
@@ -162,7 +165,7 @@ export function CourtTitleRow({
           numberOfLines={1}
           style={[styles.titleName, page && styles.titleNamePage]}
         >
-          {name}
+          {shown}
         </Text>
         {place ? <Text numberOfLines={1} style={styles.titlePlace}>{place}</Text> : null}
       </View>
