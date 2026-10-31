@@ -5,7 +5,7 @@ superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D61, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D65, Jesse's plan doc)
 
 Numbers match Jesse's plan doc (Decisions tab). These supersede older entries
 below wherever they disagree.
@@ -80,6 +80,21 @@ below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D65 One court title row from card to drawer to page (Oct 31, revises
+  D56 and D61):** The Explore card shows only the court's title: sport, name
+  and city · distance left-aligned, with the live On court number on the
+  right. Its numbers strip and its local + / check are gone. Tapping opens the
+  drawer with the same title row, then Next game / Court hours · wk / Locals
+  (Next game takes the strip slot On court used to have) and Check in + Court ›.
+  The local + / check is a plain icon with no quarter-circle and appears only
+  on the court page, in its back-arrow row. The drawer's numbers sit on the
+  darker band, quieter than the name and live number. The court page header
+  and Home's pinned header use the same title row; Home has the drawer's
+  numbers band too. Same PR (Oct 31): Schedule loses its floating button for
+  the feed's pills (Select / Only mine / Clear mine), its heat map snaps between
+  4 AM–3 PM and 12 PM–11 PM, and Up Next (Home, drawer) uses the Games tab's
+  game card. Back is an edge swipe only (PR #87). D62–D64
+  are taken by open PR #83.
 - **D61 Corner mark, thin slot card, Schedule fits one screen (Oct 18,
   revises D60):** The local mark becomes a quarter-circle in the card's
   top-right corner: a + while it isn't your local, a glowing orange check (the
@@ -93,7 +108,8 @@ below wherever they disagree.
   four. Home's chart has one set of arrows, a day label that follows them, and
   "Most active at 7 PM"; it looks seven days ahead, never back. The Schedule
   page shows every hour with no inner scrolling and no Upcoming row (games live
-  on the court's Games tab).
+  on the court's Games tab). (Revised by D65: no local mark on the Explore card
+  or the drawer peek; it shows once the drawer is expanded.)
 - **D60 Drawer scroll, one drawer look, pinned name only, local mark (Oct 18,
   revises D59):** The expanded Explore drawer scrolls, and the LocalPlus panel
   sits near the top of it (the content is the same length for every court, so
@@ -161,7 +177,8 @@ below wherever they disagree.
   LocalPlus screen from the court page. The drawer shows the blurred gate in
   place. The drawer may set a local court (not remove one). White is the
   neutral primary button (Join game, Unlock, Log game); orange is for live,
-  check-in and selection. Builds on D55.
+  check-in and selection. Builds on D55. (Revised by D65: the Explore card is the title row only, with the live
+  number on the right.)
 - **D55 Court page and Home card follow the court-flow design (Oct 14):**
   built from the Claude Design handoff (`CourtFlowPhone2`), Jesse's picks
   in chat Oct 14. Court page header: court line art, sport, name, city ·

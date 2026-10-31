@@ -7,7 +7,6 @@ import { useCourtSheet } from "@/components/sheet/CourtSheetHost";
 import { Colors } from "@/constants/colors";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
-import { useCourtHours } from "@/hooks/useCourtHours";
 
 /** Nearby-court list shown where the map can't run: a build without a Mapbox
  *  token, or Expo Go (which has no Mapbox native code). */
@@ -15,7 +14,6 @@ export function MapListFallback({ message }: { message: string }) {
   const { courts } = useApp();
   const { bottom } = useSafeAreaInsets();
   const { openCourtSheet } = useCourtSheet();
-  const hoursFor = useCourtHours(courts.map((court) => court.id));
   return (
     <View style={styles.container}>
       <ScrollView
@@ -30,7 +28,6 @@ export function MapListFallback({ message }: { message: string }) {
           <CourtListItem
             key={c.id}
             court={c}
-            hoursLabel={hoursFor(c.id)}
             onPress={() => openCourtSheet({ courtId: c.id, distanceKm: c.distanceKm })}
           />
         ))}

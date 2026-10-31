@@ -170,6 +170,7 @@ Canonical component ownership:
 | Tab header                     | `ScreenHeader`      |
 | Detail/back header             | `DetailHeader`      |
 | Court discovery card           | `CourtListItem`     |
+| Court title row (card, drawer, page) | `CourtTitleRow` |
 | Home court hero                | `HomeCourtHero`     |
 | Court line art (card, page)    | `CourtArt`          |
 | Court 3-number strip           | `MetricStrip` (`size`: page, drawer, card) |
@@ -190,6 +191,7 @@ Canonical component ownership:
 | Compact menu                   | `CompactSelect`     |
 | Primary two-mode switch        | `ModeTabs`          |
 | Reachable multi-action control | `SpeedDialFab`      |
+| Small toggle (feed filters, Schedule actions) | `Pill` |
 | Game/revision date             | `RecentDatePicker`  |
 | Bottom sheet (any drawer)      | `AppBottomSheetModal` |
 | Tab-bar floor / bottom padding | `TabFloor` (`useBottomFloor`, `useSheetBottomPadding`) |
@@ -221,6 +223,16 @@ If one of these elements changes, update the canonical component and search the 
   `RecentDatePicker`. Do not expose a free-typed date field on iOS.
 
 ## Court card treatment
+
+Since Oct 31 (D65) the card, the drawer and the court page share one title row,
+`CourtTitleRow`: sport label, name and city · distance left-aligned, the live
+On court number on the right (orange with the live dot when anyone is on).
+The Explore card is that row only: no numbers strip and no local + / check.
+The drawer's peek adds Next game / Court hours · wk / Locals and Check in +
+Court ›. The court page header uses the same row at page size, and so does
+Home's pinned header (with the drawer's numbers band under it). The local mark
+is a plain + / check icon with no quarter-circle, on the court page only, in
+its back-arrow row.
 
 Since D56 (Oct 15) the Explore card is the court-flow card: `#121216`, 20pt
 corners, one hairline, `CourtArt` top right, sport label and Your local pill,
@@ -420,12 +432,14 @@ Replaced by the above on Oct 14 (D55), kept for history: the court detail page k
 
 ## Schedule and run flow
 
-- Schedule keeps a stable weekly heatmap footprint in view mode. Its one-hour
-  time axis scrolls independently between two overlapping snap windows (8 AM–3 PM
-  and 3–10 PM). A single directional chevron sits below the early window or above
-  the late window and is also a tap target. Compact screens may scroll the body so
-  selected-slot details and upcoming runs remain reachable.
-- The reachable `SpeedDialFab` exposes **Add times** and **Create run** using the shared Reanimated component and Feather icons.
+- Schedule's heat map covers 4 AM–11 PM in one-hour rows and shows 12 rows at a
+  time. A flick snaps between two windows, 4 AM–3 PM and 12 PM–11 PM, which
+  overlap at midday so the jump reads as continuous; it opens on the window
+  holding the current hour. Rows are sized so one window fills the space (26–36pt).
+- No floating button. Under the heat map, the court feed's `Pill` row: **Select**
+  (pick times, then Save), **Only mine** (every slot you haven't planned reads
+  empty) and **Clear mine · N** (opens Select with nothing picked; Save removes
+  them). New games come from the slot card's **+ New game**.
 - Add-times mode supports multi-select cells and one save action.
 - Scheduled run cards show localized 12-hour time, attendees, and remaining spots. They do not waste space on `VIEW` copy or a text arrow.
 - Run detail keeps the two-column roster compact; its body scrolls when a full

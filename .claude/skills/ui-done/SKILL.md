@@ -82,39 +82,87 @@ the new baseline in the same PR.
 ## 2. Before you change anything
 
 1. Find the owning component (`rg`) and every screen that uses it. A change to
-   a shared component is a change to all of those screens; check all of them.
-2. Build `main` (or the PR base) and run `pnpm qa:visual` on it once, so you
-   have the before screenshots and the counts to compare against.
-3. Restate the exact scope. An adjacent problem goes in the log, not silently
+   a shared component is a change to all of those screens. That list of
+   screens is your QA list for this change. Nothing else gets screenshotted.
+2. Restate the exact scope. An adjacent problem goes in the log, not silently
    into the change.
 
-## 3. The visual QA run (mandatory)
+## 3. Visual QA: how to do it
 
-```bash
-EXPO_PUBLIC_SUPABASE_URL=https://ci-placeholder.invalid \
-EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_ci_placeholder \
-EXPO_PUBLIC_MAPBOX_TOKEN=pk.ci-placeholder \
-pnpm export:web -- --output-dir /tmp/localcheck-ci-export
-pnpm qa:visual /tmp/localcheck-ci-export --out /tmp/localcheck-visual-qa
-```
+Visual QA has three parts: screenshot only what changed, measure it instead
+of eyeballing it, and check that the same element looks the same everywhere it
+appears. Do all three for every visible change.
 
-It signs in against an in-memory Supabase stand-in (no real data, no network)
-with the clock pinned to a busy Saturday evening, opens every screen and
-state in `scripts/visual-qa/screens.mjs` at 375x667, 393x852 and 430x932,
-saves a screenshot of each and writes `report.md`. It is not in CI yet: the
-Explore drawer sometimes settles at a taller peek at 375x667 (known flake).
+### 3a. Screenshot only what the change affects
 
-Then, by eye, open the full-size PNG of every screen you touched, at 375 and
-393 at least. The run catches clipped and overlapping text; it cannot see
-off-centre art, uneven margins, a dead gap or a wrong colour. You can.
+1. Before touching code, write the QA list: the screens and states the diff
+   changes (from section 2), and the sizes where the change could look
+   different (375x667 and 393x852 when layout or text width is involved; one
+   size for a colour or wording change). Nothing else gets screenshotted.
+2. Push and open the PR. Read the branch's Vercel **Preview** link from the
+   Vercel bot's PR comment. The **live** link is `main`'s deployment:
+   `https://localcheck-app-preview-git-main-jgpt-automated.vercel.app`.
+3. Sign in on both with the QA test account (ask Jesse for the login; never
+   write it into the repo) and shoot the QA list on live once and on the
+   preview: `scripts/visual-qa/preview-shots.cjs`, with `ONLY=` set to the
+   QA list. Same court or player, same state, same size on both.
+4. Pair each live/preview shot side by side, labelled BEFORE and AFTER.
+5. Send the pairs to Jesse as soon as they exist, commit them to
+   `docs/product/design-qa/<yyyy-mm-dd>-<topic>/`, and post them in a PR
+   comment. Never delete a screenshot.
+6. After a fix, re-shoot only the screens and sizes the fix touched. Never
+   re-shoot what already passed, never shoot every screen, and never run the
+   local suite unscoped.
 
-Add a row to `screens.mjs` for any new screen or layout-changing state (a
-sheet, a selected item, a tab) so the run covers it from now on.
+### 3b. Measure, don't eyeball
+
+For each changed screen, measure these with `scripts/visual-qa/measure.py`
+(ink bands from the PNG) or the DOM (`getBoundingClientRect` on the preview),
+and fix anything that is off before anyone sees it:
+
+- **Stacked text is evenly spaced.** The ink gap above the court name equals
+  the ink gap below it (sport label, name, city).
+- **Things in a row share a line.** In a numbers strip, every value starts on
+  the same row and every label starts on the same row. A unit ("1h") must
+  never push its cell's label down.
+- **Things are centred where they sit.** A number is centred in its cell.
+  Background art is centred on the text it sits behind.
+- **Edges are symmetrical.** Side gutters are equal. A control on the right
+  sits the same distance in from the edge as its partner on the left (back
+  arrow and local mark).
+- **Hierarchy is deliberate.** Exactly one or two things draw the eye (the
+  court name and the live number). Supporting numbers are quieter, never the
+  same size as the headline.
+
+Write the measured numbers in the PR comment next to the pairs.
+
+### 3c. Continuity: one element, one look
+
+When an element appears on several screens, it must look the same on all of
+them. Build it as one shared component, then put the screenshots of every
+place it appears side by side as a set and compare them. The court header is
+`CourtTitleRow`, used by the Explore card, the drawer, the court page and
+Home: same name position and size, same live number on the right, same art
+offset. The numbers band under it is the same on the drawer and Home. A
+control that belongs to one screen (the local + / check is on the court page
+only) appears nowhere else.
+
+### 3d. Change only what was asked
+
+Make the change Jesse asked for and nothing more. If you see something else
+that's off, put it in the PR's handoff or ask, and don't change it silently.
+
+### Fallback: local suite (only when the Vercel preview can't be used)
+
+`pnpm qa:visual` builds the app and checks screens against an in-memory
+Supabase stand-in. It is slow (a full web export every run), so always scope
+it with `QA_ONLY=<screen names>` and `QA_SIZES=375x667,393x852`, and never
+run it twice for the same build.
 
 ## 4. Done means
 
 - [ ] `pnpm check` passes.
-- [ ] `pnpm qa:visual` reports 0 failures and nothing above baseline.
+- [ ] Preview vs live screenshots taken for every screen on the QA list (section 3).
 - [ ] Every touched screen opened at full size at 375 and 393, compared with
       its before screenshot; nothing that was right got worse.
 - [ ] Interactions exercised: tap, back, dismiss, swipe, keyboard, loading,

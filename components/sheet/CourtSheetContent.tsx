@@ -21,10 +21,9 @@ import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewS
 import {
   CheckInButton,
   CourtLinkButton,
-  LocalMark,
+  CourtTitleRow,
   MetricStrip,
   SectionHead,
-  SportLabel,
 } from "@/components/court/CourtParts";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { useToast } from "@/components/ui/Toast";
@@ -43,6 +42,7 @@ import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourt
 import { PRIVACY_URL, TERMS_URL } from "@/lib/planModel";
 import { fetchCourtById, fetchCourtWeekSpans } from "@/services/courtService";
 import { fetchFeed } from "@/services/feedService";
+import { nextGameLabel } from "@/lib/nextGameLabel";
 
 const DRAWER_CHIPS = [
   { label: "Games", tab: "games" },
@@ -55,8 +55,10 @@ const DRAWER_CHIPS = [
  * Court drawer content (Claude Design court flow), rendered inside the root
  * BottomSheetModal (CourtSheetHost). Two detents on one sheet:
  *
- * - Drawer: sport + Your local, the court name, city · distance, On court /
- *   Court hours · wk / Locals, then Check in and Court ↗. Always free.
+ * - Drawer: the Explore card's title row (sport, name, city · distance, live
+ *   On court number on the right), then Next game / Court hours · wk / Locals,
+ *   then Check in and Court ↗. Always free. No local + / check: that lives
+ *   only on the court page.
  * - Expanded: Here now, Up next, Today (planned visits by hour) and Recent
  *   activity in a fixed area that never scrolls, then Games / Players / Feed
  *   / Week chips into the court page. A court that isn't your local, without
@@ -187,8 +189,7 @@ export function CourtSheetContent({
 
   return (
     <BottomSheetView>
-      <CourtArt sport={court.sport} />
-      <LocalMark active={isMyLocal} onPress={cooldown.restricted ? undefined : setAsLocal} />
+      <CourtArt sport={court.sport} top={-16} />
       {/* ── Drawer: its measured height owns the first sheet detent ── */}
       <View
         onLayout={(event) => {
@@ -202,21 +203,24 @@ export function CourtSheetContent({
           accessibilityLabel={`${name}, expand`}
           onPress={onExpand}
         >
-          <View style={styles.metaRow}>
-            <SportLabel sport={court.sport} />
+          <View style={styles.title}>
+            <CourtTitleRow
+              live={live}
+              liveValue={activeCount}
+              name={name}
+              place={place || undefined}
+              size="page"
+              sport={court.sport}
+            />
           </View>
-          <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
-            {name}
-          </Text>
-          {place ? <Text numberOfLines={1} style={styles.place}>{place}</Text> : null}
           <View style={styles.strip}>
             <MetricStrip
               cells={[
-                { label: "On court", value: activeCount, live },
+                { label: "Next game", value: nextGameLabel(upcoming[0], now) },
                 { label: "Court hours · wk", value: hoursLabel },
                 { label: "Locals", value: localCount },
               ]}
-              size="drawer"
+              size="card"
             />
           </View>
         </Pressable>
@@ -419,37 +423,8 @@ function CourtDrawerGate({
 
 const styles = StyleSheet.create({
   loading: { alignItems: "center", justifyContent: "center", paddingVertical: 64 },
-  metaRow: {
-    height: 34,
-    paddingTop: 6,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  name: {
-    paddingTop: 10,
-    paddingHorizontal: 20,
-    textAlign: "center",
-    fontFamily: Typography.headingBold,
-    fontSize: 38,
-    lineHeight: 40,
-    letterSpacing: -1.3,
-    textTransform: "uppercase",
-    color: Colors.text,
-    textShadowColor: Colors.sheet,
-    textShadowRadius: 6,
-  },
-  place: {
-    paddingTop: 6,
-    paddingHorizontal: 20,
-    textAlign: "center",
-    fontFamily: Typography.bodyMedium,
-    fontSize: 11,
-    color: Colors.textSecondary,
-  },
-  strip: { paddingHorizontal: 20, paddingTop: 12 },
+  title: { paddingTop: 12 },
+  strip: { paddingTop: 16 },
   actions: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 14 },
   checkSlot: { flex: 1, minWidth: 0 },
   peekFoot: { height: 16 },

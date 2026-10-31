@@ -68,16 +68,14 @@ export function SportLabel({ sport, suffix }: { sport: CourtSport; suffix?: stri
   );
 }
 
-const MARK = 56;
-
 /**
- * Your local court, as a quarter-circle in the card's top-right corner: a +
- * while it isn't your local, a glowing orange check (like the logo's) once it
- * is. Render it as a direct child of the card so it sits flush in the corner.
- * Where it isn't your local, a tap makes it your local and the check springs
- * in; once it is, the mark does nothing (Settings changes it).
+ * Your local court: a + while it isn't your local, a glowing orange check
+ * (like the logo's) once it is. A plain 44pt icon with no arc; the caller
+ * places it (the court page's back-arrow row, the expanded drawer's top-right,
+ * Home's top-right). Where it isn't your local, a tap makes it your local and
+ * the check springs in; once it is, the mark does nothing (Settings changes it).
  */
-export function LocalMark({ active, onPress, top = 0 }: { active: boolean; onPress?: () => void; top?: number }) {
+export function LocalMark({ active, onPress }: { active: boolean; onPress?: () => void }) {
   const pop = React.useRef(new Animated.Value(active ? 1 : 0)).current;
   const wasActive = React.useRef(active);
   React.useEffect(() => {
@@ -97,22 +95,20 @@ export function LocalMark({ active, onPress, top = 0 }: { active: boolean; onPre
 
   const tappable = Boolean(onPress) && !active;
   const body = (
-    <View style={[styles.markArc, active && styles.markArcOn]}>
+    <View style={styles.markBox}>
       {active ? (
         <Animated.View
-          style={[styles.markIcon, { opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] }]}
+          style={{ opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] }}
         >
           <Feather color={Colors.accent} name="check" size={22} style={styles.markCheckGlow} />
         </Animated.View>
       ) : (
-        <View style={styles.markIcon}>
-          <Feather color={Colors.textSecondary} name="plus" size={22} />
-        </View>
+        <Feather color={Colors.textSecondary} name="plus" size={22} />
       )}
     </View>
   );
   return (
-    <View pointerEvents="box-none" style={[styles.markWrap, { top }]}>
+    <View pointerEvents="box-none">
       {tappable ? (
         <Pressable
           accessibilityHint="Sets this as your local court"
@@ -129,6 +125,88 @@ export function LocalMark({ active, onPress, top = 0 }: { active: boolean; onPre
         </View>
       )}
     </View>
+  );
+}
+
+/**
+ * The court's title row, shared by the Explore card, the court drawer and the
+ * court page so a court reads the same from list to drawer to page: sport,
+ * name and city · distance on the left, the live On court number on the
+ * right. `card` is the Explore card and drawer, `page` the court page.
+ */
+export function CourtTitleRow({
+  sport,
+  name,
+  place,
+  liveValue,
+  live,
+  liveAccessibilityLabel,
+  size = "card",
+}: {
+  sport: CourtSport;
+  name: string;
+  place?: string;
+  liveValue: string | number;
+  live: boolean;
+  liveAccessibilityLabel?: string;
+  size?: "card" | "page";
+}) {
+  const page = size === "page";
+  // A long name loses its trailing "Courts" / "Court" rather than ending in
+  // "…" ("SAND BRANCH COURTS" reads as "SAND BRANCH").
+  const shown = name.length > 14 ? name.replace(/\s+courts?$/i, "") : name;
+  return (
+    <View style={styles.titleRow}>
+      <View style={styles.titleBlock}>
+        <SportLabel sport={sport} />
+        <Text
+          adjustsFontSizeToFit
+          minimumFontScale={0.6}
+          numberOfLines={1}
+          style={[styles.titleName, page && styles.titleNamePage]}
+        >
+          {shown}
+        </Text>
+        {place ? <Text numberOfLines={1} style={styles.titlePlace}>{place}</Text> : null}
+      </View>
+      <View
+        accessibilityLabel={liveAccessibilityLabel ?? `${liveValue} on court`}
+        accessible
+        style={styles.liveBlock}
+      >
+        <Text style={[styles.liveValue, page && styles.liveValuePage, live && styles.liveValueOn]}>{liveValue}</Text>
+        <View style={styles.liveLabelRow}>
+          {live ? <LiveDot /> : null}
+          <Text style={styles.liveLabel}>On court</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/** The small rounded toggle used for the court feed filters and the Schedule actions. */
+export function Pill({
+  label,
+  selected = false,
+  disabled = false,
+  onPress,
+}: {
+  label: string;
+  selected?: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected, disabled }}
+      disabled={disabled}
+      hitSlop={7}
+      onPress={onPress}
+      style={[styles.pill, selected && styles.pillActive, disabled && styles.pillDisabled]}
+    >
+      <Text style={[styles.pillText, selected && styles.pillTextActive]}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -305,23 +383,7 @@ const styles = StyleSheet.create({
   sportRow: { flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 1 },
   sportDot: { width: 6, height: 6, borderRadius: 3 },
   sportText: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.5, textTransform: "uppercase", flexShrink: 1 },
-  markWrap: { position: "absolute", right: 0, width: MARK, height: MARK },
-  markArc: {
-    width: MARK,
-    height: MARK,
-    borderBottomLeftRadius: MARK,
-    borderLeftWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: Colors.hairlineChrome,
-  },
-  markArcOn: {
-    borderColor: Colors.accentBorderStrong,
-    shadowColor: Colors.accent,
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-    shadowOffset: { width: -2, height: 2 },
-  },
-  markIcon: { position: "absolute", top: 10, right: 10 },
+  markBox: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   markCheckGlow: { textShadowColor: Colors.accent, textShadowRadius: 10 },
   pressed: { opacity: 0.72 },
   strip: {
@@ -332,14 +394,16 @@ const styles = StyleSheet.create({
   },
   cell: { flex: 1, height: 58, alignItems: "center", justifyContent: "center", gap: 6 },
   cellDivider: { borderLeftWidth: 1, borderLeftColor: Colors.hairline },
-  cellValue: { fontFamily: Typography.headingSemiBold, fontSize: 25, lineHeight: 27, letterSpacing: -0.6, color: Colors.text },
+  cellValue: { height: 27, fontFamily: Typography.headingSemiBold, fontSize: 25, lineHeight: 27, letterSpacing: -0.6, color: Colors.text },
   cellValueLive: { color: Colors.liveInk },
-  cellUnit: { fontSize: 16, letterSpacing: 0 },
+  cellUnit: { fontSize: 16, lineHeight: 16, letterSpacing: 0 },
   stripCard: { borderBottomWidth: 0, backgroundColor: "rgba(12,12,15,0.38)" },
   cellDrawer: { height: 62 },
   cellCard: { height: 54, gap: 4 },
-  cellValueDrawer: { fontSize: 28, lineHeight: 30 },
-  cellValueCard: { fontSize: 22, lineHeight: 24 },
+  cellValueDrawer: { height: 30, fontSize: 28, lineHeight: 30 },
+  // The drawer's strip: quieter than the court name and live number, and a
+  // fixed value height so a unit ("1h") can't push its cell off the line.
+  cellValueCard: { fontSize: 18, lineHeight: 22, height: 22 },
   sectionHead: { height: 16, marginBottom: 8, flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 12 },
   sectionTitle: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.4, textTransform: "uppercase", color: Colors.text },
   sectionMeta: { flexShrink: 1, fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.muted },
@@ -351,6 +415,35 @@ const styles = StyleSheet.create({
   checkOutText: { flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.liveInk },
   courtLink: { width: 64, height: 50, backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
   cellLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  pill: { height: 30, paddingHorizontal: 12, borderRadius: 999, justifyContent: "center", borderWidth: 1, borderColor: "rgba(242,242,246,0.12)" },
+  pillActive: { backgroundColor: Colors.tile, borderColor: "rgba(242,242,246,0.2)" },
+  pillDisabled: { opacity: 0.4 },
+  pillText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.textSecondary },
+  pillTextActive: { color: Colors.text },
+  titleRow: { flexDirection: "row", alignItems: "flex-end", gap: 16, paddingHorizontal: 20 },
+  titleBlock: { flex: 1, minWidth: 0, gap: 6 },
+  titleName: {
+    // Oswald's line box carries more space above the caps than below; this
+    // evens the ink gaps above and below the name (measured: 14pt vs 11.5pt).
+    marginTop: -1.25,
+    marginBottom: 1.25,
+    fontFamily: Typography.headingBold,
+    fontSize: 30,
+    lineHeight: 33,
+    letterSpacing: -0.9,
+    textTransform: "uppercase",
+    color: Colors.text,
+    textShadowColor: Colors.sheet,
+    textShadowRadius: 6,
+  },
+  titleNamePage: { fontSize: 34, lineHeight: 37, letterSpacing: -1.1 },
+  titlePlace: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
+  liveBlock: { flexShrink: 0, alignItems: "flex-end", paddingBottom: 1 },
+  liveValue: { fontFamily: Typography.headingBold, fontSize: 40, lineHeight: 42, letterSpacing: -1.2, color: Colors.text, fontVariant: ["tabular-nums"] },
+  liveValuePage: { fontSize: 46, lineHeight: 48, letterSpacing: -1.4 },
+  liveValueOn: { color: Colors.liveInk },
+  liveLabelRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
+  liveLabel: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.textSecondary },
   cellLabel: { fontFamily: Typography.bodyBold, fontSize: 7.5, letterSpacing: 0.9, textTransform: "uppercase", color: Colors.textSecondary },
   tabs: { flexDirection: "row", paddingHorizontal: 6, borderBottomWidth: 1, borderBottomColor: Colors.hairline },
   tab: { flex: 1, height: 44, alignItems: "center", justifyContent: "center", borderBottomWidth: 2, borderBottomColor: "transparent" },

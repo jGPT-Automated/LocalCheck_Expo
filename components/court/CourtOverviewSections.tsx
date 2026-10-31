@@ -4,29 +4,15 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { GameDayLabel, ScheduledGameCard } from "@/components/court/CourtGamesPanel";
 import { SectionHead } from "@/components/court/CourtParts";
-import { formatForMaxPlayers } from "@/components/schedule/scheduledGameModel";
-import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
 import type { GameRun, Player } from "@/constants/data";
 import { Typography } from "@/constants/typography";
+import { useApp } from "@/context/AppContext";
 import { formatTimeOnCourt } from "@/lib/courtHours";
 
 const HERE_MAX = 4;
-
-function dayShort(iso: string): string {
-  const date = new Date(iso);
-  const today = new Date();
-  if (date.toDateString() === today.toDateString()) return "Today";
-  return date.toLocaleDateString("en-US", { weekday: "short" });
-}
-
-function clock(iso: string): string {
-  const date = new Date(iso);
-  const h = date.getHours() % 12 === 0 ? 12 : date.getHours() % 12;
-  const m = date.getMinutes();
-  return m === 0 ? `${h}` : `${h}:${String(m).padStart(2, "0")}`;
-}
 
 export function HereNowSection({
   roster,
@@ -104,6 +90,8 @@ export function UpNextSection({
   onSeeAll?: () => void;
   inset?: number;
 }) {
+  const { joinRun } = useApp();
+  const [joining, setJoining] = React.useState(false);
   const now = Date.now();
   const weekAhead = upcoming.filter((run) => Date.parse(run.startTimeIso) < now + 7 * 86_400_000);
   const next = upcoming[0];
@@ -115,35 +103,20 @@ export function UpNextSection({
         title="Up next"
       />
       {next ? (
-        <PressableScale
-          accessibilityLabel={`${next.title}, ${next.participants.length} of ${next.maxPlayers} going`}
-          accessibilityRole="button"
-          onPress={() => onOpenRun(next.id)}
-          style={styles.nextRow}
-        >
-          <View style={styles.nextWhen}>
-            <Text style={styles.nextDay}>{dayShort(next.startTimeIso)}</Text>
-            <Text style={styles.nextTime}>
-              {clock(next.startTimeIso)}
-              {new Date(next.startTimeIso).getHours() >= 12 ? "P" : "A"}
-            </Text>
-          </View>
-          <View style={styles.nextBody}>
-            <Text numberOfLines={1} style={styles.nextTitle}>{next.title}</Text>
-            <Text numberOfLines={1} style={styles.nextSub}>
-              {[formatForMaxPlayers(next.maxPlayers), `${next.participants.length} of ${next.maxPlayers} going`]
-                .filter(Boolean)
-                .join(" · ")}
-            </Text>
-          </View>
-          <View style={styles.faces}>
-            {next.participants.slice(0, 3).map((player, index) => (
-              <View key={player.id} style={[styles.face, index > 0 && styles.faceOverlap]}>
-                <PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={24} />
-              </View>
-            ))}
-          </View>
-        </PressableScale>
+        // The same card as the court page's Games tab, under the same day label.
+        <View style={styles.nextCard}>
+          <GameDayLabel iso={next.startTimeIso} />
+          <ScheduledGameCard
+            game={next}
+            joining={joining}
+            onJoin={(game) => {
+              if (joining) return;
+              setJoining(true);
+              void joinRun(game.id).finally(() => setJoining(false));
+            }}
+            onOpen={(game) => onOpenRun(game.id)}
+          />
+        </View>
       ) : (
         <View style={styles.emptyBox}>
           <Text numberOfLines={2} style={styles.emptyText}>No games scheduled. Post one and locals see it.</Text>
@@ -155,6 +128,7 @@ export function UpNextSection({
 
 const styles = StyleSheet.create({
   section: { paddingBottom: 14 },
+  nextCard: { gap: 8 },
   hereRow: { height: 67, flexDirection: "row", gap: 8, overflow: "hidden" },
   hereItem: { width: 58, alignItems: "center", gap: 2 },
   hereName: { maxWidth: 58, fontFamily: Typography.bodySemiBold, fontSize: 11, lineHeight: 14, color: Colors.inkSoft },

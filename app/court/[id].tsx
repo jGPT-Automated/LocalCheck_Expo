@@ -10,7 +10,7 @@ import { CourtBusyChart } from "@/components/court/CourtBusyChart";
 import { CourtGamesPanel } from "@/components/court/CourtGamesPanel";
 import { CourtInfoPanel } from "@/components/court/CourtInfoPanel";
 import { CourtPlayersPanel } from "@/components/court/CourtPlayersPanel";
-import { CourtTabBar, LiveDot, LocalMark, SportLabel } from "@/components/court/CourtParts";
+import { CourtTabBar, CourtTitleRow, LocalMark, Pill } from "@/components/court/CourtParts";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { GameResultModal } from "@/components/ui/GameResultModal";
 import { PersonTile } from "@/components/ui/PersonTile";
@@ -214,12 +214,7 @@ export default function CourtProfileScreen() {
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: Platform.OS === "web" ? 44 : top }]}>
-        <LocalMark
-          active={isMyLocal}
-          onPress={() => void setLocalCourt(court.id, court)}
-          top={Platform.OS === "web" ? 44 : top}
-        />
-        <CourtArt faint sport={court.sport} top={(Platform.OS === "web" ? 44 : top) + 44} />
+        <CourtArt faint sport={court.sport} top={(Platform.OS === "web" ? 44 : top) + 22} />
         <View style={styles.navRow}>
           <Pressable
             accessibilityLabel="Back"
@@ -230,29 +225,20 @@ export default function CourtProfileScreen() {
           >
             <Feather color={Colors.text} name="arrow-left" size={22} />
           </Pressable>
+          <LocalMark active={isMyLocal} onPress={() => void setLocalCourt(court.id, court)} />
         </View>
         {/* Name left, the live number right (Oct 17 header reference), then
             today's busy times above the tabs so every tab shares them. */}
         <View style={styles.titleRow}>
-          <View style={styles.titleBlock}>
-            <SportLabel sport={court.sport} />
-            <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
-              {court.shortName || court.name}
-            </Text>
-            {place ? <Text numberOfLines={1} style={styles.place}>{place}</Text> : null}
-          </View>
-          <View
-            accessibilityLabel={`${hiddenCount > 0 ? "About " : ""}${activeCount} on court`}
-            style={styles.liveBlock}
-          >
-            <Text style={[styles.liveValue, activeCount > 0 && styles.liveValueOn]}>
-              {hiddenCount > 0 ? `~${activeCount}` : activeCount}
-            </Text>
-            <View style={styles.liveLabelRow}>
-              {activeCount > 0 ? <LiveDot /> : null}
-              <Text style={styles.liveLabel}>On court</Text>
-            </View>
-          </View>
+          <CourtTitleRow
+            live={activeCount > 0}
+            liveAccessibilityLabel={`${hiddenCount > 0 ? "About " : ""}${activeCount} on court`}
+            liveValue={hiddenCount > 0 ? `~${activeCount}` : activeCount}
+            name={court.shortName || court.name}
+            place={place || undefined}
+            size="page"
+            sport={court.sport}
+          />
         </View>
         <View style={styles.busyHeader}>
           <CourtBusyChart courtId={court.id} games={upcomingGames} height={34} refreshKey={roster.length} variant="header" />
@@ -285,18 +271,15 @@ export default function CourtProfileScreen() {
               {FEED_FILTERS.map((filter) => {
                 const selected = feedFilter === filter.value;
                 return (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityState={{ selected }}
+                  <Pill
                     key={filter.value}
+                    label={filter.label}
                     onPress={() => {
                       setFeedFilter(filter.value);
                       setFeedVisible(FEED_PAGE);
                     }}
-                    style={[styles.chip, selected && styles.chipActive]}
-                  >
-                    <Text style={[styles.chipText, selected && styles.chipTextActive]}>{filter.label}</Text>
-                  </Pressable>
+                    selected={selected}
+                  />
                 );
               })}
             </View>
@@ -391,27 +374,10 @@ const styles = StyleSheet.create({
   retryButton: { minHeight: 44, paddingHorizontal: Space.xl, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
   retryText: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.text, letterSpacing: 1.2 },
   header: { position: "relative", overflow: "hidden" },
-  navRow: { height: 44, paddingLeft: 12, paddingRight: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  navRow: { height: 44, paddingLeft: 12, paddingRight: 9, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   back: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
-  titleRow: { flexDirection: "row", alignItems: "flex-end", gap: 16, paddingHorizontal: 20, paddingTop: 6 },
-  titleBlock: { flex: 1, minWidth: 0, gap: 6 },
-  liveBlock: { flexShrink: 0, alignItems: "flex-end", paddingBottom: 1 },
-  liveValue: { fontFamily: Typography.headingBold, fontSize: 46, lineHeight: 48, letterSpacing: -1.4, color: Colors.text, fontVariant: ["tabular-nums"] },
-  liveValueOn: { color: Colors.liveInk },
-  liveLabelRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
-  liveLabel: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.textSecondary },
+  titleRow: { paddingTop: 6 },
   busyHeader: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10 },
-  name: {
-    fontFamily: Typography.headingBold,
-    fontSize: 34,
-    lineHeight: 37,
-    letterSpacing: -1.1,
-    textTransform: "uppercase",
-    color: Colors.text,
-    textShadowColor: Colors.sheet,
-    textShadowRadius: 6,
-  },
-  place: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
   tabContent: { flex: 1, minHeight: 0 },
   scheduleView: { flex: 1, minHeight: 0, overflow: "hidden" },
   onCourt: { paddingTop: 16, gap: 10 },
@@ -420,10 +386,6 @@ const styles = StyleSheet.create({
   privateInline: { fontFamily: Typography.bodyMedium, fontSize: 10, color: Colors.muted },
   emptyLine: { paddingHorizontal: 20, fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
   filters: { flexDirection: "row", gap: 6, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6 },
-  chip: { height: 30, paddingHorizontal: 12, borderRadius: 999, justifyContent: "center", borderWidth: 1, borderColor: "rgba(242,242,246,0.12)" },
-  chipActive: { backgroundColor: Colors.tile, borderColor: "rgba(242,242,246,0.2)" },
-  chipText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.textSecondary },
-  chipTextActive: { color: Colors.text },
   moreButton: { minHeight: 48, marginHorizontal: Layout.screenGutter, marginTop: Space.md, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Space.sm, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md },
   moreText: { fontFamily: Typography.bodyBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.2 },
   empty: { minHeight: 72, paddingHorizontal: Layout.screenGutter, paddingVertical: Space.md, alignItems: "center", justifyContent: "center" },

@@ -13,7 +13,8 @@ import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewS
 import { SectionHead } from "@/components/court/CourtParts";
 import { ActivityRow } from "@/components/ui/ActivityRow";
 import { GameResultModal } from "@/components/ui/GameResultModal";
-import { HomeCourtActions, HomeCourtHero, HomeCourtTop } from "@/components/ui/HomeCourtHero";
+import { HomeCourtActions, HomeCourtHero } from "@/components/ui/HomeCourtHero";
+import { nextGameLabel } from "@/lib/nextGameLabel";
 import { ScreenViewport } from "@/components/ui/ScreenViewport";
 import { useBottomFloor } from "@/components/ui/TabFloor";
 import { useToast } from "@/components/ui/Toast";
@@ -156,18 +157,21 @@ export function HomeScreen() {
 
       <ScrollView
         contentContainerStyle={{ paddingBottom: tabFloor + Space.lg }}
+        alwaysBounceVertical={false}
+        bounces={false}
+        overScrollMode="never"
         showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[1]}
+        stickyHeaderIndices={[0]}
         style={styles.scroll}
       >
-        <HomeCourtTop court={localCourt} />
-        {/* Pinned: just the court name and its numbers. */}
+        {/* Pinned: the court's title row and its numbers. */}
         <HomeCourtHero
           activeCount={activeLabel}
           court={localCourt}
           hoursLabel={hoursLabel}
           live={activeTotal > 0}
           localCount={localCount}
+          nextGame={nextGameLabel(upcoming[0], now)}
         />
         <HomeCourtActions
           courtName={localCourt.shortName || localCourt.name}

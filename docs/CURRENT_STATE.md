@@ -94,6 +94,65 @@ Each claim says which of these it is, because they are often confused:
     court route entry) and the court page section of `docs/product/DESIGN.md`.
   - Not in this pass: Players sorts (Active / Newest / All), the Live
     scoreboard rows, Phosphor icons, the drawer.
+- Oct 31 court title row (D65; **on a branch**, `claude/explore-card-live`, not
+  merged, not on a device). Frontend only.
+  - `CourtTitleRow` (`components/court/CourtParts.tsx`): sport, name, city ·
+    distance left, live On court number right. Used by `CourtListItem`, the
+    drawer peek (`components/sheet/CourtSheetContent.tsx`) and the court page
+    header (`app/court/[id].tsx`).
+  - Explore card: no `MetricStrip`, no `LocalMark`; `hooks/useCourtHours.ts`
+    removed (the card no longer shows court hours).
+  - Drawer strip: Next game / Court hours · wk / Locals. `CourtSheetHost`
+    tracks the expanded detent and the drawer shows `LocalMark` only there.
+  - Visual QA: new `explore-drawer-expanded` screen in
+    `scripts/visual-qa/screens.mjs`.
+  - Follow-up after Jesse's review of the preview screenshots: court names
+    back to full size (no step-down), `CourtArt` centred on the name
+    (`top={-16}`), the drawer name at the court page size, the drawer strip on
+    the darker `card` band with quieter 18pt values at a fixed height so units
+    don't shift a cell. `LocalMark` lost its quarter-circle: a plain 44pt +
+    / check placed by the caller (court page: the back-arrow row; expanded
+    drawer and Home: top-right).
+  - Second review: the local + / check is on the court page only (its
+    back-arrow row); none on the card, drawer or Home. Home's pinned header
+    (`HomeCourtHero`) is the shared title row plus Next game / Court hours ·
+    wk / Locals on the card band, like the drawer; `HomeCourtTop` is gone.
+    Court page art centred on the name. Strip values have a fixed height so a
+    unit no longer drops its label. `nextGameLabel` moved to
+    `lib/nextGameLabel.ts`.
+  - Measured on the preview: strip labels share one pixel row on Home and the
+    drawer; art centred on the name on all four screens; the gap above the name
+    was 14pt vs 11.5pt below, now evened in `CourtTitleRow` (name nudged up
+    1.25pt).
+  - Schedule (`app/(tabs)/schedule.tsx`): no `SpeedDialFab`; a `Pill` row
+    (Select / Only mine / Clear mine · N) under the heat map; the legend is
+    gone. `components/schedule/scheduleModel.ts`: axis 4 AM–11 PM, two
+    12-row snap windows (`SCHEDULE_WINDOW_STARTS`), tests updated. `Pill` is
+    the shared toggle (`CourtParts`), also used by the court feed filters.
+    `scripts/check-design-consistency.mjs` now requires `Pill` there.
+    Pill row shares the heat map's 20pt left edge (was 40pt, measured).
+  - Fourth review: long court names drop a trailing "Courts"/"Court" instead
+    of "…"; Home's ScrollView doesn't bounce, so the pinned header can't be
+    pulled down; Schedule's court picker sits in the header row (date range,
+    "Who's going" row removed), the page is one view above the tab bar with
+    the grid sized from its measured space, and the heat map snaps to the
+    nearer window when a scroll settles (web ignores `snapToOffsets`).
+    The heat ScrollView is pinned to exactly 12 rows (`flexGrow: 0`).
+  - Up Next (`UpNextSection`, Home and the drawer) renders the Games tab's
+    `ScheduledGameCard` under its `GameDayLabel`.
+  - `scripts/visual-qa/preview-shots.cjs` takes `SIZES=375` to shoot one width.
+  - `.claude/skills/ui-done` section 3 rewritten as the process: screenshot
+    only what changed (preview vs live, `scripts/visual-qa/preview-shots.cjs`),
+    measure spacing and alignment (`scripts/visual-qa/measure.py`), check one
+    element looks the same everywhere, change only what was asked.
+  - QA default (`.claude/skills/ui-done`): the PR's Vercel preview against
+    `main`'s live link, only the screens the change affects.
+- Oct 31 edge-only Back (**on a branch**, `claude/edge-swipe-back`, not on a
+  device). `app/_layout.tsx` `detailScreenOptions`: `fullScreenGestureEnabled`
+  is now `false` and `animationMatchesGesture` is gone, so swipe-back starts
+  only at the left edge (the iOS default) and drags anywhere else belong to the
+  page's scroll views. Same change as the gesture part of open PRs #83 and #84.
+  Folded into PR #88 (Oct 31); PR #87 closed.
 - Oct 18 follow-up 3 (D61; **on a branch**, PR #77, not merged, not on a device;
   not checked in a render, Jesse is verifying). Frontend only.
   - `LocalMark` (`components/court/CourtParts.tsx`): corner quarter-circle with

@@ -21,6 +21,20 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-10-31 — Explore card and drawer title row (`claude/explore-card-live`)
+
+Checked in the web visual QA run; not on a phone. Not merged.
+
+| Item | Status |
+|------|--------|
+| Explore card: drop the bottom numbers, live number on the right, left-aligned title | ✅ |
+| Explore card: no + / check on the unexpanded card | ✅ |
+| Drawer: same title row as the card, live number right, name left (was centred) | ✅ |
+| Drawer strip: Next game replaces On court | ✅ |
+| Drawer: + / check only once expanded | ✅ |
+| Court page header matches the card | ✅ |
+| Back gesture edge-only (PR #87) | ✅ |
+
 ## 2026-10-18 (final round) — corner mark, thin slot card, Schedule (`claude/kind-pascal-4c174r`, PR #77)
 
 Not verified in a render; Jesse is checking it. Not merged; no OTA yet.

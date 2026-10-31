@@ -1,27 +1,24 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet } from "react-native";
 
 import { CourtArt } from "@/components/court/CourtArt";
-import { LocalMark, MetricStrip, SportLabel } from "@/components/court/CourtParts";
+import { CourtTitleRow } from "@/components/court/CourtParts";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
 import type { Court } from "@/constants/data";
-import { Typography } from "@/constants/typography";
 
 interface CourtListItemProps {
   court: Court;
   onPress?: (court: Court) => void;
-  isLocalCourt?: boolean;
-  /** Court hours · wk, already formatted ("70h", or a dash while loading). */
-  hoursLabel: string;
 }
 
 /**
- * Canonical Explore court card (court-flow design): court trace top right,
- * sport + Your local, the name, city · distance, then On court / Court hours
- * · wk / Locals. Actions live in the court drawer, so the card has none.
+ * Canonical Explore court card: court trace top right, then the shared title
+ * row (sport, name, city · distance on the left, the live On court number on
+ * the right). No numbers strip and no local mark: tapping the card opens the
+ * court drawer, which carries the same title row plus the strip and actions.
  */
-export function CourtListItem({ court, onPress, isLocalCourt, hoursLabel }: CourtListItemProps) {
+export function CourtListItem({ court, onPress }: CourtListItemProps) {
   const active = court.activeCount ?? 0;
   const distance =
     court.distanceKm != null && !Number.isNaN(court.distanceKm)
@@ -38,25 +35,15 @@ export function CourtListItem({ court, onPress, isLocalCourt, hoursLabel }: Cour
       style={styles.card}
       testID={`court-${court.id}`}
     >
-      <CourtArt sport={court.sport} />
-      <View style={styles.metaRow}>
-        <SportLabel sport={court.sport} />
-      </View>
-      {isLocalCourt ? <LocalMark active /> : null}
-      <Text numberOfLines={1} style={styles.name}>
-        {court.shortName || court.name}
-      </Text>
-      {place ? <Text numberOfLines={1} style={styles.place}>{place}</Text> : null}
-      <View style={styles.strip}>
-        <MetricStrip
-          cells={[
-            { label: "On court", value: active, live: active > 0 },
-            { label: "Court hours · wk", value: hoursLabel },
-            { label: "Locals", value: court.localCount ?? 0 },
-          ]}
-          size="card"
-        />
-      </View>
+      {/* Centred on the name, as it was when the card had the numbers strip. */}
+      <CourtArt sport={court.sport} top={-16} />
+      <CourtTitleRow
+        live={active > 0}
+        liveValue={active}
+        name={court.shortName || court.name}
+        place={place || undefined}
+        sport={court.sport}
+      />
     </PressableScale>
   );
 }
@@ -70,27 +57,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.hairlineCard,
     backgroundColor: Colors.sheet,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
-  metaRow: {
-    height: 26,
-    marginTop: 14,
-    paddingHorizontal: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  name: {
-    paddingTop: 8,
-    paddingHorizontal: 18,
-    fontFamily: Typography.headingBold,
-    fontSize: 30,
-    lineHeight: 32,
-    letterSpacing: -0.9,
-    textTransform: "uppercase",
-    color: Colors.text,
-    textShadowColor: Colors.sheet,
-    textShadowRadius: 6,
-  },
-  place: { paddingTop: 6, paddingHorizontal: 18, fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
-  strip: { marginTop: 14 },
 });

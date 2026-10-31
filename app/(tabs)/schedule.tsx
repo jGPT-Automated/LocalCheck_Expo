@@ -31,12 +31,15 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { FormSheet } from "@/components/sheet/FormSheet";
 import { SlotCard } from "@/components/court/SlotCard";
 import { ScheduleGameSheet } from "@/components/schedule/ScheduleGameSheet";
+import { Pill } from "@/components/court/CourtParts";
 import { SearchField } from "@/components/ui/SearchField";
-import { SpeedDialFab } from "@/components/ui/SpeedDialFab";
 import { useBottomFloor } from "@/components/ui/TabFloor";
 import {
   scheduleSlotIndex,
+  SCHEDULE_WINDOW_ROWS,
+  SCHEDULE_WINDOW_STARTS,
   scheduleSlotLabel,
+  scheduleWindowForHour,
   SLOT_HOURS,
 } from "@/components/schedule/scheduleModel";
 import { Typography } from "@/constants/typography";
@@ -68,7 +71,6 @@ const RUN_TIMES = [
 /** Everything on the Schedule page that isn't a heat-map row (header, court, labels, legend, slot card). */
 const SCHEDULE_CHROME = 330;
 /** Room under the last row for the floating + button (56) and its gap. */
-const FAB_CLEARANCE = 72;
 
 // Rolling next-7-days window (today first) — matches the product model of
 // "who's going this week" and the [today, +7d] data fetch window. A calendar
@@ -597,14 +599,25 @@ export default function ScheduleScreen() {
   const { top, bottom } = useSafeAreaInsets();
   const tabFloor = useBottomFloor();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  // Every hour fits on screen with no scrolling: the rows take what the slot
-  // card and chrome leave (a short phone scrolls the page instead of squeezing).
-  const rowPitch = Math.max(
-    20,
-    Math.min(28, Math.floor((screenHeight - top - tabFloor - SCHEDULE_CHROME) / SLOT_HOURS.length)),
-  );
-  // One card plus a peek of the next, so the row reads as swipeable and the
-  // FAB only ever covers the peek.
+  // One 12-hour window fills the space the slot card and chrome leave; the
+  // heat map snaps between the morning and the evening window.
+  const [gridHeight, setGridHeight] = useState(0);
+  const rowPitch = gridHeight
+    ? Math.max(20, Math.floor(gridHeight / SCHEDULE_WINDOW_ROWS))
+    : Math.max(22, Math.min(36, Math.floor((screenHeight - top - tabFloor - SCHEDULE_CHROME) / SCHEDULE_WINDOW_ROWS)));
+  // Snap: when a flick settles, land on the nearer window (works on web too,
+  // where snapToOffsets is ignored).
+  const heatScrollRef = useRef<ScrollView>(null);
+  const snapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const settleHeat = (y: number) => {
+    if (snapTimer.current) clearTimeout(snapTimer.current);
+    snapTimer.current = setTimeout(() => {
+      const offsets = SCHEDULE_WINDOW_STARTS.map((start) => start * rowPitch);
+      const target = offsets.reduce((best, o) => (Math.abs(o - y) < Math.abs(best - y) ? o : best), offsets[0]);
+      if (Math.abs(target - y) > 1) heatScrollRef.current?.scrollTo({ y: target, animated: true });
+    }, 90);
+  };
+  const [onlyMine, setOnlyMine] = useState(false);
   const [joiningRunId, setJoiningRunId] = useState<string | null>(null);
   const joinFromCard = async (game: GameRun) => {
     if (joiningRunId) return;
@@ -1035,44 +1048,29 @@ export default function ScheduleScreen() {
     <View style={styles.container}>
       <ScreenHeader
         title="SCHEDULE"
-        right={<Text style={styles.headerDate}>{weekLabel}</Text>}
+        right={
+          <Pressable
+            accessibilityHint="Pick another court"
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={() => setShowPicker(true)}
+            style={({ pressed }) => [styles.courtSelector, pressed && styles.courtSelectorPressed]}
+            testID="schedule-court-selector"
+          >
+            <View style={[styles.courtDot, court?.sport === "PICKLEBALL" ? null : styles.courtDotBasketball]} />
+            <Text style={styles.courtSelectorText} numberOfLines={1}>
+              {court ? court.shortName || court.name : "Pick a court"}
+            </Text>
+            <Feather name="chevron-down" size={15} color={Colors.muted} />
+          </Pressable>
+        }
       />
 
       {/* The page doesn't scroll when it fits (Oct 16): court, heatmap, slot
           card and the swipeable games row. On a short phone (iPhone SE) it
           scrolls instead of clipping the slot card, and the bottom padding
           lets the last row clear the + button. */}
-      <ScrollView
-        alwaysBounceVertical={false}
-        contentContainerStyle={[styles.scheduleBody, { paddingBottom: FAB_CLEARANCE }]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        style={styles.scheduleScroll}
-      >
-        {/* ── Court selector ── */}
-        <Pressable
-          accessibilityHint="Pick another court"
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.courtSelector, pressed && styles.courtSelectorPressed]}
-          onPress={() => setShowPicker(true)}
-          testID="schedule-court-selector"
-        >
-          <Feather name="map-pin" size={13} color={Colors.accent} />
-          <Text style={styles.courtSelectorText} numberOfLines={1}>
-            {court ? court.shortName || court.name : "Pick a court"}
-          </Text>
-          <Feather name="chevron-down" size={15} color={Colors.muted} />
-        </Pressable>
-
-        {/* One restrained instruction above the time grid. The running tally
-            of picked times lives in a summary block below the grid, not here. */}
-        <View style={styles.scheduleModeRow}>
-          <Text style={styles.scheduleModeStatus}>
-            {scheduleMode === "EDIT" ? "Tap the hours you'll play" : "Who's going"}
-          </Text>
-          <Text style={styles.scheduleModeMeta}>Planned visits + games</Text>
-        </View>
-
+      <View style={[styles.scheduleScroll, { paddingBottom: tabFloor + 8 }]}>
         {/* ── Heatmap: the time axis switches between fixed AM and PM states. ── */}
         <View style={styles.heatmap}>
           {/* Day header row */}
@@ -1102,11 +1100,23 @@ export default function ScheduleScreen() {
               );
             })}
           </View>
+          <View
+            onLayout={(e) => setGridHeight(Math.floor(e.nativeEvent.layout.height))}
+            style={styles.gridArea}
+          >
           <ScrollView
+            onScroll={(e) => settleHeat(e.nativeEvent.contentOffset.y)}
+            ref={heatScrollRef}
+            scrollEventThrottle={16}
             contentContainerStyle={styles.timeRows}
-            scrollEnabled={false}
+            contentOffset={{ x: 0, y: SCHEDULE_WINDOW_STARTS[scheduleWindowForHour(new Date().getHours())] * rowPitch }}
+            decelerationRate="fast"
+            key={`window-${rowPitch}`}
+            nestedScrollEnabled
             showsVerticalScrollIndicator={false}
-            style={{ height: SLOT_HOURS.length * rowPitch }}
+            snapToOffsets={SCHEDULE_WINDOW_STARTS.map((start) => start * rowPitch)}
+            style={{ height: SCHEDULE_WINDOW_ROWS * rowPitch, flexGrow: 0 }}
+            testID="schedule-heat-scroll"
           >
             {SLOT_HOURS.map((h, slotIdx) => (
               <View key={h} style={styles.heatRow}>
@@ -1143,13 +1153,15 @@ export default function ScheduleScreen() {
                   slotDate.setHours(SLOT_HOURS[slotIdx], 0, 0, 0);
                   slotDate.setHours(SLOT_HOURS[slotIdx] + 1, 0, 0, 0);
                   const isPast = slotDate.getTime() <= Date.now();
+                  // Only mine: every slot you haven't planned reads as empty.
+                  const shownCount = onlyMine && scheduleMode === "VIEW" && !wasMine ? 0 : previewCount;
                   return (
                     <Pressable
                       key={dayIdx}
                       style={[
                         styles.heatCell,
                         { height: rowPitch - 3 },
-                        heatStyle(previewCount),
+                        heatStyle(shownCount),
                         isCurrent && styles.heatCellCurrent,
                         isSelected && styles.heatCellSelected,
                         scheduleMode === "EDIT" &&
@@ -1184,9 +1196,9 @@ export default function ScheduleScreen() {
                     >
                       {scheduleMode === "EDIT" && isMinePending ? (
                         <Feather name="check" size={13} color={Colors.text} />
-                      ) : (isSelected || previewCount >= 5) &&
-                        previewCount > 0 ? (
-                        <Text style={[styles.heatCellCount, previewCount >= 5 && styles.heatCellCountOnAccent]}>{previewCount}</Text>
+                      ) : (isSelected || shownCount >= 5) &&
+                        shownCount > 0 ? (
+                        <Text style={[styles.heatCellCount, shownCount >= 5 && styles.heatCellCountOnAccent]}>{shownCount}</Text>
                       ) : null}
                       {runCount > 0 ? (
                         <View accessible={false} style={styles.runMarker} />
@@ -1197,42 +1209,32 @@ export default function ScheduleScreen() {
               </View>
             ))}
           </ScrollView>
-          {/* Legend */}
-          <View style={styles.legendRow}>
-            <View style={styles.legendScale}>
-              <Text style={styles.legendText}>Quiet</Text>
-              <View
-                style={[
-                  styles.legendSwatch,
-                  { backgroundColor: Colors.surfaceHigh },
-                ]}
-              />
-              <View
-                style={[
-                  styles.legendSwatch,
-                  { backgroundColor: Colors.heat1 },
-                ]}
-              />
-              <View
-                style={[
-                  styles.legendSwatch,
-                  { backgroundColor: Colors.heat2 },
-                ]}
-              />
-              <View
-                style={[
-                  styles.legendSwatch,
-                  { backgroundColor: Colors.accent },
-                ]}
-              />
-              <Text style={styles.legendText}>Busy</Text>
-            </View>
-            <View style={styles.legendGame}>
-              <View style={styles.legendGameDot} />
-              <Text style={styles.legendText}>Game</Text>
-            </View>
-            <Text style={styles.legendText}>Local time · 1-hr slots</Text>
           </View>
+          {/* Actions: the court feed's pills (no floating button). */}
+          {court?.id === localCourt?.id ? (
+            <View style={styles.pillRow}>
+              <Pill
+                label="Select"
+                onPress={() => (scheduleMode === "EDIT" ? cancelEditingTimes() : beginEditingTimes())}
+                selected={scheduleMode === "EDIT"}
+              />
+              <Pill
+                disabled={scheduleMode === "EDIT"}
+                label="Only mine"
+                onPress={() => setOnlyMine((value) => !value)}
+                selected={onlyMine}
+              />
+              <Pill
+                disabled={myVisitsByKey.size === 0}
+                label={`Clear mine · ${myVisitsByKey.size}`}
+                onPress={() => {
+                  // Opens Select with nothing picked; Save removes them.
+                  beginEditingTimes();
+                  setPendingKeys(new Set());
+                }}
+              />
+            </View>
+          ) : null}
         </View>
 
         {scheduleMode === "EDIT" ? (
@@ -1333,22 +1335,8 @@ export default function ScheduleScreen() {
             })()
           : null}
 
-      </ScrollView>
+      </View>
 
-      {scheduleMode === "VIEW" && court?.id === localCourt?.id ? (
-        <SpeedDialFab
-          accessibilityLabel="Open schedule actions"
-          actions={[
-            { label: "Add times", icon: "clock", onPress: beginEditingTimes },
-            {
-              label: "Schedule game",
-              icon: "users",
-              onPress: () => setShowHost(true),
-            },
-          ]}
-          bottom={Platform.OS === "web" ? 102 : bottom + 78}
-        />
-      ) : null}
 
       {/* ── Bottom actions ── */}
       {scheduleMode === "EDIT" ? (
@@ -1412,6 +1400,7 @@ export default function ScheduleScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  pillRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingTop: 12 },
   scheduleScroll: { flex: 1, minHeight: 0 },
   scheduleBody: { flexGrow: 1 },
   flexArea: { flexGrow: 1, minHeight: 140, marginTop: 8 },
@@ -1429,23 +1418,16 @@ const styles = StyleSheet.create({
   },
 
   // ── Court selector ──
-  courtSelector: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 13,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.hairline,
-  },
+  courtSelector: { maxWidth: 190, minHeight: 44, flexDirection: "row", alignItems: "center", gap: 8 },
   courtSelectorPressed: { opacity: 0.75 },
   courtSelectorText: {
-    flex: 1,
+    flexShrink: 1,
     minWidth: 0,
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 14,
+    fontFamily: Typography.bodyBold,
+    fontSize: 12,
+    letterSpacing: 1.6,
+    textTransform: "uppercase",
     color: Colors.text,
-    letterSpacing: 0.2,
   },
   scheduleModeRow: {
     paddingHorizontal: 20,
@@ -1622,7 +1604,10 @@ const styles = StyleSheet.create({
   weekArrowDisabled: { opacity: 0.4 },
 
   // ── Heatmap ──
-  heatmap: { paddingHorizontal: 20 },
+  heatmap: { flex: 1, minHeight: 0, paddingHorizontal: 20, paddingTop: 10 },
+  gridArea: { flex: 1, minHeight: 0 },
+  courtDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.pickleballMeta },
+  courtDotBasketball: { backgroundColor: Colors.basketballMeta },
   timeRows: { paddingBottom: 2 },
   timeCueRowAbove: {
     height: 16,
