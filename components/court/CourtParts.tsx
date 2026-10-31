@@ -68,16 +68,14 @@ export function SportLabel({ sport, suffix }: { sport: CourtSport; suffix?: stri
   );
 }
 
-const MARK = 56;
-
 /**
- * Your local court, as a quarter-circle in the card's top-right corner: a +
- * while it isn't your local, a glowing orange check (like the logo's) once it
- * is. Render it as a direct child of the card so it sits flush in the corner.
- * Where it isn't your local, a tap makes it your local and the check springs
- * in; once it is, the mark does nothing (Settings changes it).
+ * Your local court: a + while it isn't your local, a glowing orange check
+ * (like the logo's) once it is. A plain 44pt icon with no arc; the caller
+ * places it (the court page's back-arrow row, the expanded drawer's top-right,
+ * Home's top-right). Where it isn't your local, a tap makes it your local and
+ * the check springs in; once it is, the mark does nothing (Settings changes it).
  */
-export function LocalMark({ active, onPress, top = 0 }: { active: boolean; onPress?: () => void; top?: number }) {
+export function LocalMark({ active, onPress }: { active: boolean; onPress?: () => void }) {
   const pop = React.useRef(new Animated.Value(active ? 1 : 0)).current;
   const wasActive = React.useRef(active);
   React.useEffect(() => {
@@ -97,22 +95,20 @@ export function LocalMark({ active, onPress, top = 0 }: { active: boolean; onPre
 
   const tappable = Boolean(onPress) && !active;
   const body = (
-    <View style={[styles.markArc, active && styles.markArcOn]}>
+    <View style={styles.markBox}>
       {active ? (
         <Animated.View
-          style={[styles.markIcon, { opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] }]}
+          style={{ opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] }}
         >
           <Feather color={Colors.accent} name="check" size={22} style={styles.markCheckGlow} />
         </Animated.View>
       ) : (
-        <View style={styles.markIcon}>
-          <Feather color={Colors.textSecondary} name="plus" size={22} />
-        </View>
+        <Feather color={Colors.textSecondary} name="plus" size={22} />
       )}
     </View>
   );
   return (
-    <View pointerEvents="box-none" style={[styles.markWrap, { top }]}>
+    <View pointerEvents="box-none">
       {tappable ? (
         <Pressable
           accessibilityHint="Sets this as your local court"
@@ -146,7 +142,6 @@ export function CourtTitleRow({
   live,
   liveAccessibilityLabel,
   size = "card",
-  clearCornerMark = false,
 }: {
   sport: CourtSport;
   name: string;
@@ -155,12 +150,10 @@ export function CourtTitleRow({
   live: boolean;
   liveAccessibilityLabel?: string;
   size?: "card" | "page";
-  /** Keep the live number clear of a LocalMark in the same top-right corner. */
-  clearCornerMark?: boolean;
 }) {
   const page = size === "page";
   return (
-    <View style={[styles.titleRow, clearCornerMark && styles.titleRowClearMark]}>
+    <View style={styles.titleRow}>
       <View style={styles.titleBlock}>
         <SportLabel sport={sport} />
         <Text
@@ -361,23 +354,7 @@ const styles = StyleSheet.create({
   sportRow: { flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 1 },
   sportDot: { width: 6, height: 6, borderRadius: 3 },
   sportText: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.5, textTransform: "uppercase", flexShrink: 1 },
-  markWrap: { position: "absolute", right: 0, width: MARK, height: MARK },
-  markArc: {
-    width: MARK,
-    height: MARK,
-    borderBottomLeftRadius: MARK,
-    borderLeftWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: Colors.hairlineChrome,
-  },
-  markArcOn: {
-    borderColor: Colors.accentBorderStrong,
-    shadowColor: Colors.accent,
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-    shadowOffset: { width: -2, height: 2 },
-  },
-  markIcon: { position: "absolute", top: 10, right: 10 },
+  markBox: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   markCheckGlow: { textShadowColor: Colors.accent, textShadowRadius: 10 },
   pressed: { opacity: 0.72 },
   strip: {
@@ -395,7 +372,9 @@ const styles = StyleSheet.create({
   cellDrawer: { height: 62 },
   cellCard: { height: 54, gap: 4 },
   cellValueDrawer: { fontSize: 28, lineHeight: 30 },
-  cellValueCard: { fontSize: 22, lineHeight: 24 },
+  // The drawer's strip: quieter than the court name and live number, and a
+  // fixed value height so a unit ("1h") can't push its cell off the line.
+  cellValueCard: { fontSize: 18, lineHeight: 22, height: 22 },
   sectionHead: { height: 16, marginBottom: 8, flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 12 },
   sectionTitle: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.4, textTransform: "uppercase", color: Colors.text },
   sectionMeta: { flexShrink: 1, fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.muted },
@@ -408,7 +387,6 @@ const styles = StyleSheet.create({
   courtLink: { width: 64, height: 50, backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
   cellLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   titleRow: { flexDirection: "row", alignItems: "flex-end", gap: 16, paddingHorizontal: 20 },
-  titleRowClearMark: { paddingRight: 20 + MARK },
   titleBlock: { flex: 1, minWidth: 0, gap: 6 },
   titleName: {
     fontFamily: Typography.headingBold,

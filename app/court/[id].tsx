@@ -214,11 +214,6 @@ export default function CourtProfileScreen() {
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: Platform.OS === "web" ? 44 : top }]}>
-        <LocalMark
-          active={isMyLocal}
-          onPress={() => void setLocalCourt(court.id, court)}
-          top={Platform.OS === "web" ? 44 : top}
-        />
         <CourtArt faint sport={court.sport} top={(Platform.OS === "web" ? 44 : top) + 44} />
         <View style={styles.navRow}>
           <Pressable
@@ -230,6 +225,7 @@ export default function CourtProfileScreen() {
           >
             <Feather color={Colors.text} name="arrow-left" size={22} />
           </Pressable>
+          <LocalMark active={isMyLocal} onPress={() => void setLocalCourt(court.id, court)} />
         </View>
         {/* Name left, the live number right (Oct 17 header reference), then
             today's busy times above the tabs so every tab shares them. */}
@@ -381,7 +377,7 @@ const styles = StyleSheet.create({
   retryButton: { minHeight: 44, paddingHorizontal: Space.xl, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
   retryText: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.text, letterSpacing: 1.2 },
   header: { position: "relative", overflow: "hidden" },
-  navRow: { height: 44, paddingLeft: 12, paddingRight: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  navRow: { height: 44, paddingLeft: 12, paddingRight: 9, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   back: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
   titleRow: { paddingTop: 6 },
   busyHeader: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10 },

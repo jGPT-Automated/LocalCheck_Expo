@@ -106,6 +106,15 @@ Each claim says which of these it is, because they are often confused:
     tracks the expanded detent and the drawer shows `LocalMark` only there.
   - Visual QA: new `explore-drawer-expanded` screen in
     `scripts/visual-qa/screens.mjs`.
+  - Follow-up after Jesse's review of the preview screenshots: court names
+    back to full size (no step-down), `CourtArt` centred on the name
+    (`top={-16}`), the drawer name at the court page size, the drawer strip on
+    the darker `card` band with quieter 18pt values at a fixed height so units
+    don't shift a cell. `LocalMark` lost its quarter-circle: a plain 44pt +
+    / check placed by the caller (court page: the back-arrow row; expanded
+    drawer and Home: top-right).
+  - QA default (`.claude/skills/ui-done`): the PR's Vercel preview against
+    `main`'s live link, only the screens the change affects.
 - Oct 18 follow-up 3 (D61; **on a branch**, PR #77, not merged, not on a device;
   not checked in a render, Jesse is verifying). Frontend only.
   - `LocalMark` (`components/court/CourtParts.tsx`): corner quarter-circle with

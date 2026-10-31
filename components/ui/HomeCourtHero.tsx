@@ -44,7 +44,9 @@ export function HomeCourtHero({
   return (
     <View style={styles.header}>
       <CourtArt sport={court.sport} />
-      <LocalMark active />
+      <View style={styles.localMark}>
+        <LocalMark active />
+      </View>
       <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.name}>
         {court.shortName || court.name}
       </Text>
@@ -91,6 +93,7 @@ export function HomeCourtActions({
 
 const styles = StyleSheet.create({
   header: { position: "relative", overflow: "hidden", paddingTop: 4, backgroundColor: Colors.background },
+  localMark: { position: "absolute", top: 0, right: 8, zIndex: 2 },
   metaRow: { height: 28, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   name: {
     marginTop: 4,

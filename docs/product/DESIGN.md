@@ -229,7 +229,9 @@ On court number on the right (orange with the live dot when anyone is on).
 The Explore card is that row only: no numbers strip and no local + / check.
 The drawer's peek adds Next game / Court hours · wk / Locals and Check in +
 Court ›; the local + / check appears only once the drawer is expanded, as on
-Home. The court page header uses the same row at page size.
+Home. The court page header uses the same row at page size. The local mark is
+a plain + / check icon with no quarter-circle: in the court page's back-arrow
+row, and top-right in the expanded drawer and on Home.
 
 Since D56 (Oct 15) the Explore card is the court-flow card: `#121216`, 20pt
 corners, one hairline, `CourtArt` top right, sport label and Your local pill,

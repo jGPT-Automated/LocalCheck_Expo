@@ -86,8 +86,10 @@ below wherever they disagree.
   right. Its numbers strip and its local + / check are gone. Tapping opens the
   drawer with the same title row, then Next game / Court hours · wk / Locals
   (Next game takes the strip slot On court used to have) and Check in + Court ›.
-  The local + / check shows only when the drawer is expanded. The court page
-  header uses the same title row. Back is an edge swipe only (PR #87). D62–D64
+  The local + / check shows only when the drawer is expanded, and it is a plain
+  icon with no quarter-circle (on the court page it sits in the back-arrow
+  row). The drawer's numbers sit on the darker band, quieter than the name and
+  live number. The court page header uses the same title row. Back is an edge swipe only (PR #87). D62–D64
   are taken by open PR #83.
 - **D61 Corner mark, thin slot card, Schedule fits one screen (Oct 18,
   revises D60):** The local mark becomes a quarter-circle in the card's
