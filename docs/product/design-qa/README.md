@@ -27,17 +27,20 @@ Schedule windows and Schedule one-view.
 | Schedule windows | [375-6](2026-10-31-explore-title-row/375-6-schedule-windows.png) | — |
 | Schedule one-view | [375-7](2026-10-31-explore-title-row/375-7-schedule-one-view.png) | — |
 
-The saved folder does not record a baseline SHA, a reproducible journey, or
-430-wide captures. The PR #88 head is `a606de3` (merge commit); baseline is
-identified in the image labels as live main, with its SHA not retained. The
-folder contains no backend-isolation or device claim. These are historical
-captures; new entries use the complete standard above.
+The saved folder does not record either capture's commit SHA, a reproducible
+journey, or 430-wide captures. `a606de3` is the PR #88 merge commit, not a
+recorded screenshot head. The baseline is identified in the image labels as
+live main; its SHA is also unrecorded. The folder contains no backend-isolation
+or device claim. These are historical captures; new entries use the complete
+standard above.
 
 ## 2026-11-03 — PR #89, court activity feed and linked chart
 
 [Main evidence and journey results](2026-11-03-court-activity/README.md).
-Baseline `a606de3`; merged PR head `19dac69`. Actual rendered app screenshots
-pair the same route/state at 375×667, 393×852, and 430×932. The evidence
+The original after captures came from PR head `dcad46b`; `19dac69` is the
+merged-main commit, not the screenshot head. The baseline was current main
+`a606de3`. Actual rendered app screenshots pair the same route/state at
+375×667, 393×852, and 430×932. The evidence
 includes Court Feed, Home, drawer, and Schedule; the folder retains the full
 before/after states, including scrubbed hour, Going, empty/private/error
 states, and Schedule scroll. The documented journey uses isolated fixture
@@ -45,8 +48,9 @@ responses, blocks WebSockets, records results, and states its production and
 native-device limits.
 
 The follow-up logic correction has its own [paired captures and regression
-evidence](2026-11-03-court-activity/review-fix/README.md): baseline `dcad46b`,
-corrected head `375b08a`, at 375×667, 393×852, and 430×932. It records the
+evidence](2026-11-03-court-activity/review-fix/README.md): before capture at
+`dcad46b`, corrected after capture at `375b08a`; `19dac69` remains the merged
+main commit. It covers 375×667, 393×852, and 430×932. The entry records the
 reproducible heatmap/hour and actor-navigation journey, fixture-only writes,
 blocked backend traffic, and remaining native/RLS/realtime limits. Original
 PR #89 captures remain intact.

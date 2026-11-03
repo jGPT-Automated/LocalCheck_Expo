@@ -34,8 +34,9 @@
 ### Visual version history (every frontend PR)
 
 <!-- Use actual screenshots of the rendered app, not design mockups or exports
-that were not opened in the browser/device. Keep the baseline and PR head,
-route, meaningful state, and viewport the same within each pair. -->
+that were not opened in the browser/device. Baseline and PR head name the two
+code versions; keep route, meaningful state, viewport, and fixture data the
+same within each pair. -->
 
 - Baseline commit: <!-- full or unambiguous SHA -->
 - PR head commit: <!-- full or unambiguous SHA -->

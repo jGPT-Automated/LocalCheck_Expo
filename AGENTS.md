@@ -113,8 +113,10 @@ force-push shared branches, or include unrelated user changes.
 - Explain external actions before taking them. Production database changes,
   Edge Function deployment, EAS Update, TestFlight work, GitHub merge, and
   branch deletion require explicit authorization for that exact action.
-- Use the in-app Browser for connected preview work when requested. Do not
-  substitute an external browser or computer-control workflow.
+- Use the in-app Browser for connected preview work when available. In cloud
+  sessions where it is unavailable, isolated cloud-owned Chromium/Playwright
+  is permitted. Never attach to or control Jesse's personal browser. Browser
+  access does not authorize backend writes.
 - Talk to Jesse in plain language: the outcome and the action, no filler.
   Ask him when a decision is his or quicker for him to answer; once he
   answers, record it (`docs/product/DECISIONS.md` and his plan doc's Tracker)
