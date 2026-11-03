@@ -173,8 +173,8 @@ fulfills the QR worker's public static dependency locally.
 
 ## Dashboard visual follow-up
 
-Start `PORT=8098 pnpm preview:web`, then run
-`node scripts/visual-qa/dashboard-design-journey.mjs http://127.0.0.1:8098 /tmp/dashboard-design`.
+Start `PORT=8100 pnpm preview:web`, then run
+`node scripts/visual-qa/dashboard-design-journey.mjs http://127.0.0.1:8100 /tmp/dashboard-design`.
 The isolated journey captures the same Home/drawer/court states at 375x667,
 393x852 and 430x932 and checks the shared boxed planner, plus/check toggle,
 failed save/retry/removal, selected-card floor clearance, privacy and inline

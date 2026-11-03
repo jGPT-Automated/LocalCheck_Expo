@@ -56,7 +56,8 @@ references, retaining D65's court header/art. No new visual direction.
   avatars with count/names; hidden people contribute only an anonymous count.
 - [ ] Render scheduled timeline games through ScheduledGameCard's compact
   presentation. Reuse its joined/full/choose-team behavior and existing
-  joinRun; never convert a planned-visit toggle into an RSVP.
+  joinRun; never convert a planned-visit toggle into an RSVP. Preserve every
+  selected-hour game link in the full dashboard card as well as the timeline.
 - [ ] Exercise add/remove, failed save/retry, day/hour changes, private/empty
   states, game join/full/joined/choose-teams and all shared usages. Compare
   baseline/head screenshots and inspect the captured renders at all sizes.

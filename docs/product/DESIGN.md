@@ -22,8 +22,8 @@ avatars, a count/name summary and the same intent action. Scheduled games use
 ScheduledGameCard compact, preserving real joined/full/team-selection rules
 and confirmed RSVP. In a game hour, avoid a second add-intent button; an
 existing personal planned visit still offers its removal control. A dashboard
-selected-hour card has only its intent action;
-actual game RSVP lives on the separate game card. These rules revise D66's
+selected-hour card identifies every game in that hour with its real RSVP, even
+when Up next is a different game. Empty/planned-only hours offer intent instead. These rules revise D66's
 text-only compact row. Keep the 28pt chart/scroll focus and date heading rules.
 
 ## Court activity update (D66, merged PR #89)

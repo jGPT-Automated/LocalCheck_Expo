@@ -81,6 +81,21 @@ export function SlotCard({
   const acts = mode !== "view";
   const run = runs[0];
   const showBody = acts || total > 0 || Boolean(run);
+  const spokenAttendees = [
+    ...attendees.map((p) => (p.isMine ? "You" : p.name)),
+    ...(hidden ? [`${hidden} private`] : []),
+  ].join(" · ");
+  const gameRows = runs.map((game) => (
+    <ScheduledGameCard
+      compact
+      disabled={!acts || !onJoinRun}
+      game={game}
+      joining={joiningRunId === game.id}
+      key={game.id}
+      onJoin={onJoinRun ?? (() => router.push(`/run/${game.id}`))}
+      onOpen={() => router.push(`/run/${game.id}`)}
+    />
+  ));
   if (compact)
     return (
       <View>
@@ -115,9 +130,7 @@ export function SlotCard({
             </Text>
             {attendees.length || hidden ? (
               <Text
-                accessibilityLabel={attendees
-                  .map((p) => (p.isMine ? "You" : p.name))
-                  .join(" · ")}
+                accessibilityLabel={spokenAttendees}
                 style={styles.timelineNames}
               >
                 {[
@@ -144,17 +157,7 @@ export function SlotCard({
             />
           ) : null}
         </View>
-        {runs.map((game) => (
-          <ScheduledGameCard
-            compact
-            disabled={!acts || !onJoinRun}
-            game={game}
-            joining={joiningRunId === game.id}
-            key={game.id}
-            onJoin={onJoinRun ?? (() => router.push(`/run/${game.id}`))}
-            onOpen={() => router.push(`/run/${game.id}`)}
-          />
-        ))}
+        {gameRows}
       </View>
     );
   return (
@@ -199,7 +202,7 @@ export function SlotCard({
               <Text style={styles.privateCount}>{hidden} private</Text>
             ) : null}
           </ScrollView>
-          {acts ? (
+          {acts && (!runs.length || mine) ? (
             <AttendanceAction
               mine={mine}
               saving={saving}
@@ -247,6 +250,7 @@ export function SlotCard({
           ) : null}
         </View>
       ) : null}
+      {mode === "plan" ? gameRows : null}
       {notice ? <Text style={styles.notice}>{notice}</Text> : null}
     </View>
   );

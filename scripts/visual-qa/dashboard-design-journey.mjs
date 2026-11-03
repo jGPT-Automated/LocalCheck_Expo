@@ -89,6 +89,12 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
     assert.ok(chart.y < next.y, 'Next game follows the planner');
     assert.ok(slot.y + slot.height <= height - 88, 'Selected card clears tab floor');
   });
+  await check('Selected dashboard hour retains its scheduled game and RSVP', async () => {
+    assert.equal(await selectedSlot.getByRole('button', {name:'Open CHATGPT', exact:true}).count(), 1);
+    assert.equal(await selectedSlot.getByRole('button', {name:"You're going", exact:true}).count(), 1);
+    assert.equal(await selectedSlot.getByRole('button', {name:"I'm going", exact:true}).count(), 0, 'No duplicate add-intent action in a game hour');
+  });
+  await scrub(19); await shot('home-intent');
   await check('Home attendance is a compact plus control', async () => {
     const button = selectedSlot.getByRole('button', {name:"I'm going", exact:true});
     assert.doesNotMatch(await button.innerText(), /Going/i);
@@ -126,6 +132,11 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
     const row=page.getByTestId('activity-hour-20');
     assert.equal(await row.getByTestId('slot-attendee-stack').count(),1);
     assert.equal(await row.getByRole('button',{name:"You're going",exact:true}).count(),1);
+  });
+  await page.getByRole('button',{name:'Next day',exact:true}).click(); await scrub(20);
+  await check('Private-only court attendance has a spoken private count',async()=>{
+    const privateText=page.getByTestId('activity-hour-20').getByText('1 private',{exact:true});
+    assert.match(await privateText.getAttribute('aria-label') ?? '', /1 private/);
   });
   const visual=await page.evaluate(`(${audit})()`);
   assert.deepEqual(errors,[]); assert.deepEqual(visual.fail,[]);
