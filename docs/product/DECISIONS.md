@@ -5,7 +5,7 @@ superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D65, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D66, Jesse's plan doc)
 
 Numbers match Jesse's plan doc (Decisions tab). These supersede older entries
 below wherever they disagree.
@@ -80,6 +80,23 @@ below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D66 Court Feed uses LCv5's Home timeline (Nov 3, revises D55, D57,
+  D58 and D61):** Home and expanded Explore drawer remain at-a-glance action
+  dashboards: presence, next game and daily planning. Event activity belongs
+  on the court opening Feed. Court tabs are Feed / Schedule / Players / Info;
+  Schedule combines the heatmap and upcoming games, with a heatmap pick opening
+  the corresponding hour in Feed. The daily chart has one day label, arrows
+  beside its ends, a day-label swipe, and a bar scrub linked to vertical hour
+  rows. Pin that chart above Feed's only vertical scroller. Use existing
+  square PlayerAvatar for current presence and names for planned attendance;
+  Going signals a planned visit, separate from check-in or game RSVP. Preserve
+  anonymous planning and server-confirmed save behavior. LCv5's key colors
+  already match; retain shared app tokens and readable text. Remove duplicate
+  drawer pills; the existing Court link opens Feed. No Supabase operation or
+  queue backend is authorized. D65's shared title row and art stay intact.
+  Jesse's review checkpoint is logic-only: avatar stacks, plus/check controls,
+  boxed selected-hour cards and the Home/LocalPlus redesign belong in the
+  next PR.
 - **D65 One court title row from card to drawer to page (Oct 31, revises
   D56 and D61):** The Explore card shows only the court's title: sport, name
   and city · distance left-aligned, with the live On court number on the
@@ -109,7 +126,7 @@ below wherever they disagree.
   "Most active at 7 PM"; it looks seven days ahead, never back. The Schedule
   page shows every hour with no inner scrolling and no Upcoming row (games live
   on the court's Games tab). (Revised by D65: no local mark on the Explore card
-  or the drawer peek; it shows once the drawer is expanded.)
+  or the drawer peek; it shows once the drawer is expanded.) (Revised by D66: court Feed timeline and dashboard/scroll separation.)
 - **D60 Drawer scroll, one drawer look, pinned name only, local mark (Oct 18,
   revises D59):** The expanded Explore drawer scrolls, and the LocalPlus panel
   sits near the top of it (the content is the same length for every court, so
@@ -151,7 +168,7 @@ below wherever they disagree.
   your own row pinned (Newest = the most recent to make this their local first).
   Week keeps days across and times down but follows the new reference: a
   Planned visits card (Busiest, Fewer to More, Game dot) and a Today card
-  (who's going, +, Join).
+  (who's going, +, Join). (Revised by D66: court Feed timeline and dashboard/scroll separation.)
 - **D57 Pre-submission polish pass (Oct 17, revises D55):** Jesse's voice
   notes and the Oct 16 precision handoff. The court page header is the
   court's own: name left, a large live On court number right, and today's
@@ -167,7 +184,7 @@ below wherever they disagree.
   Onboarding's welcome carries the sign-in artwork. The game page shows the
   court and format once and keeps Submit result / View result pinned at the
   bottom. (Revised by D58: Home's Plan / Check in / Court row and its tabs,
-  and the court page's bottom bar, are gone.)
+  and the court page's bottom bar, are gone.) (Revised by D66: court Feed timeline and dashboard/scroll separation.)
 - **D56 The rest of the app follows the court-flow design, frontend only
   (Oct 15):** Jesse asked for one consistent front end matched to
   `CourtFlowPhone2` with no backend changes, focusing on the expanded
@@ -193,7 +210,7 @@ below wherever they disagree.
   Court hours: the last 7 days' sessions, each capped at 4 h, a session with
   no check-out closed at 3 h. Supersedes the 2026-08-09 "Court routes are
   read-only place dashboards" entry. (Revised by D57: the court page header
-  shows a live On court number and today's busy times instead of the strip.)
+  shows a live On court number and today's busy times instead of the strip.) (Revised by D66: court Feed timeline and dashboard/scroll separation.)
 - **D54 Docs are updated on every push, and CI checks it (Oct 13):** any
   change outside `docs/` counts as affecting the docs; there is no "not
   affected." Every push to a pull request updates `docs/CURRENT_STATE.md`, plus

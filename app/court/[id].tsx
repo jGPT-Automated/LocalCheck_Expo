@@ -6,15 +6,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CourtSchedulePanel } from "@/components/CourtSchedulePanel";
 import { CourtArt } from "@/components/court/CourtArt";
-import { CourtBusyChart } from "@/components/court/CourtBusyChart";
+import { CourtActivityFeed } from "@/components/court/CourtActivityFeed";
+import type { CourtHourPick } from "@/lib/courtActivityModel";
 import { CourtGamesPanel } from "@/components/court/CourtGamesPanel";
 import { CourtInfoPanel } from "@/components/court/CourtInfoPanel";
 import { CourtPlayersPanel } from "@/components/court/CourtPlayersPanel";
-import { CourtTabBar, CourtTitleRow, LocalMark, Pill } from "@/components/court/CourtParts";
-import { ActivityRow } from "@/components/ui/ActivityRow";
+import { CourtTabBar, CourtTitleRow, LocalMark } from "@/components/court/CourtParts";
 import { GameResultModal } from "@/components/ui/GameResultModal";
-import { PersonTile } from "@/components/ui/PersonTile";
-import { Colors, Radius } from "@/constants/colors";
+import { Colors } from "@/constants/colors";
 import type { FeedItem, FeedMatchSummary, Court } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
@@ -39,23 +38,18 @@ import {
   type LocalWithLastCheckIn,
 } from "@/services/profileService";
 
-type CourtTab = "live" | "games" | "players" | "week" | "info";
-type FeedFilter = "all" | "games" | "checkins";
+type CourtTab = "feed" | "schedule" | "players" | "info";
 const COURT_TABS = [
-  { value: "live", label: "Live" },
-  { value: "games", label: "Games" },
+  { value: "feed", label: "Feed" },
+  { value: "schedule", label: "Schedule" },
   { value: "players", label: "Players" },
-  { value: "week", label: "Week" },
   { value: "info", label: "Info" },
 ] as const;
-const FEED_FILTERS: ReadonlyArray<{ value: FeedFilter; label: string }> = [
-  { value: "all", label: "All" },
-  { value: "games", label: "Games" },
-  { value: "checkins", label: "Check-ins" },
-];
-const GAME_TYPES = new Set<FeedItem["type"]>(["game_result", "run_result"]);
+function courtTab(tab?: string): CourtTab {
+  if (tab === "week" || tab === "games" || tab === "schedule") return "schedule";
+  return tab === "players" || tab === "info" ? tab : "feed";
+}
 const COURT_FEED_RESOURCES = ["activity_events", "activity_event_likes"] as const;
-const FEED_PAGE = 12;
 
 export default function CourtProfileScreen() {
   const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
@@ -71,11 +65,10 @@ export default function CourtProfileScreen() {
   const { top, bottom } = useSafeAreaInsets();
   const hasLocalPlus = useLocalPlus();
   const courtId = id ? String(id) : null;
-  // The drawer's Games / Players / Feed / Week chips open the page on that tab.
   const [activeTab, setActiveTab] = React.useState<CourtTab>(
-    COURT_TABS.some((item) => item.value === tab) ? (tab as CourtTab) : "live",
+    courtTab(tab),
   );
-  const [feedFilter, setFeedFilter] = React.useState<FeedFilter>("all");
+  const [hourPick, setHourPick] = React.useState<CourtHourPick | undefined>();
   const [court, setCourt] = React.useState<Court | null>(
     courts.find((item) => item.id === id) ?? (contextLocalCourt?.id === id ? contextLocalCourt : null),
   );
@@ -87,7 +80,6 @@ export default function CourtProfileScreen() {
     () => groupCheckinBursts(pairVisits(courtFeed, { splitToday: true })),
     [courtFeed],
   );
-  const [feedVisible, setFeedVisible] = React.useState(FEED_PAGE);
   const [week, setWeek] = React.useState<CourtHours>({ hours: 0, sessions: 0 });
   const [selectedResult, setSelectedResult] = React.useState<{
     match: FeedMatchSummary;
@@ -130,7 +122,6 @@ export default function CourtProfileScreen() {
   }, [courtId, currentUser.id]);
 
   React.useEffect(() => {
-    setFeedVisible(FEED_PAGE);
     void refreshCourtFeed();
   }, [refreshCourtFeed]);
 
@@ -194,9 +185,6 @@ export default function CourtProfileScreen() {
     .filter((run) => run.courtId === court.id && Date.parse(run.startTimeIso) >= now - 60 * 60_000)
     .sort((a, b) => a.startTimeIso.localeCompare(b.startTimeIso));
   const hoursLabel = formatCourtHours(week.hours);
-  const filteredFeed = groupedCourtFeed.filter((item) =>
-    feedFilter === "all" ? true : feedFilter === "games" ? GAME_TYPES.has(item.type) : !GAME_TYPES.has(item.type),
-  );
   const distance = court.distanceKm != null && !Number.isNaN(court.distanceKm)
     ? `${(court.distanceKm * 0.621371).toFixed(1)} mi`
     : null;
@@ -206,6 +194,8 @@ export default function CourtProfileScreen() {
   const openActivity = (item: FeedItem) => {
     if (item.type === "game_result" && item.match) {
       setSelectedResult({ match: item.match, sport: item.sport, courtName: item.courtName });
+    } else if (item.runId) {
+      router.push(`/run/${item.runId}`);
     } else if (item.playerId) {
       router.push(`/player/${item.playerId}`);
     }
@@ -240,82 +230,19 @@ export default function CourtProfileScreen() {
             sport={court.sport}
           />
         </View>
-        <View style={styles.busyHeader}>
-          <CourtBusyChart courtId={court.id} games={upcomingGames} height={34} refreshKey={roster.length} variant="header" />
-        </View>
         <CourtTabBar active={activeTab} onChange={setActiveTab} tabs={COURT_TABS} />
       </View>
 
       <View style={styles.tabContent}>
-        {activeTab === "live" ? (
-          <ScrollView contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
-            <View style={styles.onCourt}>
-              <Text style={styles.eyebrow}>On court · {hiddenCount > 0 ? `~${activeCount}` : activeCount}</Text>
-              {roster.length > 0 || hiddenCount > 0 ? (
-                <ScrollView contentContainerStyle={styles.roster} horizontal showsHorizontalScrollIndicator={false}>
-                  {roster.map((player) => (
-                    <PersonTile
-                      friend={isFriend(player.id)}
-                      key={player.id}
-                      onPress={() => router.push(`/player/${player.id}`)}
-                      player={player}
-                    />
-                  ))}
-                  {hiddenCount > 0 ? <Text style={styles.privateInline}>+{hiddenCount} private</Text> : null}
-                </ScrollView>
-              ) : (
-                <Text style={styles.emptyLine}>Nobody yet. Check in and you're first.</Text>
-              )}
-            </View>
-            <View style={styles.filters}>
-              {FEED_FILTERS.map((filter) => {
-                const selected = feedFilter === filter.value;
-                return (
-                  <Pill
-                    key={filter.value}
-                    label={filter.label}
-                    onPress={() => {
-                      setFeedFilter(filter.value);
-                      setFeedVisible(FEED_PAGE);
-                    }}
-                    selected={selected}
-                  />
-                );
-              })}
-            </View>
-            {filteredFeed.length > 0 ? (
-              filteredFeed.slice(0, feedVisible).map((item, index) => (
-                <ActivityRow
-                  isLast={index === Math.min(feedVisible, filteredFeed.length) - 1}
-                  item={item}
-                  key={item.id}
-                  previous={filteredFeed[index - 1]}
-                  showActor
-                  onActorPress={item.playerId ? () => router.push(`/player/${item.playerId}`) : undefined}
-                  onPress={item.type === "game_result" && !item.match ? undefined : () => openActivity(item)}
-                />
-              ))
-            ) : (
-              <EmptyState title="No court activity yet" body="The first check-in or game here will start the feed." />
-            )}
-            {feedVisible < filteredFeed.length ? (
-              <Pressable onPress={() => setFeedVisible((count) => count + FEED_PAGE)} style={styles.moreButton}>
-                <Text style={styles.moreText}>VIEW MORE</Text>
-                <Feather color={Colors.textSecondary} name="chevron-down" size={14} />
-              </Pressable>
-            ) : null}
-          </ScrollView>
-        ) : null}
+        {activeTab === "feed" ? <CourtActivityFeed key={`${court.id}-${hourPick?.dayOffset}-${hourPick?.hour}`}
+          court={court} roster={roster} activeCount={activeCount} games={runs.filter((r) => r.courtId === court.id)} events={groupedCourtFeed}
+          bottomInset={listPad} onActivity={openActivity} initialPick={hourPick} /> : null}
 
-        {activeTab === "games" ? (
-          <ScrollView contentContainerStyle={{ paddingBottom: listPad }} showsVerticalScrollIndicator={false}>
-            <CourtGamesPanel
-              games={upcomingGames}
-              onCreate={() => router.push({ pathname: "/(tabs)/schedule", params: { courtId: court.id, openCreate: "1" } })}
-              onOpen={(game) => router.push(`/run/${game.id}`)}
-            />
-          </ScrollView>
-        ) : null}
+        {activeTab === "schedule" ? <CourtSchedulePanel bottomInset={listPad} court={court}
+          onSelectHour={(pick) => { setHourPick(pick); setActiveTab("feed"); }}>
+          <CourtGamesPanel games={upcomingGames} onCreate={() => router.push({ pathname: "/(tabs)/schedule", params: { courtId: court.id, openCreate: "1" } })}
+            onOpen={(game) => router.push(`/run/${game.id}`)} />
+        </CourtSchedulePanel> : null}
 
         {activeTab === "players" ? (
           <CourtPlayersPanel
@@ -326,12 +253,6 @@ export default function CourtProfileScreen() {
             onPlayer={(playerId) => router.push(`/player/${playerId}`)}
             players={courtPlayers}
           />
-        ) : null}
-
-        {activeTab === "week" ? (
-          <View style={styles.scheduleView}>
-            <CourtSchedulePanel bottomInset={bottom} court={court} />
-          </View>
         ) : null}
 
         {activeTab === "info" ? (
@@ -358,15 +279,6 @@ export default function CourtProfileScreen() {
   );
 }
 
-function EmptyState({ title, body }: { title: string; body: string }) {
-  return (
-    <View style={styles.empty}>
-      <Text style={styles.emptyTitle}>{title}</Text>
-      <Text style={styles.emptyBody}>{body}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
   notFound: { flex: 1, alignItems: "center", justifyContent: "center", gap: Space.lg, padding: 30, backgroundColor: Colors.background },
@@ -377,19 +289,6 @@ const styles = StyleSheet.create({
   navRow: { height: 44, paddingLeft: 12, paddingRight: 9, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   back: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
   titleRow: { paddingTop: 6 },
-  busyHeader: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10 },
   tabContent: { flex: 1, minHeight: 0 },
-  scheduleView: { flex: 1, minHeight: 0, overflow: "hidden" },
-  onCourt: { paddingTop: 16, gap: 10 },
-  eyebrow: { paddingHorizontal: 20, fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
-  roster: { paddingHorizontal: 20, gap: Space.md, alignItems: "center" },
-  privateInline: { fontFamily: Typography.bodyMedium, fontSize: 10, color: Colors.muted },
-  emptyLine: { paddingHorizontal: 20, fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
-  filters: { flexDirection: "row", gap: 6, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6 },
-  moreButton: { minHeight: 48, marginHorizontal: Layout.screenGutter, marginTop: Space.md, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Space.sm, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md },
-  moreText: { fontFamily: Typography.bodyBold, fontSize: 9, color: Colors.textSecondary, letterSpacing: 1.2 },
-  empty: { minHeight: 72, paddingHorizontal: Layout.screenGutter, paddingVertical: Space.md, alignItems: "center", justifyContent: "center" },
-  emptyTitle: { fontFamily: Typography.heading, fontSize: 16, color: Colors.text, textAlign: "center" },
-  emptyBody: { maxWidth: 300, marginTop: Space.sm, fontFamily: Typography.body, fontSize: 11, lineHeight: 17, color: Colors.muted, textAlign: "center" },
   pressed: { opacity: 0.72 },
 });

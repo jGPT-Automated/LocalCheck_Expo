@@ -185,7 +185,8 @@ export function ScheduledGameCard({
 }
 
 const styles = StyleSheet.create({
-  wrap: { paddingHorizontal: 20, paddingTop: 16, gap: 14 },
+  // Schedule owns the common gutter for the heatmap, slot and game cards.
+  wrap: { paddingTop: 16, gap: 14 },
   eyebrow: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
   emptyBox: { minHeight: 64, paddingHorizontal: 14, justifyContent: "center", borderRadius: Radius.row, borderWidth: 1, borderStyle: "dashed", borderColor: Colors.dashed },
   empty: { fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },

@@ -1,0 +1,136 @@
+{
+  "results": [
+    {
+      "width": 375,
+      "name": "today heatmap preserves 5 PM block at 6:30 PM",
+      "passed": false,
+      "error": "Tapped 5 PM must not become 6 PM"
+    },
+    {
+      "width": 375,
+      "name": "future heatmap preserves 7 PM",
+      "passed": true
+    },
+    {
+      "width": 375,
+      "name": "past-day top hour remains 10 PM after scroll clamps to zero",
+      "passed": false,
+      "error": "The input did not match the regular expression /activity, 10P ·/. Input:  'Yesterday activity, 9P · 0 on court' "
+    },
+    {
+      "width": 375,
+      "name": "rapid scrub and manual scrolling stay linked on past/today/future days",
+      "passed": false,
+      "error": "yesterday: hour 22"
+    },
+    {
+      "width": 375,
+      "name": "missing actor in now does not navigate",
+      "passed": false,
+      "error": "An empty actor ID must never open a player route + actual - expected  + 'http://127.0.0.1:8091/player'"
+    },
+    {
+      "width": 375,
+      "name": "missing actor in past does not navigate",
+      "passed": false,
+      "error": "An empty actor ID must never open a player route + actual - expected  + 'http://127.0.0.1:8091/player'"
+    },
+    {
+      "width": 375,
+      "name": "valid actor opens the correct player",
+      "passed": true
+    },
+    {
+      "width": 375,
+      "name": "hourly court feed owns its single date heading",
+      "passed": true
+    },
+    {
+      "width": 375,
+      "name": "me activity keeps default date headings",
+      "passed": true
+    },
+    {
+      "width": 375,
+      "name": "player activity keeps default date headings",
+      "passed": true
+    },
+    {
+      "width": 375,
+      "name": "no page errors or product writes",
+      "passed": true
+    },
+    {
+      "width": 430,
+      "name": "today heatmap preserves 5 PM block at 6:30 PM",
+      "passed": false,
+      "error": "Tapped 5 PM must not become 6 PM"
+    },
+    {
+      "width": 430,
+      "name": "future heatmap preserves 7 PM",
+      "passed": true
+    },
+    {
+      "width": 430,
+      "name": "past-day top hour remains 10 PM after scroll clamps to zero",
+      "passed": false,
+      "error": "The input did not match the regular expression /activity, 10P ·/. Input:  'Yesterday activity, 9P · 0 on court' "
+    },
+    {
+      "width": 430,
+      "name": "rapid scrub and manual scrolling stay linked on past/today/future days",
+      "passed": false,
+      "error": "yesterday: hour 22"
+    },
+    {
+      "width": 430,
+      "name": "missing actor in now does not navigate",
+      "passed": false,
+      "error": "An empty actor ID must never open a player route + actual - expected  + 'http://127.0.0.1:8091/player'"
+    },
+    {
+      "width": 430,
+      "name": "missing actor in past does not navigate",
+      "passed": false,
+      "error": "An empty actor ID must never open a player route + actual - expected  + 'http://127.0.0.1:8091/player'"
+    },
+    {
+      "width": 430,
+      "name": "valid actor opens the correct player",
+      "passed": true
+    },
+    {
+      "width": 430,
+      "name": "hourly court feed owns its single date heading",
+      "passed": true
+    },
+    {
+      "width": 430,
+      "name": "me activity keeps default date headings",
+      "passed": true
+    },
+    {
+      "width": 430,
+      "name": "player activity keeps default date headings",
+      "passed": true
+    },
+    {
+      "width": 430,
+      "name": "no page errors or product writes",
+      "passed": true
+    }
+  ],
+  "failures": [
+    "375 today heatmap preserves 5 PM block at 6:30 PM: Tapped 5 PM must not become 6 PM",
+    "375 past-day top hour remains 10 PM after scroll clamps to zero: The input did not match the regular expression /activity, 10P ·/. Input:  'Yesterday activity, 9P · 0 on court' ",
+    "375 rapid scrub and manual scrolling stay linked on past/today/future days: yesterday: hour 22",
+    "375 missing actor in now does not navigate: An empty actor ID must never open a player route + actual - expected  + 'http://127.0.0.1:8091/player'",
+    "375 missing actor in past does not navigate: An empty actor ID must never open a player route + actual - expected  + 'http://127.0.0.1:8091/player'",
+    "430 today heatmap preserves 5 PM block at 6:30 PM: Tapped 5 PM must not become 6 PM",
+    "430 past-day top hour remains 10 PM after scroll clamps to zero: The input did not match the regular expression /activity, 10P ·/. Input:  'Yesterday activity, 9P · 0 on court' ",
+    "430 rapid scrub and manual scrolling stay linked on past/today/future days: yesterday: hour 22",
+    "430 missing actor in now does not navigate: An empty actor ID must never open a player route + actual - expected  + 'http://127.0.0.1:8091/player'",
+    "430 missing actor in past does not navigate: An empty actor ID must never open a player route + actual - expected  + 'http://127.0.0.1:8091/player'"
+  ]
+}

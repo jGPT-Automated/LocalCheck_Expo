@@ -271,7 +271,7 @@ export async function fetchCourtActivityMetrics(
  * Avg session (lib/courtHours.ts does the math). Returns [] on any error so
  * the strip shows 0h, never a made-up number.
  */
-export async function fetchCourtWeekSpans(courtId: string): Promise<CheckInSpan[]> {
+export async function fetchCourtWeekSpans(courtId: string, throwOnError = false): Promise<CheckInSpan[]> {
   const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
   try {
     const { data, error } = await supabase
@@ -280,9 +280,11 @@ export async function fetchCourtWeekSpans(courtId: string): Promise<CheckInSpan[
       .eq("court_id", courtId)
       .gte("checked_in_at", weekAgo)
       .limit(5000);
-    if (error || !data) return [];
+    if (error) throw error;
+    if (!data) return [];
     return data as CheckInSpan[];
-  } catch {
+  } catch (error) {
+    if (throwOnError) throw error;
     return [];
   }
 }

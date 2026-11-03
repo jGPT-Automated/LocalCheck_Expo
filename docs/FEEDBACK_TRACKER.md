@@ -21,6 +21,30 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-11-03 — PR #89 external-review correction
+
+Jesse selected **logic fixes only** before merging. Fixed the current heatmap
+block's hour shift, the top historical row's scrub/scroll desynchronization,
+and missing-actor navigation in both Now/past event loops. Real previous
+events plus an explicit day-header flag preserve one court date heading and
+normal Me/player headings. The reproduction run failed on the original code;
+the same isolated browser assertions cover all three phone sizes after the
+patch. Avatars, plus/check controls, boxed cards, Home and multi-court work
+remain in the next PR. No Supabase access, build or release operation.
+
+## 2026-11-03 — LCv5 court activity and linked hourly chart
+
+On branch `codex/court-activity-feed`, from main a606de3. Jesse selected LCv5's
+Home as the court's opening Feed, while Home and the drawer stay dashboards.
+Kept square PlayerAvatar and the current shared colors (same key LCv5 tokens).
+One day label, graph-end arrows, horizontal scrub and linked vertical hour
+rows; day-label swipe changes day. Future rows use names/Going, actual current
+presence uses square avatars, past rows show existing ActivityRow events.
+Heatmap picks open that hour in Feed; upcoming games remain in Schedule.
+Removed Home/drawer event lists and rejected drawer pills. No queue, Settings,
+Supabase access or backend changes. Evidence and limits are in the PR and
+`docs/plans/2026-11-03-court-activity-feed.md`.
+
 ## 2026-10-31 — Explore card and drawer title row (`claude/explore-card-live`)
 
 Checked in the web visual QA run; not on a phone. Not merged.

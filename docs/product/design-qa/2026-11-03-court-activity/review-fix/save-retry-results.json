@@ -1,0 +1,98 @@
+[
+  {
+    "width": 375,
+    "writes": 3,
+    "errors": [],
+    "chartY": 253,
+    "chartAfterScrollY": 253,
+    "drawerAudit": {
+      "fail": [],
+      "debt": {
+        "smallText": [
+          "Basketball (9.5px)",
+          "On court (9px)",
+          "Next game (7.5px)",
+          "Court hours · wk (7.5px)",
+          "Locals (7.5px)",
+          "Today (9px)",
+          "PM (7.5px)",
+          "5v5 · All levels · Host chatgpt (10.5px)",
+          "CH (7.92px)",
+          "PL (7.92px)",
+          "TI (7.92px)",
+          "JL (7.92px)",
+          "Going (9px)"
+        ],
+        "lowContrast": [],
+        "smallTarget": [
+          "2 this week › (68x14)",
+          "GOING (64x32)"
+        ]
+      }
+    }
+  },
+  {
+    "width": 393,
+    "writes": 3,
+    "errors": [],
+    "chartY": 253,
+    "chartAfterScrollY": 253,
+    "drawerAudit": {
+      "fail": [],
+      "debt": {
+        "smallText": [
+          "Basketball (9.5px)",
+          "On court (9px)",
+          "Next game (7.5px)",
+          "Court hours · wk (7.5px)",
+          "Locals (7.5px)",
+          "Today (9px)",
+          "PM (7.5px)",
+          "5v5 · All levels · Host chatgpt (10.5px)",
+          "CH (7.92px)",
+          "PL (7.92px)",
+          "TI (7.92px)",
+          "JL (7.92px)",
+          "Going (9px)"
+        ],
+        "lowContrast": [],
+        "smallTarget": [
+          "2 this week › (68x14)",
+          "GOING (64x32)"
+        ]
+      }
+    }
+  },
+  {
+    "width": 430,
+    "writes": 3,
+    "errors": [],
+    "chartY": 253,
+    "chartAfterScrollY": 253,
+    "drawerAudit": {
+      "fail": [],
+      "debt": {
+        "smallText": [
+          "Basketball (9.5px)",
+          "On court (9px)",
+          "Next game (7.5px)",
+          "Court hours · wk (7.5px)",
+          "Locals (7.5px)",
+          "Today (9px)",
+          "PM (7.5px)",
+          "5v5 · All levels · Host chatgpt (10.5px)",
+          "CH (7.92px)",
+          "PL (7.92px)",
+          "TI (7.92px)",
+          "JL (7.92px)",
+          "Going (9px)"
+        ],
+        "lowContrast": [],
+        "smallTarget": [
+          "2 this week › (68x14)",
+          "GOING (64x32)"
+        ]
+      }
+    }
+  }
+]

@@ -1,0 +1,200 @@
+{
+  "results": [
+    {
+      "width": 375,
+      "name": "today heatmap preserves 5 PM block at 6:30 PM",
+      "passed": true,
+      "evidence": {
+        "selected": "Today activity, 5P · 1 on court"
+      }
+    },
+    {
+      "width": 375,
+      "name": "future heatmap preserves 7 PM",
+      "passed": true
+    },
+    {
+      "width": 375,
+      "name": "past-day top hour remains 10 PM after scroll clamps to zero",
+      "passed": true,
+      "evidence": {
+        "selected": "Yesterday activity, 10P · 0 on court",
+        "scrollTop": 0
+      }
+    },
+    {
+      "width": 375,
+      "name": "rapid scrub and manual scrolling stay linked on past/today/future days",
+      "passed": true,
+      "evidence": {
+        "chartY": 253
+      }
+    },
+    {
+      "width": 375,
+      "name": "missing actor in now does not navigate",
+      "passed": true
+    },
+    {
+      "width": 375,
+      "name": "missing actor in past does not navigate",
+      "passed": true
+    },
+    {
+      "width": 375,
+      "name": "valid actor opens the correct player",
+      "passed": true
+    },
+    {
+      "width": 375,
+      "name": "hourly court feed owns its single date heading",
+      "passed": true
+    },
+    {
+      "width": 375,
+      "name": "me activity keeps default date headings",
+      "passed": true
+    },
+    {
+      "width": 375,
+      "name": "player activity keeps default date headings",
+      "passed": true
+    },
+    {
+      "width": 375,
+      "name": "no page errors or product writes",
+      "passed": true
+    },
+    {
+      "width": 393,
+      "name": "today heatmap preserves 5 PM block at 6:30 PM",
+      "passed": true,
+      "evidence": {
+        "selected": "Today activity, 5P · 1 on court"
+      }
+    },
+    {
+      "width": 393,
+      "name": "future heatmap preserves 7 PM",
+      "passed": true
+    },
+    {
+      "width": 393,
+      "name": "past-day top hour remains 10 PM after scroll clamps to zero",
+      "passed": true,
+      "evidence": {
+        "selected": "Yesterday activity, 10P · 0 on court",
+        "scrollTop": 0
+      }
+    },
+    {
+      "width": 393,
+      "name": "rapid scrub and manual scrolling stay linked on past/today/future days",
+      "passed": true,
+      "evidence": {
+        "chartY": 253
+      }
+    },
+    {
+      "width": 393,
+      "name": "missing actor in now does not navigate",
+      "passed": true
+    },
+    {
+      "width": 393,
+      "name": "missing actor in past does not navigate",
+      "passed": true
+    },
+    {
+      "width": 393,
+      "name": "valid actor opens the correct player",
+      "passed": true
+    },
+    {
+      "width": 393,
+      "name": "hourly court feed owns its single date heading",
+      "passed": true
+    },
+    {
+      "width": 393,
+      "name": "me activity keeps default date headings",
+      "passed": true
+    },
+    {
+      "width": 393,
+      "name": "player activity keeps default date headings",
+      "passed": true
+    },
+    {
+      "width": 393,
+      "name": "no page errors or product writes",
+      "passed": true
+    },
+    {
+      "width": 430,
+      "name": "today heatmap preserves 5 PM block at 6:30 PM",
+      "passed": true,
+      "evidence": {
+        "selected": "Today activity, 5P · 1 on court"
+      }
+    },
+    {
+      "width": 430,
+      "name": "future heatmap preserves 7 PM",
+      "passed": true
+    },
+    {
+      "width": 430,
+      "name": "past-day top hour remains 10 PM after scroll clamps to zero",
+      "passed": true,
+      "evidence": {
+        "selected": "Yesterday activity, 10P · 0 on court",
+        "scrollTop": 0
+      }
+    },
+    {
+      "width": 430,
+      "name": "rapid scrub and manual scrolling stay linked on past/today/future days",
+      "passed": true,
+      "evidence": {
+        "chartY": 253
+      }
+    },
+    {
+      "width": 430,
+      "name": "missing actor in now does not navigate",
+      "passed": true
+    },
+    {
+      "width": 430,
+      "name": "missing actor in past does not navigate",
+      "passed": true
+    },
+    {
+      "width": 430,
+      "name": "valid actor opens the correct player",
+      "passed": true
+    },
+    {
+      "width": 430,
+      "name": "hourly court feed owns its single date heading",
+      "passed": true
+    },
+    {
+      "width": 430,
+      "name": "me activity keeps default date headings",
+      "passed": true
+    },
+    {
+      "width": 430,
+      "name": "player activity keeps default date headings",
+      "passed": true
+    },
+    {
+      "width": 430,
+      "name": "no page errors or product writes",
+      "passed": true
+    }
+  ],
+  "failures": []
+}

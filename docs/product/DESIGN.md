@@ -7,6 +7,40 @@ Last verified source: 2026-08-29
 
 This document describes the current product. It replaces earlier competing design notes. The reproducible source artwork and specs live in the LocalCheck Brand Asset Sheet; app tokens live in `constants/` and shared components live in `components/ui/`.
 
+## Court activity update (D66, on branch)
+
+The PR #89 logic review keeps this appearance. Jumping and scroll tracking use
+one 28pt focus, safely inside the shortest hour row even at scrollTop=0.
+Day changes reset the measured list so cached positions from the previous day
+cannot override a later scrub.
+ActivityRow.showDayHeader defaults on for normal activity lists; the hourly
+court feed explicitly hides those row headings because its chart owns the day
+label. Missing actors keep their activity sentence without a profile link.
+
+Court opens on Feed, adapting the selected LCv5 Home reference with the shared
+app components/tokens. Feed / Schedule / Players / Info stay anchored below
+D65's court title row. Feed pins CourtBusyChart above a single hour-row scroller:
+bar taps/intentional horizontal drags scrub; vertical motion yields to scroll.
+Scrolling the rows updates the selected bar. Future hours are above Now and
+past hours below, as in LCv5. One day label appears above the graph; 44pt arrows
+sit beside the graph's ends. Swipe the day-label row for adjacent days. Home
+and drawer show the same chart but no historical event feed or duplicate
+navigation pills. Their existing Court link opens the full feed.
+
+Current presence uses shared rounded-square PlayerAvatar; future hour rows use
+names through HourSlotCard/SlotCard's compact variant. Keep private attendance
+anonymous and deduplicate visible players across plans and games. A Going tap
+uses the existing planned-visit action; game participation and presence remain
+separate. Schedule's heatmap selects an hour in Feed; upcoming games follow it
+within the same Schedule scroller. These rules supersede the older five-tab
+court/duplicated Today descriptions below. D65's court art, header, typography,
+check-in actions, drawer heights and shared palette remain unchanged.
+
+LCv5's canvas #0D0D10, orange #FC4C02, ink #F2F2F6, tile #24242C and heat ramp
+already match. Keep this app's readable secondary/muted colors rather than
+importing LCv5's dimmer text or a second palette. Full comparison and selected
+reference files: `../plans/2026-11-03-court-activity-feed.md`.
+
 ## Product idea
 
 **Know who is running. Show up. Rank up.**

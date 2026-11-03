@@ -61,6 +61,7 @@ export async function fetchPlannedVisits(filters: {
   from: Date;
   to: Date;
   courtId?: string;
+  throwOnError?: boolean;
 }): Promise<PlannedVisit[]> {
   try {
     let q = supabase
@@ -73,14 +74,13 @@ export async function fetchPlannedVisits(filters: {
     if (filters.courtId) q = q.eq("court_id", filters.courtId);
 
     const { data, error } = await q;
-    if (error || !data) {
-      if (error) console.warn("fetchPlannedVisits failed", error.message);
-      return [];
-    }
+    if (error) throw error;
+    if (!data) return [];
     return (data as unknown as SupabasePlannedVisit[])
       .map(mapVisit)
       .filter((v): v is PlannedVisit => v !== null);
-  } catch {
+  } catch (error) {
+    if (filters.throwOnError) throw error;
     return [];
   }
 }
@@ -93,7 +93,8 @@ export async function fetchPlannedVisits(filters: {
 export async function fetchCourtPlannedTimes(
   courtId: string,
   from: Date,
-  to: Date
+  to: Date,
+  throwOnError = false
 ): Promise<Date[]> {
   try {
     const { data, error } = await supabase.rpc("court_planned_times", {
@@ -101,9 +102,11 @@ export async function fetchCourtPlannedTimes(
       p_from: from.toISOString(),
       p_to: to.toISOString(),
     });
-    if (error || !data) return [];
+    if (error) throw error;
+    if (!data) return [];
     return (data as string[]).map((t) => new Date(t));
-  } catch {
+  } catch (error) {
+    if (throwOnError) throw error;
     return [];
   }
 }

@@ -49,12 +49,15 @@ function kindOf(item: FeedItem): Kind {
 export function ActivityRow({
   item,
   previous,
+  showDayHeader = true,
   showActor = false,
   onPress,
   onActorPress,
 }: {
   item: FeedItem;
   previous?: FeedItem;
+  /** Hour-grouped feeds own their date heading outside the activity rows. */
+  showDayHeader?: boolean;
   /** Kept for callers; the last row no longer needs closing. */
   isLast?: boolean;
   /** Lists that mix players (the court feed) lead each line with the name. */
@@ -116,7 +119,7 @@ export function ActivityRow({
 
   return (
     <View>
-      {startsNewDay(item, previous) ? <DayHeader first={!previous} label={formatDayLabel(item.occurredAtIso)} /> : null}
+      {showDayHeader && startsNewDay(item, previous) ? <DayHeader first={!previous} label={formatDayLabel(item.occurredAtIso)} /> : null}
       <Pressable
         accessibilityHint={kind === "game" ? "Opens the final game result" : isBurst ? "Shows who checked in" : undefined}
         accessibilityLabel={model.accessibilityLabel}

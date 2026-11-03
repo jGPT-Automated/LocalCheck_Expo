@@ -1,37 +1,31 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
-import { CourtBusyChart } from "@/components/court/CourtBusyChart";
-import { HourSlotCard } from "@/components/court/HourSlotCard";
+import { CourtDayPlanner } from "@/components/court/CourtDayPlanner";
 import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewSections";
-import { SectionHead } from "@/components/court/CourtParts";
-import { ActivityRow } from "@/components/ui/ActivityRow";
-import { GameResultModal } from "@/components/ui/GameResultModal";
 import { HomeCourtActions, HomeCourtHero } from "@/components/ui/HomeCourtHero";
 import { nextGameLabel } from "@/lib/nextGameLabel";
 import { ScreenViewport } from "@/components/ui/ScreenViewport";
 import { useBottomFloor } from "@/components/ui/TabFloor";
 import { useToast } from "@/components/ui/Toast";
 import { Colors, Radius } from "@/constants/colors";
-import type { FeedItem, FeedMatchSummary } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
-import { groupCheckinBursts, pairVisits } from "@/lib/activityPresentation";
 import { courtHours, formatCourtHours } from "@/lib/courtHours";
 import { fetchCourtWeekSpans } from "@/services/courtService";
 
 /**
  * Home: one page, no tabs. Only the court name and its numbers stay pinned;
- * Check in, Here now, Up next, Today and the court feed scroll under them.
+ * Check in, Here now, Up next and the time chart scroll under them.
  */
 export function HomeScreen() {
   const {
@@ -42,31 +36,24 @@ export function HomeScreen() {
     hideAutoCheckIn,
     checkIn,
     checkOut,
-    feed,
     isFriend,
     runs,
     refreshCheckedIn,
-    refreshFeed,
   } = useApp();
   const { roster, localCount } = usePresence(localCourtId);
   const liveCounts = useCourtCounts(localCourt ? [localCourt] : []);
   const { user } = useAuth();
   const tabFloor = useBottomFloor();
+  const scroll = React.useRef<ScrollView>(null);
   const [isChecking, setIsChecking] = useState(false);
-  const [picked, setPicked] = useState<{ dayOffset: number; hour: number } | null>(null);
   const [hoursLabel, setHoursLabel] = useState("0h");
   const { showToast } = useToast();
-  const [selectedResult, setSelectedResult] = useState<{
-    match: FeedMatchSummary;
-    sport: FeedItem["sport"];
-    courtName?: string;
-  } | null>(null);
+
 
   useFocusEffect(
     useCallback(() => {
       void refreshCheckedIn();
-      void refreshFeed();
-    }, [refreshCheckedIn, refreshFeed]),
+    }, [refreshCheckedIn]),
   );
 
   useFocusEffect(
@@ -80,20 +67,6 @@ export function HomeScreen() {
         active = false;
       };
     }, [localCourtId]),
-  );
-
-  useEffect(() => {
-    setSelectedResult(null);
-    setPicked(null);
-  }, [localCourtId]);
-
-  // Kept above the no-court early return so the hook count never changes
-  // between renders — the "Rendered fewer hooks than expected" crash a brand-new
-  // account hit the first time it set a local court. `courtFeed` is null-safe.
-  const courtFeed = feed.filter((item) => item.courtId === localCourt?.id);
-  const groupedCourtFeed = useMemo(
-    () => groupCheckinBursts(pairVisits(courtFeed, { splitToday: true })),
-    [courtFeed],
   );
 
   if (!localCourt) {
@@ -135,27 +108,13 @@ export function HomeScreen() {
     }
   };
 
-  const openActivity = (item: FeedItem) => {
-    if (item.type === "game_result" && item.match) {
-      setSelectedResult({
-        match: item.match,
-        sport: item.sport,
-        courtName: item.courtName,
-      });
-      return;
-    }
-    if (item.runId) {
-      router.push(`/run/${item.runId}`);
-      return;
-    }
-    if (item.playerId) router.push(`/player/${item.playerId}`);
-  };
 
   return (
     <ScreenViewport>
       <ScreenHeader title="LOCALCHECK" />
 
       <ScrollView
+        ref={scroll}
         contentContainerStyle={{ paddingBottom: tabFloor + Space.lg }}
         alwaysBounceVertical={false}
         bounces={false}
@@ -196,47 +155,10 @@ export function HomeScreen() {
           />
         </View>
         <View style={styles.today}>
-          <CourtBusyChart
-            courtId={localCourt.id}
-            games={upcoming}
-            onSelect={setPicked}
-            maxBack={0}
-            refreshKey={roster.length}
-            selected={picked}
-            variant="inline"
-          />
+          <CourtDayPlanner court={localCourt} games={upcoming} liveCount={activeTotal} onReveal={() => scroll.current?.scrollToEnd({ animated: false })} />
         </View>
-        {picked ? (
-          <View style={styles.today}>
-            <HourSlotCard court={localCourt} dayOffset={picked.dayOffset} hour={picked.hour} />
-          </View>
-        ) : null}
-        <View style={styles.today}>
-          <SectionHead title="Recent activity" />
-        </View>
-        {groupedCourtFeed.length > 0 ? (
-          groupedCourtFeed.map((item, index) => (
-            <ActivityRow
-              item={item}
-              key={item.id}
-              previous={groupedCourtFeed[index - 1]}
-              showActor
-              onActorPress={item.playerId ? () => router.push(`/player/${item.playerId}`) : undefined}
-              onPress={item.type === "game_result" && !item.match ? undefined : () => openActivity(item)}
-            />
-          ))
-        ) : (
-          <Text style={styles.emptyText}>No activity yet. Check in to start the court story.</Text>
-        )}
       </ScrollView>
 
-      <GameResultModal
-        courtName={selectedResult?.courtName}
-        match={selectedResult?.match ?? null}
-        onClose={() => setSelectedResult(null)}
-        sport={selectedResult?.sport}
-        visible={Boolean(selectedResult)}
-      />
     </ScreenViewport>
   );
 }

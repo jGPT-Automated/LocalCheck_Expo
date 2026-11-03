@@ -26,12 +26,17 @@ are basketball and pickleball.
   counters.
 - Home, Explore, the map sheet, and Court detail use one court identity model at
   different densities.
-- From the court page a player can check in or out and plan a visit (Week ›
-  I'm coming), see upcoming games, and read the court's details: courts,
-  lights, access, court hours this week and average session (D55, Oct 14).
-- From the court drawer a player sees who's here, the next game, today's
-  planned visits and recent activity, jumps to any court page tab, and can
-  make the court their local. Explore lists live courts first (D56, Oct 15).
+- Court opens on Feed: a linked hourly chart and timeline of past activity,
+  current visible presence and upcoming planned attendance. Scrub an hour,
+  scroll its rows or switch days. Going adds/removes a planned visit using
+  the existing server contract; it does not check in or join a game.
+- Court tabs are Feed / Schedule / Players / Info. Schedule combines the
+  heatmap and upcoming games; tapping a heatmap block opens its exact start
+  hour in Feed, including the current two-hour block. Completed blocks remain disabled.
+- Home and the court drawer stay compact action dashboards: who's here, the
+  next scheduled game and selectable daily planning. Their Court link opens
+  Feed. Event history and duplicate court tab pills live off the dashboard.
+  Existing LocalPlus/free visibility rules are unchanged.
 - Orange identifies LocalCheck, live truth, check-in and selection. Other
   primary actions are white (D56).
   Sport is metadata, not a competing theme.
