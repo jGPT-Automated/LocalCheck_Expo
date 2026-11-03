@@ -70,10 +70,18 @@ sub-11pt text, sub-4.5:1 text or sub-44pt control count rises above
 the Explore drawer peek is flaky at 375x667. It does not see
 off-centre art, uneven spacing or colour; open the PNGs.
 
-For a visual change, include a browser screenshot and an iPhone screenshot of
-the same meaningful state. Compare against the applicable reference under
-`docs/product/`. Exercise empty, loading, error, populated, and long-content
-states when they are affected.
+For every frontend PR, follow the before/after evidence fields in the
+[PR template](../.github/pull_request_template.md) and add retained screenshots
+to the chronological [visual history](product/design-qa/README.md). Compare
+the same route and state at the baseline and PR-head commits and the same
+viewport. Use 375x667, 393x852 and 430x932 where the change could vary by size;
+explain omitted sizes. Capture the actual rendered app, not a design mockup.
+Record the browser or device, reproducible journey and outcome, backend
+isolation (including whether writes are intercepted or fixture-only), and
+remaining limits. If a browser and iPhone are both relevant, identify each
+capture separately. Exercise affected empty, loading, error, populated and
+long-content states. These captures complement `qa:visual`; they do not
+replace its checks or native-device evidence.
 
 For authentication, also test a compact phone, landscape, the software
 keyboard, and a visible error message; every field and action must remain

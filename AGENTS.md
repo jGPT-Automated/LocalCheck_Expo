@@ -164,9 +164,13 @@ force-push shared branches, or include unrelated user changes.
   `.claude/skills/ui-done/SKILL.md` before starting and before saying it is
   done. `pnpm qa:visual` (every screen, three phone sizes)
   must show 0 failures and nothing above baseline, every touched screen is
-  opened at full size and compared with its before screenshot, and the PR
-  logs each change with before/after screenshots. Jesse should never be the
-  one to find cut-off text, overlap, off-centre art or a small-phone break.
+  opened at full size and compared with its before screenshot, and every
+  frontend PR records paired rendered before/after evidence, route, state,
+  viewport, baseline/head commits, reproducible journey/results, backend
+  isolation and remaining limits in the PR template. Retain it in the
+  chronological visual history at `docs/product/design-qa/README.md`. Jesse
+  should never be the one to find cut-off text, overlap, off-centre art or a
+  small-phone break.
 
 - **Sign-off first (Oct 10).** A visible change (layout, colour, motion,
   wording) is shown to Jesse as screenshots before it is built; build exactly
