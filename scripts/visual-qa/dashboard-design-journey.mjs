@@ -13,6 +13,7 @@ const [base = 'http://127.0.0.1:8095', out = '/tmp/dashboard-proof'] = process.a
 mkdirSync(out, { recursive: true });
 const qrScript = execFileSync('curl', ['-fsSL', 'https://cdn.jsdelivr.net/npm/jsqr@1.2.0/dist/jsQR.min.js']);
 const original = JSON.parse(JSON.stringify(tables));
+const pickleball = process.env.DASHBOARD_SPORT === 'pickleball';
 const report = [];
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', args: ['--no-sandbox'] });
 const audit = readFileSync(new URL('./audit.js', import.meta.url), 'utf8');
@@ -20,6 +21,22 @@ try {
 for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
   for (const key of Object.keys(tables)) tables[key] = structuredClone(original[key]);
   if (process.env.DASHBOARD_SIZES && !process.env.DASHBOARD_SIZES.split(",").includes(`${width}x${height}`)) continue;
+  // Opt-in fixture: exercise a real four-player scheduled game at the existing
+  // Candy Cane court without changing the basketball fixtures or product state.
+  const selectedCourt = pickleball ? tables.courts.find((c) => c.short_name === 'Candy Cane')?.id : COURT;
+  assert.ok(selectedCourt, 'Selected fixture court exists');
+  if (pickleball) {
+    const viewer = tables.profiles.find((p) => p.id === ME);
+    const source = tables.runs.find((r) => r.court_id === COURT && r.max_players === 10 && r.start_time === '2026-10-18T01:00:00.000Z');
+    assert.ok(viewer && source, 'Viewer and 8 PM source game exist');
+    viewer.local_court_id = selectedCourt;
+    viewer.preferred_sport = 'pickleball';
+    const id = 'dddddddd-5555-4555-8555-555555555555';
+    tables.runs.push({ ...structuredClone(source), id, court_id: selectedCourt, title: 'Pickleball game', max_players: 4 });
+    const players = tables.run_participants.filter((p) => p.run_id === source.id).slice(0, 2);
+    assert.equal(players.length, 2);
+    players.forEach((p, i) => tables.run_participants.push({ ...structuredClone(p), id: `${id}-p${i}`, run_id: id }));
+  }
   tables.planned_visits.push({ id: 'private-fixture', user_id: 'private-player', court_id: COURT, planned_at: '2026-10-19T01:00:00.000Z', visibility: 'private' });
   const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 1,
     isMobile: true, hasTouch: true, timezoneId: 'America/Chicago', reducedMotion: 'reduce' });
@@ -74,6 +91,38 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
     await page.waitForTimeout(450);
   };
   await open('/');
+  await shot('home-header');
+  if (process.env.DASHBOARD_HEADER_ONLY === '1') {
+    report.push({width, sport: pickleball ? 'pickleball' : 'basketball', checks, writes, errors});
+    await context.close();
+    continue;
+  }
+  if (pickleball) {
+    const assertGame = async (container) => {
+      assert.match(await container.innerText(), /2\/4/);
+      assert.equal(await container.getByRole('button', {name:'Open PICKLEBALL GAME', exact:true}).count(), 1);
+    };
+    await page.evaluate(() => { for (const e of document.querySelectorAll('*')) if (e.scrollHeight > e.clientHeight + 50 && e.clientHeight > 200) e.scrollTop = e.scrollHeight; });
+    await scrub(20); await shot('pickleball-home-selected');
+    await check('Pickleball Home selected hour shows the 2/4 scheduled game', async () => {
+      await assertGame(page.getByTestId('selected-court-hour'));
+    });
+    await open('/explore'); await page.getByTestId(`court-${selectedCourt}`).click();
+    await page.waitForTimeout(1600); await page.getByLabel(/, expand$/).click();
+    await page.waitForTimeout(1500); await scrub(20); await shot('pickleball-drawer-selected');
+    await check('Pickleball drawer selected hour shows the 2/4 scheduled game', async () => {
+      await assertGame(page.getByTestId('selected-court-hour'));
+    });
+    await open(`/court/${selectedCourt}`); await scrub(20); await shot('pickleball-court-selected');
+    await check('Pickleball court selected hour shows the 2/4 scheduled game', async () => {
+      await assertGame(page.getByTestId('activity-hour-20'));
+    });
+    const visual = await page.evaluate(`(${audit})()`);
+    assert.deepEqual(errors, []); assert.deepEqual(visual.fail, []);
+    report.push({width, sport: 'pickleball', checks, writes, errors, visual});
+    await context.close();
+    continue;
+  }
   await page.evaluate(() => { for (const e of document.querySelectorAll('*')) if (e.scrollHeight > e.clientHeight + 50 && e.clientHeight > 200) e.scrollTop = e.scrollHeight; });
   await scrub(20);
   await shot('home-selected');

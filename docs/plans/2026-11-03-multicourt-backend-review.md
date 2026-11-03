@@ -5,7 +5,8 @@ or product approval follows from this document. Base: `main` 19dac69 (PR #89).
 This is a review artifact, not a statement of shipped behavior. Jesse's stated
 direction is free: one court; LocalPlus: up to five ordered saved courts, first
 is default; nested Settings controls; a view selector on Home and Schedule;
-Explore saves without replacing the default. Lobby rules remain open.
+Explore saves without replacing the default. The hourly lobby direction below
+is stated product direction; its backend contract is not yet approved.
 
 ## Evidence and current boundary
 - Lead's authorized read-only live metadata inspection on Nov 3 found no
@@ -91,17 +92,27 @@ Explore saves without replacing the default. Lobby rules remain open.
   behavior when an enabled court is removed, and overlapping arrivals. Native
   iOS/Android capability and actual region limits require device verification.
 
-## Separate hourly intent from a rolling lobby
+## Hourly open lobby: direction and open policy
 
 `planned_visits` is an hourly intention with self-write RLS and privacy-filtered
 reads; it is neither presence nor game RSVP. Preserve anonymous aggregates and
-deduplicate visible people as today. A real rolling lobby needs a separately
-reviewed server-owned contract: eligibility and admission, queue ordering and
-capacity, atomic join/leave and concurrency, lobby/game start, replacement,
-expiry, cancellation, game end and result/score linkage, visibility, moderation,
-and retries/realtime invalidation. Decide its relation to scheduled runs and
-whether/how hosts can manage it. No queue is authorized by D66; do not infer
-one from slot avatars, planned visits, or the scheduled-game RPCs.
+deduplicate visible people as today. The requested direction is a recurring
+hourly open lobby at each court, showing attendance and open spots even when
+empty. Check-in means present; joining the queue means wanting to play. Games
+default to casual; ranked is an explicit optional choice after sufficient
+balanced teams exist. Basketball mentions 2v2 minimum; pickleball mentions
+1v1 and 2v2. These are product directions, not implemented behavior.
+
+The basketball example stopped at three players. How odd numbers participate,
+when a game starts, how teams balance, and how ranked choice or voting works
+remain undecided; do not invent them. Also decide capacity and spot calculation,
+queue ordering, rollover between hours, eligibility and admission, atomic
+join/leave and concurrency, replacement, expiry, cancellation, game end,
+result/score linkage, privacy, moderation, retries and realtime invalidation.
+Decide the relationship to planned visits and scheduled runs and whether hosts
+manage lobbies. Existing scheduled-game RPCs prove none of these behaviors.
+D66 did not authorize a queue backend; this draft authorizes no schema change,
+RPC write probe or deployment. Review a complete server-owned contract first.
 
 ## Review and acceptance gates
 
