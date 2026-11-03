@@ -31,7 +31,8 @@ are basketball and pickleball.
   scroll its rows or switch days. Going adds/removes a planned visit using
   the existing server contract; it does not check in or join a game.
 - Court tabs are Feed / Schedule / Players / Info. Schedule combines the
-  heatmap and upcoming games; tapping a heatmap block opens that hour in Feed.
+  heatmap and upcoming games; tapping a heatmap block opens its exact start
+  hour in Feed, including the current two-hour block. Completed blocks remain disabled.
 - Home and the court drawer stay compact action dashboards: who's here, the
   next scheduled game and selectable daily planning. Their Court link opens
   Feed. Event history and duplicate court tab pills live off the dashboard.

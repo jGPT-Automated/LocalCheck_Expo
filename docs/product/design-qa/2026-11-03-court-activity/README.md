@@ -10,6 +10,13 @@ No live account/backend was accessed. The LCv5 board is copied unaltered from
 that reference repo's `docs/chunks/01-screens/home.png`; it is a mock-data
 prototype, not the implemented app or live data.
 
+## PR #89 review correction
+
+[Logic-only correction, paired screenshots and regression evidence](review-fix/README.md).
+The original captures below remain unchanged. The correction preserves the
+approved appearance and fixes hour selection, day-change measurement and
+missing-actor navigation.
+
 ## What to inspect
 
 - Court opens on Feed: fixed court identity/tabs and chart; one vertical hour
@@ -89,7 +96,9 @@ scopes a planner-only follow-up. No production release or database operation.
   [model tests](../../../../lib/courtActivityModel.test.mts),
   [court service](../../../../services/courtService.ts),
   [plan service](../../../../services/plannedVisitService.ts).
-- [Journey](../../../../scripts/visual-qa/court-activity-journey.mjs),
+- [Activity row](../../../../components/ui/ActivityRow.tsx),
+  [review regressions](../../../../scripts/visual-qa/pr89-review-journey.mjs),
+  [journey](../../../../scripts/visual-qa/court-activity-journey.mjs),
   [screen cases](../../../../scripts/visual-qa/screens.mjs),
   [isolated runner](../../../../scripts/visual-qa/run.mjs),
   [component ownership rules](../../../../scripts/check-design-consistency.mjs),

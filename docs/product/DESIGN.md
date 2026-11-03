@@ -9,6 +9,14 @@ This document describes the current product. It replaces earlier competing desig
 
 ## Court activity update (D66, on branch)
 
+The PR #89 logic review keeps this appearance. Jumping and scroll tracking use
+one 28pt focus, safely inside the shortest hour row even at scrollTop=0.
+Day changes reset the measured list so cached positions from the previous day
+cannot override a later scrub.
+ActivityRow.showDayHeader defaults on for normal activity lists; the hourly
+court feed explicitly hides those row headings because its chart owns the day
+label. Missing actors keep their activity sentence without a profile link.
+
 Court opens on Feed, adapting the selected LCv5 Home reference with the shared
 app components/tokens. Feed / Schedule / Players / Info stay anchored below
 D65's court title row. Feed pins CourtBusyChart above a single hour-row scroller:

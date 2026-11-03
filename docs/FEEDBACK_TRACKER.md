@@ -21,6 +21,17 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-11-03 — PR #89 external-review correction
+
+Jesse selected **logic fixes only** before merging. Fixed the current heatmap
+block's hour shift, the top historical row's scrub/scroll desynchronization,
+and missing-actor navigation in both Now/past event loops. Real previous
+events plus an explicit day-header flag preserve one court date heading and
+normal Me/player headings. The reproduction run failed on the original code;
+the same isolated browser assertions cover all three phone sizes after the
+patch. Avatars, plus/check controls, boxed cards, Home and multi-court work
+remain in the next PR. No Supabase access, build or release operation.
+
 ## 2026-11-03 — LCv5 court activity and linked hourly chart
 
 On branch `codex/court-activity-feed`, from main a606de3. Jesse selected LCv5's

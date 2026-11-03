@@ -74,3 +74,26 @@ labels and small targets (including the seven-column heatmap) remain. The
 baseline was not raised. This is not a clean accessibility sign-off.
 Native iOS gesture arbitration/Dynamic Type and production realtime/RLS
 were not exercised. No live Supabase or account was accessed.
+
+## Approved PR #89 review correction
+
+Jesse approved a logic-only patch before the checkpoint merge. Keep the
+current avatars, cards, controls and palette; the Home/LocalPlus redesign is
+separate. Implement all three corrections in one follow-up commit:
+
+- [x] Heatmap navigation passes the actual tapped block's start hour. Keep
+  completed blocks disabled; do not shift the current two-hour block forward.
+- [x] Use one 28pt focus offset for programmatic jumps and scroll tracking,
+  so the top historical hour cannot turn into the next hour at scrollTop=0.
+  Reset the measured list on day changes; the rapid-scrub reproduction exposed
+  RN-web retaining position-only layout changes from the previous day. Queued
+  layout/data/day callbacks flush the latest pending hour, so an older focus
+  cannot replace a newer tap during the reset.
+- [x] Pass actual previous events and guard missing actor IDs in both Now
+  and past event loops. Add ActivityRow.showDayHeader (default true), false
+  only in this hourly feed, to preserve its single date heading.
+- [x] Extend isolated browser regressions for current/future heatmap picks,
+  top-hour/rapid scrub/manual scroll on past/today/future days, actorless and
+  valid-actor taps, and the unchanged Me/player date headings. Check all
+  three phone sizes and retain before/after images. No live backend access.
+- [x] Update docs/evidence and PR #89; leave the merge and release to Jesse.

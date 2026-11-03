@@ -94,6 +94,9 @@ below wherever they disagree.
   already match; retain shared app tokens and readable text. Remove duplicate
   drawer pills; the existing Court link opens Feed. No Supabase operation or
   queue backend is authorized. D65's shared title row and art stay intact.
+  Jesse's review checkpoint is logic-only: avatar stacks, plus/check controls,
+  boxed selected-hour cards and the Home/LocalPlus redesign belong in the
+  next PR.
 - **D65 One court title row from card to drawer to page (Oct 31, revises
   D56 and D61):** The Explore card shows only the court's title: sport, name
   and city · distance left-aligned, with the live On court number on the

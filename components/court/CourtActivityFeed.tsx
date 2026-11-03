@@ -15,6 +15,9 @@ import { courtHourEvents, type CourtHourPick } from "@/lib/courtActivityModel";
 import { busyDay, hourLabel } from "@/lib/courtBusyModel";
 import { formatTimeOnCourt } from "@/lib/courtHours";
 
+// Keep the focus inside even the shortest (58pt) row when a jump clamps to 0.
+const TIMELINE_FOCUS = 28;
+
 /** LCv5's linked chart/timeline on the court route; Home stays a dashboard. */
 export function CourtActivityFeed({
   court,
@@ -63,7 +66,11 @@ export function CourtActivityFeed({
       return;
     }
     jump.current = null;
-    scroll.current?.scrollTo({ y: Math.max(0, y - 64), animated: false });
+    scroll.current?.scrollTo({ y: Math.max(0, y - TIMELINE_FOCUS), animated: false });
+  };
+  const flushJump = () => {
+    // A queued layout callback must not replace a more recent tap or scrub.
+    if (jump.current !== null) goToHour(jump.current);
   };
   const pick = (next: CourtHourPick) => {
     setSelected(next);
@@ -71,6 +78,8 @@ export function CourtActivityFeed({
     goToHour(next.hour);
   };
   const setDayAndFocus = (next: number) => {
+    if (next === day) return;
+    rows.current.clear();
     setDay(next);
     const hour =
       next === 0
@@ -79,10 +88,10 @@ export function CourtActivityFeed({
     setSelected({ dayOffset: next, hour });
     onPickChange?.({ dayOffset: next, hour });
     jump.current = hour;
-    requestAnimationFrame(() => goToHour(hour));
+    requestAnimationFrame(flushJump);
   };
   const onScroll = (y: number) => {
-    const focus = y + 64;
+    const focus = y + TIMELINE_FOCUS;
     const entries = [...rows.current.entries()].sort((a, b) => a[1] - b[1]);
     let hour = entries[0]?.[0] ?? selected.hour;
     for (const [h, top] of entries) if (top <= focus + 1) hour = h;
@@ -93,7 +102,7 @@ export function CourtActivityFeed({
     );
   };
   React.useEffect(() => {
-    if (data.ready) requestAnimationFrame(() => goToHour(selected.hour));
+    if (data.ready) requestAnimationFrame(flushJump);
   }, [data.ready]);
   return (
     <View style={styles.root}>
@@ -113,6 +122,7 @@ export function CourtActivityFeed({
       </View>
       {data.ready ? (
         <ScrollView
+          key={day}
           ref={scroll}
           testID="court-activity-scroll"
           style={styles.scroll}
@@ -139,8 +149,7 @@ export function CourtActivityFeed({
                 testID={`activity-hour-${bar.hour}`}
                 onLayout={(e) => {
                   rows.current.set(bar.hour, e.nativeEvent.layout.y);
-                  if (jump.current === bar.hour)
-                    requestAnimationFrame(() => goToHour(bar.hour));
+                  if (jump.current !== null) requestAnimationFrame(flushJump);
                 }}
                 style={[
                   styles.hourGroup,
@@ -203,12 +212,11 @@ export function CourtActivityFeed({
                       <ActivityRow
                         key={item.id}
                         item={item}
-                        previous={items[i - 1] ?? item}
+                        previous={items[i - 1]}
+                        showDayHeader={false}
                         showActor
                         onPress={() => onActivity(item)}
-                        onActorPress={() =>
-                          router.push(`/player/${item.playerId}`)
-                        }
+                        onActorPress={item.playerId ? () => router.push(`/player/${item.playerId}`) : undefined}
                       />
                     ))}
                   </>
@@ -224,12 +232,11 @@ export function CourtActivityFeed({
                       <ActivityRow
                         key={item.id}
                         item={item}
-                        previous={items[i - 1] ?? item}
+                        previous={items[i - 1]}
+                        showDayHeader={false}
                         showActor
                         onPress={() => onActivity(item)}
-                        onActorPress={() =>
-                          router.push(`/player/${item.playerId}`)
-                        }
+                        onActorPress={item.playerId ? () => router.push(`/player/${item.playerId}`) : undefined}
                       />
                     ))}
                   </>

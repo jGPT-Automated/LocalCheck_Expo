@@ -147,3 +147,18 @@ This proves browser behavior against fixtures, not production RLS, realtime
 delivery or iOS gesture arbitration. No live Supabase access is authorized.
 
 Use `QA_PLANNER_ONLY=1` to recheck only Home/drawer after a planner-only change.
+
+## PR #89 logic-review regressions
+
+Run `node scripts/visual-qa/pr89-review-journey.mjs http://127.0.0.1:8094 /tmp/pr89-review`.
+Start the local preview with `TMPDIR=/tmp PORT=8094 pnpm preview:web` first.
+The journey intercepts every backend HTTP request and blocks WebSockets before
+navigation. No live account is used. It fixes the clock at 6:30 PM Central and
+checks that the 5 PM heatmap block opens 5 PM, a completed 3 PM block stays
+disabled, and a future 7 PM block stays 7 PM. It scrubs the top historical
+10 PM row, rapidly alternates hours on past/today/future days, checks vertical
+synchronization and an anchored chart, taps missing actors in both court event
+groups and a valid actor, and verifies Me/player date headings are retained.
+Runs at 375x667, 393x852 and 430x932; `REVIEW_SIZES=393x852` scopes a reproduction.
+It records screenshots/results, rejects page errors and product writes, and
+fulfills the QR worker's public static dependency locally.

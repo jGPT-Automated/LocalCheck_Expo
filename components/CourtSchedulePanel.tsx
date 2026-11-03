@@ -236,7 +236,7 @@ export function CourtSchedulePanel({
                     setSelected({ day, row });
                     const today = new Date(); today.setHours(0, 0, 0, 0);
                     const dayOffset = Math.round((date.getTime() - today.getTime()) / 86_400_000);
-                    onSelectHour?.({ dayOffset, hour: dayOffset === 0 ? Math.max(hour, Math.min(hour + 1, new Date().getHours())) : hour });
+                    onSelectHour?.({ dayOffset, hour });
                   }}
                   style={[
                     styles.cell,
