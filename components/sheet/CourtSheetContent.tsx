@@ -252,7 +252,9 @@ export function CourtSheetContent({
             roster={roster}
           />
           <View style={styles.section} onLayout={(event) => { plannerY.current = event.nativeEvent.layout.y; }}>
-            <CourtDayPlanner court={court} games={upcoming} liveCount={activeCount} onReveal={(selectionBottom) => detailScroll.current?.scrollTo({ y: Math.max(0, plannerY.current + selectionBottom - detailHeight + bottom + 20), animated: false })} />
+            <CourtDayPlanner court={court} games={upcoming} liveCount={activeCount}
+              onPlayerPress={(id) => go(`/player/${id}`)} onRunPress={(id) => go(`/run/${id}`)}
+              onReveal={(selectionBottom) => detailScroll.current?.scrollTo({ y: Math.max(0, plannerY.current + selectionBottom - detailHeight + bottom + 20), animated: false })} />
           </View>
           <UpNextSection
             onOpenRun={(id) => go(`/run/${id}`)}

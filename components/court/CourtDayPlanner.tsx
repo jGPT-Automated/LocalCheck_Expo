@@ -14,11 +14,15 @@ export function CourtDayPlanner({
   games,
   liveCount,
   onReveal,
+  onPlayerPress,
+  onRunPress,
 }: {
   court: Court;
   games: GameRun[];
   liveCount: number;
   onReveal?: (selectionBottom: number) => void;
+  onPlayerPress?: (playerId: string) => void;
+  onRunPress?: (runId: string) => void;
 }) {
   const data = useCourtActivity(court.id, liveCount);
   const [picked, setPicked] = React.useState<CourtHourPick | null>(null);
@@ -57,6 +61,8 @@ export function CourtDayPlanner({
             hour={picked.hour}
             data={data}
             embedded
+            onPlayerPress={onPlayerPress}
+            onRunPress={onRunPress}
           />
         </View>
       ) : null}

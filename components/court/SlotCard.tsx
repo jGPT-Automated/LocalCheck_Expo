@@ -55,6 +55,8 @@ export function SlotCard({
   embedded = false,
   onJoinRun,
   joiningRunId,
+  onPlayerPress,
+  onRunPress,
 }: {
   title: string;
   attendees: SlotAttendee[];
@@ -75,12 +77,18 @@ export function SlotCard({
   embedded?: boolean;
   onJoinRun?: (game: GameRun) => void;
   joiningRunId?: string | null;
+  onPlayerPress?: (playerId: string) => void;
+  onRunPress?: (runId: string) => void;
 }) {
   const total = attendees.length + hidden;
   const extra = Math.max(0, attendees.length - AVATARS_MAX);
   const acts = mode !== "view";
   const run = runs[0];
   const showBody = acts || total > 0 || Boolean(run);
+  const openPlayer = (id: string) =>
+    onPlayerPress ? onPlayerPress(id) : router.push(`/player/${id}`);
+  const openRun = (id: string) =>
+    onRunPress ? onRunPress(id) : router.push(`/run/${id}`);
   const spokenAttendees = [
     ...attendees.map((p) => (p.isMine ? "You" : p.name)),
     ...(hidden ? [`${hidden} private`] : []),
@@ -92,8 +100,8 @@ export function SlotCard({
       game={game}
       joining={joiningRunId === game.id}
       key={game.id}
-      onJoin={onJoinRun ?? (() => router.push(`/run/${game.id}`))}
-      onOpen={() => router.push(`/run/${game.id}`)}
+      onJoin={onJoinRun ?? ((selectedGame) => openRun(selectedGame.id))}
+      onOpen={(selectedGame) => openRun(selectedGame.id)}
     />
   ));
   if (compact)
@@ -181,7 +189,7 @@ export function SlotCard({
                 accessibilityLabel={attendee.isMine ? "You" : attendee.name}
                 accessibilityRole="button"
                 key={attendee.id}
-                onPress={() => router.push(`/player/${attendee.id}`)}
+                onPress={() => openPlayer(attendee.id)}
                 style={styles.avatarTarget}
               >
                 <PlayerAvatar
@@ -216,7 +224,7 @@ export function SlotCard({
                 <Pressable
                   accessibilityLabel={`Open ${run.title}`}
                   accessibilityRole="button"
-                  onPress={() => router.push(`/run/${run.id}`)}
+                  onPress={() => openRun(run.id)}
                   style={styles.gameInfo}
                 >
                   <Text numberOfLines={1} style={styles.gameInfoText}>
@@ -232,7 +240,7 @@ export function SlotCard({
                 <Pressable
                   accessibilityLabel={`Open ${run.title}`}
                   accessibilityRole="button"
-                  onPress={() => router.push(`/run/${run.id}`)}
+                  onPress={() => openRun(run.id)}
                   style={styles.actionLine}
                 >
                   <Text style={styles.actionLineText}>Join</Text>

@@ -16,6 +16,8 @@ interface HourProps {
   data: CourtActivityData;
   compact?: boolean;
   embedded?: boolean;
+  onPlayerPress?: (playerId: string) => void;
+  onRunPress?: (runId: string) => void;
 }
 export const HourSlotCard = React.memo(HourContent);
 function HourContent({
@@ -25,6 +27,8 @@ function HourContent({
   data,
   compact,
   embedded,
+  onPlayerPress,
+  onRunPress,
 }: HourProps) {
   const { currentUser, runs, addPlannedVisit, removePlannedVisit, joinRun } =
     useApp();
@@ -117,6 +121,8 @@ function HourContent({
       saving={saving}
       compact={compact}
       embedded={embedded}
+      onPlayerPress={onPlayerPress}
+      onRunPress={onRunPress}
       onJoinRun={data.loading ? undefined : (game) => void join(game)}
       joiningRunId={joiningRunId}
       title={`${hour % 12 || 12} ${hour < 12 ? "AM" : "PM"}`}

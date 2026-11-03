@@ -126,6 +126,19 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
     const next=await page.getByText('Up next',{exact:true}).boundingBox(); assert.ok(chart.y<next.y);
     await slot.getByText('1 private',{exact:true}).waitFor();
   });
+  await page.getByRole('button',{name:'Previous day',exact:true}).click(); await scrub(20);
+  await check('Drawer selected game dismisses sheet before opening run',async()=>{
+    await page.getByTestId('selected-court-hour').getByRole('button',{name:'Open CHATGPT',exact:true}).click();
+    await page.waitForURL('**/run/e5e5e5e5-5555-4555-8555-555555555555');
+    await page.getByLabel(/, expand$/).waitFor({state:'hidden',timeout:1500});
+  });
+  await open('/explore'); await page.getByTestId(`court-${COURT}`).click();
+  await page.getByLabel(/, expand$/).click(); await page.waitForTimeout(900); await scrub(20);
+  await check('Drawer selected player dismisses sheet before opening profile',async()=>{
+    await page.getByTestId('selected-court-hour').getByRole('button',{name:'Player2',exact:true}).click();
+    await page.waitForURL('**/player/22222222-2222-4222-8222-222222222222');
+    await page.getByLabel(/, expand$/).waitFor({state:'hidden',timeout:1500});
+  });
   await open(`/court/${COURT}`); await scrub(20);
   await shot('court-future');
   await check('Court future hour shows square stack and inline game action',async()=>{
