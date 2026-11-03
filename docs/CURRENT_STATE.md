@@ -1,5 +1,24 @@
 # Current state
 
+- Nov 3 (**on a branch**, `codex/court-activity-feed`, based on main a606de3):
+  LCv5's linked hourly chart/timeline is adapted to the court opening Feed.
+  The chart stays pinned while hour rows scroll; drag bars to scrub, or use
+  graph-end arrows/day-label swipe to change day. Past rows use actual events,
+  Now lists visible presence through square PlayerAvatar, and future rows
+  show deduplicated names and the existing Going planned-visit action.
+  Court tabs are Feed / Schedule / Players / Info; Schedule combines the
+  heatmap and games and opens a picked hour in Feed. Home and expanded drawer
+  remain dashboards (presence, upcoming game, shared chart/selected slot);
+  their event feed and rejected drawer pills are removed. Existing header,
+  court art, palette, gates, check-in, game RSVP and drawer detents remain.
+  Home/drawer share CourtDayPlanner and reveal a selected hour above the tab
+  floor/sheet edge. Comparison: LCv5 shares the exact canvas/orange/text/heat colors; no global
+  recolor or circular avatar was introduced. Client services gain opt-in error
+  propagation so activity failure is shown with a working retry. No schema,
+  backend, entitlement, queue or Settings change. No Supabase access authorized
+  or performed; runtime proof uses isolated HTTP fixtures and blocked sockets.
+  Plan/color comparison: `docs/plans/2026-11-03-court-activity-feed.md`.
+
 Last reconciled: 2026-10-14 against `origin/main` at `541632c` (#65), PR #67
 (`codex/auto-check-in`), LocalCheckProd (read-only queries), the GitHub API and
 the EAS build list.

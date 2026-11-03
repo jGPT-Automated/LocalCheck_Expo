@@ -58,7 +58,7 @@ const server = createServer((req, res) => {
 await new Promise((r) => server.listen(0, r));
 const base = `http://localhost:${server.address().port}`;
 
-const browser = await chromium.launch();
+const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH, args: ["--no-sandbox"] } : {});
 const results = {};
 const failures = [];
 mkdirSync(outDir, { recursive: true });
@@ -66,6 +66,7 @@ mkdirSync(outDir, { recursive: true });
 for (const vp of VIEWPORTS.filter((v) => !sizes || sizes.includes(v.name))) {
   const context = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, timezoneId: "America/Chicago" });
   await context.addInitScript(([key, session]) => localStorage.setItem(key, JSON.stringify(session)), [storageKey, SESSION]);
+  await context.routeWebSocket(/.*/, (socket) => socket.close());
   await context.clock.setFixedTime(new Date(Number(process.env.FAKE_NOW)));
   await context.route("**/*", async (route) => {
     const req = route.request();
@@ -84,7 +85,7 @@ for (const vp of VIEWPORTS.filter((v) => !sizes || sizes.includes(v.name))) {
   for (const screen of SCREENS) {
     setOnboarding(Boolean(screen.onboarding));
     await page.goto(`${base}${screen.path}`, { waitUntil: "networkidle" }).catch(() => {});
-    await page.waitForTimeout(2500);
+    await page.waitForTimeout(4500);
     for (const a of screen.actions ?? []) {
       try {
         if (a.click) await page.getByText(a.click, { exact: a.exact ?? true }).first().click({ timeout: 4000 });

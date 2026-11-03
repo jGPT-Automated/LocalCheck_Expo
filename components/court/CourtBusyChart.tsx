@@ -1,188 +1,362 @@
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
-import { SectionHead } from "@/components/court/CourtParts";
 import { Colors } from "@/constants/colors";
 import type { GameRun } from "@/constants/data";
 import { Typography } from "@/constants/typography";
-import type { CheckInSpan } from "@/lib/courtHours";
-import { busyCaption, busyDay, busyDayLabel, hourLabel } from "@/lib/courtBusyModel";
-import { fetchCourtWeekSpans } from "@/services/courtService";
-import { fetchCourtPlannedTimes } from "@/services/plannedVisitService";
+import { useApp } from "@/context/AppContext";
+import type { CourtActivityData } from "@/hooks/useCourtActivity";
+import {
+  chartHourAt,
+  courtHourSlot,
+  type CourtHourPick,
+} from "@/lib/courtActivityModel";
+import {
+  busyCaption,
+  busyDay,
+  busyDayLabel,
+  hourLabel,
+} from "@/lib/courtBusyModel";
 
-const DAYS_BACK = 6;
-const DAYS_AHEAD = 6;
+interface ChartProps {
+  courtId: string;
+  games: GameRun[];
+  liveCount?: number;
+  title?: string;
+  height?: number;
+  refreshKey?: number | string;
+  variant?: "section" | "header" | "inline";
+  maxBack?: number;
+  selected?: CourtHourPick | null;
+  onSelect?: (pick: CourtHourPick) => void;
+  allowPast?: boolean;
+  dayOffset?: number;
+  onDayChange?: (day: number) => void;
+  /** Feed supplies its snapshot so chart and rows cannot disagree. */
+  data: CourtActivityData;
+}
 
-/**
- * How busy the court gets through a day, like a maps app's popular times.
- * Hours gone show who was actually on court (check-ins), hours ahead show
- * planned visits plus players signed up for games (outlined), and this hour
- * is orange. Step a week back or a week ahead with the arrows. Used in the
- * court page header (`variant="header"`: today only, no title, stepper or
- * caption) and as Today in the expanded drawer.
- */
+/** One day label, graph-end day arrows, tap/drag to scrub; vertical drags yield. */
 export function CourtBusyChart({
   courtId,
   games,
-  title = "Busy times",
+  liveCount,
   height = 52,
-  refreshKey,
   variant = "section",
-  maxBack = DAYS_BACK,
+  maxBack = 6,
   selected = null,
   onSelect,
-}: {
-  courtId: string;
-  games: GameRun[];
-  title?: string;
-  height?: number;
-  /** Re-read when this changes (presence changed). */
-  refreshKey?: number | string;
-  variant?: "section" | "header" | "inline";
-  /** How many days back the arrows go (Home looks ahead only). */
-  maxBack?: number;
-  /** The tapped hour, highlighted when it is on the day being shown. */
-  selected?: { dayOffset: number; hour: number } | null;
-  /** Makes today-and-later bars tappable (past hours have no plans to show). */
-  onSelect?: (pick: { dayOffset: number; hour: number }) => void;
-}) {
-  const [dayOffset, setDayOffset] = React.useState(0);
-  const [spans, setSpans] = React.useState<CheckInSpan[]>([]);
-  const [planned, setPlanned] = React.useState<Date[]>([]);
-
-  React.useEffect(() => {
-    let cancelled = false;
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setDate(end.getDate() + DAYS_AHEAD + 1);
-    void Promise.all([fetchCourtWeekSpans(courtId), fetchCourtPlannedTimes(courtId, start, end)]).then(
-      ([nextSpans, nextPlanned]) => {
-        if (cancelled) return;
-        setSpans(nextSpans);
-        setPlanned(nextPlanned);
-      },
-    );
-    return () => { cancelled = true; };
-  }, [courtId, refreshKey]);
-
-  const now = Date.now();
+  allowPast = false,
+  dayOffset: controlledDay,
+  onDayChange,
+  data,
+}: ChartProps) {
+  const [ownDay, setOwnDay] = React.useState(0);
+  React.useEffect(() => setOwnDay(0), [courtId]);
+  const dayOffset = controlledDay ?? ownDay;
+  const width = React.useRef(1);
+  const { currentUser } = useApp();
+  const now = data.now;
+  const header = variant === "header";
+  const setDay = (day: number) => {
+    const next = Math.max(-maxBack, Math.min(6, day));
+    setOwnDay(next);
+    onDayChange?.(next);
+  };
   const bars = busyDay({
     dayOffset,
     now,
-    spans,
-    planned,
-    games: games.map((game) => ({ startIso: game.startTimeIso, going: game.participants.length })),
-  });
-  const max = Math.max(4, ...bars.map((bar) => bar.value));
-  const labelEvery = 4;
-
-  const caption = busyCaption(bars, dayOffset);
-  const header = variant === "header";
-  const inline = variant === "inline";
-  const peak = bars.reduce((best, bar) => (bar.value > best.value ? bar : best), bars[0]);
-  const peakCaption = peak && peak.value > 0 ? `Most active at ${peak.hour % 12 === 0 ? 12 : peak.hour % 12} ${peak.hour < 12 ? "AM" : "PM"}` : "Quiet day";
-
+    spans: data.spans,
+    planned: data.planned,
+    games: [],
+  }).map((bar) =>
+    bar.kind === "now" && liveCount !== undefined
+      ? { ...bar, value: liveCount }
+      : bar.kind === "planned"
+        ? {
+            ...bar,
+            value: courtHourSlot({
+              courtId,
+              now,
+              pick: { dayOffset, hour: bar.hour },
+              visits: data.visits,
+              anonymousTimes: data.planned,
+              games,
+              meId: currentUser.id,
+            }).total,
+          }
+        : bar,
+  );
+  const max = Math.max(4, ...bars.map((b) => b.value));
+  const picked =
+    selected?.dayOffset === dayOffset
+      ? bars.find((b) => b.hour === selected.hour)
+      : undefined;
+  const caption = picked
+    ? `${picked.kind === "now" ? "Now" : hourLabel(picked.hour)} · ${picked.value} ${picked.kind === "planned" ? "going" : "on court"}`
+    : busyCaption(bars, dayOffset);
+  const scrub = (x: number) => {
+    const hour = chartHourAt(x, width.current);
+    if (!allowPast && bars.find((bar) => bar.hour === hour)?.kind === "past")
+      return;
+    if (selected?.dayOffset !== dayOffset || selected.hour !== hour)
+      onSelect?.({ dayOffset, hour });
+  };
+  const pan = Gesture.Pan()
+    .enabled(Boolean(onSelect))
+    .activeOffsetX([-8, 8])
+    .failOffsetY([-8, 8])
+    .runOnJS(true)
+    .onStart((e) => scrub(e.x))
+    .onUpdate((e) => scrub(e.x));
+  const tap = Gesture.Tap()
+    .enabled(Boolean(onSelect))
+    .maxDistance(8)
+    .runOnJS(true)
+    .onEnd((e, success) => {
+      if (success) scrub(e.x);
+    });
+  const daySwipe = Gesture.Pan()
+    .enabled(!header)
+    .activeOffsetX([-24, 24])
+    .failOffsetY([-8, 8])
+    .runOnJS(true)
+    .onEnd((e) => {
+      if (Math.abs(e.translationX) > 40)
+        setDay(dayOffset + (e.translationX < 0 ? 1 : -1));
+    });
   return (
     <View>
-      {header || inline ? null : <SectionHead meta={caption} title={title} />}
-      {header ? null : (
-      <View style={styles.stepper}>
-          <Pressable
-            accessibilityLabel="Previous day"
-            accessibilityRole="button"
-            disabled={dayOffset <= -maxBack}
-            hitSlop={10}
-            onPress={() => setDayOffset((day) => Math.max(-maxBack, day - 1))}
-            style={[styles.step, dayOffset <= -maxBack && styles.stepOff]}
-          >
-            <View style={styles.stepRing}><Feather color={Colors.textSecondary} name="chevron-left" size={16} /></View>
-          </Pressable>
-          <Text style={[styles.dayLabel, dayOffset === 0 && styles.dayLabelToday]}>{busyDayLabel(dayOffset, now)}</Text>
-          <Pressable
-            accessibilityLabel="Next day"
-            accessibilityRole="button"
-            disabled={dayOffset >= DAYS_AHEAD}
-            hitSlop={10}
-            onPress={() => setDayOffset((day) => Math.min(DAYS_AHEAD, day + 1))}
-            style={[styles.step, dayOffset >= DAYS_AHEAD && styles.stepOff]}
-          >
-            <View style={styles.stepRing}><Feather color={Colors.textSecondary} name="chevron-right" size={16} /></View>
-          </Pressable>
-        {inline ? <Text numberOfLines={1} style={styles.inlineCaption}>{peakCaption}</Text> : null}
-          </View>
-      )}
-      <View
-        accessibilityLabel={`${busyDayLabel(dayOffset, now)}: ${caption}`}
-        style={[styles.bars, { height }]}
-      >
-        {bars.map((bar) => {
-          const pickable = Boolean(onSelect) && bar.kind !== "past";
-          const isSelected = selected?.dayOffset === dayOffset && selected.hour === bar.hour;
-          return (
-            <Pressable
-              accessibilityLabel={`${hourLabel(bar.hour)}, ${bar.value} going`}
-              accessibilityRole={pickable ? "button" : undefined}
-              accessibilityState={{ selected: isSelected }}
-              disabled={!pickable}
-              key={bar.hour}
-              onPress={() => onSelect?.({ dayOffset, hour: bar.hour })}
-              style={styles.barSlot}
-            >
-              <View
-                style={[
-                  styles.bar,
-                  { height: Math.max(3, Math.round((bar.value / max) * height)) },
-                  bar.kind === "past" && styles.barPast,
-                  bar.kind === "now" && styles.barNow,
-                  bar.kind === "planned" && (bar.value > 0 ? styles.barPlanned : styles.barEmpty),
-                  isSelected && styles.barSelected,
-                ]}
-              />
-            </Pressable>
-          );
-        })}
-      </View>
-      {/* Labels sit centred under their bar but may be wider than it, so
-          "Now" never clips to a bar's width. */}
-      <View style={styles.labels}>
-        {bars.map((bar, index) => {
-          const show = bar.kind === "now" || (index % labelEvery === 0 && !bars.slice(Math.max(0, index - 1), index + 2).some((b) => b.kind === "now"));
-          if (!show) return null;
-          return (
-            <Text
-              key={bar.hour}
-              numberOfLines={1}
-              style={[styles.label, { left: `${((index + 0.5) / bars.length) * 100}%` }, bar.kind === "now" && styles.labelNow]}
-            >
-              {bar.kind === "now" ? "Now" : hourLabel(bar.hour)}
+      {!header ? (
+        <GestureDetector gesture={daySwipe}>
+          <View style={styles.heading} testID="court-day-heading">
+            <Text accessibilityLiveRegion="polite" style={styles.dayLabel}>
+              {busyDayLabel(dayOffset, now)}
             </Text>
-          );
-        })}
+            {data.loading ? (
+              <ActivityIndicator color={Colors.textSecondary} size="small" />
+            ) : (
+              <Text numberOfLines={1} style={styles.caption}>
+                {caption}
+              </Text>
+            )}
+          </View>
+        </GestureDetector>
+      ) : null}
+      <View style={styles.graphRow}>
+        {!header ? (
+          <DayArrow
+            direction="left"
+            disabled={dayOffset <= -maxBack}
+            onPress={() => setDay(dayOffset - 1)}
+          />
+        ) : null}
+        <GestureDetector gesture={Gesture.Race(pan, tap)}>
+          <View
+            accessible={Boolean(onSelect)}
+            accessibilityRole={onSelect ? "adjustable" : undefined}
+            accessibilityLabel={`${busyDayLabel(dayOffset, now)} activity, ${caption}`}
+            accessibilityHint="Drag across the chart to select an hour"
+            accessibilityValue={
+              picked
+                ? {
+                    min: 6,
+                    max: 22,
+                    now: picked.hour,
+                    text: hourLabel(picked.hour),
+                  }
+                : undefined
+            }
+            accessibilityActions={
+              onSelect
+                ? [
+                    { name: "increment", label: "Next hour" },
+                    { name: "decrement", label: "Previous hour" },
+                  ]
+                : undefined
+            }
+            onAccessibilityAction={(e) =>
+              onSelect?.({
+                dayOffset,
+                hour: Math.max(
+                  6,
+                  Math.min(
+                    22,
+                    (picked?.hour ?? new Date(now).getHours()) +
+                      (e.nativeEvent.actionName === "increment" ? 1 : -1),
+                  ),
+                ),
+              })
+            }
+            onLayout={(e) => {
+              width.current = e.nativeEvent.layout.width;
+            }}
+            style={styles.graph}
+            testID="court-time-chart"
+          >
+            <View pointerEvents="none">
+              <View style={[styles.bars, { height: Math.max(44, height) }]}>
+                {bars.map((bar) => (
+                  <View key={bar.hour} style={styles.barSlot}>
+                    <View
+                      style={[
+                        styles.bar,
+                        {
+                          height: Math.max(
+                            4,
+                            Math.round((bar.value / max) * height),
+                          ),
+                        },
+                        bar.kind === "past" && styles.barPast,
+                        bar.kind === "now" && styles.barNow,
+                        bar.kind === "planned" && styles.barPlanned,
+                        picked?.hour === bar.hour && styles.barSelected,
+                      ]}
+                    />
+                  </View>
+                ))}
+              </View>
+              <View style={styles.labels}>
+                {bars.map((bar, i) => {
+                  const show =
+                    bar.kind === "now" ||
+                    (i % 4 === 0 &&
+                      !bars
+                        .slice(Math.max(0, i - 1), i + 2)
+                        .some((b) => b.kind === "now"));
+                  return show ? (
+                    <Text
+                      key={bar.hour}
+                      style={[
+                        styles.label,
+                        { left: `${((i + 0.5) / bars.length) * 100}%` },
+                        bar.kind === "now" && styles.labelNow,
+                      ]}
+                    >
+                      {bar.kind === "now" ? "Now" : hourLabel(bar.hour)}
+                    </Text>
+                  ) : null;
+                })}
+              </View>
+            </View>
+          </View>
+        </GestureDetector>
+        {!header ? (
+          <DayArrow
+            direction="right"
+            disabled={dayOffset >= 6}
+            onPress={() => setDay(dayOffset + 1)}
+          />
+        ) : null}
       </View>
+      {data.error ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={data.refresh}
+          style={styles.retry}
+        >
+          <Text style={styles.retryText}>
+            Couldn't load activity. Try again.
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
-
+function DayArrow({
+  direction,
+  disabled,
+  onPress,
+}: {
+  direction: "left" | "right";
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={direction === "left" ? "Previous day" : "Next day"}
+      accessibilityRole="button"
+      disabled={disabled}
+      onPress={onPress}
+      style={[styles.step, disabled && styles.stepOff]}
+    >
+      <Feather
+        name={direction === "left" ? "chevron-left" : "chevron-right"}
+        color={Colors.textSecondary}
+        size={18}
+      />
+    </Pressable>
+  );
+}
 const styles = StyleSheet.create({
-  stepper: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
-  // A 44pt hit box around the 24pt ring; the negative margin keeps the row tight.
-  step: { width: 44, height: 44, margin: -10, alignItems: "center", justifyContent: "center" },
-  stepRing: { width: 24, height: 24, alignItems: "center", justifyContent: "center", borderRadius: 12, borderWidth: 1, borderColor: "rgba(242,242,246,0.12)" },
+  heading: {
+    minHeight: 32,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  dayLabel: {
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    letterSpacing: 1.3,
+    textTransform: "uppercase",
+    color: Colors.text,
+  },
+  caption: {
+    flex: 1,
+    minWidth: 0,
+    textAlign: "right",
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    color: Colors.textSecondary,
+  },
+  graphRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: -16,
+  },
+  step: {
+    width: 44,
+    height: 60,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   stepOff: { opacity: 0.35 },
-  dayLabel: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
-  dayLabelToday: { color: Colors.text },
+  graph: { flex: 1, minWidth: 0 },
   bars: { flexDirection: "row", alignItems: "flex-end", gap: 3 },
-  inlineCaption: { flex: 1, minWidth: 0, textAlign: "right", fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.muted },
-  barSlot: { flex: 1, height: "100%", justifyContent: "flex-end" },
+  barSlot: { flex: 1, minWidth: 0 },
   bar: { borderRadius: 3 },
-  barSelected: { borderWidth: 2, borderColor: Colors.text },
   barPast: { backgroundColor: Colors.grabber },
   barNow: { backgroundColor: Colors.accent },
-  barPlanned: { borderWidth: 1, borderColor: Colors.inkSoft, backgroundColor: "transparent" },
-  barEmpty: { backgroundColor: Colors.surfaceHigh },
-  labels: { height: 12, marginTop: 6 },
-  label: { position: "absolute", top: 0, width: 36, marginLeft: -18, textAlign: "center", fontFamily: Typography.bodyBold, fontSize: 11, lineHeight: 12, letterSpacing: 0.2, textTransform: "uppercase", color: Colors.muted },
+  barPlanned: {
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    backgroundColor: "transparent",
+  },
+  barSelected: { borderWidth: 2, borderColor: Colors.text },
+  labels: { height: 18, marginTop: 6 },
+  label: {
+    position: "absolute",
+    width: 32,
+    marginLeft: -16,
+    fontFamily: Typography.bodyBold,
+    fontSize: 11,
+    textAlign: "center",
+    color: Colors.muted,
+  },
   labelNow: { color: Colors.liveInk },
+  retry: { minHeight: 44, justifyContent: "center" },
+  retryText: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
 });

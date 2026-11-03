@@ -132,3 +132,18 @@ that routes back to the same `matches.id`.
 - A real friend request generated a visible background iPhone notification.
 - Still open: foreground presentation, cold-start destination routing, Expo
   receipt/retry observation, and invalid-token cleanup evidence.
+
+## Linked court activity (D66)
+
+`node scripts/visual-qa/court-activity-journey.mjs http://127.0.0.1:8090 /tmp/activity-proof`
+opens the preview started by `pnpm preview:web`. It intercepts all backend HTTP
+and blocks every WebSocket before navigation; writes mutate fixture memory
+only. It checks chart scrub/list scroll synchronization, anchored chart, day
+arrows, Going failure/retry/save/reload/removal, heatmap-to-Feed, load retry,
+Home/drawer separation and captures all three phone sizes. It downloads only
+the existing QR worker's public static jsQR dependency before browser work.
+Use `CHROMIUM_PATH` for a system browser; default is `/usr/bin/chromium`.
+This proves browser behavior against fixtures, not production RLS, realtime
+delivery or iOS gesture arbitration. No live Supabase access is authorized.
+
+Use `QA_PLANNER_ONLY=1` to recheck only Home/drawer after a planner-only change.

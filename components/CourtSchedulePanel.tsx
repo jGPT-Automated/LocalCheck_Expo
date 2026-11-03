@@ -46,10 +46,14 @@ function heatLevel(count: number): number {
 export function CourtSchedulePanel({
   court,
   bottomInset = 0,
+  children,
+  onSelectHour,
 }: {
   court: Court;
   /** Space under the last card (the home-indicator inset). */
   bottomInset?: number;
+  children?: React.ReactNode;
+  onSelectHour?: (pick: { dayOffset: number; hour: number }) => void;
 }) {
   const { currentUser, plannedVisits, runs } = useApp();
   const dayStamp = new Date().toDateString();
@@ -190,6 +194,8 @@ export function CourtSchedulePanel({
     <ScrollView
       alwaysBounceVertical={false}
       contentContainerStyle={[styles.panel, { paddingBottom: bottomInset + 12 }]}
+      bounces={false}
+      overScrollMode="never"
       showsVerticalScrollIndicator={false}
       style={styles.scroll}
     >
@@ -228,6 +234,9 @@ export function CourtSchedulePanel({
                   key={key}
                   onPress={() => {
                     setSelected({ day, row });
+                    const today = new Date(); today.setHours(0, 0, 0, 0);
+                    const dayOffset = Math.round((date.getTime() - today.getTime()) / 86_400_000);
+                    onSelectHour?.({ dayOffset, hour: dayOffset === 0 ? Math.max(hour, Math.min(hour + 1, new Date().getHours())) : hour });
                   }}
                   style={[
                     styles.cell,
@@ -266,6 +275,7 @@ export function CourtSchedulePanel({
         runs={selectedRuns}
         title={slotTitle}
       />
+      {children}
     </ScrollView>
   );
 }

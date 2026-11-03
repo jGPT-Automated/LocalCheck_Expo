@@ -1,5 +1,5 @@
 import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
-import { BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
+import { BottomSheetScrollView, BottomSheetView, type BottomSheetScrollViewMethods } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { router } from "expo-router";
@@ -16,40 +16,30 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CourtArt } from "@/components/court/CourtArt";
-import { CourtBusyChart } from "@/components/court/CourtBusyChart";
+import { CourtDayPlanner } from "@/components/court/CourtDayPlanner";
 import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewSections";
 import {
   CheckInButton,
   CourtLinkButton,
   CourtTitleRow,
   MetricStrip,
-  SectionHead,
 } from "@/components/court/CourtParts";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { useToast } from "@/components/ui/Toast";
 import { Colors, Radius } from "@/constants/colors";
-import type { Court, FeedItem, GameRun } from "@/constants/data";
+import type { Court, GameRun } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { usePresence } from "@/context/CourtPresenceContext";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
 import { useLocalPlusPurchase } from "@/hooks/useLocalPlusPurchase";
-import { describeTimelineItem } from "@/lib/activityPresentation";
 import { courtHours, formatCourtHours } from "@/lib/courtHours";
-import { drawerDetailHeight, drawerFooterGap } from "@/lib/courtDrawerLayout";
+import { drawerDetailHeight } from "@/lib/courtDrawerLayout";
 import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/planModel";
 import { fetchCourtById, fetchCourtWeekSpans } from "@/services/courtService";
-import { fetchFeed } from "@/services/feedService";
 import { nextGameLabel } from "@/lib/nextGameLabel";
-
-const DRAWER_CHIPS = [
-  { label: "Games", tab: "games" },
-  { label: "Players", tab: "players" },
-  { label: "Feed", tab: "live" },
-  { label: "Week", tab: "week" },
-] as const;
 
 /**
  * Court drawer content (Claude Design court flow), rendered inside the root
@@ -59,9 +49,8 @@ const DRAWER_CHIPS = [
  *   On court number on the right), then Next game / Court hours · wk / Locals,
  *   then Check in and Court ↗. Always free. No local + / check: that lives
  *   only on the court page.
- * - Expanded: Here now, Up next, Today (planned visits by hour) and Recent
- *   activity in a fixed area that never scrolls, then Games / Players / Feed
- *   / Week chips into the court page. A court that isn't your local, without
+ * - Expanded: Here now, Up next and the shared, selectable daily chart.
+ *   The Court link opens the detailed activity feed. A court that isn't your local, without
  *   LocalPlus, shows that area blurred under the LocalPlus panel.
  *
  * `onNavigate` dismisses the sheet before any router.push so the pushed
@@ -81,7 +70,7 @@ export function CourtSheetContent({
   onPeekHeight: (height: number) => void;
 }) {
   const {
-    courts, localCourt, checkIn, checkOut, checkedInCourtId, currentUser, runs,
+    courts, localCourt, checkIn, checkOut, checkedInCourtId, runs,
     localCourtId, isFriend, setLocalCourt, pendingAutoCheckIn, hideAutoCheckIn,
   } = useApp();
   const { bottom } = useSafeAreaInsets();
@@ -89,6 +78,7 @@ export function CourtSheetContent({
   const hasLocalPlus = useLocalPlus();
   const { showToast } = useToast();
   const { height: windowHeight } = useWindowDimensions();
+  const detailScroll = React.useRef<BottomSheetScrollViewMethods>(null);
   const [peekHeight, setPeekHeight] = useState(0);
   const [isChecking, setIsChecking] = useState(false);
 
@@ -98,7 +88,6 @@ export function CourtSheetContent({
   const [court, setCourt] = useState<Court | null>(cached);
   const [courtMissing, setCourtMissing] = useState(false);
   const [hoursLabel, setHoursLabel] = useState("—");
-  const [recent, setRecent] = useState<FeedItem[]>([]);
   const { roster, localCount } = usePresence(courtId || null);
 
   useEffect(() => {
@@ -111,13 +100,12 @@ export function CourtSheetContent({
   useEffect(() => {
     if (!courtId) return;
     let cancelled = false;
-    void Promise.all([fetchCourtWeekSpans(courtId), fetchFeed(courtId, currentUser.id)]).then(([spans, feed]) => {
+    void fetchCourtWeekSpans(courtId).then((spans) => {
       if (cancelled) return;
       setHoursLabel(formatCourtHours(courtHours(spans).hours));
-      setRecent(feed.slice(0, 3));
     });
     return () => { cancelled = true; };
-  }, [courtId, currentUser.id, roster.length]); // re-pull when presence changes
+  }, [courtId, roster.length]); // re-pull when presence changes
 
   const go = (path: string) => {
     onNavigate();
@@ -145,7 +133,7 @@ export function CourtSheetContent({
     windowHeight,
     peekHeight,
     bottomInset: bottom,
-    showViewAll: !gated,
+    showViewAll: false,
   });
   const activeCount = roster.length;
   const live = activeCount > 0;
@@ -242,6 +230,9 @@ export function CourtSheetContent({
 
       {/* ── Expanded: a fixed-height window that scrolls ── */}
       <BottomSheetScrollView
+        ref={detailScroll}
+        bounces={false}
+        overScrollMode="never"
         contentContainerStyle={styles.detailContent}
         showsVerticalScrollIndicator={false}
         style={{ height: detailHeight }}
@@ -266,67 +257,13 @@ export function CourtSheetContent({
           />
 
           <View style={styles.section}>
-            <CourtBusyChart courtId={court.id} games={upcoming} refreshKey={roster.length} title="Today" />
+            <CourtDayPlanner court={court} games={upcoming} liveCount={activeCount} onReveal={() => detailScroll.current?.scrollToEnd({ animated: false })} />
           </View>
 
-          <View style={styles.section}>
-            <SectionHead meta="Feed" onMetaPress={() => go(`/court/${court.id}?tab=live`)} title="Recent activity" />
-            {recent.length > 0 ? (
-              recent.map((item) => <RecentLine item={item} key={item.id} />)
-            ) : (
-              <Text style={styles.emptyText}>The first check-in or game here will start the feed.</Text>
-            )}
-          </View>
         </CourtDrawerGate>
       </BottomSheetScrollView>
 
-      {!gated ? (
-        <View style={[styles.chips, { paddingBottom: drawerFooterGap(bottom) }]}>
-          {DRAWER_CHIPS.map((chip) => (
-            <PressableScale
-              accessibilityRole="button"
-              key={chip.tab}
-              onPress={() => go(`/court/${court.id}?tab=${chip.tab}`)}
-              style={styles.chip}
-            >
-              <Text style={styles.chipText}>{chip.label}</Text>
-            </PressableScale>
-          ))}
-        </View>
-      ) : null}
     </BottomSheetView>
-  );
-}
-
-/** One quiet feed line: dot, "Name did this", time. */
-function RecentLine({ item }: { item: FeedItem }) {
-  const model = describeTimelineItem(item, { showActor: true });
-  const dot =
-    model.marker === "game"
-      ? item.sport === "PICKLEBALL" ? Colors.pickleballMeta : Colors.basketballMeta
-      : item.type === "checkin" || item.type === "checkin_burst"
-        ? Colors.accent
-        : Colors.checkOutDot;
-  let who = "";
-  let what = "";
-  if (model.kind === "game") {
-    const [win, lose] = model.lines;
-    who = win.name;
-    what = `def. ${lose.name} ${win.score}–${lose.score}`;
-  } else {
-    const nameSegment = model.segments.find((segment) => segment.tone === "name");
-    who = nameSegment?.text ?? "";
-    what = model.segments.filter((segment) => segment !== nameSegment).map((segment) => segment.text).join(" ").trim();
-  }
-  return (
-    <View accessibilityLabel={model.accessibilityLabel} style={styles.recentRow}>
-      <View style={[styles.recentDot, { backgroundColor: dot }]} />
-      <Text numberOfLines={1} style={styles.recentText}>
-        {who ? <Text style={styles.recentWho}>{who} </Text> : null}
-        {what}
-      </Text>
-      <Text style={styles.recentAgo}>{item.timestamp}</Text>
-    </View>
   );
 }
 
@@ -434,39 +371,6 @@ const styles = StyleSheet.create({
   emptyText: { fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
 
 
-
-  recentRow: {
-    height: 40,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.hairline,
-  },
-  recentDot: { width: 7, height: 7, marginHorizontal: 3.5, borderRadius: 4 },
-  recentText: { flex: 1, minWidth: 0, fontFamily: Typography.bodyMedium, fontSize: 12.5, color: Colors.textSecondary },
-  recentWho: { fontFamily: Typography.bodySemiBold, color: Colors.text },
-  recentAgo: { flexShrink: 0, fontFamily: Typography.bodySemiBold, fontSize: 9, letterSpacing: 0.7, textTransform: "uppercase", color: Colors.muted },
-
-  chips: {
-    flexDirection: "row",
-    gap: 6,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: Colors.hairline,
-    backgroundColor: Colors.sheet,
-  },
-  chip: {
-    flex: 1,
-    height: 30,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "rgba(242,242,246,0.13)",
-  },
-  chipText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.inkSoft },
 
   gateWrap: { flexGrow: 1 },
   gateShade: { backgroundColor: "rgba(18,18,22,0.55)" },

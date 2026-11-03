@@ -1,100 +1,102 @@
 import React from "react";
+import { ActivityIndicator, Text, View } from "react-native";
 
-import { SlotCard, type SlotAttendee } from "@/components/court/SlotCard";
+import { SlotCard } from "@/components/court/SlotCard";
+import { Colors } from "@/constants/colors";
 import type { Court } from "@/constants/data";
+import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
-import { fetchCourtPlannedTimes } from "@/services/plannedVisitService";
+import type { CourtActivityData } from "@/hooks/useCourtActivity";
+import { courtHourSlot } from "@/lib/courtActivityModel";
 
-function dayName(dayOffset: number, date: Date): string {
-  if (dayOffset === 0) return "Today";
-  if (dayOffset === 1) return "Tomorrow";
-  return date.toLocaleDateString("en-US", { weekday: "short" });
+interface HourProps {
+  court: Court;
+  dayOffset: number;
+  hour: number;
+  data: CourtActivityData;
+  compact?: boolean;
 }
-
-function hourName(hour: number): string {
-  return `${hour % 12 === 0 ? 12 : hour % 12} ${hour < 12 ? "AM" : "PM"}`;
-}
-
-/**
- * Who's going in one hour of one day at a court: Home's chart shows it under
- * the bar you tap. Same card as the court page's Week.
- */
-export function HourSlotCard({ court, dayOffset, hour }: { court: Court; dayOffset: number; hour: number }) {
-  const { currentUser, plannedVisits, runs, addPlannedVisit, removePlannedVisit } = useApp();
-  const [anonymous, setAnonymous] = React.useState(0);
+export const HourSlotCard = React.memo(HourContent);
+function HourContent({
+  court,
+  dayOffset,
+  hour,
+  data,
+  compact,
+}: HourProps) {
+  const { currentUser, runs, addPlannedVisit, removePlannedVisit } = useApp();
   const [saving, setSaving] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
-
-  const start = new Date();
-  start.setHours(hour, 0, 0, 0);
-  start.setDate(start.getDate() + dayOffset);
-  const from = start.getTime();
-  const to = from + 3_600_000;
-  const inSlot = (iso: string) => {
-    const at = Date.parse(iso);
-    return at >= from && at < to;
-  };
-
+  const lock = React.useRef(false);
   React.useEffect(() => {
-    let cancelled = false;
-    void fetchCourtPlannedTimes(court.id, new Date(from), new Date(to)).then((times) => {
-      if (!cancelled) setAnonymous(times.length);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [court.id, from, to, plannedVisits]);
-
-  const attendees: SlotAttendee[] = [];
-  let plannedVisible = 0;
-  for (const visit of plannedVisits) {
-    if (visit.courtId !== court.id || !inSlot(visit.plannedAtIso)) continue;
-    if (attendees.some((a) => a.id === visit.userId)) continue;
-    plannedVisible += 1;
-    attendees.push({
-      id: visit.userId,
-      name: visit.player.name,
-      initials: visit.player.avatar,
-      isMine: visit.userId === currentUser.id,
-      visitId: visit.id,
-    });
-  }
-  const slotRuns = runs
-    .filter((run) => run.courtId === court.id && inSlot(run.startTimeIso))
-    .sort((a, b) => a.startTimeIso.localeCompare(b.startTimeIso));
-  for (const run of slotRuns) {
-    for (const player of run.participants) {
-      if (attendees.some((a) => a.id === player.id)) continue;
-      attendees.push({ id: player.id, name: player.name, initials: player.avatar, isMine: player.id === currentUser.id });
-    }
-  }
-  const mine = attendees.find((a) => a.isMine && a.visitId);
-  const over = to <= Date.now();
-
+    setNotice(null);
+  }, [court.id, dayOffset, hour]);
+  const now = data.now;
+  const slot = courtHourSlot({
+    courtId: court.id,
+    pick: { dayOffset, hour },
+    now,
+    visits: data.visits,
+    anonymousTimes: data.planned,
+    games: runs,
+    meId: currentUser.id,
+  });
+  const over = slot.end <= now;
   const toggle = async () => {
-    if (saving) return;
+    if (lock.current || over || data.loading || data.error) return;
+    lock.current = true;
     setSaving(true);
     setNotice(null);
-    const plannedAt = new Date(Math.max(from, Date.now() + 60_000));
-    const ok = mine?.visitId
-      ? await removePlannedVisit(mine.visitId)
-      : await addPlannedVisit(court.id, plannedAt.toISOString(), undefined, "public");
-    setSaving(false);
-    if (!ok) setNotice("Could not save your time. Try again.");
+    try {
+      const results = slot.mine.length
+        ? await Promise.all(slot.mine.map((v) => removePlannedVisit(v.id)))
+        : [
+            await addPlannedVisit(
+              court.id,
+              new Date(Math.max(slot.from, Date.now() + 60_000)).toISOString(),
+              undefined,
+              "public",
+            ),
+          ];
+      if (!results.every(Boolean))
+        setNotice("Could not save your time. Try again.");
+    } catch {
+      setNotice("Could not save your time. Try again.");
+    } finally {
+      lock.current = false;
+      setSaving(false);
+    }
   };
-
+  if (data.loading && !data.ready)
+    return (
+      <View style={{ minHeight: 66, justifyContent: "center" }}>
+        <ActivityIndicator color={Colors.textSecondary} />
+      </View>
+    );
+  if (data.error && !data.ready)
+    return (
+      <Text
+        style={{
+          fontFamily: Typography.bodyMedium,
+          fontSize: 12,
+          color: Colors.textSecondary,
+        }}
+      >
+        Couldn't load activity. Try again.
+      </Text>
+    );
   return (
     <SlotCard
-      attendees={attendees}
-      current={from <= Date.now() && Date.now() < to}
-      hidden={Math.max(0, anonymous - plannedVisible)}
-      mine={Boolean(mine)}
-      mode={over ? "view" : "plan"}
+      attendees={slot.attendees}
+      hidden={slot.hidden}
+      mine={Boolean(slot.mine.length)}
+      mode={over || data.error ? "view" : "plan"}
       notice={notice}
       onToggle={() => void toggle()}
-      runs={slotRuns}
+      runs={slot.games}
       saving={saving}
-      title={`${dayName(dayOffset, start)} · ${hourName(hour)}`}
+      compact={compact}
+      title={`${hour % 12 || 12} ${hour < 12 ? "AM" : "PM"}`}
     />
   );
 }
