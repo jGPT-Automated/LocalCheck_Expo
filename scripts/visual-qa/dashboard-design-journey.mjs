@@ -1,0 +1,137 @@
+// Isolated interactive proof. Every remote HTTP request is fulfilled/aborted
+// and all WebSockets are blocked BEFORE navigation. No live account is used.
+// node scripts/visual-qa/court-activity-journey.mjs http://127.0.0.1:8084 /tmp/activity-proof
+import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { chromium } from 'playwright';
+process.env.FAKE_NOW = String(Date.parse('2026-10-17T23:30:00Z'));
+process.env.TZ = 'America/Chicago';
+const { handleAuth, handleRest, SESSION } = await import('./mock.mjs');
+const { tables, COURT, ME } = await import('./fixtures.mjs');
+const [base = 'http://127.0.0.1:8095', out = '/tmp/dashboard-proof'] = process.argv.slice(2);
+mkdirSync(out, { recursive: true });
+const qrScript = execFileSync('curl', ['-fsSL', 'https://cdn.jsdelivr.net/npm/jsqr@1.2.0/dist/jsQR.min.js']);
+const original = JSON.parse(JSON.stringify(tables));
+const report = [];
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', args: ['--no-sandbox'] });
+const audit = readFileSync(new URL('./audit.js', import.meta.url), 'utf8');
+try {
+for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
+  for (const key of Object.keys(tables)) tables[key] = structuredClone(original[key]);
+  if (process.env.DASHBOARD_SIZES && !process.env.DASHBOARD_SIZES.split(",").includes(`${width}x${height}`)) continue;
+  tables.planned_visits.push({ id: 'private-fixture', user_id: 'private-player', court_id: COURT, planned_at: '2026-10-19T01:00:00.000Z', visibility: 'private' });
+  const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 1,
+    isMobile: true, hasTouch: true, timezoneId: 'America/Chicago', reducedMotion: 'reduce' });
+  await context.routeWebSocket(/.*/, (ws) => ws.close());
+  await context.clock.setFixedTime(new Date(Number(process.env.FAKE_NOW)));
+  await context.addInitScript((session) => {
+    for (const id of ['qkrnmyexzvaxiqfxwwfb', 'ci-placeholder']) localStorage.setItem(`sb-${id}-auth-token`, JSON.stringify(session));
+  }, SESSION);
+  let failSave = false, failLoad = false, writes = 0;
+  const errors = [];
+  const checks = [];
+  const check = async (name, fn) => { try { await fn(); checks.push({name, passed:true}); console.log(`PASS ${width} ${name}`); } catch(e) { checks.push({name, passed:false, error:String(e.message).slice(0,450)}); console.log(`FAIL ${width} ${name}: ${String(e.message).slice(0,250)}`); } };
+  await context.route('**/*', async (route) => {
+    const req = route.request(), url = req.url();
+    if (url.startsWith(base)) return route.continue();
+    if (url.includes('cdn.jsdelivr.net/npm/jsqr')) return route.fulfill({ contentType: 'application/javascript', body: qrScript });
+    let result;
+    if (url.includes('/rest/v1/planned_visits') && req.method() === 'POST') {
+      writes++;
+      if (failSave) result = { status: 503, body: JSON.stringify({ message: 'Fixture unavailable' }) };
+      else {
+        const row = req.postDataJSON();
+        tables.planned_visits.push({ ...row, id: `fixture-${writes}`, created_at: new Date(Number(process.env.FAKE_NOW)).toISOString() });
+        result = { status: 201, body: '' };
+      }
+    } else if (url.includes('/rest/v1/planned_visits') && req.method() === 'DELETE') {
+      writes++;
+      const id = new URL(url).searchParams.get('id')?.replace(/^eq\./, '');
+      tables.planned_visits = tables.planned_visits.filter((v) => v.id !== id);
+      result = { status: 204, body: '' };
+    } else if (url.includes('/rest/v1/rpc/court_planned_times')) {
+      if (failLoad) result = { status: 503, body: JSON.stringify({ message: 'Fixture unavailable' }) };
+      else {
+        const params = req.postDataJSON();
+        result = { status: 200, body: JSON.stringify(tables.planned_visits.filter((v) => v.court_id === params.p_court_id && v.planned_at >= params.p_from && v.planned_at < params.p_to).map((v) => v.planned_at)) };
+      }
+    } else if (url.includes('/rest/v1/')) result = handleRest(req.method(), url, req.headers());
+    else if (url.includes('/auth/v1/')) result = handleAuth(url);
+    else if (url.includes('/functions/v1/') || url.includes('/storage/v1/')) result = { status: 200, body: '{}' };
+    else return route.abort();
+    await route.fulfill({ status: result.status, body: result.body, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', ...result.headers } });
+  });
+  const page = await context.newPage();
+  page.on('pageerror', (e) => errors.push(String(e)));
+  const open = async (path) => { await page.goto(base + path, { waitUntil: 'networkidle' }); await page.waitForTimeout(2600); };
+  const shot = async (name) => { await page.screenshot({ path: `${out}/${name}-${width}.png` }); };
+  const scrub = async (hour, drag = false) => {
+    const b = await page.getByTestId('court-time-chart').boundingBox();
+    const x = b.x + (hour - 6 + .5) / 17 * b.width, y = b.y + 20;
+    if (drag) { await page.mouse.move(b.x + b.width * .5, y); await page.mouse.down(); await page.mouse.move(x, y, { steps: 12 }); await page.mouse.up(); }
+    else await page.mouse.click(x, y);
+    await page.waitForTimeout(450);
+  };
+  await open('/');
+  await page.evaluate(() => { for (const e of document.querySelectorAll('*')) if (e.scrollHeight > e.clientHeight + 50 && e.clientHeight > 200) e.scrollTop = e.scrollHeight; });
+  await scrub(20);
+  await shot('home-selected');
+  const selectedSlot = page.getByTestId('selected-court-hour');
+  await check('Home selected hour is boxed with square attendee profiles', async () => {
+    assert.equal(await page.getByTestId('court-day-planner').count(), 1, 'Chart and slot share a panel');
+    await selectedSlot.getByRole('button', {name:'Player2', exact:true}).waitFor({timeout:1200});
+  });
+  await check('Home planner comes before next game and clears tab floor', async () => {
+    const chart = await page.getByTestId('court-time-chart').boundingBox();
+    const next = await page.getByText('Up next', {exact:true}).boundingBox();
+    const slot = await selectedSlot.boundingBox();
+    assert.ok(chart.y < next.y, 'Next game follows the planner');
+    assert.ok(slot.y + slot.height <= height - 88, 'Selected card clears tab floor');
+  });
+  await check('Home attendance is a compact plus control', async () => {
+    const button = selectedSlot.getByRole('button', {name:"I'm going", exact:true});
+    assert.doesNotMatch(await button.innerText(), /Going/i);
+    const box = await button.boundingBox(); assert.ok(box.width >= 44 && box.height >= 44 && box.width <= 52);
+  });
+  await scrub(19);
+  const action = () => page.getByTestId('selected-court-hour').getByRole('button', {name:"I'm going", exact:true});
+  failSave = true; await action().click();
+  await page.getByTestId('selected-court-hour').getByText('Could not save your time. Try again.').waitFor();
+  await shot('home-save-error');
+  failSave = false; await action().click();
+  await page.getByTestId('selected-court-hour').getByRole('button', {name:"I'm not coming", exact:true}).waitFor();
+  await shot('home-planned');
+  await check('Confirmed attendance can be removed with same control', async () => {
+    const button=page.getByTestId('selected-court-hour').getByRole('button', {name:"I'm not coming", exact:true});
+    await button.click(); await action().waitFor();
+  });
+  await open('/explore'); await page.getByTestId(`court-${COURT}`).click();
+  await page.waitForTimeout(1600); await shot('drawer-collapsed');
+  await page.getByLabel(/, expand$/).click(); await page.waitForTimeout(1500);
+  await page.getByRole('button', {name:'Next day', exact:true}).click(); await scrub(20);
+  await shot('drawer-selected');
+  await check('Drawer reuses boxed planner, square profiles and compact plus', async () => {
+    assert.equal(await page.getByTestId('court-day-planner').count(),1);
+    const slot=page.getByTestId('selected-court-hour'); const b=await slot.boundingBox();
+    assert.ok(b.y>=0 && b.y+b.height<=height, 'Selected row stays in the drawer');
+    assert.doesNotMatch(await slot.getByRole('button',{name:"I'm going",exact:true}).innerText(),/Going/i);
+    const chart=await page.getByTestId('court-time-chart').boundingBox();
+    const next=await page.getByText('Up next',{exact:true}).boundingBox(); assert.ok(chart.y<next.y);
+    await slot.getByText('1 private',{exact:true}).waitFor();
+  });
+  await open(`/court/${COURT}`); await scrub(20);
+  await shot('court-future');
+  await check('Court future hour shows square stack and inline game action',async()=>{
+    const row=page.getByTestId('activity-hour-20');
+    assert.equal(await row.getByTestId('slot-attendee-stack').count(),1);
+    assert.equal(await row.getByRole('button',{name:"You're going",exact:true}).count(),1);
+  });
+  const visual=await page.evaluate(`(${audit})()`);
+  assert.deepEqual(errors,[]); assert.deepEqual(visual.fail,[]);
+  report.push({width,checks,writes,errors,visual}); await context.close();
+}
+} finally {
+  await browser.close(); writeFileSync(`${out}/results.json`,JSON.stringify(report,null,2));
+}
+if(report.some(r=>r.checks.some(c=>!c.passed))) process.exitCode=1;

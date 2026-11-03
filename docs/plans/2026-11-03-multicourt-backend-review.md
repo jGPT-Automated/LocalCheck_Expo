@@ -12,8 +12,7 @@ Explore saves without replacing the default. Lobby rules remain open.
   public/private saved-court membership relation. `profiles.local_court_id`
   remains the single local; `is_pro` is subscription-derived. Metadata examined
   included catalog relations/columns, constraints, triggers, policies and
-  function definitions; no player rows or RPC writes were queried. The exact
-  queries and independently reproducible output are not included in this handoff.
+  function definitions; no player rows or RPC writes were queried. Reproducible catalog queries are listed below; no live row data was retained.
 - Live `auto_check_in_arrive` requires that single local; changing it stamps
   `local_court_changed_at`, clears pending auto arrivals and closes the old
   auto check-in. Local [AppContext](../../context/AppContext.tsx) writes the
@@ -118,3 +117,28 @@ one from slot avatars, planned visits, or the scheduled-game RPCs.
    background, privacy, stale events and downgrade; test lobby lifecycle only
    after its separate contract is approved. Production SQL, RPC probes and
    deployment require their own explicit authorization.
+
+## Read-only inspection queries
+
+Executed against project `qkrnmyexzvaxiqfxwwfb` on November 3; the review above
+records the observed contract. Re-running these SELECTs reads metadata only:
+
+```sql
+select table_name, column_name, data_type, is_nullable, column_default
+from information_schema.columns
+where table_schema = 'public'
+  and table_name in ('profiles','planned_visits','runs','run_participants')
+order by table_name, ordinal_position;
+
+select n.nspname, p.proname, pg_get_functiondef(p.oid)
+from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+where (n.nspname = 'public' and p.proname in
+  ('create_scheduled_game','join_scheduled_game','auto_check_in_arrive'))
+   or (n.nspname = 'private' and p.proname in
+  ('stamp_local_court_changed_at','end_auto_check_in_on_court_change'));
+```
+
+The inspection also read `information_schema.tables`, `pg_policies`,
+`pg_constraint` and non-internal `pg_trigger` definitions for the relations
+above. It did not call the inspected functions. No executable migration is
+included; this contract is the draft to review before preparing one.

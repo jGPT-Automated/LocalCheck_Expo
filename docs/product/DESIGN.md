@@ -7,7 +7,26 @@ Last verified source: 2026-08-29
 
 This document describes the current product. It replaces earlier competing design notes. The reproducible source artwork and specs live in the LocalCheck Brand Asset Sheet; app tokens live in `constants/` and shared components live in `components/ui/`.
 
-## Court activity update (D66, on branch)
+## Dashboard visual follow-up (D67, on branch)
+
+Home and the expanded Explore drawer show Here now, then the shared charcoal
+CourtDayPlanner, then Up next. The chart owns one day label and graph-end arrows.
+A selected future hour reveals square PlayerAvatar identities and an outlined
+44pt plus control; a confirmed planned visit becomes a white check control
+that removes the intent on a second tap. Private attendance is counted as
+private, without a fabricated face. The panel owns its border; its selected
+row uses a hairline rather than a nested box. Existing headers/art remain.
+
+Court future hours keep SlotCard compact: up to three overlapping square
+avatars, a count/name summary and the same intent action. Scheduled games use
+ScheduledGameCard compact, preserving real joined/full/team-selection rules
+and confirmed RSVP. In a game hour, avoid a second add-intent button; an
+existing personal planned visit still offers its removal control. A dashboard
+selected-hour card has only its intent action;
+actual game RSVP lives on the separate game card. These rules revise D66's
+text-only compact row. Keep the 28pt chart/scroll focus and date heading rules.
+
+## Court activity update (D66, merged PR #89)
 
 The PR #89 logic review keeps this appearance. Jumping and scroll tracking use
 one 28pt focus, safely inside the shortest hour row even at scrollTop=0.
@@ -28,7 +47,7 @@ and drawer show the same chart but no historical event feed or duplicate
 navigation pills. Their existing Court link opens the full feed.
 
 Current presence uses shared rounded-square PlayerAvatar; future hour rows use
-names through HourSlotCard/SlotCard's compact variant. Keep private attendance
+HourSlotCard/SlotCard as revised by D67 above. Keep private attendance
 anonymous and deduplicate visible players across plans and games. A Going tap
 uses the existing planned-visit action; game participation and presence remain
 separate. Schedule's heatmap selects an hour in Feed; upcoming games follow it

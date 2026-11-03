@@ -36,6 +36,10 @@ are basketball and pickleball.
 - Home and the court drawer stay compact action dashboards: who's here, the
   next scheduled game and selectable daily planning. Their Court link opens
   Feed. Event history and duplicate court tab pills live off the dashboard.
+  Their boxed daily chart shows a selected hour with square attendee avatars;
+  plus/check adds or removes an intended visit. Next game follows the chart.
+  Court future-hour game actions use the existing confirmed RSVP flow; planned
+  intent does not join a game or check a player in.
   Existing LocalPlus/free visibility rules are unchanged.
 - Orange identifies LocalCheck, live truth, check-in and selection. Other
   primary actions are white (D56).

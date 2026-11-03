@@ -12,7 +12,7 @@ process.env.TZ = 'America/Chicago';
 
 const { handleAuth, handleRest, SESSION } = await import('./mock.mjs');
 const { tables, COURT, ME, RUN3V3, RUN5V5 } = await import('./fixtures.mjs');
-const [base = 'http://127.0.0.1:8097', out = '/tmp/dashboard-rsvp'] = process.argv.slice(2);
+const [base = 'http://127.0.0.1:8099', out = '/tmp/dashboard-rsvp'] = process.argv.slice(2);
 const baseOrigin = new URL(base).origin;
 mkdirSync(out, { recursive: true });
 
@@ -76,7 +76,7 @@ function prepareTimelineFixtures({ secondGame = false, fullGame = false, longNam
     tables.runs.push({
       ...structuredClone(source),
       id: FULL_RUN,
-      title: 'Full 4V4',
+      title: 'Full game',
       max_players: 4,
       team_assignment_mode: 'elo_balance',
       organizer_id: FULL_USERS[0],
@@ -274,7 +274,7 @@ try {
     await check('full 4/4 game shows a disabled Game full action', async () => {
       await openCourtAtEight({ fullGame: true });
       const row = page.getByTestId('activity-hour-20');
-      await row.getByText('FULL 4V4', { exact: true }).waitFor();
+      await row.getByText('FULL GAME', { exact: true }).waitFor();
       const full = row.getByRole('button', { name: 'Game full', exact: true });
       await full.waitFor();
       assert.equal(await full.isDisabled(), true);

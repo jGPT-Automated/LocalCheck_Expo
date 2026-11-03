@@ -45,6 +45,11 @@ export function HomeScreen() {
   const { user } = useAuth();
   const tabFloor = useBottomFloor();
   const scroll = React.useRef<ScrollView>(null);
+  const plannerY = React.useRef(0);
+  const scrollHeight = React.useRef(0);
+  const revealSelection = useCallback((selectionBottom: number) => {
+    scroll.current?.scrollTo({ y: Math.max(0, plannerY.current + selectionBottom - scrollHeight.current + tabFloor + Space.lg), animated: false });
+  }, [tabFloor]);
   const [isChecking, setIsChecking] = useState(false);
   const [hoursLabel, setHoursLabel] = useState("0h");
   const { showToast } = useToast();
@@ -115,6 +120,7 @@ export function HomeScreen() {
 
       <ScrollView
         ref={scroll}
+        onLayout={(event) => { scrollHeight.current = event.nativeEvent.layout.height; }}
         contentContainerStyle={{ paddingBottom: tabFloor + Space.lg }}
         alwaysBounceVertical={false}
         bounces={false}
@@ -148,14 +154,14 @@ export function HomeScreen() {
             roster={roster}
           />
         </View>
+        <View style={styles.today} onLayout={(event) => { plannerY.current = event.nativeEvent.layout.y; }}>
+          <CourtDayPlanner court={localCourt} games={upcoming} liveCount={activeTotal} onReveal={revealSelection} />
+        </View>
         <View style={styles.upNext}>
           <UpNextSection
             onOpenRun={(id) => router.push(`/run/${id}`)}
             upcoming={upcoming}
           />
-        </View>
-        <View style={styles.today}>
-          <CourtDayPlanner court={localCourt} games={upcoming} liveCount={activeTotal} onReveal={() => scroll.current?.scrollToEnd({ animated: false })} />
         </View>
       </ScrollView>
 

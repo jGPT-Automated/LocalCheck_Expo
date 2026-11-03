@@ -107,12 +107,17 @@ export function ScheduledGameCard({
   onJoin,
   onOpen,
   style,
+  compact = false,
+  disabled = false,
 }: {
   game: GameRun;
   joining: boolean;
   onJoin: (game: GameRun) => void;
   onOpen: (game: GameRun) => void;
   style?: StyleProp<ViewStyle>;
+  /** Inline hourly game summary, using the same RSVP rules. */
+  compact?: boolean;
+  disabled?: boolean;
 }) {
   const { currentUser } = useApp();
       const start = new Date(game.startTimeIso);
@@ -124,6 +129,60 @@ export function ScheduledGameCard({
       // Choose-teams games pick a side on the game page.
       const canQuickJoin = !joined && !full && game.teamAssignmentMode !== "choose_teams";
       const format = formatForMaxPlayers(game.maxPlayers);
+      if (compact) {
+        const joinable =
+          game.status === "scheduled" && start.getTime() > Date.now();
+        return (
+          <View style={styles.timelineCard}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${game.title}`}
+              onPress={() => onOpen(game)}
+              style={styles.timelineSummary}
+            >
+              <Text numberOfLines={2} style={styles.timelineTitle}>
+                {game.title}
+              </Text>
+              <Text style={styles.timelineMeta}>
+                {[format?.toLowerCase(), `${going}/${game.maxPlayers}`]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </Text>
+            </Pressable>
+            <PressableScale
+              accessibilityRole="button"
+              accessibilityLabel={
+                joined
+                  ? "You're going"
+                  : full
+                    ? "Game full"
+                    : !joinable
+                      ? `Open ${game.title}`
+                      : `Join ${game.title}`
+              }
+              accessibilityState={{
+                busy: joining,
+                disabled: disabled || joining || joined || full,
+              }}
+              disabled={disabled || joining || joined || full}
+              onPress={() =>
+                joinable && canQuickJoin ? onJoin(game) : onOpen(game)
+              }
+              style={styles.timelineJoin}
+            >
+              {joining ? (
+                <ActivityIndicator color={Colors.text} size="small" />
+              ) : joined ? (
+                <Feather color={Colors.text} name="check" size={18} />
+              ) : (
+                <Text style={styles.ctaText}>
+                  {full ? "Full" : joinable ? "Join" : "View"}
+                </Text>
+              )}
+            </PressableScale>
+          </View>
+        );
+      }
       return (
         <PressableScale
           accessibilityLabel={`${game.title}, ${going} of ${game.maxPlayers} going`}
@@ -185,6 +244,42 @@ export function ScheduledGameCard({
 }
 
 const styles = StyleSheet.create({
+  timelineCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.hairline,
+  },
+  timelineSummary: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 44,
+    justifyContent: "center",
+    gap: 3,
+  },
+  timelineTitle: {
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 12,
+    lineHeight: 17,
+    color: Colors.text,
+  },
+  timelineMeta: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    color: Colors.textSecondary,
+  },
+  timelineJoin: {
+    minWidth: 64,
+    height: 44,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Colors.hairlineChrome,
+    borderRadius: Radius.button,
+  },
   // Schedule owns the common gutter for the heatmap, slot and game cards.
   wrap: { paddingTop: 16, gap: 14 },
   eyebrow: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },

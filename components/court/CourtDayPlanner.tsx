@@ -1,11 +1,12 @@
 import React from "react";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { CourtBusyChart } from "@/components/court/CourtBusyChart";
 import { HourSlotCard } from "@/components/court/HourSlotCard";
 import type { Court, GameRun } from "@/constants/data";
 import { useCourtActivity } from "@/hooks/useCourtActivity";
 import type { CourtHourPick } from "@/lib/courtActivityModel";
+import { Colors, Radius } from "@/constants/colors";
 
 /** Home and drawer compose exactly the same chart and selected-hour row. */
 export function CourtDayPlanner({
@@ -17,13 +18,13 @@ export function CourtDayPlanner({
   court: Court;
   games: GameRun[];
   liveCount: number;
-  onReveal?: () => void;
+  onReveal?: (selectionBottom: number) => void;
 }) {
   const data = useCourtActivity(court.id, liveCount);
   const [picked, setPicked] = React.useState<CourtHourPick | null>(null);
   React.useEffect(() => setPicked(null), [court.id]);
   return (
-    <>
+    <View testID="court-day-planner" style={styles.panel}>
       <CourtBusyChart
         courtId={court.id}
         games={games}
@@ -40,15 +41,35 @@ export function CourtDayPlanner({
           )
         }
       />
-      {picked ? <View onLayout={onReveal} testID="selected-court-hour">
-        <HourSlotCard
-          court={court}
-          dayOffset={picked.dayOffset}
-          hour={picked.hour}
-          data={data}
-          compact
-        />
-      </View> : null}
-    </>
+      {picked ? (
+        <View
+          key={`${picked.dayOffset}-${picked.hour}`}
+          onLayout={(event) =>
+            onReveal?.(
+              event.nativeEvent.layout.y + event.nativeEvent.layout.height + 14,
+            )
+          }
+          testID="selected-court-hour"
+        >
+          <HourSlotCard
+            court={court}
+            dayOffset={picked.dayOffset}
+            hour={picked.hour}
+            data={data}
+            embedded
+          />
+        </View>
+      ) : null}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  panel: {
+    padding: 14,
+    borderRadius: Radius.panel,
+    borderWidth: 1,
+    borderColor: Colors.hairlineCard,
+    backgroundColor: Colors.panel,
+  },
+});

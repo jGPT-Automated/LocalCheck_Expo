@@ -3,7 +3,7 @@ import { ActivityIndicator, Text, View } from "react-native";
 
 import { SlotCard } from "@/components/court/SlotCard";
 import { Colors } from "@/constants/colors";
-import type { Court } from "@/constants/data";
+import type { Court, GameRun } from "@/constants/data";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import type { CourtActivityData } from "@/hooks/useCourtActivity";
@@ -15,6 +15,7 @@ interface HourProps {
   hour: number;
   data: CourtActivityData;
   compact?: boolean;
+  embedded?: boolean;
 }
 export const HourSlotCard = React.memo(HourContent);
 function HourContent({
@@ -23,11 +24,15 @@ function HourContent({
   hour,
   data,
   compact,
+  embedded,
 }: HourProps) {
-  const { currentUser, runs, addPlannedVisit, removePlannedVisit } = useApp();
+  const { currentUser, runs, addPlannedVisit, removePlannedVisit, joinRun } =
+    useApp();
   const [saving, setSaving] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
   const lock = React.useRef(false);
+  const joinLock = React.useRef(false);
+  const [joiningRunId, setJoiningRunId] = React.useState<string | null>(null);
   React.useEffect(() => {
     setNotice(null);
   }, [court.id, dayOffset, hour]);
@@ -42,6 +47,21 @@ function HourContent({
     meId: currentUser.id,
   });
   const over = slot.end <= now;
+  const join = async (game: GameRun) => {
+    if (joinLock.current || data.loading || data.error) return;
+    joinLock.current = true;
+    setJoiningRunId(game.id);
+    setNotice(null);
+    try {
+      if (!(await joinRun(game.id)))
+        setNotice("Something went wrong. Try again.");
+    } catch {
+      setNotice("Something went wrong. Try again.");
+    } finally {
+      joinLock.current = false;
+      setJoiningRunId(null);
+    }
+  };
   const toggle = async () => {
     if (lock.current || over || data.loading || data.error) return;
     lock.current = true;
@@ -92,10 +112,13 @@ function HourContent({
       mine={Boolean(slot.mine.length)}
       mode={over || data.error ? "view" : "plan"}
       notice={notice}
-      onToggle={() => void toggle()}
+      onToggle={data.loading ? undefined : () => void toggle()}
       runs={slot.games}
       saving={saving}
       compact={compact}
+      embedded={embedded}
+      onJoinRun={data.loading ? undefined : (game) => void join(game)}
+      joiningRunId={joiningRunId}
       title={`${hour % 12 || 12} ${hour < 12 ? "AM" : "PM"}`}
     />
   );

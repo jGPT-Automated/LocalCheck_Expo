@@ -79,6 +79,7 @@ export function CourtSheetContent({
   const { showToast } = useToast();
   const { height: windowHeight } = useWindowDimensions();
   const detailScroll = React.useRef<BottomSheetScrollViewMethods>(null);
+  const plannerY = React.useRef(0);
   const [peekHeight, setPeekHeight] = useState(0);
   const [isChecking, setIsChecking] = useState(false);
 
@@ -250,15 +251,14 @@ export function CourtSheetContent({
             onPlayer={(id) => go(`/player/${id}`)}
             roster={roster}
           />
+          <View style={styles.section} onLayout={(event) => { plannerY.current = event.nativeEvent.layout.y; }}>
+            <CourtDayPlanner court={court} games={upcoming} liveCount={activeCount} onReveal={(selectionBottom) => detailScroll.current?.scrollTo({ y: Math.max(0, plannerY.current + selectionBottom - detailHeight + bottom + 20), animated: false })} />
+          </View>
           <UpNextSection
             onOpenRun={(id) => go(`/run/${id}`)}
             onSeeAll={() => go(`/court/${court.id}?tab=games`)}
             upcoming={upcoming}
           />
-
-          <View style={styles.section}>
-            <CourtDayPlanner court={court} games={upcoming} liveCount={activeCount} onReveal={() => detailScroll.current?.scrollToEnd({ animated: false })} />
-          </View>
 
         </CourtDrawerGate>
       </BottomSheetScrollView>

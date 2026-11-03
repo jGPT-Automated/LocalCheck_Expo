@@ -170,3 +170,19 @@ groups and a valid actor, and verifies Me/player date headings are retained.
 Runs at 375x667, 393x852 and 430x932; `REVIEW_SIZES=393x852` scopes a reproduction.
 It records screenshots/results, rejects page errors and product writes, and
 fulfills the QR worker's public static dependency locally.
+
+## Dashboard visual follow-up
+
+Start `PORT=8098 pnpm preview:web`, then run
+`node scripts/visual-qa/dashboard-design-journey.mjs http://127.0.0.1:8098 /tmp/dashboard-design`.
+The isolated journey captures the same Home/drawer/court states at 375x667,
+393x852 and 430x932 and checks the shared boxed planner, plus/check toggle,
+failed save/retry/removal, selected-card floor clearance, privacy and inline
+game state. `DASHBOARD_SIZES=393x852` scopes a reproduction. All app HTTP is
+fulfilled locally and all WebSockets are blocked before navigation. Static
+QR-worker JavaScript is fetched as a public asset and fulfilled locally.
+
+Use `scripts/visual-qa/dashboard-rsvp-journey.mjs` for isolated game RSVP,
+capacity and team-selection checks; no production writes are authorized by
+these journeys. Retain results and before/after evidence under the visual
+history index. Live schema inspection is separate, metadata-only evidence.

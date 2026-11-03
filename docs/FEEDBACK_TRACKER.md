@@ -21,6 +21,18 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-11-03 — dashboard design follow-up and visual history
+
+**On branch** `codex/dashboard-design-followup`, after merged PR #89 (`19dac69`).
+Home/drawer boxed chart and selected-hour avatars, compact plus/check instead
+of Going, planner before next game, and court timeline stacks/inline game RSVP
+are implemented for rendered verification. Shared headers/art/palette retained.
+Every frontend PR now records paired renders and retains a visual history.
+Five-court LocalPlus/default/reorder/dropdowns/nested auto toggles and rolling
+lobbies remain **draft**, with verified live read-only contract boundaries in
+`docs/plans/2026-11-03-multicourt-backend-review.md`. They are not shipped.
+PR #89's logic-only checkpoint is merged; no production release is claimed.
+
 ## 2026-11-03 — PR #89 external-review correction
 
 Jesse selected **logic fixes only** before merging. Fixed the current heatmap

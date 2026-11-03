@@ -1,5 +1,17 @@
 # Supabase workflow
 
+## November 3 read-only design grounding
+
+LocalCheckProd (`qkrnmyexzvaxiqfxwwfb`) was inspected through catalog SELECTs:
+relevant columns, relation names, policy definitions, run constraints/triggers
+and function definitions. No player rows, write RPCs, migrations or deployments.
+Profiles still hold one `local_court_id`; auto arrival requires that court.
+Planned visits and `create_scheduled_game` / `join_scheduled_game` support the
+current dashboard UI. A five-court list and multi-region auto check-in require
+an additive contract, drafted only in
+[`2026-11-03-multicourt-backend-review.md`](plans/2026-11-03-multicourt-backend-review.md).
+This inspection is not write/RLS acceptance or deployment authorization.
+
 Supabase `LocalCheckProd` (`qkrnmyexzvaxiqfxwwfb`) is the only backend.
 
 ```text
