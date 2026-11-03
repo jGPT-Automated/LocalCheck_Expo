@@ -103,7 +103,14 @@ export function CourtBusyChart({
   const caption = picked
     ? `${picked.kind === "now" ? "Now" : hourLabel(picked.hour)} · ${picked.value} ${picked.kind === "planned" ? "going" : "on court"}`
     : busyCaption(bars, dayOffset);
+  // Gesture Handler can deliver a callback from the previous render after a
+  // day change. Read the latest committed chart state when the gesture fires.
+  const gestureState = React.useRef({ dayOffset, bars, selected, onSelect, allowPast, setDay });
+  React.useLayoutEffect(() => {
+    gestureState.current = { dayOffset, bars, selected, onSelect, allowPast, setDay };
+  });
   const scrub = (x: number) => {
+    const { dayOffset, bars, selected, onSelect, allowPast } = gestureState.current;
     const hour = chartHourAt(x, width.current);
     if (!allowPast && bars.find((bar) => bar.hour === hour)?.kind === "past")
       return;
@@ -130,8 +137,10 @@ export function CourtBusyChart({
     .failOffsetY([-8, 8])
     .runOnJS(true)
     .onEnd((e) => {
-      if (Math.abs(e.translationX) > 40)
+      if (Math.abs(e.translationX) > 40) {
+        const { dayOffset, setDay } = gestureState.current;
         setDay(dayOffset + (e.translationX < 0 ? 1 : -1));
+      }
     });
   return (
     <View>
