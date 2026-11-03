@@ -71,9 +71,11 @@ references, retaining D65's court header/art. No new visual direction.
 - [x] Exercise add/remove, failed save/retry, day/hour changes, private/empty
   states, game join/full/joined/choose-teams and all shared usages. Compare
   baseline/head screenshots and inspect the captured renders at all sizes.
-- [ ] Update authority docs, record remaining backend-dependent work and the
+- [x] Update authority docs, record remaining backend-dependent work and the
   read-only inspection, open the visual PR and retain paired evidence/index.
 
 No dependency/native configuration change, Supabase write, applied migration,
 function deployment, production release or merge. Live inspection is authorized
 read-only; every proposed backend modification remains a review draft.
+
+Visual checkpoint: [PR #90](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/90), open and unmerged. Remaining rows above are subsequent slices, not completed features.

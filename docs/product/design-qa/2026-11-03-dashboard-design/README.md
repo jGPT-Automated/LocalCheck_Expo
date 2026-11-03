@@ -1,6 +1,6 @@
 # Dashboard design follow-up
 
-**On branch**, based on merged main `19dac69` (PR #89). This checkpoint
+**On branch**, [PR #90](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/90), based on merged main `19dac69` (PR #89). This checkpoint
 implements the selected-hour dashboard/card visuals deferred from that PR.
 The multi-court and rolling-lobby work is still a review draft.
 

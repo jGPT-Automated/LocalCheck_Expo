@@ -23,10 +23,10 @@ point.
 
 ## 2026-11-03 — dashboard design follow-up and visual history
 
-**On branch** `codex/dashboard-design-followup`, after merged PR #89 (`19dac69`).
+**On branch**, PR #90, `codex/dashboard-design-followup`, after merged PR #89 (`19dac69`).
 Home/drawer boxed chart and selected-hour avatars, compact plus/check instead
 of Going, planner before next game, and court timeline stacks/inline game RSVP
-are implemented for rendered verification. Shared headers/art/palette retained.
+are implemented and exercised in isolated browser renders at all three sizes. Shared headers/art/palette retained.
 The observed unsolicited first-open drawer close was traced to redundant
 post-open resnap commands; those are removed in this checkpoint.
 Every frontend PR now records paired renders and retains a visual history.

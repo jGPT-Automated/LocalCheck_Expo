@@ -55,8 +55,9 @@ reproducible heatmap/hour and actor-navigation journey, fixture-only writes,
 blocked backend traffic, and remaining native/RLS/realtime limits. Original
 PR #89 captures remain intact.
 
-## 2026-11-03 — dashboard design follow-up (on branch)
+## 2026-11-03 — PR #90, dashboard design follow-up (on branch)
 
+[PR #90](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/90) ·
 [Paired dashboard/card renders and file trail](2026-11-03-dashboard-design/README.md).
 Baseline `19dac69` (merged PR #89); actual capture heads and journey results
 are retained in that entry. This adds the boxed shared planner, attendance

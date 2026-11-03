@@ -1,6 +1,6 @@
 # Current state
 
-- Nov 3 (**on a branch**, `codex/dashboard-design-followup`, from `19dac69`):
+- Nov 3 (**on a branch**, `codex/dashboard-design-followup`, PR #90, from `19dac69`):
   Home and the Explore drawer share a charcoal daily-planner panel with square
   attendee avatars and a compact plus/check action; next game follows it.
   Selecting a time reveals that card above the tab/sheet floor. Court future
