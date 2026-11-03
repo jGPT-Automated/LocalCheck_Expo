@@ -100,7 +100,10 @@ force-push shared branches, or include unrelated user changes.
   worktree on its own local branch, commits only there, and never pushes,
   opens a PR, merges or touches `main`/`codex/*`. It hands back a branch +
   screenshots; the lead reviews, integrates into the PR branch and pushes.
-  At most 2–3 helpers at once. Only Jesse merges to `main`.
+  At most two persistent helpers at once. Assign ownership by app area and
+  re-engage those contexts for follow-up work; do not start a fresh helper
+  for each task or review. The lead integrates and reviews their outputs.
+  Only Jesse merges to `main`.
 
 - Restate the exact bounded scope before acting. If a requested correction
   exposes an adjacent problem, report it without silently adding it to the

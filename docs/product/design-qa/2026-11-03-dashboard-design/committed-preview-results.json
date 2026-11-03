@@ -1,0 +1,66 @@
+[
+  {
+    "width": 393,
+    "checks": [
+      {
+        "name": "Home selected hour is boxed with square attendee profiles",
+        "passed": true
+      },
+      {
+        "name": "Home planner comes before next game and clears tab floor",
+        "passed": true
+      },
+      {
+        "name": "Selected dashboard hour retains its scheduled game and RSVP",
+        "passed": true
+      },
+      {
+        "name": "Home attendance is a compact plus control",
+        "passed": true
+      },
+      {
+        "name": "Confirmed attendance can be removed with same control",
+        "passed": true
+      },
+      {
+        "name": "Drawer reuses boxed planner, square profiles and compact plus",
+        "passed": true
+      },
+      {
+        "name": "Drawer selected game dismisses sheet before opening run",
+        "passed": true
+      },
+      {
+        "name": "Drawer selected player dismisses sheet before opening profile",
+        "passed": true
+      },
+      {
+        "name": "Court future hour shows square stack and inline game action",
+        "passed": true
+      },
+      {
+        "name": "Private-only court attendance has a spoken private count",
+        "passed": true
+      }
+    ],
+    "writes": 3,
+    "errors": [],
+    "visual": {
+      "fail": [],
+      "debt": {
+        "smallText": [
+          "Basketball (9.5px)",
+          "On court (9px)",
+          "Feed (9.5px)",
+          "Schedule (9.5px)",
+          "Players (9.5px)",
+          "Info (9.5px)"
+        ],
+        "lowContrast": [],
+        "smallTarget": [
+          " (38x38)"
+        ]
+      }
+    }
+  }
+]

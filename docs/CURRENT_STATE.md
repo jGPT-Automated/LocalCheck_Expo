@@ -5,6 +5,10 @@
   attendee avatars and a compact plus/check action; next game follows it.
   Selecting a time reveals that card above the tab/sheet floor. Court future
   rows reuse SlotCard's square stack and ScheduledGameCard's inline RSVP.
+  The court drawer removes queued post-opening snap-to-collapsed commands;
+  those commands were traced closing a newly opened sheet without a tap.
+  Selected-hour links use the sheet dismissal/navigation owner; shared chart
+  gestures read the latest committed day instead of a stale gesture callback.
   Existing planned-visit, privacy, capacity and team-choice contracts remain.
   Frontend PRs now retain paired screenshots and a chronological visual index.
   **Read-only live inspection** of LocalCheckProd catalog/function/policy

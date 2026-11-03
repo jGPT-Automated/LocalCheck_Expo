@@ -1,0 +1,279 @@
+{
+  "base": "http://127.0.0.1:8104",
+  "results": [
+    {
+      "width": 375,
+      "height": 667,
+      "trials": [
+        {
+          "trial": 1,
+          "openIdleSamples": 16,
+          "collapsedYDrift": 0,
+          "expandedSheetBox": {
+            "x": 0,
+            "y": 53.36000061035156,
+            "width": 375,
+            "height": 680.734375,
+            "transform": "matrix(1, 0, 0, 1, 0, 53.36)"
+          },
+          "expandedYDrift": 0,
+          "dismissedBy": "explicit court navigation",
+          "collapsedSheetBox": {
+            "x": 0,
+            "y": 347,
+            "width": 375,
+            "height": 693.234375,
+            "transform": "matrix(1, 0, 0, 1, 0, 347)"
+          }
+        },
+        {
+          "trial": 2,
+          "openIdleSamples": 16,
+          "collapsedYDrift": 0,
+          "expandedSheetBox": null,
+          "expandedYDrift": null,
+          "dismissedBy": "backdrop tap",
+          "collapsedSheetBox": {
+            "x": 0,
+            "y": 347,
+            "width": 375,
+            "height": 693.234375,
+            "transform": "matrix(1, 0, 0, 1, 0, 347)"
+          }
+        },
+        {
+          "trial": 3,
+          "openIdleSamples": 16,
+          "collapsedYDrift": 0,
+          "expandedSheetBox": null,
+          "expandedYDrift": null,
+          "dismissedBy": "backdrop tap",
+          "collapsedSheetBox": {
+            "x": 0,
+            "y": 347,
+            "width": 375,
+            "height": 693.234375,
+            "transform": "matrix(1, 0, 0, 1, 0, 347)"
+          }
+        },
+        {
+          "trial": 4,
+          "openIdleSamples": 16,
+          "collapsedYDrift": 0,
+          "expandedSheetBox": null,
+          "expandedYDrift": null,
+          "dismissedBy": "backdrop tap",
+          "collapsedSheetBox": {
+            "x": 0,
+            "y": 347,
+            "width": 375,
+            "height": 693.234375,
+            "transform": "matrix(1, 0, 0, 1, 0, 347)"
+          }
+        },
+        {
+          "trial": 5,
+          "openIdleSamples": 16,
+          "collapsedYDrift": 0,
+          "expandedSheetBox": null,
+          "expandedYDrift": null,
+          "dismissedBy": "backdrop tap",
+          "collapsedSheetBox": {
+            "x": 0,
+            "y": 347,
+            "width": 375,
+            "height": 693.234375,
+            "transform": "matrix(1, 0, 0, 1, 0, 347)"
+          }
+        }
+      ],
+      "pageErrors": [],
+      "unexpectedWrites": [],
+      "remoteHttpCount": 204,
+      "websocketClosures": 25
+    },
+    {
+      "width": 393,
+      "height": 852,
+      "trials": [
+        {
+          "trial": 1,
+          "openIdleSamples": 16,
+          "collapsedYDrift": 0,
+          "expandedSheetBox": {
+            "x": 0,
+            "y": 68.16000366210938,
+            "width": 393,
+            "height": 859.671875,
+            "transform": "matrix(1, 0, 0, 1, 0, 68.16)"
+          },
+          "expandedYDrift": 0,
+          "dismissedBy": "explicit court navigation",
+          "collapsedSheetBox": {
+            "x": 0,
+            "y": 532,
+            "width": 393,
+            "height": 876.84375,
+            "transform": "matrix(1, 0, 0, 1, 0, 532)"
+          }
+        },
+        {
+          "trial": 2,
+          "openIdleSamples": 16,
+          "collapsedYDrift": 0,
+          "expandedSheetBox": null,
+          "expandedYDrift": null,
+          "dismissedBy": "backdrop tap",
+          "collapsedSheetBox": {
+            "x": 0,
+            "y": 532,
+            "width": 393,
+            "height": 876.84375,
+            "transform": "matrix(1, 0, 0, 1, 0, 532)"
+          }
+        },
+        {
+          "trial": 3,
+          "openIdleSamples": 16,
+          "collapsedYDrift": 0,
+          "expandedSheetBox": null,
+          "expandedYDrift": null,
+          "dismissedBy": "backdrop tap",
+          "collapsedSheetBox": {
+            "x": 0,
+            "y": 532,
+            "width": 393,
+            "height": 876.84375,
+            "transform": "matrix(1, 0, 0, 1, 0, 532)"
+          }
+        },
+        {
+          "trial": 4,
+          "openIdleSamples": 16,
+          "collapsedYDrift": 0,
+          "expandedSheetBox": null,
+          "expandedYDrift": null,
+          "dismissedBy": "backdrop tap",
+          "collapsedSheetBox": {
+            "x": 0,
+            "y": 532,
+            "width": 393,
+            "height": 876.84375,
+            "transform": "matrix(1, 0, 0, 1, 0, 532)"
+          }
+        },
+        {
+          "trial": 5,
+          "openIdleSamples": 16,
+          "collapsedYDrift": 0,
+          "expandedSheetBox": null,
+          "expandedYDrift": null,
+          "dismissedBy": "backdrop tap",
+          "collapsedSheetBox": {
+            "x": 0,
+            "y": 532,
+            "width": 393,
+            "height": 876.84375,
+            "transform": "matrix(1, 0, 0, 1, 0, 532)"
+          }
+        }
+      ],
+      "pageErrors": [],
+      "unexpectedWrites": [],
+      "remoteHttpCount": 204,
+      "websocketClosures": 25
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "trials": [
+        {
+          "trial": 1,
+          "openIdleSamples": 16,
+          "collapsedYDrift": 0,
+          "expandedSheetBox": {
+            "x": 0,
+            "y": 74.55999755859375,
+            "width": 430,
+            "height": 936.75,
+            "transform": "matrix(1, 0, 0, 1, 0, 74.56)"
+          },
+          "expandedYDrift": 0,
+          "dismissedBy": "explicit court navigation",
+          "collapsedSheetBox": {
+            "x": 0,
+            "y": 612,
+            "width": 430,
+            "height": 955.671875,
+            "transform": "matrix(1, 0, 0, 1, 0, 612)"
+          }
+        },
+        {
+          "trial": 2,
+          "openIdleSamples": 16,
+          "collapsedYDrift": 0,
+          "expandedSheetBox": null,
+          "expandedYDrift": null,
+          "dismissedBy": "backdrop tap",
+          "collapsedSheetBox": {
+            "x": 0,
+            "y": 612,
+            "width": 430,
+            "height": 955.671875,
+            "transform": "matrix(1, 0, 0, 1, 0, 612)"
+          }
+        },
+        {
+          "trial": 3,
+          "openIdleSamples": 16,
+          "collapsedYDrift": 0,
+          "expandedSheetBox": null,
+          "expandedYDrift": null,
+          "dismissedBy": "backdrop tap",
+          "collapsedSheetBox": {
+            "x": 0,
+            "y": 612,
+            "width": 430,
+            "height": 955.671875,
+            "transform": "matrix(1, 0, 0, 1, 0, 612)"
+          }
+        },
+        {
+          "trial": 4,
+          "openIdleSamples": 16,
+          "collapsedYDrift": 0,
+          "expandedSheetBox": null,
+          "expandedYDrift": null,
+          "dismissedBy": "backdrop tap",
+          "collapsedSheetBox": {
+            "x": 0,
+            "y": 612,
+            "width": 430,
+            "height": 955.671875,
+            "transform": "matrix(1, 0, 0, 1, 0, 612)"
+          }
+        },
+        {
+          "trial": 5,
+          "openIdleSamples": 16,
+          "collapsedYDrift": 0,
+          "expandedSheetBox": null,
+          "expandedYDrift": null,
+          "dismissedBy": "backdrop tap",
+          "collapsedSheetBox": {
+            "x": 0,
+            "y": 612,
+            "width": 430,
+            "height": 955.671875,
+            "transform": "matrix(1, 0, 0, 1, 0, 612)"
+          }
+        }
+      ],
+      "pageErrors": [],
+      "unexpectedWrites": [],
+      "remoteHttpCount": 204,
+      "websocketClosures": 25
+    }
+  ],
+  "failures": []
+}

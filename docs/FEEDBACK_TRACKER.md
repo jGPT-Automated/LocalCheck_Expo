@@ -27,6 +27,8 @@ point.
 Home/drawer boxed chart and selected-hour avatars, compact plus/check instead
 of Going, planner before next game, and court timeline stacks/inline game RSVP
 are implemented for rendered verification. Shared headers/art/palette retained.
+The observed unsolicited first-open drawer close was traced to redundant
+post-open resnap commands; those are removed in this checkpoint.
 Every frontend PR now records paired renders and retains a visual history.
 Five-court LocalPlus/default/reorder/dropdowns/nested auto toggles and rolling
 lobbies remain **draft**, with verified live read-only contract boundaries in

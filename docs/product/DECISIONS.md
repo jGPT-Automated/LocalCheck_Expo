@@ -89,7 +89,8 @@ below wherever they disagree.
   commits, route/state/viewport and a chronological index. Supabase reading
   is authorized; backend changes remain drafts for external review before
   any project mutation. Five-court storage and lobbies are not approved for
-  deployment by this decision.
+  deployment by this decision. Development uses at most two persistent
+  helpers with app-area ownership, reused for follow-up tasks and reviews.
 - **D66 Court Feed uses LCv5's Home timeline (Nov 3, revises D55, D57,
   D58 and D61):** Home and expanded Explore drawer remain at-a-glance action
   dashboards: presence, next game and daily planning. Event activity belongs

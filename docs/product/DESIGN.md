@@ -16,6 +16,11 @@ A selected future hour reveals square PlayerAvatar identities and an outlined
 that removes the intent on a second tap. Private attendance is counted as
 private, without a fabricated face. The panel owns its border; its selected
 row uses a hairline rather than a nested box. Existing headers/art remain.
+The court drawer keeps measured snap points but never queues an extra
+snap-to-collapsed command after opening; explicit expand remains index one.
+Selected-hour player/game links use the drawer's dismiss-then-navigate callback,
+matching Here now and Up next. Shared chart gestures read the latest committed
+day/data snapshot so rapid day changes cannot select a prior day's attendance.
 
 Court future hours keep SlotCard compact: up to three overlapping square
 avatars, a count/name summary and the same intent action. Scheduled games use

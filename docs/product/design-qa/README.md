@@ -54,3 +54,11 @@ main commit. It covers 375×667, 393×852, and 430×932. The entry records the
 reproducible heatmap/hour and actor-navigation journey, fixture-only writes,
 blocked backend traffic, and remaining native/RLS/realtime limits. Original
 PR #89 captures remain intact.
+
+## 2026-11-03 — dashboard design follow-up (on branch)
+
+[Paired dashboard/card renders and file trail](2026-11-03-dashboard-design/README.md).
+Baseline `19dac69` (merged PR #89); actual capture heads and journey results
+are retained in that entry. This adds the boxed shared planner, attendance
+plus/check and square timeline stacks/inline game RSVP. Five-court storage
+and rolling lobbies remain review drafts; no backend changes were executed.

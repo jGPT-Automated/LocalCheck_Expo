@@ -186,3 +186,10 @@ Use `scripts/visual-qa/dashboard-rsvp-journey.mjs` for isolated game RSVP,
 capacity and team-selection checks; no production writes are authorized by
 these journeys. Retain results and before/after evidence under the visual
 history index. Live schema inspection is separate, metadata-only evidence.
+
+`court-drawer-stability-journey.mjs` records repeated first opens without
+input, positions, explicit expand and dismissal. `court-day-selection-journey.mjs`
+checks immediate day-change/bar taps against the selected day's actual fixture
+attendance. Both require a fresh preview URL and an evidence directory; both
+intercept backend HTTP and block WebSockets before navigating. No live project
+write is authorized by a successful fixture run.

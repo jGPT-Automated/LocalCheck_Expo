@@ -1,0 +1,21 @@
+{
+  "captured_export_metadata": {
+    "supabaseProject": "qkrnmyexzvaxiqfxwwfb",
+    "gitHead": "d152b47",
+    "generatedAt": "2026-11-03T21:28:50Z"
+  },
+  "committed_export_metadata": {
+    "supabaseProject": "qkrnmyexzvaxiqfxwwfb",
+    "gitHead": "a7d7a6c",
+    "generatedAt": "2026-11-03T21:35:29Z"
+  },
+  "runtime_files": 71,
+  "byte_identical_runtime": false,
+  "differences": [
+    "_expo/static/js/web/entry-d41d8cd98f00b204e9800998ecf8427e.js"
+  ],
+  "normalization": "Sort generated CSS-module string export keys and matching unstable_styles keys only; values cross-checked, no application functions normalized",
+  "normalized_style_maps": 2,
+  "normalized_script_identical": true,
+  "normalized_script_sha256": "dce6bac8083868d676b036e2170f35496abeb7ae61a55567cc980144f373837b"
+}

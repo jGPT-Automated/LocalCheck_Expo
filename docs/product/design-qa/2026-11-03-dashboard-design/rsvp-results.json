@@ -1,0 +1,3234 @@
+{
+  "results": [
+    {
+      "width": 375,
+      "height": 667,
+      "checks": [
+        {
+          "name": "8 PM RUN5V5 join fails without changing fixture, retry succeeds once",
+          "passed": true,
+          "evidence": {
+            "rpcCalls": [],
+            "participantIds": [
+              "22222222-2222-4222-8222-222222222222",
+              "33333333-3333-4333-8333-333333333333",
+              "44444444-4444-4444-8444-444444444444",
+              "55555555-5555-4555-8555-555555555555",
+              "66666666-6666-4666-8666-666666666666",
+              "88888888-8888-4888-8888-888888888888",
+              "11111111-1111-4111-8111-111111111111"
+            ]
+          }
+        },
+        {
+          "name": "full 4/4 game shows a disabled Game full action",
+          "passed": true,
+          "evidence": {
+            "runId": "f0550000-5555-4555-8555-555555555555",
+            "going": 4,
+            "maxPlayers": 4,
+            "disabled": true
+          }
+        },
+        {
+          "name": "choose-teams Join opens the run for side selection without an RPC",
+          "passed": true,
+          "evidence": {
+            "url": "http://127.0.0.1:8104/run/2257e97a-1116-4317-a2a1-3c0261b6e8f8",
+            "sideButtons": [
+              "join-run-a",
+              "join-run-b"
+            ],
+            "rpcCalls": 0
+          }
+        },
+        {
+          "name": "two 8 PM games and a 24-character first attendee render without hard clipping",
+          "passed": true,
+          "evidence": {
+            "gamesAt8PM": [
+              "e5e5e5e5-5555-4555-8555-555555555555",
+              "2257e97a-1116-4317-a2a1-3c0261b6e8f8"
+            ],
+            "firstAttendee": "Alexandria McAllisterOne",
+            "audit": {
+              "fail": [],
+              "debt": {
+                "smallText": [
+                  "Basketball (9.5px)",
+                  "On court (9px)",
+                  "Feed (9.5px)",
+                  "Schedule (9.5px)",
+                  "Players (9.5px)",
+                  "Info (9.5px)",
+                  "Join (9px)",
+                  "Join (9px)"
+                ],
+                "lowContrast": [],
+                "smallTarget": [
+                  " (38x38)"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "name": "remote requests are isolated, fixture-only writes and page errors are absent",
+          "passed": true,
+          "evidence": {
+            "pageErrors": [],
+            "unexpectedWrites": [],
+            "remoteHttp": 162,
+            "webSocketsClosed": 16
+          }
+        }
+      ],
+      "captures": [
+        {
+          "name": "join-before",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/join-before-375.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Basketball (9.5px)",
+                "On court (9px)",
+                "Feed (9.5px)",
+                "Schedule (9.5px)",
+                "Players (9.5px)",
+                "Info (9.5px)",
+                "Join (9px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        },
+        {
+          "name": "join-error",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/join-error-375.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Basketball (9.5px)",
+                "On court (9px)",
+                "Feed (9.5px)",
+                "Schedule (9.5px)",
+                "Players (9.5px)",
+                "Info (9.5px)",
+                "Join (9px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        },
+        {
+          "name": "join-success",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/join-success-375.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Basketball (9.5px)",
+                "On court (9px)",
+                "Feed (9.5px)",
+                "Schedule (9.5px)",
+                "Players (9.5px)",
+                "Info (9.5px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        },
+        {
+          "name": "game-full",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/game-full-375.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Basketball (9.5px)",
+                "On court (9px)",
+                "Feed (9.5px)",
+                "Schedule (9.5px)",
+                "Players (9.5px)",
+                "Info (9.5px)",
+                "Join (9px)",
+                "Full (9px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        },
+        {
+          "name": "choose-teams-inline",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/choose-teams-inline-375.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Basketball (9.5px)",
+                "On court (9px)",
+                "Feed (9.5px)",
+                "Schedule (9.5px)",
+                "Players (9.5px)",
+                "Info (9.5px)",
+                "Join (9px)",
+                "Join (9px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        },
+        {
+          "name": "choose-teams-run-page",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/choose-teams-run-page-375.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Kasmiersky Park (9px)",
+                "Basketball (9.5px)",
+                "Going (7.5px)",
+                "Avg ELO (7.5px)",
+                "Format (7.5px)",
+                "Who's going (9px)",
+                "Side A (9px)",
+                "1/3 (10px)",
+                "Side B (9px)",
+                "2/3 (10px)",
+                "Host (7px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        },
+        {
+          "name": "two-games-long-attendee",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/two-games-long-attendee-375.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Basketball (9.5px)",
+                "On court (9px)",
+                "Feed (9.5px)",
+                "Schedule (9.5px)",
+                "Players (9.5px)",
+                "Info (9.5px)",
+                "Join (9px)",
+                "Join (9px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        }
+      ],
+      "joinCalls": [],
+      "pageErrors": [],
+      "unexpectedWrites": [],
+      "remoteHttp": [
+        {
+          "method": "GET",
+          "url": "https://cdn.jsdelivr.net/npm/jsqr@1.2.0/dist/jsQR.min.js",
+          "disposition": "fulfilled-jsqr"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=court_id%2Cvisibility%2Csource&user_id=eq.11111111-1111-4111-8111-111111111111&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc&limit=1",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/my_pending_auto_check_in",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/notifications?select=id%2Ctype%2Cactor_id%2Cfriendship_id%2Crun_id%2Cmatch_id%2Ctitle%2Cbody%2Cdata%2Cread_at%2Ccreated_at&order=created_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cname%2Cshort_name%2Caddress%2Cpostal_code%2Clatitude%2Clongitude%2Csport_type%2Cimage_url%2Cis_archived%2Clocation%2Ccity%2Cstate%2Cmarket%2Cadded_by%2Ccreated_at%2Caccess_type%2Ccourt_count%2Chas_lights%2Cactive_check_in_count%2Ctotal_check_ins%2Clocal_player_count%2Cis_confirmed&id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at%2Cprofiles%28*%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cactive_check_in_count%2Clocal_player_count&id=in.%28abe05196-a2d2-469e-b919-0435a056d9a3%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&order=checked_in_at.desc&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=winner_side%2Cmatch_participants%28user_id%2Cside%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&status=eq.confirmed&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/join_scheduled_game",
+          "disposition": "fulfilled-503"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/join_scheduled_game",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://cdn.jsdelivr.net/npm/jsqr@1.2.0/dist/jsQR.min.js",
+          "disposition": "fulfilled-jsqr"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=court_id%2Cvisibility%2Csource&user_id=eq.11111111-1111-4111-8111-111111111111&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc&limit=1",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/my_pending_auto_check_in",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/notifications?select=id%2Ctype%2Cactor_id%2Cfriendship_id%2Crun_id%2Cmatch_id%2Ctitle%2Cbody%2Cdata%2Cread_at%2Ccreated_at&order=created_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cname%2Cshort_name%2Caddress%2Cpostal_code%2Clatitude%2Clongitude%2Csport_type%2Cimage_url%2Cis_archived%2Clocation%2Ccity%2Cstate%2Cmarket%2Cadded_by%2Ccreated_at%2Caccess_type%2Ccourt_count%2Chas_lights%2Cactive_check_in_count%2Ctotal_check_ins%2Clocal_player_count%2Cis_confirmed&id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at%2Cprofiles%28*%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cactive_check_in_count%2Clocal_player_count&id=in.%28abe05196-a2d2-469e-b919-0435a056d9a3%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&order=checked_in_at.desc&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=winner_side%2Cmatch_participants%28user_id%2Cside%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&status=eq.confirmed&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://cdn.jsdelivr.net/npm/jsqr@1.2.0/dist/jsQR.min.js",
+          "disposition": "fulfilled-jsqr"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=court_id%2Cvisibility%2Csource&user_id=eq.11111111-1111-4111-8111-111111111111&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc&limit=1",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/my_pending_auto_check_in",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/notifications?select=id%2Ctype%2Cactor_id%2Cfriendship_id%2Crun_id%2Cmatch_id%2Ctitle%2Cbody%2Cdata%2Cread_at%2Ccreated_at&order=created_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cname%2Cshort_name%2Caddress%2Cpostal_code%2Clatitude%2Clongitude%2Csport_type%2Cimage_url%2Cis_archived%2Clocation%2Ccity%2Cstate%2Cmarket%2Cadded_by%2Ccreated_at%2Caccess_type%2Ccourt_count%2Chas_lights%2Cactive_check_in_count%2Ctotal_check_ins%2Clocal_player_count%2Cis_confirmed&id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at%2Cprofiles%28*%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cactive_check_in_count%2Clocal_player_count&id=in.%28abe05196-a2d2-469e-b919-0435a056d9a3%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&order=checked_in_at.desc&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=winner_side%2Cmatch_participants%28user_id%2Cside%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&status=eq.confirmed&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://cdn.jsdelivr.net/npm/jsqr@1.2.0/dist/jsQR.min.js",
+          "disposition": "fulfilled-jsqr"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=court_id%2Cvisibility%2Csource&user_id=eq.11111111-1111-4111-8111-111111111111&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc&limit=1",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/my_pending_auto_check_in",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/notifications?select=id%2Ctype%2Cactor_id%2Cfriendship_id%2Crun_id%2Cmatch_id%2Ctitle%2Cbody%2Cdata%2Cread_at%2Ccreated_at&order=created_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cname%2Cshort_name%2Caddress%2Cpostal_code%2Clatitude%2Clongitude%2Csport_type%2Cimage_url%2Cis_archived%2Clocation%2Ccity%2Cstate%2Cmarket%2Cadded_by%2Ccreated_at%2Caccess_type%2Ccourt_count%2Chas_lights%2Cactive_check_in_count%2Ctotal_check_ins%2Clocal_player_count%2Cis_confirmed&id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at%2Cprofiles%28*%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cactive_check_in_count%2Clocal_player_count&id=in.%28abe05196-a2d2-469e-b919-0435a056d9a3%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&order=checked_in_at.desc&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=winner_side%2Cmatch_participants%28user_id%2Cside%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&status=eq.confirmed&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        }
+      ],
+      "webSockets": [
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed"
+      ]
+    },
+    {
+      "width": 393,
+      "height": 852,
+      "checks": [
+        {
+          "name": "8 PM RUN5V5 join fails without changing fixture, retry succeeds once",
+          "passed": true,
+          "evidence": {
+            "rpcCalls": [],
+            "participantIds": [
+              "22222222-2222-4222-8222-222222222222",
+              "33333333-3333-4333-8333-333333333333",
+              "44444444-4444-4444-8444-444444444444",
+              "55555555-5555-4555-8555-555555555555",
+              "66666666-6666-4666-8666-666666666666",
+              "88888888-8888-4888-8888-888888888888",
+              "11111111-1111-4111-8111-111111111111"
+            ]
+          }
+        },
+        {
+          "name": "full 4/4 game shows a disabled Game full action",
+          "passed": true,
+          "evidence": {
+            "runId": "f0550000-5555-4555-8555-555555555555",
+            "going": 4,
+            "maxPlayers": 4,
+            "disabled": true
+          }
+        },
+        {
+          "name": "choose-teams Join opens the run for side selection without an RPC",
+          "passed": true,
+          "evidence": {
+            "url": "http://127.0.0.1:8104/run/2257e97a-1116-4317-a2a1-3c0261b6e8f8",
+            "sideButtons": [
+              "join-run-a",
+              "join-run-b"
+            ],
+            "rpcCalls": 0
+          }
+        },
+        {
+          "name": "two 8 PM games and a 24-character first attendee render without hard clipping",
+          "passed": true,
+          "evidence": {
+            "gamesAt8PM": [
+              "e5e5e5e5-5555-4555-8555-555555555555",
+              "2257e97a-1116-4317-a2a1-3c0261b6e8f8"
+            ],
+            "firstAttendee": "Alexandria McAllisterOne",
+            "audit": {
+              "fail": [],
+              "debt": {
+                "smallText": [
+                  "Basketball (9.5px)",
+                  "On court (9px)",
+                  "Feed (9.5px)",
+                  "Schedule (9.5px)",
+                  "Players (9.5px)",
+                  "Info (9.5px)",
+                  "Join (9px)",
+                  "Join (9px)"
+                ],
+                "lowContrast": [],
+                "smallTarget": [
+                  " (38x38)"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "name": "remote requests are isolated, fixture-only writes and page errors are absent",
+          "passed": true,
+          "evidence": {
+            "pageErrors": [],
+            "unexpectedWrites": [],
+            "remoteHttp": 162,
+            "webSocketsClosed": 16
+          }
+        }
+      ],
+      "captures": [
+        {
+          "name": "join-before",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/join-before-393.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Basketball (9.5px)",
+                "On court (9px)",
+                "Feed (9.5px)",
+                "Schedule (9.5px)",
+                "Players (9.5px)",
+                "Info (9.5px)",
+                "Join (9px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        },
+        {
+          "name": "join-error",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/join-error-393.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Basketball (9.5px)",
+                "On court (9px)",
+                "Feed (9.5px)",
+                "Schedule (9.5px)",
+                "Players (9.5px)",
+                "Info (9.5px)",
+                "Join (9px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        },
+        {
+          "name": "join-success",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/join-success-393.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Basketball (9.5px)",
+                "On court (9px)",
+                "Feed (9.5px)",
+                "Schedule (9.5px)",
+                "Players (9.5px)",
+                "Info (9.5px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        },
+        {
+          "name": "game-full",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/game-full-393.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Basketball (9.5px)",
+                "On court (9px)",
+                "Feed (9.5px)",
+                "Schedule (9.5px)",
+                "Players (9.5px)",
+                "Info (9.5px)",
+                "Join (9px)",
+                "Full (9px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        },
+        {
+          "name": "choose-teams-inline",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/choose-teams-inline-393.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Basketball (9.5px)",
+                "On court (9px)",
+                "Feed (9.5px)",
+                "Schedule (9.5px)",
+                "Players (9.5px)",
+                "Info (9.5px)",
+                "Join (9px)",
+                "Join (9px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        },
+        {
+          "name": "choose-teams-run-page",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/choose-teams-run-page-393.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Kasmiersky Park (9px)",
+                "Basketball (9.5px)",
+                "Going (7.5px)",
+                "Avg ELO (7.5px)",
+                "Format (7.5px)",
+                "Who's going (9px)",
+                "Side A (9px)",
+                "1/3 (10px)",
+                "Side B (9px)",
+                "2/3 (10px)",
+                "Host (7px)",
+                "Teams (9px)",
+                "Level (9px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        },
+        {
+          "name": "two-games-long-attendee",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/two-games-long-attendee-393.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Basketball (9.5px)",
+                "On court (9px)",
+                "Feed (9.5px)",
+                "Schedule (9.5px)",
+                "Players (9.5px)",
+                "Info (9.5px)",
+                "Join (9px)",
+                "Join (9px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        }
+      ],
+      "joinCalls": [],
+      "pageErrors": [],
+      "unexpectedWrites": [],
+      "remoteHttp": [
+        {
+          "method": "GET",
+          "url": "https://cdn.jsdelivr.net/npm/jsqr@1.2.0/dist/jsQR.min.js",
+          "disposition": "fulfilled-jsqr"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=court_id%2Cvisibility%2Csource&user_id=eq.11111111-1111-4111-8111-111111111111&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc&limit=1",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/my_pending_auto_check_in",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/notifications?select=id%2Ctype%2Cactor_id%2Cfriendship_id%2Crun_id%2Cmatch_id%2Ctitle%2Cbody%2Cdata%2Cread_at%2Ccreated_at&order=created_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cname%2Cshort_name%2Caddress%2Cpostal_code%2Clatitude%2Clongitude%2Csport_type%2Cimage_url%2Cis_archived%2Clocation%2Ccity%2Cstate%2Cmarket%2Cadded_by%2Ccreated_at%2Caccess_type%2Ccourt_count%2Chas_lights%2Cactive_check_in_count%2Ctotal_check_ins%2Clocal_player_count%2Cis_confirmed&id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at%2Cprofiles%28*%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cactive_check_in_count%2Clocal_player_count&id=in.%28abe05196-a2d2-469e-b919-0435a056d9a3%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&order=checked_in_at.desc&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=winner_side%2Cmatch_participants%28user_id%2Cside%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&status=eq.confirmed&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/join_scheduled_game",
+          "disposition": "fulfilled-503"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/join_scheduled_game",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://cdn.jsdelivr.net/npm/jsqr@1.2.0/dist/jsQR.min.js",
+          "disposition": "fulfilled-jsqr"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=court_id%2Cvisibility%2Csource&user_id=eq.11111111-1111-4111-8111-111111111111&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc&limit=1",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/my_pending_auto_check_in",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/notifications?select=id%2Ctype%2Cactor_id%2Cfriendship_id%2Crun_id%2Cmatch_id%2Ctitle%2Cbody%2Cdata%2Cread_at%2Ccreated_at&order=created_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cname%2Cshort_name%2Caddress%2Cpostal_code%2Clatitude%2Clongitude%2Csport_type%2Cimage_url%2Cis_archived%2Clocation%2Ccity%2Cstate%2Cmarket%2Cadded_by%2Ccreated_at%2Caccess_type%2Ccourt_count%2Chas_lights%2Cactive_check_in_count%2Ctotal_check_ins%2Clocal_player_count%2Cis_confirmed&id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at%2Cprofiles%28*%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cactive_check_in_count%2Clocal_player_count&id=in.%28abe05196-a2d2-469e-b919-0435a056d9a3%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&order=checked_in_at.desc&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=winner_side%2Cmatch_participants%28user_id%2Cside%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&status=eq.confirmed&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://cdn.jsdelivr.net/npm/jsqr@1.2.0/dist/jsQR.min.js",
+          "disposition": "fulfilled-jsqr"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=court_id%2Cvisibility%2Csource&user_id=eq.11111111-1111-4111-8111-111111111111&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc&limit=1",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/my_pending_auto_check_in",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/notifications?select=id%2Ctype%2Cactor_id%2Cfriendship_id%2Crun_id%2Cmatch_id%2Ctitle%2Cbody%2Cdata%2Cread_at%2Ccreated_at&order=created_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cname%2Cshort_name%2Caddress%2Cpostal_code%2Clatitude%2Clongitude%2Csport_type%2Cimage_url%2Cis_archived%2Clocation%2Ccity%2Cstate%2Cmarket%2Cadded_by%2Ccreated_at%2Caccess_type%2Ccourt_count%2Chas_lights%2Cactive_check_in_count%2Ctotal_check_ins%2Clocal_player_count%2Cis_confirmed&id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at%2Cprofiles%28*%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cactive_check_in_count%2Clocal_player_count&id=in.%28abe05196-a2d2-469e-b919-0435a056d9a3%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&order=checked_in_at.desc&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=winner_side%2Cmatch_participants%28user_id%2Cside%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&status=eq.confirmed&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://cdn.jsdelivr.net/npm/jsqr@1.2.0/dist/jsQR.min.js",
+          "disposition": "fulfilled-jsqr"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/my_pending_auto_check_in",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=court_id%2Cvisibility%2Csource&user_id=eq.11111111-1111-4111-8111-111111111111&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc&limit=1",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/notifications?select=id%2Ctype%2Cactor_id%2Cfriendship_id%2Crun_id%2Cmatch_id%2Ctitle%2Cbody%2Cdata%2Cread_at%2Ccreated_at&order=created_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cname%2Cshort_name%2Caddress%2Cpostal_code%2Clatitude%2Clongitude%2Csport_type%2Cimage_url%2Cis_archived%2Clocation%2Ccity%2Cstate%2Cmarket%2Cadded_by%2Ccreated_at%2Caccess_type%2Ccourt_count%2Chas_lights%2Cactive_check_in_count%2Ctotal_check_ins%2Clocal_player_count%2Cis_confirmed&id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at%2Cprofiles%28*%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cactive_check_in_count%2Clocal_player_count&id=in.%28abe05196-a2d2-469e-b919-0435a056d9a3%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&order=checked_in_at.desc&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=winner_side%2Cmatch_participants%28user_id%2Cside%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&status=eq.confirmed&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        }
+      ],
+      "webSockets": [
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed"
+      ]
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "checks": [
+        {
+          "name": "8 PM RUN5V5 join fails without changing fixture, retry succeeds once",
+          "passed": true,
+          "evidence": {
+            "rpcCalls": [],
+            "participantIds": [
+              "22222222-2222-4222-8222-222222222222",
+              "33333333-3333-4333-8333-333333333333",
+              "44444444-4444-4444-8444-444444444444",
+              "55555555-5555-4555-8555-555555555555",
+              "66666666-6666-4666-8666-666666666666",
+              "88888888-8888-4888-8888-888888888888",
+              "11111111-1111-4111-8111-111111111111"
+            ]
+          }
+        },
+        {
+          "name": "full 4/4 game shows a disabled Game full action",
+          "passed": true,
+          "evidence": {
+            "runId": "f0550000-5555-4555-8555-555555555555",
+            "going": 4,
+            "maxPlayers": 4,
+            "disabled": true
+          }
+        },
+        {
+          "name": "choose-teams Join opens the run for side selection without an RPC",
+          "passed": true,
+          "evidence": {
+            "url": "http://127.0.0.1:8104/run/2257e97a-1116-4317-a2a1-3c0261b6e8f8",
+            "sideButtons": [
+              "join-run-a",
+              "join-run-b"
+            ],
+            "rpcCalls": 0
+          }
+        },
+        {
+          "name": "two 8 PM games and a 24-character first attendee render without hard clipping",
+          "passed": true,
+          "evidence": {
+            "gamesAt8PM": [
+              "e5e5e5e5-5555-4555-8555-555555555555",
+              "2257e97a-1116-4317-a2a1-3c0261b6e8f8"
+            ],
+            "firstAttendee": "Alexandria McAllisterOne",
+            "audit": {
+              "fail": [],
+              "debt": {
+                "smallText": [
+                  "Basketball (9.5px)",
+                  "On court (9px)",
+                  "Feed (9.5px)",
+                  "Schedule (9.5px)",
+                  "Players (9.5px)",
+                  "Info (9.5px)",
+                  "Join (9px)",
+                  "Join (9px)"
+                ],
+                "lowContrast": [],
+                "smallTarget": [
+                  " (38x38)"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "name": "remote requests are isolated, fixture-only writes and page errors are absent",
+          "passed": true,
+          "evidence": {
+            "pageErrors": [],
+            "unexpectedWrites": [],
+            "remoteHttp": 159,
+            "webSocketsClosed": 16
+          }
+        }
+      ],
+      "captures": [
+        {
+          "name": "join-before",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/join-before-430.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Basketball (9.5px)",
+                "On court (9px)",
+                "Feed (9.5px)",
+                "Schedule (9.5px)",
+                "Players (9.5px)",
+                "Info (9.5px)",
+                "Join (9px)",
+                "7m (10px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        },
+        {
+          "name": "join-error",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/join-error-430.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Basketball (9.5px)",
+                "On court (9px)",
+                "Feed (9.5px)",
+                "Schedule (9.5px)",
+                "Players (9.5px)",
+                "Info (9.5px)",
+                "Join (9px)",
+                "7m (10px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        },
+        {
+          "name": "join-success",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/join-success-430.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Basketball (9.5px)",
+                "On court (9px)",
+                "Feed (9.5px)",
+                "Schedule (9.5px)",
+                "Players (9.5px)",
+                "Info (9.5px)",
+                "7m (10px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        },
+        {
+          "name": "game-full",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/game-full-430.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Basketball (9.5px)",
+                "On court (9px)",
+                "Feed (9.5px)",
+                "Schedule (9.5px)",
+                "Players (9.5px)",
+                "Info (9.5px)",
+                "Join (9px)",
+                "Full (9px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        },
+        {
+          "name": "choose-teams-inline",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/choose-teams-inline-430.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Basketball (9.5px)",
+                "On court (9px)",
+                "Feed (9.5px)",
+                "Schedule (9.5px)",
+                "Players (9.5px)",
+                "Info (9.5px)",
+                "Join (9px)",
+                "Join (9px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        },
+        {
+          "name": "choose-teams-run-page",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/choose-teams-run-page-430.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Kasmiersky Park (9px)",
+                "Basketball (9.5px)",
+                "Going (7.5px)",
+                "Avg ELO (7.5px)",
+                "Format (7.5px)",
+                "Who's going (9px)",
+                "Side A (9px)",
+                "1/3 (10px)",
+                "Side B (9px)",
+                "2/3 (10px)",
+                "Host (7px)",
+                "Teams (9px)",
+                "Level (9px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        },
+        {
+          "name": "two-games-long-attendee",
+          "path": "/workspace/shared/dashboard-design/rsvp-delivery/two-games-long-attendee-430.png",
+          "audit": {
+            "fail": [],
+            "debt": {
+              "smallText": [
+                "Basketball (9.5px)",
+                "On court (9px)",
+                "Feed (9.5px)",
+                "Schedule (9.5px)",
+                "Players (9.5px)",
+                "Info (9.5px)",
+                "Join (9px)",
+                "Join (9px)"
+              ],
+              "lowContrast": [],
+              "smallTarget": [
+                " (38x38)"
+              ]
+            }
+          }
+        }
+      ],
+      "joinCalls": [],
+      "pageErrors": [],
+      "unexpectedWrites": [],
+      "remoteHttp": [
+        {
+          "method": "GET",
+          "url": "https://cdn.jsdelivr.net/npm/jsqr@1.2.0/dist/jsQR.min.js",
+          "disposition": "fulfilled-jsqr"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=court_id%2Cvisibility%2Csource&user_id=eq.11111111-1111-4111-8111-111111111111&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc&limit=1",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/my_pending_auto_check_in",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/notifications?select=id%2Ctype%2Cactor_id%2Cfriendship_id%2Crun_id%2Cmatch_id%2Ctitle%2Cbody%2Cdata%2Cread_at%2Ccreated_at&order=created_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cname%2Cshort_name%2Caddress%2Cpostal_code%2Clatitude%2Clongitude%2Csport_type%2Cimage_url%2Cis_archived%2Clocation%2Ccity%2Cstate%2Cmarket%2Cadded_by%2Ccreated_at%2Caccess_type%2Ccourt_count%2Chas_lights%2Cactive_check_in_count%2Ctotal_check_ins%2Clocal_player_count%2Cis_confirmed&id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at%2Cprofiles%28*%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cactive_check_in_count%2Clocal_player_count&id=in.%28abe05196-a2d2-469e-b919-0435a056d9a3%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&order=checked_in_at.desc&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=winner_side%2Cmatch_participants%28user_id%2Cside%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&status=eq.confirmed&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/join_scheduled_game",
+          "disposition": "fulfilled-503"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/join_scheduled_game",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://cdn.jsdelivr.net/npm/jsqr@1.2.0/dist/jsQR.min.js",
+          "disposition": "fulfilled-jsqr"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=court_id%2Cvisibility%2Csource&user_id=eq.11111111-1111-4111-8111-111111111111&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc&limit=1",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/my_pending_auto_check_in",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/notifications?select=id%2Ctype%2Cactor_id%2Cfriendship_id%2Crun_id%2Cmatch_id%2Ctitle%2Cbody%2Cdata%2Cread_at%2Ccreated_at&order=created_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cname%2Cshort_name%2Caddress%2Cpostal_code%2Clatitude%2Clongitude%2Csport_type%2Cimage_url%2Cis_archived%2Clocation%2Ccity%2Cstate%2Cmarket%2Cadded_by%2Ccreated_at%2Caccess_type%2Ccourt_count%2Chas_lights%2Cactive_check_in_count%2Ctotal_check_ins%2Clocal_player_count%2Cis_confirmed&id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at%2Cprofiles%28*%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cactive_check_in_count%2Clocal_player_count&id=in.%28abe05196-a2d2-469e-b919-0435a056d9a3%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&order=checked_in_at.desc&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=winner_side%2Cmatch_participants%28user_id%2Cside%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&status=eq.confirmed&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://cdn.jsdelivr.net/npm/jsqr@1.2.0/dist/jsQR.min.js",
+          "disposition": "fulfilled-jsqr"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=court_id%2Cvisibility%2Csource&user_id=eq.11111111-1111-4111-8111-111111111111&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc&limit=1",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/my_pending_auto_check_in",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/notifications?select=id%2Ctype%2Cactor_id%2Cfriendship_id%2Crun_id%2Cmatch_id%2Ctitle%2Cbody%2Cdata%2Cread_at%2Ccreated_at&order=created_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cname%2Cshort_name%2Caddress%2Cpostal_code%2Clatitude%2Clongitude%2Csport_type%2Cimage_url%2Cis_archived%2Clocation%2Ccity%2Cstate%2Cmarket%2Cadded_by%2Ccreated_at%2Caccess_type%2Ccourt_count%2Chas_lights%2Cactive_check_in_count%2Ctotal_check_ins%2Clocal_player_count%2Cis_confirmed&id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at%2Cprofiles%28*%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cactive_check_in_count%2Clocal_player_count&id=in.%28abe05196-a2d2-469e-b919-0435a056d9a3%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&order=checked_in_at.desc&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=winner_side%2Cmatch_participants%28user_id%2Cside%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&status=eq.confirmed&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://cdn.jsdelivr.net/npm/jsqr@1.2.0/dist/jsQR.min.js",
+          "disposition": "fulfilled-jsqr"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=court_id%2Cvisibility%2Csource&user_id=eq.11111111-1111-4111-8111-111111111111&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc&limit=1",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/my_pending_auto_check_in",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/notifications?select=id%2Ctype%2Cactor_id%2Cfriendship_id%2Crun_id%2Cmatch_id%2Ctitle%2Cbody%2Cdata%2Cread_at%2Ccreated_at&order=created_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cname%2Cshort_name%2Caddress%2Cpostal_code%2Clatitude%2Clongitude%2Csport_type%2Cimage_url%2Cis_archived%2Clocation%2Ccity%2Cstate%2Cmarket%2Cadded_by%2Ccreated_at%2Caccess_type%2Ccourt_count%2Chas_lights%2Cactive_check_in_count%2Ctotal_check_ins%2Clocal_player_count%2Cis_confirmed&id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/runs?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Corganizer%3Aprofiles%21runs_organizer_id_fkey%28*%29%2Crun_participants%28*%2Cprofiles%28*%29%29%2Cresult%3Amatches%28id%2Cstatus%29&order=start_time.asc&limit=300&start_time=gte.2026-10-17T05%3A00%3A00.000Z&start_time=lte.2026-10-31T23%3A30%3A00.000Z",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-31T23%3A30%3A00.000Z&order=planned_at.asc&limit=200",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "HEAD",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/match_participants?select=match_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=addressee_id%2Crequester_id%2Caddressee%3Aprofiles%21friendships_addressee_id_fkey%28*%29%2Crequester%3Aprofiles%21friendships_requester_id_fkey%28*%29&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29&status=eq.accepted",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester_id%2Caddressee_id%2Cstatus&or=%28requester_id.eq.11111111-1111-4111-8111-111111111111%2Caddressee_id.eq.11111111-1111-4111-8111-111111111111%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/friendships?select=requester%3Aprofiles%21friendships_requester_id_fkey%28*%29&addressee_id=eq.11111111-1111-4111-8111-111111111111&status=eq.pending",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=*%2Ccourts%28name%2Cshort_name%2Csport_type%29%2Cmatch_participants%28user_id%2Cside%2Cprofiles%28*%29%29&id=in.%289e8e21c8-175b-4ed5-9732-3e67194cf4c9%2Cabababab-abab-4bab-8bab-abababababab%29&status=eq.confirmed&order=played_at.desc&limit=50",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at%2Cprofiles%28*%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_out_at=is.null&or=%28checked_in_at.gte.2026-10-17T22%3A45%3A00.000Z%2Cand%28source.eq.auto%2Cchecked_in_at.gte.2026-10-17T22%3A00%3A00.000Z%29%29&order=checked_in_at.desc",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/courts_with_stats?select=id%2Cactive_check_in_count%2Clocal_player_count&id=in.%28abe05196-a2d2-469e-b919-0435a056d9a3%29",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/profiles?select=*&local_court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=user_id%2Cchecked_in_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&order=checked_in_at.desc&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/matches?select=winner_side%2Cmatch_participants%28user_id%2Cside%29&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&status=eq.confirmed&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/activity_events?select=id%2Cevent_type%2Coccurred_at%2Ccourt_id%2Cvisibility%2Cpayload%2Cactivity_event_likes%28user_id%29%2Cactor%3Aprofiles%21activity_events_actor_id_fkey%28*%29%2Ccourts%28id%2Cname%2Cshort_name%2Csport_type%29%2Cmatches%28id%2Cplayed_at%2Cscore_a%2Cscore_b%2Cwinner_side%2Cstatus%2Cis_ranked%2Cmatch_participants%28*%2Cprofiles%28*%29%29%29&order=occurred_at.desc&limit=50&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/check_ins?select=checked_in_at%2Cchecked_out_at&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3&checked_in_at=gte.2026-10-10T23%3A30%3A00.000Z&limit=5000",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "POST",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/rpc/court_planned_times",
+          "disposition": "fulfilled-200"
+        },
+        {
+          "method": "GET",
+          "url": "https://qkrnmyexzvaxiqfxwwfb.supabase.co/rest/v1/planned_visits?select=id%2Cuser_id%2Ccourt_id%2Cplanned_at%2Cnote%2Cprofiles%28*%29%2Ccourts%28name%2Csport_type%29&planned_at=gte.2026-10-17T05%3A00%3A00.000Z&planned_at=lte.2026-10-24T05%3A00%3A00.000Z&order=planned_at.asc&limit=200&court_id=eq.abe05196-a2d2-469e-b919-0435a056d9a3",
+          "disposition": "fulfilled-200"
+        }
+      ],
+      "webSockets": [
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed",
+        "closed"
+      ]
+    }
+  ],
+  "failures": []
+}

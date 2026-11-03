@@ -28,7 +28,10 @@ references, retaining D65's court header/art. No new visual direction.
 | Shared charcoal/orange system, graph-end arrows, one day label | Retain tokens/arrows; add planner panel only |
 | Side-by-side visual history for every frontend PR | PR template, contributor rules and retained index |
 | LocalPlus five-court list, default/reorder, Home/Schedule dropdown, nested Settings toggles | Draft backend/frontend contract for review; not represented as shipped |
-| Hourly open-run lobby/queue, team slots, end-of-game progression | Separate backend review; do not turn planned visits into game membership |
+| Home header live-count navigation / saved-court selector | Header/list follow-up; selector uses the reviewed saved-court contract |
+| Actual scheduled game 10/4-slot visual | Next frontend slice using existing capacity and participants |
+| Drawer one-root-scroller / fixed inner-window removal | Separate frontend slice; this checkpoint removes unsolicited resnap-close only |
+| Hourly open-run lobby/queue and end-of-game progression | Separate backend review; do not turn planned visits into game membership |
 
 ## Review focus
 
@@ -44,21 +47,28 @@ references, retaining D65's court header/art. No new visual direction.
   schema/RPC/policy definitions without reading player rows or invoking writes.
 - [x] Add paired PR screenshot template and visual history; independently
   review the helper's documentation and correct historical capture provenance.
-- [ ] Capture baseline Home/drawer/selected hour/court future rows at
+- [x] Capture baseline Home/drawer/selected hour/court future rows at
   375×667, 393×852 and 430×932 with all app backend traffic intercepted.
-- [ ] Wrap shared CourtDayPlanner chart/selected slot in one charcoal panel;
+- [x] Wrap shared CourtDayPlanner chart/selected slot in one charcoal panel;
   render non-compact selected slot, separated by a hairline. Move next-game
   section after the planner on Home and drawer, and reveal the selected slot
   using its measured position instead of scrolling to the page end.
-- [ ] Update SlotCard's existing attendance action to a 44pt Feather plus/check
+- [x] Update SlotCard's existing attendance action to a 44pt Feather plus/check
   control with busy/selected semantics and accessible add/remove names. Keep
   error and retry behavior. Compact rows show up to three overlapping square
   avatars with count/names; hidden people contribute only an anonymous count.
-- [ ] Render scheduled timeline games through ScheduledGameCard's compact
+- [x] Render scheduled timeline games through ScheduledGameCard's compact
   presentation. Reuse its joined/full/choose-team behavior and existing
   joinRun; never convert a planned-visit toggle into an RSVP. Preserve every
   selected-hour game link in the full dashboard card as well as the timeline.
-- [ ] Exercise add/remove, failed save/retry, day/hour changes, private/empty
+- [x] Verify the drawer stays open without input: the before-fix trace
+  proved a queued snap-to-collapsed command caused index 0 → -1 → dismiss
+  without a backdrop press. Remove redundant commands, preserve measured
+  points, explicit expand and pan-down close.
+- [x] Verify selected-hour profile/game links dismiss the drawer before routing,
+  and immediate day-change/scrub reads the displayed day. Both wrong behaviors
+  were reproduced before their shared callback fixes.
+- [x] Exercise add/remove, failed save/retry, day/hour changes, private/empty
   states, game join/full/joined/choose-teams and all shared usages. Compare
   baseline/head screenshots and inspect the captured renders at all sizes.
 - [ ] Update authority docs, record remaining backend-dependent work and the
