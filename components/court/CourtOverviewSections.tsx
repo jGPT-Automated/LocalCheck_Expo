@@ -80,18 +80,22 @@ export function HereNowSection({
 export function UpNextSection({
   upcoming,
   onOpenRun,
+  onPlayer,
   onSeeAll,
   inset = 20,
 }: {
   /** The court's upcoming games, soonest first. */
   upcoming: GameRun[];
   onOpenRun: (id: string) => void;
+  onPlayer?: (id: string) => void;
   /** Makes "N this week" a link; Home leaves it as plain text. */
   onSeeAll?: () => void;
   inset?: number;
 }) {
   const { joinRun } = useApp();
   const [joining, setJoining] = React.useState(false);
+  const [joinError, setJoinError] = React.useState(false);
+  const joinLock = React.useRef(false);
   const now = Date.now();
   const weekAhead = upcoming.filter((run) => Date.parse(run.startTimeIso) < now + 7 * 86_400_000);
   const next = upcoming[0];
@@ -107,15 +111,23 @@ export function UpNextSection({
         <View style={styles.nextCard}>
           <GameDayLabel iso={next.startTimeIso} />
           <ScheduledGameCard
+            compact
             game={next}
             joining={joining}
             onJoin={(game) => {
-              if (joining) return;
+              if (joinLock.current) return;
+              joinLock.current = true;
               setJoining(true);
-              void joinRun(game.id).finally(() => setJoining(false));
+              setJoinError(false);
+              void joinRun(game.id).then((ok) => setJoinError(!ok)).catch(() => setJoinError(true)).finally(() => {
+                joinLock.current = false;
+                setJoining(false);
+              });
             }}
             onOpen={(game) => onOpenRun(game.id)}
+            onPlayer={onPlayer}
           />
+          {joinError ? <Text accessibilityLiveRegion="polite" style={styles.joinError}>Something went wrong. Try again.</Text> : null}
         </View>
       ) : (
         <View style={styles.emptyBox}>
@@ -129,6 +141,7 @@ export function UpNextSection({
 const styles = StyleSheet.create({
   section: { paddingBottom: 14 },
   nextCard: { gap: 8 },
+  joinError: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.loss },
   hereRow: { height: 67, flexDirection: "row", gap: 8, overflow: "hidden" },
   hereItem: { width: 58, alignItems: "center", gap: 2 },
   hereName: { maxWidth: 58, fontFamily: Typography.bodySemiBold, fontSize: 11, lineHeight: 14, color: Colors.inkSoft },

@@ -138,8 +138,9 @@ export function ScheduledGameCard({
       if (compact) {
         const joinable =
           !openOnly && game.status === "scheduled" && start.getTime() > Date.now();
-        const assigned = game.participants.every((p) => game.participantSides[p.id]);
-        const sides = ["a", "b"] as const;
+        const doAction = () => joinable && canQuickJoin ? onJoin(game) : onOpen(game);
+        const actionDisabled = disabled || joining || (joinable && full && !joined);
+        const actionLabel = joined || !joinable ? `Open ${game.title}` : full ? "Game full" : `Join ${game.title}`;
         return (
           <View>
             <View style={styles.timelineCard}>
@@ -152,16 +153,16 @@ export function ScheduledGameCard({
               >
                 <View style={styles.summaryText}>
                   <Text numberOfLines={2} style={styles.timelineTitle}>{game.title}</Text>
-                  <Text style={styles.timelineMeta}>{[format?.toLowerCase(), `${going}/${game.maxPlayers}`].filter(Boolean).join(" · ")}</Text>
+                  <Text style={[styles.timelineMeta, game.sport === "PICKLEBALL" && styles.pickleballMeta]}>{[format?.toLowerCase(), `${going}/${game.maxPlayers}`].filter(Boolean).join(" · ")}</Text>
                 </View>
                 <Feather name={expanded ? "chevron-up" : "chevron-down"} color={Colors.textSecondary} size={18} />
               </Pressable>
               <PressableScale
                 accessibilityRole="button"
-                accessibilityLabel={joined || !joinable ? `Open ${game.title}` : full ? "Game full" : `Join ${game.title}`}
-                accessibilityState={{ busy: joining, disabled: disabled || joining || (joinable && full && !joined) }}
-                disabled={disabled || joining || (joinable && full && !joined)}
-                onPress={() => joinable && canQuickJoin ? onJoin(game) : onOpen(game)}
+                accessibilityLabel={actionLabel}
+                accessibilityState={{ busy: joining, disabled: actionDisabled }}
+                disabled={actionDisabled}
+                onPress={doAction}
                 containerStyle={styles.timelineJoinTarget}
                 style={styles.timelineJoin}
               >
@@ -171,33 +172,7 @@ export function ScheduledGameCard({
               </PressableScale>
             </View>
             {expanded ? (
-              <View style={styles.roster}>
-                {assigned ? (
-                  <View style={styles.teams}>
-                    {sides.map((side) => {
-                      const players = game.participants.filter((p) => game.participantSides[p.id] === side);
-                      const vacancies = Math.max(0, Math.floor(game.maxPlayers / 2) - players.length);
-                      return (
-                        <View key={side} style={styles.teamColumn}>
-                          <Text style={styles.rosterLabel}>Team {side.toUpperCase()}</Text>
-                          {players.map((player) => <RosterPlayer key={player.id} player={player} onPlayer={onPlayer} />)}
-                          {Array.from({ length: vacancies }, (_, i) => <RosterOpen key={i} />)}
-                        </View>
-                      );
-                    })}
-                  </View>
-                ) : (
-                  <View style={styles.teams}>
-                    {sides.map((side) => (
-                      <View key={side} style={styles.teamColumn}>
-                        <Text style={styles.rosterLabel}>Team {side.toUpperCase()}</Text>
-                        {game.participants.filter((p) => game.participantSides[p.id] === side).map((player) => <RosterPlayer key={player.id} player={player} onPlayer={onPlayer} />)}
-                      </View>
-                    ))}
-                  </View>
-                )}
-                {!assigned ? <View><Text style={styles.rosterLabel}>Unassigned</Text>{game.participants.filter((p) => !game.participantSides[p.id]).map((player) => <RosterPlayer key={player.id} player={player} onPlayer={onPlayer} />)}<Text style={styles.rosterLabel}>Open spots</Text><View style={styles.teams}>{sides.map((side, index) => <View key={side} style={styles.teamColumn}>{Array.from({ length: Math.ceil((Math.max(0, game.maxPlayers - going) - index) / 2) }, (_, i) => <RosterOpen key={i} />)}</View>)}</View></View> : null}
-              </View>
+              <GameRoster game={game} onPlayer={onPlayer} onSpot={doAction} spotLabel={actionLabel} disabled={actionDisabled} joining={joining} />
             ) : null}
           </View>
         );
@@ -263,11 +238,63 @@ export function ScheduledGameCard({
       );
 }
 
-function RosterPlayer({ player, onPlayer }: { player: GameRun["participants"][number]; onPlayer?: (id: string) => void }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={player.name} disabled={!onPlayer} onPress={() => onPlayer?.(player.id)} style={styles.rosterRow}><PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={34} /><Text style={styles.rosterName}>{player.name}</Text></Pressable>;
+/** Shows only recorded team assignments; other RSVPs remain unassigned. */
+function GameRoster({ game, onPlayer, onSpot, spotLabel, disabled, joining }: {
+  game: GameRun;
+  onPlayer?: (id: string) => void;
+  onSpot: () => void;
+  spotLabel: string;
+  disabled: boolean;
+  joining: boolean;
+}) {
+  const sides = ["a", "b"] as const;
+  const assigned = game.participants.filter((p) => game.participantSides[p.id]);
+  const unassigned = game.participants.filter((p) => !game.participantSides[p.id]);
+  const vacancies = Math.max(0, game.maxPlayers - game.participants.length);
+  const width = Math.max(1, Math.ceil(game.maxPlayers / 2));
+  const player = (p: GameRun["participants"][number]) => (
+    <RosterPlayer key={p.id} player={p} onPlayer={onPlayer} />
+  );
+  const spot = (i: number) => (
+    <RosterOpen key={`open-${i}`} sport={game.sport} onPress={onSpot} label={spotLabel} disabled={disabled} joining={joining} />
+  );
+  const row = (key: string, contents: React.ReactNode[]) => (
+    <View key={key} style={styles.rosterGridRow}>
+      {contents}
+      {Array.from({ length: Math.max(0, width - contents.length) }, (_, i) => <View key={`space-${i}`} style={styles.rosterCell} />)}
+    </View>
+  );
+  const rows = (key: string, contents: React.ReactNode[]) => {
+    const result = [];
+    for (let i = 0; i < contents.length; i += width) result.push(row(`${key}-${i}`, contents.slice(i, i + width)));
+    return result;
+  };
+  const allAssigned = unassigned.length === 0;
+  let remainingVacancies = vacancies;
+  return (
+    <View style={styles.roster}>
+      {assigned.length > 0 ? sides.map((side) => {
+        const players = assigned.filter((p) => game.participantSides[p.id] === side);
+        const openCount = allAssigned ? Math.min(remainingVacancies, Math.max(0, width - players.length)) : 0;
+        remainingVacancies -= openCount;
+        if (!players.length && !openCount) return null;
+        return <View key={side}><Text style={styles.rosterLabel}>Team {side.toUpperCase()}</Text>{rows(side, [...players.map(player), ...Array.from({ length: openCount }, (_, i) => spot(i))])}</View>;
+      }) : null}
+      {unassigned.length || !assigned.length ? (
+        <View>
+          {assigned.length ? <Text style={styles.rosterLabel}>Unassigned</Text> : null}
+          {rows("unassigned", [...unassigned.map(player), ...Array.from({ length: vacancies }, (_, i) => spot(i))])}
+        </View>
+      ) : null}
+    </View>
+  );
 }
-function RosterOpen() {
-  return <View style={styles.rosterRow}><View style={styles.openAvatar} /><Text style={styles.rosterName}>Open</Text></View>;
+function RosterPlayer({ player, onPlayer }: { player: GameRun["participants"][number]; onPlayer?: (id: string) => void }) {
+  return <View style={styles.rosterCell}><Pressable accessibilityRole="button" accessibilityLabel={player.name} disabled={!onPlayer} onPress={() => onPlayer?.(player.id)} style={styles.rosterTouch}><PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={34} /></Pressable><Text style={styles.rosterName}>{player.name}</Text></View>;
+}
+function RosterOpen({ sport, onPress, label, disabled, joining }: { sport: GameRun["sport"]; onPress: () => void; label: string; disabled: boolean; joining: boolean }) {
+  const pickleball = sport === "PICKLEBALL";
+  return <View style={styles.rosterCell}><PressableScale accessibilityRole="button" accessibilityLabel={`${label}, open spot`} accessibilityState={{ disabled, busy: joining }} disabled={disabled} onPress={onPress} containerStyle={styles.rosterTouch} style={[styles.openAvatar, pickleball && styles.pickleballOpen]}><Feather name="plus" size={18} color={pickleball ? Colors.pickleballCourt : Colors.textSecondary} /></PressableScale><Text style={styles.rosterName}>Open</Text></View>;
 }
 
 const styles = StyleSheet.create({
@@ -300,16 +327,18 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textSecondary,
   },
+  pickleballMeta: { color: Colors.pickleballCourt },
   timelineJoinTarget: { minWidth: 64, height: 44, alignItems: "center", justifyContent: "center" },
   timelineJoin: { minWidth: 64, height: 34, paddingHorizontal: 10, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.hairlineChrome, borderRadius: Radius.button },
   timelineJoinText: { fontFamily: Typography.bodyBold, fontSize: 11, textTransform: "uppercase", color: Colors.text },
   roster: { paddingVertical: 8, gap: 8 },
-  teams: { flexDirection: "row", gap: 8 },
-  teamColumn: { flex: 1, flexBasis: 0, minWidth: 0 },
+  rosterGridRow: { flexDirection: "row", alignItems: "flex-start" },
+  rosterCell: { flex: 1, flexBasis: 0, minWidth: 0, alignItems: "center" },
+  rosterTouch: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   rosterLabel: { fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.textSecondary },
-  rosterRow: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 6 },
-  rosterName: { flex: 1, minWidth: 0, fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.text },
-  openAvatar: { width: 34, height: 34, borderRadius: 6, borderWidth: 1, borderStyle: "dashed", borderColor: Colors.dashed },
+  rosterName: { alignSelf: "stretch", textAlign: "center", fontFamily: Typography.bodyMedium, fontSize: 11, lineHeight: 14, color: Colors.text },
+  openAvatar: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderRadius: 6, borderWidth: 1, borderStyle: "dashed", borderColor: Colors.dashed },
+  pickleballOpen: { borderColor: Colors.pickleballCourt, backgroundColor: Colors.pickleballWash },
   // Schedule owns the common gutter for the heatmap, slot and game cards.
   wrap: { paddingTop: 16, gap: 14 },
   eyebrow: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
