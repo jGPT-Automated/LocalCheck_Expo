@@ -112,6 +112,7 @@ export function UpNextSection({
           <GameDayLabel iso={next.startTimeIso} />
           <ScheduledGameCard
             compact
+            showTime
             game={next}
             key={next.id}
             joining={joining}

@@ -108,6 +108,7 @@ export function ScheduledGameCard({
   onOpen,
   style,
   compact = false,
+  showTime = false,
   disabled = false,
   openOnly = false,
   onPlayer,
@@ -119,6 +120,8 @@ export function ScheduledGameCard({
   style?: StyleProp<ViewStyle>;
   /** Inline hourly game summary, using the same RSVP rules. */
   compact?: boolean;
+  /** Up next needs the time; an hourly slot already supplies it. */
+  showTime?: boolean;
   disabled?: boolean;
   /** A view-only slot can inspect the game but cannot RSVP here. */
   openOnly?: boolean;
@@ -152,7 +155,10 @@ export function ScheduledGameCard({
                 style={styles.timelineSummary}
               >
                 <View style={styles.summaryText}>
-                  <Text numberOfLines={2} style={styles.timelineTitle}>{game.title}</Text>
+                  <Text numberOfLines={2} style={styles.timelineTitle}>
+                    {showTime ? <Text style={styles.timelineMeta}>{`${hours % 12 || 12}${start.getMinutes() ? `:${String(start.getMinutes()).padStart(2, "0")}` : ""} ${hours >= 12 ? "PM" : "AM"} · `}</Text> : null}
+                    {game.title}
+                  </Text>
                   <Text style={[styles.timelineMeta, game.sport === "PICKLEBALL" && styles.pickleballMeta]}>{[format?.toLowerCase(), `${going}/${game.maxPlayers}`].filter(Boolean).join(" · ")}</Text>
                 </View>
                 <Feather name={expanded ? "chevron-up" : "chevron-down"} color={Colors.textSecondary} size={18} />
