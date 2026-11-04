@@ -113,6 +113,7 @@ export function UpNextSection({
           <ScheduledGameCard
             compact
             game={next}
+            key={next.id}
             joining={joining}
             onJoin={(game) => {
               if (joinLock.current) return;
