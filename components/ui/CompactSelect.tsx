@@ -52,7 +52,7 @@ export function CompactSelect<T extends string>({
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const selected = options.find((option) => option.value === value) ?? options[0];
   const menuWidth = wide
-    ? Math.min(anchor?.width ?? 280, viewportWidth - 16)
+    ? Math.min(Math.max(220, anchor?.width ?? 280), viewportWidth - 16)
     : 132;
   const menuHeight = options.length * 44 + 12;
 
@@ -183,6 +183,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   triggerText: {
+    flexShrink: 1,
     fontFamily: Typography.bodyBold,
     fontSize: 9,
     color: Colors.text,

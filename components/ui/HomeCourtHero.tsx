@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 
 import { CourtArt } from "@/components/court/CourtArt";
 import { CheckInButton, CourtTitleRow } from "@/components/court/CourtParts";
+import { Colors } from "@/constants/colors";
 import type { Court } from "@/constants/data";
 
 /**
@@ -72,7 +73,7 @@ export function HomeCourtActions({
 }
 
 const styles = StyleSheet.create({
-  header: { position: "relative", overflow: "hidden" },
+  header: { position: "relative", overflow: "hidden", backgroundColor: Colors.background },
   title: { paddingTop: 12 },
 
   actions: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 14 },

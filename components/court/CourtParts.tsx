@@ -61,7 +61,7 @@ export function SportLabel({ sport, suffix }: { sport: CourtSport; suffix?: stri
   return (
     <View style={[styles.sportRow, pickleball && styles.sportRowPickleball]}>
       <View style={[styles.sportDot, { backgroundColor: pickleball ? Colors.pickleballCourt : Colors.basketballMeta }]} />
-      <Text numberOfLines={1} style={[styles.sportText, { color: pickleball ? Colors.pickleballLabel : Colors.basketballLabel }]}>
+      <Text numberOfLines={1} style={[styles.sportText, pickleball && styles.pickleballSportText, { color: pickleball ? Colors.pickleballLabel : Colors.basketballLabel }]}>
         {pickleball ? "Pickleball" : "Basketball"}
         {suffix ? ` · ${suffix}` : ""}
       </Text>
@@ -176,6 +176,7 @@ export function CourtTitleRow({
             textStyle={[styles.titleName, page && styles.titleNamePage]}
             value={courtSelection.id}
             variant="plain"
+            wide
           />
         ) : (
           <Text
@@ -194,10 +195,18 @@ export function CourtTitleRow({
         accessible={!onNavigate}
         style={styles.liveBlock}
       >
-        <View style={styles.liveMetricRow}>
-          <Text accessibilityLabel={onNavigate ? liveAccessibilityLabel ?? `${liveValue} on court` : undefined} style={[styles.liveValue, page && styles.liveValuePage, live && styles.liveValueOn]}>{liveValue}</Text>
-          {onNavigate ? <CourtLinkButton compact courtName={name} onPress={onNavigate} /> : null}
-        </View>
+        {onNavigate ? (
+          <CourtLinkButton
+            compact
+            courtName={name}
+            accessibilityHint={`${liveAccessibilityLabel ?? `${liveValue} on court`}. Opens the full court page`}
+            onPress={onNavigate}
+          >
+            <Text style={[styles.liveValue, page && styles.liveValuePage, live && styles.liveValueOn]}>{liveValue}</Text>
+          </CourtLinkButton>
+        ) : (
+          <Text accessibilityLabel={liveAccessibilityLabel} style={[styles.liveValue, page && styles.liveValuePage, live && styles.liveValueOn]}>{liveValue}</Text>
+        )}
         <View style={styles.liveLabelRow}>
           {live ? <LiveDot /> : null}
           <Text style={styles.liveLabel}>On court</Text>
@@ -349,19 +358,19 @@ export function CheckInButton({
 }
 
 /** A centred ">" that opens the full court page. */
-export function CourtLinkButton({ onPress, courtName, compact = false }: { onPress: () => void; courtName: string; compact?: boolean }) {
+export function CourtLinkButton({ onPress, courtName, compact = false, accessibilityHint, children }: { onPress: () => void; courtName: string; compact?: boolean; accessibilityHint?: string; children?: React.ReactNode }) {
   return (
     <PressableScale
-      accessibilityHint="Opens the full court page"
+      accessibilityHint={accessibilityHint ?? "Opens the full court page"}
       accessibilityLabel={`Open ${courtName}`}
       accessibilityRole="button"
       onPress={(event) => {
         if (compact) event.stopPropagation();
         onPress();
       }}
-      hitSlop={compact ? 14 : undefined}
       style={[styles.action, compact ? styles.courtLinkCompact : styles.courtLink]}
     >
+      {children}
       <Feather color={Colors.text} name="chevron-right" size={compact ? 18 : 24} />
     </PressableScale>
   );
@@ -411,6 +420,7 @@ const styles = StyleSheet.create({
   sportRowPickleball: { backgroundColor: Colors.pickleballTint, paddingHorizontal: 6, paddingVertical: 3, borderRadius: Radius.chip },
   sportDot: { width: 6, height: 6, borderRadius: 3 },
   sportText: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.5, textTransform: "uppercase", flexShrink: 1 },
+  pickleballSportText: { fontSize: 11 },
   markBox: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   markCheckGlow: { textShadowColor: Colors.accent, textShadowRadius: 10 },
   pressed: { opacity: 0.72 },
@@ -442,7 +452,7 @@ const styles = StyleSheet.create({
   checkInText: { fontFamily: Typography.bodyBold, fontSize: 12, letterSpacing: 1.7, textTransform: "uppercase", color: Colors.background },
   checkOutText: { flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.liveInk },
   courtLink: { width: 64, height: 50, backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
-  courtLinkCompact: { position: "absolute", right: -18, top: 9, width: 18, height: 24, backgroundColor: "transparent" },
+  courtLinkCompact: { minHeight: 48, backgroundColor: "transparent", gap: 2 },
   cellLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   pill: { height: 30, paddingHorizontal: 12, borderRadius: 999, justifyContent: "center", borderWidth: 1, borderColor: "rgba(242,242,246,0.12)" },
   pillActive: { backgroundColor: Colors.tile, borderColor: "rgba(242,242,246,0.2)" },
@@ -467,7 +477,6 @@ const styles = StyleSheet.create({
   },
   titleNamePage: { fontSize: 34, lineHeight: 37, letterSpacing: -1.1 },
   titlePlace: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
-  liveMetricRow: { flexDirection: "row", alignItems: "center", position: "relative" },
   liveBlock: { flexShrink: 0, alignItems: "flex-end", paddingBottom: 1 },
   liveValue: { fontFamily: Typography.headingBold, fontSize: 40, lineHeight: 42, letterSpacing: -1.2, color: Colors.text, fontVariant: ["tabular-nums"] },
   liveValuePage: { fontSize: 46, lineHeight: 48, letterSpacing: -1.4 },
