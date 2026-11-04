@@ -13,7 +13,6 @@ import { Feather } from "@expo/vector-icons";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScheduledGameCard } from "@/components/court/CourtGamesPanel";
 import { PressableScale } from "@/components/ui/PressableScale";
-import { formatForMaxPlayers } from "@/components/schedule/scheduledGameModel";
 import { Colors, Radius } from "@/constants/colors";
 import type { GameRun } from "@/constants/data";
 import { Typography } from "@/constants/typography";
@@ -83,8 +82,6 @@ export function SlotCard({
   const total = attendees.length + hidden;
   const extra = Math.max(0, attendees.length - AVATARS_MAX);
   const acts = mode !== "view";
-  const run = runs[0];
-  const showBody = acts || total > 0 || Boolean(run);
   const openPlayer = (id: string) =>
     onPlayerPress ? onPlayerPress(id) : router.push(`/player/${id}`);
   const openRun = (id: string) =>
@@ -96,12 +93,14 @@ export function SlotCard({
   const gameRows = runs.map((game) => (
     <ScheduledGameCard
       compact
-      disabled={!acts || !onJoinRun}
+      disabled={mode === "plan" && !onJoinRun}
+      openOnly={!acts}
       game={game}
       joining={joiningRunId === game.id}
       key={game.id}
       onJoin={onJoinRun ?? ((selectedGame) => openRun(selectedGame.id))}
       onOpen={(selectedGame) => openRun(selectedGame.id)}
+      onPlayer={openPlayer}
     />
   ));
   if (compact)
@@ -156,7 +155,7 @@ export function SlotCard({
               </Text>
             ) : null}
           </View>
-          {acts && (!runs.length || mine) ? (
+          {acts ? (
             <AttendanceAction
               mine={mine}
               saving={saving}
@@ -178,8 +177,7 @@ export function SlotCard({
           <Text style={styles.meta}>{total} planning to go</Text>
         </View>
       ) : null}
-      {showBody ? (
-        <View style={styles.body}>
+      <View style={[styles.body, embedded && styles.embeddedBody]}>
           <ScrollView
             contentContainerStyle={styles.avatars}
             horizontal
@@ -195,7 +193,6 @@ export function SlotCard({
                 style={styles.avatarTarget}
               >
                 <PlayerAvatar
-                  accent={attendee.isMine}
                   initials={attendee.initials}
                   name={attendee.name}
                   playerId={attendee.id}
@@ -212,7 +209,7 @@ export function SlotCard({
               <Text style={styles.privateCount}>{hidden} private</Text>
             ) : null}
           </ScrollView>
-          {acts && (!runs.length || mine) ? (
+          {acts ? (
             <AttendanceAction
               mine={mine}
               saving={saving}
@@ -220,47 +217,16 @@ export function SlotCard({
               onToggle={onToggle}
             />
           ) : null}
-          {(mode === "view" && run) || mode === "full" ? (
-            <View style={styles.gameCell}>
-              {mode === "view" && run ? (
-                <Pressable
-                  accessibilityLabel={`Open ${run.title}`}
-                  accessibilityRole="button"
-                  onPress={() => openRun(run.id)}
-                  style={styles.gameInfo}
-                >
-                  <Text numberOfLines={1} style={styles.gameInfoText}>
-                    {[
-                      formatForMaxPlayers(run.maxPlayers)?.toLowerCase(),
-                      `${run.participants.length}/${run.maxPlayers}`,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </Text>
-                </Pressable>
-              ) : run ? (
-                <Pressable
-                  accessibilityLabel={`Open ${run.title}`}
-                  accessibilityRole="button"
-                  onPress={() => openRun(run.id)}
-                  style={styles.actionLine}
-                >
-                  <Text style={styles.actionLineText}>Join</Text>
-                </Pressable>
-              ) : (
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={onCreate}
-                  style={styles.actionLine}
-                >
-                  <Text style={styles.actionLineText}>Create</Text>
-                </Pressable>
-              )}
-            </View>
-          ) : null}
-        </View>
-      ) : null}
-      {mode === "plan" ? gameRows : null}
+      </View>
+      <View style={styles.gameRows}>
+        {gameRows.length ? gameRows : onCreate && acts ? (
+          <View style={styles.emptyGameRow}>
+            <PressableScale accessibilityRole="button" accessibilityLabel="Create a game" onPress={onCreate} containerStyle={styles.gameActionTarget} style={styles.actionLine}>
+              <Text style={styles.actionLineText}>Create</Text>
+            </PressableScale>
+          </View>
+        ) : null}
+      </View>
       {notice ? <Text style={styles.notice}>{notice}</Text> : null}
     </View>
   );
@@ -350,11 +316,12 @@ const styles = StyleSheet.create({
   },
   embedded: {
     paddingHorizontal: 0,
+    paddingTop: 0,
     paddingBottom: 0,
     borderWidth: 0,
     borderTopWidth: 0,
     borderRadius: 0,
-    marginTop: 6,
+    marginTop: 0,
   },
   head: {
     flexDirection: "row",
@@ -378,11 +345,15 @@ const styles = StyleSheet.create({
   },
   body: {
     marginTop: 10,
-    minHeight: 36,
+    minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
+  embeddedBody: { marginTop: 0 },
+  gameRows: { minHeight: 44 },
+  emptyGameRow: { minHeight: 44, alignItems: "flex-end" },
+  gameActionTarget: { minWidth: 64, height: 44, alignItems: "center", justifyContent: "center" },
   avatarScroll: { flex: 2, flexBasis: 0, minWidth: 0 },
   avatars: { flexDirection: "row", alignItems: "center", gap: 6 },
   avatarTarget: {
@@ -422,23 +393,9 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textSecondary,
   },
-  gameCell: { flex: 1, flexBasis: 0, minWidth: 0 },
-  gameInfo: {
-    height: 36,
-    paddingHorizontal: 8,
-    borderRadius: Radius.button,
-    borderWidth: 1,
-    borderColor: Colors.hairlineChrome,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  gameInfoText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    color: Colors.textSecondary,
-  },
   actionLine: {
-    height: 36,
+    minWidth: 64,
+    height: 34,
     borderRadius: Radius.button,
     borderWidth: 1,
     borderColor: Colors.text,

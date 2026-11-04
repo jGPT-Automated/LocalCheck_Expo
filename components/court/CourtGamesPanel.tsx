@@ -109,6 +109,8 @@ export function ScheduledGameCard({
   style,
   compact = false,
   disabled = false,
+  openOnly = false,
+  onPlayer,
 }: {
   game: GameRun;
   joining: boolean;
@@ -118,8 +120,12 @@ export function ScheduledGameCard({
   /** Inline hourly game summary, using the same RSVP rules. */
   compact?: boolean;
   disabled?: boolean;
+  /** A view-only slot can inspect the game but cannot RSVP here. */
+  openOnly?: boolean;
+  onPlayer?: (playerId: string) => void;
 }) {
   const { currentUser } = useApp();
+  const [expanded, setExpanded] = React.useState(false);
       const start = new Date(game.startTimeIso);
       const hours = start.getHours();
       const going = game.participants.length;
@@ -131,58 +137,72 @@ export function ScheduledGameCard({
       const format = formatForMaxPlayers(game.maxPlayers);
       if (compact) {
         const joinable =
-          game.status === "scheduled" && start.getTime() > Date.now();
+          !openOnly && game.status === "scheduled" && start.getTime() > Date.now();
+        const assigned = game.participants.every((p) => game.participantSides[p.id]);
+        const sides = ["a", "b"] as const;
         return (
-          <View style={styles.timelineCard}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Open ${game.title}`}
-              onPress={() => onOpen(game)}
-              style={styles.timelineSummary}
-            >
-              <Text numberOfLines={2} style={styles.timelineTitle}>
-                {game.title}
-              </Text>
-              <Text style={styles.timelineMeta}>
-                {[format?.toLowerCase(), `${going}/${game.maxPlayers}`]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </Text>
-            </Pressable>
-            <PressableScale
-              accessibilityRole="button"
-              accessibilityLabel={
-                joined
-                  ? "You're going"
-                  : full
-                    ? "Game full"
-                    : !joinable
-                      ? `Open ${game.title}`
-                      : `Join ${game.title}`
-              }
-              accessibilityState={{
-                busy: joining,
-                disabled: disabled || joining || joined || full,
-              }}
-              disabled={disabled || joining || joined || full}
-              onPress={() =>
-                joinable && canQuickJoin ? onJoin(game) : onOpen(game)
-              }
-              style={styles.timelineJoin}
-            >
-              {joining ? (
-                <ActivityIndicator color={Colors.text} size="small" />
-              ) : joined ? (
-                <Feather color={Colors.text} name="check" size={18} />
-              ) : (
-                <Text style={styles.ctaText}>
-                  {full ? "Full" : joinable ? "Join" : "View"}
-                </Text>
-              )}
-            </PressableScale>
+          <View>
+            <View style={styles.timelineCard}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${expanded ? "Collapse" : "Expand"} ${game.title}`}
+                accessibilityState={{ expanded }}
+                onPress={() => setExpanded((value) => !value)}
+                style={styles.timelineSummary}
+              >
+                <View style={styles.summaryText}>
+                  <Text numberOfLines={2} style={styles.timelineTitle}>{game.title}</Text>
+                  <Text style={styles.timelineMeta}>{[format?.toLowerCase(), `${going}/${game.maxPlayers}`].filter(Boolean).join(" · ")}</Text>
+                </View>
+                <Feather name={expanded ? "chevron-up" : "chevron-down"} color={Colors.textSecondary} size={18} />
+              </Pressable>
+              <PressableScale
+                accessibilityRole="button"
+                accessibilityLabel={joined || !joinable ? `Open ${game.title}` : full ? "Game full" : `Join ${game.title}`}
+                accessibilityState={{ busy: joining, disabled: disabled || joining || (joinable && full && !joined) }}
+                disabled={disabled || joining || (joinable && full && !joined)}
+                onPress={() => joinable && canQuickJoin ? onJoin(game) : onOpen(game)}
+                containerStyle={styles.timelineJoinTarget}
+                style={styles.timelineJoin}
+              >
+                {joining ? <ActivityIndicator color={Colors.text} size="small" /> : (
+                  <Text style={styles.timelineJoinText}>{joined || !joinable ? "Open" : full ? "Full" : "Join"}</Text>
+                )}
+              </PressableScale>
+            </View>
+            {expanded ? (
+              <View style={styles.roster}>
+                {assigned ? (
+                  <View style={styles.teams}>
+                    {sides.map((side) => {
+                      const players = game.participants.filter((p) => game.participantSides[p.id] === side);
+                      const vacancies = Math.max(0, Math.floor(game.maxPlayers / 2) - players.length);
+                      return (
+                        <View key={side} style={styles.teamColumn}>
+                          <Text style={styles.rosterLabel}>Team {side.toUpperCase()}</Text>
+                          {players.map((player) => <RosterPlayer key={player.id} player={player} onPlayer={onPlayer} />)}
+                          {Array.from({ length: vacancies }, (_, i) => <RosterOpen key={i} />)}
+                        </View>
+                      );
+                    })}
+                  </View>
+                ) : (
+                  <View style={styles.teams}>
+                    {sides.map((side) => (
+                      <View key={side} style={styles.teamColumn}>
+                        <Text style={styles.rosterLabel}>Team {side.toUpperCase()}</Text>
+                        {game.participants.filter((p) => game.participantSides[p.id] === side).map((player) => <RosterPlayer key={player.id} player={player} onPlayer={onPlayer} />)}
+                      </View>
+                    ))}
+                  </View>
+                )}
+                {!assigned ? <View><Text style={styles.rosterLabel}>Unassigned</Text>{game.participants.filter((p) => !game.participantSides[p.id]).map((player) => <RosterPlayer key={player.id} player={player} onPlayer={onPlayer} />)}<Text style={styles.rosterLabel}>Open spots</Text><View style={styles.teams}>{sides.map((side, index) => <View key={side} style={styles.teamColumn}>{Array.from({ length: Math.ceil((Math.max(0, game.maxPlayers - going) - index) / 2) }, (_, i) => <RosterOpen key={i} />)}</View>)}</View></View> : null}
+              </View>
+            ) : null}
           </View>
         );
       }
+
       return (
         <PressableScale
           accessibilityLabel={`${game.title}, ${going} of ${game.maxPlayers} going`}
@@ -243,12 +263,19 @@ export function ScheduledGameCard({
       );
 }
 
+function RosterPlayer({ player, onPlayer }: { player: GameRun["participants"][number]; onPlayer?: (id: string) => void }) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={player.name} disabled={!onPlayer} onPress={() => onPlayer?.(player.id)} style={styles.rosterRow}><PlayerAvatar initials={player.avatar} name={player.name} playerId={player.id} size={34} /><Text style={styles.rosterName}>{player.name}</Text></Pressable>;
+}
+function RosterOpen() {
+  return <View style={styles.rosterRow}><View style={styles.openAvatar} /><Text style={styles.rosterName}>Open</Text></View>;
+}
+
 const styles = StyleSheet.create({
   timelineCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingVertical: 8,
+    minHeight: 44,
     borderBottomWidth: 1,
     borderBottomColor: Colors.hairline,
   },
@@ -258,7 +285,10 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: "center",
     gap: 3,
+    flexDirection: "row",
+    alignItems: "center",
   },
+  summaryText: { flex: 1, minWidth: 0, gap: 3 },
   timelineTitle: {
     fontFamily: Typography.bodySemiBold,
     fontSize: 12,
@@ -270,16 +300,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textSecondary,
   },
-  timelineJoin: {
-    minWidth: 64,
-    height: 44,
-    paddingHorizontal: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: Colors.hairlineChrome,
-    borderRadius: Radius.button,
-  },
+  timelineJoinTarget: { minWidth: 64, height: 44, alignItems: "center", justifyContent: "center" },
+  timelineJoin: { minWidth: 64, height: 34, paddingHorizontal: 10, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.hairlineChrome, borderRadius: Radius.button },
+  timelineJoinText: { fontFamily: Typography.bodyBold, fontSize: 11, textTransform: "uppercase", color: Colors.text },
+  roster: { paddingVertical: 8, gap: 8 },
+  teams: { flexDirection: "row", gap: 8 },
+  teamColumn: { flex: 1, flexBasis: 0, minWidth: 0 },
+  rosterLabel: { fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.textSecondary },
+  rosterRow: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 6 },
+  rosterName: { flex: 1, minWidth: 0, fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.text },
+  openAvatar: { width: 34, height: 34, borderRadius: 6, borderWidth: 1, borderStyle: "dashed", borderColor: Colors.dashed },
   // Schedule owns the common gutter for the heatmap, slot and game cards.
   wrap: { paddingTop: 16, gap: 14 },
   eyebrow: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
