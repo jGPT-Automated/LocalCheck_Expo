@@ -1,5 +1,15 @@
 # Current state
 
+- Nov 4 (**on a branch**, PR #90, design correction in progress): the supplied
+  pickleball green/wash is used for sport identity and real vacant game spots.
+  Home/drawer remove the data-only metrics strip, Home adds the real current
+  court dropdown, and live navigation shares a compact number/chevron target.
+  Hour cards keep an independent attendance action and equal reserved people
+  and game/Create rows. Scheduled games expand into real four/ten-position
+  rosters, with open spots using existing RSVP/team-choice behavior.
+  Multi-court storage and recurring casual lobbies remain backend review
+  drafts; catalog reads only, no Supabase write/probe/deployment.
+
 - Nov 4 (**on a branch**, PR #90, `codex/dashboard-design-followup`):
   the dashboard refinement gives Home and the drawer one selected-hour
   day/time/count header, removes the duplicate lower heading and dividing rule,

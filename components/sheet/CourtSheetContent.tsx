@@ -20,9 +20,7 @@ import { CourtDayPlanner } from "@/components/court/CourtDayPlanner";
 import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewSections";
 import {
   CheckInButton,
-  CourtLinkButton,
   CourtTitleRow,
-  MetricStrip,
 } from "@/components/court/CourtParts";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { useToast } from "@/components/ui/Toast";
@@ -34,20 +32,17 @@ import { useAuth } from "@/context/AuthContext";
 import { usePresence } from "@/context/CourtPresenceContext";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
 import { useLocalPlusPurchase } from "@/hooks/useLocalPlusPurchase";
-import { courtHours, formatCourtHours } from "@/lib/courtHours";
 import { drawerDetailHeight } from "@/lib/courtDrawerLayout";
 import { formatCooldownRemaining, getLocalCourtCooldown } from "@/lib/localCourtCooldown";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/planModel";
-import { fetchCourtById, fetchCourtWeekSpans } from "@/services/courtService";
-import { nextGameLabel } from "@/lib/nextGameLabel";
+import { fetchCourtById } from "@/services/courtService";
 
 /**
  * Court drawer content (Claude Design court flow), rendered inside the root
  * BottomSheetModal (CourtSheetHost). Two detents on one sheet:
  *
  * - Drawer: the Explore card's title row (sport, name, city · distance, live
- *   On court number on the right), then Next game / Court hours · wk / Locals,
- *   then Check in and Court ↗. Always free. No local + / check: that lives
+ *   On court number and compact Court link on the right), then Check in. Always free. No local + / check: that lives
  *   only on the court page.
  * - Expanded: Here now, Up next and the shared, selectable daily chart.
  *   The Court link opens the detailed activity feed. A court that isn't your local, without
@@ -88,8 +83,7 @@ export function CourtSheetContent({
     (localCourt?.id === courtId ? localCourt : null);
   const [court, setCourt] = useState<Court | null>(cached);
   const [courtMissing, setCourtMissing] = useState(false);
-  const [hoursLabel, setHoursLabel] = useState("—");
-  const { roster, localCount } = usePresence(courtId || null);
+  const { roster } = usePresence(courtId || null);
 
   useEffect(() => {
     if (!courtId || court) return;
@@ -98,15 +92,6 @@ export function CourtSheetContent({
       .catch(() => setCourtMissing(true));
   }, [courtId, court]);
 
-  useEffect(() => {
-    if (!courtId) return;
-    let cancelled = false;
-    void fetchCourtWeekSpans(courtId).then((spans) => {
-      if (cancelled) return;
-      setHoursLabel(formatCourtHours(courtHours(spans).hours));
-    });
-    return () => { cancelled = true; };
-  }, [courtId, roster.length]); // re-pull when presence changes
 
   const go = (path: string) => {
     onNavigate();
@@ -197,21 +182,13 @@ export function CourtSheetContent({
               live={live}
               liveValue={activeCount}
               name={name}
+              onNavigate={() => go(gated ? "/localplus" : `/court/${court.id}`)}
               place={place || undefined}
               size="page"
               sport={court.sport}
             />
           </View>
-          <View style={styles.strip}>
-            <MetricStrip
-              cells={[
-                { label: "Next game", value: nextGameLabel(upcoming[0], now) },
-                { label: "Court hours · wk", value: hoursLabel },
-                { label: "Locals", value: localCount },
-              ]}
-              size="card"
-            />
-          </View>
+
         </Pressable>
 
         <View style={styles.actions}>
@@ -223,7 +200,6 @@ export function CourtSheetContent({
               onPress={() => void handleCheckIn()}
             />
           </View>
-          <CourtLinkButton courtName={name} onPress={() => go(gated ? "/localplus" : `/court/${court.id}`)} />
         </View>
         <AutoCheckInNote courtId={court.id} />
         <View style={styles.peekFoot} />
@@ -254,9 +230,11 @@ export function CourtSheetContent({
           <View style={styles.section} onLayout={(event) => { plannerY.current = event.nativeEvent.layout.y; }}>
             <CourtDayPlanner court={court} games={upcoming} liveCount={activeCount}
               onPlayerPress={(id) => go(`/player/${id}`)} onRunPress={(id) => go(`/run/${id}`)}
+              onCreateGame={() => go(`/(tabs)/schedule?courtId=${court.id}&openCreate=1`)}
               onReveal={(selectionBottom) => detailScroll.current?.scrollTo({ y: Math.max(0, plannerY.current + selectionBottom - detailHeight + bottom + 20), animated: false })} />
           </View>
           <UpNextSection
+            onPlayer={(id) => go(`/player/${id}`)}
             onOpenRun={(id) => go(`/run/${id}`)}
             onSeeAll={() => go(`/court/${court.id}?tab=games`)}
             upcoming={upcoming}
@@ -363,7 +341,6 @@ function CourtDrawerGate({
 const styles = StyleSheet.create({
   loading: { alignItems: "center", justifyContent: "center", paddingVertical: 64 },
   title: { paddingTop: 12 },
-  strip: { paddingTop: 16 },
   actions: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 14 },
   checkSlot: { flex: 1, minWidth: 0 },
   peekFoot: { height: 16 },

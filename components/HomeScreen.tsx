@@ -136,10 +136,12 @@ export function HomeScreen() {
           />
         </View>
         <View style={styles.today} onLayout={(event) => { plannerY.current = event.nativeEvent.layout.y; }}>
-          <CourtDayPlanner court={localCourt} games={upcoming} liveCount={activeTotal} onReveal={revealSelection} />
+          <CourtDayPlanner court={localCourt} games={upcoming} liveCount={activeTotal} onReveal={revealSelection}
+            onCreateGame={() => router.push({ pathname: "/(tabs)/schedule", params: { courtId: localCourt.id, openCreate: "1" } })} />
         </View>
         <View style={styles.upNext}>
           <UpNextSection
+            onPlayer={(id) => router.push(`/player/${id}`)}
             onOpenRun={(id) => router.push(`/run/${id}`)}
             upcoming={upcoming}
           />

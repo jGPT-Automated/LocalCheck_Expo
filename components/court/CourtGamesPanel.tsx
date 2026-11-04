@@ -272,7 +272,7 @@ function GameRoster({ game, onPlayer, onSpot, spotLabel, disabled, joining }: {
   const allAssigned = unassigned.length === 0;
   let remainingVacancies = vacancies;
   return (
-    <View style={styles.roster}>
+    <View testID={`game-roster-${game.id}`} style={styles.roster}>
       {assigned.length > 0 ? sides.map((side) => {
         const players = assigned.filter((p) => game.participantSides[p.id] === side);
         const openCount = allAssigned ? Math.min(remainingVacancies, Math.max(0, width - players.length)) : 0;
@@ -294,7 +294,7 @@ function RosterPlayer({ player, onPlayer }: { player: GameRun["participants"][nu
 }
 function RosterOpen({ sport, onPress, label, disabled, joining }: { sport: GameRun["sport"]; onPress: () => void; label: string; disabled: boolean; joining: boolean }) {
   const pickleball = sport === "PICKLEBALL";
-  return <View style={styles.rosterCell}><PressableScale accessibilityRole="button" accessibilityLabel={`${label}, open spot`} accessibilityState={{ disabled, busy: joining }} disabled={disabled} onPress={onPress} containerStyle={styles.rosterTouch} style={[styles.openAvatar, pickleball && styles.pickleballOpen]}><Feather name="plus" size={18} color={pickleball ? Colors.pickleballCourt : Colors.textSecondary} /></PressableScale><Text style={styles.rosterName}>Open</Text></View>;
+  return <View style={styles.rosterCell}><PressableScale testID="game-open-spot" accessibilityRole="button" accessibilityLabel={`${label}, open spot`} accessibilityState={{ disabled, busy: joining }} disabled={disabled} onPress={onPress} containerStyle={styles.rosterTouch} style={[styles.openAvatar, pickleball && styles.pickleballOpen]}><Feather name="plus" size={18} color={pickleball ? Colors.pickleballCourt : Colors.textSecondary} /></PressableScale><Text style={styles.rosterName}>Open</Text></View>;
 }
 
 const styles = StyleSheet.create({

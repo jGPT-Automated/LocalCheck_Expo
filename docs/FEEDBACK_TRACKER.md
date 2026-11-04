@@ -21,6 +21,17 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-11-04 — supplied palette, stable slots and expandable rosters
+
+**In progress on PR #90:** Jesse rejected the previous refinement as too narrow.
+Match the supplied pickleball green/wash, move the court arrow close to its
+number, add the real court dropdown, remove dashboard-only irrelevant stats,
+tighten chart/people spacing, keep attendance plus on the people row, and make
+Create/Join/plus/avatar visuals the same height. Empty/populated collapsed hour
+cards reserve equal rows; actual games expand vertically with real member and
+vacant positions. The giant joined-game check is removed. Saved five-court
+storage and recurring casual lobbies remain review drafts, not live features.
+
 ## 2026-11-03 — selected-hour hierarchy and pickleball comparison
 
 **On branch PR #90**, application checkpoint `50746f2`: removed duplicate

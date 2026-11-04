@@ -104,3 +104,28 @@ to play. This is not the existing planned-visit plus action. No lobby storage,
 auto-start, ranked vote, or game-end behavior is represented as implemented by
 this visual refinement. See the backend review draft for the proposed contract
 and unanswered policy details, including the unfinished three-player example.
+
+
+## November 4 correction — follow the supplied design, not a partial polish
+
+The previous hierarchy checkpoint did not meet Jesse's full visual request.
+The requested next pass uses his supplied pickleball court green `#3FC397`,
+14% wash, mint metadata `#9CCFBE`/label `#BDD7CF`, neutral tiles and orange
+only for intentional action/live meaning. It removes data-only metric strips
+from Home and the drawer, keeps their art, makes the live chevron sit close
+to the number, and adds the real saved-court dropdown using CompactSelect.
+The current contract holds one court; do not fabricate five memberships.
+
+One selected-hour unit keeps day/time together, count beside its people,
+tight chart-to-people spacing, attendance plus on that row even in game hours,
+and a second consistent-height game/Create action row. Empty and populated
+collapsed slots reserve the same space. Real scheduled games expand vertically
+into square member/open positions (10 basketball, 4 pickleball), using existing
+RSVP and team-choice rules; a vacant spot must be actionable, not decoration.
+Home/drawer Up next reuse that same expandable card rather than another
+horizontal avatar/progress presentation. All relevant shared callers must be
+checked at three sizes, including empty/filled Schedule and expanded rosters.
+
+The recurring hourly casual lobby and five-court storage remain separately
+reviewed server changes. This visual pass must neither claim they exist nor
+repurpose planned visits as game membership.

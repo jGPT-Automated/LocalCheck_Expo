@@ -323,9 +323,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-  selectionHeading: { minHeight: 0, alignItems: "stretch", flexDirection: "column", gap: 2, marginBottom: 8 },
+  selectionHeading: { minHeight: 32, alignItems: "center", flexDirection: "row", gap: 8 },
   selectionDay: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
-  selectionSummary: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10 },
+  selectionSummary: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10 },
   selectionHour: { flexShrink: 1, fontFamily: Typography.headingSemiBold, fontSize: 20, color: Colors.text },
   selectionCount: { fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
   dayLabel: {

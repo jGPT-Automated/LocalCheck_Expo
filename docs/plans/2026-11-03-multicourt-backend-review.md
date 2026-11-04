@@ -153,3 +153,34 @@ The inspection also read `information_schema.tables`, `pg_policies`,
 `pg_constraint` and non-internal `pg_trigger` definitions for the relations
 above. It did not call the inspected functions. No executable migration is
 included; this contract is the draft to review before preparing one.
+
+
+## November 4 UI boundary and proposed API shape
+
+**Read-only recheck:** catalog column/signature reads still show profile
+`local_court_id` and scheduled runs/participants; no saved-court or lobby RPC
+was found. No player rows or write calls were read/executed.
+
+The current Home dropdown can honestly show one saved court. An expandable
+real scheduled-game roster can RSVP through the existing service. Neither
+proves a multi-court list or a recurring hourly lobby. These additions require
+a separate reviewed server API, proposed here for external review only:
+
+| Proposed API | Authoritative response / atomic behavior |
+| --- | --- |
+| `get_saved_courts()` | Owner-only ordered court rows, default, effective auto-check-in and revision |
+| `save_court(court_id, expected_revision)` | Auth owner lock, server entitlement cap (1 free/5 Plus), idempotent membership, no silent default replacement |
+| `reorder_saved_courts(ids, expected_revision)` | Validate complete owner list and cap; first becomes profile-compatible default in same transaction |
+| `remove_saved_court(court_id, expected_revision)` | Approved default/auto-arrival removal policy, authoritative list/revision |
+| `set_court_auto_check_in(court_id, enabled, expected_revision)` | Owner/entitlement check; effective server state, no inferred device permission |
+| `court_hour_lobby(court_id, starts_at)` | Real current membership, capacity, visibility-filtered identities and revision; empty is a read result, not an invented game |
+| `join_court_lobby(court_id, starts_at, expected_revision)` | Auth-derived member, lock one court/hour, validate actual eligibility/capacity, idempotent insert; default casual |
+| `leave_court_lobby(lobby_id, expected_revision)` | Auth-derived member removal only; approved rollover/start policy |
+
+Names and parameters are proposed API contracts, **not installed functions**.
+A migration must include owner-scoped saved memberships, separate lobby/member
+relations, RLS/hidden-test-data rules, least-privilege grants, Realtime scoped
+invalidations, unique/ordering constraints, legacy/default bridging and the
+concurrency/denied-user tests above. Keep all live scheduled-game and planned
+visit contracts backward compatible. Backend application and write acceptance
+remain unauthorized until Jesse reviews the concrete migration.

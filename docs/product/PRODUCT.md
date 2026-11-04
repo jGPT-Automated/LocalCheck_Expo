@@ -43,7 +43,12 @@ are basketball and pickleball.
   follows the chart.
   Court future-hour game actions use the existing confirmed RSVP flow; planned
   intent does not join a game or check a player in.
-  Existing LocalPlus/free visibility rules are unchanged.
+  Empty and populated hour cards reserve the same collapsed footprint; actual
+  scheduled games expand into participant/open positions using existing RSVP.
+  Home's dropdown currently contains the single real saved local court; it
+  does not imply five-court storage exists. Dashboard metric strips are removed;
+  court data still lives on the court page. Existing LocalPlus/free visibility
+  rules are unchanged.
 - Orange identifies LocalCheck, live truth, check-in and selection. Other
   primary actions are white (D56).
   Sport is metadata, not a competing theme.

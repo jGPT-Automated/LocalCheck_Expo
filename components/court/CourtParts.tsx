@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
   },
   sportRow: { flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 1 },
-  sportRowPickleball: { backgroundColor: Colors.pickleballTint, paddingHorizontal: 6, paddingVertical: 3, borderRadius: Radius.chip },
+  sportRowPickleball: { alignSelf: "flex-start", maxWidth: "100%", backgroundColor: Colors.pickleballTint, paddingHorizontal: 6, paddingVertical: 3, borderRadius: Radius.sm },
   sportDot: { width: 6, height: 6, borderRadius: 3 },
   sportText: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.5, textTransform: "uppercase", flexShrink: 1 },
   pickleballSportText: { fontSize: 11 },

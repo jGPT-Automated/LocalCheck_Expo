@@ -89,6 +89,7 @@ export function CompactSelect<T extends string>({
             variant === "plain" ? styles.triggerPlain : styles.triggerContained,
             dense && styles.triggerDense,
             wide && styles.triggerWide,
+            wide && variant === "plain" && styles.triggerPlainWide,
             pressed && styles.pressed,
           ]}
         >
@@ -182,6 +183,7 @@ const styles = StyleSheet.create({
     minHeight: Layout.minTouchTarget,
     paddingHorizontal: 14,
   },
+  triggerPlainWide: { paddingHorizontal: 0 },
   triggerText: {
     flexShrink: 1,
     fontFamily: Typography.bodyBold,

@@ -7,6 +7,33 @@ Last verified source: 2026-08-29
 
 This document describes the current product. It replaces earlier competing design notes. The reproducible source artwork and specs live in the LocalCheck Brand Asset Sheet; app tokens live in `constants/` and shared components live in `components/ui/`.
 
+## Reference correction (D67 refinement, on branch)
+
+Jesse's supplied palette governs court action views: pickleball court green
+`#3FC397` and its 14% wash, mint `#9CCFBE` metadata and `#BDD7CF` label; court
+panels use the existing `#121216` sheet token, square avatars use `#24242C`,
+and orange remains intentional check-in/live ink. Do not invent a sport theme
+or replace the supplied art. The pickleball tag and vacant game spots use
+this green visibly; normal avatars stay neutral.
+
+Home/drawer are active dashboards, without the data-only Next game / court
+hours / locals metric strip. The live value and nearby chevron form one
+in-bounds navigation target without a 44pt spacer. Home's name uses the shared
+CompactSelect, populated only with authoritative saved data (currently one
+local court; five-court storage remains a review draft).
+
+The collapsed hour card reserves a 44pt people row and a 44pt game/Create row
+whether empty or populated. Attendance plus/check, Create and Join/Open use
+34pt visual height within 44pt touch targets. Attendance remains available on
+the people row in a game hour; it does not RSVP. A game has a vertical
+disclosure and real capacity/member/open positions (default 10 basketball,
+4 pickleball), with recorded team assignments only. Open spots call the same
+existing RSVP/game route as Join/Open. Up next shares that card; it does not
+introduce another horizontal roster design. Expansion may grow deliberately;
+empty/filled collapsed cards must not jump.
+
+These rules revise the earlier D67 refinement below where they conflict.
+
 ## Dashboard visual follow-up (D67, on branch)
 
 Home and the expanded Explore drawer show Here now, then the shared charcoal

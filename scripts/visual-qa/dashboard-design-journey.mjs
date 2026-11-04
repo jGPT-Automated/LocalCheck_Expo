@@ -138,13 +138,20 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
     const checkIn = await page.getByRole('button', {name:new RegExp('^Check in to ')}).boundingBox();
     assert.ok(linkBox.width >= 44 && linkBox.height >= 44);
     assert.ok(linkBox.y + linkBox.height <= checkIn.y, 'Link is in hero, not the action row');
-    const liveBox = await page.getByLabel(/^\d+ on court$/, {exact:true}).first().boundingBox();
-    assert.ok(linkBox.x >= liveBox.x + liveBox.width - 1, 'Arrow follows the live number');
+    const parts = await link.evaluate(e => {const c=e.firstElementChild;return [...c.children].map(n=>{const b=n.getBoundingClientRect();return {x:b.x,right:b.right,width:b.width};});});
+    assert.ok(parts.length >= 2 && parts[1].x-parts[0].right <= 6, 'Chevron is close to live value');
     const name = page.getByText(court.short_name || court.name, {exact:true}).first();
     assert.ok(await name.evaluate(e => e.scrollWidth <= e.clientWidth + 1), 'Court name is not ellipsized');
     await link.click(); await page.waitForURL(`**/court/${selectedCourt}`);
   });
   await open('/');
+  await check('Court-name menu shows only the actual saved court and dismisses', async () => {
+    await page.getByRole('button',{name:'Current home court',exact:true}).click();
+    const menu=page.getByRole('menu'); await menu.waitFor();
+    assert.equal(await menu.getByRole('menuitem').count(),1);
+    await shot('home-court-menu'); await menu.getByRole('menuitem').click();
+    await menu.waitFor({state:'hidden'});
+  });
   if (pickleball) {
     const assertGame = async (container) => {
       assert.match(await container.innerText(), /2\/4/);
@@ -154,6 +161,14 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
     await scrub(20); await shot('pickleball-home-selected'); await checkHierarchy();
     await check('Pickleball Home selected hour shows the 2/4 scheduled game', async () => {
       await assertGame(page.getByTestId('selected-court-hour'));
+    });
+    await page.getByTestId('selected-court-hour').getByRole('button',{name:'Expand PICKLEBALL GAME',exact:true}).click();
+    await shot('pickleball-home-roster');
+    await check('Pickleball roster has four positions with supplied green open spots', async()=>{
+      const roster=page.getByTestId('game-roster-dddddddd-5555-4555-8555-555555555555');
+      assert.equal(await roster.getByRole('button').count(),4);
+      const spot=roster.getByTestId('game-open-spot');assert.equal(await spot.count(),2);
+      assert.equal(await spot.first().evaluate(e=>getComputedStyle(e.firstElementChild).borderColor),'rgb(63, 195, 151)');
     });
     await open('/explore'); await page.getByTestId(`court-${selectedCourt}`).click();
     await page.waitForTimeout(1600); await page.getByLabel(/, expand$/).click();
@@ -188,11 +203,30 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
     assert.ok(slot.y + slot.height <= height - 88, 'Selected card clears tab floor');
   });
   await check('Selected dashboard hour retains its scheduled game and RSVP', async () => {
+    assert.equal(await selectedSlot.getByRole('button', {name:'Expand CHATGPT', exact:true}).count(), 1);
     assert.equal(await selectedSlot.getByRole('button', {name:'Open CHATGPT', exact:true}).count(), 1);
-    assert.equal(await selectedSlot.getByRole('button', {name:"You're going", exact:true}).count(), 1);
-    assert.equal(await selectedSlot.getByRole('button', {name:"I'm going", exact:true}).count(), 0, 'No duplicate add-intent action in a game hour');
+    assert.equal(await selectedSlot.getByRole('button', {name:"I'm going", exact:true}).count(), 1, 'Attendance remains on the people row, independent of RSVP');
+  });
+  const filledHeight=(await selectedSlot.boundingBox()).height;
+  await selectedSlot.getByRole('button',{name:'Expand CHATGPT',exact:true}).click();
+  await shot('home-roster');
+  await check('Basketball roster has ten actual occupied/open positions and collapses',async()=>{
+    const roster=selectedSlot.getByTestId('game-roster-e5e5e5e5-5555-4555-8555-555555555555');
+    assert.equal(await roster.getByTestId('game-open-spot').count(),3);
+    assert.equal(await roster.getByRole('button').count(),10);
+    await selectedSlot.getByRole('button',{name:'Collapse CHATGPT',exact:true}).click();
+    assert.equal((await selectedSlot.boundingBox()).height,filledHeight);
   });
   await scrub(19); await shot('home-intent');
+  await check('Empty and populated hour cards keep the same height and action size',async()=>{
+    assert.ok(Math.abs((await selectedSlot.boundingBox()).height-filledHeight)<=1);
+    const create=selectedSlot.getByRole('button',{name:'Create a game',exact:true});
+    const plus=selectedSlot.getByRole('button',{name:"I'm going",exact:true});
+    for(const button of [create,plus]) {
+      const sizes=await button.evaluate(e=>({touch:e.getBoundingClientRect().height,visual:e.firstElementChild.getBoundingClientRect().height}));
+      assert.equal(sizes.visual,34);assert.ok(sizes.touch>=44);
+    }
+  });
   await check('Home attendance is a compact plus control', async () => {
     const button = selectedSlot.getByRole('button', {name:"I'm going", exact:true});
     assert.doesNotMatch(await button.innerText(), /Going/i);
@@ -244,7 +278,7 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
   await check('Court future hour shows square stack and inline game action',async()=>{
     const row=page.getByTestId('activity-hour-20');
     assert.equal(await row.getByTestId('slot-attendee-stack').count(),1);
-    assert.equal(await row.getByRole('button',{name:"You're going",exact:true}).count(),1);
+    assert.equal(await row.getByRole('button',{name:"Open CHATGPT",exact:true}).count(),1);
   });
   await page.getByRole('button',{name:'Next day',exact:true}).click(); await scrub(20);
   await check('Private-only court attendance has a spoken private count',async()=>{

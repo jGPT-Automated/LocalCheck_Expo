@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.panel,
     borderWidth: 1,
     borderColor: Colors.hairlineCard,
-    backgroundColor: Colors.panel,
+    backgroundColor: Colors.sheet,
   },
   embedded: {
     paddingHorizontal: 0,

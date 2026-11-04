@@ -141,7 +141,7 @@ export function UpNextSection({
 
 const styles = StyleSheet.create({
   section: { paddingBottom: 14 },
-  nextCard: { gap: 8 },
+  nextCard: { gap: 8, backgroundColor: Colors.sheet, padding: 12, borderRadius: Radius.panel, borderWidth: 1, borderColor: Colors.hairlineCard },
   joinError: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.loss },
   hereRow: { height: 67, flexDirection: "row", gap: 8, overflow: "hidden" },
   hereItem: { width: 58, alignItems: "center", gap: 2 },
