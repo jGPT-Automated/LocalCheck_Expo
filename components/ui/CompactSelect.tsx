@@ -6,6 +6,8 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  type StyleProp,
+  type TextStyle,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -31,6 +33,7 @@ export function CompactSelect<T extends string>({
   variant = "contained",
   dense = false,
   wide = false,
+  textStyle,
 }: {
   accessibilityLabel: string;
   align?: "start" | "end";
@@ -41,6 +44,7 @@ export function CompactSelect<T extends string>({
   dense?: boolean;
   /** Full-width form-field treatment; the menu follows the measured trigger. */
   wide?: boolean;
+  textStyle?: StyleProp<TextStyle>;
 }) {
   const [open, setOpen] = React.useState(false);
   const [anchor, setAnchor] = React.useState<SelectAnchor | null>(null);
@@ -90,7 +94,7 @@ export function CompactSelect<T extends string>({
         >
           <Text
             numberOfLines={1}
-            style={[styles.triggerText, dense && styles.triggerTextDense, wide && styles.triggerTextWide]}
+            style={[styles.triggerText, dense && styles.triggerTextDense, wide && styles.triggerTextWide, textStyle]}
           >
             {selected?.label}
           </Text>

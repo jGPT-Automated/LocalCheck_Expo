@@ -2,8 +2,7 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 
 import { CourtArt } from "@/components/court/CourtArt";
-import { CheckInButton, CourtTitleRow, MetricStrip } from "@/components/court/CourtParts";
-import { Colors } from "@/constants/colors";
+import { CheckInButton, CourtTitleRow } from "@/components/court/CourtParts";
 import type { Court } from "@/constants/data";
 
 /**
@@ -17,17 +16,11 @@ export function HomeCourtHero({
   court,
   activeCount,
   live,
-  localCount,
-  hoursLabel,
-  nextGame,
   onViewCourt,
 }: {
   court: Court;
   activeCount: string;
   live: boolean;
-  localCount: number;
-  hoursLabel: string;
-  nextGame: string;
   onViewCourt: () => void;
 }) {
   const distance =
@@ -45,19 +38,10 @@ export function HomeCourtHero({
           liveValue={activeCount}
           name={court.shortName || court.name}
           onNavigate={onViewCourt}
+          courtSelection={{ id: court.id, name: court.shortName || court.name }}
           place={place || undefined}
           size="page"
           sport={court.sport}
-        />
-      </View>
-      <View style={styles.strip}>
-        <MetricStrip
-          cells={[
-            { label: "Next game", value: nextGame },
-            { label: "Court hours · wk", value: hoursLabel },
-            { label: "Locals", value: localCount },
-          ]}
-          size="card"
         />
       </View>
     </View>
@@ -88,9 +72,8 @@ export function HomeCourtActions({
 }
 
 const styles = StyleSheet.create({
-  header: { position: "relative", overflow: "hidden", backgroundColor: Colors.background },
+  header: { position: "relative", overflow: "hidden" },
   title: { paddingTop: 12 },
-  strip: { paddingTop: 16 },
 
   actions: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 14 },
   checkSlot: { flex: 1, minWidth: 0 },

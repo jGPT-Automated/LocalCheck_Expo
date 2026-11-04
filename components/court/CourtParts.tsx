@@ -18,6 +18,7 @@ import {
 import Svg, { Path } from "react-native-svg";
 
 import { PressableScale } from "@/components/ui/PressableScale";
+import { CompactSelect } from "@/components/ui/CompactSelect";
 import { Colors, Radius } from "@/constants/colors";
 import type { CourtSport } from "@/constants/data";
 import { Typography } from "@/constants/typography";
@@ -58,8 +59,8 @@ export function LiveDot() {
 export function SportLabel({ sport, suffix }: { sport: CourtSport; suffix?: string }) {
   const pickleball = sport === "PICKLEBALL";
   return (
-    <View style={styles.sportRow}>
-      <View style={[styles.sportDot, { backgroundColor: pickleball ? Colors.pickleballMeta : Colors.basketballMeta }]} />
+    <View style={[styles.sportRow, pickleball && styles.sportRowPickleball]}>
+      <View style={[styles.sportDot, { backgroundColor: pickleball ? Colors.pickleballCourt : Colors.basketballMeta }]} />
       <Text numberOfLines={1} style={[styles.sportText, { color: pickleball ? Colors.pickleballLabel : Colors.basketballLabel }]}>
         {pickleball ? "Pickleball" : "Basketball"}
         {suffix ? ` · ${suffix}` : ""}
@@ -142,6 +143,8 @@ export function CourtTitleRow({
   live,
   liveAccessibilityLabel,
   onNavigate,
+  courtSelection,
+  onCourtSelection,
   size = "card",
 }: {
   sport: CourtSport;
@@ -151,6 +154,8 @@ export function CourtTitleRow({
   live: boolean;
   liveAccessibilityLabel?: string;
   onNavigate?: () => void;
+  courtSelection?: { id: string; name: string };
+  onCourtSelection?: (courtId: string) => void;
   size?: "card" | "page";
 }) {
   const page = size === "page";
@@ -161,14 +166,27 @@ export function CourtTitleRow({
     <View style={styles.titleRow}>
       <View style={styles.titleBlock}>
         <SportLabel sport={sport} />
-        <Text
-          adjustsFontSizeToFit
-          minimumFontScale={0.6}
-          numberOfLines={1}
-          style={[styles.titleName, page && styles.titleNamePage]}
-        >
-          {shown}
-        </Text>
+        {courtSelection ? (
+          <CompactSelect
+            accessibilityLabel="Current home court"
+            align="start"
+            dense
+            onChange={onCourtSelection ?? (() => {})}
+            options={[{ label: courtSelection.name, value: courtSelection.id }]}
+            textStyle={[styles.titleName, page && styles.titleNamePage]}
+            value={courtSelection.id}
+            variant="plain"
+          />
+        ) : (
+          <Text
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+            numberOfLines={1}
+            style={[styles.titleName, page && styles.titleNamePage]}
+          >
+            {shown}
+          </Text>
+        )}
         {place ? <Text numberOfLines={1} style={styles.titlePlace}>{place}</Text> : null}
       </View>
       <View
@@ -337,7 +355,11 @@ export function CourtLinkButton({ onPress, courtName, compact = false }: { onPre
       accessibilityHint="Opens the full court page"
       accessibilityLabel={`Open ${courtName}`}
       accessibilityRole="button"
-      onPress={onPress}
+      onPress={(event) => {
+        if (compact) event.stopPropagation();
+        onPress();
+      }}
+      hitSlop={compact ? 14 : undefined}
       style={[styles.action, compact ? styles.courtLinkCompact : styles.courtLink]}
     >
       <Feather color={Colors.text} name="chevron-right" size={compact ? 18 : 24} />
@@ -386,6 +408,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
   },
   sportRow: { flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 1 },
+  sportRowPickleball: { backgroundColor: Colors.pickleballTint, paddingHorizontal: 6, paddingVertical: 3, borderRadius: Radius.chip },
   sportDot: { width: 6, height: 6, borderRadius: 3 },
   sportText: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.5, textTransform: "uppercase", flexShrink: 1 },
   markBox: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
@@ -419,7 +442,7 @@ const styles = StyleSheet.create({
   checkInText: { fontFamily: Typography.bodyBold, fontSize: 12, letterSpacing: 1.7, textTransform: "uppercase", color: Colors.background },
   checkOutText: { flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.liveInk },
   courtLink: { width: 64, height: 50, backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
-  courtLinkCompact: { width: 44, height: 44, backgroundColor: "transparent" },
+  courtLinkCompact: { position: "absolute", right: -18, top: 9, width: 18, height: 24, backgroundColor: "transparent" },
   cellLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   pill: { height: 30, paddingHorizontal: 12, borderRadius: 999, justifyContent: "center", borderWidth: 1, borderColor: "rgba(242,242,246,0.12)" },
   pillActive: { backgroundColor: Colors.tile, borderColor: "rgba(242,242,246,0.2)" },
@@ -444,7 +467,7 @@ const styles = StyleSheet.create({
   },
   titleNamePage: { fontSize: 34, lineHeight: 37, letterSpacing: -1.1 },
   titlePlace: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
-  liveMetricRow: { flexDirection: "row", alignItems: "center" },
+  liveMetricRow: { flexDirection: "row", alignItems: "center", position: "relative" },
   liveBlock: { flexShrink: 0, alignItems: "flex-end", paddingBottom: 1 },
   liveValue: { fontFamily: Typography.headingBold, fontSize: 40, lineHeight: 42, letterSpacing: -1.2, color: Colors.text, fontVariant: ["tabular-nums"] },
   liveValuePage: { fontSize: 46, lineHeight: 48, letterSpacing: -1.4 },

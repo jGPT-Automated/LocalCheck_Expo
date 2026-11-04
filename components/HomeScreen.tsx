@@ -10,7 +10,6 @@ import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
 import { CourtDayPlanner } from "@/components/court/CourtDayPlanner";
 import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewSections";
 import { HomeCourtActions, HomeCourtHero } from "@/components/ui/HomeCourtHero";
-import { nextGameLabel } from "@/lib/nextGameLabel";
 import { ScreenViewport } from "@/components/ui/ScreenViewport";
 import { useBottomFloor } from "@/components/ui/TabFloor";
 import { useToast } from "@/components/ui/Toast";
@@ -20,8 +19,6 @@ import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useCourtCounts, usePresence } from "@/context/CourtPresenceContext";
-import { courtHours, formatCourtHours } from "@/lib/courtHours";
-import { fetchCourtWeekSpans } from "@/services/courtService";
 
 /**
  * Home: one page, no tabs. Only the court name and its numbers stay pinned;
@@ -40,7 +37,7 @@ export function HomeScreen() {
     runs,
     refreshCheckedIn,
   } = useApp();
-  const { roster, localCount } = usePresence(localCourtId);
+  const { roster } = usePresence(localCourtId);
   const liveCounts = useCourtCounts(localCourt ? [localCourt] : []);
   const { user } = useAuth();
   const tabFloor = useBottomFloor();
@@ -51,7 +48,6 @@ export function HomeScreen() {
     scroll.current?.scrollTo({ y: Math.max(0, plannerY.current + selectionBottom - scrollHeight.current + tabFloor + Space.lg), animated: false });
   }, [tabFloor]);
   const [isChecking, setIsChecking] = useState(false);
-  const [hoursLabel, setHoursLabel] = useState("0h");
   const { showToast } = useToast();
 
 
@@ -61,18 +57,6 @@ export function HomeScreen() {
     }, [refreshCheckedIn]),
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!localCourtId) return;
-      let active = true;
-      void fetchCourtWeekSpans(localCourtId).then((spans) => {
-        if (active) setHoursLabel(formatCourtHours(courtHours(spans).hours));
-      });
-      return () => {
-        active = false;
-      };
-    }, [localCourtId]),
-  );
 
   if (!localCourt) {
     return <NoCourtState isSignedIn={Boolean(user)} />;
@@ -133,10 +117,7 @@ export function HomeScreen() {
         <HomeCourtHero
           activeCount={activeLabel}
           court={localCourt}
-          hoursLabel={hoursLabel}
           live={activeTotal > 0}
-          localCount={localCount}
-          nextGame={nextGameLabel(upcoming[0], now)}
           onViewCourt={() => router.push(`/court/${localCourt.id}`)}
         />
         <HomeCourtActions
