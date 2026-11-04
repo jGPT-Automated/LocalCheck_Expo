@@ -40,7 +40,7 @@ export function CompactSelect<T extends string>({
   options: ReadonlyArray<{ label: string; value: T }>;
   onChange: (value: T) => void;
   value: T;
-  variant?: "contained" | "plain";
+  variant?: "contained" | "plain" | "headline";
   dense?: boolean;
   /** Full-width form-field treatment; the menu follows the measured trigger. */
   wide?: boolean;
@@ -82,20 +82,21 @@ export function CompactSelect<T extends string>({
           accessibilityLabel={accessibilityLabel}
           accessibilityRole="button"
           accessibilityState={{ expanded: open }}
-          hitSlop={variant === "plain" ? 4 : 7}
+          hitSlop={variant !== "contained" ? 4 : 7}
           onPress={open ? () => setOpen(false) : openMenu}
           style={({ pressed }) => [
             styles.trigger,
-            variant === "plain" ? styles.triggerPlain : styles.triggerContained,
+            variant !== "contained" ? styles.triggerPlain : styles.triggerContained,
             dense && styles.triggerDense,
             wide && styles.triggerWide,
-            wide && variant === "plain" && styles.triggerPlainWide,
+            wide && variant !== "contained" && styles.triggerPlainWide,
+            variant === "headline" && styles.triggerHeadline,
             pressed && styles.pressed,
           ]}
         >
           <Text
             numberOfLines={1}
-            style={[styles.triggerText, dense && styles.triggerTextDense, wide && styles.triggerTextWide, textStyle]}
+            style={[styles.triggerText, dense && styles.triggerTextDense, wide && styles.triggerTextWide, variant === "headline" && styles.triggerTextHeadline, textStyle]}
           >
             {selected?.label}
           </Text>
@@ -183,6 +184,8 @@ const styles = StyleSheet.create({
     minHeight: Layout.minTouchTarget,
     paddingHorizontal: 14,
   },
+  triggerHeadline: { justifyContent: "flex-start" },
+  triggerTextHeadline: { flex: 0, flexBasis: "auto", flexShrink: 1 },
   triggerPlainWide: { paddingHorizontal: 0 },
   triggerText: {
     flexShrink: 1,

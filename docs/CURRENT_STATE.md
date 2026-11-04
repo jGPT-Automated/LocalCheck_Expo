@@ -5,7 +5,8 @@
   Home/drawer remove the data-only metrics strip, Home adds the real current
   court dropdown, and live navigation shares a compact number/chevron target.
   Small-phone selector text fits the title with its chevron; compact live
-  navigation retains at least 44×48pt in-bounds targets.
+  navigation retains at least 44×48pt in-bounds targets. The name chevron
+  follows its text instead of sitting at the far end of a form field.
   Hour cards keep an independent attendance action and equal reserved people
   and game/Create rows. A cold-load selection reveals only its loaded content;
   drawer expand and court navigation are sibling targets. Scheduled games expand into real four/ten-position

@@ -183,7 +183,7 @@ function NoCourtState({ isSignedIn }: { isSignedIn: boolean }) {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, minHeight: 0 },
-  hereNow: { paddingTop: Space.lg, borderBottomWidth: 1, borderBottomColor: Colors.hairline },
+  hereNow: { paddingTop: Space.lg },
   upNext: { paddingTop: Space.lg },
   today: { paddingHorizontal: Layout.screenGutter, paddingBottom: Space.lg },
   emptyText: {

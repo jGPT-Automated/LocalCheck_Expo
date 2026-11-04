@@ -177,7 +177,7 @@ export function CourtTitleRow({
             options={[{ label: courtSelection.name, value: courtSelection.id }]}
             textStyle={[styles.titleName, page && styles.titleNamePage, page && width < 393 && styles.titleNameSelectorSmall]}
             value={courtSelection.id}
-            variant="plain"
+            variant="headline"
             wide
           />
         ) : (
