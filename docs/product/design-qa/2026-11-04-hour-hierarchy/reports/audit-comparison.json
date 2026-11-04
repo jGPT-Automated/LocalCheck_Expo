@@ -1,0 +1,522 @@
+{
+  "baseline": "96f0c7f",
+  "captureHead": "50746f2",
+  "states": 27,
+  "hardFailures": 0,
+  "statesWithNewDebt": [],
+  "comparison": [
+    {
+      "state": "375x667/home-feed",
+      "before": {
+        "smallText": 10,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "after": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "delta": {
+        "smallText": -10,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "375x667/home-scrolled",
+      "before": {
+        "smallText": 18,
+        "lowContrast": 0,
+        "smallTarget": 1
+      },
+      "after": {
+        "smallText": 18,
+        "lowContrast": 0,
+        "smallTarget": 1
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "375x667/court-week",
+      "before": {
+        "smallText": 6,
+        "lowContrast": 0,
+        "smallTarget": 57
+      },
+      "after": {
+        "smallText": 6,
+        "lowContrast": 0,
+        "smallTarget": 57
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "375x667/court-feed-tomorrow",
+      "before": {
+        "smallText": 6,
+        "lowContrast": 0,
+        "smallTarget": 1
+      },
+      "after": {
+        "smallText": 6,
+        "lowContrast": 0,
+        "smallTarget": 1
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "375x667/court-week-today-card",
+      "before": {
+        "smallText": 24,
+        "lowContrast": 0,
+        "smallTarget": 4
+      },
+      "after": {
+        "smallText": 24,
+        "lowContrast": 0,
+        "smallTarget": 4
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "375x667/schedule-slot",
+      "before": {
+        "smallText": 15,
+        "lowContrast": 0,
+        "smallTarget": 87
+      },
+      "after": {
+        "smallText": 15,
+        "lowContrast": 0,
+        "smallTarget": 87
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "375x667/schedule-mine",
+      "before": {
+        "smallText": 15,
+        "lowContrast": 0,
+        "smallTarget": 88
+      },
+      "after": {
+        "smallText": 15,
+        "lowContrast": 0,
+        "smallTarget": 88
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "375x667/explore-drawer",
+      "before": {
+        "smallText": 5,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "after": {
+        "smallText": 5,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "375x667/explore-drawer-expanded",
+      "before": {
+        "smallText": 8,
+        "lowContrast": 0,
+        "smallTarget": 1
+      },
+      "after": {
+        "smallText": 8,
+        "lowContrast": 0,
+        "smallTarget": 1
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "393x852/home-feed",
+      "before": {
+        "smallText": 18,
+        "lowContrast": 0,
+        "smallTarget": 1
+      },
+      "after": {
+        "smallText": 18,
+        "lowContrast": 0,
+        "smallTarget": 1
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "393x852/home-scrolled",
+      "before": {
+        "smallText": 18,
+        "lowContrast": 0,
+        "smallTarget": 1
+      },
+      "after": {
+        "smallText": 18,
+        "lowContrast": 0,
+        "smallTarget": 1
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "393x852/court-week",
+      "before": {
+        "smallText": 10,
+        "lowContrast": 0,
+        "smallTarget": 58
+      },
+      "after": {
+        "smallText": 10,
+        "lowContrast": 0,
+        "smallTarget": 58
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "393x852/court-feed-tomorrow",
+      "before": {
+        "smallText": 6,
+        "lowContrast": 0,
+        "smallTarget": 1
+      },
+      "after": {
+        "smallText": 6,
+        "lowContrast": 0,
+        "smallTarget": 1
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "393x852/court-week-today-card",
+      "before": {
+        "smallText": 24,
+        "lowContrast": 0,
+        "smallTarget": 18
+      },
+      "after": {
+        "smallText": 24,
+        "lowContrast": 0,
+        "smallTarget": 18
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "393x852/schedule-slot",
+      "before": {
+        "smallText": 15,
+        "lowContrast": 0,
+        "smallTarget": 87
+      },
+      "after": {
+        "smallText": 15,
+        "lowContrast": 0,
+        "smallTarget": 87
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "393x852/schedule-mine",
+      "before": {
+        "smallText": 15,
+        "lowContrast": 0,
+        "smallTarget": 88
+      },
+      "after": {
+        "smallText": 15,
+        "lowContrast": 0,
+        "smallTarget": 88
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "393x852/explore-drawer",
+      "before": {
+        "smallText": 5,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "after": {
+        "smallText": 5,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "393x852/explore-drawer-expanded",
+      "before": {
+        "smallText": 13,
+        "lowContrast": 0,
+        "smallTarget": 2
+      },
+      "after": {
+        "smallText": 13,
+        "lowContrast": 0,
+        "smallTarget": 2
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "430x932/home-feed",
+      "before": {
+        "smallText": 18,
+        "lowContrast": 0,
+        "smallTarget": 1
+      },
+      "after": {
+        "smallText": 18,
+        "lowContrast": 0,
+        "smallTarget": 1
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "430x932/home-scrolled",
+      "before": {
+        "smallText": 18,
+        "lowContrast": 0,
+        "smallTarget": 1
+      },
+      "after": {
+        "smallText": 18,
+        "lowContrast": 0,
+        "smallTarget": 1
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "430x932/court-week",
+      "before": {
+        "smallText": 15,
+        "lowContrast": 0,
+        "smallTarget": 59
+      },
+      "after": {
+        "smallText": 15,
+        "lowContrast": 0,
+        "smallTarget": 59
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "430x932/court-feed-tomorrow",
+      "before": {
+        "smallText": 6,
+        "lowContrast": 0,
+        "smallTarget": 1
+      },
+      "after": {
+        "smallText": 6,
+        "lowContrast": 0,
+        "smallTarget": 1
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "430x932/court-week-today-card",
+      "before": {
+        "smallText": 24,
+        "lowContrast": 0,
+        "smallTarget": 32
+      },
+      "after": {
+        "smallText": 24,
+        "lowContrast": 0,
+        "smallTarget": 32
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "430x932/schedule-slot",
+      "before": {
+        "smallText": 15,
+        "lowContrast": 0,
+        "smallTarget": 3
+      },
+      "after": {
+        "smallText": 15,
+        "lowContrast": 0,
+        "smallTarget": 3
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "430x932/schedule-mine",
+      "before": {
+        "smallText": 15,
+        "lowContrast": 0,
+        "smallTarget": 88
+      },
+      "after": {
+        "smallText": 15,
+        "lowContrast": 0,
+        "smallTarget": 88
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "430x932/explore-drawer",
+      "before": {
+        "smallText": 5,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "after": {
+        "smallText": 5,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    },
+    {
+      "state": "430x932/explore-drawer-expanded",
+      "before": {
+        "smallText": 13,
+        "lowContrast": 0,
+        "smallTarget": 2
+      },
+      "after": {
+        "smallText": 13,
+        "lowContrast": 0,
+        "smallTarget": 2
+      },
+      "delta": {
+        "smallText": 0,
+        "lowContrast": 0,
+        "smallTarget": 0
+      },
+      "hardFailures": []
+    }
+  ]
+}

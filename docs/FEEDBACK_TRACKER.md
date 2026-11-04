@@ -23,10 +23,12 @@ point.
 
 ## 2026-11-03 — selected-hour hierarchy and pickleball comparison
 
-**In progress on PR #90:** remove duplicate selected time/count and the inner
-chart/attendance divider; one day/hour/count header, matching avatar/action
-visual sizes with 44pt targets. Move Home's court navigation beside the live
-count. Compare actual basketball and Candy Cane pickleball renders. Existing
+**On branch PR #90**, application checkpoint `50746f2`: removed duplicate
+selected time/count and the inner chart/attendance divider; one day/hour/count
+header, matching 34pt avatar/action visuals with 44pt targets. Home's court
+navigation is beside the live number, with the full small-phone name retained.
+Actual basketball and populated Candy Cane pickleball renders are compared in
+`docs/product/design-qa/2026-11-04-hour-hierarchy/README.md`. Existing
 palette/art and Court/Schedule behavior are retained. The hourly casual lobby
 and optional ranked choice are **review draft only**, distinct from check-in,
 planned attendance and scheduled-game RSVP; no backend execution authorized.

@@ -1,0 +1,149 @@
+[
+  {
+    "width": 375,
+    "sport": "pickleball",
+    "checks": [
+      {
+        "name": "Home court navigation is beside the live count, above Check in",
+        "passed": true
+      },
+      {
+        "name": "Selected hour has one time/count header above chart and people",
+        "passed": true
+      },
+      {
+        "name": "Pickleball Home selected hour shows the 2/4 scheduled game",
+        "passed": true
+      },
+      {
+        "name": "Selected hour has one time/count header above chart and people",
+        "passed": true
+      },
+      {
+        "name": "Pickleball drawer selected hour shows the 2/4 scheduled game",
+        "passed": true
+      },
+      {
+        "name": "Pickleball court selected hour shows the 2/4 scheduled game",
+        "passed": true
+      }
+    ],
+    "writes": 0,
+    "errors": [],
+    "visual": {
+      "fail": [],
+      "debt": {
+        "smallText": [
+          "Pickleball (9.5px)",
+          "On court (9px)",
+          "Feed (9.5px)",
+          "Schedule (9.5px)",
+          "Players (9.5px)",
+          "Info (9.5px)"
+        ],
+        "lowContrast": [],
+        "smallTarget": [
+          " (38x38)"
+        ]
+      }
+    }
+  },
+  {
+    "width": 393,
+    "sport": "pickleball",
+    "checks": [
+      {
+        "name": "Home court navigation is beside the live count, above Check in",
+        "passed": true
+      },
+      {
+        "name": "Selected hour has one time/count header above chart and people",
+        "passed": true
+      },
+      {
+        "name": "Pickleball Home selected hour shows the 2/4 scheduled game",
+        "passed": true
+      },
+      {
+        "name": "Selected hour has one time/count header above chart and people",
+        "passed": true
+      },
+      {
+        "name": "Pickleball drawer selected hour shows the 2/4 scheduled game",
+        "passed": true
+      },
+      {
+        "name": "Pickleball court selected hour shows the 2/4 scheduled game",
+        "passed": true
+      }
+    ],
+    "writes": 0,
+    "errors": [],
+    "visual": {
+      "fail": [],
+      "debt": {
+        "smallText": [
+          "Pickleball (9.5px)",
+          "On court (9px)",
+          "Feed (9.5px)",
+          "Schedule (9.5px)",
+          "Players (9.5px)",
+          "Info (9.5px)"
+        ],
+        "lowContrast": [],
+        "smallTarget": [
+          " (38x38)"
+        ]
+      }
+    }
+  },
+  {
+    "width": 430,
+    "sport": "pickleball",
+    "checks": [
+      {
+        "name": "Home court navigation is beside the live count, above Check in",
+        "passed": true
+      },
+      {
+        "name": "Selected hour has one time/count header above chart and people",
+        "passed": true
+      },
+      {
+        "name": "Pickleball Home selected hour shows the 2/4 scheduled game",
+        "passed": true
+      },
+      {
+        "name": "Selected hour has one time/count header above chart and people",
+        "passed": true
+      },
+      {
+        "name": "Pickleball drawer selected hour shows the 2/4 scheduled game",
+        "passed": true
+      },
+      {
+        "name": "Pickleball court selected hour shows the 2/4 scheduled game",
+        "passed": true
+      }
+    ],
+    "writes": 0,
+    "errors": [],
+    "visual": {
+      "fail": [],
+      "debt": {
+        "smallText": [
+          "Pickleball (9.5px)",
+          "On court (9px)",
+          "Feed (9.5px)",
+          "Schedule (9.5px)",
+          "Players (9.5px)",
+          "Info (9.5px)"
+        ],
+        "lowContrast": [],
+        "smallTarget": [
+          " (38x38)"
+        ]
+      }
+    }
+  }
+]

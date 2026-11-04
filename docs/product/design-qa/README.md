@@ -63,3 +63,14 @@ Baseline `19dac69` (merged PR #89); actual capture heads and journey results
 are retained in that entry. This adds the boxed shared planner, attendance
 plus/check and square timeline stacks/inline game RSVP. Five-court storage
 and rolling lobbies remain review drafts; no backend changes were executed.
+
+
+## 2026-11-04 — PR #90 refinement, one selected-hour header
+
+[Paired basketball/pickleball Home and drawer renders](2026-11-04-hour-hierarchy/README.md).
+Baseline `96f0c7f`; final capture `50746f2`. One selected day/hour/count header,
+matching avatar/attendance visual sizes with 44pt targets, and Home navigation
+beside the live number. Candy Cane includes a four-player scheduled-game
+fixture. All three phone sizes, 54 interaction assertions, the rapid-day
+regression and scoped 27-state audit are retained. The hourly casual lobby
+remains a separate backend review draft; no live writes or release.

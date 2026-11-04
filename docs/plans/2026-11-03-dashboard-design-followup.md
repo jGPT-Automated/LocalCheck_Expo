@@ -28,7 +28,7 @@ references, retaining D65's court header/art. No new visual direction.
 | Shared charcoal/orange system, graph-end arrows, one day label | Retain tokens/arrows; add planner panel only |
 | Side-by-side visual history for every frontend PR | PR template, contributor rules and retained index |
 | LocalPlus five-court list, default/reorder, Home/Schedule dropdown, nested Settings toggles | Draft backend/frontend contract for review; not represented as shipped |
-| Home header live-count navigation / saved-court selector | Header/list follow-up; selector uses the reviewed saved-court contract |
+| Home header live-count navigation / saved-court selector | Live-count link implemented in this refinement; selector still awaits the reviewed saved-court contract |
 | Actual scheduled game 10/4-slot visual | Next frontend slice using existing capacity and participants |
 | Drawer one-root-scroller / fixed inner-window removal | Separate frontend slice; this checkpoint removes unsolicited resnap-close only |
 | Hourly open-run lobby/queue and end-of-game progression | Separate backend review; do not turn planned visits into game membership |
@@ -50,10 +50,10 @@ references, retaining D65's court header/art. No new visual direction.
 - [x] Capture baseline Home/drawer/selected hour/court future rows at
   375×667, 393×852 and 430×932 with all app backend traffic intercepted.
 - [x] Wrap shared CourtDayPlanner chart/selected slot in one charcoal panel;
-  render non-compact selected slot, separated by a hairline. Move next-game
+  render non-compact selected slot. The initial hairline/duplicate heading is superseded by the refinement below. Move next-game
   section after the planner on Home and drawer, and reveal the selected slot
   using its measured position instead of scrolling to the page end.
-- [x] Update SlotCard's existing attendance action to a 44pt Feather plus/check
+- [x] Update SlotCard's existing attendance action to a 34pt Feather plus/check surface within a 44pt
   control with busy/selected semantics and accessible add/remove names. Keep
   error and retry behavior. Compact rows show up to three overlapping square
   avatars with count/names; hidden people contribute only an anonymous count.
