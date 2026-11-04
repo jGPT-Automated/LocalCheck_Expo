@@ -61,6 +61,8 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
     for (const id of ['qkrnmyexzvaxiqfxwwfb', 'ci-placeholder']) localStorage.setItem(`sb-${id}-auth-token`, JSON.stringify(session));
   }, SESSION);
   let failSave = false, failLoad = false, writes = 0;
+  let holdLoad = false, releaseLoad;
+  const loadGate = new Promise(resolve => { releaseLoad = resolve; });
   const errors = [];
   const checks = [];
   const check = async (name, fn) => { try { await fn(); checks.push({name, passed:true}); console.log(`PASS ${width} ${name}`); } catch(e) { checks.push({name, passed:false, error:String(e.message).slice(0,450)}); console.log(`FAIL ${width} ${name}: ${String(e.message).slice(0,250)}`); } };
@@ -83,6 +85,7 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
       tables.planned_visits = tables.planned_visits.filter((v) => v.id !== id);
       result = { status: 204, body: '' };
     } else if (url.includes('/rest/v1/rpc/court_planned_times')) {
+      if (holdLoad) await loadGate;
       if (failLoad) result = { status: 503, body: JSON.stringify({ message: 'Fixture unavailable' }) };
       else {
         const params = req.postDataJSON();
@@ -98,6 +101,11 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
   page.on('pageerror', (e) => errors.push(String(e)));
   const open = async (path) => { await page.goto(base + path, { waitUntil: 'networkidle' }); await page.waitForTimeout(2600); };
   const shot = async (name) => { await page.screenshot({ path: `${out}/${name}-${width}.png` }); };
+  const revealRoster = async (locator) => locator.evaluate(e => {
+    const b=e.getBoundingClientRect(); let parent=e.parentElement;
+    while(parent && !(parent.scrollHeight>parent.clientHeight+10 && parent.clientHeight>100))parent=parent.parentElement;
+    if(parent)parent.scrollTop += Math.max(0,b.bottom-(innerHeight-96));
+  });
   const scrub = async (hour, drag = false) => {
     const b = await page.getByTestId('court-time-chart').boundingBox();
     const x = b.x + (hour - 6 + .5) / 17 * b.width, y = b.y + 20;
@@ -163,6 +171,7 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
       await assertGame(page.getByTestId('selected-court-hour'));
     });
     await page.getByTestId('selected-court-hour').getByRole('button',{name:'Expand PICKLEBALL GAME',exact:true}).click();
+    await revealRoster(page.getByTestId('game-roster-dddddddd-5555-4555-8555-555555555555'));
     await shot('pickleball-home-roster');
     await check('Pickleball roster has four positions with supplied green open spots', async()=>{
       const roster=page.getByTestId('game-roster-dddddddd-5555-4555-8555-555555555555');
@@ -209,6 +218,7 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
   });
   const filledHeight=(await selectedSlot.boundingBox()).height;
   await selectedSlot.getByRole('button',{name:'Expand CHATGPT',exact:true}).click();
+  await revealRoster(selectedSlot.getByTestId('game-roster-e5e5e5e5-5555-4555-8555-555555555555'));
   await shot('home-roster');
   await check('Basketball roster has ten actual occupied/open positions and collapses',async()=>{
     const roster=selectedSlot.getByTestId('game-roster-e5e5e5e5-5555-4555-8555-555555555555');
@@ -285,6 +295,36 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
     const privateText=page.getByTestId('activity-hour-20').getByText('1 private',{exact:true});
     assert.match(await privateText.getAttribute('aria-label') ?? '', /1 private/);
   });
+  await open('/schedule');
+  await page.getByTestId('heat-0-16').click(); await page.waitForTimeout(750);
+  const scheduleCard=page.getByTestId('court-hour-card');
+  const populatedHeight=(await scheduleCard.boundingBox()).height;
+  await shot('schedule-filled');
+  await page.getByTestId('heat-0-15').click(); await page.waitForTimeout(750);
+  await shot('schedule-empty');
+  await check('Schedule empty and game hours reserve equal card heights and same-height actions',async()=>{
+    assert.ok(Math.abs((await scheduleCard.boundingBox()).height-populatedHeight)<=1);
+    for(const label of ['Create a game',"I'm going"]) {
+      const button=scheduleCard.getByRole('button',{name:label,exact:true});
+      const b=await button.evaluate(e=>({touch:e.getBoundingClientRect().height,visual:e.firstElementChild.getBoundingClientRect().height}));
+      assert.equal(b.visual,34);assert.ok(b.touch>=44);
+    }
+  });
+  if(width===393) {
+    holdLoad=true;
+    await page.goto(base+'/',{waitUntil:'domcontentloaded'});
+    await page.getByTestId('court-time-chart').waitFor();
+    await page.evaluate(()=>{for(const e of document.querySelectorAll('*'))if(e.scrollHeight>e.clientHeight+50&&e.clientHeight>200)e.scrollTop=e.scrollHeight;});
+    await scrub(20);
+    releaseLoad();holdLoad=false;
+    const cold=page.getByTestId('selected-court-hour');
+    await cold.getByRole('button',{name:'Open CHATGPT',exact:true}).waitFor();
+    await page.waitForTimeout(350);
+    await check('A selection made before activity loads reveals the ready controls above tab floor',async()=>{
+      const b=await cold.boundingBox();assert.ok(b.y+b.height<=height-88);
+    });
+    await shot('home-cold-ready');
+  }
   const visual=await page.evaluate(`(${audit})()`);
   assert.deepEqual(errors,[]); assert.deepEqual(visual.fail,[]);
   report.push({width,checks,writes,errors,visual}); await context.close();

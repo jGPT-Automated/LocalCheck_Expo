@@ -264,32 +264,32 @@ function GameRoster({ game, onPlayer, onSpot, spotLabel, disabled, joining }: {
   const spot = (i: number) => (
     <RosterOpen key={`open-${i}`} sport={game.sport} onPress={onSpot} label={spotLabel} disabled={disabled} joining={joining} />
   );
-  const row = (key: string, contents: React.ReactNode[]) => (
+  const row = (key: string, contents: React.ReactNode[], columns = width) => (
     <View key={key} style={styles.rosterGridRow}>
       {contents}
-      {Array.from({ length: Math.max(0, width - contents.length) }, (_, i) => <View key={`space-${i}`} style={styles.rosterCell} />)}
+      {Array.from({ length: Math.max(0, columns - contents.length) }, (_, i) => <View key={`space-${i}`} style={styles.rosterCell} />)}
     </View>
   );
-  const rows = (key: string, contents: React.ReactNode[]) => {
+  const rows = (key: string, contents: React.ReactNode[], columns = width) => {
     const result = [];
-    for (let i = 0; i < contents.length; i += width) result.push(row(`${key}-${i}`, contents.slice(i, i + width)));
+    for (let i = 0; i < contents.length; i += columns) result.push(row(`${key}-${i}`, contents.slice(i, i + columns), columns));
     return result;
   };
   const allAssigned = unassigned.length === 0;
   let remainingVacancies = vacancies;
   return (
     <View testID={`game-roster-${game.id}`} style={styles.roster}>
-      {assigned.length > 0 ? sides.map((side) => {
+      {assigned.length > 0 ? <View style={game.maxPlayers <= 4 ? styles.smallTeams : undefined}>{sides.map((side) => {
         const players = assigned.filter((p) => game.participantSides[p.id] === side);
         const openCount = allAssigned ? Math.min(remainingVacancies, Math.max(0, width - players.length)) : 0;
         remainingVacancies -= openCount;
         if (!players.length && !openCount) return null;
-        return <View key={side}><Text style={styles.rosterLabel}>Team {side.toUpperCase()}</Text>{rows(side, [...players.map(player), ...Array.from({ length: openCount }, (_, i) => spot(i))])}</View>;
-      }) : null}
+        return <View key={side} style={game.maxPlayers <= 4 ? styles.smallTeam : undefined}><Text style={styles.rosterLabel}>Team {side.toUpperCase()}</Text>{rows(side, [...players.map(player), ...Array.from({ length: openCount }, (_, i) => spot(i))])}</View>;
+      })}</View> : null}
       {unassigned.length || !assigned.length ? (
         <View>
           {assigned.length ? <Text style={styles.rosterLabel}>Unassigned</Text> : null}
-          {rows("unassigned", [...unassigned.map(player), ...Array.from({ length: vacancies }, (_, i) => spot(i))])}
+          {rows("unassigned", [...unassigned.map(player), ...Array.from({ length: vacancies }, (_, i) => spot(i))], game.maxPlayers <= 4 ? game.maxPlayers : width)}
         </View>
       ) : null}
     </View>
@@ -338,6 +338,8 @@ const styles = StyleSheet.create({
   timelineJoin: { minWidth: 64, height: 34, paddingHorizontal: 10, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.hairlineChrome, borderRadius: Radius.button },
   timelineJoinText: { fontFamily: Typography.bodyBold, fontSize: 11, textTransform: "uppercase", color: Colors.text },
   roster: { paddingVertical: 8, gap: 8 },
+  smallTeams: { flexDirection: "row", gap: 12 },
+  smallTeam: { flex: 1, flexBasis: 0, minWidth: 0 },
   rosterGridRow: { flexDirection: "row", alignItems: "flex-start" },
   rosterCell: { flex: 1, flexBasis: 0, minWidth: 0, alignItems: "center" },
   rosterTouch: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },

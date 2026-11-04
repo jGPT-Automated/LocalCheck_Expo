@@ -86,6 +86,10 @@ for (const vp of VIEWPORTS.filter((v) => !sizes || sizes.includes(v.name))) {
     setOnboarding(Boolean(screen.onboarding));
     await page.goto(`${base}${screen.path}`, { waitUntil: "networkidle" }).catch(() => {});
     await page.waitForTimeout(4500);
+    // A cold font/auth startup can outlast the fixed delay. Never audit the
+    // launch mark as if it were a loaded Home or Schedule screen.
+    if (screen.path === "/") await page.getByTestId("court-day-planner").waitFor({ timeout: 15000 });
+    if (screen.path === "/schedule") await page.getByTestId("heat-0-0").waitFor({ state: "attached", timeout: 15000 });
     for (const a of screen.actions ?? []) {
       try {
         if (a.click) await page.getByText(a.click, { exact: a.exact ?? true }).first().click({ timeout: 4000 });

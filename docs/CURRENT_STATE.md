@@ -9,7 +9,9 @@
   Hour cards keep an independent attendance action and equal reserved people
   and game/Create rows. A cold-load selection reveals only its loaded content;
   drawer expand and court navigation are sibling targets. Scheduled games expand into real four/ten-position
-  rosters, with open spots using existing RSVP/team-choice behavior.
+  rosters, with open spots using existing RSVP/team-choice behavior. Small
+  four-player rosters put the two recorded sides beside each other; basketball
+  keeps two rows of five positions.
   Multi-court storage and recurring casual lobbies remain backend review
   drafts; catalog reads only, no Supabase write/probe/deployment.
 

@@ -168,7 +168,7 @@ export function SlotCard({
       </View>
     );
   return (
-    <View style={[styles.card, embedded && styles.embedded]}>
+    <View testID="court-hour-card" style={[styles.card, embedded && styles.embedded]}>
       {!embedded ? (
         <View style={styles.head}>
           <Text numberOfLines={1} style={styles.title}>
