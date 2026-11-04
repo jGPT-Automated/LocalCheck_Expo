@@ -320,9 +320,14 @@ try {
       await open('/schedule'); await page.getByTestId('heat-0-16').click();
       const slot=page.getByTestId('court-hour-card');
       await slot.getByRole('button',{name:'Expand CHATGPT',exact:true}).click();
+      failNextJoin=true;
+      await slot.getByTestId('game-open-spot').first().click();
+      await page.getByText('Something went wrong. Try again.',{exact:true}).waitFor();
+      assert.ok(!participantIds(RUN5V5).includes(ME));
       await slot.getByTestId('game-open-spot').first().click();
       await slot.getByRole('button',{name:'Open CHATGPT',exact:true}).waitFor();
-      assert.equal(joinCalls.length,1);assert.ok(participantIds(RUN5V5).includes(ME));
+      await page.getByText('Something went wrong. Try again.',{exact:true}).waitFor({state:'hidden'});
+      assert.equal(joinCalls.length,2);assert.ok(participantIds(RUN5V5).includes(ME));
       assert.deepEqual(errors,[]);assert.deepEqual(unexpectedWrites,[]);
       await capture('schedule-spot-joined');
       return {rpcCalls:joinCalls,member:ME};

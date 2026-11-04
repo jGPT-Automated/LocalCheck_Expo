@@ -620,6 +620,7 @@ export default function ScheduleScreen() {
   const joinFromCard = async (game: GameRun) => {
     if (joinFromCardLock.current) return;
     joinFromCardLock.current = true;
+    setSaveNotice(null);
     setJoiningRunId(game.id);
     try {
       if (!(await joinRun(game.id))) setSaveNotice("Something went wrong. Try again.");
