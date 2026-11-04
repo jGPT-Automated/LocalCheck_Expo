@@ -31,6 +31,21 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
     assert.ok(viewer && source, 'Viewer and 8 PM source game exist');
     viewer.local_court_id = selectedCourt;
     viewer.preferred_sport = 'pickleball';
+    // Move existing live check-ins so each fixture player is present at one
+    // court only. The mock has check_ins; it has no court_sessions table.
+    const present = tables.check_ins.filter((row) => row.court_id === COURT && !row.checked_out_at).slice(0, 3);
+    assert.equal(present.length, 3);
+    for (const row of present) {
+      row.court_id = selectedCourt;
+      const player = tables.profiles.find((p) => p.id === row.user_id);
+      assert.ok(player);
+      player.local_court_id = selectedCourt;
+      player.preferred_sport = 'pickleball';
+    }
+    for (const table of [tables.courts, tables.courts_with_stats]) {
+      table.find((court) => court.id === selectedCourt).active_check_in_count = 3;
+      table.find((court) => court.id === COURT).active_check_in_count = 1;
+    }
     const id = 'dddddddd-5555-4555-8555-555555555555';
     tables.runs.push({ ...structuredClone(source), id, court_id: selectedCourt, title: 'Pickleball game', max_players: 4 });
     const players = tables.run_participants.filter((p) => p.run_id === source.id).slice(0, 2);
