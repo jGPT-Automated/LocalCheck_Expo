@@ -146,6 +146,7 @@ export function CourtTitleRow({
   onNavigate,
   courtSelection,
   onCourtSelection,
+  onExpand,
   size = "card",
 }: {
   sport: CourtSport;
@@ -157,6 +158,7 @@ export function CourtTitleRow({
   onNavigate?: () => void;
   courtSelection?: { id: string; name: string };
   onCourtSelection?: (courtId: string) => void;
+  onExpand?: () => void;
   size?: "card" | "page";
 }) {
   const page = size === "page";
@@ -164,9 +166,7 @@ export function CourtTitleRow({
   // A long name loses its trailing "Courts" / "Court" rather than ending in
   // "…" ("SAND BRANCH COURTS" reads as "SAND BRANCH").
   const shown = name.length > 14 ? name.replace(/\s+courts?$/i, "") : name;
-  return (
-    <View style={[styles.titleRow, courtSelection && styles.titleRowSelectable]}>
-      <View style={styles.titleBlock}>
+  const titleContent = (<>
         <SportLabel sport={sport} />
         {courtSelection ? (
           <CompactSelect
@@ -191,6 +191,15 @@ export function CourtTitleRow({
           </Text>
         )}
         {place ? <Text numberOfLines={1} style={styles.titlePlace}>{place}</Text> : null}
+  </>);
+  return (
+    <View style={[styles.titleRow, courtSelection && styles.titleRowSelectable]}>
+      <View style={styles.titleBlock}>
+        {onExpand ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={`${name}, expand`} accessibilityHint="Shows who's here, games and today's plans" onPress={onExpand} style={styles.titleTrigger}>
+            {titleContent}
+          </Pressable>
+        ) : titleContent}
       </View>
       <View
         accessibilityLabel={onNavigate ? undefined : liveAccessibilityLabel ?? `${liveValue} on court`}
@@ -462,6 +471,7 @@ const styles = StyleSheet.create({
   pillText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.textSecondary },
   pillTextActive: { color: Colors.text },
   titleRow: { flexDirection: "row", alignItems: "flex-end", gap: 16, paddingHorizontal: 20 },
+  titleTrigger: { gap: 6 },
   titleRowSelectable: { gap: 8 },
   titleNameSelectorSmall: { fontSize: 32, lineHeight: 37 },
   titleBlock: { flex: 1, minWidth: 0, gap: 6 },

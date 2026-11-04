@@ -141,6 +141,7 @@ export function HomeScreen() {
         </View>
         <View style={styles.upNext}>
           <UpNextSection
+            key={upcoming[0]?.id ?? "no-upcoming-game"}
             onPlayer={(id) => router.push(`/player/${id}`)}
             onOpenRun={(id) => router.push(`/run/${id}`)}
             upcoming={upcoming}

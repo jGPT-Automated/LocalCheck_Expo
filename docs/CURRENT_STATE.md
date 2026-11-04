@@ -7,7 +7,8 @@
   Small-phone selector text fits the title with its chevron; compact live
   navigation retains at least 44×48pt in-bounds targets.
   Hour cards keep an independent attendance action and equal reserved people
-  and game/Create rows. Scheduled games expand into real four/ten-position
+  and game/Create rows. A cold-load selection reveals only its loaded content;
+  drawer expand and court navigation are sibling targets. Scheduled games expand into real four/ten-position
   rosters, with open spots using existing RSVP/team-choice behavior.
   Multi-court storage and recurring casual lobbies remain backend review
   drafts; catalog reads only, no Supabase write/probe/deployment.

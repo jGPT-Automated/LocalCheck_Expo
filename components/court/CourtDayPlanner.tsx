@@ -52,8 +52,9 @@ export function CourtDayPlanner({
       />
       {picked ? (
         <View
-          key={`${picked.dayOffset}-${picked.hour}`}
+          key={`${court.id}:${picked.dayOffset}:${picked.hour}:${data.ready ? "ready" : "loading"}`}
           onLayout={(event) => {
+            if (!data.ready) return;
             const key = `${court.id}:${picked.dayOffset}:${picked.hour}`;
             if (revealedFor.current === key) return;
             revealedFor.current = key;

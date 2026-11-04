@@ -172,25 +172,18 @@ export function CourtSheetContent({
           onPeekHeight(height);
         }}
       >
-        <Pressable
-          accessibilityHint="Shows who's here, games and today's plans"
-          accessibilityLabel={`${name}, expand`}
-          onPress={onExpand}
-        >
           <View style={styles.title}>
             <CourtTitleRow
               live={live}
               liveValue={activeCount}
               name={name}
+              onExpand={onExpand}
               onNavigate={() => go(gated ? "/localplus" : `/court/${court.id}`)}
               place={place || undefined}
               size="page"
               sport={court.sport}
             />
           </View>
-
-        </Pressable>
-
         <View style={styles.actions}>
           <View style={styles.checkSlot}>
             <CheckInButton
@@ -234,6 +227,7 @@ export function CourtSheetContent({
               onReveal={(selectionBottom) => detailScroll.current?.scrollTo({ y: Math.max(0, plannerY.current + selectionBottom - detailHeight + bottom + 20), animated: false })} />
           </View>
           <UpNextSection
+            key={upcoming[0]?.id ?? "no-upcoming-game"}
             onPlayer={(id) => go(`/player/${id}`)}
             onOpenRun={(id) => go(`/run/${id}`)}
             onSeeAll={() => go(`/court/${court.id}?tab=games`)}
