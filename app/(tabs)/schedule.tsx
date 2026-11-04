@@ -36,10 +36,9 @@ import { SearchField } from "@/components/ui/SearchField";
 import { useBottomFloor } from "@/components/ui/TabFloor";
 import {
   scheduleSlotIndex,
-  SCHEDULE_WINDOW_ROWS,
-  SCHEDULE_WINDOW_STARTS,
+  scheduleGridLayout,
+  scheduleGridStart,
   scheduleSlotLabel,
-  scheduleWindowForHour,
   SLOT_HOURS,
 } from "@/components/schedule/scheduleModel";
 import { Typography } from "@/constants/typography";
@@ -599,20 +598,18 @@ export default function ScheduleScreen() {
   const { top, bottom } = useSafeAreaInsets();
   const tabFloor = useBottomFloor();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  // One 12-hour window fills the space the slot card and chrome leave; the
-  // heat map snaps between the morning and the evening window.
+  // Fit whole rows in the space left by the slot card without shrinking cells.
   const [gridHeight, setGridHeight] = useState(0);
-  const rowPitch = gridHeight
-    ? Math.max(20, Math.floor(gridHeight / SCHEDULE_WINDOW_ROWS))
-    : Math.max(22, Math.min(36, Math.floor((screenHeight - top - tabFloor - SCHEDULE_CHROME) / SCHEDULE_WINDOW_ROWS)));
-  // Snap: when a flick settles, land on the nearer window (works on web too,
-  // where snapToOffsets is ignored).
+  const grid = scheduleGridLayout(gridHeight || Math.max(48, screenHeight - top - tabFloor - SCHEDULE_CHROME));
+  const { rowPitch } = grid;
+  // Snap to overlapping windows, preserving the visible hour across resizes.
   const heatScrollRef = useRef<ScrollView>(null);
+  const heatTopRow = useRef<number | undefined>(undefined);
   const snapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settleHeat = (y: number) => {
     if (snapTimer.current) clearTimeout(snapTimer.current);
     snapTimer.current = setTimeout(() => {
-      const offsets = SCHEDULE_WINDOW_STARTS.map((start) => start * rowPitch);
+      const offsets = grid.starts.map((start) => start * rowPitch);
       const target = offsets.reduce((best, o) => (Math.abs(o - y) < Math.abs(best - y) ? o : best), offsets[0]);
       if (Math.abs(target - y) > 1) heatScrollRef.current?.scrollTo({ y: target, animated: true });
     }, 90);
@@ -1105,17 +1102,21 @@ export default function ScheduleScreen() {
             style={styles.gridArea}
           >
           <ScrollView
-            onScroll={(e) => settleHeat(e.nativeEvent.contentOffset.y)}
+            onScroll={(e) => {
+              const y = e.nativeEvent.contentOffset.y;
+              heatTopRow.current = y / rowPitch;
+              settleHeat(y);
+            }}
             ref={heatScrollRef}
             scrollEventThrottle={16}
             contentContainerStyle={styles.timeRows}
-            contentOffset={{ x: 0, y: SCHEDULE_WINDOW_STARTS[scheduleWindowForHour(new Date().getHours())] * rowPitch }}
+            contentOffset={{ x: 0, y: scheduleGridStart(grid, new Date().getHours(), heatTopRow.current) * rowPitch }}
             decelerationRate="fast"
-            key={`window-${rowPitch}`}
+            key={`window-${rowPitch}-${grid.visibleRows}`}
             nestedScrollEnabled
             showsVerticalScrollIndicator={false}
-            snapToOffsets={SCHEDULE_WINDOW_STARTS.map((start) => start * rowPitch)}
-            style={{ height: SCHEDULE_WINDOW_ROWS * rowPitch, flexGrow: 0 }}
+            snapToOffsets={grid.starts.map((start) => start * rowPitch)}
+            style={{ height: grid.viewportHeight, flexGrow: 0 }}
             testID="schedule-heat-scroll"
           >
             {SLOT_HOURS.map((h, slotIdx) => (
