@@ -5,6 +5,7 @@
   day/time/count header, removes the duplicate lower heading and dividing rule,
   and keeps a 34pt plus/check surface within a 44pt touch target. Home opens
   Court beside the live count instead of a large button beside Check in.
+  The link shares the number row, preserving the small-phone court-name width.
   Candy Cane pickleball joins basketball in the isolated visual comparison.
   The recurring hourly casual lobby remains a separate review draft; it is
   not backed by planned visits or deployed scheduled-game RPC behavior.
