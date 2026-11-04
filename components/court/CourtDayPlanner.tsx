@@ -27,8 +27,10 @@ export function CourtDayPlanner({
   onCreateGame?: () => void;
 }) {
   const data = useCourtActivity(court.id, liveCount);
+  const revealedFor = React.useRef<string | null>(null);
   const [picked, setPicked] = React.useState<CourtHourPick | null>(null);
   React.useEffect(() => setPicked(null), [court.id]);
+  React.useEffect(() => { if (!picked) revealedFor.current = null; }, [picked]);
   return (
     <View testID="court-day-planner" style={styles.panel}>
       <CourtBusyChart
@@ -51,11 +53,12 @@ export function CourtDayPlanner({
       {picked ? (
         <View
           key={`${picked.dayOffset}-${picked.hour}`}
-          onLayout={(event) =>
-            onReveal?.(
-              event.nativeEvent.layout.y + event.nativeEvent.layout.height + 14,
-            )
-          }
+          onLayout={(event) => {
+            const key = `${court.id}:${picked.dayOffset}:${picked.hour}`;
+            if (revealedFor.current === key) return;
+            revealedFor.current = key;
+            onReveal?.(event.nativeEvent.layout.y + event.nativeEvent.layout.height + 14);
+          }}
           testID="selected-court-hour"
         >
           <HourSlotCard

@@ -4,6 +4,8 @@
   pickleball green/wash is used for sport identity and real vacant game spots.
   Home/drawer remove the data-only metrics strip, Home adds the real current
   court dropdown, and live navigation shares a compact number/chevron target.
+  Small-phone selector text fits the title with its chevron; compact live
+  navigation retains at least 44×48pt in-bounds targets.
   Hour cards keep an independent attendance action and equal reserved people
   and game/Create rows. Scheduled games expand into real four/ten-position
   rosters, with open spots using existing RSVP/team-choice behavior.

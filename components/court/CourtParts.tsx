@@ -12,6 +12,7 @@ import {
   StyleSheet,
   Text,
   type TextStyle,
+  useWindowDimensions,
   View,
 } from "react-native";
 
@@ -159,11 +160,12 @@ export function CourtTitleRow({
   size?: "card" | "page";
 }) {
   const page = size === "page";
+  const { width } = useWindowDimensions();
   // A long name loses its trailing "Courts" / "Court" rather than ending in
   // "…" ("SAND BRANCH COURTS" reads as "SAND BRANCH").
   const shown = name.length > 14 ? name.replace(/\s+courts?$/i, "") : name;
   return (
-    <View style={styles.titleRow}>
+    <View style={[styles.titleRow, courtSelection && styles.titleRowSelectable]}>
       <View style={styles.titleBlock}>
         <SportLabel sport={sport} />
         {courtSelection ? (
@@ -173,7 +175,7 @@ export function CourtTitleRow({
             dense
             onChange={onCourtSelection ?? (() => {})}
             options={[{ label: courtSelection.name, value: courtSelection.id }]}
-            textStyle={[styles.titleName, page && styles.titleNamePage]}
+            textStyle={[styles.titleName, page && styles.titleNamePage, page && width < 393 && styles.titleNameSelectorSmall]}
             value={courtSelection.id}
             variant="plain"
             wide
@@ -452,7 +454,7 @@ const styles = StyleSheet.create({
   checkInText: { fontFamily: Typography.bodyBold, fontSize: 12, letterSpacing: 1.7, textTransform: "uppercase", color: Colors.background },
   checkOutText: { flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.liveInk },
   courtLink: { width: 64, height: 50, backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
-  courtLinkCompact: { minHeight: 48, backgroundColor: "transparent", gap: 2 },
+  courtLinkCompact: { minWidth: 44, minHeight: 48, backgroundColor: "transparent", gap: 2 },
   cellLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   pill: { height: 30, paddingHorizontal: 12, borderRadius: 999, justifyContent: "center", borderWidth: 1, borderColor: "rgba(242,242,246,0.12)" },
   pillActive: { backgroundColor: Colors.tile, borderColor: "rgba(242,242,246,0.2)" },
@@ -460,6 +462,8 @@ const styles = StyleSheet.create({
   pillText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.textSecondary },
   pillTextActive: { color: Colors.text },
   titleRow: { flexDirection: "row", alignItems: "flex-end", gap: 16, paddingHorizontal: 20 },
+  titleRowSelectable: { gap: 8 },
+  titleNameSelectorSmall: { fontSize: 32, lineHeight: 37 },
   titleBlock: { flex: 1, minWidth: 0, gap: 6 },
   titleName: {
     // Oswald's line box carries more space above the caps than below; this

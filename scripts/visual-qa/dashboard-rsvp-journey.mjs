@@ -248,8 +248,10 @@ try {
       const join = row.getByRole('button', { name: 'Join CHATGPT', exact: true });
       await capture('join-before');
       const before = structuredClone(tables);
+      await row.getByRole('button',{name:'Expand CHATGPT',exact:true}).click();
+      const spot=row.getByTestId('game-open-spot').first();
       failNextJoin = true;
-      await join.click();
+      await spot.click();
       await row.getByText('Something went wrong. Try again.', { exact: true }).waitFor();
       assert.equal(joinCalls.length, 1, 'failed click called join_scheduled_game once');
       assert.equal(joinCalls[0].runId, RUN5V5);
@@ -258,8 +260,8 @@ try {
         assert.deepEqual(tables[key], before[key], `failed join leaves fixture table ${key} unchanged`);
       }
       await capture('join-error');
-      await join.click();
-      await row.getByRole('button', { name: "You're going", exact: true }).waitFor();
+      await spot.click();
+      await row.getByRole('button', { name: 'Open CHATGPT', exact: true }).waitFor();
       assert.equal(joinCalls.length, 2, 'one failed call and one retry');
       assert.deepEqual(joinCalls.map((call) => call.outcome), ['fixture failure', 'fixture success']);
       assert.equal(joinCalls.filter((call) => call.outcome === 'fixture success').length, 1);
@@ -304,6 +306,7 @@ try {
       await row.getByRole('button', { name: 'Join CHATGPT', exact: true }).waitFor();
       await row.getByRole('button', { name: 'Join CHOOSE TEAMS', exact: true }).waitFor();
       await row.getByText(new RegExp(longFirstAttendee.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))).waitFor();
+      await row.getByRole('button',{name:'Expand CHATGPT',exact:true}).click();
       const visual = await capture('two-games-long-attendee');
       assert.equal(joinCalls.length, 0, 'rendering game cards made no join RPC');
       const actualText = await row.innerText();

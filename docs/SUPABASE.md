@@ -1,5 +1,15 @@
 # Supabase workflow
 
+## November 4 read-only UI contract recheck
+
+Catalog column/signature SELECTs confirm that profiles still have one
+`local_court_id`, and scheduled runs/participants remain the current RSVP
+contract; no saved-court or lobby RPC appeared in the inspected public
+signatures. No player rows, write RPC probes, migrations or deployments.
+The proposed API shapes are recorded for review in the existing multi-court
+backend draft. A one-item Home dropdown and actual scheduled-game roster do
+not imply those proposed APIs are installed.
+
 ## November 3 read-only design grounding
 
 LocalCheckProd (`qkrnmyexzvaxiqfxwwfb`) was inspected through catalog SELECTs:
