@@ -65,7 +65,7 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
   const loadGate = new Promise(resolve => { releaseLoad = resolve; });
   const errors = [];
   const checks = [];
-  const check = async (name, fn) => { try { await fn(); checks.push({name, passed:true}); console.log(`PASS ${width} ${name}`); } catch(e) { checks.push({name, passed:false, error:String(e.message).slice(0,450)}); console.log(`FAIL ${width} ${name}: ${String(e.message).slice(0,250)}`); } };
+  const check = async (name, fn) => { try { const evidence=await fn(); checks.push({name, passed:true,...(evidence?{evidence}:{})}); console.log(`PASS ${width} ${name}`); } catch(e) { checks.push({name, passed:false, error:String(e.message).slice(0,450)}); console.log(`FAIL ${width} ${name}: ${String(e.message).slice(0,250)}`); } };
   await context.route('**/*', async (route) => {
     const req = route.request(), url = req.url();
     if (url.startsWith(base)) return route.continue();
@@ -309,6 +309,15 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
       const b=await button.evaluate(e=>({touch:e.getBoundingClientRect().height,visual:e.firstElementChild.getBoundingClientRect().height}));
       assert.equal(b.visual,34);assert.ok(b.touch>=44);
     }
+  });
+  const gridScroll=page.getByTestId('schedule-heat-scroll');
+  await gridScroll.evaluate(e=>{e.scrollTop=e.scrollHeight;}); await page.waitForTimeout(450);
+  await check('Schedule retains readable cells and the last 11 PM hour is reachable after snapping',async()=>{
+    const last=await page.getByTestId('heat-0-19').boundingBox();
+    const grid=await gridScroll.boundingBox();
+    assert.ok(last.height>=44,'Heatmap cell keeps minimum height');
+    assert.ok(last.y>=grid.y-1 && last.y+last.height<=grid.y+grid.height+1,'Last hour stays in grid viewport');
+    return {cellHeight:last.height,viewportHeight:grid.height};
   });
   if(width===393) {
     holdLoad=true;
