@@ -90,6 +90,24 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
     else await page.mouse.click(x, y);
     await page.waitForTimeout(450);
   };
+  const checkHierarchy = async () => {
+    const planner = page.getByTestId('court-day-planner');
+    const heading = planner.getByTestId('court-day-heading');
+    const selected = planner.getByTestId('selected-court-hour');
+    await check('Selected hour has one time/count header above chart and people', async () => {
+      assert.equal(await planner.getByText('8 PM', {exact:true}).count(), 1);
+      assert.doesNotMatch(await selected.innerText(), /planning to go|8 PM/);
+      const summary = await heading.innerText();
+      assert.match(summary, /8 PM/); assert.match(summary, /\d+ going/);
+      const measurements = await heading.evaluate(e => [...e.querySelectorAll('div')].filter(n => n.childElementCount === 0 && n.innerText.trim()).map(n => ({text:n.innerText,size:Number.parseFloat(getComputedStyle(n).fontSize)})));
+      const hour = measurements.find(m => m.text === '8 PM');
+      assert.ok(hour && hour.size >= 20, 'Selected hour has display emphasis');
+      assert.ok(measurements.every(m => m.size >= 11), 'No new sub-11pt heading');
+      const chart = await planner.getByTestId('court-time-chart').boundingBox();
+      const people = await selected.boundingBox();
+      assert.ok((await heading.boundingBox()).y < chart.y && chart.y < people.y);
+    });
+  };
   await open('/');
   await shot('home-header');
   if (process.env.DASHBOARD_HEADER_ONLY === '1') {
@@ -97,19 +115,30 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
     await context.close();
     continue;
   }
+  await check('Home court navigation is beside the live count, above Check in', async () => {
+    const court = tables.courts.find(c => c.id === selectedCourt);
+    const link = page.getByRole('button', {name:`Open ${court.short_name || court.name}`,exact:true});
+    assert.equal(await link.count(), 1);
+    const linkBox = await link.boundingBox();
+    const checkIn = await page.getByRole('button', {name:new RegExp('^Check in to ')}).boundingBox();
+    assert.ok(linkBox.width >= 44 && linkBox.height >= 44);
+    assert.ok(linkBox.y + linkBox.height <= checkIn.y, 'Link is in hero, not the action row');
+    await link.click(); await page.waitForURL(`**/court/${selectedCourt}`);
+  });
+  await open('/');
   if (pickleball) {
     const assertGame = async (container) => {
       assert.match(await container.innerText(), /2\/4/);
       assert.equal(await container.getByRole('button', {name:'Open PICKLEBALL GAME', exact:true}).count(), 1);
     };
     await page.evaluate(() => { for (const e of document.querySelectorAll('*')) if (e.scrollHeight > e.clientHeight + 50 && e.clientHeight > 200) e.scrollTop = e.scrollHeight; });
-    await scrub(20); await shot('pickleball-home-selected');
+    await scrub(20); await shot('pickleball-home-selected'); await checkHierarchy();
     await check('Pickleball Home selected hour shows the 2/4 scheduled game', async () => {
       await assertGame(page.getByTestId('selected-court-hour'));
     });
     await open('/explore'); await page.getByTestId(`court-${selectedCourt}`).click();
     await page.waitForTimeout(1600); await page.getByLabel(/, expand$/).click();
-    await page.waitForTimeout(1500); await scrub(20); await shot('pickleball-drawer-selected');
+    await page.waitForTimeout(1500); await scrub(20); await shot('pickleball-drawer-selected'); await checkHierarchy();
     await check('Pickleball drawer selected hour shows the 2/4 scheduled game', async () => {
       await assertGame(page.getByTestId('selected-court-hour'));
     });
@@ -126,6 +155,7 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
   await page.evaluate(() => { for (const e of document.querySelectorAll('*')) if (e.scrollHeight > e.clientHeight + 50 && e.clientHeight > 200) e.scrollTop = e.scrollHeight; });
   await scrub(20);
   await shot('home-selected');
+  await checkHierarchy();
   const selectedSlot = page.getByTestId('selected-court-hour');
   await check('Home selected hour is boxed with square attendee profiles', async () => {
     assert.equal(await page.getByTestId('court-day-planner').count(), 1, 'Chart and slot share a panel');
@@ -148,6 +178,8 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
     const button = selectedSlot.getByRole('button', {name:"I'm going", exact:true});
     assert.doesNotMatch(await button.innerText(), /Going/i);
     const box = await button.boundingBox(); assert.ok(box.width >= 44 && box.height >= 44 && box.width <= 52);
+    const mark = await button.evaluate(e => {const b=e.firstElementChild.getBoundingClientRect();return {width:b.width,height:b.height};});
+    assert.equal(mark.width,34); assert.equal(mark.height,34);
   });
   await scrub(19);
   const action = () => page.getByTestId('selected-court-hour').getByRole('button', {name:"I'm going", exact:true});
