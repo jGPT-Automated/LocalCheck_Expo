@@ -40,6 +40,8 @@ interface ChartProps {
   allowPast?: boolean;
   dayOffset?: number;
   onDayChange?: (day: number) => void;
+  /** Show the selected day, hour, and count as one dashboard header. */
+  selectionHeader?: boolean;
   /** Feed supplies its snapshot so chart and rows cannot disagree. */
   data: CourtActivityData;
 }
@@ -57,6 +59,7 @@ export function CourtBusyChart({
   allowPast = false,
   dayOffset: controlledDay,
   onDayChange,
+  selectionHeader = false,
   data,
 }: ChartProps) {
   const [ownDay, setOwnDay] = React.useState(0);
@@ -103,7 +106,14 @@ export function CourtBusyChart({
   const caption = picked
     ? `${picked.kind === "now" ? "Now" : hourLabel(picked.hour)} · ${picked.value} ${picked.kind === "planned" ? "going" : "on court"}`
     : busyCaption(bars, dayOffset);
+  // Gesture Handler can deliver a callback from the previous render after a
+  // day change. Read the latest committed chart state when the gesture fires.
+  const gestureState = React.useRef({ dayOffset, bars, selected, onSelect, allowPast, setDay });
+  React.useLayoutEffect(() => {
+    gestureState.current = { dayOffset, bars, selected, onSelect, allowPast, setDay };
+  });
   const scrub = (x: number) => {
+    const { dayOffset, bars, selected, onSelect, allowPast } = gestureState.current;
     const hour = chartHourAt(x, width.current);
     if (!allowPast && bars.find((bar) => bar.hour === hour)?.kind === "past")
       return;
@@ -130,23 +140,33 @@ export function CourtBusyChart({
     .failOffsetY([-8, 8])
     .runOnJS(true)
     .onEnd((e) => {
-      if (Math.abs(e.translationX) > 40)
+      if (Math.abs(e.translationX) > 40) {
+        const { dayOffset, setDay } = gestureState.current;
         setDay(dayOffset + (e.translationX < 0 ? 1 : -1));
+      }
     });
   return (
     <View>
       {!header ? (
         <GestureDetector gesture={daySwipe}>
-          <View style={styles.heading} testID="court-day-heading">
-            <Text accessibilityLiveRegion="polite" style={styles.dayLabel}>
-              {busyDayLabel(dayOffset, now)}
-            </Text>
-            {data.loading ? (
-              <ActivityIndicator color={Colors.textSecondary} size="small" />
+          <View style={[styles.heading, selectionHeader && picked && styles.selectionHeading]} testID="court-day-heading">
+            {selectionHeader && picked ? (
+              <>
+                <Text accessibilityLiveRegion="polite" style={styles.selectionDay}>{busyDayLabel(dayOffset, now)}</Text>
+                <View style={styles.selectionSummary}>
+                  <Text numberOfLines={1} style={styles.selectionHour}>{`${picked.hour % 12 || 12} ${picked.hour < 12 ? "AM" : "PM"}`}</Text>
+                  {data.loading ? <ActivityIndicator color={Colors.textSecondary} size="small" /> : (
+                    <Text numberOfLines={1} style={styles.selectionCount}>{picked.value} {picked.kind === "planned" ? "going" : "on court"}</Text>
+                  )}
+                </View>
+              </>
             ) : (
-              <Text numberOfLines={1} style={styles.caption}>
-                {caption}
-              </Text>
+              <>
+                <Text accessibilityLiveRegion="polite" style={styles.dayLabel}>{busyDayLabel(dayOffset, now)}</Text>
+                {data.loading ? <ActivityIndicator color={Colors.textSecondary} size="small" /> : (
+                  <Text numberOfLines={1} style={styles.caption}>{caption}</Text>
+                )}
+              </>
             )}
           </View>
         </GestureDetector>
@@ -303,6 +323,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
+  selectionHeading: { minHeight: 0, alignItems: "stretch", flexDirection: "column", gap: 2, marginBottom: 8 },
+  selectionDay: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
+  selectionSummary: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10 },
+  selectionHour: { flexShrink: 1, fontFamily: Typography.headingSemiBold, fontSize: 20, color: Colors.text },
+  selectionCount: { fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary },
   dayLabel: {
     fontFamily: Typography.bodyBold,
     fontSize: 11,

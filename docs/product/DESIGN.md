@@ -7,7 +7,35 @@ Last verified source: 2026-08-29
 
 This document describes the current product. It replaces earlier competing design notes. The reproducible source artwork and specs live in the LocalCheck Brand Asset Sheet; app tokens live in `constants/` and shared components live in `components/ui/`.
 
-## Court activity update (D66, on branch)
+## Dashboard visual follow-up (D67, on branch)
+
+Home and the expanded Explore drawer show Here now, then the shared charcoal
+CourtDayPlanner, then Up next. Graph-end arrows stay beside the chart. With a
+future hour selected, the planner owns one header: quiet day, prominent hour,
+and attendance count once. The chart and square attendees are one section;
+there is no repeated hour/count below the chart or inner dividing rule.
+The plus/check has the same 34pt visible square as the attendees, inside a
+44pt touch target; a confirmed planned visit becomes a white check control
+that removes the intent on a second tap. Private attendance is counted as
+private, without a fabricated face. The panel owns its only outer border.
+Home's court link sits beside the live count; Check in has no adjacent large
+court-arrow button. Other court headers, art and shared palette stay intact.
+The court drawer keeps measured snap points but never queues an extra
+snap-to-collapsed command after opening; explicit expand remains index one.
+Selected-hour player/game links use the drawer's dismiss-then-navigate callback,
+matching Here now and Up next. Shared chart gestures read the latest committed
+day/data snapshot so rapid day changes cannot select a prior day's attendance.
+
+Court future hours keep SlotCard compact: up to three overlapping square
+avatars, a count/name summary and the same intent action. Scheduled games use
+ScheduledGameCard compact, preserving real joined/full/team-selection rules
+and confirmed RSVP. In a game hour, avoid a second add-intent button; an
+existing personal planned visit still offers its removal control. A dashboard
+selected-hour card identifies every game in that hour with its real RSVP, even
+when Up next is a different game. Empty/planned-only hours offer intent instead. These rules revise D66's
+text-only compact row. Keep the 28pt chart/scroll focus and date heading rules.
+
+## Court activity update (D66, merged PR #89)
 
 The PR #89 logic review keeps this appearance. Jumping and scroll tracking use
 one 28pt focus, safely inside the shortest hour row even at scrollTop=0.
@@ -28,7 +56,7 @@ and drawer show the same chart but no historical event feed or duplicate
 navigation pills. Their existing Court link opens the full feed.
 
 Current presence uses shared rounded-square PlayerAvatar; future hour rows use
-names through HourSlotCard/SlotCard's compact variant. Keep private attendance
+HourSlotCard/SlotCard as revised by D67 above. Keep private attendance
 anonymous and deduplicate visible players across plans and games. A Going tap
 uses the existing planned-visit action; game participation and presence remain
 separate. Schedule's heatmap selects an hour in Feed; upcoming games follow it

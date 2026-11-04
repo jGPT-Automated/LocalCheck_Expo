@@ -21,6 +21,32 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-11-03 — selected-hour hierarchy and pickleball comparison
+
+**On branch PR #90**, application checkpoint `50746f2`: removed duplicate
+selected time/count and the inner chart/attendance divider; one day/hour/count
+header, matching 34pt avatar/action visuals with 44pt targets. Home's court
+navigation is beside the live number, with the full small-phone name retained.
+Actual basketball and populated Candy Cane pickleball renders are compared in
+`docs/product/design-qa/2026-11-04-hour-hierarchy/README.md`. Existing
+palette/art and Court/Schedule behavior are retained. The hourly casual lobby
+and optional ranked choice are **review draft only**, distinct from check-in,
+planned attendance and scheduled-game RSVP; no backend execution authorized.
+
+## 2026-11-03 — dashboard design follow-up and visual history
+
+**On branch**, PR #90, `codex/dashboard-design-followup`, after merged PR #89 (`19dac69`).
+Home/drawer boxed chart and selected-hour avatars, compact plus/check instead
+of Going, planner before next game, and court timeline stacks/inline game RSVP
+are implemented and exercised in isolated browser renders at all three sizes. Shared headers/art/palette retained.
+The observed unsolicited first-open drawer close was traced to redundant
+post-open resnap commands; those are removed in this checkpoint.
+Every frontend PR now records paired renders and retains a visual history.
+Five-court LocalPlus/default/reorder/dropdowns/nested auto toggles and rolling
+lobbies remain **draft**, with verified live read-only contract boundaries in
+`docs/plans/2026-11-03-multicourt-backend-review.md`. They are not shipped.
+PR #89's logic-only checkpoint is merged; no production release is claimed.
+
 ## 2026-11-03 — PR #89 external-review correction
 
 Jesse selected **logic fixes only** before merging. Fixed the current heatmap

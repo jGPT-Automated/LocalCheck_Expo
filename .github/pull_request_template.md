@@ -24,12 +24,39 @@
 
 ### Runtime evidence
 
-<!-- Accounts, browser, device, iOS/build, meaningful states, screenshots. -->
+<!-- Accounts, browser, device, iOS/build, meaningful states. -->
 
 - [ ] Browser preview
 - [ ] iPhone development build or TestFlight
 - [ ] Two to four simultaneous signed-in users where interaction changed
 - [ ] Allowed and denied user where authorization changed
+
+### Visual version history (every frontend PR)
+
+<!-- Use actual screenshots of the rendered app, not design mockups or exports
+that were not opened in the browser/device. Baseline and PR head name the two
+code versions; keep route, meaningful state, viewport, and fixture data the
+same within each pair. -->
+
+- Baseline commit: <!-- full or unambiguous SHA -->
+- PR head commit: <!-- full or unambiguous SHA -->
+- Rendered app/browser or device: <!-- include browser/device and build when relevant -->
+- Backend isolation: <!-- live test backend, intercepted requests + in-memory fixtures, etc. State whether writes could reach a service. -->
+- Remaining limits: <!-- native-only, realtime/RLS, untested states, or none -->
+
+| Route / screen | State and reproducible journey | Viewport (CSS px) | Before: baseline capture | After: PR-head capture | Result |
+| --- | --- | ---: | --- | --- | --- |
+| <!-- /route --> | <!-- actions and expected result --> | <!-- 375x667, 393x852, 430x932 as applicable --> | <!-- screenshot link --> | <!-- screenshot link --> | <!-- pass / issue --> |
+
+<!-- Include each affected route/state and the sizes where layout or content
+can change. Use 375x667, 393x852, and 430x932 where applicable; explain any
+omitted size. Capture browser and device evidence separately when both apply.
+Record the exact command or steps and concise results for any automated
+journey. For a frontend PR with no visible change, explain why this section
+does not apply. -->
+
+- Journey command or manual steps and result:
+- Evidence folder: `docs/product/design-qa/<date>-<topic>/` (add an entry to [`docs/product/design-qa/README.md`](../docs/product/design-qa/README.md))
 
 ## Delivery and recovery
 

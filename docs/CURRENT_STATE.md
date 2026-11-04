@@ -1,17 +1,46 @@
 # Current state
 
-- Nov 3 (**on a branch**, PR #89 review correction): the heatmap opens the
+- Nov 4 (**on a branch**, PR #90, `codex/dashboard-design-followup`):
+  the dashboard refinement gives Home and the drawer one selected-hour
+  day/time/count header, removes the duplicate lower heading and dividing rule,
+  and keeps a 34pt plus/check surface within a 44pt touch target. Home opens
+  Court beside the live count instead of a large button beside Check in.
+  The link shares the number row, preserving the small-phone court-name width.
+  Candy Cane pickleball joins basketball in the isolated visual comparison.
+  The recurring hourly casual lobby remains a separate review draft; it is
+  not backed by planned visits or deployed scheduled-game RPC behavior.
+  No Supabase writes, migration, deployment, build, release or merge.
+
+- Nov 3 (**on a branch**, `codex/dashboard-design-followup`, PR #90, from `19dac69`):
+  Home and the Explore drawer share a charcoal daily-planner panel with square
+  attendee avatars and a compact plus/check action; next game follows it.
+  Selecting a time reveals that card above the tab/sheet floor. Court future
+  rows reuse SlotCard's square stack and ScheduledGameCard's inline RSVP.
+  The court drawer removes queued post-opening snap-to-collapsed commands;
+  those commands were traced closing a newly opened sheet without a tap.
+  Selected-hour links use the sheet dismissal/navigation owner; shared chart
+  gestures read the latest committed day instead of a stale gesture callback.
+  Existing planned-visit, privacy, capacity and team-choice contracts remain.
+  Frontend PRs now retain paired screenshots and a chronological visual index.
+  **Read-only live inspection** of LocalCheckProd catalog/function/policy
+  metadata confirmed one profile local court and one-court auto check-in;
+  no player rows or write RPCs were accessed. Multi-court/lobby changes are
+  review drafts only; no backend mutation, migration, deployment or release.
+  See `docs/plans/2026-11-03-dashboard-design-followup.md` and the separate
+  `docs/plans/2026-11-03-multicourt-backend-review.md` for remaining work.
+
+- Nov 3 (**merged to main**, PR #89, `19dac69`; no release claim): the heatmap opens the
   exact tapped hour, including today's current two-hour block; completed
   blocks stay disabled. Court Feed uses one 28pt focus for jumping and scroll
   tracking, resets day-specific measurements, and applies only the latest
   pending jump after layout. Both event groups guard missing actor IDs and
   pass real previous events. ActivityRow owns an explicit day-header option (default on); the
   hourly feed turns it off, while Me/player activity retains normal headings.
-  This is the approved logic-only checkpoint patch: no avatar/card redesign,
+  This was the approved logic-only checkpoint patch: no avatar/card redesign,
   backend access/change, native build, merge or release. Regression evidence
   is linked from `docs/product/design-qa/2026-11-03-court-activity/`.
 
-- Nov 3 (**on a branch**, `codex/court-activity-feed`, based on main a606de3):
+- Nov 3 (**merged to main**, PR #89, `19dac69`, based on main a606de3):
   LCv5's linked hourly chart/timeline is adapted to the court opening Feed.
   The chart stays pinned while hour rows scroll; drag bars to scrub, or use
   graph-end arrows/day-label swipe to change day. Past rows use actual events,

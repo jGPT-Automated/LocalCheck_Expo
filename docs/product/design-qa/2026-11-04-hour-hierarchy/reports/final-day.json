@@ -1,0 +1,12 @@
+[
+  {
+    "width": 393,
+    "checks": [
+      {
+        "name": "Rapid day changes keep chart and selected attendance on the same day",
+        "passed": true
+      }
+    ],
+    "errors": []
+  }
+]

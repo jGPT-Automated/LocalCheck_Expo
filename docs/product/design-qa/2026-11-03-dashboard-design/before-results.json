@@ -1,0 +1,191 @@
+[
+  {
+    "width": 375,
+    "checks": [
+      {
+        "name": "Home selected hour is boxed with square attendee profiles",
+        "passed": false,
+        "error": "Chart and slot share a panel\n\n0 !== 1\n"
+      },
+      {
+        "name": "Home planner comes before next game and clears tab floor",
+        "passed": false,
+        "error": "Next game follows the planner"
+      },
+      {
+        "name": "Selected dashboard hour retains its scheduled game and RSVP",
+        "passed": false,
+        "error": "Expected values to be strictly equal:\n\n0 !== 1\n"
+      },
+      {
+        "name": "Home attendance is a compact plus control",
+        "passed": false,
+        "error": "The input was expected to not match the regular expression /Going/i. Input:\n\n'GOING'\n"
+      },
+      {
+        "name": "Confirmed attendance can be removed with same control",
+        "passed": true
+      },
+      {
+        "name": "Drawer reuses boxed planner, square profiles and compact plus",
+        "passed": false,
+        "error": "Expected values to be strictly equal:\n\n0 !== 1\n"
+      },
+      {
+        "name": "Court future hour shows square stack and inline game action",
+        "passed": false,
+        "error": "Expected values to be strictly equal:\n\n0 !== 1\n"
+      },
+      {
+        "name": "Private-only court attendance has a spoken private count",
+        "passed": false,
+        "error": "The input did not match the regular expression /1 private/. Input:\n\n''\n"
+      }
+    ],
+    "writes": 3,
+    "errors": [],
+    "visual": {
+      "fail": [],
+      "debt": {
+        "smallText": [
+          "Basketball (9.5px)",
+          "On court (9px)",
+          "Feed (9.5px)",
+          "Schedule (9.5px)",
+          "Players (9.5px)",
+          "Info (9.5px)"
+        ],
+        "lowContrast": [],
+        "smallTarget": [
+          " (38x38)"
+        ]
+      }
+    }
+  },
+  {
+    "width": 393,
+    "checks": [
+      {
+        "name": "Home selected hour is boxed with square attendee profiles",
+        "passed": false,
+        "error": "Chart and slot share a panel\n\n0 !== 1\n"
+      },
+      {
+        "name": "Home planner comes before next game and clears tab floor",
+        "passed": false,
+        "error": "Next game follows the planner"
+      },
+      {
+        "name": "Selected dashboard hour retains its scheduled game and RSVP",
+        "passed": false,
+        "error": "Expected values to be strictly equal:\n\n0 !== 1\n"
+      },
+      {
+        "name": "Home attendance is a compact plus control",
+        "passed": false,
+        "error": "The input was expected to not match the regular expression /Going/i. Input:\n\n'GOING'\n"
+      },
+      {
+        "name": "Confirmed attendance can be removed with same control",
+        "passed": true
+      },
+      {
+        "name": "Drawer reuses boxed planner, square profiles and compact plus",
+        "passed": false,
+        "error": "Expected values to be strictly equal:\n\n0 !== 1\n"
+      },
+      {
+        "name": "Court future hour shows square stack and inline game action",
+        "passed": false,
+        "error": "Expected values to be strictly equal:\n\n0 !== 1\n"
+      },
+      {
+        "name": "Private-only court attendance has a spoken private count",
+        "passed": false,
+        "error": "The input did not match the regular expression /1 private/. Input:\n\n''\n"
+      }
+    ],
+    "writes": 3,
+    "errors": [],
+    "visual": {
+      "fail": [],
+      "debt": {
+        "smallText": [
+          "Basketball (9.5px)",
+          "On court (9px)",
+          "Feed (9.5px)",
+          "Schedule (9.5px)",
+          "Players (9.5px)",
+          "Info (9.5px)"
+        ],
+        "lowContrast": [],
+        "smallTarget": [
+          " (38x38)"
+        ]
+      }
+    }
+  },
+  {
+    "width": 430,
+    "checks": [
+      {
+        "name": "Home selected hour is boxed with square attendee profiles",
+        "passed": false,
+        "error": "Chart and slot share a panel\n\n0 !== 1\n"
+      },
+      {
+        "name": "Home planner comes before next game and clears tab floor",
+        "passed": false,
+        "error": "Next game follows the planner"
+      },
+      {
+        "name": "Selected dashboard hour retains its scheduled game and RSVP",
+        "passed": false,
+        "error": "Expected values to be strictly equal:\n\n0 !== 1\n"
+      },
+      {
+        "name": "Home attendance is a compact plus control",
+        "passed": false,
+        "error": "The input was expected to not match the regular expression /Going/i. Input:\n\n'GOING'\n"
+      },
+      {
+        "name": "Confirmed attendance can be removed with same control",
+        "passed": true
+      },
+      {
+        "name": "Drawer reuses boxed planner, square profiles and compact plus",
+        "passed": false,
+        "error": "Expected values to be strictly equal:\n\n0 !== 1\n"
+      },
+      {
+        "name": "Court future hour shows square stack and inline game action",
+        "passed": false,
+        "error": "Expected values to be strictly equal:\n\n0 !== 1\n"
+      },
+      {
+        "name": "Private-only court attendance has a spoken private count",
+        "passed": false,
+        "error": "The input did not match the regular expression /1 private/. Input:\n\n''\n"
+      }
+    ],
+    "writes": 3,
+    "errors": [],
+    "visual": {
+      "fail": [],
+      "debt": {
+        "smallText": [
+          "Basketball (9.5px)",
+          "On court (9px)",
+          "Feed (9.5px)",
+          "Schedule (9.5px)",
+          "Players (9.5px)",
+          "Info (9.5px)"
+        ],
+        "lowContrast": [],
+        "smallTarget": [
+          " (38x38)"
+        ]
+      }
+    }
+  }
+]

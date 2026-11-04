@@ -41,6 +41,24 @@ which GitHub treats as passing.
   Functions, or behavior on an iPhone. Those are checked by hand and recorded
   in `docs/CURRENT_STATE.md` with how they were checked.
 
+## Frontend PR visual evidence
+
+Every PR that changes a rendered frontend surface includes before/after
+screenshots in the [PR template](../.github/pull_request_template.md) and
+retains the rendered evidence in [`docs/product/design-qa/README.md`](product/design-qa/README.md).
+Pair the same route, meaningful state, and viewport from the baseline and PR
+head. Name both commits, the browser/device used, the journey and its result,
+how backend requests and writes were isolated, and any remaining limits.
+Screenshots must come from the rendered app; design mockups do not count as
+before/after evidence. Use 375×667, 393×852, and 430×932 where they can affect
+the changed layout or content, and state why any size is omitted. Keep the
+captures with their evidence entry so later PRs can compare the same surface
+over time.
+
+The history index links the existing PR #88 and #89 evidence. Older evidence
+may not contain every field now required; record only facts and captures that
+were retained, and identify missing provenance or coverage explicitly.
+
 ## Merge practice
 
 - Only Jesse merges to `main`. Agents open pull requests from `codex/<task>`

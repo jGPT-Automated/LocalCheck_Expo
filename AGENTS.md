@@ -100,7 +100,10 @@ force-push shared branches, or include unrelated user changes.
   worktree on its own local branch, commits only there, and never pushes,
   opens a PR, merges or touches `main`/`codex/*`. It hands back a branch +
   screenshots; the lead reviews, integrates into the PR branch and pushes.
-  At most 2–3 helpers at once. Only Jesse merges to `main`.
+  At most two persistent helpers at once. Assign ownership by app area and
+  re-engage those contexts for follow-up work; do not start a fresh helper
+  for each task or review. The lead integrates and reviews their outputs.
+  Only Jesse merges to `main`.
 
 - Restate the exact bounded scope before acting. If a requested correction
   exposes an adjacent problem, report it without silently adding it to the
@@ -113,8 +116,10 @@ force-push shared branches, or include unrelated user changes.
 - Explain external actions before taking them. Production database changes,
   Edge Function deployment, EAS Update, TestFlight work, GitHub merge, and
   branch deletion require explicit authorization for that exact action.
-- Use the in-app Browser for connected preview work when requested. Do not
-  substitute an external browser or computer-control workflow.
+- Use the in-app Browser for connected preview work when available. In cloud
+  sessions where it is unavailable, isolated cloud-owned Chromium/Playwright
+  is permitted. Never attach to or control Jesse's personal browser. Browser
+  access does not authorize backend writes.
 - Talk to Jesse in plain language: the outcome and the action, no filler.
   Ask him when a decision is his or quicker for him to answer; once he
   answers, record it (`docs/product/DECISIONS.md` and his plan doc's Tracker)
@@ -164,9 +169,13 @@ force-push shared branches, or include unrelated user changes.
   `.claude/skills/ui-done/SKILL.md` before starting and before saying it is
   done. `pnpm qa:visual` (every screen, three phone sizes)
   must show 0 failures and nothing above baseline, every touched screen is
-  opened at full size and compared with its before screenshot, and the PR
-  logs each change with before/after screenshots. Jesse should never be the
-  one to find cut-off text, overlap, off-centre art or a small-phone break.
+  opened at full size and compared with its before screenshot, and every
+  frontend PR records paired rendered before/after evidence, route, state,
+  viewport, baseline/head commits, reproducible journey/results, backend
+  isolation and remaining limits in the PR template. Retain it in the
+  chronological visual history at `docs/product/design-qa/README.md`. Jesse
+  should never be the one to find cut-off text, overlap, off-centre art or a
+  small-phone break.
 
 - **Sign-off first (Oct 10).** A visible change (layout, colour, motion,
   wording) is shown to Jesse as screenshots before it is built; build exactly
