@@ -138,6 +138,10 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
     const checkIn = await page.getByRole('button', {name:new RegExp('^Check in to ')}).boundingBox();
     assert.ok(linkBox.width >= 44 && linkBox.height >= 44);
     assert.ok(linkBox.y + linkBox.height <= checkIn.y, 'Link is in hero, not the action row');
+    const liveBox = await page.getByLabel(/^\d+ on court$/, {exact:true}).first().boundingBox();
+    assert.ok(linkBox.x >= liveBox.x + liveBox.width - 1, 'Arrow follows the live number');
+    const name = page.getByText(court.short_name || court.name, {exact:true}).first();
+    assert.ok(await name.evaluate(e => e.scrollWidth <= e.clientWidth + 1), 'Court name is not ellipsized');
     await link.click(); await page.waitForURL(`**/court/${selectedCourt}`);
   });
   await open('/');
