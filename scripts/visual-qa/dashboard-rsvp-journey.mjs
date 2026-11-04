@@ -230,6 +230,7 @@ try {
       return visual;
     };
     const check = async (name, run) => {
+      if(process.env.RSVP_CASE && !name.toLowerCase().includes(process.env.RSVP_CASE.toLowerCase())) return;
       try {
         const evidence = await run();
         checks.push({ name, passed: true, evidence });
@@ -312,6 +313,19 @@ try {
       const actualText = await row.innerText();
       assert.ok(actualText.indexOf(longFirstAttendee) >= 0, 'long first attendee name is visible in full text');
       return { gamesAt8PM: [RUN5V5, RUN3V3], firstAttendee: longFirstAttendee, audit: visual };
+    });
+
+    await check('Schedule vacant spot uses the confirmed RSVP and turns into Open', async()=>{
+      prepareTimelineFixtures(); joinCalls.length=0; failNextJoin=false;
+      await open('/schedule'); await page.getByTestId('heat-0-16').click();
+      const slot=page.getByTestId('court-hour-card');
+      await slot.getByRole('button',{name:'Expand CHATGPT',exact:true}).click();
+      await slot.getByTestId('game-open-spot').first().click();
+      await slot.getByRole('button',{name:'Open CHATGPT',exact:true}).waitFor();
+      assert.equal(joinCalls.length,1);assert.ok(participantIds(RUN5V5).includes(ME));
+      assert.deepEqual(errors,[]);assert.deepEqual(unexpectedWrites,[]);
+      await capture('schedule-spot-joined');
+      return {rpcCalls:joinCalls,member:ME};
     });
 
     await check('remote requests are isolated, fixture-only writes and page errors are absent', async () => {

@@ -616,11 +616,19 @@ export default function ScheduleScreen() {
   };
   const [onlyMine, setOnlyMine] = useState(false);
   const [joiningRunId, setJoiningRunId] = useState<string | null>(null);
+  const joinFromCardLock = useRef(false);
   const joinFromCard = async (game: GameRun) => {
-    if (joiningRunId) return;
+    if (joinFromCardLock.current) return;
+    joinFromCardLock.current = true;
     setJoiningRunId(game.id);
-    await joinRun(game.id);
-    setJoiningRunId(null);
+    try {
+      if (!(await joinRun(game.id))) setSaveNotice("Something went wrong. Try again.");
+    } catch {
+      setSaveNotice("Something went wrong. Try again.");
+    } finally {
+      joinFromCardLock.current = false;
+      setJoiningRunId(null);
+    }
   };
 
   const [showHost, setShowHost] = useState(false);
@@ -1328,6 +1336,8 @@ export default function ScheduleScreen() {
                       mine?.visitId ? void removePlannedVisit(mine.visitId) : void handleAddSelectedTime()
                     }
                     runs={slotRuns}
+                    onJoinRun={(game) => void joinFromCard(game)}
+                    joiningRunId={joiningRunId}
                     saving={addingSelectedTime}
                     title={`${DAYS[selectedDate.getDay()]} ${selectedDate.getDate()} · ${scheduleSlotLabel(slotHour)}`}
                   />

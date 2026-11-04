@@ -16,7 +16,8 @@
   The drawer uses a stable 320pt collapsed detent; content measurements no
   longer mutate its snap points after opening. Schedule heatmap cells retain
   height and use responsive overlapping scroll windows instead of squeezing
-  twelve rows behind the reserved card.
+  twelve rows behind the reserved card. Schedule open spots use the same
+  confirmed RSVP handler as Home/Court, including busy/error feedback.
   Multi-court storage and recurring casual lobbies remain backend review
   drafts; catalog reads only, no Supabase write/probe/deployment.
 
