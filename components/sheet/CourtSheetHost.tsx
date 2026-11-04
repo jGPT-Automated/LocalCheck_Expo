@@ -94,7 +94,6 @@ export function CourtSheetProvider({
             distanceKm={args.distanceKm}
             onNavigate={closeCourtSheet}
             onExpand={expandCourtSheet}
-            onPeekHeight={() => {}}
           />
         )}
       </AppBottomSheetModal>

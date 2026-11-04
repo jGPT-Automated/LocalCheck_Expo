@@ -30,7 +30,9 @@ disclosure and real capacity/member/open positions (default 10 basketball,
 4 pickleball), with recorded team assignments only. Open spots call the same
 existing RSVP/game route as Join/Open. Up next shares that card; it does not
 introduce another horizontal roster design. Expansion may grow deliberately;
-empty/filled collapsed cards must not jump.
+empty/filled collapsed cards must not jump. Schedule retains at least 45pt
+cell height and uses overlapping scroll windows when fewer than twelve rows
+fit, preserving access through 11 PM rather than squeezing the grid.
 
 These rules revise the earlier D67 refinement below where they conflict.
 
@@ -47,8 +49,9 @@ that removes the intent on a second tap. Private attendance is counted as
 private, without a fabricated face. The panel owns its only outer border.
 Home's court link sits beside the live count; Check in has no adjacent large
 court-arrow button. Other court headers, art and shared palette stay intact.
-The court drawer keeps measured snap points but never queues an extra
-snap-to-collapsed command after opening; explicit expand remains index one.
+The court drawer uses stable 320pt / 92% snap points. Header measurement
+only sizes the expanded scroll window and cannot move an already open detent.
+It never queues an extra snap-to-collapsed command; expand remains index one.
 Selected-hour player/game links use the drawer's dismiss-then-navigate callback,
 matching Here now and Up next. Shared chart gestures read the latest committed
 day/data snapshot so rapid day changes cannot select a prior day's attendance.

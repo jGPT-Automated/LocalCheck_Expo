@@ -56,13 +56,11 @@ export function CourtSheetContent({
   distanceKm,
   onNavigate,
   onExpand,
-  onPeekHeight,
 }: {
   courtId: string;
   distanceKm?: number;
   onNavigate: () => void;
   onExpand: () => void;
-  onPeekHeight: (height: number) => void;
 }) {
   const {
     courts, localCourt, checkIn, checkOut, checkedInCourtId, runs,
@@ -169,7 +167,6 @@ export function CourtSheetContent({
         onLayout={(event) => {
           const height = event.nativeEvent.layout.height;
           setPeekHeight(height);
-          onPeekHeight(height);
         }}
       >
           <View style={styles.title}>

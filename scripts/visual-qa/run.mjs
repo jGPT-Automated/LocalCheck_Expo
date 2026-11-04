@@ -35,6 +35,7 @@ const { SCREENS: ALL_SCREENS } = await import("./screens.mjs");
 const only = process.env.QA_ONLY?.split(",").filter(Boolean);
 const SCREENS = only ? ALL_SCREENS.filter((s) => only.some((o) => s.name.includes(o))) : ALL_SCREENS;
 const sizes = process.env.QA_SIZES?.split(",");
+const selectedViewports = VIEWPORTS.filter((v) => !sizes || sizes.includes(v.name));
 const AUDIT = readFileSync(join(here, "audit.js"), "utf8");
 
 if (!existsSync(join(dist, "index.html"))) {
@@ -63,7 +64,7 @@ const results = {};
 const failures = [];
 mkdirSync(outDir, { recursive: true });
 
-for (const vp of VIEWPORTS.filter((v) => !sizes || sizes.includes(v.name))) {
+for (const vp of selectedViewports) {
   const context = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, timezoneId: "America/Chicago" });
   await context.addInitScript(([key, session]) => localStorage.setItem(key, JSON.stringify(session)), [storageKey, SESSION]);
   await context.routeWebSocket(/.*/, (socket) => socket.close());
@@ -128,7 +129,7 @@ const total = (m) => Object.values(counts).reduce((s, c) => s + c[m], 0);
 const report = [
   "# Visual QA",
   "",
-  `${SCREENS.length} screens x ${VIEWPORTS.length} sizes. Screenshots in ${outDir}/<size>/<screen>.png.`,
+  `${SCREENS.length} screens x ${selectedViewports.length} sizes. Screenshots in ${outDir}/<size>/<screen>.png.`,
   "",
   `## Failures (${failures.length})`,
   ...(failures.length ? failures.map((f) => `- ${f}`) : ["None."]),

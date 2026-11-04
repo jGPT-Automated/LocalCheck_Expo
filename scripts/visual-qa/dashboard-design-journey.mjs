@@ -99,7 +99,7 @@ for (const [width, height] of [[375, 667], [393, 852], [430, 932]]) {
   });
   const page = await context.newPage();
   page.on('pageerror', (e) => errors.push(String(e)));
-  const open = async (path) => { await page.goto(base + path, { waitUntil: 'networkidle' }); await page.waitForTimeout(2600); };
+  const open = async (path) => { await page.goto(base + path, { waitUntil: 'networkidle' }); await page.waitForTimeout(2600); if(path==='/') await page.getByTestId('court-day-planner').waitFor({timeout:15000}); };
   const shot = async (name) => { await page.screenshot({ path: `${out}/${name}-${width}.png` }); };
   const revealRoster = async (locator) => locator.evaluate(e => {
     const b=e.getBoundingClientRect(); let parent=e.parentElement;
