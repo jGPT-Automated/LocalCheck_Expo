@@ -1,5 +1,7 @@
 /** Expanded court drawer detent, as a share of the screen (CourtSheetHost). */
 export const DRAWER_FULL_SHARE = 0.92;
+/** Stable collapsed sheet height. Content measurement is for the inner window only. */
+export const DRAWER_COLLAPSED_HEIGHT = 320;
 /** The court drawer's compact drag-handle row above the content. */
 export const DRAWER_HANDLE_HEIGHT = 12;
 /** Games / Players / Feed / Week chip row under the detail area (10 + 30). */

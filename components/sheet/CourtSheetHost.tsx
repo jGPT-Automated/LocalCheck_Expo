@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { DRAWER_HANDLE_HEIGHT } from "@/lib/courtDrawerLayout";
+import { DRAWER_COLLAPSED_HEIGHT } from "@/lib/courtDrawerLayout";
 
 import { AppBottomSheetModal } from "./AppBottomSheetModal";
 import { CourtSheetContent } from "./CourtSheetContent";
@@ -49,7 +49,6 @@ export function CourtSheetProvider({
 }) {
   const modalRef = useRef<BottomSheetModal>(null);
   const [args, setArgs] = useState<OpenArgs | null>(null);
-  const [peekHeight, setPeekHeight] = useState(320);
 
   const openCourtSheet = useCallback((next: OpenArgs) => {
     setArgs(next);
@@ -71,12 +70,13 @@ export function CourtSheetProvider({
     [openCourtSheet, closeCourtSheet],
   );
 
-  // The collapsed drawer ends at the disclosure rail rather than exposing the
-  // beginning of the expanded content. CourtSheetContent reports its actual
-  // compact height so long names and platform font metrics remain supported.
+  // Keep the collapsed detent stable for the sheet's lifetime. Gorhom mounts
+  // modal children only after present(), so feeding their first onLayout back
+  // into snapPoints moves the open sheet. CourtSheetContent still measures its
+  // own peek height for the expanded scroll window.
   const snapPoints = useMemo<Array<string | number>>(
-    () => [peekHeight, "92%"],
-    [peekHeight],
+    () => [DRAWER_COLLAPSED_HEIGHT, "92%"],
+    [],
   );
 
   return (
@@ -94,9 +94,7 @@ export function CourtSheetProvider({
             distanceKm={args.distanceKm}
             onNavigate={closeCourtSheet}
             onExpand={expandCourtSheet}
-            onPeekHeight={(height) =>
-              setPeekHeight(Math.ceil(height + DRAWER_HANDLE_HEIGHT))
-            }
+            onPeekHeight={() => {}}
           />
         )}
       </AppBottomSheetModal>
