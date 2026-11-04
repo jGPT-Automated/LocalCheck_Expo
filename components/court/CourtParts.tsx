@@ -141,6 +141,7 @@ export function CourtTitleRow({
   liveValue,
   live,
   liveAccessibilityLabel,
+  onNavigate,
   size = "card",
 }: {
   sport: CourtSport;
@@ -149,6 +150,7 @@ export function CourtTitleRow({
   liveValue: string | number;
   live: boolean;
   liveAccessibilityLabel?: string;
+  onNavigate?: () => void;
   size?: "card" | "page";
 }) {
   const page = size === "page";
@@ -169,6 +171,7 @@ export function CourtTitleRow({
         </Text>
         {place ? <Text numberOfLines={1} style={styles.titlePlace}>{place}</Text> : null}
       </View>
+      {onNavigate ? <CourtLinkButton compact courtName={name} onPress={onNavigate} /> : null}
       <View
         accessibilityLabel={liveAccessibilityLabel ?? `${liveValue} on court`}
         accessible
@@ -326,16 +329,16 @@ export function CheckInButton({
 }
 
 /** A centred ">" that opens the full court page. */
-export function CourtLinkButton({ onPress, courtName }: { onPress: () => void; courtName: string }) {
+export function CourtLinkButton({ onPress, courtName, compact = false }: { onPress: () => void; courtName: string; compact?: boolean }) {
   return (
     <PressableScale
       accessibilityHint="Opens the full court page"
       accessibilityLabel={`Open ${courtName}`}
       accessibilityRole="button"
       onPress={onPress}
-      style={[styles.action, styles.courtLink]}
+      style={[styles.action, compact ? styles.courtLinkCompact : styles.courtLink]}
     >
-      <Feather color={Colors.text} name="chevron-right" size={24} />
+      <Feather color={Colors.text} name="chevron-right" size={compact ? 18 : 24} />
     </PressableScale>
   );
 }
@@ -414,6 +417,7 @@ const styles = StyleSheet.create({
   checkInText: { fontFamily: Typography.bodyBold, fontSize: 12, letterSpacing: 1.7, textTransform: "uppercase", color: Colors.background },
   checkOutText: { flexShrink: 1, fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.liveInk },
   courtLink: { width: 64, height: 50, backgroundColor: Colors.panel, borderWidth: 1, borderColor: Colors.hairlineChrome },
+  courtLinkCompact: { width: 44, height: 44, backgroundColor: "transparent" },
   cellLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   pill: { height: 30, paddingHorizontal: 12, borderRadius: 999, justifyContent: "center", borderWidth: 1, borderColor: "rgba(242,242,246,0.12)" },
   pillActive: { backgroundColor: Colors.tile, borderColor: "rgba(242,242,246,0.2)" },

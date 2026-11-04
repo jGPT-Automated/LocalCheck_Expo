@@ -137,13 +137,13 @@ export function HomeScreen() {
           live={activeTotal > 0}
           localCount={localCount}
           nextGame={nextGameLabel(upcoming[0], now)}
+          onViewCourt={() => router.push(`/court/${localCourt.id}`)}
         />
         <HomeCourtActions
           courtName={localCourt.shortName || localCourt.name}
           isCheckedIn={isCheckedIn}
           isChecking={isChecking}
           onCheckIn={() => void handleCheckIn()}
-          onViewCourt={() => router.push(`/court/${localCourt.id}`)}
         />
         <AutoCheckInNote courtId={localCourt.id} />
         <View style={styles.hereNow}>

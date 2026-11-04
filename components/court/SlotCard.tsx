@@ -170,12 +170,14 @@ export function SlotCard({
     );
   return (
     <View style={[styles.card, embedded && styles.embedded]}>
-      <View style={styles.head}>
-        <Text numberOfLines={1} style={styles.title}>
-          {title}
-        </Text>
-        <Text style={styles.meta}>{total} planning to go</Text>
-      </View>
+      {!embedded ? (
+        <View style={styles.head}>
+          <Text numberOfLines={1} style={styles.title}>
+            {title}
+          </Text>
+          <Text style={styles.meta}>{total} planning to go</Text>
+        </View>
+      ) : null}
       {showBody ? (
         <View style={styles.body}>
           <ScrollView
@@ -284,6 +286,7 @@ function AttendanceAction({
       accessibilityState={{ busy: saving, selected: mine }}
       disabled={saving || !onToggle}
       onPress={onToggle}
+      containerStyle={styles.actionTarget}
       style={[styles.action, mine && styles.actionOn]}
     >
       {saving ? (
@@ -349,10 +352,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingBottom: 0,
     borderWidth: 0,
-    borderTopWidth: 1,
-    borderTopColor: Colors.hairline,
+    borderTopWidth: 0,
     borderRadius: 0,
-    marginTop: 12,
+    marginTop: 6,
   },
   head: {
     flexDirection: "row",
@@ -389,14 +391,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  actionTarget: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   privateCount: {
     fontFamily: Typography.bodyMedium,
     fontSize: 11,
     color: Colors.textSecondary,
   },
   action: {
-    width: 44,
-    height: 44,
+    width: 34,
+    height: 34,
     borderRadius: Radius.button,
     borderWidth: 1,
     borderColor: Colors.hairlineChrome,

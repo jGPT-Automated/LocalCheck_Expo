@@ -35,6 +35,7 @@ export function CourtDayPlanner({
         liveCount={liveCount}
         data={data}
         maxBack={0}
+        selectionHeader
         selected={picked}
         onDayChange={() => setPicked(null)}
         onSelect={(pick) =>
