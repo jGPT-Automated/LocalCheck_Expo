@@ -65,8 +65,7 @@ export function HomeCourtHero({
 }
 
 /**
- * Home's action row, the Explore drawer's: Check in (or Check out) beside
- * Court, which opens the court page.
+ * Home's check-in action; Court navigation lives beside the live metric.
  */
 export function HomeCourtActions({
   courtName,

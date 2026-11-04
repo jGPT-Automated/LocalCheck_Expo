@@ -171,7 +171,7 @@ export function CourtTitleRow({
         </Text>
         {place ? <Text numberOfLines={1} style={styles.titlePlace}>{place}</Text> : null}
       </View>
-      {onNavigate ? <CourtLinkButton compact courtName={name} onPress={onNavigate} /> : null}
+      <View style={styles.liveMetricRow}>
       <View
         accessibilityLabel={liveAccessibilityLabel ?? `${liveValue} on court`}
         accessible
@@ -182,6 +182,8 @@ export function CourtTitleRow({
           {live ? <LiveDot /> : null}
           <Text style={styles.liveLabel}>On court</Text>
         </View>
+      </View>
+      {onNavigate ? <CourtLinkButton compact courtName={name} onPress={onNavigate} /> : null}
       </View>
     </View>
   );
@@ -442,6 +444,7 @@ const styles = StyleSheet.create({
   },
   titleNamePage: { fontSize: 34, lineHeight: 37, letterSpacing: -1.1 },
   titlePlace: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
+  liveMetricRow: { flexDirection: "row", alignItems: "flex-start" },
   liveBlock: { flexShrink: 0, alignItems: "flex-end", paddingBottom: 1 },
   liveValue: { fontFamily: Typography.headingBold, fontSize: 40, lineHeight: 42, letterSpacing: -1.2, color: Colors.text, fontVariant: ["tabular-nums"] },
   liveValuePage: { fontSize: 46, lineHeight: 48, letterSpacing: -1.4 },

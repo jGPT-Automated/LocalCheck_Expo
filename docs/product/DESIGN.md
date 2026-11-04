@@ -10,12 +10,16 @@ This document describes the current product. It replaces earlier competing desig
 ## Dashboard visual follow-up (D67, on branch)
 
 Home and the expanded Explore drawer show Here now, then the shared charcoal
-CourtDayPlanner, then Up next. The chart owns one day label and graph-end arrows.
-A selected future hour reveals square PlayerAvatar identities and an outlined
-44pt plus control; a confirmed planned visit becomes a white check control
+CourtDayPlanner, then Up next. Graph-end arrows stay beside the chart. With a
+future hour selected, the planner owns one header: quiet day, prominent hour,
+and attendance count once. The chart and square attendees are one section;
+there is no repeated hour/count below the chart or inner dividing rule.
+The plus/check has the same 34pt visible square as the attendees, inside a
+44pt touch target; a confirmed planned visit becomes a white check control
 that removes the intent on a second tap. Private attendance is counted as
-private, without a fabricated face. The panel owns its border; its selected
-row uses a hairline rather than a nested box. Existing headers/art remain.
+private, without a fabricated face. The panel owns its only outer border.
+Home's court link sits beside the live count; Check in has no adjacent large
+court-arrow button. Other court headers, art and shared palette stay intact.
 The court drawer keeps measured snap points but never queues an extra
 snap-to-collapsed command after opening; explicit expand remains index one.
 Selected-hour player/game links use the drawer's dismiss-then-navigate callback,

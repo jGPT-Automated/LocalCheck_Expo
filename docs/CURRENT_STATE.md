@@ -1,5 +1,15 @@
 # Current state
 
+- Nov 4 (**on a branch**, PR #90, `codex/dashboard-design-followup`):
+  the dashboard refinement gives Home and the drawer one selected-hour
+  day/time/count header, removes the duplicate lower heading and dividing rule,
+  and keeps a 34pt plus/check surface within a 44pt touch target. Home opens
+  Court beside the live count instead of a large button beside Check in.
+  Candy Cane pickleball joins basketball in the isolated visual comparison.
+  The recurring hourly casual lobby remains a separate review draft; it is
+  not backed by planned visits or deployed scheduled-game RPC behavior.
+  No Supabase writes, migration, deployment, build, release or merge.
+
 - Nov 3 (**on a branch**, `codex/dashboard-design-followup`, PR #90, from `19dac69`):
   Home and the Explore drawer share a charcoal daily-planner panel with square
   attendee avatars and a compact plus/check action; next game follows it.

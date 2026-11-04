@@ -91,6 +91,12 @@ below wherever they disagree.
   any project mutation. Five-court storage and lobbies are not approved for
   deployment by this decision. Development uses at most two persistent
   helpers with app-area ownership, reused for follow-up tasks and reviews.
+  Refinement: one selected-hour day/time/count header, no chart/attendance
+  split or duplicate labels; 34pt plus/check surface in a 44pt target, and
+  Home court navigation beside the live count. Compare basketball and Candy
+  Cane pickleball renders. Hourly casual lobbies are a separate proposed
+  server contract: check-in, planned visit, lobby membership and game RSVP
+  remain distinct. Ranked choice/start/end rules remain review work.
 - **D66 Court Feed uses LCv5's Home timeline (Nov 3, revises D55, D57,
   D58 and D61):** Home and expanded Explore drawer remain at-a-glance action
   dashboards: presence, next game and daily planning. Event activity belongs

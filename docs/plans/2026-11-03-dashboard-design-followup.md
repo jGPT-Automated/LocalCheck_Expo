@@ -79,3 +79,28 @@ function deployment, production release or merge. Live inspection is authorized
 read-only; every proposed backend modification remains a review draft.
 
 Visual checkpoint: [PR #90](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/90), open and unmerged. Remaining rows above are subsequent slices, not completed features.
+
+
+## PR #90 refinement — one selected-hour section
+
+**Approved direction, on this branch:** Jesse's latest annotation treats the
+selected hour as one entity. The planner header owns day, selected hour and
+attendance count once; the graph and square attendees follow without another
+hour heading or internal divider. The visible plus/check tile matches the
+34pt avatar while its actual target stays 44pt. Home's court-page link moves
+beside the live count; the large arrow beside Check in is removed. Existing
+court art, shared palette, Feed/Schedule defaults and all durable actions stay
+with their current owners.
+
+**QA list:** basketball and Candy Cane pickleball Home, expanded Explore drawer,
+and Court selected future hour; Home header court link; planned-visit empty,
+error/retry/confirmed/removal; graph day-change/scrub; shared Schedule selected
+card. Capture at 375×667, 393×852 and 430×932, intercept backend HTTP and block
+sockets before navigation. Compare against `96f0c7f` using the same fixtures.
+
+**Separate review draft:** each hour will contain a casual open lobby as well
+as planned attendance. Checking in means present; joining a spot means intent
+to play. This is not the existing planned-visit plus action. No lobby storage,
+auto-start, ranked vote, or game-end behavior is represented as implemented by
+this visual refinement. See the backend review draft for the proposed contract
+and unanswered policy details, including the unfinished three-player example.

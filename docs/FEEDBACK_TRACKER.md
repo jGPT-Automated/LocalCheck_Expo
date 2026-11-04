@@ -21,6 +21,16 @@ Keep entries terse. When an item ships, mark it ✅ and record the commit SHA �
 don't delete the row; the history of what was asked and when it landed is the
 point.
 
+## 2026-11-03 — selected-hour hierarchy and pickleball comparison
+
+**In progress on PR #90:** remove duplicate selected time/count and the inner
+chart/attendance divider; one day/hour/count header, matching avatar/action
+visual sizes with 44pt targets. Move Home's court navigation beside the live
+count. Compare actual basketball and Candy Cane pickleball renders. Existing
+palette/art and Court/Schedule behavior are retained. The hourly casual lobby
+and optional ranked choice are **review draft only**, distinct from check-in,
+planned attendance and scheduled-game RSVP; no backend execution authorized.
+
 ## 2026-11-03 — dashboard design follow-up and visual history
 
 **On branch**, PR #90, `codex/dashboard-design-followup`, after merged PR #89 (`19dac69`).
