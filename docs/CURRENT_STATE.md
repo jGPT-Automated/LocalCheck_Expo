@@ -1,5 +1,13 @@
 # Current state
 
+- Nov 5 (**live backend, read-only inspection**): manual `check_in` and its
+  triggers do not create friend notifications. Fanout exists only in the
+  auto-posting function. Latest 100 stored check-ins: 97 manual and no linked
+  manual friend alerts. Settings wording is broader than that auto-only
+  contract. See `docs/audits/2026-11-05-manual-check-in-notifications.md`.
+  No live changes or test dispatches. This checkpoint audits only the existing
+  pickleball Home hour card at three widths; it adds no application code.
+
 - Nov 4 (**on a branch**, PR #90, design correction in progress): the supplied
   pickleball green/wash is used for sport identity and real vacant game spots.
   Home/drawer remove the data-only metrics strip, Home adds the real current

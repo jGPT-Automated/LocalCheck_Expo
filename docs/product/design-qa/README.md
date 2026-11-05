@@ -74,3 +74,14 @@ beside the live number. Candy Cane includes a four-player scheduled-game
 fixture. All three phone sizes, 54 interaction assertions, the rapid-day
 regression and scoped 27-state audit are retained. The hourly casual lobby
 remains a separate backend review draft; no live writes or release.
+
+
+## 2026-11-05 — one-card inspection checkpoint
+
+[Pickleball Home hour-card screenshots and alignment measurements](2026-11-05-pickleball-card/README.md).
+Source app `827c64d`; 375/393/430 closed and expanded. Two retained helpers
+checked one component, with no application patch. A scroll-framing issue
+was corrected in the capture, not by changing product padding. This audit
+records actual geometry/palette checks rather than claiming a pixel-perfect
+match from a comparison with another app screenshot. No PR #90 update or
+backend mutation is implied.

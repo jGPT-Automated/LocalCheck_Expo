@@ -1,0 +1,1090 @@
+{
+  "source": "827c64df1dec00769707152fbc9f33bbfb164a35",
+  "base": "http://127.0.0.1:8117",
+  "out": "/workspace/shared/dashboard-reference/pickle-home-827c64d",
+  "results": [
+    {
+      "width": 375,
+      "height": 667,
+      "closed": {
+        "viewport": {
+          "width": 375,
+          "height": 667
+        },
+        "card": {
+          "x": 20,
+          "y": 337,
+          "width": 335,
+          "height": 227,
+          "right": 355,
+          "bottom": 564
+        },
+        "selected": {
+          "x": 35,
+          "y": 460,
+          "width": 305,
+          "height": 89,
+          "right": 340,
+          "bottom": 549
+        },
+        "heading": {
+          "x": 35,
+          "y": 352,
+          "width": 305,
+          "height": 32,
+          "right": 340,
+          "bottom": 384
+        },
+        "chart": {
+          "x": 63,
+          "y": 384,
+          "width": 249,
+          "height": 76,
+          "right": 312,
+          "bottom": 460
+        },
+        "headingText": "TODAY\n8 PM\n2 going",
+        "selectedText": "CH\nPL\n\nPICKLEBALL GAME\n2v2 · 2/4\n\nOPEN",
+        "avatars": [],
+        "openSpots": [],
+        "rosterCells": [],
+        "labels": [],
+        "cta": [
+          {
+            "label": "You",
+            "target": {
+              "x": 57,
+              "y": 482,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 57,
+              "y": 482,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Player2",
+            "target": {
+              "x": 107,
+              "y": 482,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 107,
+              "y": 482,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "I'm going",
+            "target": {
+              "x": 318,
+              "y": 482,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 318,
+              "y": 482,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Expand PICKLEBALL GAME",
+            "target": {
+              "x": 149.5,
+              "y": 526,
+              "w": 229,
+              "h": 44
+            },
+            "visual": {
+              "x": 139,
+              "y": 526,
+              "w": 208,
+              "h": 34
+            }
+          },
+          {
+            "label": "Open PICKLEBALL GAME",
+            "target": {
+              "x": 308,
+              "y": 526,
+              "w": 64,
+              "h": 44
+            },
+            "visual": {
+              "x": 308,
+              "y": 526,
+              "w": 64,
+              "h": 34
+            }
+          }
+        ],
+        "bg": "rgb(18, 18, 22)",
+        "greenOpen": []
+      },
+      "expanded": {
+        "viewport": {
+          "width": 375,
+          "height": 667
+        },
+        "card": {
+          "x": 20,
+          "y": 256,
+          "width": 335,
+          "height": 315,
+          "right": 355,
+          "bottom": 571
+        },
+        "selected": {
+          "x": 35,
+          "y": 379,
+          "width": 305,
+          "height": 177,
+          "right": 340,
+          "bottom": 556
+        },
+        "heading": {
+          "x": 35,
+          "y": 271,
+          "width": 305,
+          "height": 32,
+          "right": 340,
+          "bottom": 303
+        },
+        "chart": {
+          "x": 63,
+          "y": 303,
+          "width": 249,
+          "height": 76,
+          "right": 312,
+          "bottom": 379
+        },
+        "headingText": "TODAY\n8 PM\n2 going",
+        "selectedText": "CH\nPL\n\nPICKLEBALL GAME\n2v2 · 2/4\n\nOPEN\nTeam A\nCH\nchatgpt\n\nOpen\nTeam B\nPL\nPlayer2\n\nOpen",
+        "avatars": [],
+        "openSpots": [
+          {
+            "x": 144.9,
+            "y": 512,
+            "w": 44,
+            "h": 44
+          },
+          {
+            "x": 303.4,
+            "y": 512,
+            "w": 44,
+            "h": 44
+          }
+        ],
+        "rosterCells": [],
+        "labels": [],
+        "cta": [
+          {
+            "label": "You",
+            "target": {
+              "x": 57,
+              "y": 401,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 57,
+              "y": 401,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Player2",
+            "target": {
+              "x": 107,
+              "y": 401,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 107,
+              "y": 401,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "I'm going",
+            "target": {
+              "x": 318,
+              "y": 401,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 318,
+              "y": 401,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Collapse PICKLEBALL GAME",
+            "target": {
+              "x": 149.5,
+              "y": 445,
+              "w": 229,
+              "h": 44
+            },
+            "visual": {
+              "x": 139,
+              "y": 445,
+              "w": 208,
+              "h": 34
+            }
+          },
+          {
+            "label": "Open PICKLEBALL GAME",
+            "target": {
+              "x": 308,
+              "y": 445,
+              "w": 64,
+              "h": 44
+            },
+            "visual": {
+              "x": 308,
+              "y": 445,
+              "w": 64,
+              "h": 34
+            }
+          },
+          {
+            "label": "chatgpt",
+            "target": {
+              "x": 71.6,
+              "y": 512,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 71.6,
+              "y": 512,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Open PICKLEBALL GAME, open spot",
+            "target": {
+              "x": 144.9,
+              "y": 512,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 144.9,
+              "y": 512,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Player2",
+            "target": {
+              "x": 230.1,
+              "y": 512,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 230.1,
+              "y": 512,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Open PICKLEBALL GAME, open spot",
+            "target": {
+              "x": 303.4,
+              "y": 512,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 303.4,
+              "y": 512,
+              "w": 34,
+              "h": 34
+            }
+          }
+        ],
+        "bg": "rgb(18, 18, 22)",
+        "greenOpen": [
+          {
+            "border": "rgb(63, 195, 151)",
+            "bg": "rgba(63, 195, 151, 0.14)"
+          },
+          {
+            "border": "rgb(63, 195, 151)",
+            "bg": "rgba(63, 195, 151, 0.14)"
+          }
+        ],
+        "scrollOwner": {
+          "scrollTop": 117,
+          "maxScroll": 300,
+          "cardBottom": 586,
+          "floorTop": 579,
+          "afterScrollTop": 132,
+          "afterCardBottom": 571
+        }
+      },
+      "audit": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "On court (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "remote": 36,
+      "writes": [],
+      "errors": [],
+      "websocket": 5
+    },
+    {
+      "width": 393,
+      "height": 852,
+      "closed": {
+        "viewport": {
+          "width": 393,
+          "height": 852
+        },
+        "card": {
+          "x": 20,
+          "y": 388,
+          "width": 353,
+          "height": 227,
+          "right": 373,
+          "bottom": 615
+        },
+        "selected": {
+          "x": 35,
+          "y": 511,
+          "width": 323,
+          "height": 89,
+          "right": 358,
+          "bottom": 600
+        },
+        "heading": {
+          "x": 35,
+          "y": 403,
+          "width": 323,
+          "height": 32,
+          "right": 358,
+          "bottom": 435
+        },
+        "chart": {
+          "x": 63,
+          "y": 435,
+          "width": 267,
+          "height": 76,
+          "right": 330,
+          "bottom": 511
+        },
+        "headingText": "TODAY\n8 PM\n2 going",
+        "selectedText": "CH\nPL\n\nPICKLEBALL GAME\n2v2 · 2/4\n\nOPEN",
+        "avatars": [],
+        "openSpots": [],
+        "rosterCells": [],
+        "labels": [],
+        "cta": [
+          {
+            "label": "You",
+            "target": {
+              "x": 57,
+              "y": 533,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 57,
+              "y": 533,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Player2",
+            "target": {
+              "x": 107,
+              "y": 533,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 107,
+              "y": 533,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "I'm going",
+            "target": {
+              "x": 336,
+              "y": 533,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 336,
+              "y": 533,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Expand PICKLEBALL GAME",
+            "target": {
+              "x": 158.5,
+              "y": 577,
+              "w": 247,
+              "h": 44
+            },
+            "visual": {
+              "x": 148,
+              "y": 577,
+              "w": 226,
+              "h": 34
+            }
+          },
+          {
+            "label": "Open PICKLEBALL GAME",
+            "target": {
+              "x": 326,
+              "y": 577,
+              "w": 64,
+              "h": 44
+            },
+            "visual": {
+              "x": 326,
+              "y": 577,
+              "w": 64,
+              "h": 34
+            }
+          }
+        ],
+        "bg": "rgb(18, 18, 22)",
+        "greenOpen": []
+      },
+      "expanded": {
+        "viewport": {
+          "width": 393,
+          "height": 852
+        },
+        "card": {
+          "x": 20,
+          "y": 388,
+          "width": 353,
+          "height": 315,
+          "right": 373,
+          "bottom": 703
+        },
+        "selected": {
+          "x": 35,
+          "y": 511,
+          "width": 323,
+          "height": 177,
+          "right": 358,
+          "bottom": 688
+        },
+        "heading": {
+          "x": 35,
+          "y": 403,
+          "width": 323,
+          "height": 32,
+          "right": 358,
+          "bottom": 435
+        },
+        "chart": {
+          "x": 63,
+          "y": 435,
+          "width": 267,
+          "height": 76,
+          "right": 330,
+          "bottom": 511
+        },
+        "headingText": "TODAY\n8 PM\n2 going",
+        "selectedText": "CH\nPL\n\nPICKLEBALL GAME\n2v2 · 2/4\n\nOPEN\nTeam A\nCH\nchatgpt\n\nOpen\nTeam B\nPL\nPlayer2\n\nOpen",
+        "avatars": [],
+        "openSpots": [
+          {
+            "x": 151.6,
+            "y": 644,
+            "w": 44,
+            "h": 44
+          },
+          {
+            "x": 319.1,
+            "y": 644,
+            "w": 44,
+            "h": 44
+          }
+        ],
+        "rosterCells": [],
+        "labels": [],
+        "cta": [
+          {
+            "label": "You",
+            "target": {
+              "x": 57,
+              "y": 533,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 57,
+              "y": 533,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Player2",
+            "target": {
+              "x": 107,
+              "y": 533,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 107,
+              "y": 533,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "I'm going",
+            "target": {
+              "x": 336,
+              "y": 533,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 336,
+              "y": 533,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Collapse PICKLEBALL GAME",
+            "target": {
+              "x": 158.5,
+              "y": 577,
+              "w": 247,
+              "h": 44
+            },
+            "visual": {
+              "x": 148,
+              "y": 577,
+              "w": 226,
+              "h": 34
+            }
+          },
+          {
+            "label": "Open PICKLEBALL GAME",
+            "target": {
+              "x": 326,
+              "y": 577,
+              "w": 64,
+              "h": 44
+            },
+            "visual": {
+              "x": 326,
+              "y": 577,
+              "w": 64,
+              "h": 34
+            }
+          },
+          {
+            "label": "chatgpt",
+            "target": {
+              "x": 73.9,
+              "y": 644,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 73.9,
+              "y": 644,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Open PICKLEBALL GAME, open spot",
+            "target": {
+              "x": 151.6,
+              "y": 644,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 151.6,
+              "y": 644,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Player2",
+            "target": {
+              "x": 241.4,
+              "y": 644,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 241.4,
+              "y": 644,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Open PICKLEBALL GAME, open spot",
+            "target": {
+              "x": 319.1,
+              "y": 644,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 319.1,
+              "y": 644,
+              "w": 34,
+              "h": 34
+            }
+          }
+        ],
+        "bg": "rgb(18, 18, 22)",
+        "greenOpen": [
+          {
+            "border": "rgb(63, 195, 151)",
+            "bg": "rgba(63, 195, 151, 0.14)"
+          },
+          {
+            "border": "rgb(63, 195, 151)",
+            "bg": "rgba(63, 195, 151, 0.14)"
+          }
+        ],
+        "scrollOwner": {
+          "scrollTop": 0,
+          "maxScroll": 115,
+          "cardBottom": 703,
+          "floorTop": 773,
+          "afterScrollTop": 0,
+          "afterCardBottom": 703
+        }
+      },
+      "audit": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "On court (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "remote": 36,
+      "writes": [],
+      "errors": [],
+      "websocket": 5
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "closed": {
+        "viewport": {
+          "width": 430,
+          "height": 932
+        },
+        "card": {
+          "x": 20,
+          "y": 388,
+          "width": 390,
+          "height": 227,
+          "right": 410,
+          "bottom": 615
+        },
+        "selected": {
+          "x": 35,
+          "y": 511,
+          "width": 360,
+          "height": 89,
+          "right": 395,
+          "bottom": 600
+        },
+        "heading": {
+          "x": 35,
+          "y": 403,
+          "width": 360,
+          "height": 32,
+          "right": 395,
+          "bottom": 435
+        },
+        "chart": {
+          "x": 63,
+          "y": 435,
+          "width": 304,
+          "height": 76,
+          "right": 367,
+          "bottom": 511
+        },
+        "headingText": "TODAY\n8 PM\n2 going",
+        "selectedText": "CH\nPL\n\nPICKLEBALL GAME\n2v2 · 2/4\n\nOPEN",
+        "avatars": [],
+        "openSpots": [],
+        "rosterCells": [],
+        "labels": [],
+        "cta": [
+          {
+            "label": "You",
+            "target": {
+              "x": 57,
+              "y": 533,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 57,
+              "y": 533,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Player2",
+            "target": {
+              "x": 107,
+              "y": 533,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 107,
+              "y": 533,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "I'm going",
+            "target": {
+              "x": 373,
+              "y": 533,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 373,
+              "y": 533,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Expand PICKLEBALL GAME",
+            "target": {
+              "x": 177,
+              "y": 577,
+              "w": 284,
+              "h": 44
+            },
+            "visual": {
+              "x": 166.5,
+              "y": 577,
+              "w": 263,
+              "h": 34
+            }
+          },
+          {
+            "label": "Open PICKLEBALL GAME",
+            "target": {
+              "x": 363,
+              "y": 577,
+              "w": 64,
+              "h": 44
+            },
+            "visual": {
+              "x": 363,
+              "y": 577,
+              "w": 64,
+              "h": 34
+            }
+          }
+        ],
+        "bg": "rgb(18, 18, 22)",
+        "greenOpen": []
+      },
+      "expanded": {
+        "viewport": {
+          "width": 430,
+          "height": 932
+        },
+        "card": {
+          "x": 20,
+          "y": 388,
+          "width": 390,
+          "height": 315,
+          "right": 410,
+          "bottom": 703
+        },
+        "selected": {
+          "x": 35,
+          "y": 511,
+          "width": 360,
+          "height": 177,
+          "right": 395,
+          "bottom": 688
+        },
+        "heading": {
+          "x": 35,
+          "y": 403,
+          "width": 360,
+          "height": 32,
+          "right": 395,
+          "bottom": 435
+        },
+        "chart": {
+          "x": 63,
+          "y": 435,
+          "width": 304,
+          "height": 76,
+          "right": 367,
+          "bottom": 511
+        },
+        "headingText": "TODAY\n8 PM\n2 going",
+        "selectedText": "CH\nPL\n\nPICKLEBALL GAME\n2v2 · 2/4\n\nOPEN\nTeam A\nCH\nchatgpt\n\nOpen\nTeam B\nPL\nPlayer2\n\nOpen",
+        "avatars": [],
+        "openSpots": [
+          {
+            "x": 165.5,
+            "y": 644,
+            "w": 44,
+            "h": 44
+          },
+          {
+            "x": 351.5,
+            "y": 644,
+            "w": 44,
+            "h": 44
+          }
+        ],
+        "rosterCells": [],
+        "labels": [],
+        "cta": [
+          {
+            "label": "You",
+            "target": {
+              "x": 57,
+              "y": 533,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 57,
+              "y": 533,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Player2",
+            "target": {
+              "x": 107,
+              "y": 533,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 107,
+              "y": 533,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "I'm going",
+            "target": {
+              "x": 373,
+              "y": 533,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 373,
+              "y": 533,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Collapse PICKLEBALL GAME",
+            "target": {
+              "x": 177,
+              "y": 577,
+              "w": 284,
+              "h": 44
+            },
+            "visual": {
+              "x": 166.5,
+              "y": 577,
+              "w": 263,
+              "h": 34
+            }
+          },
+          {
+            "label": "Open PICKLEBALL GAME",
+            "target": {
+              "x": 363,
+              "y": 577,
+              "w": 64,
+              "h": 44
+            },
+            "visual": {
+              "x": 363,
+              "y": 577,
+              "w": 64,
+              "h": 34
+            }
+          },
+          {
+            "label": "chatgpt",
+            "target": {
+              "x": 78.5,
+              "y": 644,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 78.5,
+              "y": 644,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Open PICKLEBALL GAME, open spot",
+            "target": {
+              "x": 165.5,
+              "y": 644,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 165.5,
+              "y": 644,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Player2",
+            "target": {
+              "x": 264.5,
+              "y": 644,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 264.5,
+              "y": 644,
+              "w": 34,
+              "h": 34
+            }
+          },
+          {
+            "label": "Open PICKLEBALL GAME, open spot",
+            "target": {
+              "x": 351.5,
+              "y": 644,
+              "w": 44,
+              "h": 44
+            },
+            "visual": {
+              "x": 351.5,
+              "y": 644,
+              "w": 34,
+              "h": 34
+            }
+          }
+        ],
+        "bg": "rgb(18, 18, 22)",
+        "greenOpen": [
+          {
+            "border": "rgb(63, 195, 151)",
+            "bg": "rgba(63, 195, 151, 0.14)"
+          },
+          {
+            "border": "rgb(63, 195, 151)",
+            "bg": "rgba(63, 195, 151, 0.14)"
+          }
+        ],
+        "scrollOwner": {
+          "scrollTop": 0,
+          "maxScroll": 35,
+          "cardBottom": 703,
+          "floorTop": 853,
+          "afterScrollTop": 0,
+          "afterCardBottom": 703
+        }
+      },
+      "audit": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "On court (9px)",
+            "Today (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "remote": 36,
+      "writes": [],
+      "errors": [],
+      "websocket": 5
+    }
+  ],
+  "floorContract": {
+    "tabBarClearance": 88,
+    "targetBottomClearance": 8,
+    "floorTopAt375": 579
+  }
+}

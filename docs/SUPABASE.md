@@ -1,5 +1,14 @@
 # Supabase workflow
 
+## November 5 manual check-in alert inspection
+
+**Read-only live inspection:** manual `check_in` and its check-in/activity
+triggers never insert friend notifications. `post_auto_check_in` owns the
+existing friend-alert fanout. Aggregate notification/token/receipt reads also
+show enabled push preferences without enabled receiving tokens for some
+recipients. [Evidence and draft correction](audits/2026-11-05-manual-check-in-notifications.md).
+No check-in RPC, notification dispatch, migration or deployment was executed.
+
 ## November 4 read-only UI contract recheck
 
 Catalog column/signature SELECTs confirm that profiles still have one
