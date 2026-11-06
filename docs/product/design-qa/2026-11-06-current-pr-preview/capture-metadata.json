@@ -1,0 +1,14 @@
+{
+  "pr": 90,
+  "sourceSha": "69757d5ee32f8582052ce5dbbc491a8a8d2928f4",
+  "preview": "https://localcheck-app-preview-59op51heq-jgpt-automated.vercel.app",
+  "viewport": "393x852",
+  "screenshots": [
+    "pickleball-home-393x852.png",
+    "pickleball-explore-393x852.png",
+    "basketball-home-393x852.png",
+    "basketball-explore-393x852.png"
+  ],
+  "fixtures": "Existing scripts/visual-qa/mock.mjs and fixtures.mjs; pickleball Home adapted using Candy Cane, 3 check-ins, 2/4 game at 8 PM, and planned visits. Basketball uses existing fixture. Home screenshots select 8 PM.",
+  "isolation": "All Supabase REST/auth requests were fulfilled from local fixtures; functions/storage requests fulfilled locally; unrelated remote HTTP aborted; jsQR fulfilled from a local download; all WebSockets closed. No app writes."
+}
