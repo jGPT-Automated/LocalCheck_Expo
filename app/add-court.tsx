@@ -6,6 +6,7 @@ import React from "react";
 import {
   Alert,
   Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -24,6 +25,7 @@ import { Colors, Radius } from "@/constants/colors";
 import { Layout, Space } from "@/constants/layout";
 import { TextStyles, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
+import { addressForCoordinate } from "@/lib/placeLocation";
 import type { CourtSubmissionResult } from "@/services/courtService";
 import { reportClientError } from "@/services/errorReportService";
 
@@ -180,12 +182,31 @@ export default function AddCourtRoute() {
 
   const reverseGeocode = React.useCallback(
     async (latitude: number, longitude: number) => {
+      // On web expo-location can't reverse-geocode, which left city and state
+      // blank and the server refused the submission; fall back to Mapbox.
+      const fromMapbox = async () => {
+        const hit = await addressForCoordinate(latitude, longitude);
+        if (!hit) return;
+        setAddress(hit.street || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+        setCity(hit.city);
+        setState(hit.state);
+        const nextName = courtNameFromLocation(hit.name, hit.street);
+        setSuggestedName(nextName);
+        setCourtName((current) => (nameWasEdited || current ? current : nextName));
+      };
+      if (Platform.OS === "web") {
+        await fromMapbox();
+        return;
+      }
       try {
         const [place] = await Location.reverseGeocodeAsync({
           latitude,
           longitude,
         });
-        if (!place) return;
+        if (!place) {
+          await fromMapbox();
+          return;
+        }
         const street = addressFrom(place);
         const nextName = courtNameFromLocation(place.name, street);
         setAddress(street);
@@ -196,7 +217,7 @@ export default function AddCourtRoute() {
           nameWasEdited || current ? current : nextName,
         );
       } catch {
-        /* coordinates remain usable if geocoding is unavailable */
+        await fromMapbox();
       }
     },
     [nameWasEdited],
@@ -689,6 +710,51 @@ function CenteredState({
     </View>
   );
 }
+/**
+ * Until launch (Jesse, Oct 16): what the server sent to Gemini, what Gemini
+ * answered and why the court was or wasn't added. Hidden when the server
+ * sends no debug block (COURT_VERIFY_DEBUG=off).
+ */
+function VerifyDebug({ debug }: { debug?: Record<string, unknown> }) {
+  const [showPrompt, setShowPrompt] = React.useState(false);
+  if (!debug) return null;
+  const sent = (debug.sent ?? debug.received) as Record<string, unknown> | undefined;
+  const { prompt, ...sentRest } = (sent ?? {}) as { prompt?: string } & Record<string, unknown>;
+  const answer = typeof debug.geminiAnswer === "string" ? debug.geminiAnswer : "";
+  let pretty = answer;
+  try {
+    pretty = JSON.stringify(JSON.parse(answer), null, 2);
+  } catch {
+    /* not JSON: show as is */
+  }
+  const lines: [string, string][] = [];
+  if (typeof debug.stoppedBefore === "string") lines.push(["STOPPED BEFORE", debug.stoppedBefore]);
+  if (sent) lines.push([debug.sent ? "SENT TO GEMINI" : "RECEIVED", JSON.stringify(sentRest, null, 2)]);
+  if (typeof debug.model === "string") lines.push(["MODEL", debug.model]);
+  if (answer) lines.push(["GEMINI ANSWERED", pretty]);
+  if (debug.decision) lines.push(["DECISION", JSON.stringify(debug.decision, null, 2)]);
+  if (debug.error) lines.push(["ERROR", JSON.stringify(debug.error, null, 2)]);
+  return (
+    <View style={styles.debugBox}>
+      <Text style={styles.debugTitle}>TESTING ONLY · WHAT GEMINI SAW</Text>
+      <ScrollView nestedScrollEnabled style={styles.debugScroll}>
+        {lines.map(([label, text]) => (
+          <View key={label} style={styles.debugSection}>
+            <Text style={styles.debugLabel}>{label}</Text>
+            <Text selectable style={styles.debugText}>{text}</Text>
+          </View>
+        ))}
+        {prompt ? (
+          <Pressable accessibilityRole="button" onPress={() => setShowPrompt((v) => !v)}>
+            <Text style={styles.debugLabel}>{showPrompt ? "HIDE PROMPT" : "SHOW PROMPT"}</Text>
+            {showPrompt ? <Text selectable style={styles.debugText}>{prompt}</Text> : null}
+          </Pressable>
+        ) : null}
+      </ScrollView>
+    </View>
+  );
+}
+
 function SuccessState({
   result,
   photoUri,
@@ -710,6 +776,7 @@ function SuccessState({
       <Text style={styles.stateBody}>
         {court.shortName || court.name} is now live on LocalCheck
       </Text>
+      <VerifyDebug debug={result?.debug} />
       {photoUri ? (
         <Image
           source={{ uri: photoUri }}
@@ -770,6 +837,7 @@ function RejectedState({
         {result?.reason ||
           "Make sure the court surface, lines, or hoop/net are clearly visible."}
       </Text>
+      <VerifyDebug debug={result?.debug} />
       <AttemptBox used={used} limit={limit} />
       <BrutalistButton
         label="TRY AGAIN"
@@ -801,6 +869,7 @@ function CooldownState({
       <Text style={styles.stateBody}>
         You’ve used both attempts. You can try adding a court again in:
       </Text>
+      <VerifyDebug debug={result?.debug} />
       <CooldownTimer until={result?.cooldownUntil} />
       <AttemptBox used={result?.attemptsUsed ?? limit} limit={limit} />
       <BrutalistButton
@@ -832,6 +901,7 @@ function ErrorState({
         {result?.reason ||
           "The court verification service is unavailable. Please try again."}
       </Text>
+      <VerifyDebug debug={result?.debug} />
       <BrutalistButton
         label="TRY AGAIN"
         onPress={onRetry}
@@ -890,6 +960,21 @@ function PermissionState({
 }
 
 const styles = StyleSheet.create({
+  debugBox: {
+    alignSelf: "stretch",
+    marginTop: Space.md,
+    marginBottom: Space.md,
+    padding: Space.md,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  debugTitle: { ...TextStyles.label, color: Colors.accent, marginBottom: Space.sm },
+  debugScroll: { maxHeight: 260 },
+  debugSection: { marginBottom: Space.sm },
+  debugLabel: { ...TextStyles.label, color: Colors.muted, marginBottom: 2 },
+  debugText: { fontFamily: Typography.body, fontSize: 11, lineHeight: 15, color: Colors.text },
   root: { flex: 1, backgroundColor: Colors.background },
   header: {
     // No fixed height: `top != null` adds the notch inset as paddingTop, and a

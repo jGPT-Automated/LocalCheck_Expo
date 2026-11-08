@@ -147,38 +147,22 @@ test("keeps the legacy no-sport request compatible and rejects unsupported sport
   assert.equal(validateCourtSubmission({ ...base, sport: "tennis" }).ok, false);
 });
 
-test("accepts only high-confidence supported playable courts", () => {
-  assert.equal(acceptsVerifiedCourt({
-    verified: true,
-    sport: "pickleball",
-    setting: "indoor",
-    confidence: 80,
-    rejectionCode: "none",
-    nameOkay: true,
-    nameCode: "none",
-  }), true);
-  assert.equal(acceptsVerifiedCourt({
-    verified: true,
-    sport: "pickleball",
-    setting: "indoor",
-    confidence: 79,
-    rejectionCode: "none",
-    nameOkay: true,
-    nameCode: "none",
-  }), false);
-
-  const basketball = {
-    verified: true,
-    sport: "basketball" as const,
-    setting: "outdoor" as const,
-    confidence: 95,
-    rejectionCode: "none" as const,
+test("while testing, everything passes unless it's not a court at all", () => {
+  const base = {
+    verified: false,
+    sport: "unclear" as const,
+    setting: "unclear" as const,
+    confidence: 5,
+    rejectionCode: "too_unclear" as const,
     nameOkay: true,
     nameCode: "none" as const,
+    note: "",
   };
-  assert.equal(matchesRequestedSport(basketball, "basketball"), true);
-  assert.equal(matchesRequestedSport(basketball, "pickleball"), false);
-  assert.equal(matchesRequestedSport(basketball, null), true);
+  assert.equal(acceptsVerifiedCourt({ ...base, verified: true }), true);
+  assert.equal(acceptsVerifiedCourt(base), true); // blurry, low confidence
+  assert.equal(acceptsVerifiedCourt({ ...base, sport: "pickleball", rejectionCode: "not_a_court" }), true);
+  assert.equal(acceptsVerifiedCourt({ ...base, rejectionCode: "not_a_court" }), false); // a living room
+  assert.equal(matchesRequestedSport({ ...base, sport: "basketball" }, "pickleball"), true);
 });
 
 test("the model's own sentence is kept, trimmed and capped", () => {
@@ -190,10 +174,10 @@ test("the model's own sentence is kept, trimmed and capped", () => {
     rejection_code: "not_a_court",
     name_okay: true,
     name_code: "none",
-    reason: `  This looks like a living room, not a court.  ${"x".repeat(300)}`,
+    reason: `  This looks like a living room, not a court.  ${"x".repeat(700)}`,
   });
   assert.ok(result?.note.startsWith("This looks like a living room, not a court."));
-  assert.equal(result?.note.length, 140);
+  assert.equal(result?.note.length, 500);
 });
 
 test("a living room is not a court, never the wrong sport", () => {
