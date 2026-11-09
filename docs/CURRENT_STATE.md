@@ -1,5 +1,48 @@
 # Current state
 
+- Nov 8 (**PR #91 frontend verified in isolated Expo web renders**): 375/393/430
+  captures, seven paging/read/error/presentation cases per size, 43 unique
+  entries including a timestamp tie, title/body left edges 40px, zero audited
+  layout failures/debt. Full pnpm check and export passed; remote quality,
+  docs and Expo-preview checks passed for application commit 205dc8f.
+  Evidence: `docs/product/design-qa/2026-11-08-notifications/README.md`.
+  No native-device, push-trigger, historical-privacy or OTA claim.
+
+- Nov 8 (**on branch** `codex/notification-log-ui`): Notifications uses compact
+  virtualized rows, sentence-case legacy headings, exact local timestamps,
+  a dedicated unread gutter and cursor-based pages of 20 (21st-row lookahead).
+  React Query owns account-scoped pages and loading/error/retry; unread count
+  is queried separately across all history. Only explicit visibility in an
+  own-event payload is displayed; historical rows are not inferred from the
+  current profile. This frontend slice does not create missing manual events
+  or backfill privacy snapshots. No migration, deployment, OTA or build.
+  Evidence: `docs/product/design-qa/2026-11-08-notifications/`.
+
+
+- Nov 8, evening Central (**live-backend tests, rolled back**): exercised
+  `public.check_in` as existing TEST account lcqaalpha and read both
+  `check_ins` and `activity_events` as owner, accepted friend lcqabeta and
+  non-friend under the authenticated role. All nine visibility cases matched:
+  Private owner only; Friends owner/friend only; Public all three. A blocked
+  viewer saw neither row. The transaction deliberately raised its results
+  and rolled back; no test check-ins, blocks, notifications or timer bookings
+  persisted. Manual check-in created zero friend notifications, reproducing
+  the missing trigger; the new migration remains an unapplied local draft.
+- Nov 8 (**observed live backend, not device receipt**): JESSE's automatic
+  arrival at 8:39:15 PM Central produced the posted notice and 18 friend inbox
+  rows at 8:44:17 PM. Push status was sent for JESSE and one friend, skipped
+  for 17 friends. Skipped reasons and recipient eligibility were not proven by
+  this observation. A separate seven-case auto-notification preference test
+  did not execute because its tool confirmation expired; no result claimed.
+  The earlier custom notification screenshot proves only that custom row
+  appeared in JESSE's inbox, not any check-in trigger or privacy rule.
+- Nov 8 (**decided, not implemented**): compact combined own-event/incoming
+  notification log, newest first, 20 entries per page and a Load more button;
+  exact local timestamps, sentence-case titles, no large icon tiles, aligned
+  text, and historical visibility on own events. Show the UI before backend
+  changes for this log. Privacy/friend-flow testing takes priority over design.
+  No OTA, native build, deployment, merge or PR creation in this checkpoint.
+
 - Nov 3 (**on a branch**, PR #89 review correction): the heatmap opens the
   exact tapped hour, including today's current two-hour block; completed
   blocks stay disabled. Court Feed uses one 28pt focus for jumping and scroll

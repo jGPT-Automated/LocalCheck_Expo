@@ -1,0 +1,71 @@
+[
+  {
+    "width": 375,
+    "events": 43,
+    "alignedLeft": 40,
+    "layoutFailures": [],
+    "checks": [
+      "20-row paging",
+      "timestamp tie",
+      "no duplicates",
+      "failure/retry",
+      "read all",
+      "privacy examples",
+      "sentence case"
+    ],
+    "audit": {
+      "fail": [],
+      "debt": {
+        "smallText": [],
+        "lowContrast": [],
+        "smallTarget": []
+      }
+    }
+  },
+  {
+    "width": 393,
+    "events": 43,
+    "alignedLeft": 40,
+    "layoutFailures": [],
+    "checks": [
+      "20-row paging",
+      "timestamp tie",
+      "no duplicates",
+      "failure/retry",
+      "read all",
+      "privacy examples",
+      "sentence case"
+    ],
+    "audit": {
+      "fail": [],
+      "debt": {
+        "smallText": [],
+        "lowContrast": [],
+        "smallTarget": []
+      }
+    }
+  },
+  {
+    "width": 430,
+    "events": 43,
+    "alignedLeft": 40,
+    "layoutFailures": [],
+    "checks": [
+      "20-row paging",
+      "timestamp tie",
+      "no duplicates",
+      "failure/retry",
+      "read all",
+      "privacy examples",
+      "sentence case"
+    ],
+    "audit": {
+      "fail": [],
+      "debt": {
+        "smallText": [],
+        "lowContrast": [],
+        "smallTarget": []
+      }
+    }
+  }
+]

@@ -1,5 +1,17 @@
 # Product context
 
+## Notifications log — November 8 frontend slice
+
+The Notifications screen lists existing own-event notices and incoming alerts
+newest first. It loads 20 at a time with Load more, uses exact local date/time,
+and keeps unread status separate from event visibility. Phone-alert opt-out
+does not remove inbox history. An own-event audience label appears only when
+the notification payload explicitly includes visibility; absent historical
+metadata is not guessed. Complete own manual-event history and historical
+privacy snapshots await backend implementation after UI approval.
+
+
+
 LocalCheck is the live layer for local pickup sports. It helps players
 understand a court before leaving home, check in when they arrive, organize the
 next run, and recognize the people who make a court a community. Launch sports

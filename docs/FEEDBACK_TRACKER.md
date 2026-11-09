@@ -1,5 +1,13 @@
 # Feedback & polish tracker
 
+- Nov 8 (**PR #91 frontend verified in isolated Expo web renders**): 375/393/430
+  captures, seven paging/read/error/presentation cases per size, 43 unique
+  entries including a timestamp tie, title/body left edges 40px, zero audited
+  layout failures/debt. Full pnpm check and export passed; remote quality,
+  docs and Expo-preview checks passed for application commit 205dc8f.
+  Evidence: `docs/product/design-qa/2026-11-08-notifications/README.md`.
+  No native-device, push-trigger, historical-privacy or OTA claim.
+
 Status: Living tracker. **This is the source of truth for what Jesse has
 flagged, whether it's been handled, and which commit/branch/PR it landed in.**
 Any agent picking up UI/polish work on this repo should read this file first
@@ -20,6 +28,31 @@ docs:
 Keep entries terse. When an item ships, mark it ✅ and record the commit SHA —
 don't delete the row; the history of what was asked and when it landed is the
 point.
+
+## 2026-11-08 — Notification log and check-in delivery
+
+- On branch `codex/notification-log-ui`: existing inbox compact-row presentation
+  and 20-row cursor pagination; screenshot/interaction evidence in
+  `docs/product/design-qa/2026-11-08-notifications/`. No backend release.
+
+- Decided: one compact chronological list combining own events and incoming
+  notifications, 20 initially and Load more in batches of 20. Exact local
+  timestamps; sentence case; remove large icon tiles; unread marker in its
+  own gutter so titles and descriptions align. Own events retain historical
+  Private/Friends/Public visibility. UI must be shown before implementing
+  backend changes for the combined log. Design currently deferred for testing.
+- In progress: manual check-in alerts after one minute, auto still five;
+  sender sharing and recipient friendship/preferences/blocking must be
+  respected. Local migration draft only; not applied or phone-tested.
+- Verified live DB with rollback: owner/friend/non-friend visibility across
+  three privacy modes, plus blocked viewer, for check-in and activity rows.
+  Manual check-in generated zero friend notices. See CURRENT_STATE.md.
+- Confirmed by Jesse's screenshot: the custom delivery-test entry reached his
+  inbox. This is not check-in-trigger or privacy evidence. Actual 8:44 PM auto
+  event notification rows/push status observed; phone receipt awaits Jesse.
+- Pending: recipient preference matrix (tool confirmation expired without
+  executing), actual friend-to-Jesse phone delivery and manual-flow retest
+  after its fix. No release-readiness claim from these partial results.
 
 ## 2026-11-03 — PR #89 external-review correction
 
