@@ -1,5 +1,13 @@
 # Current state
 
+- Nov 8 (**PR #91 frontend verified in isolated Expo web renders**): 375/393/430
+  captures, seven paging/read/error/presentation cases per size, 43 unique
+  entries including a timestamp tie, title/body left edges 40px, zero audited
+  layout failures/debt. Full pnpm check and export passed; remote quality,
+  docs and Expo-preview checks passed for application commit 205dc8f.
+  Evidence: `docs/product/design-qa/2026-11-08-notifications/README.md`.
+  No native-device, push-trigger, historical-privacy or OTA claim.
+
 - Nov 8 (**on branch** `codex/notification-log-ui`): Notifications uses compact
   virtualized rows, sentence-case legacy headings, exact local timestamps,
   a dedicated unread gutter and cursor-based pages of 20 (21st-row lookahead).

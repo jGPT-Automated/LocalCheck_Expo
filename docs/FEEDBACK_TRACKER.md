@@ -1,5 +1,13 @@
 # Feedback & polish tracker
 
+- Nov 8 (**PR #91 frontend verified in isolated Expo web renders**): 375/393/430
+  captures, seven paging/read/error/presentation cases per size, 43 unique
+  entries including a timestamp tie, title/body left edges 40px, zero audited
+  layout failures/debt. Full pnpm check and export passed; remote quality,
+  docs and Expo-preview checks passed for application commit 205dc8f.
+  Evidence: `docs/product/design-qa/2026-11-08-notifications/README.md`.
+  No native-device, push-trigger, historical-privacy or OTA claim.
+
 Status: Living tracker. **This is the source of truth for what Jesse has
 flagged, whether it's been handled, and which commit/branch/PR it landed in.**
 Any agent picking up UI/polish work on this repo should read this file first
