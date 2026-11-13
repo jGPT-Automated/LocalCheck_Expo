@@ -1,5 +1,18 @@
 # LocalCheck Design Decisions
 
+## 2026-11-08 — Compact notification log
+
+Jesse selected rows rather than cards, a combined own-event/incoming timeline,
+exact timestamps, 20 initial entries and Load more in batches of 20. Remove
+large icon tiles and align title/body text beside an unread gutter. Preserve
+historical privacy, never infer it from the current profile. UI is shown
+before backend changes for the combined log. This branch implements the
+presentation/paging of existing notifications; missing manual events and
+privacy snapshot capture remain the next backend slice. No native build or
+OTA is part of this preview PR.
+
+
+
 Status: Current MVP decisions. Newer decisions supersede older entries; every
 superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every

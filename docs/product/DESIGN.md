@@ -1,5 +1,18 @@
 # LocalCheck Design System
 
+## Notifications rows — November 8
+
+Use the shared DetailHeader, color and typography tokens, and a virtualized
+plain list. No large event-icon tiles or cards. The unread dot has its own
+20pt gutter; title, body and timestamp share a left edge. Sentence-case event
+headings and exact local timestamps replace mixed caps and relative age.
+Own-event audience metadata uses installed Feather lock/users/globe icons
+with explicit Private · Only you / Friends / Public labels, only when stored
+in that event's payload. No invented patterned privacy symbols and no current
+profile visibility substituted for historical metadata. Load more adds 20.
+
+
+
 Status: Authoritative MVP contract
 
 Version: 3.0.4
