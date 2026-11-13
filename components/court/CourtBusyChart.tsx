@@ -40,6 +40,7 @@ interface ChartProps {
   allowPast?: boolean;
   dayOffset?: number;
   onDayChange?: (day: number) => void;
+  onNow?: () => void;
   /** Show the selected day, hour, and count as one dashboard header. */
   selectionHeader?: boolean;
   /** Feed supplies its snapshot so chart and rows cannot disagree. */
@@ -59,6 +60,7 @@ export function CourtBusyChart({
   allowPast = false,
   dayOffset: controlledDay,
   onDayChange,
+  onNow,
   selectionHeader = false,
   data,
 }: ChartProps) {
@@ -114,7 +116,7 @@ export function CourtBusyChart({
   });
   const scrub = (x: number) => {
     const { dayOffset, bars, selected, onSelect, allowPast } = gestureState.current;
-    const hour = chartHourAt(x, width.current);
+    const hour = chartHourAt(x, width.current, bars[0].hour, bars[bars.length - 1].hour);
     if (!allowPast && bars.find((bar) => bar.hour === hour)?.kind === "past")
       return;
     if (selected?.dayOffset !== dayOffset || selected.hour !== hour)
@@ -163,6 +165,7 @@ export function CourtBusyChart({
             ) : (
               <>
                 <Text accessibilityLiveRegion="polite" style={styles.dayLabel}>{busyDayLabel(dayOffset, now)}</Text>
+                {onNow ? <Pressable accessibilityRole="button" accessibilityLabel="Now" onPress={onNow} style={{ minWidth: 44, minHeight: 44, justifyContent: "center", alignItems: "center" }}><Text style={[styles.dayLabel, { color: Colors.liveInk }]}>Now</Text></Pressable> : null}
                 {data.loading ? <ActivityIndicator color={Colors.textSecondary} size="small" /> : (
                   <Text numberOfLines={1} style={styles.caption}>{caption}</Text>
                 )}
@@ -188,8 +191,8 @@ export function CourtBusyChart({
             accessibilityValue={
               picked
                 ? {
-                    min: 6,
-                    max: 22,
+                    min: bars[0].hour,
+                    max: bars[bars.length - 1].hour,
                     now: picked.hour,
                     text: hourLabel(picked.hour),
                   }

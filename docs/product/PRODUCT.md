@@ -1,5 +1,21 @@
 # Product context
 
+## November 13 — saved courts and complete notices
+
+On the active branch, LocalPlus players can save up to five courts including
+their local, using the plus/check on the court page. Home and court pickers
+use the same list; switching the viewed court does not change the local court.
+Free users keep one local. Additional saved courts do not enable additional
+geofences. Server changes are prepared but unapplied.
+
+The compact chronological notification list pages through all accessible
+history. New manual check-in/out log entries preserve their recorded audience.
+Manual friend notices are delayed one minute and respect the same sharing,
+recipient and blocking rules as automatic notices; automatic posting keeps its
+five-minute hold. Phone alerts and the in-app log are distinct: turning off
+phone alerts does not erase history. No production delivery claim yet.
+
+
 ## Notifications log — November 8 frontend slice
 
 The Notifications screen lists existing own-event notices and incoming alerts

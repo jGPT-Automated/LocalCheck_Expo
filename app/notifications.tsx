@@ -4,6 +4,7 @@ import React from "react";
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ScreenViewport } from "@/components/ui/ScreenViewport";
 import { DetailHeader } from "@/components/ui/DetailHeader";
 import { Colors } from "@/constants/colors";
 import { TextStyles, Typography } from "@/constants/typography";
@@ -26,13 +27,17 @@ export default function NotificationsScreen() {
     if (!result.ok) Alert.alert("Alerts are not on", result.message ?? "Please try again.");
   };
   return (
-    <View style={styles.screen}>
+    <ScreenViewport>
       <DetailHeader onBack={() => router.back()} title="NOTIFICATIONS" right={unreadCount > 0 ? (
         <Pressable accessibilityRole="button" onPress={() => void readAll()} style={styles.readAllButton}>
           <Text style={styles.readAll}>Read all</Text>
         </Pressable>
       ) : undefined} />
       <FlatList
+        testID="notification-log-scroll"
+        style={{ flex: 1, minHeight: 0 }}
+        bounces={false}
+        alwaysBounceVertical={false}
         data={notifications}
         keyExtractor={item => item.id}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: bottom + 32 }}
@@ -80,12 +85,11 @@ export default function NotificationsScreen() {
           </Pressable>
         ) : null}
       />
-    </View>
+    </ScreenViewport>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
   readAllButton: { minHeight: 44, minWidth: 60, justifyContent: "center", alignItems: "flex-end" },
   readAll: { fontFamily: Typography.bodySemiBold, fontSize: 12, color: Colors.inkSoft },
   row: { flexDirection: "row", paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: Colors.hairlineCard, minHeight: 80 },

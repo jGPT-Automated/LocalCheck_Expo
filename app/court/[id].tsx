@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CourtSchedulePanel } from "@/components/CourtSchedulePanel";
@@ -59,6 +59,8 @@ export default function CourtProfileScreen() {
     localCourt: contextLocalCourt,
     currentUser,
     setLocalCourt,
+    savedCourts,
+    toggleSavedCourt,
     isFriend,
     runs,
   } = useApp();
@@ -68,6 +70,7 @@ export default function CourtProfileScreen() {
   const [activeTab, setActiveTab] = React.useState<CourtTab>(
     courtTab(tab),
   );
+  const [savingCourt, setSavingCourt] = React.useState(false);
   const [hourPick, setHourPick] = React.useState<CourtHourPick | undefined>();
   const [court, setCourt] = React.useState<Court | null>(
     courts.find((item) => item.id === id) ?? (contextLocalCourt?.id === id ? contextLocalCourt : null),
@@ -75,6 +78,7 @@ export default function CourtProfileScreen() {
   const [fetchError, setFetchError] = React.useState(false);
   const [locals, setLocals] = React.useState<LocalWithLastCheckIn[]>([]);
   const [records, setRecords] = React.useState<Record<string, CourtRecord>>({});
+  const [feedError, setFeedError] = React.useState(false);
   const [courtFeed, setCourtFeed] = React.useState<Awaited<ReturnType<typeof fetchFeed>>>([]);
   const groupedCourtFeed = React.useMemo(
     () => groupCheckinBursts(pairVisits(courtFeed, { splitToday: true })),
@@ -118,7 +122,10 @@ export default function CourtProfileScreen() {
 
   const refreshCourtFeed = React.useCallback(async () => {
     if (!courtId) return setCourtFeed([]);
-    setCourtFeed((await fetchFeed(courtId, currentUser.id)).slice(0, 50));
+    try {
+      setCourtFeed(await fetchFeed(courtId, currentUser.id, true));
+      setFeedError(false);
+    } catch { setFeedError(true); }
   }, [courtId, currentUser.id]);
 
   React.useEffect(() => {
@@ -215,7 +222,15 @@ export default function CourtProfileScreen() {
           >
             <Feather color={Colors.text} name="arrow-left" size={22} />
           </Pressable>
-          <LocalMark active={isMyLocal} onPress={() => void setLocalCourt(court.id, court)} />
+          <LocalMark allowRemoval={hasLocalPlus && !isMyLocal} active={isMyLocal || savedCourts.some(row => row.id === court.id)} onPress={async () => {
+            if (savingCourt) return;
+            setSavingCourt(true);
+            try {
+              if (hasLocalPlus) await toggleSavedCourt(court.id);
+              else if (!(await setLocalCourt(court.id, court))) throw new Error("Could not save your court. Try again.");
+            } catch (error) { Alert.alert("Could not save your court", error instanceof Error ? error.message : String((error as { message?: string })?.message ?? "Try again.")); }
+            finally { setSavingCourt(false); }
+          }} />
         </View>
         {/* Name left, the live number right (Oct 17 header reference), then
             today's busy times above the tabs so every tab shares them. */}
@@ -236,7 +251,8 @@ export default function CourtProfileScreen() {
       <View style={styles.tabContent}>
         {activeTab === "feed" ? <CourtActivityFeed key={`${court.id}-${hourPick?.dayOffset}-${hourPick?.hour}`}
           court={court} roster={roster} activeCount={activeCount} games={runs.filter((r) => r.courtId === court.id)} events={groupedCourtFeed}
-          bottomInset={listPad} onActivity={openActivity} initialPick={hourPick} /> : null}
+          bottomInset={listPad} onActivity={openActivity} initialPick={hourPick}
+          eventsError={feedError} onRetryEvents={() => void refreshCourtFeed()} /> : null}
 
         {activeTab === "schedule" ? <CourtSchedulePanel bottomInset={listPad} court={court}
           onSelectHour={(pick) => { setHourPick(pick); setActiveTab("feed"); }}>
@@ -280,12 +296,12 @@ export default function CourtProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
+  screen: { flex: 1, minHeight: 0, overflow: "hidden", backgroundColor: Colors.background },
   notFound: { flex: 1, alignItems: "center", justifyContent: "center", gap: Space.lg, padding: 30, backgroundColor: Colors.background },
   notFoundText: { fontFamily: Typography.heading, fontSize: 22, color: Colors.text },
   retryButton: { minHeight: 44, paddingHorizontal: Space.xl, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
   retryText: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.text, letterSpacing: 1.2 },
-  header: { position: "relative", overflow: "hidden" },
+  header: { flexShrink: 0, position: "relative", overflow: "hidden" },
   navRow: { height: 44, paddingLeft: 12, paddingRight: 9, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   back: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
   titleRow: { paddingTop: 6 },

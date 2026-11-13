@@ -75,7 +75,7 @@ export function SportLabel({ sport, suffix }: { sport: CourtSport; suffix?: stri
  * Home's top-right). Where it isn't your local, a tap makes it your local and
  * the check springs in; once it is, the mark does nothing (Settings changes it).
  */
-export function LocalMark({ active, onPress }: { active: boolean; onPress?: () => void }) {
+export function LocalMark({ active, onPress, allowRemoval = false }: { active: boolean; onPress?: () => void; allowRemoval?: boolean }) {
   const pop = React.useRef(new Animated.Value(active ? 1 : 0)).current;
   const wasActive = React.useRef(active);
   React.useEffect(() => {
@@ -93,7 +93,7 @@ export function LocalMark({ active, onPress }: { active: boolean; onPress?: () =
     wasActive.current = active;
   }, [active, pop]);
 
-  const tappable = Boolean(onPress) && !active;
+  const tappable = Boolean(onPress) && (!active || allowRemoval);
   const body = (
     <View style={styles.markBox}>
       {active ? (
@@ -111,8 +111,8 @@ export function LocalMark({ active, onPress }: { active: boolean; onPress?: () =
     <View pointerEvents="box-none">
       {tappable ? (
         <Pressable
-          accessibilityHint="Sets this as your local court"
-          accessibilityLabel="Set as local court"
+          accessibilityHint={allowRemoval ? "Updates your saved courts" : "Sets this as your local court"}
+          accessibilityLabel={allowRemoval ? active ? "Remove saved court" : "Save court" : "Set as local court"}
           accessibilityRole="button"
           onPress={onPress}
           style={({ pressed }) => pressed && styles.pressed}
@@ -142,6 +142,7 @@ export function CourtTitleRow({
   live,
   liveAccessibilityLabel,
   onNavigate,
+  onChooseCourt,
   size = "card",
 }: {
   sport: CourtSport;
@@ -151,6 +152,7 @@ export function CourtTitleRow({
   live: boolean;
   liveAccessibilityLabel?: string;
   onNavigate?: () => void;
+  onChooseCourt?: () => void;
   size?: "card" | "page";
 }) {
   const page = size === "page";
@@ -159,7 +161,7 @@ export function CourtTitleRow({
   const shown = name.length > 14 ? name.replace(/\s+courts?$/i, "") : name;
   return (
     <View style={styles.titleRow}>
-      <View style={styles.titleBlock}>
+      <Pressable disabled={!onChooseCourt} onPress={onChooseCourt} accessibilityRole={onChooseCourt ? "button" : undefined} accessibilityLabel={onChooseCourt ? "Choose court" : undefined} style={styles.titleBlock}>
         <SportLabel sport={sport} />
         <Text
           adjustsFontSizeToFit
@@ -169,8 +171,8 @@ export function CourtTitleRow({
         >
           {shown}
         </Text>
-        {place ? <Text numberOfLines={1} style={styles.titlePlace}>{place}</Text> : null}
-      </View>
+        {place ? <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Text numberOfLines={1} style={styles.titlePlace}>{place}</Text>{onChooseCourt ? <Feather name="chevron-down" size={12} color={Colors.textSecondary} /> : null}</View> : null}
+      </Pressable>
       <View
         accessibilityLabel={onNavigate ? undefined : liveAccessibilityLabel ?? `${liveValue} on court`}
         accessible={!onNavigate}

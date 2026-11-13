@@ -74,3 +74,5 @@ beside the live number. Candy Cane includes a four-player scheduled-game
 fixture. All three phone sizes, 54 interaction assertions, the rapid-day
 regression and scoped 27-state audit are retained. The hourly casual lobby
 remains a separate backend review draft; no live writes or release.
+
+- [November 13 — fixed headers, Now/Going, saved courts and complete notifications](2026-11-13-finalization/README.md): paired app renders, 27-state comparison, browser journeys and isolated PostgreSQL results; backend source remains unapplied.

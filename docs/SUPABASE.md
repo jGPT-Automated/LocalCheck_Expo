@@ -1,5 +1,33 @@
 # Supabase workflow
 
+## November 13 — prepared, unapplied changes
+
+Live catalog/ledger inspection found no saved-court relation or RPC; latest
+ledger entry is `20261012200000`. Existing planned-visit RLS/grants and timer
+function definitions were inspected read-only. No production writes occurred.
+
+- `20261113100000_saved_courts.sql`: owner-only extra saved courts, locked
+  authenticated add/remove RPC, five-court cap including the legacy local,
+  profile-change cap guard, scoped invalidations and read RPC. Uses the same
+  subscription/TEST entitlement rule as the app. Existing local court remains
+  default and the only geofence. No backfill or deletion on downgrade.
+- `20261113110000_complete_check_in_notifications.sql`: manual own-event log,
+  immutable visibility/source snapshots on newly created own notices, and a
+  one-minute manual friend timer with sharing, friendship, recipient preference,
+  blocking, hidden-account and two-hour deduplication checks. Reuses existing
+  auto_check_in/out notice types so installed clients can render them. Owner
+  history is push-skipped; the existing timed checkout notice remains actionable.
+  Anchored patches preserve live run_timer/end_check_in definitions. No old
+  audiences are guessed or backfilled. No Edge Function change is required.
+
+Both files are **source only**. The disposable PostgreSQL journey uses a Nov 13
+read-only snapshot of run_timer/end_check_in and tests ownership/cap, free and
+paid access, default preservation, downgrade, notification delay, preferences,
+blocking, historical audience, deduplication and checkout behavior. This does
+not prove production QStash/APNs delivery. Apply only via the owner-controlled
+SQL-editor flow below, verify, then record each migration in the live ledger.
+
+
 ## November 3 read-only design grounding
 
 LocalCheckProd (`qkrnmyexzvaxiqfxwwfb`) was inspected through catalog SELECTs:

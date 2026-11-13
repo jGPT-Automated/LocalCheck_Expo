@@ -1,5 +1,23 @@
 # Feedback & polish tracker
 
+## 2026-11-13 — finalization corrections
+
+**In progress on `codex/finalize-courts-notifications`, not released.**
+
+- #90 and #91 consolidated locally; both had main as their base.
+- Home header separated from scroll; compact Notifications list bounded below
+  its fixed header; court/chart stay anchored.
+- Reproduced Now missing at 2 AM and an initial scrollTo clamping before
+  timeline height settled. Retain the pending target until position confirms.
+- Going remains visible after reload; current-hour intent is retained, event
+  mapping includes planned visits and plan reads no longer truncate at 200.
+- Saved list wired from court plus to Home and court fields/drawers. Backend
+  migration prepared and locally tested, not applied.
+- Missing manual friend notification path and own log/snapshot source prepared
+  and locally tested, not applied. Phone receipt remains untested.
+- Evidence/remaining acceptance: docs/plans/2026-11-13-finalize-courts-notifications.md.
+
+
 - Nov 8 (**PR #91 frontend verified in isolated Expo web renders**): 375/393/430
   captures, seven paging/read/error/presentation cases per size, 43 unique
   entries including a timestamp tie, title/body left edges 40px, zero audited

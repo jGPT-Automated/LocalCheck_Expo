@@ -118,6 +118,13 @@ function mapEvent(
         type: "checkout",
         message: `${actorName} CHECKED OUT OF ${courtName}`,
       };
+    case "planned_visit_created":
+      return {
+        ...base,
+        type: "planned_visit",
+        message: `${actorName} is going to ${courtName}`,
+        plannedAtIso: typeof row.payload?.planned_at === "string" ? row.payload.planned_at : undefined,
+      };
     case "run_created":
       return {
         ...base,
@@ -178,7 +185,7 @@ function mapEvent(
       };
     }
     default:
-      // run_joined / run_left / planned_visit_created — not surfaced in the feed UI yet.
+      // run_joined / run_left are represented by the scheduled-game roster.
       return null;
   }
 }
@@ -188,24 +195,31 @@ function mapEvent(
 export async function fetchFeed(
   courtId?: string,
   currentUserId?: string | null,
+  throwOnError = false,
 ): Promise<FeedItem[]> {
   try {
-    let q = supabase
-      .from("activity_events")
-      .select(EVENT_SELECT)
-      .order("occurred_at", { ascending: false })
-      .limit(50);
-    if (courtId) q = q.eq("court_id", courtId);
-
-    const { data, error } = await q;
-    if (error || !data) {
-      if (error) console.warn("fetchFeed error:", error.message);
-      return [];
+    const items: FeedItem[] = [];
+    const from = new Date();
+    from.setDate(from.getDate() - 6);
+    from.setHours(0, 0, 0, 0);
+    // The linked court timeline covers seven days. A global 50-event ceiling
+    // made older hour rows look empty even while the chart counted sessions.
+    const fullCourtWindow = Boolean(courtId && throwOnError);
+    const pageSize = fullCourtWindow ? 200 : 50;
+    for (let offset = 0; ; offset += pageSize) {
+      let q = supabase.from("activity_events").select(EVENT_SELECT)
+        .order("occurred_at", { ascending: false }).order("id", { ascending: false })
+        .range(offset, offset + pageSize - 1);
+      if (courtId) q = q.eq("court_id", courtId);
+      if (fullCourtWindow) q = q.gte("occurred_at", from.toISOString());
+      const { data, error } = await q;
+      if (error) throw error;
+      const rows = (data ?? []) as unknown as SupabaseActivityEvent[];
+      items.push(...rows.map(row => mapEvent(row, currentUserId)).filter((item): item is FeedItem => item !== null));
+      if (!fullCourtWindow || rows.length < pageSize) return items;
     }
-    return (data as unknown as SupabaseActivityEvent[])
-      .map((row) => mapEvent(row, currentUserId))
-      .filter((i): i is FeedItem => i !== null);
   } catch (err) {
+    if (throwOnError) throw err;
     console.warn("fetchFeed exception:", err);
     return [];
   }

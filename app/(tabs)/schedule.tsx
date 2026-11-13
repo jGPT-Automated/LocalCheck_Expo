@@ -544,27 +544,28 @@ function CourtPickerModal({
   localCourt: Court | null;
   onSelect: (c: Court) => void;
 }) {
+  const { savedCourts } = useApp();
   return (
     <FormSheet visible={visible} onClose={onClose} title="Pick a court">
       <ScrollView
         contentContainerStyle={styles.sheetContent}
         keyboardShouldPersistTaps="handled"
       >
-        {localCourt && (
+        {savedCourts.map(savedCourt => (
           <Pressable
-            style={styles.pickerLocalRow}
+            key={savedCourt.id} style={styles.pickerLocalRow}
             onPress={() => {
-              onSelect(localCourt);
+              onSelect(savedCourt);
               onClose();
             }}
           >
             <Feather name="map-pin" size={14} color={Colors.accent} />
             <Text style={styles.pickerLocalText}>
-              {localCourt.name.toUpperCase()}
+              {savedCourt.name.toUpperCase()}
             </Text>
-            <Text style={styles.pickerLocalTag}>MY COURT</Text>
+            <Text style={styles.pickerLocalTag}>{savedCourt.id === localCourt?.id ? "MY COURT" : ""}</Text>
           </Pressable>
-        )}
+        ))}
         <Text style={styles.fieldLabel}>SEARCH</Text>
         <CourtField
           selected={null}
@@ -582,6 +583,7 @@ function CourtPickerModal({
 export default function ScheduleScreen() {
   const {
     courts,
+    savedCourts,
     localCourt,
     runs,
     plannedVisits,
@@ -906,7 +908,7 @@ export default function ScheduleScreen() {
   );
 
   const beginEditingTimes = () => {
-    if (!court || court.id !== localCourt?.id) {
+    if (!court || !savedCourts.some(saved => saved.id === court.id)) {
       if (saveNoticeTimeoutRef.current)
         clearTimeout(saveNoticeTimeoutRef.current);
       setSaveNotice("TIMES CAN ONLY BE EDITED AT YOUR LOCAL COURT.");
@@ -964,7 +966,7 @@ export default function ScheduleScreen() {
   // VIEW mode: opt a single selected cell in without entering bulk edit.
   const handleAddSelectedTime = async () => {
     if (!court || !selectedSlot || addingSelectedTime) return;
-    if (court.id !== localCourt?.id) {
+    if (!savedCourts.some(saved => saved.id === court.id)) {
       setSaveNotice("TIMES CAN ONLY BE ADDED AT YOUR LOCAL COURT.");
       return;
     }
@@ -992,7 +994,7 @@ export default function ScheduleScreen() {
       setShowPicker(true);
       return;
     }
-    if (court.id !== localCourt?.id) {
+    if (!savedCourts.some(saved => saved.id === court.id)) {
       setSaveNotice("TIMES CAN ONLY BE SAVED AT YOUR LOCAL COURT.");
       return;
     }
@@ -1211,7 +1213,7 @@ export default function ScheduleScreen() {
           </ScrollView>
           </View>
           {/* Actions: the court feed's pills (no floating button). */}
-          {court?.id === localCourt?.id ? (
+          {savedCourts.some(saved => saved.id === court?.id) ? (
             <View style={styles.pillRow}>
               <Pill
                 label="Select"
@@ -1309,7 +1311,7 @@ export default function ScheduleScreen() {
               const mine = selectedEntry?.attendees.find((a) => a.isMine && a.visitId);
               const slotEnd = new Date(selectedDate);
               slotEnd.setHours(SLOT_HOURS[selectedSlot.slot] + 1, 0, 0, 0);
-              const canAdd = !mine?.visitId && court?.id === localCourt?.id && slotEnd.getTime() > Date.now();
+              const canAdd = !mine?.visitId && savedCourts.some(saved => saved.id === court?.id) && slotEnd.getTime() > Date.now();
               const slotRuns = courtRuns.filter((run) => bucketKey(run.startTimeIso) === selectedKey);
               const slotHour = SLOT_HOURS[selectedSlot.slot];
               const now = new Date();

@@ -1,5 +1,53 @@
 # Current state
 
+## November 13 — current engineering checkpoint
+
+**On branch `codex/finalize-courts-notifications`**, incorporating PR #90
+(`69757d5`) and PR #91 (`3e12738`). Main remains `19dac69` (#89).
+Jesse requested fixed headers, a usable Now/Going feed, complete compact
+notifications, and the court-page plus saving a LocalPlus court list using
+LCv5 as the reference. No redesign, merge, OTA or native build is implied.
+
+- Home's court identity is outside its ScrollView; Notifications uses a
+  bounded FlatList below its fixed DetailHeader. The court header and chart
+  remain outside the timeline scroller.
+- Feed retains the requested hour until content height and actual scroll
+  position confirm it. The timeline includes Now before 6 AM and after 10 PM,
+  provides a Now return control, and retains planned attendance in the current
+  hour. Planned-visit events are no longer discarded by the event mapper.
+  Feed load errors expose retry, and court events cover the full seven-day
+  timeline instead of stopping after 50 events. Planned reads page through their bounded date
+  window instead of silently stopping after the first 200 rows.
+- The court-page plus saves/removes an additional court for LocalPlus users.
+  One server-owned list supplies Home, Schedule, Log Game, challenge/game
+  pickers and the existing nested court Settings drawer. Home selection is
+  ephemeral view state; saving/viewing never changes local court, ranking
+  anchor, preferred sport or geofence. The local court remains first; up to
+  five courts total. Free users retain their one local court. Downgrade hides
+  extra saves without deleting them. No multi-court geofencing or lobby queue.
+- Compact notification history from #91 remains: exact local timestamps,
+  stable 20-row cursor pages, independent unread count and retry. New own
+  manual check-in/out records and privacy snapshots, plus one-minute manual
+  friend notices, are implemented in **unapplied migration source**. Existing
+  automatic notices retain their five-minute arrival flow and actions.
+
+**Live metadata checked November 13:** LocalCheckProd has no saved_courts
+relation/RPC, and its latest migration is `20261012200000`. Manual friend
+notices are absent from the current check-in path. No production write,
+account action, migration or function deployment occurred in this task.
+
+**EAS checked November 13:** latest finished iOS build is 1.0.4 (46), Oct 31,
+commit `a606de3`, runtime 1.0.4, channel production; build 45 is also runtime
+1.0.4. This does not establish which build Jesse installed or Apple processing.
+The working changes add no native module/configuration. Apply/verify backend
+changes first, then deliberately release compatible JS after review/device QA.
+See `docs/plans/2026-11-13-finalize-courts-notifications.md` and RELEASE.md.
+
+## Historical branch and service checkpoints
+
+The notes below retain their original dates and are superseded by the current
+checkpoint above where they describe old PR/build status.
+
 - Nov 4 (**on a branch**, PR #90, `codex/dashboard-design-followup`):
   the dashboard refinement gives Home and the drawer one selected-hour
   day/time/count header, removes the duplicate lower heading and dividing rule,
@@ -117,7 +165,7 @@ Each claim says which of these it is, because they are often confused:
   installed build, merged or not.
 - **Tested on device:** seen working on a real iPhone build, with the date.
 
-## Production checkpoint
+## Historical production checkpoint — October 14
 
 - Source truth: `origin/main` @ `541632c` — #65 squash-merged (forgot
   password, onboarding, Expo Go previews, court drawer + Yearly upgrade).
@@ -875,8 +923,8 @@ ad-hoc-team migrations"; all three were applied Sep 3 (live ledger).
 
 ## Next-agent starting point
 
-- Until #67 merges, begin from `codex/auto-check-in` (PR #67); `main` is
-  older. Do not resume PR #25, #26, or #27.
+- Current work starts from origin/main (`19dac69` as of Nov 13), or the
+  explicitly assigned active PR. #67 is merged; its branch is historical.
 - The installed baseline is TestFlight `1.0.3` (33), Sep 14 (EAS build list,
   Oct 14). Build 14 was the August baseline.
 - Push token registration and one background friend-request delivery are

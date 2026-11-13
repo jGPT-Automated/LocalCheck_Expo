@@ -143,6 +143,7 @@ function CourtPickerField({
   valueId: string;
   onSelect: (court: Court) => void;
 }) {
+  const { savedCourts } = useApp();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Court[]>([]);
@@ -190,14 +191,14 @@ function CourtPickerField({
       list.push(localCourt);
       seen.add(localCourt.id);
     }
-    for (const court of courts) {
+    for (const court of [...savedCourts, ...courts]) {
       if (court.sport !== activeSport || seen.has(court.id)) continue;
       list.push(court);
       seen.add(court.id);
-      if (list.length >= 4) break;
+      if (list.length >= Math.max(4, savedCourts.length)) break;
     }
     return list;
-  }, [courts, localCourt, activeSport]);
+  }, [courts, localCourt, activeSport, savedCourts]);
 
   const term = query.trim();
   const rows = term.length >= 2 ? results : nearby;

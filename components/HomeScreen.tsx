@@ -1,3 +1,5 @@
+import { FormSheet } from "@/components/sheet/FormSheet";
+import { SavedCourtList } from "@/components/court/SavedCourtList";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
@@ -29,8 +31,8 @@ import { fetchCourtWeekSpans } from "@/services/courtService";
  */
 export function HomeScreen() {
   const {
-    localCourt,
-    localCourtId,
+    localCourt: defaultCourt,
+    savedCourts,
     checkedInCourtId,
     pendingAutoCheckIn,
     hideAutoCheckIn,
@@ -40,6 +42,10 @@ export function HomeScreen() {
     runs,
     refreshCheckedIn,
   } = useApp();
+  const [viewCourtId, setViewCourtId] = useState<string | null>(null);
+  const [courtPickerOpen, setCourtPickerOpen] = useState(false);
+  const localCourt = savedCourts.find(court => court.id === viewCourtId) ?? defaultCourt ?? savedCourts[0] ?? null;
+  const localCourtId = localCourt?.id ?? null;
   const { roster, localCount } = usePresence(localCourtId);
   const liveCounts = useCourtCounts(localCourt ? [localCourt] : []);
   const { user } = useAuth();
@@ -118,6 +124,18 @@ export function HomeScreen() {
     <ScreenViewport>
       <ScreenHeader title="LOCALCHECK" />
 
+      {/* A fixed sibling avoids platform-specific sticky-header behavior. */}
+      <HomeCourtHero
+        activeCount={activeLabel}
+        court={localCourt}
+        hoursLabel={hoursLabel}
+        live={activeTotal > 0}
+        localCount={localCount}
+        nextGame={nextGameLabel(upcoming[0], now)}
+        onViewCourt={() => router.push(`/court/${localCourt.id}`)}
+        onChooseCourt={savedCourts.length > 1 ? () => setCourtPickerOpen(true) : undefined}
+      />
+
       <ScrollView
         ref={scroll}
         onLayout={(event) => { scrollHeight.current = event.nativeEvent.layout.height; }}
@@ -126,19 +144,8 @@ export function HomeScreen() {
         bounces={false}
         overScrollMode="never"
         showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[0]}
         style={styles.scroll}
       >
-        {/* Pinned: the court's title row and its numbers. */}
-        <HomeCourtHero
-          activeCount={activeLabel}
-          court={localCourt}
-          hoursLabel={hoursLabel}
-          live={activeTotal > 0}
-          localCount={localCount}
-          nextGame={nextGameLabel(upcoming[0], now)}
-          onViewCourt={() => router.push(`/court/${localCourt.id}`)}
-        />
         <HomeCourtActions
           courtName={localCourt.shortName || localCourt.name}
           isCheckedIn={isCheckedIn}
@@ -164,7 +171,9 @@ export function HomeScreen() {
           />
         </View>
       </ScrollView>
-
+      <FormSheet visible={courtPickerOpen} onClose={() => setCourtPickerOpen(false)} title="Pick a court">
+        <SavedCourtList selectedId={localCourt.id} onSelect={court => { setViewCourtId(court.id); setCourtPickerOpen(false); }} />
+      </FormSheet>
     </ScreenViewport>
   );
 }

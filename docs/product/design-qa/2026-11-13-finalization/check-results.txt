@@ -1,0 +1,473 @@
+npm warn Unknown project config "auto-install-peers". This will stop working in the next major version of npm.
+npm warn Unknown project config "strict-peer-dependencies". This will stop working in the next major version of npm.
+
+> localcheck@1.0.2 check /workspace/LocalCheck_Expo
+> pnpm run typecheck && pnpm run test && pnpm run check:design && pnpm run check:docs
+
+
+> localcheck@1.0.2 typecheck /workspace/LocalCheck_Expo
+> tsc --noEmit
+
+
+> localcheck@1.0.2 test /workspace/LocalCheck_Expo
+> pnpm run test:backend && pnpm run test:add-court && pnpm run test:court-discovery && pnpm run test:leaderboard && pnpm run test:feed && pnpm run test:brand && pnpm run test:notification-routes && pnpm run test:realtime && pnpm run test:home-presentation && pnpm run test:player-identity && pnpm run test:schedule && pnpm run test:release-models && pnpm run test:activity && pnpm run test:docs-check
+
+
+> localcheck@1.0.2 test:backend /workspace/LocalCheck_Expo
+> node --no-warnings --experimental-strip-types --test supabase/functions/verify-court/courtVerification.test.mts supabase/functions/send-notification/pushDelivery.test.mts supabase/functions/revenuecat-webhook/webhookLogic.test.mts supabase/functions/timers/timerLogic.test.mts && node --test supabase/tests/source/backendContract.test.mjs
+
+✔ recognizes a Supabase user id and rejects RevenueCat's anonymous ids (0.965031ms)
+✔ maps RevenueCat stores to the subscriptions.billing_provider check constraint (0.175811ms)
+✔ converts epoch milliseconds to ISO, passing through null/undefined (0.399583ms)
+✔ a purchase or renewal grants access and clears any prior cancellation (0.167639ms)
+✔ a trial period is reported as trialing, not active (0.122231ms)
+✔ cancellation keeps access (paid through period end) but stops renewal and stamps cancelled_at (0.098927ms)
+✔ billing issues and expirations move status without touching cancelled_at (0.152666ms)
+✔ unhandled event types (identity merges, unknown future types) return null (0.104195ms)
+✔ maps Expo tickets to tokens and disables unregistered devices (1.257476ms)
+✔ classifies receipt errors and missing receipts for retry (0.250402ms)
+✔ uses bounded exponential retry delays (0.205936ms)
+✔ retries rate limits but not permanent device or credential errors (0.109232ms)
+✔ a future time is delivered at that time (0.81565ms)
+✔ fractional seconds round up so delivery is never early (0.114951ms)
+✔ a past time is delivered right away (0.093759ms)
+✔ a time past the 7-day limit is capped just under it (0.430809ms)
+✔ a held score's 7-day deadline is capped, then re-booked when early (0.232565ms)
+✔ an invalid time is refused (0.433092ms)
+✔ each booking gets its own deduplication id (0.166697ms)
+✔ the publish URL puts the destination in raw (0.144504ms)
+✔ normalizes Gemini output, clamps confidence, and constrains codes (1.533845ms)
+✔ validates and normalizes an authenticated court submission (0.364891ms)
+✔ falls back to the street and records edited court names (0.18161ms)
+✔ rejects invalid image types and oversized base64 payloads (0.213366ms)
+✔ keeps the legacy no-sport request compatible and rejects unsupported sport choices (0.16849ms)
+✔ accepts only high-confidence supported playable courts (0.139777ms)
+✔ the model's own sentence is kept, trimmed and capped (0.221518ms)
+✔ a living room is not a court, never the wrong sport (0.137373ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 366.58539
+✔ signed-in users can persist a validated profile ZIP (8.914945ms)
+✔ verified court creation is atomic, quota-bound, and duplicate-safe (1.68549ms)
+✔ new verified courts do not require a paid, free, or private access classification (2.322225ms)
+✔ community court names stay private and pending manual review (1.458433ms)
+✔ live Add Court submissions enforce two failed photo attempts and a 24-hour cooldown (1.694363ms)
+✔ safety controls enforce blocking across reads and social writes (0.91658ms)
+✔ sport ratings use a three-day review window and scheduled auto-confirmation (0.967585ms)
+✔ sport Elo rollout preserves existing profile ratings and history (1.107983ms)
+✔ scheduled games produce one team result with participant review (0.972233ms)
+✔ every scheduled match participant can read the pending result (1.42267ms)
+✔ scheduled results preserve privacy and refresh the full roster (0.887177ms)
+✔ ad-hoc team games keep equal rosters and participant review (4.672201ms)
+✔ match disputes use one bounded hold and revision lifecycle (0.962498ms)
+✔ hardened match responses audit disputes, bound notes, and scope team approvals (1.540175ms)
+✔ push delivery uses Vault, durable tickets, cron retry, and receipt reconciliation (1.01058ms)
+✔ stale push backfill is isolated from the applied delivery migration (0.899675ms)
+✔ scheduled games persist and enforce their team assignment mode (0.777143ms)
+✔ stale pending challenges expire on a schedule and free the pair (0.812486ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 87.538594
+
+> localcheck@1.0.2 test:add-court /workspace/LocalCheck_Expo
+> node --no-warnings --experimental-strip-types --test components/addCourtModel.test.mts
+
+✔ normalizes two-letter and full US state names (1.063898ms)
+✔ court details require a valid pin and complete address (0.196962ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 95.959476
+
+> localcheck@1.0.2 test:court-discovery /workspace/LocalCheck_Expo
+> node --no-warnings --experimental-strip-types --test services/courtDiscoveryModel.test.mts
+
+✔ expands market discovery from neighborhood to metro scale (1.194222ms)
+✔ widens longitude bounds at higher latitudes (0.223973ms)
+✔ keeps discovery bounds inside valid coordinate ranges (0.186346ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 94.337781
+
+> localcheck@1.0.2 test:leaderboard /workspace/LocalCheck_Expo
+> node --no-warnings --experimental-strip-types --test services/leaderboardFilter.test.mts
+
+✔ only LOCAL requires the viewer's home court — REGIONAL falls back to unscoped (0.683844ms)
+✔ preferred sport wins and home-court sport is the null-preference fallback (0.141349ms)
+✔ players without a preferred sport need an eligible home court (0.157814ms)
+✔ court membership ids are queried in bounded chunks without dropping overflow (0.765295ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 92.813218
+
+> localcheck@1.0.2 test:feed /workspace/LocalCheck_Expo
+> node --no-warnings --experimental-strip-types --test services/feedModel.test.mts components/match/gameCardModel.test.mts
+
+✔ a long first name is cut before it reaches a line of copy (1.079572ms)
+✔ the waiting banner never carries a long name (0.142521ms)
+✔ banner kind follows status, then the viewer's seat (0.113899ms)
+✔ the banner carries the date after the state (12.886717ms)
+✔ card title is one line: format at short court (0.159727ms)
+✔ card date is month and day (0.2025ms)
+✔ margin split is the left share and who leads (0.922218ms)
+✔ a rating move is after minus before, or nothing (0.12805ms)
+✔ a side's rating move needs every player rated (0.237042ms)
+✔ countdown reads in days and hours, hours and minutes, or minutes (0.435136ms)
+✔ hydrates the authoritative hype count (1.268241ms)
+✔ legacy feed result copy keeps every teammate visible (0.242991ms)
+✔ marks an event already hyped by the current user (0.128651ms)
+✔ a court shows its short slug, and the full name only when it has none (0.131445ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 224.134309
+
+> localcheck@1.0.2 test:brand /workspace/LocalCheck_Expo
+> node --no-warnings --experimental-strip-types --test components/brand/logoPresentation.test.mts
+
+✔ back-logo frame is explicitly constrained to its requested square (1.250225ms)
+✔ detail-header spacing follows the final full-lockup geometry (0.198364ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 99.159102
+
+> localcheck@1.0.2 test:notification-routes /workspace/LocalCheck_Expo
+> node --no-warnings --experimental-strip-types --test lib/notificationRoutes.test.mts lib/notificationPresentation.test.mts services/pushRegistrationPolicy.test.mts
+
+✔ legacy headings normalize without lowercasing names or custom test messages (0.66055ms)
+✔ timestamps retain the event date and clock time rather than relative age (11.346303ms)
+✔ accepts LocalCheck notification destinations (0.87593ms)
+✔ rejects malformed or unrelated destinations (0.262329ms)
+✔ two arrivals with the same notification id are two taps (0.342478ms)
+✔ prompts a first-time user whose system permission is undetermined (0.685447ms)
+✔ repairs an enabled user's existing system grant without prompting (0.159888ms)
+✔ does not silently re-enable a user who disabled push in LocalCheck (0.10107ms)
+✔ does not retry the system prompt after permission was denied (0.176783ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 270.834173
+
+> localcheck@1.0.2 test:realtime /workspace/LocalCheck_Expo
+> node --no-warnings --experimental-strip-types --test lib/realtimeHub.test.mts
+
+✔ shares one private channel and coalesces invalidations (17.352412ms)
+✔ removes channels in background and recreates only desired topics (0.420314ms)
+✔ fails closed after repeated channel errors instead of retrying forever (0.491429ms)
+✔ validates user and market topic boundaries (0.553542ms)
+✔ caps exact court topics without counting shared market topics (0.179316ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 127.769621
+
+> localcheck@1.0.2 test:home-presentation /workspace/LocalCheck_Expo
+> node --no-warnings --experimental-strip-types --test components/home/homePresentation.test.mts
+
+✔ derives basketball format from capacity (1.048625ms)
+✔ localizes 24-hour run times (0.237262ms)
+✔ keeps every player visible in a team result (0.26985ms)
+✔ abbreviates a 3+ player side to a lead name plus initials (0.221659ms)
+✔ formats a game result as a human sports sentence without placeholder brackets (0.153027ms)
+✔ derives pickleball format from capacity (0.153878ms)
+✔ falls back honestly for an unsupported capacity (0.106939ms)
+✔ separates actor and action in court-scoped activity (0.702212ms)
+✔ describes scheduled-game activity with the product language (0.216091ms)
+✔ normalizes an unfamiliar activity message without losing meaning (1.202614ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 120.07044
+
+> localcheck@1.0.2 test:player-identity /workspace/LocalCheck_Expo
+> node --no-warnings --experimental-strip-types --test components/ui/playerIdentity.test.mts
+
+✔ normalizes names and long handles into compact initials (0.957471ms)
+✔ uses a stable LocalCheck fallback for empty identity (0.118495ms)
+✔ accepts only LocalCheck player QR deep links (0.256781ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 91.875196
+
+> localcheck@1.0.2 test:schedule /workspace/LocalCheck_Expo
+> node --no-warnings --experimental-strip-types --test components/schedule/scheduleModel.test.mts components/schedule/scheduledGameModel.test.mts
+
+✔ uses a continuous one-hour 4 AM through 11 PM axis (1.4693ms)
+✔ maps local clock hours to the expected schedule row (0.173498ms)
+✔ two 12-hour windows, 4 AM-3 PM and 12 PM-11 PM, overlapping at midday (0.524428ms)
+✔ generates a moderated title from creator and format (0.942959ms)
+✔ a scheduled result cannot be submitted twice (0.621953ms)
+✔ only the host can submit a started scheduled game (0.146487ms)
+✔ ranked scheduled games are limited to supported sports (0.174759ms)
+✔ time control stays on the supported one-hour range (0.157894ms)
+✔ a scheduled result requires the complete roster split evenly (0.203842ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 284.315259
+
+> localcheck@1.0.2 test:release-models /workspace/LocalCheck_Expo
+> node --no-warnings --experimental-strip-types --test services/gameModel.test.mts services/matchReviewModel.test.mts services/profileModel.test.mts context/deviceLocationModel.test.mts components/onboarding/launchTiming.test.mts lib/onboardingGate.test.mts lib/onboardingModel.test.mts lib/courtDrawerLayout.test.mts lib/passwordReset.test.mts lib/headToHead.test.mts lib/challengeModel.test.mts lib/scoreVisibility.test.mts lib/gameActivity.test.mts lib/planModel.test.mts lib/autoCheckInModel.test.mts lib/locationPermission.test.mts lib/courtHours.test.mts lib/courtPickerMapModel.test.mts lib/courtBusyModel.test.mts lib/courtActivityModel.test.mts lib/courtPlayersModel.test.mts lib/geofenceShape.test.mts
+
+✔ cold-open launch keeps the full visible motion floor (0.645648ms)
+✔ launch floor subtracts elapsed work and never becomes negative (0.118887ms)
+✔ location actions use only a permission-backed device fix (0.796011ms)
+✔ location actions reject display fallbacks and unresolved fixes (0.238524ms)
+✔ cached coordinates are display-only until a fresh fix succeeds (4.631201ms)
+✔ one circle around the local court (1.247641ms)
+✔ state follows what the phone allows (0.40434ms)
+✔ settings copy and switch (0.231644ms)
+✔ arrival notification: posts 5 minutes after arriving, with the clock time and Hide (0.944691ms)
+✔ clock time: noon, midnight, morning (0.122532ms)
+✔ pending: opponent answers, challenger waits (1.873289ms)
+✔ accepted before its time can only be called off (0.192225ms)
+✔ accepted: either player logs the score (0.098867ms)
+✔ casual challenges are plans: no score, just 'we played' (0.143182ms)
+✔ completed with a game links to it; closed otherwise (0.211133ms)
+✔ place and day labels (13.136077ms)
+✔ inbox subtitle: status, court, day; Casual only when casual; no names (0.507543ms)
+✔ errors read as sentences (0.220797ms)
+✔ score entry (0.159256ms)
+✔ expired challenges are closed and read as expired (0.291052ms)
+✔ a status this build doesn't know is closed, not a crash (0.161479ms)
+✔ pending past its day is stale; today and later are not (0.231784ms)
+✔ pending with a time is stale once the time passes, not before (0.203542ms)
+✔ pending with no day goes stale after 7 days (0.177743ms)
+✔ accepted challenges never expire client-side (0.159266ms)
+✔ inbox: PENDING hides stale pending, ALL shows it as expired (0.300416ms)
+✔ banner: accent only when it is the viewer's move (0.208089ms)
+✔ relative days for the inbox card (0.191464ms)
+✔ challenge card: game type, then who, where and when (0.276731ms)
+✔ wheel: today plus four days, 15-minute steps (0.619889ms)
+✔ wheel: times already past today are disabled, other days are open (0.094249ms)
+✔ default slot: the next quarter hour, or noon tomorrow after 11:45 PM (0.177013ms)
+✔ play_at is the local day and time as an ISO timestamp (0.125095ms)
+✔ an RPC that does not know p_play_at is recognised so the old call can run (0.186477ms)
+✔ a challenge with a time shows it after the day (0.446682ms)
+✔ one person with multiple plans and a game is named once; private plans remain anonymous (0.965893ms)
+✔ hour boundaries exclude next hour and other courts (0.252795ms)
+✔ scrubbing clamps outside the chart and maps its full width to the full day (0.193296ms)
+✔ tomorrow and hour windows use local calendar arithmetic (0.132646ms)
+✔ today: earlier hours are actual, this hour is now, later hours are planned (1.218267ms)
+✔ a session still open counts as on court now (0.267257ms)
+✔ past days are all actual, future days all planned (0.221989ms)
+✔ labels and captions (0.195049ms)
+✔ Now is present at midnight, before opening and after 10 PM (0.22247ms)
+✔ same height for every court on the same phone (0.812235ms)
+✔ fits inside the expanded sheet with the chip row (0.119848ms)
+✔ the paywall gets the chip row space back (0.102342ms)
+✔ small phones never go below the minimum (0.186457ms)
+✔ before the peek is measured, a fallback is used (0.171494ms)
+✔ The chip row tucks toward the home indicator but never touches the edge (0.149362ms)
+✔ adds up closed sessions (1.114684ms)
+✔ caps a long session at 4 hours (0.137864ms)
+✔ closes a forgotten check-out at 3 hours, or now if sooner (0.11492ms)
+✔ skips bad and future rows (0.730013ms)
+✔ formats hours, average session and next game (0.197433ms)
+✔ time on court reads Now, minutes, then hours and minutes (0.140869ms)
+✔ no points shows the default view (0.931412ms)
+✔ one point is centred at neighborhood zoom (0.342258ms)
+✔ every point lands inside the view, away from the edges (0.227388ms)
+✔ north is up and east is right (0.141039ms)
+✔ ranking sorts by rating, then wins, then name (1.364073ms)
+✔ active puts people on court first, then latest check-in, never-checked-in last (6.488736ms)
+✔ newest puts the most recent local first and unknown dates last (0.149792ms)
+✔ rank is by rating in every sort (0.219516ms)
+✔ points to the next rank up (0.432622ms)
+✔ check-in copy (0.122382ms)
+✔ record copy (0.137534ms)
+✔ pending game: played, logged, then who we're waiting on (1.289273ms)
+✔ person first, then the action, in time order, note on the dispute (0.282249ms)
+✔ auto-approved games say so (0.121941ms)
+✔ day labels only on the first row of each day (12.61213ms)
+✔ played comes first and shows no time; a 2v2 waits only on the other side (0.472281ms)
+✔ a bare played day reads as that local day, not the UTC evening before (0.139217ms)
+✔ every ring point sits on the radius and the ring closes (1.317334ms)
+✔ the overlay is a URL-safe geojson() segment (0.353544ms)
+✔ 1v1 from the viewer's side (1.289172ms)
+✔ team game lists teammates and opponents by first name (0.153908ms)
+✔ casual games never count ELO (0.21618ms)
+✔ viewer not in the game is skipped (0.142661ms)
+✔ summary: series, margin, ELO net, last played (0.285083ms)
+✔ headline and signed numbers (0.332313ms)
+✔ a hidden score shows as hidden and stays out of the average margin (0.181589ms)
+✔ no foreground grant reads OFF (0.77552ms)
+✔ foreground only reads WHILE USING (0.120098ms)
+✔ a background grant reads ALWAYS (0.131024ms)
+✔ false means onboarding is still needed, however old the account (0.816021ms)
+✔ true means finished (0.113979ms)
+✔ missing column never routes an account into onboarding (0.093328ms)
+✔ a null profile never needs onboarding (0.153627ms)
+✔ push never auto-prompts before the profile has loaded (0.12158ms)
+✔ push never auto-prompts while onboarding is unfinished (0.08752ms)
+✔ push never auto-prompts on a profile without the onboarding flag (0.112958ms)
+✔ push never auto-prompts on another account's leftover profile (0.084686ms)
+✔ push still auto-syncs for a finished account (0.231974ms)
+✔ inviter input keeps only username characters (0.860597ms)
+✔ blank or already-set invites never block onboarding (0.13502ms)
+✔ unknown or own username explains what to do (0.200788ms)
+✔ city search needs at least two letters (0.220848ms)
+✔ miles: one decimal close by, whole miles far away (0.149001ms)
+✔ court picker detail skips missing parts (0.135271ms)
+✔ usernames are 3-10 letters and numbers (D46) (0.3837ms)
+✔ a court 1354 mi away gets a plain far-away note naming the typed city (0.219796ms)
+✔ the far-away note says 'you' for device location (0.242049ms)
+✔ a court within 50 mi gets no note (0.189552ms)
+✔ the nearest court decides, not the first row (0.171354ms)
+✔ no distances or no courts means no note (0.078597ms)
+✔ reset code length matches the Supabase OTP setting (6) (0.755561ms)
+✔ pasted codes keep digits only and stop at the code length (0.158776ms)
+✔ email is required and must look like an email (0.19511ms)
+✔ code must be complete and the new password at least 6 characters (0.251022ms)
+✔ Supabase errors become one plain sentence (0.380935ms)
+✔ yearly per month and savings (0.953123ms)
+✔ buttons (0.221068ms)
+✔ free trials say when they end and that cancelling costs nothing (0.320525ms)
+✔ disclosure covers price, renewal and where to cancel (0.127449ms)
+✔ a settled game with a hidden score shows W / L to everyone, players included (1.166991ms)
+✔ players still see the numbers while the game is in review (0.451529ms)
+✔ nobody hid it: everyone sees it (0.462406ms)
+✔ on the game page the players see the numbers; everyone else sees W / L (0.133138ms)
+✔ hidden once half or more of the players turn it on (D49) (0.608022ms)
+✔ head-to-head includes players on opposite sides (0.701621ms)
+✔ head-to-head excludes teammates and incomplete participant data (0.23582ms)
+✔ RPC match ids normalize row and one-row array responses (0.14129ms)
+✔ only a missing date-aware RPC signature enables the legacy retry (0.137414ms)
+✔ formats multi-day and sub-day review clocks (0.803011ms)
+✔ status copy distinguishes review, hold, final, and void (0.150423ms)
+✔ an explicit ranking scope wins over the stored preference (0.698195ms)
+✔ a valid stored preference supplies the default profile sport (0.117274ms)
+✔ unknown or missing preferences stay unscoped (0.118937ms)
+ℹ tests 129
+ℹ suites 0
+ℹ pass 129
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2253.980603
+
+> localcheck@1.0.2 test:activity /workspace/LocalCheck_Expo
+> node --no-warnings --experimental-strip-types --test lib/activityPresentation.test.mts
+
+✔ pairVisits collapses a matching checkin/checkout into one visit (5.397406ms)
+✔ pairVisits leaves an unmatched checkin alone (still checked in) (0.140469ms)
+✔ pairVisits keeps two visits at the same court separate (0.198825ms)
+✔ pairVisits does not merge across a game in between (0.25615ms)
+✔ groupCheckinBursts leaves 1-2 check-ins ungrouped (0.280997ms)
+✔ groupCheckinBursts groups 3+ check-ins within the window (0.648893ms)
+✔ groupCheckinBursts breaks the run when the gap is too large (0.195551ms)
+✔ groupCheckinBursts does not group across a non-checkin event (0.137654ms)
+✔ formatDurationMinutes (0.173007ms)
+✔ a game is a winner line, a loser line and a short caption (0.90996ms)
+✔ a hidden score shows W / L and a casual game says so (0.1751ms)
+✔ a team of three joins names with commas and an ampersand (0.56617ms)
+✔ check-in is one quiet line, no time; the name leads in a mixed list (0.187408ms)
+✔ a visit leads with its length on an empty circle; check-out is quiet grey (0.170674ms)
+✔ day labels and day grouping (11.720878ms)
+✔ shortAgo reads like the feed mock (0.160718ms)
+✔ pairVisits with splitToday keeps today's check-in and check-out apart (0.230241ms)
+✔ parseDayOrInstant reads a bare day as local midnight (0.148561ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 133.930436
+
+> localcheck@1.0.2 test:docs-check /workspace/LocalCheck_Expo
+> node --test scripts/docsCheckModel.test.mjs scripts/docsConsistencyModel.test.mjs
+
+✔ doc files are recognized (0.859776ms)
+✔ a docs-only push passes (0.625689ms)
+✔ any app change without CURRENT_STATE fails (1.112721ms)
+✔ touching CURRENT_STATE without adding a line still fails (0.324962ms)
+✔ app change with CURRENT_STATE lines passes (0.125767ms)
+✔ database change also needs SUPABASE.md (0.143964ms)
+✔ CI and config changes count too (0.218905ms)
+✔ release and native config changes need RELEASE.md (0.165355ms)
+✔ CI workflow changes need GITHUB.md; purchase code needs the RevenueCat runbook (0.216061ms)
+✔ range: a normal push is checked alone (0.519271ms)
+✔ range: a force push or rebase falls back to the whole pull request (0.211243ms)
+✔ range: opening a pull request, or an all-zero before, checks the whole pull request (0.11447ms)
+✔ Oct 13: 'All four Edge Functions' with five folders fails, across a line break (1.612482ms)
+✔ every function folder must be named in SUPABASE.md; _shared is ignored (0.225174ms)
+✔ Oct 14: an October migration missing from SUPABASE.md fails; older ones are not required (0.292304ms)
+✔ Oct 14: README decision range must match the highest decision (0.920035ms)
+✔ Oct 14: a decision that revises another needs a back-reference there (0.959284ms)
+✔ release workflow: manual only passes; adding a push trigger fails (0.26981ms)
+✔ README links must point at files that exist (0.309729ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 123.637657
+
+> localcheck@1.0.2 check:design /workspace/LocalCheck_Expo
+> node scripts/check-design-consistency.mjs
+
+Design consistency check passed: canonical brand, icon, typography, and shared-component ownership rules hold.
+
+> localcheck@1.0.2 check:docs /workspace/LocalCheck_Expo
+> node scripts/check-docs-consistency.mjs
+
+Docs consistency check passed: functions, recent migrations, decision range and back-references, release trigger, README links.

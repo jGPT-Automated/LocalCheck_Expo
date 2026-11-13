@@ -1,0 +1,525 @@
+{
+  "375x667/home-feed": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Next game (7.5px)",
+        "Court hours · wk (7.5px)",
+        "Locals (7.5px)",
+        "Home (9px)",
+        "Schedule (9px)",
+        "Compete (9px)",
+        "Explore (9px)",
+        "Me (9px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": []
+    }
+  },
+  "375x667/home-scrolled": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Next game (7.5px)",
+        "Court hours · wk (7.5px)",
+        "Locals (7.5px)",
+        "Today (9px)",
+        "PM (7.5px)",
+        "5v5 · All levels · Host chatgpt (10.5px)",
+        "CH (7.92px)",
+        "PL (7.92px)",
+        "TI (7.92px)",
+        "JL (7.92px)",
+        "Going (9px)",
+        "Home (9px)",
+        "Schedule (9px)",
+        "Compete (9px)",
+        "Explore (9px)",
+        "Me (9px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        "GOING (64x32)"
+      ]
+    }
+  },
+  "375x667/court-live": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Feed (9.5px)",
+        "Schedule (9.5px)",
+        "Players (9.5px)",
+        "Info (9.5px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        " (38x38)"
+      ]
+    }
+  },
+  "375x667/schedule-court-picker": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "MY COURT (8px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": []
+    }
+  },
+  "375x667/player-log-game": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "SPORT (9px)",
+        "COURT (9px)",
+        "Played (9px)",
+        "SUN (9px)",
+        "MON (9px)",
+        "TUE (9px)",
+        "WED (9px)",
+        "THU (9px)",
+        "FRI (9px)",
+        "TODAY (9px)",
+        "MATCHUP (9px)",
+        "YOU (9px)",
+        "CH (6.6px)",
+        "YOU (8px)",
+        "OPPONENT (9px)",
+        "PL (6.6px)",
+        "ADD PLAYER · 2V2 (10px)",
+        "FINAL SCORE (9px)",
+        "CHATGPT (9px)",
+        "OPPONENT (9px)"
+      ],
+      "lowContrast": [
+        ": (2.4:1)"
+      ],
+      "smallTarget": [
+        "PL PLAYER2  (115x40)",
+        " (34x40)",
+        " ADD PLAYER · 2V2 (343x40)"
+      ]
+    }
+  },
+  "375x667/explore-drawer": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Next game (7.5px)",
+        "Court hours · wk (7.5px)",
+        "Locals (7.5px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": []
+    }
+  },
+  "375x667/explore-drawer-expanded": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Next game (7.5px)",
+        "Court hours · wk (7.5px)",
+        "Locals (7.5px)",
+        "Today (9px)",
+        "PM (7.5px)",
+        "5v5 · All levels · Host chatgpt (10.5px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        "2 this week › (68x14)"
+      ]
+    }
+  },
+  "375x667/settings": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "LOCALLITE (10px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": []
+    }
+  },
+  "375x667/notifications": {
+    "fail": [],
+    "debt": {
+      "smallText": [],
+      "lowContrast": [],
+      "smallTarget": []
+    }
+  },
+  "393x852/home-feed": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Next game (7.5px)",
+        "Court hours · wk (7.5px)",
+        "Locals (7.5px)",
+        "Today (9px)",
+        "PM (7.5px)",
+        "5v5 · All levels · Host chatgpt (10.5px)",
+        "CH (7.92px)",
+        "PL (7.92px)",
+        "TI (7.92px)",
+        "JL (7.92px)",
+        "Going (9px)",
+        "Home (9px)",
+        "Schedule (9px)",
+        "Compete (9px)",
+        "Explore (9px)",
+        "Me (9px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        "GOING (64x32)"
+      ]
+    }
+  },
+  "393x852/home-scrolled": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Next game (7.5px)",
+        "Court hours · wk (7.5px)",
+        "Locals (7.5px)",
+        "Today (9px)",
+        "PM (7.5px)",
+        "5v5 · All levels · Host chatgpt (10.5px)",
+        "CH (7.92px)",
+        "PL (7.92px)",
+        "TI (7.92px)",
+        "JL (7.92px)",
+        "Going (9px)",
+        "Home (9px)",
+        "Schedule (9px)",
+        "Compete (9px)",
+        "Explore (9px)",
+        "Me (9px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        "GOING (64x32)"
+      ]
+    }
+  },
+  "393x852/court-live": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Feed (9.5px)",
+        "Schedule (9.5px)",
+        "Players (9.5px)",
+        "Info (9.5px)",
+        "7m (10px)",
+        "12m (10px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        " (38x38)"
+      ]
+    }
+  },
+  "393x852/schedule-court-picker": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "MY COURT (8px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": []
+    }
+  },
+  "393x852/player-log-game": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "SPORT (9px)",
+        "COURT (9px)",
+        "Played (9px)",
+        "SUN (9px)",
+        "MON (9px)",
+        "TUE (9px)",
+        "WED (9px)",
+        "THU (9px)",
+        "FRI (9px)",
+        "TODAY (9px)",
+        "MATCHUP (9px)",
+        "YOU (9px)",
+        "CH (6.6px)",
+        "YOU (8px)",
+        "OPPONENT (9px)",
+        "PL (6.6px)",
+        "ADD PLAYER · 2V2 (10px)",
+        "FINAL SCORE (9px)",
+        "CHATGPT (9px)",
+        "OPPONENT (9px)"
+      ],
+      "lowContrast": [
+        ": (2.4:1)"
+      ],
+      "smallTarget": [
+        "PL PLAYER2  (124x40)",
+        " (34x40)",
+        " ADD PLAYER · 2V2 (361x40)"
+      ]
+    }
+  },
+  "393x852/explore-drawer": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Next game (7.5px)",
+        "Court hours · wk (7.5px)",
+        "Locals (7.5px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": []
+    }
+  },
+  "393x852/explore-drawer-expanded": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Next game (7.5px)",
+        "Court hours · wk (7.5px)",
+        "Locals (7.5px)",
+        "Today (9px)",
+        "PM (7.5px)",
+        "5v5 · All levels · Host chatgpt (10.5px)",
+        "CH (7.92px)",
+        "PL (7.92px)",
+        "TI (7.92px)",
+        "JL (7.92px)",
+        "Going (9px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        "2 this week › (68x14)",
+        "GOING (64x32)"
+      ]
+    }
+  },
+  "393x852/settings": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "LOCALLITE (10px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        "PUSH NOTIFICATIONS (40x20)"
+      ]
+    }
+  },
+  "393x852/notifications": {
+    "fail": [],
+    "debt": {
+      "smallText": [],
+      "lowContrast": [],
+      "smallTarget": []
+    }
+  },
+  "430x932/home-feed": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Next game (7.5px)",
+        "Court hours · wk (7.5px)",
+        "Locals (7.5px)",
+        "Today (9px)",
+        "PM (7.5px)",
+        "5v5 · All levels · Host chatgpt (10.5px)",
+        "CH (7.92px)",
+        "PL (7.92px)",
+        "TI (7.92px)",
+        "JL (7.92px)",
+        "Going (9px)",
+        "Home (9px)",
+        "Schedule (9px)",
+        "Compete (9px)",
+        "Explore (9px)",
+        "Me (9px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        "GOING (64x32)"
+      ]
+    }
+  },
+  "430x932/home-scrolled": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Next game (7.5px)",
+        "Court hours · wk (7.5px)",
+        "Locals (7.5px)",
+        "Today (9px)",
+        "PM (7.5px)",
+        "5v5 · All levels · Host chatgpt (10.5px)",
+        "CH (7.92px)",
+        "PL (7.92px)",
+        "TI (7.92px)",
+        "JL (7.92px)",
+        "Going (9px)",
+        "Home (9px)",
+        "Schedule (9px)",
+        "Compete (9px)",
+        "Explore (9px)",
+        "Me (9px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        "GOING (64x32)"
+      ]
+    }
+  },
+  "430x932/court-live": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Feed (9.5px)",
+        "Schedule (9.5px)",
+        "Players (9.5px)",
+        "Info (9.5px)",
+        "7m (10px)",
+        "12m (10px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        " (38x38)"
+      ]
+    }
+  },
+  "430x932/schedule-court-picker": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "MY COURT (8px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": []
+    }
+  },
+  "430x932/player-log-game": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "SPORT (9px)",
+        "COURT (9px)",
+        "Played (9px)",
+        "SUN (9px)",
+        "MON (9px)",
+        "TUE (9px)",
+        "WED (9px)",
+        "THU (9px)",
+        "FRI (9px)",
+        "TODAY (9px)",
+        "MATCHUP (9px)",
+        "YOU (9px)",
+        "CH (6.6px)",
+        "YOU (8px)",
+        "OPPONENT (9px)",
+        "PL (6.6px)",
+        "ADD PLAYER · 2V2 (10px)",
+        "FINAL SCORE (9px)",
+        "CHATGPT (9px)",
+        "OPPONENT (9px)"
+      ],
+      "lowContrast": [
+        ": (2.4:1)"
+      ],
+      "smallTarget": [
+        "PL PLAYER2  (142x40)",
+        " (34x40)",
+        " ADD PLAYER · 2V2 (398x40)"
+      ]
+    }
+  },
+  "430x932/explore-drawer": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Next game (7.5px)",
+        "Court hours · wk (7.5px)",
+        "Locals (7.5px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": []
+    }
+  },
+  "430x932/explore-drawer-expanded": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Next game (7.5px)",
+        "Court hours · wk (7.5px)",
+        "Locals (7.5px)",
+        "Today (9px)",
+        "PM (7.5px)",
+        "5v5 · All levels · Host chatgpt (10.5px)",
+        "CH (7.92px)",
+        "PL (7.92px)",
+        "TI (7.92px)",
+        "JL (7.92px)",
+        "Going (9px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        "2 this week › (68x14)",
+        "GOING (64x32)"
+      ]
+    }
+  },
+  "430x932/settings": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "LOCALLITE (10px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        "PUSH NOTIFICATIONS (40x20)"
+      ]
+    }
+  },
+  "430x932/notifications": {
+    "fail": [],
+    "debt": {
+      "smallText": [],
+      "lowContrast": [],
+      "smallTarget": []
+    }
+  }
+}

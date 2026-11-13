@@ -1,5 +1,16 @@
 # LocalCheck Design Decisions
 
+## 2026-11-13 — finalize current behavior
+
+Jesse asked to finish #90/#91 together, retain the current design and fixed
+headers, make Now/Going clear and persistent, complete compact notifications,
+and make the court-page plus add a LocalPlus saved-court list used by court
+selectors. LCv5 is the supplied reference. This implements the saved-list slice
+of D67 without implementing its separate multi-region/queue proposals. Local
+court, rankings and existing one-region auto check-in remain intact. No merge,
+production migration, OTA or native-build authorization is inferred.
+
+
 ## 2026-11-08 — Compact notification log
 
 Jesse selected rows rather than cards, a combined own-event/incoming timeline,

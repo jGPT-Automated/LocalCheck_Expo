@@ -193,3 +193,17 @@ checks immediate day-change/bar taps against the selected day's actual fixture
 attendance. Both require a fresh preview URL and an evidence directory; both
 intercept backend HTTP and block WebSockets before navigating. No live project
 write is authorized by a successful fixture run.
+
+## November 13 finalization regression
+
+`node scripts/visual-qa/finalize-courts-journey.mjs <preview> <output>` covers
+fixed Home/Notifications/chart position, initial Now, Going persistence/event
+visibility and saved-court save/reload/Home/Schedule selection/removal. Set
+`JOURNEY_WIDTH=393` for one viewport and `JOURNEY_NOW=2026-11-13T08:30:00Z`
+for the 2:30 AM Central regression. All remote HTTP is intercepted and sockets
+blocked. It never writes to production.
+
+The disposable PostgreSQL migration test and install command are documented
+in `docs/plans/2026-11-13-finalize-courts-notifications.md`. The evidence and
+remaining phone/live-backend checks are in
+`docs/product/design-qa/2026-11-13-finalization/README.md`.

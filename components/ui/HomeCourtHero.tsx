@@ -21,6 +21,7 @@ export function HomeCourtHero({
   hoursLabel,
   nextGame,
   onViewCourt,
+  onChooseCourt,
 }: {
   court: Court;
   activeCount: string;
@@ -29,6 +30,7 @@ export function HomeCourtHero({
   hoursLabel: string;
   nextGame: string;
   onViewCourt: () => void;
+  onChooseCourt?: () => void;
 }) {
   const distance =
     court.distanceKm != null && !Number.isNaN(court.distanceKm)
@@ -45,6 +47,7 @@ export function HomeCourtHero({
           liveValue={activeCount}
           name={court.shortName || court.name}
           onNavigate={onViewCourt}
+          onChooseCourt={onChooseCourt}
           place={place || undefined}
           size="page"
           sport={court.sport}
@@ -88,7 +91,7 @@ export function HomeCourtActions({
 }
 
 const styles = StyleSheet.create({
-  header: { position: "relative", overflow: "hidden", backgroundColor: Colors.background },
+  header: { flexShrink: 0, position: "relative", overflow: "hidden", backgroundColor: Colors.background },
   title: { paddingTop: 12 },
   strip: { paddingTop: 16 },
 

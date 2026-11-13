@@ -1,5 +1,18 @@
 # LocalCheck Design System
 
+## November 13 — preserve the current design
+
+Jesse requires fixed screen/court headers while body content scrolls. Home's
+court hero belongs outside the scroller; Notifications' DetailHeader stays
+outside the bounded list. Court identity, tabs and chart remain anchored.
+Keep the existing court art, typography, colors, square avatars and shared
+components. LCv5 supplies the saved-list/view-selection behavior, not a global
+restyle. The existing court-page plus/check adds/removes a saved court for
+LocalPlus; the local/default court is retained. The Home court title opens the
+shared saved-list drawer when multiple courts exist. Now is explicitly
+reachable and present at any local hour. No rolling lobby design is included.
+
+
 ## Notifications rows — November 8
 
 Use the shared DetailHeader, color and typography tokens, and a virtualized
