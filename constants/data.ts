@@ -124,6 +124,7 @@ export interface FeedItem {
     | "run_result"
     | "new_court"
     | "run_started"
+    | "planned_visit"
     // Presentation-only types produced by lib/activityPresentation.ts —
     // never returned directly by a fetch, only by pairVisits/
     // groupCheckinBursts transforming raw checkin/checkout items.
@@ -134,6 +135,7 @@ export interface FeedItem {
   courtName?: string;
   courtId?: string;
   runId?: string;
+  plannedAtIso?: string;
   sport?: CourtSport;
   message: string;
   /** Winner display name for game_result items — used to tint the name with Colors.win. */

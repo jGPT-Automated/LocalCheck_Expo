@@ -1,5 +1,126 @@
 # Current state
 
+## November 13 — current engineering checkpoint
+
+**On branch `codex/finalize-courts-notifications`**, incorporating PR #90
+(`69757d5`) and PR #91 (`3e12738`). Main remains `19dac69` (#89).
+Jesse requested fixed headers, a usable Now/Going feed, complete compact
+notifications, and the court-page plus saving a LocalPlus court list using
+LCv5 as the reference. No redesign, merge, OTA or native build is implied.
+
+- Home's court identity is outside its ScrollView; Notifications uses a
+  bounded FlatList below its fixed DetailHeader. The court header and chart
+  remain outside the timeline scroller.
+- Feed retains the requested hour until content height and actual scroll
+  position confirm it. The timeline includes Now before 6 AM and after 10 PM,
+  provides a Now return control, and retains planned attendance in the current
+  hour. Planned-visit events are no longer discarded by the event mapper.
+  Feed load errors expose retry, and court events cover the full seven-day
+  timeline instead of stopping after 50 events. Planned reads page through their bounded date
+  window instead of silently stopping after the first 200 rows.
+- The court-page plus saves/removes an additional court for LocalPlus users.
+  One server-owned list supplies Home, Schedule, Log Game, challenge/game
+  pickers and the existing nested court Settings drawer. Home selection is
+  ephemeral view state; saving/viewing never changes local court, ranking
+  anchor, preferred sport or geofence. The local court remains first; up to
+  five courts total. Free users retain their one local court. Downgrade hides
+  extra saves without deleting them. No multi-court geofencing or lobby queue.
+- Compact notification history from #91 remains: exact local timestamps,
+  stable 20-row cursor pages, independent unread count and retry. New own
+  manual check-in/out records and privacy snapshots, plus one-minute manual
+  friend notices, are implemented in **unapplied migration source**. Existing
+  automatic notices retain their five-minute arrival flow and actions.
+
+**Live metadata checked November 13:** LocalCheckProd has no saved_courts
+relation/RPC, and its latest migration is `20261012200000`. Manual friend
+notices are absent from the current check-in path. No production write,
+account action, migration or function deployment occurred in this task.
+
+**EAS checked November 13:** latest finished iOS build is 1.0.4 (46), Oct 31,
+commit `a606de3`, runtime 1.0.4, channel production; build 45 is also runtime
+1.0.4. This does not establish which build Jesse installed or Apple processing.
+The working changes add no native module/configuration. Apply/verify backend
+changes first, then deliberately release compatible JS after review/device QA.
+See `docs/plans/2026-11-13-finalize-courts-notifications.md` and RELEASE.md.
+
+## Historical branch and service checkpoints
+
+The notes below retain their original dates and are superseded by the current
+checkpoint above where they describe old PR/build status.
+
+- Nov 4 (**on a branch**, PR #90, `codex/dashboard-design-followup`):
+  the dashboard refinement gives Home and the drawer one selected-hour
+  day/time/count header, removes the duplicate lower heading and dividing rule,
+  and keeps a 34pt plus/check surface within a 44pt touch target. Home opens
+  Court beside the live count instead of a large button beside Check in.
+  The link shares the number row, preserving the small-phone court-name width.
+  Candy Cane pickleball joins basketball in the isolated visual comparison.
+  The recurring hourly casual lobby remains a separate review draft; it is
+  not backed by planned visits or deployed scheduled-game RPC behavior.
+  No Supabase writes, migration, deployment, build, release or merge.
+
+- Nov 3 (**on a branch**, `codex/dashboard-design-followup`, PR #90, from `19dac69`):
+  Home and the Explore drawer share a charcoal daily-planner panel with square
+  attendee avatars and a compact plus/check action; next game follows it.
+  Selecting a time reveals that card above the tab/sheet floor. Court future
+  rows reuse SlotCard's square stack and ScheduledGameCard's inline RSVP.
+  The court drawer removes queued post-opening snap-to-collapsed commands;
+  those commands were traced closing a newly opened sheet without a tap.
+  Selected-hour links use the sheet dismissal/navigation owner; shared chart
+  gestures read the latest committed day instead of a stale gesture callback.
+  Existing planned-visit, privacy, capacity and team-choice contracts remain.
+  Frontend PRs now retain paired screenshots and a chronological visual index.
+  **Read-only live inspection** of LocalCheckProd catalog/function/policy
+  metadata confirmed one profile local court and one-court auto check-in;
+  no player rows or write RPCs were accessed. Multi-court/lobby changes are
+  review drafts only; no backend mutation, migration, deployment or release.
+  See `docs/plans/2026-11-03-dashboard-design-followup.md` and the separate
+  `docs/plans/2026-11-03-multicourt-backend-review.md` for remaining work.
+
+- Nov 3 (**merged to main**, PR #89, `19dac69`; no release claim): the heatmap opens the
+- Nov 8 (**PR #91 frontend verified in isolated Expo web renders**): 375/393/430
+  captures, seven paging/read/error/presentation cases per size, 43 unique
+  entries including a timestamp tie, title/body left edges 40px, zero audited
+  layout failures/debt. Full pnpm check and export passed; remote quality,
+  docs and Expo-preview checks passed for application commit 205dc8f.
+  Evidence: `docs/product/design-qa/2026-11-08-notifications/README.md`.
+  No native-device, push-trigger, historical-privacy or OTA claim.
+
+- Nov 8 (**on branch** `codex/notification-log-ui`): Notifications uses compact
+  virtualized rows, sentence-case legacy headings, exact local timestamps,
+  a dedicated unread gutter and cursor-based pages of 20 (21st-row lookahead).
+  React Query owns account-scoped pages and loading/error/retry; unread count
+  is queried separately across all history. Only explicit visibility in an
+  own-event payload is displayed; historical rows are not inferred from the
+  current profile. This frontend slice does not create missing manual events
+  or backfill privacy snapshots. No migration, deployment, OTA or build.
+  Evidence: `docs/product/design-qa/2026-11-08-notifications/`.
+
+
+- Nov 8, evening Central (**live-backend tests, rolled back**): exercised
+  `public.check_in` as existing TEST account lcqaalpha and read both
+  `check_ins` and `activity_events` as owner, accepted friend lcqabeta and
+  non-friend under the authenticated role. All nine visibility cases matched:
+  Private owner only; Friends owner/friend only; Public all three. A blocked
+  viewer saw neither row. The transaction deliberately raised its results
+  and rolled back; no test check-ins, blocks, notifications or timer bookings
+  persisted. Manual check-in created zero friend notifications, reproducing
+  the missing trigger; the new migration remains an unapplied local draft.
+- Nov 8 (**observed live backend, not device receipt**): JESSE's automatic
+  arrival at 8:39:15 PM Central produced the posted notice and 18 friend inbox
+  rows at 8:44:17 PM. Push status was sent for JESSE and one friend, skipped
+  for 17 friends. Skipped reasons and recipient eligibility were not proven by
+  this observation. A separate seven-case auto-notification preference test
+  did not execute because its tool confirmation expired; no result claimed.
+  The earlier custom notification screenshot proves only that custom row
+  appeared in JESSE's inbox, not any check-in trigger or privacy rule.
+- Nov 8 (**decided, not implemented**): compact combined own-event/incoming
+  notification log, newest first, 20 entries per page and a Load more button;
+  exact local timestamps, sentence-case titles, no large icon tiles, aligned
+  text, and historical visibility on own events. Show the UI before backend
+  changes for this log. Privacy/friend-flow testing takes priority over design.
+  No OTA, native build, deployment, merge or PR creation in this checkpoint.
+
 - Nov 3 (**on a branch**, PR #89 review correction): the heatmap opens the
   exact tapped hour, including today's current two-hour block; completed
   blocks stay disabled. Court Feed uses one 28pt focus for jumping and scroll
@@ -7,11 +128,11 @@
   pending jump after layout. Both event groups guard missing actor IDs and
   pass real previous events. ActivityRow owns an explicit day-header option (default on); the
   hourly feed turns it off, while Me/player activity retains normal headings.
-  This is the approved logic-only checkpoint patch: no avatar/card redesign,
+  This was the approved logic-only checkpoint patch: no avatar/card redesign,
   backend access/change, native build, merge or release. Regression evidence
   is linked from `docs/product/design-qa/2026-11-03-court-activity/`.
 
-- Nov 3 (**on a branch**, `codex/court-activity-feed`, based on main a606de3):
+- Nov 3 (**merged to main**, PR #89, `19dac69`, based on main a606de3):
   LCv5's linked hourly chart/timeline is adapted to the court opening Feed.
   The chart stays pinned while hour rows scroll; drag bars to scrub, or use
   graph-end arrows/day-label swipe to change day. Past rows use actual events,
@@ -44,7 +165,7 @@ Each claim says which of these it is, because they are often confused:
   installed build, merged or not.
 - **Tested on device:** seen working on a real iPhone build, with the date.
 
-## Production checkpoint
+## Historical production checkpoint — October 14
 
 - Source truth: `origin/main` @ `541632c` — #65 squash-merged (forgot
   password, onboarding, Expo Go previews, court drawer + Yearly upgrade).
@@ -802,8 +923,8 @@ ad-hoc-team migrations"; all three were applied Sep 3 (live ledger).
 
 ## Next-agent starting point
 
-- Until #67 merges, begin from `codex/auto-check-in` (PR #67); `main` is
-  older. Do not resume PR #25, #26, or #27.
+- Current work starts from origin/main (`19dac69` as of Nov 13), or the
+  explicitly assigned active PR. #67 is merged; its branch is historical.
 - The installed baseline is TestFlight `1.0.3` (33), Sep 14 (EAS build list,
   Oct 14). Build 14 was the August baseline.
 - Push token registration and one background friend-request delivery are

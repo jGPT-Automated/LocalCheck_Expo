@@ -1,5 +1,31 @@
 # Feedback & polish tracker
 
+## 2026-11-13 — finalization corrections
+
+**In progress on `codex/finalize-courts-notifications`, not released.**
+
+- #90 and #91 consolidated locally; both had main as their base.
+- Home header separated from scroll; compact Notifications list bounded below
+  its fixed header; court/chart stay anchored.
+- Reproduced Now missing at 2 AM and an initial scrollTo clamping before
+  timeline height settled. Retain the pending target until position confirms.
+- Going remains visible after reload; current-hour intent is retained, event
+  mapping includes planned visits and plan reads no longer truncate at 200.
+- Saved list wired from court plus to Home and court fields/drawers. Backend
+  migration prepared and locally tested, not applied.
+- Missing manual friend notification path and own log/snapshot source prepared
+  and locally tested, not applied. Phone receipt remains untested.
+- Evidence/remaining acceptance: docs/plans/2026-11-13-finalize-courts-notifications.md.
+
+
+- Nov 8 (**PR #91 frontend verified in isolated Expo web renders**): 375/393/430
+  captures, seven paging/read/error/presentation cases per size, 43 unique
+  entries including a timestamp tie, title/body left edges 40px, zero audited
+  layout failures/debt. Full pnpm check and export passed; remote quality,
+  docs and Expo-preview checks passed for application commit 205dc8f.
+  Evidence: `docs/product/design-qa/2026-11-08-notifications/README.md`.
+  No native-device, push-trigger, historical-privacy or OTA claim.
+
 Status: Living tracker. **This is the source of truth for what Jesse has
 flagged, whether it's been handled, and which commit/branch/PR it landed in.**
 Any agent picking up UI/polish work on this repo should read this file first
@@ -20,6 +46,56 @@ docs:
 Keep entries terse. When an item ships, mark it ✅ and record the commit SHA —
 don't delete the row; the history of what was asked and when it landed is the
 point.
+
+## 2026-11-03 — selected-hour hierarchy and pickleball comparison
+
+**On branch PR #90**, application checkpoint `50746f2`: removed duplicate
+selected time/count and the inner chart/attendance divider; one day/hour/count
+header, matching 34pt avatar/action visuals with 44pt targets. Home's court
+navigation is beside the live number, with the full small-phone name retained.
+Actual basketball and populated Candy Cane pickleball renders are compared in
+`docs/product/design-qa/2026-11-04-hour-hierarchy/README.md`. Existing
+palette/art and Court/Schedule behavior are retained. The hourly casual lobby
+and optional ranked choice are **review draft only**, distinct from check-in,
+planned attendance and scheduled-game RSVP; no backend execution authorized.
+
+## 2026-11-03 — dashboard design follow-up and visual history
+
+**On branch**, PR #90, `codex/dashboard-design-followup`, after merged PR #89 (`19dac69`).
+Home/drawer boxed chart and selected-hour avatars, compact plus/check instead
+of Going, planner before next game, and court timeline stacks/inline game RSVP
+are implemented and exercised in isolated browser renders at all three sizes. Shared headers/art/palette retained.
+The observed unsolicited first-open drawer close was traced to redundant
+post-open resnap commands; those are removed in this checkpoint.
+Every frontend PR now records paired renders and retains a visual history.
+Five-court LocalPlus/default/reorder/dropdowns/nested auto toggles and rolling
+lobbies remain **draft**, with verified live read-only contract boundaries in
+`docs/plans/2026-11-03-multicourt-backend-review.md`. They are not shipped.
+PR #89's logic-only checkpoint is merged; no production release is claimed.
+## 2026-11-08 — Notification log and check-in delivery
+
+- On branch `codex/notification-log-ui`: existing inbox compact-row presentation
+  and 20-row cursor pagination; screenshot/interaction evidence in
+  `docs/product/design-qa/2026-11-08-notifications/`. No backend release.
+
+- Decided: one compact chronological list combining own events and incoming
+  notifications, 20 initially and Load more in batches of 20. Exact local
+  timestamps; sentence case; remove large icon tiles; unread marker in its
+  own gutter so titles and descriptions align. Own events retain historical
+  Private/Friends/Public visibility. UI must be shown before implementing
+  backend changes for the combined log. Design currently deferred for testing.
+- In progress: manual check-in alerts after one minute, auto still five;
+  sender sharing and recipient friendship/preferences/blocking must be
+  respected. Local migration draft only; not applied or phone-tested.
+- Verified live DB with rollback: owner/friend/non-friend visibility across
+  three privacy modes, plus blocked viewer, for check-in and activity rows.
+  Manual check-in generated zero friend notices. See CURRENT_STATE.md.
+- Confirmed by Jesse's screenshot: the custom delivery-test entry reached his
+  inbox. This is not check-in-trigger or privacy evidence. Actual 8:44 PM auto
+  event notification rows/push status observed; phone receipt awaits Jesse.
+- Pending: recipient preference matrix (tool confirmation expired without
+  executing), actual friend-to-Jesse phone delivery and manual-flow retest
+  after its fix. No release-readiness claim from these partial results.
 
 ## 2026-11-03 — PR #89 external-review correction
 

@@ -73,7 +73,7 @@ export function busyDay(input: {
   const day = dayStart(now, dayOffset);
   const nowHour = new Date(now).getHours();
   const bars: BusyBar[] = [];
-  for (let hour = BUSY_FIRST_HOUR; hour <= BUSY_LAST_HOUR; hour += 1) {
+  for (let hour = Math.min(BUSY_FIRST_HOUR, nowHour); hour <= Math.max(BUSY_LAST_HOUR, nowHour); hour += 1) {
     const [from, to] = hourWindow(day, hour);
     const kind: BusyKind =
       dayOffset < 0 || (dayOffset === 0 && hour < nowHour)

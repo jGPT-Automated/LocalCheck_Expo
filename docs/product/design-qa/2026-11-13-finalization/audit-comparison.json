@@ -1,0 +1,272 @@
+[
+  {
+    "state": "375x667/home-feed",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "375x667/home-scrolled",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "375x667/court-live",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "375x667/schedule-court-picker",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "375x667/player-log-game",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "375x667/explore-drawer",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "375x667/explore-drawer-expanded",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "375x667/settings",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "375x667/notifications",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "393x852/home-feed",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "393x852/home-scrolled",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "393x852/court-live",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "393x852/schedule-court-picker",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "393x852/player-log-game",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "393x852/explore-drawer",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "393x852/explore-drawer-expanded",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "393x852/settings",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "393x852/notifications",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "430x932/home-feed",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "430x932/home-scrolled",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "430x932/court-live",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "430x932/schedule-court-picker",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "430x932/player-log-game",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "430x932/explore-drawer",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "430x932/explore-drawer-expanded",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "430x932/settings",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  },
+  {
+    "state": "430x932/notifications",
+    "beforeFailures": 0,
+    "afterFailures": 0,
+    "debtDelta": {
+      "smallText": 0,
+      "lowContrast": 0,
+      "smallTarget": 0
+    }
+  }
+]

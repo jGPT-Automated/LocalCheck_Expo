@@ -161,6 +161,7 @@ export function SectionHeader({
 
 const styles = StyleSheet.create({
   header: {
+    flexShrink: 0,
     backgroundColor: Colors.surface,
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,

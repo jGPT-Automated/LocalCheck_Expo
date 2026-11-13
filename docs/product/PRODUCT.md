@@ -1,5 +1,33 @@
 # Product context
 
+## November 13 — saved courts and complete notices
+
+On the active branch, LocalPlus players can save up to five courts including
+their local, using the plus/check on the court page. Home and court pickers
+use the same list; switching the viewed court does not change the local court.
+Free users keep one local. Additional saved courts do not enable additional
+geofences. Server changes are prepared but unapplied.
+
+The compact chronological notification list pages through all accessible
+history. New manual check-in/out log entries preserve their recorded audience.
+Manual friend notices are delayed one minute and respect the same sharing,
+recipient and blocking rules as automatic notices; automatic posting keeps its
+five-minute hold. Phone alerts and the in-app log are distinct: turning off
+phone alerts does not erase history. No production delivery claim yet.
+
+
+## Notifications log — November 8 frontend slice
+
+The Notifications screen lists existing own-event notices and incoming alerts
+newest first. It loads 20 at a time with Load more, uses exact local date/time,
+and keeps unread status separate from event visibility. Phone-alert opt-out
+does not remove inbox history. An own-event audience label appears only when
+the notification payload explicitly includes visibility; absent historical
+metadata is not guessed. Complete own manual-event history and historical
+privacy snapshots await backend implementation after UI approval.
+
+
+
 LocalCheck is the live layer for local pickup sports. It helps players
 understand a court before leaving home, check in when they arrive, organize the
 next run, and recognize the people who make a court a community. Launch sports
@@ -36,6 +64,13 @@ are basketball and pickleball.
 - Home and the court drawer stay compact action dashboards: who's here, the
   next scheduled game and selectable daily planning. Their Court link opens
   Feed. Event history and duplicate court tab pills live off the dashboard.
+  Their boxed daily chart shows a selected hour with square attendee avatars;
+  plus/check adds or removes an intended visit. Day, selected time and count
+  appear once above the chart and people. Home opens Court beside its live
+  count, with Check in remaining the separate presence action. Next game
+  follows the chart.
+  Court future-hour game actions use the existing confirmed RSVP flow; planned
+  intent does not join a game or check a player in.
   Existing LocalPlus/free visibility rules are unchanged.
 - Orange identifies LocalCheck, live truth, check-in and selection. Other
   primary actions are white (D56).

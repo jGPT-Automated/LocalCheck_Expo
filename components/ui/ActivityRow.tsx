@@ -28,6 +28,7 @@ function kindOf(item: FeedItem): Kind {
     case "game_result":
     case "run_result":
       return "game";
+    case "planned_visit":
     case "run_started":
       return "plan";
     default:
@@ -101,6 +102,8 @@ export function ActivityRow({
         ? "checked in"
         : item.type === "checkout"
           ? "checked out"
+          : item.type === "planned_visit"
+            ? "is going"
           : item.type === "run_started"
             ? "scheduled a game"
             : item.type === "new_court"
@@ -114,7 +117,9 @@ export function ActivityRow({
     meta =
       item.type === "checkout" && item.visit
         ? `Played ${formatDurationMinutes(item.visit.durationMinutes)} · ${formatClock(item.occurredAtIso)}`
-        : formatClock(item.occurredAtIso);
+        : item.type === "planned_visit" && item.plannedAtIso
+          ? `${formatDayLabel(item.plannedAtIso)} · ${formatClock(item.plannedAtIso)}`
+          : formatClock(item.occurredAtIso);
   }
 
   return (

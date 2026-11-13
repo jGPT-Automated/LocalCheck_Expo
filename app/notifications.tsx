@@ -1,137 +1,116 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ScreenViewport } from "@/components/ui/ScreenViewport";
 import { DetailHeader } from "@/components/ui/DetailHeader";
-import { Colors, Radius } from "@/constants/colors";
-import { Typography } from "@/constants/typography";
+import { Colors } from "@/constants/colors";
+import { TextStyles, Typography } from "@/constants/typography";
 import { useNotifications } from "@/context/NotificationContext";
-import { NotificationType } from "@/services/notificationService";
+import { notificationHeading, notificationTimestamp } from "@/lib/notificationPresentation";
 
-const ICONS: Record<NotificationType, React.ComponentProps<typeof Feather>["name"]> = {
-  friend_request: "user-plus",
-  friend_accepted: "users",
-  run_invite: "calendar",
-  match_review: "check-square",
-  match_confirmed: "award",
-  match_rejected: "alert-circle",
-  challenge: "zap",
-  friend_check_in: "map-pin",
-  auto_check_in: "log-in",
-  auto_check_out: "log-out",
-};
-
-/** "Now", "5m", "2h", "3d": the feed's short time, quieter than the event. */
-function timeAgo(value: string): string {
-  const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
-  if (seconds < 60) return "Now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-  if (seconds < 86_400) return `${Math.floor(seconds / 3600)}h`;
-  return `${Math.floor(seconds / 86_400)}d`;
-}
+const AUDIENCES = {
+  private: { icon: "lock", label: "Private · Only you" },
+  friends: { icon: "users", label: "Friends" },
+  public: { icon: "globe", label: "Public" },
+} as const;
 
 export default function NotificationsScreen() {
   const router = useRouter();
   const { bottom } = useSafeAreaInsets();
-  const {
-    notifications,
-    unreadCount,
-    isLoading,
-    pushEnabled,
-    openNotification,
-    readAll,
-    enablePush,
-  } = useNotifications();
-
+  const { notifications, unreadCount, isLoading, pushEnabled, openNotification, readAll,
+    enablePush, hasMore, isLoadingMore, loadMore, loadError, refreshNotifications } = useNotifications();
   const turnOnPush = async () => {
     const result = await enablePush();
     if (!result.ok) Alert.alert("Alerts are not on", result.message ?? "Please try again.");
   };
-
   return (
-    <View style={styles.screen}>
-      {/* The shared detail header, like Game score and Profile. */}
-      <DetailHeader
-        onBack={() => router.back()}
-        right={
-          unreadCount > 0 ? (
-            <Pressable accessibilityRole="button" onPress={() => void readAll()} hitSlop={10} style={styles.readAllButton}>
-              <Text style={styles.readAll}>Read all</Text>
-            </Pressable>
-          ) : undefined
-        }
-        title="NOTIFICATIONS"
-      />
-
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: bottom + 40 }}>
-        {!pushEnabled ? (
-          <Pressable style={styles.pushCard} onPress={() => void turnOnPush()}>
-            <View style={styles.pushIcon}><Feather name="bell" size={15} color={Colors.text} /></View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.pushTitle}>TURN ON PHONE ALERTS</Text>
-              <Text style={styles.pushBody}>Get game invitations and score reviews when LocalCheck is closed.</Text>
-            </View>
-            <Feather name="chevron-right" size={18} color={Colors.muted} />
+    <ScreenViewport>
+      <DetailHeader onBack={() => router.back()} title="NOTIFICATIONS" right={unreadCount > 0 ? (
+        <Pressable accessibilityRole="button" onPress={() => void readAll()} style={styles.readAllButton}>
+          <Text style={styles.readAll}>Read all</Text>
+        </Pressable>
+      ) : undefined} />
+      <FlatList
+        testID="notification-log-scroll"
+        style={{ flex: 1, minHeight: 0 }}
+        bounces={false}
+        alwaysBounceVertical={false}
+        data={notifications}
+        keyExtractor={item => item.id}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: bottom + 32 }}
+        ListHeaderComponent={!pushEnabled ? (
+          <Pressable accessibilityRole="button" style={styles.pushRow} onPress={() => void turnOnPush()}>
+            <Feather name="bell" size={16} color={Colors.textSecondary} />
+            <Text style={styles.pushText}>Turn on phone alerts</Text>
+            <Feather name="chevron-right" size={16} color={Colors.muted} />
           </Pressable>
         ) : null}
-
-        {isLoading && notifications.length === 0 ? (
-          <ActivityIndicator color={Colors.accent} style={{ marginTop: 44 }} />
-        ) : notifications.length === 0 ? (
+        ListEmptyComponent={isLoading ? <ActivityIndicator color={Colors.accent} style={styles.loading} /> : !loadError ? (
           <View style={styles.empty}>
-            <Feather name="bell" size={24} color={Colors.muted} />
-            <Text style={styles.emptyTitle}>NO NOTIFICATIONS YET</Text>
+            <Text style={styles.emptyTitle}>No notifications yet</Text>
             <Text style={styles.emptyBody}>Friend requests, game invitations, and score reviews will appear here.</Text>
           </View>
-        ) : notifications.map((item) => (
-          <Pressable
-            key={item.id}
-            style={({ pressed }) => [
-              styles.row,
-              !item.readAt && styles.rowUnread,
-              pressed && styles.pressed,
-            ]}
-            onPress={() => void openNotification(item)}
-          >
-            <View style={[styles.icon, !item.readAt && styles.iconUnread]}>
-              <Feather name={ICONS[item.type]} size={14} color={!item.readAt ? Colors.text : Colors.textSecondary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <View style={styles.rowTitleLine}>
-                {!item.readAt ? <View style={styles.dot} /> : null}
-                <Text numberOfLines={2} style={styles.rowTitle}>{item.title}</Text>
+        ) : null}
+        renderItem={({ item }) => {
+          // Only display a recorded event audience, never today's profile setting.
+          const ownEvent = item.type === "auto_check_in" || item.type === "auto_check_out";
+          const audience = ownEvent && item.visibility ? AUDIENCES[item.visibility] : null;
+          return (
+            <Pressable accessibilityRole="button" accessibilityLabel={`${!item.readAt ? "Unread. " : ""}${notificationHeading(item.title)}. ${item.body}. ${notificationTimestamp(item.createdAt)}${audience ? `. ${audience.label}` : ""}`}
+              onPress={() => void openNotification(item)} style={({ pressed }) => [styles.row, pressed && styles.pressed]} testID={`notification-${item.id}`}>
+              <View style={styles.markerGutter}>{!item.readAt ? <View style={styles.dot} /> : null}</View>
+              <View style={styles.content}>
+                <Text style={[styles.rowTitle, item.readAt && styles.readTitle]}>{notificationHeading(item.title)}</Text>
+                <Text style={styles.rowBody}>{item.body}</Text>
+                <View style={styles.metadata}>
+                  <Text style={styles.time}>{notificationTimestamp(item.createdAt)}</Text>
+                  {ownEvent && item.source ? <Text style={styles.time}>{item.source === "auto" ? "Automatic" : "Manual"}</Text> : null}
+                  {audience ? <View style={styles.audience}><Feather name={audience.icon} size={12} color={Colors.textSecondary} /><Text style={styles.time}>{audience.label}</Text></View> : null}
+                </View>
               </View>
-              <Text style={styles.rowBody}>{item.body}</Text>
-            </View>
-            <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
+            </Pressable>
+          );
+        }}
+        ListFooterComponent={loadError ? (
+          <View style={styles.footer}>
+            <Text style={styles.error}>Couldn't load notifications.</Text>
+            <Pressable accessibilityRole="button" style={styles.loadButton} onPress={() => void (notifications.length ? loadMore() : refreshNotifications())}><Text style={styles.loadText}>Try again</Text></Pressable>
+          </View>
+        ) : hasMore ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="Load 20 more notifications" disabled={isLoadingMore} style={styles.loadButton} onPress={() => void loadMore()}>
+            {isLoadingMore ? <ActivityIndicator color={Colors.text} /> : <Text style={styles.loadText}>Load more</Text>}
           </Pressable>
-        ))}
-      </ScrollView>
-    </View>
+        ) : null}
+      />
+    </ScreenViewport>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
-  readAllButton: { minHeight: 38, justifyContent: "center" },
-  readAll: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.inkSoft },
-  pushCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: Colors.hairlineCard, borderRadius: Radius.row, backgroundColor: Colors.panel },
-  pushIcon: { width: 32, height: 32, alignItems: "center", justifyContent: "center", borderRadius: Radius.chip, backgroundColor: Colors.tile },
-  pushTitle: { fontFamily: Typography.bodyBold, fontSize: 10, color: Colors.text, letterSpacing: 1.2, textTransform: "uppercase" },
-  pushBody: { fontFamily: Typography.bodyMedium, fontSize: 11.5, lineHeight: 16, color: Colors.textSecondary, marginTop: 3 },
-  row: { minHeight: 64, flexDirection: "row", alignItems: "flex-start", gap: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "rgba(242,242,246,0.06)" },
-  rowUnread: {},
-  icon: { width: 32, height: 32, borderRadius: Radius.chip, alignItems: "center", justifyContent: "center", backgroundColor: Colors.panel, borderWidth: 1, borderColor: "rgba(242,242,246,0.08)" },
-  iconUnread: { borderColor: Colors.hairlineChrome },
-  rowTitleLine: { flexDirection: "row", alignItems: "center", gap: 7 },
-  rowTitle: { flexShrink: 1, fontFamily: Typography.bodySemiBold, fontSize: 12.5, lineHeight: 17, color: Colors.text },
-  rowBody: { fontFamily: Typography.bodyMedium, fontSize: 12, lineHeight: 17, color: Colors.textSecondary, marginTop: 2 },
-  time: { flexShrink: 0, paddingTop: 2, fontFamily: Typography.bodySemiBold, fontSize: 9.5, color: Colors.muted },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.accent },
+  readAllButton: { minHeight: 44, minWidth: 60, justifyContent: "center", alignItems: "flex-end" },
+  readAll: { fontFamily: Typography.bodySemiBold, fontSize: 12, color: Colors.inkSoft },
+  row: { flexDirection: "row", paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: Colors.hairlineCard, minHeight: 80 },
+  markerGutter: { width: 20, paddingTop: 6, alignItems: "flex-start" },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.accent },
+  content: { flex: 1, minWidth: 0, gap: 5 },
+  rowTitle: { ...TextStyles.bodySmall, fontFamily: Typography.bodySemiBold, color: Colors.text },
+  readTitle: { fontFamily: Typography.bodyMedium },
+  rowBody: { ...TextStyles.bodySmall, color: Colors.textSecondary },
+  metadata: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 12, rowGap: 6, marginTop: 3 },
+  time: { ...TextStyles.caption, lineHeight: 16, color: Colors.muted },
+  audience: { flexDirection: "row", alignItems: "center", gap: 4 },
   pressed: { opacity: 0.68 },
-  empty: { alignItems: "center", paddingHorizontal: 34, paddingTop: 80 },
-  emptyTitle: { fontFamily: Typography.headingSemiBold, fontSize: 16, color: Colors.text, letterSpacing: 0.5, textTransform: "uppercase", marginTop: 15 },
-  emptyBody: { fontFamily: Typography.bodyMedium, fontSize: 12, lineHeight: 18, color: Colors.textSecondary, textAlign: "center", marginTop: 7 },
+  pushRow: { minHeight: 52, flexDirection: "row", alignItems: "center", gap: 10, borderBottomWidth: 1, borderBottomColor: Colors.hairlineCard },
+  pushText: { flex: 1, fontFamily: Typography.bodyMedium, fontSize: 13, color: Colors.textSecondary },
+  loading: { marginTop: 44 },
+  empty: { alignItems: "center", paddingHorizontal: 24, paddingTop: 64, gap: 8 },
+  emptyTitle: { fontFamily: Typography.bodySemiBold, fontSize: 15, color: Colors.text },
+  emptyBody: { ...TextStyles.bodySmall, color: Colors.textSecondary, textAlign: "center" },
+  footer: { alignItems: "center", paddingTop: 16 },
+  error: { fontFamily: Typography.bodyMedium, fontSize: 13, color: Colors.textSecondary },
+  loadButton: { minHeight: 48, alignItems: "center", justifyContent: "center", marginVertical: 16, borderWidth: 1, borderColor: Colors.borderLight, borderRadius: 4 },
+  loadText: { fontFamily: Typography.bodySemiBold, fontSize: 13, color: Colors.text },
 });

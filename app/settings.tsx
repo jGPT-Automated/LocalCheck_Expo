@@ -1,3 +1,4 @@
+import { SavedCourtList } from "@/components/court/SavedCourtList";
 import Constants from "expo-constants";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
@@ -893,6 +894,8 @@ function LocalCourtEditorSheet({
           </Pressable>
         </View>
       ) : null}
+
+      <SavedCourtList selectedId={current?.id} onSelect={(court) => void pick(court)} />
 
       {current && cooldown.restricted ? (
         <Text style={styles.cooldownNote}>

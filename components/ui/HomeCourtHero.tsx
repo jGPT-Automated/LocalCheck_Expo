@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 
 import { CourtArt } from "@/components/court/CourtArt";
-import { CheckInButton, CourtLinkButton, CourtTitleRow, MetricStrip } from "@/components/court/CourtParts";
+import { CheckInButton, CourtTitleRow, MetricStrip } from "@/components/court/CourtParts";
 import { Colors } from "@/constants/colors";
 import type { Court } from "@/constants/data";
 
@@ -20,6 +20,8 @@ export function HomeCourtHero({
   localCount,
   hoursLabel,
   nextGame,
+  onViewCourt,
+  onChooseCourt,
 }: {
   court: Court;
   activeCount: string;
@@ -27,6 +29,8 @@ export function HomeCourtHero({
   localCount: number;
   hoursLabel: string;
   nextGame: string;
+  onViewCourt: () => void;
+  onChooseCourt?: () => void;
 }) {
   const distance =
     court.distanceKm != null && !Number.isNaN(court.distanceKm)
@@ -42,6 +46,8 @@ export function HomeCourtHero({
           live={live}
           liveValue={activeCount}
           name={court.shortName || court.name}
+          onNavigate={onViewCourt}
+          onChooseCourt={onChooseCourt}
           place={place || undefined}
           size="page"
           sport={court.sport}
@@ -62,34 +68,30 @@ export function HomeCourtHero({
 }
 
 /**
- * Home's action row, the Explore drawer's: Check in (or Check out) beside
- * Court, which opens the court page.
+ * Home's check-in action; Court navigation lives beside the live metric.
  */
 export function HomeCourtActions({
   courtName,
   isCheckedIn,
   isChecking,
   onCheckIn,
-  onViewCourt,
 }: {
   courtName: string;
   isCheckedIn: boolean;
   isChecking: boolean;
   onCheckIn: () => void;
-  onViewCourt: () => void;
 }) {
   return (
     <View style={styles.actions}>
       <View style={styles.checkSlot}>
         <CheckInButton busy={isChecking} checkedIn={isCheckedIn} courtName={courtName} onPress={onCheckIn} />
       </View>
-      <CourtLinkButton courtName={courtName} onPress={onViewCourt} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { position: "relative", overflow: "hidden", backgroundColor: Colors.background },
+  header: { flexShrink: 0, position: "relative", overflow: "hidden", backgroundColor: Colors.background },
   title: { paddingTop: 12 },
   strip: { paddingTop: 16 },
 

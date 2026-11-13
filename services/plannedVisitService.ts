@@ -64,21 +64,22 @@ export async function fetchPlannedVisits(filters: {
   throwOnError?: boolean;
 }): Promise<PlannedVisit[]> {
   try {
-    let q = supabase
-      .from("planned_visits")
-      .select(VISIT_SELECT)
-      .gte("planned_at", filters.from.toISOString())
-      .lte("planned_at", filters.to.toISOString())
-      .order("planned_at", { ascending: true })
-      .limit(200);
-    if (filters.courtId) q = q.eq("court_id", filters.courtId);
-
-    const { data, error } = await q;
-    if (error) throw error;
-    if (!data) return [];
-    return (data as unknown as SupabasePlannedVisit[])
-      .map(mapVisit)
-      .filter((v): v is PlannedVisit => v !== null);
+    const visits: PlannedVisit[] = [];
+    // A fixed global limit silently hid later plans (including the caller's
+    // just-confirmed Going). Read the bounded date window in stable pages.
+    for (let offset = 0; ; offset += 200) {
+      let q = supabase.from("planned_visits").select(VISIT_SELECT)
+        .gte("planned_at", filters.from.toISOString())
+        .lte("planned_at", filters.to.toISOString())
+        .order("planned_at", { ascending: true }).order("id", { ascending: true })
+        .range(offset, offset + 199);
+      if (filters.courtId) q = q.eq("court_id", filters.courtId);
+      const { data, error } = await q;
+      if (error) throw error;
+      const rows = (data ?? []) as unknown as SupabasePlannedVisit[];
+      visits.push(...rows.map(mapVisit).filter((v): v is PlannedVisit => v !== null));
+      if (rows.length < 200) return visits;
+    }
   } catch (error) {
     if (filters.throwOnError) throw error;
     return [];

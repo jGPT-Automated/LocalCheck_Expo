@@ -15,8 +15,9 @@ import { courtHourEvents, type CourtHourPick } from "@/lib/courtActivityModel";
 import { busyDay, hourLabel } from "@/lib/courtBusyModel";
 import { formatTimeOnCourt } from "@/lib/courtHours";
 
-// Keep the focus inside even the shortest (58pt) row when a jump clamps to 0.
-const TIMELINE_FOCUS = 28;
+// A selected hour starts immediately below the pinned chart; no half-row
+// from a different hour is left above Now. The tail allows the last hour too.
+const TIMELINE_FOCUS = 0;
 
 /** LCv5's linked chart/timeline on the court route; Home stays a dashboard. */
 export function CourtActivityFeed({
@@ -29,6 +30,8 @@ export function CourtActivityFeed({
   onActivity,
   initialPick,
   onPickChange,
+  eventsError = false,
+  onRetryEvents,
 }: {
   court: Court;
   roster: Player[];
@@ -37,6 +40,8 @@ export function CourtActivityFeed({
   events: FeedItem[];
   bottomInset: number;
   onActivity: (item: FeedItem) => void;
+  eventsError?: boolean;
+  onRetryEvents?: () => void;
   initialPick?: CourtHourPick;
   onPickChange?: (pick: CourtHourPick) => void;
 }) {
@@ -44,7 +49,7 @@ export function CourtActivityFeed({
   const now = data.now;
   const initial = initialPick ?? {
     dayOffset: 0,
-    hour: Math.max(6, Math.min(22, new Date(now).getHours())),
+    hour: new Date(now).getHours(),
   };
   const [day, setDay] = React.useState(initial.dayOffset);
   const [selected, setSelected] = React.useState<CourtHourPick>(initial);
@@ -65,7 +70,9 @@ export function CourtActivityFeed({
       jump.current = hour;
       return;
     }
-    jump.current = null;
+    // Keep the target until native scrolling confirms it. Early row layout
+    // can precede the full content height, so scrollTo may initially clamp.
+    jump.current = hour;
     scroll.current?.scrollTo({ y: Math.max(0, y - TIMELINE_FOCUS), animated: false });
   };
   const flushJump = () => {
@@ -83,7 +90,7 @@ export function CourtActivityFeed({
     setDay(next);
     const hour =
       next === 0
-        ? Math.max(6, Math.min(22, new Date().getHours()))
+        ? new Date(now).getHours()
         : selected.hour;
     setSelected({ dayOffset: next, hour });
     onPickChange?.({ dayOffset: next, hour });
@@ -91,6 +98,11 @@ export function CourtActivityFeed({
     requestAnimationFrame(flushJump);
   };
   const onScroll = (y: number) => {
+    if (jump.current !== null) {
+      const rowY = rows.current.get(jump.current);
+      if (rowY === undefined || Math.abs(y - Math.max(0, rowY - TIMELINE_FOCUS)) > 2) return;
+      jump.current = null;
+    }
     const focus = y + TIMELINE_FOCUS;
     const entries = [...rows.current.entries()].sort((a, b) => a[1] - b[1]);
     let hour = entries[0]?.[0] ?? selected.hour;
@@ -103,7 +115,7 @@ export function CourtActivityFeed({
   };
   React.useEffect(() => {
     if (data.ready) requestAnimationFrame(flushJump);
-  }, [data.ready]);
+  }, [data.ready, viewport]);
   return (
     <View style={styles.root}>
       <View style={styles.chart}>
@@ -118,8 +130,16 @@ export function CourtActivityFeed({
           onSelect={pick}
           allowPast
           maxBack={6}
+          onNow={() => {
+            const hour = new Date(now).getHours();
+            if (day !== 0) setDayAndFocus(0);
+            else pick({ dayOffset: 0, hour });
+          }}
         />
       </View>
+      {eventsError ? <PressableScale accessibilityRole="button" onPress={onRetryEvents} style={{ minHeight: 44, paddingHorizontal: 20, justifyContent: "center" }}>
+        <Text style={styles.empty}>Couldn't load activity. Try again.</Text>
+      </PressableScale> : null}
       {data.ready ? (
         <ScrollView
           key={day}
@@ -131,10 +151,11 @@ export function CourtActivityFeed({
           overScrollMode="never"
           scrollEventThrottle={16}
           onLayout={(e) => setViewport(e.nativeEvent.layout.height)}
+          onContentSizeChange={() => { if (jump.current !== null) requestAnimationFrame(flushJump); }}
           onScroll={(e) => onScroll(e.nativeEvent.contentOffset.y)}
           contentContainerStyle={{
             paddingHorizontal: 20,
-            paddingBottom: Math.max(bottomInset, viewport - 80),
+            paddingBottom: Math.max(bottomInset, viewport),
           }}
         >
           {[...bars].reverse().map((bar) => {
@@ -207,6 +228,9 @@ export function CourtActivityFeed({
                       <Text style={styles.empty}>
                         +{activeCount - roster.length} private
                       </Text>
+                    ) : null}
+                    {data.visits.some(v => v.courtId === court.id && new Date(v.plannedAtIso).getHours() === bar.hour && new Date(v.plannedAtIso).toDateString() === new Date(now).toDateString()) ? (
+                      <HourSlotCard court={court} dayOffset={day} hour={bar.hour} data={data} compact />
                     ) : null}
                     {items.map((item, i) => (
                       <ActivityRow

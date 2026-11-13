@@ -1,8 +1,18 @@
 import { router } from "expo-router";
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { Feather } from "@expo/vector-icons";
 
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { ScheduledGameCard } from "@/components/court/CourtGamesPanel";
+import { PressableScale } from "@/components/ui/PressableScale";
 import { formatForMaxPlayers } from "@/components/schedule/scheduledGameModel";
 import { Colors, Radius } from "@/constants/colors";
 import type { GameRun } from "@/constants/data";
@@ -42,6 +52,11 @@ export function SlotCard({
   onCreate,
   runs,
   compact = false,
+  embedded = false,
+  onJoinRun,
+  joiningRunId,
+  onPlayerPress,
+  onRunPress,
 }: {
   title: string;
   attendees: SlotAttendee[];
@@ -56,91 +71,115 @@ export function SlotCard({
   onToggle?: () => void;
   onCreate?: () => void;
   runs: GameRun[];
-  /** Timeline uses names; square avatars remain on presence/game surfaces. */
+  /** Condensed timeline row; dashboard selection uses the full card. */
   compact?: boolean;
+  /** The dashboard planner already owns the surrounding panel. */
+  embedded?: boolean;
+  onJoinRun?: (game: GameRun) => void;
+  joiningRunId?: string | null;
+  onPlayerPress?: (playerId: string) => void;
+  onRunPress?: (runId: string) => void;
 }) {
   const total = attendees.length + hidden;
-  const extra = hidden + Math.max(0, attendees.length - AVATARS_MAX);
+  const extra = Math.max(0, attendees.length - AVATARS_MAX);
   const acts = mode !== "view";
   const run = runs[0];
   const showBody = acts || total > 0 || Boolean(run);
+  const openPlayer = (id: string) =>
+    onPlayerPress ? onPlayerPress(id) : router.push(`/player/${id}`);
+  const openRun = (id: string) =>
+    onRunPress ? onRunPress(id) : router.push(`/run/${id}`);
+  const spokenAttendees = [
+    ...attendees.map((p) => (p.isMine ? "You" : p.name)),
+    ...(hidden ? [`${hidden} private`] : []),
+  ].join(" · ");
+  const gameRows = runs.map((game) => (
+    <ScheduledGameCard
+      compact
+      disabled={!acts || !onJoinRun}
+      game={game}
+      joining={joiningRunId === game.id}
+      key={game.id}
+      onJoin={onJoinRun ?? ((selectedGame) => openRun(selectedGame.id))}
+      onOpen={(selectedGame) => openRun(selectedGame.id)}
+    />
+  ));
   if (compact)
     return (
-      <View style={styles.timelineRow}>
-        <Text style={styles.hour}>{title}</Text>
-        <View style={styles.timelineInfo}>
-          <Text style={styles.timelineCount}>
-            {total ? `${total} going` : "Nobody yet"}
-          </Text>
-          {attendees.length || hidden ? (
-            <Text style={styles.timelineNames}>
-              {[
-                ...attendees.map((p) => (p.isMine ? "You" : p.name)),
-                ...(hidden ? [`${hidden} private`] : []),
-              ].join(" · ")}
-            </Text>
-          ) : null}
-          {runs.map((game) => (
-            <Pressable
-              key={game.id}
-              accessibilityRole="button"
-              accessibilityLabel={`Open ${game.title}`}
-              onPress={() => router.push(`/run/${game.id}`)}
-              style={styles.timelineGame}
+      <View>
+        <View style={styles.timelineRow}>
+          <Text style={styles.hour}>{title}</Text>
+          {attendees.length ? (
+            <View
+              testID="slot-attendee-stack"
+              style={styles.stack}
+              pointerEvents="none"
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
             >
-              <Text style={styles.timelineGameText}>
-                {game.title} · {game.participants.length}/{game.maxPlayers}
-              </Text>
-            </Pressable>
-          ))}
-          {notice ? (
-            <Text accessibilityLiveRegion="polite" style={styles.notice}>
-              {notice}
+              {attendees.slice(0, 3).map((person, index) => (
+                <View
+                  key={person.id}
+                  style={[styles.stackFace, index > 0 && styles.overlap]}
+                >
+                  <PlayerAvatar
+                    initials={person.initials}
+                    name={person.name}
+                    playerId={person.id}
+                    size={34}
+                  />
+                </View>
+              ))}
+            </View>
+          ) : null}
+          <View style={styles.timelineInfo}>
+            <Text style={styles.timelineCount}>
+              {total ? `${total} going` : "Nobody yet"}
             </Text>
+            {attendees.length || hidden ? (
+              <Text
+                accessibilityLabel={spokenAttendees}
+                style={styles.timelineNames}
+              >
+                {[
+                  ...attendees
+                    .slice(0, 2)
+                    .map((p) => (p.isMine ? "You" : p.name)),
+                  ...(attendees.length > 2 ? [`+${attendees.length - 2}`] : []),
+                  ...(hidden ? [`${hidden} private`] : []),
+                ].join(" · ")}
+              </Text>
+            ) : null}
+            {notice ? (
+              <Text accessibilityLiveRegion="polite" style={styles.notice}>
+                {notice}
+              </Text>
+            ) : null}
+          </View>
+          {acts && (!runs.length || mine) ? (
+            <AttendanceAction
+              mine={mine}
+              saving={saving}
+              current={current}
+              onToggle={onToggle}
+            />
           ) : null}
         </View>
-        {acts ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={mine ? "I'm not coming" : "I'm going"}
-            accessibilityState={{ busy: saving, selected: mine }}
-            disabled={saving}
-            onPress={onToggle}
-            style={[styles.timelineAction, mine && styles.actionOn]}
-          >
-            <Text style={[styles.actionText, mine && styles.actionTextOn]}>
-              {saving ? "Saving…" : "Going"}
-            </Text>
-          </Pressable>
-        ) : null}
+        {gameRows}
       </View>
     );
   return (
-    <View style={styles.card}>
-      <View style={styles.head}>
-        <Text numberOfLines={1} style={styles.title}>
-          {title}
-        </Text>
-        <Text style={styles.meta}>{total} planning to go</Text>
-      </View>
+    <View style={[styles.card, embedded && styles.embedded]}>
+      {!embedded ? (
+        <View style={styles.head}>
+          <Text numberOfLines={1} style={styles.title}>
+            {title}
+          </Text>
+          <Text style={styles.meta}>{total} planning to go</Text>
+        </View>
+      ) : null}
       {showBody ? (
         <View style={styles.body}>
-          {acts ? (
-            <Pressable
-              accessibilityLabel={
-                mine ? "I'm not coming" : current ? "I'm here" : "I'm going"
-              }
-              accessibilityRole="button"
-              accessibilityState={{ busy: saving, selected: mine }}
-              disabled={saving}
-              onPress={onToggle}
-              style={[styles.action, mine && styles.actionOn]}
-            >
-              <Text style={[styles.actionText, mine && styles.actionTextOn]}>
-                {current ? "Here" : "Going"}
-              </Text>
-            </Pressable>
-          ) : null}
           <ScrollView
             contentContainerStyle={styles.avatars}
             horizontal
@@ -152,14 +191,15 @@ export function SlotCard({
                 accessibilityLabel={attendee.isMine ? "You" : attendee.name}
                 accessibilityRole="button"
                 key={attendee.id}
-                onPress={() => router.push(`/player/${attendee.id}`)}
+                onPress={() => openPlayer(attendee.id)}
+                style={styles.avatarTarget}
               >
                 <PlayerAvatar
                   accent={attendee.isMine}
                   initials={attendee.initials}
                   name={attendee.name}
                   playerId={attendee.id}
-                  size={32}
+                  size={34}
                 />
               </Pressable>
             ))}
@@ -168,14 +208,25 @@ export function SlotCard({
                 <Text style={styles.moreText}>+{extra}</Text>
               </View>
             ) : null}
+            {hidden > 0 ? (
+              <Text style={styles.privateCount}>{hidden} private</Text>
+            ) : null}
           </ScrollView>
-          {run || mode === "full" ? (
+          {acts && (!runs.length || mine) ? (
+            <AttendanceAction
+              mine={mine}
+              saving={saving}
+              current={current}
+              onToggle={onToggle}
+            />
+          ) : null}
+          {(mode === "view" && run) || mode === "full" ? (
             <View style={styles.gameCell}>
               {mode === "view" && run ? (
                 <Pressable
                   accessibilityLabel={`Open ${run.title}`}
                   accessibilityRole="button"
-                  onPress={() => router.push(`/run/${run.id}`)}
+                  onPress={() => openRun(run.id)}
                   style={styles.gameInfo}
                 >
                   <Text numberOfLines={1} style={styles.gameInfoText}>
@@ -191,7 +242,7 @@ export function SlotCard({
                 <Pressable
                   accessibilityLabel={`Open ${run.title}`}
                   accessibilityRole="button"
-                  onPress={() => router.push(`/run/${run.id}`)}
+                  onPress={() => openRun(run.id)}
                   style={styles.actionLine}
                 >
                   <Text style={styles.actionLineText}>Join</Text>
@@ -209,21 +260,68 @@ export function SlotCard({
           ) : null}
         </View>
       ) : null}
+      {mode === "plan" ? gameRows : null}
       {notice ? <Text style={styles.notice}>{notice}</Text> : null}
     </View>
   );
 }
 
+function AttendanceAction({
+  mine,
+  saving,
+  current,
+  onToggle,
+}: {
+  mine: boolean;
+  saving: boolean;
+  current: boolean;
+  onToggle?: () => void;
+}) {
+  return (
+    <PressableScale
+      accessibilityRole="button"
+      accessibilityLabel={
+        mine ? "I'm not coming" : current ? "I'm here" : "I'm going"
+      }
+      accessibilityState={{ busy: saving, selected: mine }}
+      disabled={saving || !onToggle}
+      onPress={onToggle}
+      containerStyle={styles.actionTarget}
+      style={[styles.action, mine && styles.actionOn]}
+    >
+      {saving ? (
+        <ActivityIndicator
+          size="small"
+          color={mine ? Colors.background : Colors.text}
+        />
+      ) : (
+        <Feather
+          name={mine ? "check" : "plus"}
+          size={20}
+          color={mine ? Colors.background : Colors.text}
+        />
+      )}
+    </PressableScale>
+  );
+}
+
 const styles = StyleSheet.create({
   timelineRow: {
-    minHeight: 66,
+    minHeight: 80,
     paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 8,
     borderBottomWidth: 1,
     borderBottomColor: Colors.hairline,
   },
+  stack: { flexDirection: "row", flexShrink: 0, paddingVertical: 4 },
+  stackFace: {
+    borderWidth: 2,
+    borderColor: Colors.background,
+    borderRadius: Radius.chip,
+  },
+  overlap: { marginLeft: -10 },
   hour: {
     width: 44,
     fontFamily: Typography.headingSemiBold,
@@ -242,23 +340,6 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     color: Colors.textSecondary,
   },
-  timelineGame: { minHeight: 44, justifyContent: "center" },
-  timelineGameText: {
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 12,
-    lineHeight: 17,
-    color: Colors.text,
-  },
-  timelineAction: {
-    minWidth: 68,
-    minHeight: 44,
-    paddingHorizontal: 10,
-    borderRadius: Radius.button,
-    borderWidth: 1,
-    borderColor: Colors.hairlineChrome,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   card: {
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -266,6 +347,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.hairlineCard,
     backgroundColor: Colors.panel,
+  },
+  embedded: {
+    paddingHorizontal: 0,
+    paddingBottom: 0,
+    borderWidth: 0,
+    borderTopWidth: 0,
+    borderRadius: 0,
+    marginTop: 6,
   },
   head: {
     flexDirection: "row",
@@ -282,7 +371,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   meta: {
-    flexShrink: 0,
+    flexShrink: 1,
     fontFamily: Typography.bodySemiBold,
     fontSize: 11,
     color: Colors.muted,
@@ -296,25 +385,28 @@ const styles = StyleSheet.create({
   },
   avatarScroll: { flex: 2, flexBasis: 0, minWidth: 0 },
   avatars: { flexDirection: "row", alignItems: "center", gap: 6 },
+  avatarTarget: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionTarget: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  privateCount: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 11,
+    color: Colors.textSecondary,
+  },
   action: {
-    minWidth: 64,
-    height: 36,
-    paddingHorizontal: 12,
+    width: 34,
+    height: 34,
     borderRadius: Radius.button,
     borderWidth: 1,
     borderColor: Colors.hairlineChrome,
     alignItems: "center",
     justifyContent: "center",
   },
-  actionOn: { backgroundColor: Colors.accent, borderColor: Colors.accent },
-  actionText: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 11,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    color: Colors.text,
-  },
-  actionTextOn: { color: Colors.background },
+  actionOn: { backgroundColor: Colors.text, borderColor: Colors.text },
   more: {
     width: 32,
     height: 32,

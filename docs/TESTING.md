@@ -70,10 +70,18 @@ sub-11pt text, sub-4.5:1 text or sub-44pt control count rises above
 the Explore drawer peek is flaky at 375x667. It does not see
 off-centre art, uneven spacing or colour; open the PNGs.
 
-For a visual change, include a browser screenshot and an iPhone screenshot of
-the same meaningful state. Compare against the applicable reference under
-`docs/product/`. Exercise empty, loading, error, populated, and long-content
-states when they are affected.
+For every frontend PR, follow the before/after evidence fields in the
+[PR template](../.github/pull_request_template.md) and add retained screenshots
+to the chronological [visual history](product/design-qa/README.md). Compare
+the same route and state at the baseline and PR-head commits and the same
+viewport. Use 375x667, 393x852 and 430x932 where the change could vary by size;
+explain omitted sizes. Capture the actual rendered app, not a design mockup.
+Record the browser or device, reproducible journey and outcome, backend
+isolation (including whether writes are intercepted or fixture-only), and
+remaining limits. If a browser and iPhone are both relevant, identify each
+capture separately. Exercise affected empty, loading, error, populated and
+long-content states. These captures complement `qa:visual`; they do not
+replace its checks or native-device evidence.
 
 For authentication, also test a compact phone, landscape, the software
 keyboard, and a visible error message; every field and action must remain
@@ -162,3 +170,40 @@ groups and a valid actor, and verifies Me/player date headings are retained.
 Runs at 375x667, 393x852 and 430x932; `REVIEW_SIZES=393x852` scopes a reproduction.
 It records screenshots/results, rejects page errors and product writes, and
 fulfills the QR worker's public static dependency locally.
+
+## Dashboard visual follow-up
+
+Start `PORT=8100 pnpm preview:web`, then run
+`node scripts/visual-qa/dashboard-design-journey.mjs http://127.0.0.1:8100 /tmp/dashboard-design`.
+The isolated journey captures the same Home/drawer/court states at 375x667,
+393x852 and 430x932 and checks the shared boxed planner, plus/check toggle,
+failed save/retry/removal, selected-card floor clearance, privacy and inline
+game state. `DASHBOARD_SIZES=393x852` scopes a reproduction. All app HTTP is
+fulfilled locally and all WebSockets are blocked before navigation. Static
+QR-worker JavaScript is fetched as a public asset and fulfilled locally.
+
+Use `scripts/visual-qa/dashboard-rsvp-journey.mjs` for isolated game RSVP,
+capacity and team-selection checks; no production writes are authorized by
+these journeys. Retain results and before/after evidence under the visual
+history index. Live schema inspection is separate, metadata-only evidence.
+
+`court-drawer-stability-journey.mjs` records repeated first opens without
+input, positions, explicit expand and dismissal. `court-day-selection-journey.mjs`
+checks immediate day-change/bar taps against the selected day's actual fixture
+attendance. Both require a fresh preview URL and an evidence directory; both
+intercept backend HTTP and block WebSockets before navigating. No live project
+write is authorized by a successful fixture run.
+
+## November 13 finalization regression
+
+`node scripts/visual-qa/finalize-courts-journey.mjs <preview> <output>` covers
+fixed Home/Notifications/chart position, initial Now, Going persistence/event
+visibility and saved-court save/reload/Home/Schedule selection/removal. Set
+`JOURNEY_WIDTH=393` for one viewport and `JOURNEY_NOW=2026-11-13T08:30:00Z`
+for the 2:30 AM Central regression. All remote HTTP is intercepted and sockets
+blocked. It never writes to production.
+
+The disposable PostgreSQL migration test and install command are documented
+in `docs/plans/2026-11-13-finalize-courts-notifications.md`. The evidence and
+remaining phone/live-backend checks are in
+`docs/product/design-qa/2026-11-13-finalization/README.md`.

@@ -1,0 +1,245 @@
+{
+  "375x667/home-feed": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Next game (7.5px)",
+        "Court hours · wk (7.5px)",
+        "Locals (7.5px)",
+        "Home (9px)",
+        "Schedule (9px)",
+        "Compete (9px)",
+        "Explore (9px)",
+        "Me (9px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": []
+    }
+  },
+  "375x667/home-scrolled": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Next game (7.5px)",
+        "Court hours · wk (7.5px)",
+        "Locals (7.5px)",
+        "Today (9px)",
+        "PM (7.5px)",
+        "5v5 · All levels · Host chatgpt (10.5px)",
+        "CH (7.92px)",
+        "PL (7.92px)",
+        "TI (7.92px)",
+        "JL (7.92px)",
+        "Going (9px)",
+        "Home (9px)",
+        "Schedule (9px)",
+        "Compete (9px)",
+        "Explore (9px)",
+        "Me (9px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        "GOING (64x32)"
+      ]
+    }
+  },
+  "375x667/court-live": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Feed (9.5px)",
+        "Schedule (9.5px)",
+        "Players (9.5px)",
+        "Info (9.5px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        " (38x38)"
+      ]
+    }
+  },
+  "375x667/notifications": {
+    "fail": [],
+    "debt": {
+      "smallText": [],
+      "lowContrast": [],
+      "smallTarget": []
+    }
+  },
+  "393x852/home-feed": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Next game (7.5px)",
+        "Court hours · wk (7.5px)",
+        "Locals (7.5px)",
+        "Today (9px)",
+        "PM (7.5px)",
+        "5v5 · All levels · Host chatgpt (10.5px)",
+        "CH (7.92px)",
+        "PL (7.92px)",
+        "TI (7.92px)",
+        "JL (7.92px)",
+        "Going (9px)",
+        "Home (9px)",
+        "Schedule (9px)",
+        "Compete (9px)",
+        "Explore (9px)",
+        "Me (9px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        "GOING (64x32)"
+      ]
+    }
+  },
+  "393x852/home-scrolled": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Next game (7.5px)",
+        "Court hours · wk (7.5px)",
+        "Locals (7.5px)",
+        "Today (9px)",
+        "PM (7.5px)",
+        "5v5 · All levels · Host chatgpt (10.5px)",
+        "CH (7.92px)",
+        "PL (7.92px)",
+        "TI (7.92px)",
+        "JL (7.92px)",
+        "Going (9px)",
+        "Home (9px)",
+        "Schedule (9px)",
+        "Compete (9px)",
+        "Explore (9px)",
+        "Me (9px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        "GOING (64x32)"
+      ]
+    }
+  },
+  "393x852/court-live": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Feed (9.5px)",
+        "Schedule (9.5px)",
+        "Players (9.5px)",
+        "Info (9.5px)",
+        "7m (10px)",
+        "12m (10px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        " (38x38)"
+      ]
+    }
+  },
+  "393x852/notifications": {
+    "fail": [],
+    "debt": {
+      "smallText": [],
+      "lowContrast": [],
+      "smallTarget": []
+    }
+  },
+  "430x932/home-feed": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Next game (7.5px)",
+        "Court hours · wk (7.5px)",
+        "Locals (7.5px)",
+        "Today (9px)",
+        "PM (7.5px)",
+        "5v5 · All levels · Host chatgpt (10.5px)",
+        "CH (7.92px)",
+        "PL (7.92px)",
+        "TI (7.92px)",
+        "JL (7.92px)",
+        "Going (9px)",
+        "Home (9px)",
+        "Schedule (9px)",
+        "Compete (9px)",
+        "Explore (9px)",
+        "Me (9px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        "GOING (64x32)"
+      ]
+    }
+  },
+  "430x932/home-scrolled": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Next game (7.5px)",
+        "Court hours · wk (7.5px)",
+        "Locals (7.5px)",
+        "Today (9px)",
+        "PM (7.5px)",
+        "5v5 · All levels · Host chatgpt (10.5px)",
+        "CH (7.92px)",
+        "PL (7.92px)",
+        "TI (7.92px)",
+        "JL (7.92px)",
+        "Going (9px)",
+        "Home (9px)",
+        "Schedule (9px)",
+        "Compete (9px)",
+        "Explore (9px)",
+        "Me (9px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        "GOING (64x32)"
+      ]
+    }
+  },
+  "430x932/court-live": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "Basketball (9.5px)",
+        "On court (9px)",
+        "Feed (9.5px)",
+        "Schedule (9.5px)",
+        "Players (9.5px)",
+        "Info (9.5px)",
+        "7m (10px)",
+        "12m (10px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        " (38x38)"
+      ]
+    }
+  },
+  "430x932/notifications": {
+    "fail": [],
+    "debt": {
+      "smallText": [],
+      "lowContrast": [],
+      "smallTarget": []
+    }
+  }
+}

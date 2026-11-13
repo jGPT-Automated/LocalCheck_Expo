@@ -1,0 +1,29 @@
+{
+  "results": [
+    {
+      "width": 375,
+      "name": "rapid scrub and manual scrolling stay linked on past/today/future days",
+      "passed": true,
+      "evidence": {
+        "chartY": 253
+      }
+    },
+    {
+      "width": 393,
+      "name": "rapid scrub and manual scrolling stay linked on past/today/future days",
+      "passed": true,
+      "evidence": {
+        "chartY": 253
+      }
+    },
+    {
+      "width": 430,
+      "name": "rapid scrub and manual scrolling stay linked on past/today/future days",
+      "passed": true,
+      "evidence": {
+        "chartY": 253
+      }
+    }
+  ],
+  "failures": []
+}

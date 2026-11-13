@@ -24,6 +24,8 @@ export interface AppNotification {
   path: string | null;
   readAt: string | null;
   createdAt: string;
+  visibility: "private" | "friends" | "public" | null;
+  source: "manual" | "auto" | null;
 }
 interface NotificationRow {
   id: string;
@@ -34,7 +36,7 @@ interface NotificationRow {
   match_id: string | null;
   title: string;
   body: string;
-  data: { path?: unknown } | null;
+  data: { path?: unknown; visibility?: unknown; source?: unknown; kind?: unknown } | null;
   read_at: string | null;
   created_at: string;
 }
@@ -52,20 +54,34 @@ function mapNotification(row: NotificationRow): AppNotification {
     path: typeof row.data?.path === "string" ? row.data.path : null,
     readAt: row.read_at,
     createdAt: row.created_at,
+    visibility: row.data?.visibility === "private" || row.data?.visibility === "friends" || row.data?.visibility === "public" ? row.data.visibility : null,
+    source: row.data?.source === "manual" || row.data?.kind === "manual_check_in" ? "manual" : row.data?.source === "auto" || row.data?.kind === "auto_check_in" ? "auto" : null,
   };
 }
 
-export async function fetchNotifications(limit = 50): Promise<AppNotification[]> {
-  const { data, error } = await supabase
+export interface NotificationCursor { createdAt: string; id: string }
+export interface NotificationPage { items: AppNotification[]; nextCursor: NotificationCursor | null }
+
+export async function fetchNotificationPage(cursor: NotificationCursor | null = null): Promise<NotificationPage> {
+  let query = supabase
     .from("notifications")
     .select("id,type,actor_id,friendship_id,run_id,match_id,title,body,data,read_at,created_at")
     .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error || !data) {
-    if (error && error.code !== "42P01") console.warn("fetchNotifications failed", error.message);
-    return [];
-  }
-  return (data as NotificationRow[]).map(mapNotification);
+    .order("id", { ascending: false })
+    .limit(21);
+  if (cursor) query = query.or(`created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`);
+  const { data, error } = await query;
+  if (error) throw error;
+  const rows = (data ?? []) as NotificationRow[];
+  const items = rows.slice(0, 20).map(mapNotification);
+  const last = items.at(-1);
+  return { items, nextCursor: rows.length > 20 && last ? { createdAt: last.createdAt, id: last.id } : null };
+}
+
+export async function fetchUnreadNotificationCount(): Promise<number> {
+  const { count, error } = await supabase.from("notifications").select("id", { count: "exact", head: true }).is("read_at", null);
+  if (error) throw error;
+  return count ?? 0;
 }
 
 export async function markNotificationRead(notificationId: string): Promise<boolean> {

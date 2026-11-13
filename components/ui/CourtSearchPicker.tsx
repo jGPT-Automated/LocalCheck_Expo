@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Keyboard, Pressable, StyleSheet, Text, View } from "react-native";
 
+import { useApp } from "@/context/AppContext";
 import { SearchField } from "@/components/ui/SearchField";
 import { Colors } from "@/constants/colors";
 import type { Court } from "@/constants/data";
@@ -26,6 +27,7 @@ export function CourtSearchPicker({
   onPick: (court: Court) => void;
   onFocusChange?: (focused: boolean) => void;
 }) {
+  const { savedCourts } = useApp();
   const [text, setText] = useState(courtLabel(court));
   const [focused, setFocusedState] = useState(false);
   const setFocused = (next: boolean) => {
@@ -82,12 +84,12 @@ export function CourtSearchPicker({
   const suggestions = useMemo(() => {
     if (typing) return results;
     const seen = new Set<string>();
-    return [court, ...nearest].filter((row): row is Court => {
+    return [...savedCourts, court, ...nearest].filter((row): row is Court => {
       if (!row || seen.has(row.id)) return false;
       seen.add(row.id);
       return true;
     });
-  }, [typing, results, court, nearest]);
+  }, [typing, results, court, nearest, savedCourts]);
 
   const courtRef = useRef(court);
   courtRef.current = court;
@@ -131,7 +133,7 @@ export function CourtSearchPicker({
       />
       {focused ? (
         <View style={styles.list}>
-          {!typing && suggestions.length > 0 ? <Text style={styles.listLabel}>NEAREST</Text> : null}
+          {!typing && suggestions.length > 0 ? <Text style={styles.listLabel}>COURTS</Text> : null}
           {suggestions.map((row) => (
             <Pressable
               accessibilityLabel={`Pick ${row.name}`}

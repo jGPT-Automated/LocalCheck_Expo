@@ -1,0 +1,113 @@
+[
+  {
+    "width": 375,
+    "sport": "pickleball",
+    "checks": [
+      {
+        "name": "Pickleball Home selected hour shows the 2/4 scheduled game",
+        "passed": true
+      },
+      {
+        "name": "Pickleball drawer selected hour shows the 2/4 scheduled game",
+        "passed": true
+      },
+      {
+        "name": "Pickleball court selected hour shows the 2/4 scheduled game",
+        "passed": true
+      }
+    ],
+    "writes": 0,
+    "errors": [],
+    "visual": {
+      "fail": [],
+      "debt": {
+        "smallText": [
+          "Pickleball (9.5px)",
+          "On court (9px)",
+          "Feed (9.5px)",
+          "Schedule (9.5px)",
+          "Players (9.5px)",
+          "Info (9.5px)"
+        ],
+        "lowContrast": [],
+        "smallTarget": [
+          " (38x38)"
+        ]
+      }
+    }
+  },
+  {
+    "width": 393,
+    "sport": "pickleball",
+    "checks": [
+      {
+        "name": "Pickleball Home selected hour shows the 2/4 scheduled game",
+        "passed": true
+      },
+      {
+        "name": "Pickleball drawer selected hour shows the 2/4 scheduled game",
+        "passed": true
+      },
+      {
+        "name": "Pickleball court selected hour shows the 2/4 scheduled game",
+        "passed": true
+      }
+    ],
+    "writes": 0,
+    "errors": [],
+    "visual": {
+      "fail": [],
+      "debt": {
+        "smallText": [
+          "Pickleball (9.5px)",
+          "On court (9px)",
+          "Feed (9.5px)",
+          "Schedule (9.5px)",
+          "Players (9.5px)",
+          "Info (9.5px)"
+        ],
+        "lowContrast": [],
+        "smallTarget": [
+          " (38x38)"
+        ]
+      }
+    }
+  },
+  {
+    "width": 430,
+    "sport": "pickleball",
+    "checks": [
+      {
+        "name": "Pickleball Home selected hour shows the 2/4 scheduled game",
+        "passed": true
+      },
+      {
+        "name": "Pickleball drawer selected hour shows the 2/4 scheduled game",
+        "passed": true
+      },
+      {
+        "name": "Pickleball court selected hour shows the 2/4 scheduled game",
+        "passed": true
+      }
+    ],
+    "writes": 0,
+    "errors": [],
+    "visual": {
+      "fail": [],
+      "debt": {
+        "smallText": [
+          "Pickleball (9.5px)",
+          "On court (9px)",
+          "Feed (9.5px)",
+          "Schedule (9.5px)",
+          "Players (9.5px)",
+          "Info (9.5px)"
+        ],
+        "lowContrast": [],
+        "smallTarget": [
+          " (38x38)"
+        ]
+      }
+    }
+  }
+]

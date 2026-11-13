@@ -1,5 +1,24 @@
 # Release and rollback
 
+## November 13 — release candidate boundary
+
+Main is `19dac69` (#89). EAS build 46 is FINISHED, created Oct 31 from
+`a606de3` (#88), production channel/runtime 1.0.4. Build 45 is also 1.0.4.
+The old build-33-only checkpoint later in this file is historical.
+
+The consolidated #90/#91 fixes on `codex/finalize-courts-notifications` add no
+native package, SDK or app-config changes. They are OTA candidates for an
+installed compatible 1.0.4 binary **after** both November 13 migrations in
+SUPABASE.md are applied and verified. No OTA/build/submission has been run.
+Confirm the installed build, production channel branch mapping and all other
+channels using that branch, environment and iOS runtime before publishing.
+Backend changes remain backward-compatible with the existing local-court field
+and notification types. A JS rollback does not roll back database changes.
+Physical device acceptance and actual friend-push receipt remain separate from
+browser fixtures and local PostgreSQL tests. Keep the last known-good update
+available for rollback; do not change runtime policy to force compatibility.
+
+
 Four paths. The two previews are automatic; builds and production updates are
 started by hand. Nothing builds or ships to players on merge (D22).
 

@@ -56,3 +56,12 @@ test("labels and captions", () => {
   const empty = busyDay({ dayOffset: 1, now, spans: [], planned: [], games: [] });
   assert.equal(busyCaption(empty, 1), "No plans yet");
 });
+
+// The feed must always have a Now row, even outside ordinary court hours.
+test("Now is present at midnight, before opening and after 10 PM", () => {
+  for (const hour of [0, 2, 5, 23]) {
+    const bars = busyDay({ dayOffset: 0, now: at(0, hour, 15).getTime(), spans: [], planned: [], games: [] });
+    assert.equal(bars.filter(b => b.kind === "now").length, 1);
+    assert.equal(bars.find(b => b.kind === "now")?.hour, hour);
+  }
+});

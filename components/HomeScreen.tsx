@@ -1,3 +1,5 @@
+import { FormSheet } from "@/components/sheet/FormSheet";
+import { SavedCourtList } from "@/components/court/SavedCourtList";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
@@ -29,8 +31,8 @@ import { fetchCourtWeekSpans } from "@/services/courtService";
  */
 export function HomeScreen() {
   const {
-    localCourt,
-    localCourtId,
+    localCourt: defaultCourt,
+    savedCourts,
     checkedInCourtId,
     pendingAutoCheckIn,
     hideAutoCheckIn,
@@ -40,11 +42,20 @@ export function HomeScreen() {
     runs,
     refreshCheckedIn,
   } = useApp();
+  const [viewCourtId, setViewCourtId] = useState<string | null>(null);
+  const [courtPickerOpen, setCourtPickerOpen] = useState(false);
+  const localCourt = savedCourts.find(court => court.id === viewCourtId) ?? defaultCourt ?? savedCourts[0] ?? null;
+  const localCourtId = localCourt?.id ?? null;
   const { roster, localCount } = usePresence(localCourtId);
   const liveCounts = useCourtCounts(localCourt ? [localCourt] : []);
   const { user } = useAuth();
   const tabFloor = useBottomFloor();
   const scroll = React.useRef<ScrollView>(null);
+  const plannerY = React.useRef(0);
+  const scrollHeight = React.useRef(0);
+  const revealSelection = useCallback((selectionBottom: number) => {
+    scroll.current?.scrollTo({ y: Math.max(0, plannerY.current + selectionBottom - scrollHeight.current + tabFloor + Space.lg), animated: false });
+  }, [tabFloor]);
   const [isChecking, setIsChecking] = useState(false);
   const [hoursLabel, setHoursLabel] = useState("0h");
   const { showToast } = useToast();
@@ -113,31 +124,33 @@ export function HomeScreen() {
     <ScreenViewport>
       <ScreenHeader title="LOCALCHECK" />
 
+      {/* A fixed sibling avoids platform-specific sticky-header behavior. */}
+      <HomeCourtHero
+        activeCount={activeLabel}
+        court={localCourt}
+        hoursLabel={hoursLabel}
+        live={activeTotal > 0}
+        localCount={localCount}
+        nextGame={nextGameLabel(upcoming[0], now)}
+        onViewCourt={() => router.push(`/court/${localCourt.id}`)}
+        onChooseCourt={savedCourts.length > 1 ? () => setCourtPickerOpen(true) : undefined}
+      />
+
       <ScrollView
         ref={scroll}
+        onLayout={(event) => { scrollHeight.current = event.nativeEvent.layout.height; }}
         contentContainerStyle={{ paddingBottom: tabFloor + Space.lg }}
         alwaysBounceVertical={false}
         bounces={false}
         overScrollMode="never"
         showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[0]}
         style={styles.scroll}
       >
-        {/* Pinned: the court's title row and its numbers. */}
-        <HomeCourtHero
-          activeCount={activeLabel}
-          court={localCourt}
-          hoursLabel={hoursLabel}
-          live={activeTotal > 0}
-          localCount={localCount}
-          nextGame={nextGameLabel(upcoming[0], now)}
-        />
         <HomeCourtActions
           courtName={localCourt.shortName || localCourt.name}
           isCheckedIn={isCheckedIn}
           isChecking={isChecking}
           onCheckIn={() => void handleCheckIn()}
-          onViewCourt={() => router.push(`/court/${localCourt.id}`)}
         />
         <AutoCheckInNote courtId={localCourt.id} />
         <View style={styles.hereNow}>
@@ -148,17 +161,19 @@ export function HomeScreen() {
             roster={roster}
           />
         </View>
+        <View style={styles.today} onLayout={(event) => { plannerY.current = event.nativeEvent.layout.y; }}>
+          <CourtDayPlanner court={localCourt} games={upcoming} liveCount={activeTotal} onReveal={revealSelection} />
+        </View>
         <View style={styles.upNext}>
           <UpNextSection
             onOpenRun={(id) => router.push(`/run/${id}`)}
             upcoming={upcoming}
           />
         </View>
-        <View style={styles.today}>
-          <CourtDayPlanner court={localCourt} games={upcoming} liveCount={activeTotal} onReveal={() => scroll.current?.scrollToEnd({ animated: false })} />
-        </View>
       </ScrollView>
-
+      <FormSheet visible={courtPickerOpen} onClose={() => setCourtPickerOpen(false)} title="Pick a court">
+        <SavedCourtList selectedId={localCourt.id} onSelect={court => { setViewCourtId(court.id); setCourtPickerOpen(false); }} />
+      </FormSheet>
     </ScreenViewport>
   );
 }

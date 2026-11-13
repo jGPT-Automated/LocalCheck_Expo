@@ -1,11 +1,35 @@
 # LocalCheck Design Decisions
 
+## 2026-11-13 — finalize current behavior
+
+Jesse asked to finish #90/#91 together, retain the current design and fixed
+headers, make Now/Going clear and persistent, complete compact notifications,
+and make the court-page plus add a LocalPlus saved-court list used by court
+selectors. LCv5 is the supplied reference. This implements the saved-list slice
+of D67 without implementing its separate multi-region/queue proposals. Local
+court, rankings and existing one-region auto check-in remain intact. No merge,
+production migration, OTA or native-build authorization is inferred.
+
+
+## 2026-11-08 — Compact notification log
+
+Jesse selected rows rather than cards, a combined own-event/incoming timeline,
+exact timestamps, 20 initial entries and Load more in batches of 20. Remove
+large icon tiles and align title/body text beside an unread gutter. Preserve
+historical privacy, never infer it from the current profile. UI is shown
+before backend changes for the combined log. This branch implements the
+presentation/paging of existing notifications; missing manual events and
+privacy snapshot capture remain the next backend slice. No native build or
+OTA is part of this preview PR.
+
+
+
 Status: Current MVP decisions. Newer decisions supersede older entries; every
 superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every
 "revises Dn" has that back-reference.
 
-## 2026-10 — Launch decisions (D0–D66, Jesse's plan doc)
+## 2026-10 — Launch decisions (D0–D67, Jesse's plan doc)
 
 Numbers match Jesse's plan doc (Decisions tab). These supersede older entries
 below wherever they disagree.
@@ -80,6 +104,23 @@ below wherever they disagree.
   job every minute (the standard outbox pattern); it never runs timers. The
   five polling jobs are gone; the 2-minute push resend job is unchanged. Every database change ships with a test version
   and an undo script. Migration `20261012180000_qstash_timers.sql`.
+- **D67 Complete dashboard references and retain visual history (Nov 3,
+  revises D66's deferred visual follow-up):** Home/drawer share a boxed
+  charcoal planner, square attendance avatars and compact plus/check intent
+  action, with next game below. Court future rows use square stacks and the
+  shared game card's inline RSVP. Keep intent, presence and game membership
+  distinct. Frontend PRs retain paired rendered screenshots with capture
+  commits, route/state/viewport and a chronological index. Supabase reading
+  is authorized; backend changes remain drafts for external review before
+  any project mutation. Five-court storage and lobbies are not approved for
+  deployment by this decision. Development uses at most two persistent
+  helpers with app-area ownership, reused for follow-up tasks and reviews.
+  Refinement: one selected-hour day/time/count header, no chart/attendance
+  split or duplicate labels; 34pt plus/check surface in a 44pt target, and
+  Home court navigation beside the live count. Compare basketball and Candy
+  Cane pickleball renders. Hourly casual lobbies are a separate proposed
+  server contract: check-in, planned visit, lobby membership and game RSVP
+  remain distinct. Ranked choice/start/end rules remain review work.
 - **D66 Court Feed uses LCv5's Home timeline (Nov 3, revises D55, D57,
   D58 and D61):** Home and expanded Explore drawer remain at-a-glance action
   dashboards: presence, next game and daily planning. Event activity belongs
@@ -96,7 +137,7 @@ below wherever they disagree.
   queue backend is authorized. D65's shared title row and art stay intact.
   Jesse's review checkpoint is logic-only: avatar stacks, plus/check controls,
   boxed selected-hour cards and the Home/LocalPlus redesign belong in the
-  next PR.
+  next PR. (Revised by D67: dashboard/slot visuals and screenshot history.)
 - **D65 One court title row from card to drawer to page (Oct 31, revises
   D56 and D61):** The Explore card shows only the court's title: sport, name
   and city · distance left-aligned, with the live On court number on the

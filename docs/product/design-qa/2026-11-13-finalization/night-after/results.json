@@ -1,0 +1,1613 @@
+[
+  {
+    "width": 393,
+    "home": {
+      "before": {
+        "y": 128.75,
+        "bottom": 165.75,
+        "height": 37
+      },
+      "after": {
+        "y": 128.75,
+        "bottom": 165.75,
+        "height": 37
+      }
+    },
+    "feed": {
+      "chartBefore": {
+        "y": 265,
+        "bottom": 341,
+        "height": 76
+      },
+      "chartAfter": {
+        "y": 265,
+        "bottom": 341,
+        "height": 76
+      },
+      "nowBefore": {
+        "y": 354,
+        "bottom": 760,
+        "height": 406
+      }
+    },
+    "notifications": {
+      "before": {
+        "y": 59.5,
+        "bottom": 84.5,
+        "height": 25
+      },
+      "after": {
+        "y": 59.5,
+        "bottom": 84.5,
+        "height": 25
+      }
+    },
+    "errors": [],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_pending_auto_check_in"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/runs"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/match_participants"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/notifications"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/notifications"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/runs"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/match_participants"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/court_planned_times"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_pending_auto_check_in"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/court_planned_times"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/court_planned_times"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_pending_auto_check_in"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/runs"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/match_participants"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/notifications"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/notifications"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/runs"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/match_participants"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/court_planned_times"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/court_planned_times"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/court_planned_times"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/court_planned_times"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_pending_auto_check_in"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/runs"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/match_participants"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/notifications"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/notifications"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/runs"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/match_participants"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/court_planned_times"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/court_planned_times"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_pending_auto_check_in"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/runs"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/match_participants"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/notifications"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/notifications"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/runs"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/match_participants"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_pending_auto_check_in"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/runs"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/match_participants"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/notifications"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/notifications"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/runs"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/match_participants"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/court_planned_times"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/set_court_saved"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_pending_auto_check_in"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/runs"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/match_participants"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/notifications"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/notifications"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/runs"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/match_participants"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/court_planned_times"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_pending_auto_check_in"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/runs"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/notifications"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/match_participants"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/notifications"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/runs"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/match_participants"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/court_planned_times"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_pending_auto_check_in"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/court_planned_times"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/court_planned_times"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/court_planned_times"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/court_planned_times"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_pending_auto_check_in"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/notifications"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/runs"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/match_participants"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/notifications"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "HEAD",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/runs"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/activity_events"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/match_participants"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/friendships"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/court_planned_times"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/profiles"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/matches"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/court_planned_times"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/check_ins"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/planned_visits"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/set_court_saved"
+      },
+      {
+        "method": "POST",
+        "path": "/rest/v1/rpc/my_saved_courts"
+      },
+      {
+        "method": "GET",
+        "path": "/rest/v1/courts_with_stats"
+      }
+    ]
+  }
+]

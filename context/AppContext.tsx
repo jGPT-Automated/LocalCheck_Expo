@@ -1,3 +1,5 @@
+import { useQuery } from "@tanstack/react-query";
+import { fetchSavedCourts, setCourtSaved } from "@/services/savedCourtService";
 import React, {
   createContext,
   useCallback,
@@ -82,6 +84,10 @@ export type Visibility = "public" | "friends" | "private";
 interface AppContextValue {
   currentUser: Player;
   courts: Court[];
+  savedCourts: Court[];
+  savedCourtsError: boolean;
+  refreshSavedCourts: () => Promise<void>;
+  toggleSavedCourt: (courtId: string) => Promise<void>;
   checkedInCourtId: string | null;
   /** The active check-in came from auto check-in (D35): show "Hide". */
   checkedInAuto: boolean;
@@ -214,6 +220,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [pendingAutoCheckIn, setPendingAutoCheckIn] = useState<PendingAutoCheckIn | null>(null);
   const [lastVisitedCourtId, setLastVisitedCourtId] = useState<string | null>(null);
   const [localCourtId, setLocalCourtId] = useState<string | null>(null);
+  const saved = useQuery({ queryKey: ["saved-courts", userId, localCourtId, profile?.is_pro], queryFn: fetchSavedCourts, enabled: Boolean(userId), retry: false });
+  const canSaveCourts = profile?.is_pro === true || profile?.account_tag === "TEST";
+  const savedCourts = useMemo(() => {
+    const rows = [...(localCourt ? [localCourt] : []), ...(canSaveCourts ? saved.data ?? [] : [])];
+    return rows.filter((court, index) => rows.findIndex(row => row.id === court.id) === index);
+  }, [localCourt, canSaveCourts, saved.data]);
+  const refreshSavedCourts = useCallback(async () => { await saved.refetch(); }, [saved.refetch]);
+  const toggleSavedCourt = useCallback(async (courtId: string) => {
+    if (courtId === localCourtId) return;
+    await setCourtSaved(courtId, !savedCourts.some(court => court.id === courtId));
+    const result = await saved.refetch();
+    if (result.error) throw result.error;
+  }, [localCourtId, savedCourts, saved.refetch]);
   const [runs, setRuns] = useState<GameRun[]>([]);
   const [plannedVisits, setPlannedVisits] = useState<PlannedVisit[]>([]);
   const [feed, setFeed] = useState<FeedItem[]>([]);
@@ -469,13 +488,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         refreshPlannedVisits(),
         refreshCheckInCount(),
         refreshFriends(),
+        refreshSavedCourts(),
         // An auto check-in may have started or posted while in the background.
         refreshCheckedIn(),
       ]);
     } finally {
       resyncInFlight.current = false;
     }
-  }, [userId, refreshFeed, refreshRuns, refreshPlannedVisits, refreshCheckInCount, refreshFriends, refreshCheckedIn]);
+  }, [userId, refreshFeed, refreshRuns, refreshPlannedVisits, refreshCheckInCount, refreshFriends, refreshCheckedIn, refreshSavedCourts]);
 
   const hideAutoCheckIn = useCallback(async () => {
     const ok = await undoAutoCheckIn();
@@ -535,6 +555,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         scheduleRealtimeRefresh("checked-in", refreshCheckedIn);
         scheduleRealtimeRefresh("check-in-count", refreshCheckInCount);
       }
+      if (batchHasResource(batch, ["saved_courts", "profiles"])) void refreshSavedCourts();
       if (batchHasResource(batch, USER_PROFILE_RESOURCES)) {
         scheduleRealtimeRefresh("profile", refreshProfile);
       }
@@ -899,6 +920,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       value={{
         currentUser,
         courts,
+        savedCourts,
+        savedCourtsError: saved.isError,
+        refreshSavedCourts,
+        toggleSavedCourt,
         checkedInCourtId,
         checkedInAuto,
         pendingAutoCheckIn,
