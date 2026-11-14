@@ -4,17 +4,13 @@ import React from "react";
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ScreenViewport } from "@/components/ui/ScreenViewport";
 import { DetailHeader } from "@/components/ui/DetailHeader";
 import { Colors } from "@/constants/colors";
 import { TextStyles, Typography } from "@/constants/typography";
 import { useNotifications } from "@/context/NotificationContext";
-import { notificationHeading, notificationTimestamp } from "@/lib/notificationPresentation";
+import { notificationHeading, notificationTimestamp, notificationEventMetadata } from "@/lib/notificationPresentation";
 
-const AUDIENCES = {
-  private: { icon: "lock", label: "Private · Only you" },
-  friends: { icon: "users", label: "Friends" },
-  public: { icon: "globe", label: "Public" },
-} as const;
 
 export default function NotificationsScreen() {
   const router = useRouter();
@@ -26,13 +22,17 @@ export default function NotificationsScreen() {
     if (!result.ok) Alert.alert("Alerts are not on", result.message ?? "Please try again.");
   };
   return (
-    <View style={styles.screen}>
+    <ScreenViewport>
       <DetailHeader onBack={() => router.back()} title="NOTIFICATIONS" right={unreadCount > 0 ? (
         <Pressable accessibilityRole="button" onPress={() => void readAll()} style={styles.readAllButton}>
           <Text style={styles.readAll}>Read all</Text>
         </Pressable>
       ) : undefined} />
       <FlatList
+        testID="notification-log-scroll"
+        style={{ flex: 1, minHeight: 0 }}
+        bounces={false}
+        alwaysBounceVertical={false}
         data={notifications}
         keyExtractor={item => item.id}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: bottom + 32 }}
@@ -46,13 +46,12 @@ export default function NotificationsScreen() {
         ListEmptyComponent={isLoading ? <ActivityIndicator color={Colors.accent} style={styles.loading} /> : !loadError ? (
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>No notifications yet</Text>
-            <Text style={styles.emptyBody}>Friend requests, game invitations, and score reviews will appear here.</Text>
+            <Text style={styles.emptyBody}>Friend requests, game invitations, check-ins, and score reviews will appear here.</Text>
           </View>
         ) : null}
         renderItem={({ item }) => {
           // Only display a recorded event audience, never today's profile setting.
-          const ownEvent = item.type === "auto_check_in" || item.type === "auto_check_out";
-          const audience = ownEvent && item.visibility ? AUDIENCES[item.visibility] : null;
+          const { audience, sourceLabel } = notificationEventMetadata(item);
           return (
             <Pressable accessibilityRole="button" accessibilityLabel={`${!item.readAt ? "Unread. " : ""}${notificationHeading(item.title)}. ${item.body}. ${notificationTimestamp(item.createdAt)}${audience ? `. ${audience.label}` : ""}`}
               onPress={() => void openNotification(item)} style={({ pressed }) => [styles.row, pressed && styles.pressed]} testID={`notification-${item.id}`}>
@@ -62,7 +61,7 @@ export default function NotificationsScreen() {
                 <Text style={styles.rowBody}>{item.body}</Text>
                 <View style={styles.metadata}>
                   <Text style={styles.time}>{notificationTimestamp(item.createdAt)}</Text>
-                  {ownEvent && item.source ? <Text style={styles.time}>{item.source === "auto" ? "Automatic" : "Manual"}</Text> : null}
+                  {sourceLabel ? <Text style={styles.time}>{sourceLabel}</Text> : null}
                   {audience ? <View style={styles.audience}><Feather name={audience.icon} size={12} color={Colors.textSecondary} /><Text style={styles.time}>{audience.label}</Text></View> : null}
                 </View>
               </View>
@@ -80,7 +79,7 @@ export default function NotificationsScreen() {
           </Pressable>
         ) : null}
       />
-    </View>
+    </ScreenViewport>
   );
 }
 

@@ -10,7 +10,9 @@ export type NotificationType =
   | "challenge"
   | "friend_check_in"
   | "auto_check_in"
-  | "auto_check_out";
+  | "auto_check_out"
+  | "manual_check_in"
+  | "manual_check_out";
 
 export interface AppNotification {
   id: string;
@@ -55,7 +57,7 @@ function mapNotification(row: NotificationRow): AppNotification {
     readAt: row.read_at,
     createdAt: row.created_at,
     visibility: row.data?.visibility === "private" || row.data?.visibility === "friends" || row.data?.visibility === "public" ? row.data.visibility : null,
-    source: row.data?.source === "manual" || row.data?.kind === "manual_check_in" ? "manual" : row.data?.source === "auto" || row.data?.kind === "auto_check_in" ? "auto" : null,
+    source: row.data?.source === "manual" || row.data?.kind === "manual_check_in" || row.data?.kind === "manual_check_out" || row.type === "manual_check_in" || row.type === "manual_check_out" ? "manual" : row.data?.source === "auto" || row.data?.kind === "auto_check_in" || row.data?.kind === "auto_check_out" ? "auto" : null,
   };
 }
 

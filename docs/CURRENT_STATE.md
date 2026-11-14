@@ -1,5 +1,37 @@
 # Current state
 
+## November 14 — #91 Home and LocalList UI
+
+**On branch `codex/inbox-locallist-home`, based on #91 `3e12738`.** Jesse
+selected #91 and excluded #90 and its migrations. This pass adds frontend
+LocalList (court plus, Explore cards, Settings search-first/default star,
+Home dropdown/horizontal pager/indicator lines and Schedule suggestions).
+The list is account-scoped in-memory UI state: extra courts and the selected
+default reset on app reload until the separately scoped backend work.
+
+Home keeps LOCALCHECK at the left of the fixed header, with information only
+at the right. Pending automatic arrival shows Posts in and the five-minute
+countdown; confirmed manual/automatic sessions show elapsed time from the
+server checked_in_at. The hero is flush with the header; Cancel/Post remain
+in the existing hero action area and the court arrow stays beside Check in.
+Cancel uses the existing undo operation. Post is displayed but disabled:
+the backend has no atomic early-pending-post operation. No manual countdown
+is added; live function inspection confirmed manual check-in/activity insert
+immediately. No check-in timing/notification policy is changed.
+
+The compact inbox retains #91 paging, retry, unread count and push-independent
+reads. Its recorded-source/audience presentation also accepts explicit manual
+own-event types for the later backend writer; no new notification rows are
+fabricated in the application. All row types are exercised through isolated
+QA fixtures, not inserted into the live backend.
+
+No schema migration, backend write, Edge Function deployment, merge, OTA or
+native build. Verification and reference details: `docs/plans/2026-11-14-inbox-locallist-home.md`.
+The isolated Expo UI journey passes at 375×667, 393×852 and 430×932, with no
+page errors or audited layout failures in its 45 captured states. Evidence:
+`docs/product/design-qa/2026-11-14-locallist-home/README.md`. Court names now
+wrap on small phones; closing the court drawer releases its navigation layer.
+
 - Nov 8 (**PR #91 frontend verified in isolated Expo web renders**): 375/393/430
   captures, seven paging/read/error/presentation cases per size, 43 unique
   entries including a timestamp tie, title/body left edges 40px, zero audited

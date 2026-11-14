@@ -1,6 +1,19 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { notificationHeading, notificationTimestamp } from "./notificationPresentation.ts";
+import { notificationEventMetadata } from "./notificationPresentation.ts";
+
+test("manual and automatic own rows show recorded audiences, incoming rows do not", () => {
+  for (const type of ["auto_check_in", "auto_check_out", "manual_check_in", "manual_check_out"]) {
+    const metadata = notificationEventMetadata({ type, source: "manual", visibility: "private" });
+    assert.equal(metadata.audience?.label, "Private · Only you");
+    assert.equal(metadata.sourceLabel, "Manual");
+  }
+  for (const type of ["friend_request", "friend_accepted", "run_invite", "match_review", "match_confirmed", "match_rejected", "challenge", "friend_check_in"]) {
+    assert.equal(notificationEventMetadata({ type, source: null, visibility: "public" }).audience, null);
+  }
+  assert.equal(notificationEventMetadata({ type: "auto_check_in", source: null, visibility: null }).audience, null);
+});
 
 test("legacy headings normalize without lowercasing names or custom test messages", () => {
   assert.equal(notificationHeading("MATCH CONFIRMED"), "Match confirmed");

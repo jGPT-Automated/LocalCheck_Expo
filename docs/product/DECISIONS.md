@@ -1,5 +1,25 @@
 # LocalCheck Design Decisions
 
+## November 14 — #91, LocalList and informational Home header
+
+Jesse selected #91 as the base and rejected importing #90 or its SQL. Keep the
+compact notification inbox; all incoming and manual/automatic own-event row
+presentations use recorded metadata. Push off does not disable inbox reads.
+
+LOCALCHECK and its bracket mark remain at the header's left; timer/status only
+on the right. No header action buttons. Automatic pending uses its existing
+five-minute countdown with Cancel/Post in the hero action area. Manual posting
+has no grace period; after either source posts, show elapsed session time.
+Do not resize the existing check-in control or move its neighboring court arrow.
+
+LocalList uses existing court heroes: add from court plus, list below default
+on Explore, search first in the Settings drawer, and a simple star for default.
+Settings chooses the default; Home dropdown/swipe/indicator and other selectors
+change only their page view. This is a frontend pass; list persistence and
+early Post's atomic action await backend implementation. Auto at all list
+courts versus a toggle on each court remains undecided. Reuse bracket branding
+subtly; no new branding animation is required.
+
 ## 2026-11-08 — Compact notification log
 
 Jesse selected rows rather than cards, a combined own-event/incoming timeline,

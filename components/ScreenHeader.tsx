@@ -22,6 +22,7 @@ export function ScreenHeader({
   wordmark = false,
   onBack,
   onLogoPress,
+  active = false,
 }: {
   title: string;
   subtitle?: string;
@@ -29,11 +30,12 @@ export function ScreenHeader({
   wordmark?: boolean;
   onBack?: () => void;
   onLogoPress?: () => void;
+  active?: boolean;
 }) {
   const { top } = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 44 : top;
   return (
-    <View style={[styles.header, { paddingTop: topPad }]}>
+    <View testID="screen-header" style={[styles.header, { paddingTop: topPad }, active && styles.headerActive]}>
       <View style={styles.contentRow}>
         <View style={styles.titleSlot}>
           {wordmark ? (
@@ -66,9 +68,9 @@ export function ScreenHeader({
                   <LogoMark size={24} />
                 </Pressable>
               ) : (
-                <LogoMark size={24} />
+                <LogoMark size={24} dark={active} />
               )}
-              <Text numberOfLines={1} style={styles.title}>
+              <Text numberOfLines={1} style={[styles.title, active && styles.titleActive]}>
                 {title}
               </Text>
             </View>
@@ -161,10 +163,13 @@ export function SectionHeader({
 
 const styles = StyleSheet.create({
   header: {
+    flexShrink: 0,
     backgroundColor: Colors.surface,
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,
   },
+  headerActive: { backgroundColor: Colors.accent, borderBottomColor: Colors.accent },
+  titleActive: { color: Colors.background },
   contentRow: {
     height: Layout.headerContentHeight,
     paddingHorizontal: Layout.screenGutter,

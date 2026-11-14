@@ -1,3 +1,6 @@
+import { LocalListCards } from "@/components/court/LocalListCards";
+import { CourtListItem } from "@/components/CourtListItem";
+import { useLocalList } from "@/context/LocalListContext";
 import Constants from "expo-constants";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { Feather } from "@expo/vector-icons";
@@ -100,6 +103,7 @@ function sportLabel(sport: CourtSport | null): string {
 export default function SettingsScreen() {
   const router = useRouter();
   const autoCheckIn = useAutoCheckIn();
+  const localList = useLocalList();
   const {
     currentUser,
     visibility,
@@ -365,10 +369,10 @@ export default function SettingsScreen() {
           />
           <DrillRow
             icon="map-pin"
-            label="LOCAL COURT"
+            label={localList.canEdit ? "LOCALLIST" : "LOCAL COURT"}
             value={
-              localCourt
-                ? (localCourt.shortName || localCourt.name).toUpperCase()
+              localList.defaultCourt
+                ? (localList.defaultCourt.shortName || localList.defaultCourt.name).toUpperCase()
                 : "NOT SET"
             }
             valueMuted={!localCourt}
@@ -774,6 +778,8 @@ function LocalCourtEditorSheet({
   onRemove: () => Promise<boolean>;
   onClose: () => void;
 }) {
+  const localList = useLocalList();
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Court[]>([]);
   const [searching, setSearching] = useState(false);
@@ -812,6 +818,11 @@ function LocalCourtEditorSheet({
 
   const pick = async (court: Court) => {
     if (busyId) return;
+    if (localList.canEdit) {
+      try { localList.addCourt(court); setQuery(""); }
+      catch (error) { Alert.alert("LocalList", error instanceof Error ? error.message : "Try again."); }
+      return;
+    }
     if (current && current.id !== court.id && cooldown.restricted) {
       Alert.alert(
         "Local court is locked",
@@ -853,43 +864,28 @@ function LocalCourtEditorSheet({
     <RunFlowSheet
       visible={visible}
       onClose={onClose}
-      title="LOCAL COURT"
+      title={localList.canEdit ? "LocalList" : "LOCAL COURT"}
       eyebrow="ANCHORS YOUR RANKINGS & LOG GAME"
       snapPoints={["82%"]}
       contentBottomPadding={64}
     >
-      {current ? (
-        <View style={styles.currentCourtCard}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={styles.currentCourtEyebrow}>CURRENT</Text>
-            <Text style={styles.currentCourtName} numberOfLines={1}>
-              {current.name.toUpperCase()}
-            </Text>
-            <Text style={styles.currentCourtMeta} numberOfLines={1}>
-              {[
-                current.city,
-                current.sport === "BASKETBALL" ? "BASKETBALL" : "PICKLEBALL",
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </Text>
-          </View>
-          <Pressable
-            accessibilityLabel="Remove local court"
-            accessibilityRole="button"
-            disabled={Boolean(busyId)}
-            hitSlop={8}
-            onPress={() => void clear()}
-            style={({ pressed }) => [
-              styles.removeCourt,
-              pressed && styles.pressed,
-            ]}
-          >
-            {busyId === "__remove__" ? (
-              <ActivityIndicator color={Colors.loss} size="small" />
-            ) : (
-              <Text style={styles.removeCourtText}>REMOVE</Text>
-            )}
+      <SearchField
+        style={styles.searchBox}
+        accessibilityLabel="Search for a court"
+        autoCapitalize="words"
+        placeholder="Court name, city, or ZIP"
+        value={query}
+        onChangeText={setQuery}
+        onClear={() => setQuery("")}
+        loading={searching}
+      />
+
+      {localList.canEdit && term.length < 2 ? <LocalListCards manage inset onSelect={(court) => { onClose(); router.push(`/court/${court.id}`); }} /> : null}
+      {!localList.canEdit && current ? (
+        <View>
+          <CourtListItem court={current} style={{ marginHorizontal: 0 }} />
+          <Pressable accessibilityLabel="Remove local court" accessibilityRole="button" disabled={Boolean(busyId)} onPress={() => void clear()} style={{ minHeight: 44, alignItems: "flex-end", justifyContent: "center" }}>
+            {busyId === "__remove__" ? <ActivityIndicator color={Colors.loss} size="small" /> : <Text style={styles.removeCourtText}>REMOVE</Text>}
           </Pressable>
         </View>
       ) : null}
@@ -902,59 +898,13 @@ function LocalCourtEditorSheet({
         </Text>
       ) : null}
 
-      <SearchField
-        style={styles.searchBox}
-        accessibilityLabel="Search for a court"
-        autoCapitalize="words"
-        placeholder="Court name, city, or ZIP"
-        value={query}
-        onChangeText={setQuery}
-        onClear={() => setQuery("")}
-        loading={searching}
-      />
 
       {term.length >= 2 ? (
         <View style={styles.results}>
           {results.length > 0 ? (
             results.map((court) => {
-              const active = court.id === current?.id;
               return (
-                <Pressable
-                  key={court.id}
-                  accessibilityLabel={`Set ${court.name} as local court`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  disabled={Boolean(busyId)}
-                  onPress={() => void pick(court)}
-                  style={({ pressed }) => [
-                    styles.resultRow,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={styles.resultName} numberOfLines={1}>
-                      {court.name}
-                    </Text>
-                    <Text style={styles.resultMeta} numberOfLines={1}>
-                      {[
-                        court.city,
-                        court.postalCode,
-                        court.sport === "BASKETBALL" ? "BB" : "PB",
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </Text>
-                  </View>
-                  {busyId === court.id ? (
-                    <ActivityIndicator color={Colors.accent} size="small" />
-                  ) : (
-                    <Feather
-                      color={active ? Colors.accent : Colors.muted}
-                      name={active ? "check" : "chevron-right"}
-                      size={17}
-                    />
-                  )}
-                </Pressable>
+                <CourtListItem key={court.id} court={court} onPress={() => void pick(court)} />
               );
             })
           ) : !searching ? (

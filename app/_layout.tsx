@@ -34,6 +34,7 @@ import { Colors, Radius } from "@/constants/colors";
 import { Layout } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { AppProvider } from "@/context/AppContext";
+import { LocalListProvider } from "@/context/LocalListContext";
 import { AutoCheckInProvider } from "@/context/AutoCheckInContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { CourtPresenceProvider } from "@/context/CourtPresenceContext";
@@ -245,6 +246,7 @@ function DataProviders({ children }: { children: React.ReactNode }) {
         <CourtPresenceProvider>
           <DeviceLocationProvider autoResolve={autoResolveLocation}>
             <AppProvider>
+              <LocalListProvider>
               <ToastProvider>
                 {/* One modal host for every sheet in the app, above the
                     navigator and above AutoCheckInProvider (which mounts its
@@ -257,6 +259,7 @@ function DataProviders({ children }: { children: React.ReactNode }) {
                   </AutoCheckInProvider>
                 </BottomSheetModalProvider>
               </ToastProvider>
+              </LocalListProvider>
             </AppProvider>
           </DeviceLocationProvider>
         </CourtPresenceProvider>

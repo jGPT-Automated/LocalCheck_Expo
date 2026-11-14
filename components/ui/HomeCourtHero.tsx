@@ -1,5 +1,7 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { PressableScale } from "@/components/ui/PressableScale";
+import { Typography } from "@/constants/typography";
 
 import { CourtArt } from "@/components/court/CourtArt";
 import { CheckInButton, CourtLinkButton, CourtTitleRow, MetricStrip } from "@/components/court/CourtParts";
@@ -20,6 +22,7 @@ export function HomeCourtHero({
   localCount,
   hoursLabel,
   nextGame,
+  onChooseCourt,
 }: {
   court: Court;
   activeCount: string;
@@ -27,6 +30,7 @@ export function HomeCourtHero({
   localCount: number;
   hoursLabel: string;
   nextGame: string;
+  onChooseCourt?: () => void;
 }) {
   const distance =
     court.distanceKm != null && !Number.isNaN(court.distanceKm)
@@ -45,6 +49,7 @@ export function HomeCourtHero({
           place={place || undefined}
           size="page"
           sport={court.sport}
+          onChooseCourt={onChooseCourt}
         />
       </View>
       <View style={styles.strip}>
@@ -71,17 +76,26 @@ export function HomeCourtActions({
   isChecking,
   onCheckIn,
   onViewCourt,
+  pending = false,
+  onCancel,
+  onPost,
 }: {
   courtName: string;
   isCheckedIn: boolean;
   isChecking: boolean;
   onCheckIn: () => void;
   onViewCourt: () => void;
+  pending?: boolean;
+  onCancel?: () => void;
+  onPost?: () => void;
 }) {
   return (
     <View style={styles.actions}>
       <View style={styles.checkSlot}>
-        <CheckInButton busy={isChecking} checkedIn={isCheckedIn} courtName={courtName} onPress={onCheckIn} />
+        {pending ? <View style={styles.pendingActions}>
+          <PressableScale accessibilityRole="button" accessibilityLabel="Cancel pending check-in" disabled={isChecking} onPress={onCancel} style={[styles.pendingButton, styles.cancel]}>{isChecking ? <ActivityIndicator color={Colors.text} /> : <Text style={styles.cancelText}>Cancel</Text>}</PressableScale>
+          <PressableScale accessibilityRole="button" accessibilityLabel="Post check-in now" accessibilityHint="Available when early posting is connected" accessibilityState={{ disabled: !onPost || isChecking }} disabled={!onPost || isChecking} onPress={onPost} style={[styles.pendingButton, styles.post, !onPost && { opacity: 0.5 }]}><Text style={styles.postText}>Post</Text></PressableScale>
+        </View> : <CheckInButton busy={isChecking} checkedIn={isCheckedIn} courtName={courtName} onPress={onCheckIn} />}
       </View>
       <CourtLinkButton courtName={courtName} onPress={onViewCourt} />
     </View>
@@ -89,10 +103,16 @@ export function HomeCourtActions({
 }
 
 const styles = StyleSheet.create({
-  header: { position: "relative", overflow: "hidden", backgroundColor: Colors.background },
+  header: { flexShrink: 0, position: "relative", overflow: "hidden", backgroundColor: Colors.background },
   title: { paddingTop: 12 },
   strip: { paddingTop: 16 },
 
   actions: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 14 },
   checkSlot: { flex: 1, minWidth: 0 },
+  pendingActions: { flexDirection: "row", gap: 10 },
+  pendingButton: { flex: 1, height: 50, alignItems: "center", justifyContent: "center", borderRadius: 4 },
+  cancel: { borderWidth: 1, borderColor: Colors.borderLight, backgroundColor: Colors.panel },
+  post: { backgroundColor: Colors.accent },
+  cancelText: { fontFamily: Typography.bodyBold, fontSize: 12, color: Colors.text },
+  postText: { fontFamily: Typography.bodyBold, fontSize: 12, color: Colors.background },
 });

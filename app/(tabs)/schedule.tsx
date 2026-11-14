@@ -1,3 +1,4 @@
+import { useLocalList } from "@/context/LocalListContext";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import React, {
   useCallback,
@@ -544,27 +545,28 @@ function CourtPickerModal({
   localCourt: Court | null;
   onSelect: (c: Court) => void;
 }) {
+  const localList = useLocalList();
   return (
     <FormSheet visible={visible} onClose={onClose} title="Pick a court">
       <ScrollView
         contentContainerStyle={styles.sheetContent}
         keyboardShouldPersistTaps="handled"
       >
-        {localCourt && (
+        {localList.courts.map(savedCourt => (
           <Pressable
-            style={styles.pickerLocalRow}
+            key={savedCourt.id} style={styles.pickerLocalRow}
             onPress={() => {
-              onSelect(localCourt);
+              onSelect(savedCourt);
               onClose();
             }}
           >
             <Feather name="map-pin" size={14} color={Colors.accent} />
             <Text style={styles.pickerLocalText}>
-              {localCourt.name.toUpperCase()}
+              {savedCourt.name.toUpperCase()}
             </Text>
-            <Text style={styles.pickerLocalTag}>MY COURT</Text>
+            <Text style={styles.pickerLocalTag}>{savedCourt.id === localList.defaultCourt?.id ? "DEFAULT" : ""}</Text>
           </Pressable>
-        )}
+        ))}
         <Text style={styles.fieldLabel}>SEARCH</Text>
         <CourtField
           selected={null}
@@ -580,6 +582,7 @@ function CourtPickerModal({
 }
 
 export default function ScheduleScreen() {
+  const localList = useLocalList();
   const {
     courts,
     localCourt,
@@ -660,7 +663,7 @@ export default function ScheduleScreen() {
   }, []);
 
   // Default to the local court once it hydrates; an explicit pick wins.
-  const court = pickedCourt ?? localCourt;
+  const court = pickedCourt ?? localList.defaultCourt ?? localCourt;
 
   // Court Details deep-links here with the court already selected. Resolve it
   // from the in-memory discovery set first, then fall back to one direct read.

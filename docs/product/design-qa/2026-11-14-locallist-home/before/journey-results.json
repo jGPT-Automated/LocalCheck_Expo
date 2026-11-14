@@ -1,0 +1,127 @@
+[
+  {
+    "width": 375,
+    "height": 667,
+    "checks": [],
+    "pageErrors": [],
+    "homeAudit": {
+      "fail": [],
+      "debt": {
+        "smallText": [
+          "Basketball (9.5px)",
+          "On court (9px)",
+          "Next game (7.5px)",
+          "Court hours · wk (7.5px)",
+          "Locals (7.5px)",
+          "Today (9px)",
+          "PM (7.5px)",
+          "5v5 · All levels · Host chatgpt (10.5px)",
+          "Home (9px)",
+          "Schedule (9px)",
+          "Compete (9px)",
+          "Explore (9px)",
+          "Me (9px)"
+        ],
+        "lowContrast": [],
+        "smallTarget": []
+      }
+    },
+    "inboxAudit": {
+      "fail": [],
+      "debt": {
+        "smallText": [],
+        "lowContrast": [],
+        "smallTarget": []
+      }
+    },
+    "serviceCalls": []
+  },
+  {
+    "width": 393,
+    "height": 852,
+    "checks": [],
+    "pageErrors": [],
+    "homeAudit": {
+      "fail": [],
+      "debt": {
+        "smallText": [
+          "Basketball (9.5px)",
+          "On court (9px)",
+          "Next game (7.5px)",
+          "Court hours · wk (7.5px)",
+          "Locals (7.5px)",
+          "Today (9px)",
+          "PM (7.5px)",
+          "5v5 · All levels · Host chatgpt (10.5px)",
+          "CH (7.92px)",
+          "PL (7.92px)",
+          "TI (7.92px)",
+          "JL (7.92px)",
+          "Going (9px)",
+          "Home (9px)",
+          "Schedule (9px)",
+          "Compete (9px)",
+          "Explore (9px)",
+          "Me (9px)"
+        ],
+        "lowContrast": [],
+        "smallTarget": [
+          "GOING (64x32)"
+        ]
+      }
+    },
+    "inboxAudit": {
+      "fail": [],
+      "debt": {
+        "smallText": [],
+        "lowContrast": [],
+        "smallTarget": []
+      }
+    },
+    "serviceCalls": []
+  },
+  {
+    "width": 430,
+    "height": 932,
+    "checks": [],
+    "pageErrors": [],
+    "homeAudit": {
+      "fail": [],
+      "debt": {
+        "smallText": [
+          "Basketball (9.5px)",
+          "On court (9px)",
+          "Next game (7.5px)",
+          "Court hours · wk (7.5px)",
+          "Locals (7.5px)",
+          "Today (9px)",
+          "PM (7.5px)",
+          "5v5 · All levels · Host chatgpt (10.5px)",
+          "CH (7.92px)",
+          "PL (7.92px)",
+          "TI (7.92px)",
+          "JL (7.92px)",
+          "Going (9px)",
+          "Home (9px)",
+          "Schedule (9px)",
+          "Compete (9px)",
+          "Explore (9px)",
+          "Me (9px)"
+        ],
+        "lowContrast": [],
+        "smallTarget": [
+          "GOING (64x32)"
+        ]
+      }
+    },
+    "inboxAudit": {
+      "fail": [],
+      "debt": {
+        "smallText": [],
+        "lowContrast": [],
+        "smallTarget": []
+      }
+    },
+    "serviceCalls": []
+  }
+]

@@ -51,11 +51,11 @@ function FrameRects({ color = Colors.white }: { color?: string }) {
   );
 }
 
-function CornerFrame() {
+function CornerFrame({ dark = false }: { dark?: boolean }) {
   return (
     <>
-      <FrameRects />
-      <Polygon fill={Colors.brandMark} points={MARK_CHECK_POINTS} />
+      <FrameRects color={dark ? Colors.background : Colors.white} />
+      <Polygon fill={dark ? Colors.background : Colors.brandMark} points={MARK_CHECK_POINTS} />
     </>
   );
 }
@@ -219,8 +219,10 @@ function WordmarkPaths() {
 export function LogoMark({
   size = 64,
   variant = "mark",
+  dark = false,
 }: {
   size?: number;
+  dark?: boolean;
   /** "plus" is the LocalPlus mark: the same corner frame around an orange plus. */
   variant?: "mark" | "back" | "plus";
 }) {
@@ -249,7 +251,7 @@ export function LogoMark({
             <Polygon fill={Colors.brandMark} points="123,59 62,122 125,184 138,170 91,122 138,73" />
           </>
         ) : (
-          <CornerFrame />
+          <CornerFrame dark={dark} />
         )}
       </Svg>
     </View>

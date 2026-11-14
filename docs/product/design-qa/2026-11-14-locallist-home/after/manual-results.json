@@ -1,0 +1,26 @@
+[
+  {
+    "width": 375,
+    "height": 667,
+    "checks": [
+      "manual check-in elapsed survives reload"
+    ],
+    "pageErrors": []
+  },
+  {
+    "width": 393,
+    "height": 852,
+    "checks": [
+      "manual check-in elapsed survives reload"
+    ],
+    "pageErrors": []
+  },
+  {
+    "width": 430,
+    "height": 932,
+    "checks": [
+      "manual check-in elapsed survives reload"
+    ],
+    "pageErrors": []
+  }
+]

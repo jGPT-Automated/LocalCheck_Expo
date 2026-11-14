@@ -1,5 +1,22 @@
 # Feedback & polish tracker
 
+## November 14 — approved #91 frontend pass
+
+- Implemented on `codex/inbox-locallist-home`: compact inbox all-type rows;
+  LOCALCHECK informational orange header/countdown/elapsed clock; hero-only
+  Cancel/Post; keep court arrow beside Check in; flush fixed hero/header.
+- LocalList: Explore existing hero cards/default marker; Settings search above
+  aligned heroes and explicit star default; Home title dropdown, horizontal
+  pager and short indicator lines; Schedule view selection. In-memory UI only.
+- Early Post is intentionally disabled until an atomic backend action exists;
+  no manual delay is added, no #90 SQL imported, no backend mutation/release.
+- Latest instructions here supersede the older one-minute manual-notice
+  proposal below; that proposal is not implemented by this pass.
+- Three-size isolated UI journey passed: add court, dropdown/scroll selection,
+  default star, Schedule view independence, 12 inbox row types, paging/read-all,
+  pending Cancel, immediate manual check-in and automatic elapsed time.
+  Screenshots/results: `docs/product/design-qa/2026-11-14-locallist-home/README.md`.
+
 - Nov 8 (**PR #91 frontend verified in isolated Expo web renders**): 375/393/430
   captures, seven paging/read/error/presentation cases per size, 43 unique
   entries including a timestamp tie, title/body left edges 40px, zero audited

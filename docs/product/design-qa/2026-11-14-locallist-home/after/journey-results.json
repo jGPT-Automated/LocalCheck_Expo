@@ -1,0 +1,1291 @@
+[
+  {
+    "width": 375,
+    "height": 667,
+    "checks": [
+      "fixed flush informational header",
+      "Settings search first",
+      "plus → Explore list → Home dropdown/scroll → Settings default",
+      "all 12 row types, push-off, 43 records and read-all",
+      "pending Cancel, immediate manual, staged Post and automatic elapsed"
+    ],
+    "pageErrors": [],
+    "homeAudit": {
+      "fail": [],
+      "debt": {
+        "smallText": [
+          "Basketball (9.5px)",
+          "On court (9px)",
+          "Next game (7.5px)",
+          "Court hours · wk (7.5px)",
+          "Locals (7.5px)",
+          "Today (9px)",
+          "Home (9px)",
+          "Schedule (9px)",
+          "Compete (9px)",
+          "Explore (9px)",
+          "Me (9px)"
+        ],
+        "lowContrast": [],
+        "smallTarget": []
+      }
+    },
+    "inboxAudit": {
+      "fail": [],
+      "debt": {
+        "smallText": [],
+        "lowContrast": [],
+        "smallTarget": []
+      }
+    },
+    "stateAudits": {
+      "home": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)",
+            "Today (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "home-scrolled": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)",
+            "Today (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "settings-courts": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "explore": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "ADD (10px)",
+            "BB (9px)",
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "CONROE COURTS (9px)",
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "court-add": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "explore-added": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "ADD (10px)",
+            "BB (9px)",
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "CONROE COURTS (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "home-picker": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Basketball (9.5px)",
+            "On court (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "home-selected": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "settings-list-default": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Basketball (9.5px)",
+            "On court (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "schedule-list-picker": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "DEFAULT (8px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "schedule-selected": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "SAT (9px)",
+            "SUN (9px)",
+            "MON (9px)",
+            "TUE (9px)",
+            "WED (9px)",
+            "THU (9px)",
+            "FRI (9px)",
+            "Select (9px)",
+            "Only mine (9px)",
+            "Clear mine · 1 (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": [
+            "SAT 14, 4 AM, 0 going (39x20)",
+            "SUN 15, 4 AM, 0 going (39x20)",
+            "MON 16, 4 AM, 0 going (39x20)",
+            "TUE 17, 4 AM, 0 going (39x20)",
+            "WED 18, 4 AM, 0 going (39x20)",
+            "THU 19, 4 AM, 0 going (39x20)",
+            "FRI 20, 4 AM, 0 going (39x20)",
+            "SAT 14, 5 AM, 0 going (39x20)",
+            "SUN 15, 5 AM, 0 going (39x20)",
+            "MON 16, 5 AM, 0 going (39x20)",
+            "TUE 17, 5 AM, 0 going (39x20)",
+            "WED 18, 5 AM, 0 going (39x20)",
+            "THU 19, 5 AM, 0 going (39x20)",
+            "FRI 20, 5 AM, 0 going (39x20)",
+            "SAT 14, 6 AM, 0 going (39x20)",
+            "SUN 15, 6 AM, 0 going (39x20)",
+            "MON 16, 6 AM, 0 going (39x20)",
+            "TUE 17, 6 AM, 0 going (39x20)",
+            "WED 18, 6 AM, 0 going (39x20)",
+            "THU 19, 6 AM, 0 going (39x20)",
+            "FRI 20, 6 AM, 0 going (39x20)",
+            "SAT 14, 7 AM, 0 going (39x20)",
+            "SUN 15, 7 AM, 0 going (39x20)",
+            "MON 16, 7 AM, 0 going (39x20)",
+            "TUE 17, 7 AM, 0 going (39x20)",
+            "WED 18, 7 AM, 0 going (39x20)",
+            "THU 19, 7 AM, 0 going (39x20)",
+            "FRI 20, 7 AM, 0 going (39x20)",
+            "SAT 14, 8 AM, 0 going (39x20)",
+            "SUN 15, 8 AM, 0 going (39x20)",
+            "MON 16, 8 AM, 0 going (39x20)",
+            "TUE 17, 8 AM, 0 going (39x20)",
+            "WED 18, 8 AM, 0 going (39x20)",
+            "THU 19, 8 AM, 0 going (39x20)",
+            "FRI 20, 8 AM, 0 going (39x20)",
+            "SAT 14, 9 AM, 0 going (39x20)",
+            "SUN 15, 9 AM, 0 going (39x20)",
+            "MON 16, 9 AM, 0 going (39x20)",
+            "TUE 17, 9 AM, 0 going (39x20)",
+            "WED 18, 9 AM, 0 going (39x20)",
+            "THU 19, 9 AM, 0 going (39x20)",
+            "FRI 20, 9 AM, 0 going (39x20)",
+            "SAT 14, 10 AM, 0 going (39x20)",
+            "SUN 15, 10 AM, 0 going (39x20)",
+            "MON 16, 10 AM, 0 going (39x20)",
+            "TUE 17, 10 AM, 0 going (39x20)",
+            "WED 18, 10 AM, 0 going (39x20)",
+            "THU 19, 10 AM, 0 going (39x20)",
+            "FRI 20, 10 AM, 0 going (39x20)",
+            "SAT 14, 11 AM, 0 going (39x20)",
+            "SUN 15, 11 AM, 0 going (39x20)",
+            "MON 16, 11 AM, 0 going (39x20)",
+            "TUE 17, 11 AM, 0 going (39x20)",
+            "WED 18, 11 AM, 0 going (39x20)",
+            "THU 19, 11 AM, 0 going (39x20)",
+            "FRI 20, 11 AM, 0 going (39x20)",
+            "10 (39x20)",
+            "SUN 15, 12 PM, 0 going (39x20)",
+            "MON 16, 12 PM, 0 going (39x20)",
+            "TUE 17, 12 PM, 0 going (39x20)",
+            "WED 18, 12 PM, 0 going (39x20)",
+            "THU 19, 12 PM, 0 going (39x20)",
+            "FRI 20, 12 PM, 0 going (39x20)",
+            "SAT 14, 1 PM, 0 going (39x20)",
+            "SUN 15, 1 PM, 0 going (39x20)",
+            "MON 16, 1 PM, 0 going (39x20)",
+            "TUE 17, 1 PM, 0 going (39x20)",
+            "WED 18, 1 PM, 0 going (39x20)",
+            "THU 19, 1 PM, 0 going (39x20)",
+            "FRI 20, 1 PM, 0 going (39x20)",
+            "SAT 14, 2 PM, 0 going (39x20)",
+            "SUN 15, 2 PM, 0 going (39x20)",
+            "MON 16, 2 PM, 0 going (39x20)",
+            "TUE 17, 2 PM, 0 going (39x20)",
+            "WED 18, 2 PM, 0 going (39x20)",
+            "THU 19, 2 PM, 0 going (39x20)",
+            "FRI 20, 2 PM, 0 going (39x20)",
+            "SAT 14, 3 PM, 0 going (39x20)",
+            "SUN 15, 3 PM, 0 going (39x20)",
+            "MON 16, 3 PM, 0 going (39x20)",
+            "TUE 17, 3 PM, 0 going (39x20)",
+            "WED 18, 3 PM, 0 going (39x20)",
+            "THU 19, 3 PM, 0 going (39x20)",
+            "FRI 20, 3 PM, 0 going (39x20)",
+            "SELECT (67x30)",
+            "ONLY MINE (86x30)",
+            "CLEAR MINE · 1 (107x30)",
+            "HERE (64x36)",
+            "CREATE (113x36)"
+          ]
+        }
+      },
+      "notifications": {
+        "fail": [],
+        "debt": {
+          "smallText": [],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "home-pending": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)",
+            "Today (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "home-manual-active": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)",
+            "Today (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "home-auto-active": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)",
+            "Today (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": [
+            "Hide (27x16)"
+          ]
+        }
+      }
+    },
+    "serviceCalls": [
+      "cancel",
+      "check_in"
+    ]
+  },
+  {
+    "width": 393,
+    "height": 852,
+    "checks": [
+      "fixed flush informational header",
+      "Settings search first",
+      "plus → Explore list → Home dropdown/scroll → Settings default",
+      "all 12 row types, push-off, 43 records and read-all",
+      "pending Cancel, immediate manual, staged Post and automatic elapsed"
+    ],
+    "pageErrors": [],
+    "homeAudit": {
+      "fail": [],
+      "debt": {
+        "smallText": [
+          "Basketball (9.5px)",
+          "On court (9px)",
+          "Next game (7.5px)",
+          "Court hours · wk (7.5px)",
+          "Locals (7.5px)",
+          "Today (9px)",
+          "PM (7.5px)",
+          "5v5 · All levels · Host chatgpt (10.5px)",
+          "CH (7.92px)",
+          "PL (7.92px)",
+          "TI (7.92px)",
+          "JL (7.92px)",
+          "Going (9px)",
+          "Home (9px)",
+          "Schedule (9px)",
+          "Compete (9px)",
+          "Explore (9px)",
+          "Me (9px)"
+        ],
+        "lowContrast": [],
+        "smallTarget": [
+          "GOING (64x32)"
+        ]
+      }
+    },
+    "inboxAudit": {
+      "fail": [],
+      "debt": {
+        "smallText": [],
+        "lowContrast": [],
+        "smallTarget": []
+      }
+    },
+    "stateAudits": {
+      "home": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)",
+            "Today (9px)",
+            "PM (7.5px)",
+            "5v5 · All levels · Host chatgpt (10.5px)",
+            "CH (7.92px)",
+            "PL (7.92px)",
+            "TI (7.92px)",
+            "JL (7.92px)",
+            "Going (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": [
+            "GOING (64x32)"
+          ]
+        }
+      },
+      "home-scrolled": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)",
+            "Today (9px)",
+            "PM (7.5px)",
+            "5v5 · All levels · Host chatgpt (10.5px)",
+            "CH (7.92px)",
+            "PL (7.92px)",
+            "TI (7.92px)",
+            "JL (7.92px)",
+            "Going (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": [
+            "GOING (64x32)"
+          ]
+        }
+      },
+      "settings-courts": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "explore": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "ADD (10px)",
+            "BB (9px)",
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "CONROE COURTS (9px)",
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "court-add": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Feed (9.5px)",
+            "Schedule (9.5px)",
+            "Players (9.5px)",
+            "Info (9.5px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": [
+            " (38x38)"
+          ]
+        }
+      },
+      "explore-added": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "ADD (10px)",
+            "BB (9px)",
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "CONROE COURTS (9px)",
+            "NO OTHER COURTS IN THIS SCOPE (10px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "home-picker": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Basketball (9.5px)",
+            "On court (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "home-selected": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "settings-list-default": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Basketball (9.5px)",
+            "On court (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": [
+            " (44x44)"
+          ]
+        }
+      },
+      "schedule-list-picker": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "DEFAULT (8px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "schedule-selected": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "SAT (9px)",
+            "SUN (9px)",
+            "MON (9px)",
+            "TUE (9px)",
+            "WED (9px)",
+            "THU (9px)",
+            "FRI (9px)",
+            "Select (9px)",
+            "Only mine (9px)",
+            "Clear mine · 1 (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": [
+            "SAT 14, 4 AM, 0 going (41x35)",
+            "SUN 15, 4 AM, 0 going (41x35)",
+            "MON 16, 4 AM, 0 going (41x35)",
+            "TUE 17, 4 AM, 0 going (41x35)",
+            "WED 18, 4 AM, 0 going (41x35)",
+            "THU 19, 4 AM, 0 going (41x35)",
+            "FRI 20, 4 AM, 0 going (41x35)",
+            "SAT 14, 5 AM, 0 going (41x35)",
+            "SUN 15, 5 AM, 0 going (41x35)",
+            "MON 16, 5 AM, 0 going (41x35)",
+            "TUE 17, 5 AM, 0 going (41x35)",
+            "WED 18, 5 AM, 0 going (41x35)",
+            "THU 19, 5 AM, 0 going (41x35)",
+            "FRI 20, 5 AM, 0 going (41x35)",
+            "SAT 14, 6 AM, 0 going (41x35)",
+            "SUN 15, 6 AM, 0 going (41x35)",
+            "MON 16, 6 AM, 0 going (41x35)",
+            "TUE 17, 6 AM, 0 going (41x35)",
+            "WED 18, 6 AM, 0 going (41x35)",
+            "THU 19, 6 AM, 0 going (41x35)",
+            "FRI 20, 6 AM, 0 going (41x35)",
+            "SAT 14, 7 AM, 0 going (41x35)",
+            "SUN 15, 7 AM, 0 going (41x35)",
+            "MON 16, 7 AM, 0 going (41x35)",
+            "TUE 17, 7 AM, 0 going (41x35)",
+            "WED 18, 7 AM, 0 going (41x35)",
+            "THU 19, 7 AM, 0 going (41x35)",
+            "FRI 20, 7 AM, 0 going (41x35)",
+            "SAT 14, 8 AM, 0 going (41x35)",
+            "SUN 15, 8 AM, 0 going (41x35)",
+            "MON 16, 8 AM, 0 going (41x35)",
+            "TUE 17, 8 AM, 0 going (41x35)",
+            "WED 18, 8 AM, 0 going (41x35)",
+            "THU 19, 8 AM, 0 going (41x35)",
+            "FRI 20, 8 AM, 0 going (41x35)",
+            "SAT 14, 9 AM, 0 going (41x35)",
+            "SUN 15, 9 AM, 0 going (41x35)",
+            "MON 16, 9 AM, 0 going (41x35)",
+            "TUE 17, 9 AM, 0 going (41x35)",
+            "WED 18, 9 AM, 0 going (41x35)",
+            "THU 19, 9 AM, 0 going (41x35)",
+            "FRI 20, 9 AM, 0 going (41x35)",
+            "SAT 14, 10 AM, 0 going (41x35)",
+            "SUN 15, 10 AM, 0 going (41x35)",
+            "MON 16, 10 AM, 0 going (41x35)",
+            "TUE 17, 10 AM, 0 going (41x35)",
+            "WED 18, 10 AM, 0 going (41x35)",
+            "THU 19, 10 AM, 0 going (41x35)",
+            "FRI 20, 10 AM, 0 going (41x35)",
+            "SAT 14, 11 AM, 0 going (41x35)",
+            "SUN 15, 11 AM, 0 going (41x35)",
+            "MON 16, 11 AM, 0 going (41x35)",
+            "TUE 17, 11 AM, 0 going (41x35)",
+            "WED 18, 11 AM, 0 going (41x35)",
+            "THU 19, 11 AM, 0 going (41x35)",
+            "FRI 20, 11 AM, 0 going (41x35)",
+            "10 (41x35)",
+            "SUN 15, 12 PM, 0 going (41x35)",
+            "MON 16, 12 PM, 0 going (41x35)",
+            "TUE 17, 12 PM, 0 going (41x35)",
+            "WED 18, 12 PM, 0 going (41x35)",
+            "THU 19, 12 PM, 0 going (41x35)",
+            "FRI 20, 12 PM, 0 going (41x35)",
+            "SAT 14, 1 PM, 0 going (41x35)",
+            "SUN 15, 1 PM, 0 going (41x35)",
+            "MON 16, 1 PM, 0 going (41x35)",
+            "TUE 17, 1 PM, 0 going (41x35)",
+            "WED 18, 1 PM, 0 going (41x35)",
+            "THU 19, 1 PM, 0 going (41x35)",
+            "FRI 20, 1 PM, 0 going (41x35)",
+            "SAT 14, 2 PM, 0 going (41x35)",
+            "SUN 15, 2 PM, 0 going (41x35)",
+            "MON 16, 2 PM, 0 going (41x35)",
+            "TUE 17, 2 PM, 0 going (41x35)",
+            "WED 18, 2 PM, 0 going (41x35)",
+            "THU 19, 2 PM, 0 going (41x35)",
+            "FRI 20, 2 PM, 0 going (41x35)",
+            "SAT 14, 3 PM, 0 going (41x35)",
+            "SUN 15, 3 PM, 0 going (41x35)",
+            "MON 16, 3 PM, 0 going (41x35)",
+            "TUE 17, 3 PM, 0 going (41x35)",
+            "WED 18, 3 PM, 0 going (41x35)",
+            "THU 19, 3 PM, 0 going (41x35)",
+            "FRI 20, 3 PM, 0 going (41x35)",
+            "SELECT (67x30)",
+            "ONLY MINE (86x30)",
+            "CLEAR MINE · 1 (107x30)",
+            "HERE (64x36)",
+            "CREATE (122x36)"
+          ]
+        }
+      },
+      "notifications": {
+        "fail": [],
+        "debt": {
+          "smallText": [],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "home-pending": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)",
+            "Today (9px)",
+            "PM (7.5px)",
+            "5v5 · All levels · Host chatgpt (10.5px)",
+            "CH (7.92px)",
+            "PL (7.92px)",
+            "TI (7.92px)",
+            "JL (7.92px)",
+            "Going (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": [
+            "GOING (64x32)"
+          ]
+        }
+      },
+      "home-manual-active": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)",
+            "Today (9px)",
+            "PM (7.5px)",
+            "5v5 · All levels · Host chatgpt (10.5px)",
+            "CH (7.92px)",
+            "PL (7.92px)",
+            "TI (7.92px)",
+            "JL (7.92px)",
+            "Going (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": [
+            "GOING (64x32)"
+          ]
+        }
+      },
+      "home-auto-active": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)",
+            "Today (9px)",
+            "PM (7.5px)",
+            "5v5 · All levels · Host chatgpt (10.5px)",
+            "CH (7.92px)",
+            "PL (7.92px)",
+            "TI (7.92px)",
+            "JL (7.92px)",
+            "Going (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": [
+            "Hide (27x16)",
+            "GOING (64x32)"
+          ]
+        }
+      }
+    },
+    "serviceCalls": [
+      "cancel",
+      "check_in"
+    ]
+  },
+  {
+    "width": 430,
+    "height": 932,
+    "checks": [
+      "fixed flush informational header",
+      "Settings search first",
+      "plus → Explore list → Home dropdown/scroll → Settings default",
+      "all 12 row types, push-off, 43 records and read-all",
+      "pending Cancel, immediate manual, staged Post and automatic elapsed"
+    ],
+    "pageErrors": [],
+    "homeAudit": {
+      "fail": [],
+      "debt": {
+        "smallText": [
+          "Basketball (9.5px)",
+          "On court (9px)",
+          "Next game (7.5px)",
+          "Court hours · wk (7.5px)",
+          "Locals (7.5px)",
+          "Today (9px)",
+          "PM (7.5px)",
+          "5v5 · All levels · Host chatgpt (10.5px)",
+          "CH (7.92px)",
+          "PL (7.92px)",
+          "TI (7.92px)",
+          "JL (7.92px)",
+          "Going (9px)",
+          "Home (9px)",
+          "Schedule (9px)",
+          "Compete (9px)",
+          "Explore (9px)",
+          "Me (9px)"
+        ],
+        "lowContrast": [],
+        "smallTarget": [
+          "GOING (64x32)"
+        ]
+      }
+    },
+    "inboxAudit": {
+      "fail": [],
+      "debt": {
+        "smallText": [],
+        "lowContrast": [],
+        "smallTarget": []
+      }
+    },
+    "stateAudits": {
+      "home": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)",
+            "Today (9px)",
+            "PM (7.5px)",
+            "5v5 · All levels · Host chatgpt (10.5px)",
+            "CH (7.92px)",
+            "PL (7.92px)",
+            "TI (7.92px)",
+            "JL (7.92px)",
+            "Going (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": [
+            "GOING (64x32)"
+          ]
+        }
+      },
+      "home-scrolled": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)",
+            "Today (9px)",
+            "PM (7.5px)",
+            "5v5 · All levels · Host chatgpt (10.5px)",
+            "CH (7.92px)",
+            "PL (7.92px)",
+            "TI (7.92px)",
+            "JL (7.92px)",
+            "Going (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": [
+            "GOING (64x32)"
+          ]
+        }
+      },
+      "settings-courts": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "explore": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "ADD (10px)",
+            "BB (9px)",
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "CONROE COURTS (9px)",
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "court-add": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "explore-added": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "ADD (10px)",
+            "BB (9px)",
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "CONROE COURTS (9px)",
+            "NO OTHER COURTS IN THIS SCOPE (10px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "home-picker": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Basketball (9.5px)",
+            "On court (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "home-selected": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "settings-list-default": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Basketball (9.5px)",
+            "On court (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "schedule-list-picker": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "DEFAULT (8px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "schedule-selected": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "SAT (9px)",
+            "SUN (9px)",
+            "MON (9px)",
+            "TUE (9px)",
+            "WED (9px)",
+            "THU (9px)",
+            "FRI (9px)",
+            "Select (9px)",
+            "Only mine (9px)",
+            "Clear mine · 1 (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": [
+            "SAT 14, 4 AM, 0 going (46x42)",
+            "SUN 15, 4 AM, 0 going (46x42)",
+            "MON 16, 4 AM, 0 going (46x42)",
+            "TUE 17, 4 AM, 0 going (46x42)",
+            "WED 18, 4 AM, 0 going (46x42)",
+            "THU 19, 4 AM, 0 going (46x42)",
+            "FRI 20, 4 AM, 0 going (46x42)",
+            "SAT 14, 5 AM, 0 going (46x42)",
+            "SUN 15, 5 AM, 0 going (46x42)",
+            "MON 16, 5 AM, 0 going (46x42)",
+            "TUE 17, 5 AM, 0 going (46x42)",
+            "WED 18, 5 AM, 0 going (46x42)",
+            "THU 19, 5 AM, 0 going (46x42)",
+            "FRI 20, 5 AM, 0 going (46x42)",
+            "SAT 14, 6 AM, 0 going (46x42)",
+            "SUN 15, 6 AM, 0 going (46x42)",
+            "MON 16, 6 AM, 0 going (46x42)",
+            "TUE 17, 6 AM, 0 going (46x42)",
+            "WED 18, 6 AM, 0 going (46x42)",
+            "THU 19, 6 AM, 0 going (46x42)",
+            "FRI 20, 6 AM, 0 going (46x42)",
+            "SAT 14, 7 AM, 0 going (46x42)",
+            "SUN 15, 7 AM, 0 going (46x42)",
+            "MON 16, 7 AM, 0 going (46x42)",
+            "TUE 17, 7 AM, 0 going (46x42)",
+            "WED 18, 7 AM, 0 going (46x42)",
+            "THU 19, 7 AM, 0 going (46x42)",
+            "FRI 20, 7 AM, 0 going (46x42)",
+            "SAT 14, 8 AM, 0 going (46x42)",
+            "SUN 15, 8 AM, 0 going (46x42)",
+            "MON 16, 8 AM, 0 going (46x42)",
+            "TUE 17, 8 AM, 0 going (46x42)",
+            "WED 18, 8 AM, 0 going (46x42)",
+            "THU 19, 8 AM, 0 going (46x42)",
+            "FRI 20, 8 AM, 0 going (46x42)",
+            "SAT 14, 9 AM, 0 going (46x42)",
+            "SUN 15, 9 AM, 0 going (46x42)",
+            "MON 16, 9 AM, 0 going (46x42)",
+            "TUE 17, 9 AM, 0 going (46x42)",
+            "WED 18, 9 AM, 0 going (46x42)",
+            "THU 19, 9 AM, 0 going (46x42)",
+            "FRI 20, 9 AM, 0 going (46x42)",
+            "SAT 14, 10 AM, 0 going (46x42)",
+            "SUN 15, 10 AM, 0 going (46x42)",
+            "MON 16, 10 AM, 0 going (46x42)",
+            "TUE 17, 10 AM, 0 going (46x42)",
+            "WED 18, 10 AM, 0 going (46x42)",
+            "THU 19, 10 AM, 0 going (46x42)",
+            "FRI 20, 10 AM, 0 going (46x42)",
+            "SAT 14, 11 AM, 0 going (46x42)",
+            "SUN 15, 11 AM, 0 going (46x42)",
+            "MON 16, 11 AM, 0 going (46x42)",
+            "TUE 17, 11 AM, 0 going (46x42)",
+            "WED 18, 11 AM, 0 going (46x42)",
+            "THU 19, 11 AM, 0 going (46x42)",
+            "FRI 20, 11 AM, 0 going (46x42)",
+            "10 (46x42)",
+            "SUN 15, 12 PM, 0 going (46x42)",
+            "MON 16, 12 PM, 0 going (46x42)",
+            "TUE 17, 12 PM, 0 going (46x42)",
+            "WED 18, 12 PM, 0 going (46x42)",
+            "THU 19, 12 PM, 0 going (46x42)",
+            "FRI 20, 12 PM, 0 going (46x42)",
+            "SAT 14, 1 PM, 0 going (46x42)",
+            "SUN 15, 1 PM, 0 going (46x42)",
+            "MON 16, 1 PM, 0 going (46x42)",
+            "TUE 17, 1 PM, 0 going (46x42)",
+            "WED 18, 1 PM, 0 going (46x42)",
+            "THU 19, 1 PM, 0 going (46x42)",
+            "FRI 20, 1 PM, 0 going (46x42)",
+            "SAT 14, 2 PM, 0 going (46x42)",
+            "SUN 15, 2 PM, 0 going (46x42)",
+            "MON 16, 2 PM, 0 going (46x42)",
+            "TUE 17, 2 PM, 0 going (46x42)",
+            "WED 18, 2 PM, 0 going (46x42)",
+            "THU 19, 2 PM, 0 going (46x42)",
+            "FRI 20, 2 PM, 0 going (46x42)",
+            "SAT 14, 3 PM, 0 going (46x42)",
+            "SUN 15, 3 PM, 0 going (46x42)",
+            "MON 16, 3 PM, 0 going (46x42)",
+            "TUE 17, 3 PM, 0 going (46x42)",
+            "WED 18, 3 PM, 0 going (46x42)",
+            "THU 19, 3 PM, 0 going (46x42)",
+            "FRI 20, 3 PM, 0 going (46x42)",
+            "SELECT (67x30)",
+            "ONLY MINE (86x30)",
+            "CLEAR MINE · 1 (107x30)",
+            "HERE (64x36)",
+            "CREATE (140x36)"
+          ]
+        }
+      },
+      "notifications": {
+        "fail": [],
+        "debt": {
+          "smallText": [],
+          "lowContrast": [],
+          "smallTarget": []
+        }
+      },
+      "home-pending": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)",
+            "Today (9px)",
+            "PM (7.5px)",
+            "5v5 · All levels · Host chatgpt (10.5px)",
+            "CH (7.92px)",
+            "PL (7.92px)",
+            "TI (7.92px)",
+            "JL (7.92px)",
+            "Going (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": [
+            "GOING (64x32)"
+          ]
+        }
+      },
+      "home-manual-active": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)",
+            "Today (9px)",
+            "PM (7.5px)",
+            "5v5 · All levels · Host chatgpt (10.5px)",
+            "CH (7.92px)",
+            "PL (7.92px)",
+            "TI (7.92px)",
+            "JL (7.92px)",
+            "Going (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": [
+            "GOING (64x32)"
+          ]
+        }
+      },
+      "home-auto-active": {
+        "fail": [],
+        "debt": {
+          "smallText": [
+            "Basketball (9.5px)",
+            "On court (9px)",
+            "Next game (7.5px)",
+            "Court hours · wk (7.5px)",
+            "Locals (7.5px)",
+            "Today (9px)",
+            "PM (7.5px)",
+            "5v5 · All levels · Host chatgpt (10.5px)",
+            "CH (7.92px)",
+            "PL (7.92px)",
+            "TI (7.92px)",
+            "JL (7.92px)",
+            "Going (9px)",
+            "Home (9px)",
+            "Schedule (9px)",
+            "Compete (9px)",
+            "Explore (9px)",
+            "Me (9px)"
+          ],
+          "lowContrast": [],
+          "smallTarget": [
+            "Hide (27x16)",
+            "GOING (64x32)"
+          ]
+        }
+      }
+    },
+    "serviceCalls": [
+      "cancel",
+      "check_in"
+    ]
+  }
+]

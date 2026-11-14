@@ -1,5 +1,30 @@
 # LocalCheck Design System
 
+## November 14 — Home and LocalList frontend
+
+Preserve current shared artwork and controls. Home's court hero is a fixed
+sibling directly beneath ScreenHeader, without a scroll-through gap. Keep
+LOCALCHECK left; pending/active status and timer right, with orange background
+and dark readable text/mark. Controls stay in HomeCourtActions. The court-page
+arrow remains beside Check in, not next to the live count. The planner/Up next
+order is unchanged from #91. Title selection adds a dropdown chevron; horizontal
+court paging has short lines and a distinct active line with accessible tabs.
+Long court names may wrap to two lines instead of truncating, including the
+selected Home title beside the chevron and the canonical list cards.
+
+Explore LocalList and Settings compose CourtListItem, CourtTitleRow and CourtArt.
+Settings search precedes the cards; card/search gutters align. Default is first
+with a star; a separate star control chooses it. Home and Schedule selections
+do not change it. LocalList is spelled as one word; use existing LogoMark for
+the small Explore section mark, without a new gimmick or drawing.
+
+Own manual and automatic inbox rows share the compact row, source and recorded
+audience treatment. Unknown historical audience stays absent. Explicit manual
+types are presentation-ready; no backend writer is implied.
+
+Court-drawer navigation releases its modal content before pushing the court
+page; late layout callbacks cannot reopen an invisible layer over the tabs.
+
 ## Notifications rows — November 8
 
 Use the shared DetailHeader, color and typography tokens, and a virtualized

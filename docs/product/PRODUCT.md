@@ -1,5 +1,18 @@
 # Product context
 
+## November 14 — branch UI preview
+
+The #91 follow-up prepares LocalList: LocalPlus users add courts from the court
+plus and see the same list on Explore, Settings and Home. Settings' star chooses
+the default first court; page selectors only change the view. This pass stores
+the extra list/default only in memory, not in the backend or device storage.
+
+Home's fixed LOCALCHECK header shows a five-minute automatic pending countdown
+or elapsed confirmed session time. Cancel/Post controls stay by the hero;
+Post awaits the separate backend action and is disabled. Manual check-in posts
+immediately and has no new waiting window. Compact inbox history remains
+independent of phone-alert preference, with recorded own-event metadata.
+
 ## Notifications log — November 8 frontend slice
 
 The Notifications screen lists existing own-event notices and incoming alerts

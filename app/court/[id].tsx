@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CourtSchedulePanel } from "@/components/CourtSchedulePanel";
@@ -12,6 +12,7 @@ import { CourtGamesPanel } from "@/components/court/CourtGamesPanel";
 import { CourtInfoPanel } from "@/components/court/CourtInfoPanel";
 import { CourtPlayersPanel } from "@/components/court/CourtPlayersPanel";
 import { CourtTabBar, CourtTitleRow, LocalMark } from "@/components/court/CourtParts";
+import { useLocalList } from "@/context/LocalListContext";
 import { GameResultModal } from "@/components/ui/GameResultModal";
 import { Colors } from "@/constants/colors";
 import type { FeedItem, FeedMatchSummary, Court } from "@/constants/data";
@@ -64,6 +65,7 @@ export default function CourtProfileScreen() {
   } = useApp();
   const { top, bottom } = useSafeAreaInsets();
   const hasLocalPlus = useLocalPlus();
+  const localList = useLocalList();
   const courtId = id ? String(id) : null;
   const [activeTab, setActiveTab] = React.useState<CourtTab>(
     courtTab(tab),
@@ -215,7 +217,11 @@ export default function CourtProfileScreen() {
           >
             <Feather color={Colors.text} name="arrow-left" size={22} />
           </Pressable>
-          <LocalMark active={isMyLocal} onPress={() => void setLocalCourt(court.id, court)} />
+          <LocalMark list={hasLocalPlus} active={hasLocalPlus ? localList.courts.some(row => row.id === court.id) : isMyLocal} onPress={() => {
+            if (!hasLocalPlus) { void setLocalCourt(court.id, court); return; }
+            try { localList.addCourt(court); }
+            catch (error) { Alert.alert("LocalList", error instanceof Error ? error.message : "Try again."); }
+          }} />
         </View>
         {/* Name left, the live number right (Oct 17 header reference), then
             today's busy times above the tabs so every tab shares them. */}

@@ -75,7 +75,7 @@ export function SportLabel({ sport, suffix }: { sport: CourtSport; suffix?: stri
  * Home's top-right). Where it isn't your local, a tap makes it your local and
  * the check springs in; once it is, the mark does nothing (Settings changes it).
  */
-export function LocalMark({ active, onPress }: { active: boolean; onPress?: () => void }) {
+export function LocalMark({ active, onPress, list = false }: { active: boolean; onPress?: () => void; list?: boolean }) {
   const pop = React.useRef(new Animated.Value(active ? 1 : 0)).current;
   const wasActive = React.useRef(active);
   React.useEffect(() => {
@@ -111,8 +111,8 @@ export function LocalMark({ active, onPress }: { active: boolean; onPress?: () =
     <View pointerEvents="box-none">
       {tappable ? (
         <Pressable
-          accessibilityHint="Sets this as your local court"
-          accessibilityLabel="Set as local court"
+          accessibilityHint={list ? "Adds this court to LocalList" : "Sets this as your local court"}
+          accessibilityLabel={list ? "Add to LocalList" : "Set as local court"}
           accessibilityRole="button"
           onPress={onPress}
           style={({ pressed }) => pressed && styles.pressed}
@@ -120,7 +120,7 @@ export function LocalMark({ active, onPress }: { active: boolean; onPress?: () =
           {body}
         </Pressable>
       ) : (
-        <View accessibilityLabel={active ? "Your local court" : "Not your local court"} accessible>
+        <View accessibilityLabel={active ? list ? "In LocalList" : "Your local court" : "Not your local court"} accessible>
           {body}
         </View>
       )}
@@ -141,6 +141,7 @@ export function CourtTitleRow({
   liveValue,
   live,
   liveAccessibilityLabel,
+  onChooseCourt,
   size = "card",
 }: {
   sport: CourtSport;
@@ -149,6 +150,7 @@ export function CourtTitleRow({
   liveValue: string | number;
   live: boolean;
   liveAccessibilityLabel?: string;
+  onChooseCourt?: () => void;
   size?: "card" | "page";
 }) {
   const page = size === "page";
@@ -159,14 +161,17 @@ export function CourtTitleRow({
     <View style={styles.titleRow}>
       <View style={styles.titleBlock}>
         <SportLabel sport={sport} />
+        {onChooseCourt ? <Pressable onPress={onChooseCourt} accessibilityRole="button" accessibilityLabel="Choose court" style={styles.titleChoice}>
         <Text
           adjustsFontSizeToFit
           minimumFontScale={0.6}
-          numberOfLines={1}
-          style={[styles.titleName, page && styles.titleNamePage]}
+          numberOfLines={2}
+          style={[styles.titleName, page && styles.titleNamePage, { flexShrink: 1 }]}
         >
           {shown}
         </Text>
+        <Feather name="chevron-down" size={18} color={Colors.textSecondary} />
+        </Pressable> : <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={2} style={[styles.titleName, page && styles.titleNamePage]}>{shown}</Text>}
         {place ? <Text numberOfLines={1} style={styles.titlePlace}>{place}</Text> : null}
       </View>
       <View
@@ -422,6 +427,7 @@ const styles = StyleSheet.create({
   pillTextActive: { color: Colors.text },
   titleRow: { flexDirection: "row", alignItems: "flex-end", gap: 16, paddingHorizontal: 20 },
   titleBlock: { flex: 1, minWidth: 0, gap: 6 },
+  titleChoice: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 },
   titleName: {
     // Oswald's line box carries more space above the caps than below; this
     // evens the ink gaps above and below the name (measured: 14pt vs 11.5pt).
