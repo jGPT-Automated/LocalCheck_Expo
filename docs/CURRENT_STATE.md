@@ -1,5 +1,14 @@
 # Current state
 
+## November 17 — #92 release request
+
+Jesse requested merge to main and an OTA for #92's existing UI plus the banner
+and court-header corrections. Runtime compatibility was checked against EAS
+build46 (1.0.4, SDK54, production); no native configuration/dependency/lockfile
+change is present. The exact merge/workflow/update receipt is recorded in
+[PR #92](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/92), with the
+release route in RELEASE.md. LocalList persistence remains separate work.
+
 ## November 17 — #92 banner removal and stable court headers
 
 **On the PR #92 branch:** temporary drop-down action banners are removed from
