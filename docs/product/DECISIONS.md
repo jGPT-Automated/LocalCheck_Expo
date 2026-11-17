@@ -1,5 +1,14 @@
 # LocalCheck Design Decisions
 
+## November 17 — correction: fit court names rather than wrapping
+
+Jesse rejected the wrapped court names introduced in #92: ordinary court cards
+must remain compact and equal-height. This revises the November 17 wrapped-name
+instruction below. Use the existing short/full name fields, shrink within the
+available title width, preserve a stable count column and center the artwork
+with the count group through one shared owner. Show rendered screenshots and
+open a PR only. Jesse has not authorized a merge, OTA or native build.
+
 ## November 17 — remove temporary banners; keep court headers aligned
 
 Jesse requested removal of the in-app drop-down action banners for now, rather

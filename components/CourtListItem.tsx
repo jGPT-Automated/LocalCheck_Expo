@@ -1,7 +1,6 @@
 import React from "react";
 import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 
-import { CourtArt } from "@/components/court/CourtArt";
 import { CourtTitleRow } from "@/components/court/CourtParts";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
@@ -36,8 +35,6 @@ export function CourtListItem({ court, onPress, style }: CourtListItemProps) {
       style={[styles.card, style]}
       testID={`court-${court.id}`}
     >
-      {/* Centred on the name, as it was when the card had the numbers strip. */}
-      <CourtArt sport={court.sport} top={-16} />
       <CourtTitleRow
         live={active > 0}
         liveValue={active}

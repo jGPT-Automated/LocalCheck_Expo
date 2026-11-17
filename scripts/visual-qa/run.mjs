@@ -85,6 +85,11 @@ for (const vp of VIEWPORTS.filter((v) => !sizes || sizes.includes(v.name))) {
   for (const screen of SCREENS) {
     setOnboarding(Boolean(screen.onboarding));
     await page.goto(`${base}${screen.path}`, { waitUntil: "networkidle" }).catch(() => {});
+    // Never score a launch-logo frame as a clean court-layout screenshot.
+    if (screen.name === "home-feed" || screen.name === "court-live" || screen.name.startsWith("explore")) {
+      await page.getByTestId("court-title-row").first().waitFor({ timeout: 30000 });
+      await page.evaluate(() => document.fonts.ready);
+    }
     await page.waitForTimeout(4500);
     for (const a of screen.actions ?? []) {
       try {

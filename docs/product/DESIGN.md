@@ -1,5 +1,18 @@
 # LocalCheck Design System
 
+## November 17 — restore compact court identities (supersedes wrapping below)
+
+Court identities use the existing short name with full-name fallback and fit
+one line within the flexible title column. Keep equal list-card heights and
+stable 88pt/96pt live columns. Native Text fitting and the web font-measurement
+adapter share an 11pt floor. Longer content must be tested, not approximated by
+character counts. Fitting has a readability floor; arbitrarily long unaliased
+names are not certified to fit. Keep the court-selection chevron outside the
+flexible title. CourtArt is anchored to the live group in CourtTitleRow; its
+basketball circle and the count column share a horizontal center and its
+vertical center follows the group. The full court page retains faint artwork.
+This changes no notification controls, navigation actions, counts or data.
+
 ## November 17 — action feedback and wrapped court titles
 
 Jesse removed the temporary drop-down action banners. Existing useToast calls

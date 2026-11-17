@@ -47,7 +47,7 @@ async function measureTitle(page, title) {
     const textBox = el.getBoundingClientRect();
     const titleBox = titleBlock.getBoundingClientRect();
     const liveBox = live.getBoundingClientRect();
-    const liveText = live.querySelector('[data-testid="court-title-name"]') || live.firstElementChild;
+    const liveText = live.querySelector('[data-testid="court-live-art"]')?.nextElementSibling || live.firstElementChild;
     const valueBox = liveText.getBoundingClientRect();
     return {
       row: { x: rowBox.x, y: rowBox.y, width: rowBox.width, height: rowBox.height, centerY: rowBox.y + rowBox.height / 2 },
