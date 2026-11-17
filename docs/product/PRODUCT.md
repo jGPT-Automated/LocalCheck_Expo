@@ -1,5 +1,12 @@
 # Product context
 
+## November 17 — first screenshot correction on #92
+
+Actions no longer display temporary drop-down banners inside the app. Their
+screen state still updates, with existing native tactile feedback and spoken
+feedback for screen-reader users. Court headers keep the name/count layout
+stable after check-in and centre the count beside names that wrap.
+
 ## November 14 — branch UI preview
 
 The #91 follow-up prepares LocalList: LocalPlus users add courts from the court

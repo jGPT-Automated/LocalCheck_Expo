@@ -158,26 +158,25 @@ export function CourtTitleRow({
   // "…" ("SAND BRANCH COURTS" reads as "SAND BRANCH").
   const shown = name.length > 14 ? name.replace(/\s+courts?$/i, "") : name;
   return (
-    <View style={styles.titleRow}>
-      <View style={styles.titleBlock}>
+    <View testID="court-title-row" style={styles.titleRow}>
+      <View testID="court-title-copy" style={styles.titleBlock}>
         <SportLabel sport={sport} />
         {onChooseCourt ? <Pressable onPress={onChooseCourt} accessibilityRole="button" accessibilityLabel="Choose court" style={styles.titleChoice}>
         <Text
-          adjustsFontSizeToFit
-          minimumFontScale={0.6}
-          numberOfLines={2}
-          style={[styles.titleName, page && styles.titleNamePage, { flexShrink: 1 }]}
+          testID="court-title-name"
+          style={[styles.titleName, page && styles.titleNamePage, styles.selectableTitle]}
         >
           {shown}
         </Text>
         <Feather name="chevron-down" size={18} color={Colors.textSecondary} />
-        </Pressable> : <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={2} style={[styles.titleName, page && styles.titleNamePage]}>{shown}</Text>}
+        </Pressable> : <Text testID="court-title-name" style={[styles.titleName, page && styles.titleNamePage]}>{shown}</Text>}
         {place ? <Text numberOfLines={1} style={styles.titlePlace}>{place}</Text> : null}
       </View>
       <View
         accessibilityLabel={liveAccessibilityLabel ?? `${liveValue} on court`}
         accessible
-        style={styles.liveBlock}
+        testID="court-live-block"
+        style={[styles.liveBlock, page && styles.liveBlockPage]}
       >
         <Text style={[styles.liveValue, page && styles.liveValuePage, live && styles.liveValueOn]}>{liveValue}</Text>
         <View style={styles.liveLabelRow}>
@@ -425,9 +424,10 @@ const styles = StyleSheet.create({
   pillDisabled: { opacity: 0.4 },
   pillText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.textSecondary },
   pillTextActive: { color: Colors.text },
-  titleRow: { flexDirection: "row", alignItems: "flex-end", gap: 16, paddingHorizontal: 20 },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 16, paddingHorizontal: 20 },
   titleBlock: { flex: 1, minWidth: 0, gap: 6 },
   titleChoice: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 },
+  selectableTitle: { flex: 1, minWidth: 0 },
   titleName: {
     // Oswald's line box carries more space above the caps than below; this
     // evens the ink gaps above and below the name (measured: 14pt vs 11.5pt).
@@ -444,7 +444,9 @@ const styles = StyleSheet.create({
   },
   titleNamePage: { fontSize: 34, lineHeight: 37, letterSpacing: -1.1 },
   titlePlace: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
-  liveBlock: { flexShrink: 0, alignItems: "flex-end", paddingBottom: 1 },
+  // Reserve the same column before/after check-in, including four-digit counts.
+  liveBlock: { width: 88, flexShrink: 0, alignItems: "center", justifyContent: "center" },
+  liveBlockPage: { width: 96 },
   liveValue: { fontFamily: Typography.headingBold, fontSize: 40, lineHeight: 42, letterSpacing: -1.2, color: Colors.text, fontVariant: ["tabular-nums"] },
   liveValuePage: { fontSize: 46, lineHeight: 48, letterSpacing: -1.4 },
   liveValueOn: { color: Colors.liveInk },

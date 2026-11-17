@@ -1,5 +1,19 @@
 # Current state
 
+## November 17 — #92 banner removal and stable court headers
+
+**On the PR #92 branch:** temporary drop-down action banners are removed from
+the shared Toast provider. Existing calls retain native haptics and screen-reader
+announcements without rendering an overlay. The shared CourtTitleRow reserves
+the same live-count column before/after check-in, centres that column against
+the full court identity, and lets long names wrap without shrinking or clipping.
+Home, Explore cards, the court drawer and full court page use that same owner.
+
+This slice does not complete LocalList persistence, the Settings drawer cleanup,
+Explore's LOCAL LIST label, early Post, or manual/automatic push delivery work.
+Those remain the following independently reviewable slices. Rendered evidence:
+`docs/product/design-qa/2026-11-17-court-header/README.md`.
+
 ## November 14 — #91 Home and LocalList UI
 
 **On branch `codex/inbox-locallist-home`, based on #91 `3e12738`.** Jesse

@@ -1,5 +1,14 @@
 # LocalCheck Design Decisions
 
+## November 17 — remove temporary banners; keep court headers aligned
+
+Jesse requested removal of the in-app drop-down action banners for now, rather
+than another banner redesign. Court names may wrap; the live number and ON COURT
+label must stay centred as one group beside the whole court identity, and a
+check-in must not narrow the court name. Implement this through the shared court
+header so Home, cards, drawer and court page remain consistent. The Settings
+drawer/Explore label corrections and durable LocalList follow separately.
+
 ## November 14 — #91, LocalList and informational Home header
 
 Jesse selected #91 as the base and rejected importing #90 or its SQL. Keep the

@@ -1,5 +1,22 @@
 # Feedback & polish tracker
 
+## November 17 — screenshot corrections, delivered one slice at a time
+
+- **This branch:** remove temporary drop-down app banners; keep court-name width
+  and live-count placement stable when checking in. Shared court headers centre
+  the count for one-, two- and three-line names. Evidence:
+  `docs/product/design-qa/2026-11-17-court-header/README.md`.
+- **Next UI slice:** Settings' nested court drawer uses equal header/search/card
+  spacing, its explanatory copy stays at the bottom, and removal belongs to the
+  individual court. Explore uses LOCAL LIST with the same section-label style
+  as HOUSTON COURTS, without the separate logo treatment.
+- **Following functional slices:** LocalPlus court additions persist across
+  restart; Home switches between saved courts without changing the default;
+  Settings' existing star persists the real default. Keep #92's current design.
+- **Following notification slice:** manual and automatic check-ins both produce
+  the intended push notifications; verify actual delivery rather than inferring
+  it from fixture inbox rows. No delivery/timing change is claimed in this slice.
+
 ## November 14 — approved #91 frontend pass
 
 - Implemented on `codex/inbox-locallist-home`: compact inbox all-type rows;

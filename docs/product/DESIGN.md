@@ -1,5 +1,17 @@
 # LocalCheck Design System
 
+## November 17 — action feedback and wrapped court titles
+
+Jesse removed the temporary drop-down action banners. Existing useToast calls
+now provide tactile/screen-reader feedback only. The notification inbox and OS
+notification handling are separate from this visual change.
+
+CourtTitleRow keeps a fixed live column (88pt card, 96pt page) and centres it
+vertically against the court identity. Checking in must not change the available
+title width. Court names wrap naturally at their existing type size; the count
+and label remain centred together when the name takes multiple lines. The same
+component owns Home, Explore cards, the drawer and the full court header.
+
 ## November 14 — Home and LocalList frontend
 
 Preserve current shared artwork and controls. Home's court hero is a fixed
@@ -269,7 +281,7 @@ Canonical component ownership:
 | Tab-bar floor / bottom padding | `TabFloor` (`useBottomFloor`, `useSheetBottomPadding`) |
 | Hide score switch              | `HideScoreToggle`   |
 | Press feedback                 | `PressableScale`    |
-| Confirmation after an action   | `useToast()` (`Toast.tsx`) |
+| Action haptic / spoken feedback | `useToast()` (`Toast.tsx`); no visual banner |
 | Animated score / stat number   | `RollingNumber`     |
 | Final score (1v1 and teams)    | `ScoreCard` (+ `GameStateBanner`) |
 | Margin / series line           | `ShareLine`         |
@@ -569,9 +581,9 @@ Table stakes, checked on every UI change:
 - **Every tappable card, row and button gives press feedback** through
   `PressableScale` (or `BrutalistButton`, which uses it).
 - **Numbers that change roll** (`RollingNumber`): scores, ELO, stats.
-- **Actions confirm with a toast** (`useToast().showToast`), a success haptic,
-  swipe up or tap to dismiss, auto-hide at 3.5s. Check-in and score logging use
-  it.
+- **Action feedback** (`useToast().showToast`) provides a native haptic and
+  screen-reader announcement. Temporary drop-down banners were removed by
+  Jesse on November 17; the updated screen state supplies the visual result.
 - Reduce Motion is honored everywhere (`useReducedMotion`): springs and rolls
   collapse to the final state.
 - Only Expo Go-safe libraries (Reanimated 4 CSS transitions and springs,
