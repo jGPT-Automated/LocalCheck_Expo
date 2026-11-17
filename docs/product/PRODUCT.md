@@ -1,5 +1,37 @@
 # Product context
 
+## November 17 — first screenshot correction on #92
+
+Actions no longer display temporary drop-down banners inside the app. Their
+screen state still updates, with existing native tactile feedback and spoken
+feedback for screen-reader users. Court headers keep the name/count layout
+stable after check-in and centre the count beside names that wrap.
+
+## November 14 — branch UI preview
+
+The #91 follow-up prepares LocalList: LocalPlus users add courts from the court
+plus and see the same list on Explore, Settings and Home. Settings' star chooses
+the default first court; page selectors only change the view. This pass stores
+the extra list/default only in memory, not in the backend or device storage.
+
+Home's fixed LOCALCHECK header shows a five-minute automatic pending countdown
+or elapsed confirmed session time. Cancel/Post controls stay by the hero;
+Post awaits the separate backend action and is disabled. Manual check-in posts
+immediately and has no new waiting window. Compact inbox history remains
+independent of phone-alert preference, with recorded own-event metadata.
+
+## Notifications log — November 8 frontend slice
+
+The Notifications screen lists existing own-event notices and incoming alerts
+newest first. It loads 20 at a time with Load more, uses exact local date/time,
+and keeps unread status separate from event visibility. Phone-alert opt-out
+does not remove inbox history. An own-event audience label appears only when
+the notification payload explicitly includes visibility; absent historical
+metadata is not guessed. Complete own manual-event history and historical
+privacy snapshots await backend implementation after UI approval.
+
+
+
 LocalCheck is the live layer for local pickup sports. It helps players
 understand a court before leaving home, check in when they arrive, organize the
 next run, and recognize the people who make a court a community. Launch sports

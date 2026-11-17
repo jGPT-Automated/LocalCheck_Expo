@@ -51,15 +51,22 @@ export function CourtSheetProvider({
   const modalRef = useRef<BottomSheetModal>(null);
   const [args, setArgs] = useState<OpenArgs | null>(null);
   const [peekHeight, setPeekHeight] = useState(320);
+  const isOpen = useRef(false);
 
   const openCourtSheet = useCallback((next: OpenArgs) => {
+    isOpen.current = true;
     setArgs(next);
     // present() after state lands so content renders with the right court
     requestAnimationFrame(() => modalRef.current?.present());
   }, []);
 
   const closeCourtSheet = useCallback(() => {
+    isOpen.current = false;
+    resnapPending.current = false;
     modalRef.current?.dismiss();
+    // Release the interactive content before navigation; a late layout/snap
+    // must not leave an invisible view intercepting the destination's taps.
+    setArgs(null);
   }, []);
 
   // Tap-to-expand affordance — the swipe gesture has no mouse equivalent on web
@@ -86,27 +93,26 @@ export function CourtSheetProvider({
   const resnapPending = useRef(false);
   useEffect(() => {
     // Next frame: the sheet picks up the new snap points first.
-    if (sheetIndex.current === 0) requestAnimationFrame(() => modalRef.current?.snapToIndex(0));
+    if (sheetIndex.current === 0) requestAnimationFrame(() => { if (isOpen.current) modalRef.current?.snapToIndex(0); });
     else resnapPending.current = true;
   }, [peekHeight]);
 
   return (
     <CourtSheetContext.Provider value={api}>
       {children}
-      <AppBottomSheetModal
+      {args && <AppBottomSheetModal
         ref={modalRef}
         snapPoints={snapPoints}
         compactHandle
         onChange={(index) => {
           sheetIndex.current = index;
-          if (index === 0 && resnapPending.current) {
+          if (index === 0 && resnapPending.current && isOpen.current) {
             resnapPending.current = false;
-            requestAnimationFrame(() => modalRef.current?.snapToIndex(0));
+            requestAnimationFrame(() => { if (isOpen.current) modalRef.current?.snapToIndex(0); });
           }
         }}
-        onDismiss={() => setArgs(null)}
+        onDismiss={() => { isOpen.current = false; setArgs(null); }}
       >
-        {args && (
           <CourtSheetContent
             courtId={args.courtId}
             distanceKm={args.distanceKm}
@@ -116,8 +122,7 @@ export function CourtSheetProvider({
               setPeekHeight(Math.ceil(height + DRAWER_HANDLE_HEIGHT))
             }
           />
-        )}
-      </AppBottomSheetModal>
+      </AppBottomSheetModal>}
     </CourtSheetContext.Provider>
   );
 }

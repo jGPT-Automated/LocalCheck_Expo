@@ -18,6 +18,9 @@ import {
 
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { CourtListItem } from "@/components/CourtListItem";
+import { LocalListCards } from "@/components/court/LocalListCards";
+import { LogoMark } from "@/components/brand/LogoMark";
+import { useLocalList } from "@/context/LocalListContext";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { MapScreen } from "@/components/MapScreen";
 import { ScreenHeader } from "@/components/ScreenHeader";
@@ -47,6 +50,7 @@ const DISCOVERY_LIMIT = 10;
 const COLLAPSED_LIMIT = 5;
 
 export function CourtsScreen() {
+  const { courts: listCourts } = useLocalList();
   const {
     visitCourt,
     preferredSport,
@@ -207,10 +211,11 @@ export function CourtsScreen() {
   const countTargets = useMemo(() => {
     const byId = new Map<string, Court>();
     if (localCourt) byId.set(localCourt.id, localCourt);
+    for (const court of listCourts) byId.set(court.id, court);
     for (const court of isSearchMode ? searchResults : nearbyCourts)
       byId.set(court.id, court);
     return Array.from(byId.values());
-  }, [isSearchMode, localCourt, nearbyCourts, searchResults]);
+  }, [isSearchMode, localCourt, listCourts, nearbyCourts, searchResults]);
   const liveCounts = useCourtCounts(countTargets);
   const withLiveCounts = useCallback(
     (court: Court) => {
@@ -234,7 +239,7 @@ export function CourtsScreen() {
   const listSource = (
     isSearchMode
       ? searchResults
-      : nearbyCourts.filter((court) => court.id !== localCourtId)
+      : nearbyCourts.filter((court) => !listCourts.some(saved => saved.id === court.id))
   )
     .map(withLiveCounts)
     // Live first (most on court), then the original nearest-first order.
@@ -328,17 +333,16 @@ export function CourtsScreen() {
             Platform.OS === "ios" ? "interactive" : "on-drag"
           }
         >
-          {!isSearchMode && localCourtLive && (
+          {!isSearchMode && listCourts.length > 0 && (
             <View style={styles.localSection}>
-              <Text style={styles.sectionLabel}>MY LOCAL COURT</Text>
-              <CourtListItem
-                court={localCourtLive}
-                onPress={openCourt}
-              />
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 20, paddingBottom: 6 }}>
+                <LogoMark size={16} /><Text style={[styles.sectionLabel, { paddingHorizontal: 0, fontSize: 11 }]}>LocalList</Text>
+              </View>
+              <LocalListCards onSelect={openCourt} />
             </View>
           )}
 
-          {!isSearchMode && !localCourtLive && (
+          {!isSearchMode && listCourts.length === 0 && (
             <View style={styles.noLocalState}>
               <Feather name="home" size={20} color={Colors.muted} />
               <Text style={styles.noLocalTitle}>NO LOCAL COURT SET</Text>

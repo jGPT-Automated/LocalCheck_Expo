@@ -1,5 +1,20 @@
 # Release and rollback
 
+## November 17 — #92 phone-update authorization
+
+Jesse explicitly requested merging #92 and publishing its OTA. The candidate
+retains version/runtime 1.0.4, SDK54, app configuration, native dependencies
+and the lockfile from build46; package changes are test scripts only. The
+verified EAS binary is build46, `3fea431a-a13b-4a4a-b035-766d5ad99470`, built
+October31 from `a606de3` on the production channel. This does not identify
+the build/update currently installed on any individual phone.
+
+Use the existing `publish-production-ota.yml` workflow from the exact merged
+revision. It publishes to all compatible production installs. Record the
+merge SHA, workflow and update IDs in [PR #92](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/92)
+as the execution receipt. This authorization covers that merge/OTA; it does
+not authorize a native build, App Store submission or database change.
+
 Four paths. The two previews are automatic; builds and production updates are
 started by hand. Nothing builds or ships to players on merge (D22).
 

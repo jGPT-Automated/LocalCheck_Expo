@@ -6,6 +6,12 @@ import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { BrutalistButton } from "@/components/BrutalistButton";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { HomeCourtCarousel } from "@/components/home/HomeCourtCarousel";
+import { HomeSessionStatus } from "@/components/home/HomeSessionStatus";
+import { homeCheckInStatus } from "@/components/home/homeStatusModel";
+import { LocalListCards } from "@/components/court/LocalListCards";
+import { FormSheet } from "@/components/sheet/FormSheet";
+import { useLocalList } from "@/context/LocalListContext";
 import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
 import { CourtDayPlanner } from "@/components/court/CourtDayPlanner";
 import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewSections";
@@ -29,9 +35,8 @@ import { fetchCourtWeekSpans } from "@/services/courtService";
  */
 export function HomeScreen() {
   const {
-    localCourt,
-    localCourtId,
     checkedInCourtId,
+    checkedInStartedAt,
     pendingAutoCheckIn,
     hideAutoCheckIn,
     checkIn,
@@ -40,13 +45,27 @@ export function HomeScreen() {
     runs,
     refreshCheckedIn,
   } = useApp();
+  const { courts: listCourts, defaultCourt } = useLocalList();
+  const [viewCourtId, setViewCourtId] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const localCourt = listCourts.find(court => court.id === viewCourtId) ?? defaultCourt;
+  const localCourtId = localCourt?.id ?? null;
+  React.useEffect(() => { setViewCourtId(defaultCourt?.id ?? null); }, [defaultCourt?.id]);
+  const [now, setNow] = useState(Date.now());
+  React.useEffect(() => {
+    if (!checkedInCourtId && !pendingAutoCheckIn) return;
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [checkedInCourtId, pendingAutoCheckIn]);
+  const status = homeCheckInStatus({ now, activeCourtId: checkedInCourtId, startedAt: checkedInStartedAt, pending: pendingAutoCheckIn });
   const { roster, localCount } = usePresence(localCourtId);
-  const liveCounts = useCourtCounts(localCourt ? [localCourt] : []);
+  const liveCounts = useCourtCounts(listCourts);
   const { user } = useAuth();
   const tabFloor = useBottomFloor();
   const scroll = React.useRef<ScrollView>(null);
   const [isChecking, setIsChecking] = useState(false);
-  const [hoursLabel, setHoursLabel] = useState("0h");
+  const [courtHoursLabels, setCourtHoursLabels] = useState<Record<string, string>>({});
   const { showToast } = useToast();
 
 
@@ -61,7 +80,7 @@ export function HomeScreen() {
       if (!localCourtId) return;
       let active = true;
       void fetchCourtWeekSpans(localCourtId).then((spans) => {
-        if (active) setHoursLabel(formatCourtHours(courtHours(spans).hours));
+        if (active) setCourtHoursLabels(previous => ({ ...previous, [localCourtId]: formatCourtHours(courtHours(spans).hours) }));
       });
       return () => {
         active = false;
@@ -79,7 +98,6 @@ export function HomeScreen() {
   const statsActive = liveCounts[localCourt.id]?.activeCount ?? 0;
   const activeTotal = Math.max(roster.length, statsActive);
   const activeLabel = `${activeTotal > roster.length ? "~" : ""}${activeTotal}`;
-  const now = Date.now();
   const upcoming = runs
     .filter((run) => run.courtId === localCourt.id && Date.parse(run.startTimeIso) >= now - 60 * 60_000)
     .sort((a, b) => a.startTimeIso.localeCompare(b.startTimeIso));
@@ -108,10 +126,29 @@ export function HomeScreen() {
     }
   };
 
+  const cancelPending = async () => {
+    if (isChecking) return;
+    setIsChecking(true);
+    try {
+      if (!(await hideAutoCheckIn())) showToast({ title: "Couldn't cancel", body: "Try again.", icon: "alert-circle" });
+    } finally { setIsChecking(false); }
+  };
+
+
 
   return (
     <ScreenViewport>
-      <ScreenHeader title="LOCALCHECK" />
+      <ScreenHeader title="LOCALCHECK" active={Boolean(status)} right={status ? <HomeSessionStatus status={status} /> : undefined} />
+
+      <HomeCourtCarousel courts={listCourts} selectedId={localCourt.id} onSelect={court => setViewCourtId(court.id)}>
+        {court => {
+          const count = liveCounts[court.id]?.activeCount ?? (court.id === localCourt.id ? activeTotal : court.activeCount ?? 0);
+          const next = runs.filter(run => run.courtId === court.id && Date.parse(run.startTimeIso) >= now - 60 * 60_000).sort((a, b) => a.startTimeIso.localeCompare(b.startTimeIso));
+          return <HomeCourtHero court={court} activeCount={court.id === localCourt.id ? activeLabel : String(count)} live={count > 0}
+            localCount={court.id === localCourt.id ? localCount : liveCounts[court.id]?.localCount ?? court.localCount ?? 0}
+            hoursLabel={courtHoursLabels[court.id] ?? "—"} nextGame={nextGameLabel(next[0], now)} onChooseCourt={() => setPickerOpen(true)} />;
+        }}
+      </HomeCourtCarousel>
 
       <ScrollView
         ref={scroll}
@@ -120,26 +157,18 @@ export function HomeScreen() {
         bounces={false}
         overScrollMode="never"
         showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[0]}
         style={styles.scroll}
       >
-        {/* Pinned: the court's title row and its numbers. */}
-        <HomeCourtHero
-          activeCount={activeLabel}
-          court={localCourt}
-          hoursLabel={hoursLabel}
-          live={activeTotal > 0}
-          localCount={localCount}
-          nextGame={nextGameLabel(upcoming[0], now)}
-        />
         <HomeCourtActions
           courtName={localCourt.shortName || localCourt.name}
           isCheckedIn={isCheckedIn}
           isChecking={isChecking}
           onCheckIn={() => void handleCheckIn()}
           onViewCourt={() => router.push(`/court/${localCourt.id}`)}
+          pending={waitingToPost}
+          onCancel={() => void cancelPending()}
         />
-        <AutoCheckInNote courtId={localCourt.id} />
+        {!waitingToPost ? <AutoCheckInNote courtId={localCourt.id} /> : null}
         <View style={styles.hereNow}>
           <HereNowSection
             isFriend={isFriend}
@@ -158,7 +187,11 @@ export function HomeScreen() {
           <CourtDayPlanner court={localCourt} games={upcoming} liveCount={activeTotal} onReveal={() => scroll.current?.scrollToEnd({ animated: false })} />
         </View>
       </ScrollView>
-
+      {pickerOpen ? <FormSheet visible onClose={() => setPickerOpen(false)} title="LocalList">
+        <ScrollView testID="home-court-picker" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: tabFloor }}>
+          <LocalListCards selectedId={localCourt.id} onSelect={court => { setViewCourtId(court.id); setPickerOpen(false); }} />
+        </ScrollView>
+      </FormSheet> : null}
     </ScreenViewport>
   );
 }

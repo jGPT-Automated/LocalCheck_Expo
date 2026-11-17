@@ -75,7 +75,7 @@ export function SportLabel({ sport, suffix }: { sport: CourtSport; suffix?: stri
  * Home's top-right). Where it isn't your local, a tap makes it your local and
  * the check springs in; once it is, the mark does nothing (Settings changes it).
  */
-export function LocalMark({ active, onPress }: { active: boolean; onPress?: () => void }) {
+export function LocalMark({ active, onPress, list = false }: { active: boolean; onPress?: () => void; list?: boolean }) {
   const pop = React.useRef(new Animated.Value(active ? 1 : 0)).current;
   const wasActive = React.useRef(active);
   React.useEffect(() => {
@@ -111,8 +111,8 @@ export function LocalMark({ active, onPress }: { active: boolean; onPress?: () =
     <View pointerEvents="box-none">
       {tappable ? (
         <Pressable
-          accessibilityHint="Sets this as your local court"
-          accessibilityLabel="Set as local court"
+          accessibilityHint={list ? "Adds this court to LocalList" : "Sets this as your local court"}
+          accessibilityLabel={list ? "Add to LocalList" : "Set as local court"}
           accessibilityRole="button"
           onPress={onPress}
           style={({ pressed }) => pressed && styles.pressed}
@@ -120,7 +120,7 @@ export function LocalMark({ active, onPress }: { active: boolean; onPress?: () =
           {body}
         </Pressable>
       ) : (
-        <View accessibilityLabel={active ? "Your local court" : "Not your local court"} accessible>
+        <View accessibilityLabel={active ? list ? "In LocalList" : "Your local court" : "Not your local court"} accessible>
           {body}
         </View>
       )}
@@ -141,6 +141,7 @@ export function CourtTitleRow({
   liveValue,
   live,
   liveAccessibilityLabel,
+  onChooseCourt,
   size = "card",
 }: {
   sport: CourtSport;
@@ -149,32 +150,36 @@ export function CourtTitleRow({
   liveValue: string | number;
   live: boolean;
   liveAccessibilityLabel?: string;
+  onChooseCourt?: () => void;
   size?: "card" | "page";
 }) {
   const page = size === "page";
+  const valueSize = (page ? 46 : 40) * Math.min(1, 4 / String(liveValue).length);
   // A long name loses its trailing "Courts" / "Court" rather than ending in
   // "…" ("SAND BRANCH COURTS" reads as "SAND BRANCH").
   const shown = name.length > 14 ? name.replace(/\s+courts?$/i, "") : name;
   return (
-    <View style={styles.titleRow}>
-      <View style={styles.titleBlock}>
+    <View testID="court-title-row" style={styles.titleRow}>
+      <View testID="court-title-copy" style={styles.titleBlock}>
         <SportLabel sport={sport} />
+        {onChooseCourt ? <Pressable onPress={onChooseCourt} accessibilityRole="button" accessibilityLabel="Choose court" style={styles.titleChoice}>
         <Text
-          adjustsFontSizeToFit
-          minimumFontScale={0.6}
-          numberOfLines={1}
-          style={[styles.titleName, page && styles.titleNamePage]}
+          testID="court-title-name"
+          style={[styles.titleName, page && styles.titleNamePage, styles.selectableTitle]}
         >
           {shown}
         </Text>
+        <Feather name="chevron-down" size={18} color={Colors.textSecondary} />
+        </Pressable> : <Text testID="court-title-name" style={[styles.titleName, page && styles.titleNamePage]}>{shown}</Text>}
         {place ? <Text numberOfLines={1} style={styles.titlePlace}>{place}</Text> : null}
       </View>
       <View
         accessibilityLabel={liveAccessibilityLabel ?? `${liveValue} on court`}
         accessible
-        style={styles.liveBlock}
+        testID="court-live-block"
+        style={[styles.liveBlock, page && styles.liveBlockPage]}
       >
-        <Text style={[styles.liveValue, page && styles.liveValuePage, live && styles.liveValueOn]}>{liveValue}</Text>
+        <Text numberOfLines={1} style={[styles.liveValue, page && styles.liveValuePage, live && styles.liveValueOn, { fontSize: Math.max(11, valueSize) }]}>{liveValue}</Text>
         <View style={styles.liveLabelRow}>
           {live ? <LiveDot /> : null}
           <Text style={styles.liveLabel}>On court</Text>
@@ -420,8 +425,10 @@ const styles = StyleSheet.create({
   pillDisabled: { opacity: 0.4 },
   pillText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: "uppercase", color: Colors.textSecondary },
   pillTextActive: { color: Colors.text },
-  titleRow: { flexDirection: "row", alignItems: "flex-end", gap: 16, paddingHorizontal: 20 },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 16, paddingHorizontal: 20 },
   titleBlock: { flex: 1, minWidth: 0, gap: 6 },
+  titleChoice: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 },
+  selectableTitle: { flex: 1, minWidth: 0 },
   titleName: {
     // Oswald's line box carries more space above the caps than below; this
     // evens the ink gaps above and below the name (measured: 14pt vs 11.5pt).
@@ -438,7 +445,9 @@ const styles = StyleSheet.create({
   },
   titleNamePage: { fontSize: 34, lineHeight: 37, letterSpacing: -1.1 },
   titlePlace: { fontFamily: Typography.bodyMedium, fontSize: 11, color: Colors.textSecondary },
-  liveBlock: { flexShrink: 0, alignItems: "flex-end", paddingBottom: 1 },
+  // Reserve the same column before/after check-in, including four-digit counts.
+  liveBlock: { width: 88, flexShrink: 0, alignItems: "center", justifyContent: "center" },
+  liveBlockPage: { width: 96 },
   liveValue: { fontFamily: Typography.headingBold, fontSize: 40, lineHeight: 42, letterSpacing: -1.2, color: Colors.text, fontVariant: ["tabular-nums"] },
   liveValuePage: { fontSize: 46, lineHeight: 48, letterSpacing: -1.4 },
   liveValueOn: { color: Colors.liveInk },

@@ -1,5 +1,47 @@
 # LocalCheck Design Decisions
 
+## November 17 — remove temporary banners; keep court headers aligned
+
+Jesse requested removal of the in-app drop-down action banners for now, rather
+than another banner redesign. Court names may wrap; the live number and ON COURT
+label must stay centred as one group beside the whole court identity, and a
+check-in must not narrow the court name. Implement this through the shared court
+header so Home, cards, drawer and court page remain consistent. The Settings
+drawer/Explore label corrections and durable LocalList follow separately.
+
+## November 14 — #91, LocalList and informational Home header
+
+Jesse selected #91 as the base and rejected importing #90 or its SQL. Keep the
+compact notification inbox; all incoming and manual/automatic own-event row
+presentations use recorded metadata. Push off does not disable inbox reads.
+
+LOCALCHECK and its bracket mark remain at the header's left; timer/status only
+on the right. No header action buttons. Automatic pending uses its existing
+five-minute countdown with Cancel/Post in the hero action area. Manual posting
+has no grace period; after either source posts, show elapsed session time.
+Do not resize the existing check-in control or move its neighboring court arrow.
+
+LocalList uses existing court heroes: add from court plus, list below default
+on Explore, search first in the Settings drawer, and a simple star for default.
+Settings chooses the default; Home dropdown/swipe/indicator and other selectors
+change only their page view. This is a frontend pass; list persistence and
+early Post's atomic action await backend implementation. Auto at all list
+courts versus a toggle on each court remains undecided. Reuse bracket branding
+subtly; no new branding animation is required.
+
+## 2026-11-08 — Compact notification log
+
+Jesse selected rows rather than cards, a combined own-event/incoming timeline,
+exact timestamps, 20 initial entries and Load more in batches of 20. Remove
+large icon tiles and align title/body text beside an unread gutter. Preserve
+historical privacy, never infer it from the current profile. UI is shown
+before backend changes for the combined log. This branch implements the
+presentation/paging of existing notifications; missing manual events and
+privacy snapshot capture remain the next backend slice. No native build or
+OTA is part of this preview PR.
+
+
+
 Status: Current MVP decisions. Newer decisions supersede older entries; every
 superseded entry stays here and names what replaced it ("Revised by …" or
 "Superseded by …"). `scripts/check-docs-consistency.mjs` checks that every

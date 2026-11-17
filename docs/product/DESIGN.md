@@ -1,5 +1,57 @@
 # LocalCheck Design System
 
+## November 17 — action feedback and wrapped court titles
+
+Jesse removed the temporary drop-down action banners. Existing useToast calls
+now provide tactile/screen-reader feedback only. The notification inbox and OS
+notification handling are separate from this visual change.
+
+CourtTitleRow keeps a fixed live column (88pt card, 96pt page) and centres it
+vertically against the court identity. Checking in must not change the available
+title width. Court names wrap naturally at their existing type size; the count
+and label remain centred together when the name takes multiple lines. The same
+component owns Home, Explore cards, the drawer and the full court header.
+Approximate values such as ~1000 scale inside that reserved column instead of
+overflowing it; ordinary one-to-four-digit values retain their existing size.
+
+## November 14 — Home and LocalList frontend
+
+Preserve current shared artwork and controls. Home's court hero is a fixed
+sibling directly beneath ScreenHeader, without a scroll-through gap. Keep
+LOCALCHECK left; pending/active status and timer right, with orange background
+and dark readable text/mark. Controls stay in HomeCourtActions. The court-page
+arrow remains beside Check in, not next to the live count. The planner/Up next
+order is unchanged from #91. Title selection adds a dropdown chevron; horizontal
+court paging has short lines and a distinct active line with accessible tabs.
+Long court names may wrap to two lines instead of truncating, including the
+selected Home title beside the chevron and the canonical list cards.
+
+Explore LocalList and Settings compose CourtListItem, CourtTitleRow and CourtArt.
+Settings search precedes the cards; card/search gutters align. Default is first
+with a star; a separate star control chooses it. Home and Schedule selections
+do not change it. LocalList is spelled as one word; use existing LogoMark for
+the small Explore section mark, without a new gimmick or drawing.
+
+Own manual and automatic inbox rows share the compact row, source and recorded
+audience treatment. Unknown historical audience stays absent. Explicit manual
+types are presentation-ready; no backend writer is implied.
+
+Court-drawer navigation releases its modal content before pushing the court
+page; late layout callbacks cannot reopen an invisible layer over the tabs.
+
+## Notifications rows — November 8
+
+Use the shared DetailHeader, color and typography tokens, and a virtualized
+plain list. No large event-icon tiles or cards. The unread dot has its own
+20pt gutter; title, body and timestamp share a left edge. Sentence-case event
+headings and exact local timestamps replace mixed caps and relative age.
+Own-event audience metadata uses installed Feather lock/users/globe icons
+with explicit Private · Only you / Friends / Public labels, only when stored
+in that event's payload. No invented patterned privacy symbols and no current
+profile visibility substituted for historical metadata. Load more adds 20.
+
+
+
 Status: Authoritative MVP contract
 
 Version: 3.0.4
@@ -231,7 +283,7 @@ Canonical component ownership:
 | Tab-bar floor / bottom padding | `TabFloor` (`useBottomFloor`, `useSheetBottomPadding`) |
 | Hide score switch              | `HideScoreToggle`   |
 | Press feedback                 | `PressableScale`    |
-| Confirmation after an action   | `useToast()` (`Toast.tsx`) |
+| Action haptic / spoken feedback | `useToast()` (`Toast.tsx`); no visual banner |
 | Animated score / stat number   | `RollingNumber`     |
 | Final score (1v1 and teams)    | `ScoreCard` (+ `GameStateBanner`) |
 | Margin / series line           | `ShareLine`         |
@@ -531,9 +583,9 @@ Table stakes, checked on every UI change:
 - **Every tappable card, row and button gives press feedback** through
   `PressableScale` (or `BrutalistButton`, which uses it).
 - **Numbers that change roll** (`RollingNumber`): scores, ELO, stats.
-- **Actions confirm with a toast** (`useToast().showToast`), a success haptic,
-  swipe up or tap to dismiss, auto-hide at 3.5s. Check-in and score logging use
-  it.
+- **Action feedback** (`useToast().showToast`) provides a native haptic and
+  screen-reader announcement. Temporary drop-down banners were removed by
+  Jesse on November 17; the updated screen state supplies the visual result.
 - Reduce Motion is honored everywhere (`useReducedMotion`): springs and rolls
   collapse to the final state.
 - Only Expo Go-safe libraries (Reanimated 4 CSS transitions and springs,

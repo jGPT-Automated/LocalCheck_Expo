@@ -1,5 +1,47 @@
 # Feedback & polish tracker
 
+## November 17 — screenshot corrections, delivered one slice at a time
+
+- **This branch:** remove temporary drop-down app banners; keep court-name width
+  and live-count placement stable when checking in. Shared court headers centre
+  the count for one-, two- and three-line names. Evidence:
+  `docs/product/design-qa/2026-11-17-court-header/README.md`.
+- **Next UI slice:** Settings' nested court drawer uses equal header/search/card
+  spacing, its explanatory copy stays at the bottom, and removal belongs to the
+  individual court. Explore uses LOCAL LIST with the same section-label style
+  as HOUSTON COURTS, without the separate logo treatment.
+- **Following functional slices:** LocalPlus court additions persist across
+  restart; Home switches between saved courts without changing the default;
+  Settings' existing star persists the real default. Keep #92's current design.
+- **Following notification slice:** manual and automatic check-ins both produce
+  the intended push notifications; verify actual delivery rather than inferring
+  it from fixture inbox rows. No delivery/timing change is claimed in this slice.
+
+## November 14 — approved #91 frontend pass
+
+- Implemented on `codex/inbox-locallist-home`: compact inbox all-type rows;
+  LOCALCHECK informational orange header/countdown/elapsed clock; hero-only
+  Cancel/Post; keep court arrow beside Check in; flush fixed hero/header.
+- LocalList: Explore existing hero cards/default marker; Settings search above
+  aligned heroes and explicit star default; Home title dropdown, horizontal
+  pager and short indicator lines; Schedule view selection. In-memory UI only.
+- Early Post is intentionally disabled until an atomic backend action exists;
+  no manual delay is added, no #90 SQL imported, no backend mutation/release.
+- Latest instructions here supersede the older one-minute manual-notice
+  proposal below; that proposal is not implemented by this pass.
+- Three-size isolated UI journey passed: add court, dropdown/scroll selection,
+  default star, Schedule view independence, 12 inbox row types, paging/read-all,
+  pending Cancel, immediate manual check-in and automatic elapsed time.
+  Screenshots/results: `docs/product/design-qa/2026-11-14-locallist-home/README.md`.
+
+- Nov 8 (**PR #91 frontend verified in isolated Expo web renders**): 375/393/430
+  captures, seven paging/read/error/presentation cases per size, 43 unique
+  entries including a timestamp tie, title/body left edges 40px, zero audited
+  layout failures/debt. Full pnpm check and export passed; remote quality,
+  docs and Expo-preview checks passed for application commit 205dc8f.
+  Evidence: `docs/product/design-qa/2026-11-08-notifications/README.md`.
+  No native-device, push-trigger, historical-privacy or OTA claim.
+
 Status: Living tracker. **This is the source of truth for what Jesse has
 flagged, whether it's been handled, and which commit/branch/PR it landed in.**
 Any agent picking up UI/polish work on this repo should read this file first
@@ -20,6 +62,31 @@ docs:
 Keep entries terse. When an item ships, mark it ✅ and record the commit SHA —
 don't delete the row; the history of what was asked and when it landed is the
 point.
+
+## 2026-11-08 — Notification log and check-in delivery
+
+- On branch `codex/notification-log-ui`: existing inbox compact-row presentation
+  and 20-row cursor pagination; screenshot/interaction evidence in
+  `docs/product/design-qa/2026-11-08-notifications/`. No backend release.
+
+- Decided: one compact chronological list combining own events and incoming
+  notifications, 20 initially and Load more in batches of 20. Exact local
+  timestamps; sentence case; remove large icon tiles; unread marker in its
+  own gutter so titles and descriptions align. Own events retain historical
+  Private/Friends/Public visibility. UI must be shown before implementing
+  backend changes for the combined log. Design currently deferred for testing.
+- In progress: manual check-in alerts after one minute, auto still five;
+  sender sharing and recipient friendship/preferences/blocking must be
+  respected. Local migration draft only; not applied or phone-tested.
+- Verified live DB with rollback: owner/friend/non-friend visibility across
+  three privacy modes, plus blocked viewer, for check-in and activity rows.
+  Manual check-in generated zero friend notices. See CURRENT_STATE.md.
+- Confirmed by Jesse's screenshot: the custom delivery-test entry reached his
+  inbox. This is not check-in-trigger or privacy evidence. Actual 8:44 PM auto
+  event notification rows/push status observed; phone receipt awaits Jesse.
+- Pending: recipient preference matrix (tool confirmation expired without
+  executing), actual friend-to-Jesse phone delivery and manual-flow retest
+  after its fix. No release-readiness claim from these partial results.
 
 ## 2026-11-03 — PR #89 external-review correction
 

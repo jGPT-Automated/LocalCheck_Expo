@@ -83,6 +83,7 @@ interface AppContextValue {
   currentUser: Player;
   courts: Court[];
   checkedInCourtId: string | null;
+  checkedInStartedAt: string | null;
   /** The active check-in came from auto check-in (D35): show "Hide". */
   checkedInAuto: boolean;
   /** Arrived at the local court, posting in under 5 minutes (D52). */
@@ -210,6 +211,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [courts, setCourts] = useState<Court[]>([]);
   const [localCourt, setLocalCourtObj] = useState<Court | null>(null);
   const [checkedInCourtId, setCheckedInCourtId] = useState<string | null>(null);
+  const [checkedInStartedAt, setCheckedInStartedAt] = useState<string | null>(null);
   const [checkedInAuto, setCheckedInAuto] = useState(false);
   const [pendingAutoCheckIn, setPendingAutoCheckIn] = useState<PendingAutoCheckIn | null>(null);
   const [lastVisitedCourtId, setLastVisitedCourtId] = useState<string | null>(null);
@@ -347,6 +349,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       fetchPendingAutoCheckIn(),
     ]);
     setCheckedInCourtId(active?.courtId ?? null);
+    setCheckedInStartedAt(active?.startedAt ?? null);
     setCheckedInAuto(active?.auto ?? false);
     setPendingAutoCheckIn(pending);
     // Visibility is the profile-level setting now (see the profile effect),
@@ -614,7 +617,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const ok = await checkInToCourt(courtId, undefined, visibility);
       if (ok) {
         setCheckedInCourtId(courtId);
+        setCheckedInStartedAt(null);
         setCheckedInAuto(false);
+        await refreshCheckedIn();
         setLastVisitedCourtId(courtId);
         void refreshCheckInCount();
       }
@@ -626,7 +631,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       refreshFeed();
       return Boolean(ok);
     },
-    [userId, visibility, checkedInCourtId, refreshPresence, refreshFeed, refreshCheckInCount]
+    [userId, visibility, checkedInCourtId, refreshPresence, refreshFeed, refreshCheckInCount, refreshCheckedIn]
   );
 
   const checkOut = useCallback(async () => {
@@ -635,6 +640,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const ok = await checkOutOfCourt(userId);
     if (ok) {
       setCheckedInCourtId(null);
+      setCheckedInStartedAt(null);
       void refreshCheckInCount();
     }
     if (prevCourtId) refreshPresence(prevCourtId);
@@ -900,6 +906,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         currentUser,
         courts,
         checkedInCourtId,
+        checkedInStartedAt,
         checkedInAuto,
         pendingAutoCheckIn,
         hideAutoCheckIn,

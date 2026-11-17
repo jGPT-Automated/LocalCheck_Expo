@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 
 import { CourtArt } from "@/components/court/CourtArt";
 import { CourtTitleRow } from "@/components/court/CourtParts";
@@ -10,6 +10,7 @@ import type { Court } from "@/constants/data";
 interface CourtListItemProps {
   court: Court;
   onPress?: (court: Court) => void;
+  style?: StyleProp<ViewStyle>;
 }
 
 /**
@@ -18,7 +19,7 @@ interface CourtListItemProps {
  * the right). No numbers strip and no local mark: tapping the card opens the
  * court drawer, which carries the same title row plus the strip and actions.
  */
-export function CourtListItem({ court, onPress }: CourtListItemProps) {
+export function CourtListItem({ court, onPress, style }: CourtListItemProps) {
   const active = court.activeCount ?? 0;
   const distance =
     court.distanceKm != null && !Number.isNaN(court.distanceKm)
@@ -32,7 +33,7 @@ export function CourtListItem({ court, onPress }: CourtListItemProps) {
       accessibilityRole={onPress ? "button" : undefined}
       disabled={!onPress}
       onPress={onPress ? () => onPress(court) : undefined}
-      style={styles.card}
+      style={[styles.card, style]}
       testID={`court-${court.id}`}
     >
       {/* Centred on the name, as it was when the card had the numbers strip. */}

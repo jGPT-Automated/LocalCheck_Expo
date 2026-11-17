@@ -1,5 +1,6 @@
+import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Href, useRouter } from "expo-router";
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef } from "react";
 import { AppState, DeviceEventEmitter, Platform } from "react-native";
 
 import { useAuth } from "@/context/AuthContext";
@@ -16,7 +17,10 @@ import { resumeAutoCheckIn, undoAutoCheckIn } from "@/services/autoCheckInServic
 import { canAutoPromptPush } from "@/lib/onboardingGate";
 import {
   AppNotification,
-  fetchNotifications,
+  fetchNotificationPage,
+  fetchUnreadNotificationCount,
+  NotificationCursor,
+  NotificationPage,
   markAllNotificationsRead,
   markNotificationRead,
   setPushPreference,
@@ -33,6 +37,10 @@ interface NotificationContextValue {
   unreadCount: number;
   isLoading: boolean;
   pushEnabled: boolean;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  loadError: boolean;
+  loadMore: () => Promise<void>;
   refreshNotifications: () => Promise<void>;
   openNotification: (notification: AppNotification) => Promise<void>;
   readNotification: (notification: AppNotification) => Promise<void>;
@@ -48,23 +56,34 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const { user, profile, refreshProfile } = useAuth();
   const realtimeHub = useRealtimeHub();
   const handledResponseIdRef = useRef<string | null>(null);
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
+  const queryClient = useQueryClient();
+  const queryKey = ["notifications", user?.id] as const;
+  const unreadKey = ["notification-unread", user?.id] as const;
+  const inbox = useInfiniteQuery({
+    queryKey,
+    initialPageParam: null as NotificationCursor | null,
+    queryFn: ({ pageParam }) => fetchNotificationPage(pageParam),
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    enabled: Boolean(user),
+    retry: false,
+  });
+  const unread = useQuery({ queryKey: unreadKey, queryFn: fetchUnreadNotificationCount, enabled: Boolean(user) });
+  const notifications = useMemo(() => inbox.data?.pages.flatMap(page => page.items) ?? [], [inbox.data]);
   const refreshNotifications = useCallback(async () => {
-    if (!user) {
-      setNotifications([]);
-      return;
-    }
-    setIsLoading(true);
-    const next = await fetchNotifications();
-    setNotifications(next);
-    setIsLoading(false);
-  }, [user]);
-
-  useEffect(() => {
-    void refreshNotifications();
-  }, [refreshNotifications]);
+    if (user) await Promise.all([inbox.refetch(), unread.refetch()]);
+  }, [user?.id, inbox.refetch, unread.refetch]);
+  const loadMore = async () => {
+    if (inbox.isError && !inbox.isFetchNextPageError) return refreshNotifications();
+    if (inbox.hasNextPage && !inbox.isFetching) await inbox.fetchNextPage();
+  };
+  const updateRead = (id?: string) => {
+    const now = new Date().toISOString();
+    queryClient.setQueryData<InfiniteData<NotificationPage>>(queryKey, old => old ? {
+      ...old, pages: old.pages.map(page => ({ ...page, items: page.items.map(item => !id || item.id === id ? { ...item, readAt: item.readAt ?? now } : item) })),
+    } : old);
+    if (!id) queryClient.setQueryData(unreadKey, 0);
+    else void queryClient.invalidateQueries({ queryKey: unreadKey });
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -152,12 +171,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (!notification.readAt) {
       const ok = await markNotificationRead(notification.id);
       if (ok) {
-        setNotifications((items) => items.map((item) =>
-          item.id === notification.id ? { ...item, readAt: new Date().toISOString() } : item
-        ));
+        updateRead(notification.id);
       }
     }
-  }, []);
+  }, [user?.id]);
 
   const openNotification = useCallback(async (notification: AppNotification) => {
     await readNotification(notification);
@@ -168,10 +185,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const readAll = useCallback(async () => {
     const ok = await markAllNotificationsRead();
     if (ok) {
-      const now = new Date().toISOString();
-      setNotifications((items) => items.map((item) => ({ ...item, readAt: item.readAt ?? now })));
+      updateRead();
     }
-  }, []);
+  }, [user?.id]);
 
   const enablePush = useCallback(async () => {
     const result = await registerPushNotifications(true);
@@ -185,16 +201,16 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     return ok;
   }, [refreshProfile]);
 
-  const unreadCount = useMemo(
-    () => notifications.reduce((count, item) => count + (item.readAt ? 0 : 1), 0),
-    [notifications]
-  );
 
   return (
     <NotificationContext.Provider value={{
       notifications,
-      unreadCount,
-      isLoading,
+      unreadCount: unread.data ?? 0,
+      isLoading: inbox.isPending && Boolean(user),
+      hasMore: inbox.hasNextPage,
+      isLoadingMore: inbox.isFetchingNextPage,
+      loadError: inbox.isError,
+      loadMore,
       pushEnabled: profile?.push_notifications_enabled === true,
       refreshNotifications,
       openNotification,

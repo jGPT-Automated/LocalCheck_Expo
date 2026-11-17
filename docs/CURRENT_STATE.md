@@ -1,5 +1,104 @@
 # Current state
 
+## November 17 — #92 release request
+
+Jesse requested merge to main and an OTA for #92's existing UI plus the banner
+and court-header corrections. Runtime compatibility was checked against EAS
+build46 (1.0.4, SDK54, production); no native configuration/dependency/lockfile
+change is present. The exact merge/workflow/update receipt is recorded in
+[PR #92](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/92), with the
+release route in RELEASE.md. LocalList persistence remains separate work.
+
+## November 17 — #92 banner removal and stable court headers
+
+**On the PR #92 branch:** temporary drop-down action banners are removed from
+the shared Toast provider. Existing calls retain native haptics and screen-reader
+announcements without rendering an overlay. The shared CourtTitleRow reserves
+the same live-count column before/after check-in, centres that column against
+the full court identity, and lets long names wrap without shrinking or clipping.
+Home, Explore cards, the court drawer and full court page use that same owner.
+Approximate four-digit values fit the reserved column without widening it.
+
+This slice does not complete LocalList persistence, the Settings drawer cleanup,
+Explore's LOCAL LIST label, early Post, or manual/automatic push delivery work.
+Those remain the following independently reviewable slices. Rendered evidence:
+`docs/product/design-qa/2026-11-17-court-header/README.md`.
+
+## November 14 — #91 Home and LocalList UI
+
+**On branch `codex/inbox-locallist-home`, based on #91 `3e12738`.** Jesse
+selected #91 and excluded #90 and its migrations. This pass adds frontend
+LocalList (court plus, Explore cards, Settings search-first/default star,
+Home dropdown/horizontal pager/indicator lines and Schedule suggestions).
+The list is account-scoped in-memory UI state: extra courts and the selected
+default reset on app reload until the separately scoped backend work.
+
+Home keeps LOCALCHECK at the left of the fixed header, with information only
+at the right. Pending automatic arrival shows Posts in and the five-minute
+countdown; confirmed manual/automatic sessions show elapsed time from the
+server checked_in_at. The hero is flush with the header; Cancel/Post remain
+in the existing hero action area and the court arrow stays beside Check in.
+Cancel uses the existing undo operation. Post is displayed but disabled:
+the backend has no atomic early-pending-post operation. No manual countdown
+is added; live function inspection confirmed manual check-in/activity insert
+immediately. No check-in timing/notification policy is changed.
+
+The compact inbox retains #91 paging, retry, unread count and push-independent
+reads. Its recorded-source/audience presentation also accepts explicit manual
+own-event types for the later backend writer; no new notification rows are
+fabricated in the application. All row types are exercised through isolated
+QA fixtures, not inserted into the live backend.
+
+No schema migration, backend write, Edge Function deployment, merge, OTA or
+native build. Verification and reference details: `docs/plans/2026-11-14-inbox-locallist-home.md`.
+The isolated Expo UI journey passes at 375×667, 393×852 and 430×932, with no
+page errors or audited layout failures in its 45 captured states. Evidence:
+`docs/product/design-qa/2026-11-14-locallist-home/README.md`. Court names now
+wrap on small phones; closing the court drawer releases its navigation layer.
+
+- Nov 8 (**PR #91 frontend verified in isolated Expo web renders**): 375/393/430
+  captures, seven paging/read/error/presentation cases per size, 43 unique
+  entries including a timestamp tie, title/body left edges 40px, zero audited
+  layout failures/debt. Full pnpm check and export passed; remote quality,
+  docs and Expo-preview checks passed for application commit 205dc8f.
+  Evidence: `docs/product/design-qa/2026-11-08-notifications/README.md`.
+  No native-device, push-trigger, historical-privacy or OTA claim.
+
+- Nov 8 (**on branch** `codex/notification-log-ui`): Notifications uses compact
+  virtualized rows, sentence-case legacy headings, exact local timestamps,
+  a dedicated unread gutter and cursor-based pages of 20 (21st-row lookahead).
+  React Query owns account-scoped pages and loading/error/retry; unread count
+  is queried separately across all history. Only explicit visibility in an
+  own-event payload is displayed; historical rows are not inferred from the
+  current profile. This frontend slice does not create missing manual events
+  or backfill privacy snapshots. No migration, deployment, OTA or build.
+  Evidence: `docs/product/design-qa/2026-11-08-notifications/`.
+
+
+- Nov 8, evening Central (**live-backend tests, rolled back**): exercised
+  `public.check_in` as existing TEST account lcqaalpha and read both
+  `check_ins` and `activity_events` as owner, accepted friend lcqabeta and
+  non-friend under the authenticated role. All nine visibility cases matched:
+  Private owner only; Friends owner/friend only; Public all three. A blocked
+  viewer saw neither row. The transaction deliberately raised its results
+  and rolled back; no test check-ins, blocks, notifications or timer bookings
+  persisted. Manual check-in created zero friend notifications, reproducing
+  the missing trigger; the new migration remains an unapplied local draft.
+- Nov 8 (**observed live backend, not device receipt**): JESSE's automatic
+  arrival at 8:39:15 PM Central produced the posted notice and 18 friend inbox
+  rows at 8:44:17 PM. Push status was sent for JESSE and one friend, skipped
+  for 17 friends. Skipped reasons and recipient eligibility were not proven by
+  this observation. A separate seven-case auto-notification preference test
+  did not execute because its tool confirmation expired; no result claimed.
+  The earlier custom notification screenshot proves only that custom row
+  appeared in JESSE's inbox, not any check-in trigger or privacy rule.
+- Nov 8 (**decided, not implemented**): compact combined own-event/incoming
+  notification log, newest first, 20 entries per page and a Load more button;
+  exact local timestamps, sentence-case titles, no large icon tiles, aligned
+  text, and historical visibility on own events. Show the UI before backend
+  changes for this log. Privacy/friend-flow testing takes priority over design.
+  No OTA, native build, deployment, merge or PR creation in this checkpoint.
+
 - Nov 3 (**on a branch**, PR #89 review correction): the heatmap opens the
   exact tapped hour, including today's current two-hour block; completed
   blocks stay disabled. Court Feed uses one 28pt focus for jumping and scroll
