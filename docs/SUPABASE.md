@@ -84,6 +84,10 @@ Save every script in the SQL editor under a clear name ("1 TEST …",
 Deployed on 2026-10-14 (Supabase function list): `delete-account` v6,
 `send-notification` v5 (Oct 12), `verify-court` v10, `revenuecat-webhook` v4,
 `timers` v1 (Oct 12). These are the five folders under `supabase/functions/`.
+`verify-court` testing mode (branch `codex/court-verify-debug`, not yet
+deployed): responses carry a `debug` block (what was sent to Gemini, its raw
+answer, the decision) unless the `COURT_VERIFY_DEBUG` secret is `off`, and
+each attempt logs a `gemini_exchange` line. Turn it off before launch.
 `verify-court` now writes through `create_live_court_submission_v4`
 (`supabase/functions/verify-court/index.ts:450`).
 
