@@ -1,0 +1,976 @@
+{
+  "preview": "http://127.0.0.1:8124",
+  "viewportSet": [
+    [
+      375,
+      667
+    ],
+    [
+      393,
+      852
+    ],
+    [
+      430,
+      932
+    ]
+  ],
+  "isolation": {
+    "allSupabaseHttpFulfilledOrAborted": true,
+    "checkInFulfilledFromInMemoryFixture": true,
+    "websocketCloses": 75
+  },
+  "results": [
+    {
+      "width": 375,
+      "height": 667,
+      "sport": "basketball",
+      "court": "Kasmiersky Park",
+      "snapshots": {
+        "count-1000": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 375,
+            "height": 111,
+            "centerY": 168.5
+          },
+          "title": {
+            "x": 20,
+            "y": 128.75,
+            "width": 197,
+            "height": 74,
+            "scrollWidth": 197,
+            "clientWidth": 197,
+            "lines": 2
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 223
+          },
+          "liveColumn": {
+            "x": 259,
+            "width": 96,
+            "centerY": 168.5,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 252.625,
+            "width": 108.75,
+            "centerX": 307,
+            "centerY": 162
+          },
+          "accessibleLive": "~1000 on court",
+          "alertCount": 0
+        },
+        "count-0": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 375,
+            "height": 111,
+            "centerY": 168.5
+          },
+          "title": {
+            "x": 20,
+            "y": 128.75,
+            "width": 197,
+            "height": 74,
+            "scrollWidth": 197,
+            "clientWidth": 197,
+            "lines": 2
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 223
+          },
+          "liveColumn": {
+            "x": 259,
+            "width": 96,
+            "centerY": 168.5,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 295.046875,
+            "width": 23.90625,
+            "centerX": 307,
+            "centerY": 162
+          },
+          "accessibleLive": "0 on court",
+          "alertCount": 0
+        },
+        "count-1": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 375,
+            "height": 111,
+            "centerY": 168.5
+          },
+          "title": {
+            "x": 20,
+            "y": 128.75,
+            "width": 197,
+            "height": 74,
+            "scrollWidth": 197,
+            "clientWidth": 197,
+            "lines": 2
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 223
+          },
+          "liveColumn": {
+            "x": 259,
+            "width": 96,
+            "centerY": 168.5,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 298.84375,
+            "width": 16.3125,
+            "centerX": 307,
+            "centerY": 162
+          },
+          "accessibleLive": "1 on court",
+          "alertCount": 0
+        }
+      },
+      "checkIns": 1,
+      "http": {
+        "fulfilled": 118,
+        "aborted": 0
+      },
+      "websocketCloses": 10,
+      "pageErrors": []
+    },
+    {
+      "width": 375,
+      "height": 667,
+      "sport": "pickleball",
+      "court": "Candy Cane",
+      "snapshots": {
+        "count-1000": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 375,
+            "height": 81,
+            "centerY": 153.5
+          },
+          "title": {
+            "x": 20,
+            "y": 132.25,
+            "width": 197,
+            "height": 37,
+            "scrollWidth": 197,
+            "clientWidth": 197,
+            "lines": 1
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 223
+          },
+          "liveColumn": {
+            "x": 259,
+            "width": 96,
+            "centerY": 153.5,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 252.625,
+            "width": 108.75,
+            "centerX": 307,
+            "centerY": 147
+          },
+          "accessibleLive": "~1000 on court",
+          "alertCount": 0
+        },
+        "count-0": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 375,
+            "height": 81,
+            "centerY": 153.5
+          },
+          "title": {
+            "x": 20,
+            "y": 132.25,
+            "width": 197,
+            "height": 37,
+            "scrollWidth": 197,
+            "clientWidth": 197,
+            "lines": 1
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 223
+          },
+          "liveColumn": {
+            "x": 259,
+            "width": 96,
+            "centerY": 153.5,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 295.046875,
+            "width": 23.90625,
+            "centerX": 307,
+            "centerY": 147
+          },
+          "accessibleLive": "0 on court",
+          "alertCount": 0
+        },
+        "count-1": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 375,
+            "height": 81,
+            "centerY": 153.5
+          },
+          "title": {
+            "x": 20,
+            "y": 132.25,
+            "width": 197,
+            "height": 37,
+            "scrollWidth": 197,
+            "clientWidth": 197,
+            "lines": 1
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 223
+          },
+          "liveColumn": {
+            "x": 259,
+            "width": 96,
+            "centerY": 153.5,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 298.84375,
+            "width": 16.3125,
+            "centerX": 307,
+            "centerY": 147
+          },
+          "accessibleLive": "1 on court",
+          "alertCount": 0
+        }
+      },
+      "checkIns": 1,
+      "http": {
+        "fulfilled": 118,
+        "aborted": 0
+      },
+      "websocketCloses": 10,
+      "pageErrors": []
+    },
+    {
+      "width": 393,
+      "height": 852,
+      "sport": "basketball",
+      "court": "Kasmiersky Park",
+      "snapshots": {
+        "count-1000": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 393,
+            "height": 111,
+            "centerY": 168.5
+          },
+          "title": {
+            "x": 20,
+            "y": 128.75,
+            "width": 215,
+            "height": 74,
+            "scrollWidth": 215,
+            "clientWidth": 215,
+            "lines": 2
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 241
+          },
+          "liveColumn": {
+            "x": 277,
+            "width": 96,
+            "centerY": 168.5,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 270.625,
+            "width": 108.75,
+            "centerX": 325,
+            "centerY": 162
+          },
+          "accessibleLive": "~1000 on court",
+          "alertCount": 0
+        },
+        "count-0": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 393,
+            "height": 111,
+            "centerY": 168.5
+          },
+          "title": {
+            "x": 20,
+            "y": 128.75,
+            "width": 215,
+            "height": 74,
+            "scrollWidth": 215,
+            "clientWidth": 215,
+            "lines": 2
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 241
+          },
+          "liveColumn": {
+            "x": 277,
+            "width": 96,
+            "centerY": 168.5,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 313.046875,
+            "width": 23.90625,
+            "centerX": 325,
+            "centerY": 162
+          },
+          "accessibleLive": "0 on court",
+          "alertCount": 0
+        },
+        "count-1": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 393,
+            "height": 111,
+            "centerY": 168.5
+          },
+          "title": {
+            "x": 20,
+            "y": 128.75,
+            "width": 215,
+            "height": 74,
+            "scrollWidth": 215,
+            "clientWidth": 215,
+            "lines": 2
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 241
+          },
+          "liveColumn": {
+            "x": 277,
+            "width": 96,
+            "centerY": 168.5,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 316.84375,
+            "width": 16.3125,
+            "centerX": 325,
+            "centerY": 162
+          },
+          "accessibleLive": "1 on court",
+          "alertCount": 0
+        },
+        "sharedTitleConsumers": {
+          "exploreCard": {
+            "row": {
+              "x": 17,
+              "y": 286,
+              "width": 359,
+              "height": 103,
+              "centerY": 337.5
+            },
+            "title": {
+              "x": 37,
+              "y": 301.75,
+              "width": 215,
+              "height": 66,
+              "scrollWidth": 215,
+              "clientWidth": 215,
+              "lines": 2
+            },
+            "titleColumn": {
+              "x": 37,
+              "width": 215
+            },
+            "liveColumn": {
+              "x": 268,
+              "width": 88,
+              "centerY": 337.5,
+              "centerDeltaY": 0
+            },
+            "liveValue": {
+              "x": 304.890625,
+              "width": 14.203125,
+              "centerX": 311.9921875,
+              "centerY": 331
+            },
+            "accessibleLive": "1 on court"
+          },
+          "drawer": {
+            "row": {
+              "x": 17,
+              "y": 286,
+              "width": 359,
+              "height": 103,
+              "centerY": 337.5
+            },
+            "title": {
+              "x": 37,
+              "y": 301.75,
+              "width": 215,
+              "height": 66,
+              "scrollWidth": 215,
+              "clientWidth": 215,
+              "lines": 2
+            },
+            "titleColumn": {
+              "x": 37,
+              "width": 215
+            },
+            "liveColumn": {
+              "x": 268,
+              "width": 88,
+              "centerY": 337.5,
+              "centerDeltaY": 0
+            },
+            "liveValue": {
+              "x": 304.890625,
+              "width": 14.203125,
+              "centerX": 311.9921875,
+              "centerY": 331
+            },
+            "accessibleLive": "1 on court"
+          },
+          "courtPage": {
+            "row": {
+              "x": 0,
+              "y": 94,
+              "width": 393,
+              "height": 111,
+              "centerY": 149.5
+            },
+            "title": {
+              "x": 20,
+              "y": 109.75,
+              "width": 241,
+              "height": 74,
+              "scrollWidth": 241,
+              "clientWidth": 241,
+              "lines": 2
+            },
+            "titleColumn": {
+              "x": 20,
+              "width": 241
+            },
+            "liveColumn": {
+              "x": 277,
+              "width": 96,
+              "centerY": 149.5,
+              "centerDeltaY": 0
+            },
+            "liveValue": {
+              "x": 316.84375,
+              "width": 16.3125,
+              "centerX": 325,
+              "centerY": 143
+            },
+            "accessibleLive": "1 on court"
+          }
+        }
+      },
+      "checkIns": 1,
+      "http": {
+        "fulfilled": 199,
+        "aborted": 0
+      },
+      "websocketCloses": 10,
+      "pageErrors": []
+    },
+    {
+      "width": 393,
+      "height": 852,
+      "sport": "pickleball",
+      "court": "Candy Cane",
+      "snapshots": {
+        "count-1000": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 393,
+            "height": 81,
+            "centerY": 153.5
+          },
+          "title": {
+            "x": 20,
+            "y": 132.25,
+            "width": 215,
+            "height": 37,
+            "scrollWidth": 215,
+            "clientWidth": 215,
+            "lines": 1
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 241
+          },
+          "liveColumn": {
+            "x": 277,
+            "width": 96,
+            "centerY": 153.5,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 270.625,
+            "width": 108.75,
+            "centerX": 325,
+            "centerY": 147
+          },
+          "accessibleLive": "~1000 on court",
+          "alertCount": 0
+        },
+        "count-0": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 393,
+            "height": 81,
+            "centerY": 153.5
+          },
+          "title": {
+            "x": 20,
+            "y": 132.25,
+            "width": 215,
+            "height": 37,
+            "scrollWidth": 215,
+            "clientWidth": 215,
+            "lines": 1
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 241
+          },
+          "liveColumn": {
+            "x": 277,
+            "width": 96,
+            "centerY": 153.5,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 313.046875,
+            "width": 23.90625,
+            "centerX": 325,
+            "centerY": 147
+          },
+          "accessibleLive": "0 on court",
+          "alertCount": 0
+        },
+        "count-1": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 393,
+            "height": 81,
+            "centerY": 153.5
+          },
+          "title": {
+            "x": 20,
+            "y": 132.25,
+            "width": 215,
+            "height": 37,
+            "scrollWidth": 215,
+            "clientWidth": 215,
+            "lines": 1
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 241
+          },
+          "liveColumn": {
+            "x": 277,
+            "width": 96,
+            "centerY": 153.5,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 316.84375,
+            "width": 16.3125,
+            "centerX": 325,
+            "centerY": 147
+          },
+          "accessibleLive": "1 on court",
+          "alertCount": 0
+        },
+        "sharedTitleConsumers": {
+          "exploreCard": {
+            "row": {
+              "x": 17,
+              "y": 286,
+              "width": 359,
+              "height": 70,
+              "centerY": 321
+            },
+            "title": {
+              "x": 37,
+              "y": 301.75,
+              "width": 215,
+              "height": 33,
+              "scrollWidth": 215,
+              "clientWidth": 215,
+              "lines": 1
+            },
+            "titleColumn": {
+              "x": 37,
+              "width": 215
+            },
+            "liveColumn": {
+              "x": 268,
+              "width": 88,
+              "centerY": 321,
+              "centerDeltaY": 0
+            },
+            "liveValue": {
+              "x": 304.890625,
+              "width": 14.203125,
+              "centerX": 311.9921875,
+              "centerY": 314.5
+            },
+            "accessibleLive": "1 on court"
+          },
+          "drawer": {
+            "row": {
+              "x": 17,
+              "y": 286,
+              "width": 359,
+              "height": 70,
+              "centerY": 321
+            },
+            "title": {
+              "x": 37,
+              "y": 301.75,
+              "width": 215,
+              "height": 33,
+              "scrollWidth": 215,
+              "clientWidth": 215,
+              "lines": 1
+            },
+            "titleColumn": {
+              "x": 37,
+              "width": 215
+            },
+            "liveColumn": {
+              "x": 268,
+              "width": 88,
+              "centerY": 321,
+              "centerDeltaY": 0
+            },
+            "liveValue": {
+              "x": 304.890625,
+              "width": 14.203125,
+              "centerX": 311.9921875,
+              "centerY": 314.5
+            },
+            "accessibleLive": "1 on court"
+          },
+          "courtPage": {
+            "row": {
+              "x": 0,
+              "y": 94,
+              "width": 393,
+              "height": 74,
+              "centerY": 131
+            },
+            "title": {
+              "x": 20,
+              "y": 109.75,
+              "width": 241,
+              "height": 37,
+              "scrollWidth": 241,
+              "clientWidth": 241,
+              "lines": 1
+            },
+            "titleColumn": {
+              "x": 20,
+              "width": 241
+            },
+            "liveColumn": {
+              "x": 277,
+              "width": 96,
+              "centerY": 131,
+              "centerDeltaY": 0
+            },
+            "liveValue": {
+              "x": 316.84375,
+              "width": 16.3125,
+              "centerX": 325,
+              "centerY": 124.5
+            },
+            "accessibleLive": "1 on court"
+          }
+        }
+      },
+      "checkIns": 1,
+      "http": {
+        "fulfilled": 199,
+        "aborted": 0
+      },
+      "websocketCloses": 10,
+      "pageErrors": []
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "sport": "basketball",
+      "court": "Kasmiersky Park",
+      "snapshots": {
+        "count-1000": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 430,
+            "height": 81,
+            "centerY": 153.5
+          },
+          "title": {
+            "x": 20,
+            "y": 132.25,
+            "width": 252,
+            "height": 37,
+            "scrollWidth": 252,
+            "clientWidth": 252,
+            "lines": 1
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 278
+          },
+          "liveColumn": {
+            "x": 314,
+            "width": 96,
+            "centerY": 153.5,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 307.625,
+            "width": 108.75,
+            "centerX": 362,
+            "centerY": 147
+          },
+          "accessibleLive": "~1000 on court",
+          "alertCount": 0
+        },
+        "count-0": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 430,
+            "height": 81,
+            "centerY": 153.5
+          },
+          "title": {
+            "x": 20,
+            "y": 132.25,
+            "width": 252,
+            "height": 37,
+            "scrollWidth": 252,
+            "clientWidth": 252,
+            "lines": 1
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 278
+          },
+          "liveColumn": {
+            "x": 314,
+            "width": 96,
+            "centerY": 153.5,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 350.046875,
+            "width": 23.90625,
+            "centerX": 362,
+            "centerY": 147
+          },
+          "accessibleLive": "0 on court",
+          "alertCount": 0
+        },
+        "count-1": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 430,
+            "height": 81,
+            "centerY": 153.5
+          },
+          "title": {
+            "x": 20,
+            "y": 132.25,
+            "width": 252,
+            "height": 37,
+            "scrollWidth": 252,
+            "clientWidth": 252,
+            "lines": 1
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 278
+          },
+          "liveColumn": {
+            "x": 314,
+            "width": 96,
+            "centerY": 153.5,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 353.84375,
+            "width": 16.3125,
+            "centerX": 362,
+            "centerY": 147
+          },
+          "accessibleLive": "1 on court",
+          "alertCount": 0
+        }
+      },
+      "checkIns": 1,
+      "http": {
+        "fulfilled": 118,
+        "aborted": 0
+      },
+      "websocketCloses": 10,
+      "pageErrors": []
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "sport": "pickleball",
+      "court": "Candy Cane",
+      "snapshots": {
+        "count-1000": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 430,
+            "height": 81,
+            "centerY": 153.5
+          },
+          "title": {
+            "x": 20,
+            "y": 132.25,
+            "width": 252,
+            "height": 37,
+            "scrollWidth": 252,
+            "clientWidth": 252,
+            "lines": 1
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 278
+          },
+          "liveColumn": {
+            "x": 314,
+            "width": 96,
+            "centerY": 153.5,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 307.625,
+            "width": 108.75,
+            "centerX": 362,
+            "centerY": 147
+          },
+          "accessibleLive": "~1000 on court",
+          "alertCount": 0
+        },
+        "count-0": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 430,
+            "height": 81,
+            "centerY": 153.5
+          },
+          "title": {
+            "x": 20,
+            "y": 132.25,
+            "width": 252,
+            "height": 37,
+            "scrollWidth": 252,
+            "clientWidth": 252,
+            "lines": 1
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 278
+          },
+          "liveColumn": {
+            "x": 314,
+            "width": 96,
+            "centerY": 153.5,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 350.046875,
+            "width": 23.90625,
+            "centerX": 362,
+            "centerY": 147
+          },
+          "accessibleLive": "0 on court",
+          "alertCount": 0
+        },
+        "count-1": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 430,
+            "height": 81,
+            "centerY": 153.5
+          },
+          "title": {
+            "x": 20,
+            "y": 132.25,
+            "width": 252,
+            "height": 37,
+            "scrollWidth": 252,
+            "clientWidth": 252,
+            "lines": 1
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 278
+          },
+          "liveColumn": {
+            "x": 314,
+            "width": 96,
+            "centerY": 153.5,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 353.84375,
+            "width": 16.3125,
+            "centerX": 362,
+            "centerY": 147
+          },
+          "accessibleLive": "1 on court",
+          "alertCount": 0
+        }
+      },
+      "checkIns": 1,
+      "http": {
+        "fulfilled": 118,
+        "aborted": 0
+      },
+      "websocketCloses": 10,
+      "pageErrors": []
+    }
+  ]
+}

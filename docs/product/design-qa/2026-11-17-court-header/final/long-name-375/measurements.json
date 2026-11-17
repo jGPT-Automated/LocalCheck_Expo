@@ -1,0 +1,185 @@
+{
+  "preview": "http://127.0.0.1:8125",
+  "viewportSet": [
+    [
+      375,
+      667
+    ],
+    [
+      393,
+      852
+    ],
+    [
+      430,
+      932
+    ]
+  ],
+  "isolation": {
+    "allSupabaseHttpFulfilledOrAborted": true,
+    "checkInFulfilledFromInMemoryFixture": true,
+    "websocketCloses": 7
+  },
+  "results": [
+    {
+      "width": 375,
+      "height": 667,
+      "sport": "basketball",
+      "court": "KASMIERSKY RECREATION PARK",
+      "snapshots": {
+        "count-0": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 375,
+            "height": 148,
+            "centerY": 187
+          },
+          "title": {
+            "x": 20,
+            "y": 128.75,
+            "width": 197,
+            "height": 111,
+            "scrollWidth": 197,
+            "clientWidth": 197,
+            "lines": 3,
+            "inkRects": [
+              {
+                "x": 20,
+                "y": 121.75,
+                "width": 167.09375,
+                "height": 51,
+                "right": 187.09375
+              },
+              {
+                "x": 187.09375,
+                "y": 121.75,
+                "width": 7.609375,
+                "height": 51,
+                "right": 194.703125
+              },
+              {
+                "x": 20,
+                "y": 158.75,
+                "width": 160.90625,
+                "height": 51,
+                "right": 180.90625
+              },
+              {
+                "x": 180.90625,
+                "y": 158.75,
+                "width": 7.609375,
+                "height": 51,
+                "right": 188.515625
+              },
+              {
+                "x": 20,
+                "y": 195.75,
+                "width": 71.796875,
+                "height": 51,
+                "right": 91.796875
+              }
+            ]
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 223
+          },
+          "liveColumn": {
+            "x": 259,
+            "width": 96,
+            "centerY": 187,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 295.046875,
+            "width": 23.90625,
+            "centerX": 307,
+            "centerY": 180.5
+          },
+          "accessibleLive": "0 on court",
+          "alertCount": 0
+        },
+        "count-1": {
+          "row": {
+            "x": 0,
+            "y": 113,
+            "width": 375,
+            "height": 148,
+            "centerY": 187
+          },
+          "title": {
+            "x": 20,
+            "y": 128.75,
+            "width": 197,
+            "height": 111,
+            "scrollWidth": 197,
+            "clientWidth": 197,
+            "lines": 3,
+            "inkRects": [
+              {
+                "x": 20,
+                "y": 121.75,
+                "width": 167.09375,
+                "height": 51,
+                "right": 187.09375
+              },
+              {
+                "x": 187.09375,
+                "y": 121.75,
+                "width": 7.609375,
+                "height": 51,
+                "right": 194.703125
+              },
+              {
+                "x": 20,
+                "y": 158.75,
+                "width": 160.90625,
+                "height": 51,
+                "right": 180.90625
+              },
+              {
+                "x": 180.90625,
+                "y": 158.75,
+                "width": 7.609375,
+                "height": 51,
+                "right": 188.515625
+              },
+              {
+                "x": 20,
+                "y": 195.75,
+                "width": 71.796875,
+                "height": 51,
+                "right": 91.796875
+              }
+            ]
+          },
+          "titleColumn": {
+            "x": 20,
+            "width": 223
+          },
+          "liveColumn": {
+            "x": 259,
+            "width": 96,
+            "centerY": 187,
+            "centerDeltaY": 0
+          },
+          "liveValue": {
+            "x": 298.84375,
+            "width": 16.3125,
+            "centerX": 307,
+            "centerY": 180.5
+          },
+          "accessibleLive": "1 on court",
+          "alertCount": 0
+        }
+      },
+      "checkIns": 1,
+      "http": {
+        "fulfilled": 83,
+        "aborted": 0
+      },
+      "websocketCloses": 7,
+      "pageErrors": []
+    }
+  ]
+}
