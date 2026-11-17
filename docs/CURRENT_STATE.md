@@ -8,6 +8,7 @@ announcements without rendering an overlay. The shared CourtTitleRow reserves
 the same live-count column before/after check-in, centres that column against
 the full court identity, and lets long names wrap without shrinking or clipping.
 Home, Explore cards, the court drawer and full court page use that same owner.
+Approximate four-digit values fit the reserved column without widening it.
 
 This slice does not complete LocalList persistence, the Settings drawer cleanup,
 Explore's LOCAL LIST label, early Post, or manual/automatic push delivery work.

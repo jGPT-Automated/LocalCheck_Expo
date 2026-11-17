@@ -154,6 +154,7 @@ export function CourtTitleRow({
   size?: "card" | "page";
 }) {
   const page = size === "page";
+  const valueSize = (page ? 46 : 40) * Math.min(1, 4 / String(liveValue).length);
   // A long name loses its trailing "Courts" / "Court" rather than ending in
   // "…" ("SAND BRANCH COURTS" reads as "SAND BRANCH").
   const shown = name.length > 14 ? name.replace(/\s+courts?$/i, "") : name;
@@ -178,7 +179,7 @@ export function CourtTitleRow({
         testID="court-live-block"
         style={[styles.liveBlock, page && styles.liveBlockPage]}
       >
-        <Text style={[styles.liveValue, page && styles.liveValuePage, live && styles.liveValueOn]}>{liveValue}</Text>
+        <Text numberOfLines={1} style={[styles.liveValue, page && styles.liveValuePage, live && styles.liveValueOn, { fontSize: Math.max(11, valueSize) }]}>{liveValue}</Text>
         <View style={styles.liveLabelRow}>
           {live ? <LiveDot /> : null}
           <Text style={styles.liveLabel}>On court</Text>

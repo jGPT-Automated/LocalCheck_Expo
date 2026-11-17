@@ -11,6 +11,8 @@ vertically against the court identity. Checking in must not change the available
 title width. Court names wrap naturally at their existing type size; the count
 and label remain centred together when the name takes multiple lines. The same
 component owns Home, Explore cards, the drawer and the full court header.
+Approximate values such as ~1000 scale inside that reserved column instead of
+overflowing it; ordinary one-to-four-digit values retain their existing size.
 
 ## November 14 — Home and LocalList frontend
 
