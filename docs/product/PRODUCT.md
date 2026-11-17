@@ -1,5 +1,13 @@
 # Product context
 
+## November 17 — compact court-card correction (on branch)
+
+Explore court cards return to a compact single-line name with width-based
+fitting. The same court identity is used by Home, court drawers, full court
+detail and saved-court cards. Existing short names remain preferred. The court
+trace stays aligned to the live-count group. No court selection, check-in,
+notification or persistence behavior changes. Native phone review is pending.
+
 ## November 17 — first screenshot correction on #92
 
 Actions no longer display temporary drop-down banners inside the app. Their

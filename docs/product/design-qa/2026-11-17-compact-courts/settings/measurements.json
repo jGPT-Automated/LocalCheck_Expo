@@ -1,0 +1,85 @@
+{
+  "source": "http://127.0.0.1:8096",
+  "fixtureIsolation": true,
+  "strict": true,
+  "results": [
+    {
+      "name": "settings-drawer-375-short",
+      "width": 375,
+      "variant": "short",
+      "surface": "settings-drawer",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 70,
+          "titleHeight": 33,
+          "fontSize": 25.93,
+          "textWidth": 187.015625,
+          "available": 189,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": 0,
+          "circleCenterDeltaX": 0,
+          "cardHeight": 104,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "settings-drawer-393-short",
+      "width": 393,
+      "variant": "short",
+      "surface": "settings-drawer",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 70,
+          "titleHeight": 33,
+          "fontSize": 28.26,
+          "textWidth": 205.015625,
+          "available": 207,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": 0,
+          "circleCenterDeltaX": 0,
+          "cardHeight": 104,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "settings-drawer-430-short",
+      "width": 430,
+      "variant": "short",
+      "surface": "settings-drawer",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 70,
+          "titleHeight": 33,
+          "fontSize": 30,
+          "textWidth": 218.5625,
+          "available": 244,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": 0,
+          "circleCenterDeltaX": 0,
+          "cardHeight": 104,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    }
+  ]
+}

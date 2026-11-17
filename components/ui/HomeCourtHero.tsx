@@ -3,7 +3,6 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Typography } from "@/constants/typography";
 
-import { CourtArt } from "@/components/court/CourtArt";
 import { CheckInButton, CourtLinkButton, CourtTitleRow, MetricStrip } from "@/components/court/CourtParts";
 import { Colors } from "@/constants/colors";
 import type { Court } from "@/constants/data";
@@ -40,7 +39,6 @@ export function HomeCourtHero({
 
   return (
     <View style={styles.header}>
-      <CourtArt sport={court.sport} top={-16} />
       <View style={styles.title}>
         <CourtTitleRow
           live={live}

@@ -1,5 +1,20 @@
 # Current state
 
+## November 17 — compact court-header correction (on branch)
+
+On `codex/restore-compact-explore-cards`, the shared court title fits one line
+again, preferring the existing `shortName` at each caller and falling back to
+`name`. Native uses Text's fitting API with an 11pt floor; the web adapter
+measures the loaded font because React Native Web does not implement that API.
+The existing fixed count column remains stable. CourtArt now belongs to that
+column, centered vertically on the count/label group, rather than separate
+page-specific offsets. Home, Explore, drawer and court detail share this owner;
+Settings' reused court cards inherit it. Notification rows are untouched.
+
+This supersedes the wrapped-name behavior below. Rendered evidence and limits:
+`docs/product/design-qa/2026-11-17-compact-courts/README.md`. No merge or production
+release is authorized by this correction; native phone verification is pending.
+
 ## November 17 — #92 release request
 
 Jesse requested merge to main and an OTA for #92's existing UI plus the banner

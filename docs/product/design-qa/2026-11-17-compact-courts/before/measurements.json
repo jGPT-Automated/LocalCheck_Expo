@@ -1,0 +1,1042 @@
+{
+  "source": "http://127.0.0.1:8094",
+  "fixtureIsolation": true,
+  "strict": false,
+  "results": [
+    {
+      "name": "explore-375-short",
+      "width": 375,
+      "variant": "short",
+      "surface": "explore",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 103,
+          "titleHeight": 66,
+          "fontSize": 30,
+          "textWidth": 154.921875,
+          "available": 197,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 137,
+          "withinViewport": true
+        },
+        {
+          "name": "Sand Branch",
+          "liveValue": "2",
+          "valueWithinColumn": true,
+          "rowHeight": 70,
+          "titleHeight": 33,
+          "fontSize": 30,
+          "textWidth": 168.09375,
+          "available": 197,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 104,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "drawer-375-short",
+      "width": 375,
+      "variant": "short",
+      "surface": "drawer",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 103,
+          "titleHeight": 66,
+          "fontSize": 30,
+          "textWidth": 154.921875,
+          "available": 197,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 137,
+          "withinViewport": true
+        },
+        {
+          "name": "Sand Branch",
+          "liveValue": "2",
+          "valueWithinColumn": true,
+          "rowHeight": 70,
+          "titleHeight": 33,
+          "fontSize": 30,
+          "textWidth": 168.09375,
+          "available": 197,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 104,
+          "withinViewport": true
+        },
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 111,
+          "titleHeight": 74,
+          "fontSize": 34,
+          "textWidth": 174.703125,
+          "available": 223,
+          "titleCountGap": 16,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 123,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "home-375-short",
+      "width": 375,
+      "variant": "short",
+      "surface": "home",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 111,
+          "titleHeight": 74,
+          "fontSize": 34,
+          "textWidth": 174.703125,
+          "available": 197,
+          "titleCountGap": 42,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 123,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "court-375-short",
+      "width": 375,
+      "variant": "short",
+      "surface": "court",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 111,
+          "titleHeight": 74,
+          "fontSize": 34,
+          "textWidth": 174.703125,
+          "available": 223,
+          "titleCountGap": 16,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 117,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "explore-375-fallback",
+      "width": 375,
+      "variant": "fallback",
+      "surface": "explore",
+      "rows": [
+        {
+          "name": "Rancho Cienega Sports Complex",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 136,
+          "titleHeight": 99,
+          "fontSize": 30,
+          "textWidth": 202,
+          "available": 197,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 170,
+          "withinViewport": true
+        },
+        {
+          "name": "Sand Branch",
+          "liveValue": "2",
+          "valueWithinColumn": true,
+          "rowHeight": 70,
+          "titleHeight": 33,
+          "fontSize": 30,
+          "textWidth": 168.09375,
+          "available": 197,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 104,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "home-375-fallback",
+      "width": 375,
+      "variant": "fallback",
+      "surface": "home",
+      "rows": [
+        {
+          "name": "Rancho Cienega Sports Complex",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 185,
+          "titleHeight": 148,
+          "fontSize": 34,
+          "textWidth": 122.5,
+          "available": 197,
+          "titleCountGap": 42,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 197,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "court-375-fallback",
+      "width": 375,
+      "variant": "fallback",
+      "surface": "court",
+      "rows": [
+        {
+          "name": "Rancho Cienega Sports Complex",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 148,
+          "titleHeight": 111,
+          "fontSize": 34,
+          "textWidth": 227.734375,
+          "available": 223,
+          "titleCountGap": 16,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 154,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "explore-375-four-digit",
+      "width": 375,
+      "variant": "four-digit",
+      "surface": "explore",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "1000",
+          "valueWithinColumn": true,
+          "rowHeight": 103,
+          "titleHeight": 66,
+          "fontSize": 30,
+          "textWidth": 154.921875,
+          "available": 197,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 137,
+          "withinViewport": true
+        },
+        {
+          "name": "Sand Branch",
+          "liveValue": "2",
+          "valueWithinColumn": true,
+          "rowHeight": 70,
+          "titleHeight": 33,
+          "fontSize": 30,
+          "textWidth": 168.09375,
+          "available": 197,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 104,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "home-375-four-digit",
+      "width": 375,
+      "variant": "four-digit",
+      "surface": "home",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "1000",
+          "valueWithinColumn": true,
+          "rowHeight": 111,
+          "titleHeight": 74,
+          "fontSize": 34,
+          "textWidth": 174.703125,
+          "available": 197,
+          "titleCountGap": 42,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 123,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "court-375-four-digit",
+      "width": 375,
+      "variant": "four-digit",
+      "surface": "court",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "1000",
+          "valueWithinColumn": true,
+          "rowHeight": 111,
+          "titleHeight": 74,
+          "fontSize": 34,
+          "textWidth": 174.703125,
+          "available": 223,
+          "titleCountGap": 16,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 117,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "explore-393-short",
+      "width": 393,
+      "variant": "short",
+      "surface": "explore",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 103,
+          "titleHeight": 66,
+          "fontSize": 30,
+          "textWidth": 154.921875,
+          "available": 215,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 137,
+          "withinViewport": true
+        },
+        {
+          "name": "Sand Branch",
+          "liveValue": "2",
+          "valueWithinColumn": true,
+          "rowHeight": 70,
+          "titleHeight": 33,
+          "fontSize": 30,
+          "textWidth": 168.09375,
+          "available": 215,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 104,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "drawer-393-short",
+      "width": 393,
+      "variant": "short",
+      "surface": "drawer",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 103,
+          "titleHeight": 66,
+          "fontSize": 30,
+          "textWidth": 154.921875,
+          "available": 215,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 137,
+          "withinViewport": true
+        },
+        {
+          "name": "Sand Branch",
+          "liveValue": "2",
+          "valueWithinColumn": true,
+          "rowHeight": 70,
+          "titleHeight": 33,
+          "fontSize": 30,
+          "textWidth": 168.09375,
+          "available": 215,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 104,
+          "withinViewport": true
+        },
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 111,
+          "titleHeight": 74,
+          "fontSize": 34,
+          "textWidth": 174.703125,
+          "available": 241,
+          "titleCountGap": 16,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 123,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "home-393-short",
+      "width": 393,
+      "variant": "short",
+      "surface": "home",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 111,
+          "titleHeight": 74,
+          "fontSize": 34,
+          "textWidth": 174.703125,
+          "available": 215,
+          "titleCountGap": 42,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 123,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "court-393-short",
+      "width": 393,
+      "variant": "short",
+      "surface": "court",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 111,
+          "titleHeight": 74,
+          "fontSize": 34,
+          "textWidth": 174.703125,
+          "available": 241,
+          "titleCountGap": 16,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 117,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "explore-393-fallback",
+      "width": 393,
+      "variant": "fallback",
+      "surface": "explore",
+      "rows": [
+        {
+          "name": "Rancho Cienega Sports Complex",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 103,
+          "titleHeight": 66,
+          "fontSize": 30,
+          "textWidth": 209.5625,
+          "available": 215,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 137,
+          "withinViewport": true
+        },
+        {
+          "name": "Sand Branch",
+          "liveValue": "2",
+          "valueWithinColumn": true,
+          "rowHeight": 70,
+          "titleHeight": 33,
+          "fontSize": 30,
+          "textWidth": 168.09375,
+          "available": 215,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 104,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "home-393-fallback",
+      "width": 393,
+      "variant": "fallback",
+      "surface": "home",
+      "rows": [
+        {
+          "name": "Rancho Cienega Sports Complex",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 185,
+          "titleHeight": 148,
+          "fontSize": 34,
+          "textWidth": 122.5,
+          "available": 215,
+          "titleCountGap": 42,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 197,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "court-393-fallback",
+      "width": 393,
+      "variant": "fallback",
+      "surface": "court",
+      "rows": [
+        {
+          "name": "Rancho Cienega Sports Complex",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 111,
+          "titleHeight": 74,
+          "fontSize": 34,
+          "textWidth": 236.296875,
+          "available": 241,
+          "titleCountGap": 16,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 117,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "explore-393-four-digit",
+      "width": 393,
+      "variant": "four-digit",
+      "surface": "explore",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "1000",
+          "valueWithinColumn": true,
+          "rowHeight": 103,
+          "titleHeight": 66,
+          "fontSize": 30,
+          "textWidth": 154.921875,
+          "available": 215,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 137,
+          "withinViewport": true
+        },
+        {
+          "name": "Sand Branch",
+          "liveValue": "2",
+          "valueWithinColumn": true,
+          "rowHeight": 70,
+          "titleHeight": 33,
+          "fontSize": 30,
+          "textWidth": 168.09375,
+          "available": 215,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 104,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "home-393-four-digit",
+      "width": 393,
+      "variant": "four-digit",
+      "surface": "home",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "1000",
+          "valueWithinColumn": true,
+          "rowHeight": 111,
+          "titleHeight": 74,
+          "fontSize": 34,
+          "textWidth": 174.703125,
+          "available": 215,
+          "titleCountGap": 42,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 123,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "court-393-four-digit",
+      "width": 393,
+      "variant": "four-digit",
+      "surface": "court",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "1000",
+          "valueWithinColumn": true,
+          "rowHeight": 111,
+          "titleHeight": 74,
+          "fontSize": 34,
+          "textWidth": 174.703125,
+          "available": 241,
+          "titleCountGap": 16,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 117,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "explore-430-short",
+      "width": 430,
+      "variant": "short",
+      "surface": "explore",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 70,
+          "titleHeight": 33,
+          "fontSize": 30,
+          "textWidth": 218.5625,
+          "available": 252,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 104,
+          "withinViewport": true
+        },
+        {
+          "name": "Sand Branch",
+          "liveValue": "2",
+          "valueWithinColumn": true,
+          "rowHeight": 70,
+          "titleHeight": 33,
+          "fontSize": 30,
+          "textWidth": 168.09375,
+          "available": 252,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 104,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "drawer-430-short",
+      "width": 430,
+      "variant": "short",
+      "surface": "drawer",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 70,
+          "titleHeight": 33,
+          "fontSize": 30,
+          "textWidth": 218.5625,
+          "available": 252,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 104,
+          "withinViewport": true
+        },
+        {
+          "name": "Sand Branch",
+          "liveValue": "2",
+          "valueWithinColumn": true,
+          "rowHeight": 70,
+          "titleHeight": 33,
+          "fontSize": 30,
+          "textWidth": 168.09375,
+          "available": 252,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 104,
+          "withinViewport": true
+        },
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 74,
+          "titleHeight": 37,
+          "fontSize": 34,
+          "textWidth": 246.5,
+          "available": 278,
+          "titleCountGap": 16,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 86,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "home-430-short",
+      "width": 430,
+      "variant": "short",
+      "surface": "home",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 81,
+          "titleHeight": 37,
+          "fontSize": 34,
+          "textWidth": 246.5,
+          "available": 252,
+          "titleCountGap": 42,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 93,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "court-430-short",
+      "width": 430,
+      "variant": "short",
+      "surface": "court",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 74,
+          "titleHeight": 37,
+          "fontSize": 34,
+          "textWidth": 246.5,
+          "available": 278,
+          "titleCountGap": 16,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 80,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "explore-430-fallback",
+      "width": 430,
+      "variant": "fallback",
+      "surface": "explore",
+      "rows": [
+        {
+          "name": "Rancho Cienega Sports Complex",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 103,
+          "titleHeight": 66,
+          "fontSize": 30,
+          "textWidth": 209.5625,
+          "available": 252,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 137,
+          "withinViewport": true
+        },
+        {
+          "name": "Sand Branch",
+          "liveValue": "2",
+          "valueWithinColumn": true,
+          "rowHeight": 70,
+          "titleHeight": 33,
+          "fontSize": 30,
+          "textWidth": 168.09375,
+          "available": 252,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 104,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "home-430-fallback",
+      "width": 430,
+      "variant": "fallback",
+      "surface": "home",
+      "rows": [
+        {
+          "name": "Rancho Cienega Sports Complex",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 111,
+          "titleHeight": 74,
+          "fontSize": 34,
+          "textWidth": 236.296875,
+          "available": 252,
+          "titleCountGap": 42,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 123,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "court-430-fallback",
+      "width": 430,
+      "variant": "fallback",
+      "surface": "court",
+      "rows": [
+        {
+          "name": "Rancho Cienega Sports Complex",
+          "liveValue": "0",
+          "valueWithinColumn": true,
+          "rowHeight": 111,
+          "titleHeight": 74,
+          "fontSize": 34,
+          "textWidth": 236.296875,
+          "available": 278,
+          "titleCountGap": 16,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 117,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "explore-430-four-digit",
+      "width": 430,
+      "variant": "four-digit",
+      "surface": "explore",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "1000",
+          "valueWithinColumn": true,
+          "rowHeight": 70,
+          "titleHeight": 33,
+          "fontSize": 30,
+          "textWidth": 218.5625,
+          "available": 252,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 104,
+          "withinViewport": true
+        },
+        {
+          "name": "Sand Branch",
+          "liveValue": "2",
+          "valueWithinColumn": true,
+          "rowHeight": 70,
+          "titleHeight": 33,
+          "fontSize": 30,
+          "textWidth": 168.09375,
+          "available": 252,
+          "titleCountGap": 16,
+          "countWidth": 88,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 104,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "home-430-four-digit",
+      "width": 430,
+      "variant": "four-digit",
+      "surface": "home",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "1000",
+          "valueWithinColumn": true,
+          "rowHeight": 81,
+          "titleHeight": 37,
+          "fontSize": 34,
+          "textWidth": 246.5,
+          "available": 252,
+          "titleCountGap": 42,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 93,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "court-430-four-digit",
+      "width": 430,
+      "variant": "four-digit",
+      "surface": "court",
+      "rows": [
+        {
+          "name": "Kasmiersky Park",
+          "liveValue": "1000",
+          "valueWithinColumn": true,
+          "rowHeight": 74,
+          "titleHeight": 37,
+          "fontSize": 34,
+          "textWidth": 246.5,
+          "available": 278,
+          "titleCountGap": 16,
+          "countWidth": 96,
+          "countCenterDeltaY": 0,
+          "artCenterDeltaY": null,
+          "circleCenterDeltaX": null,
+          "cardHeight": 80,
+          "withinViewport": true
+        }
+      ],
+      "errors": []
+    }
+  ]
+}

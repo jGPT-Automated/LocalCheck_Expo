@@ -1,5 +1,18 @@
 # Feedback & polish tracker
 
+## November 17 — Explore regression correction under review
+
+- Jesse rejected tall, unequal court cards and asked for width-aware text
+  fitting and centered artwork/counts across Explore, Home and court detail.
+- On `codex/restore-compact-explore-cards`: CourtTitleRow owns fitting and the
+  live-art placement. Existing short names are preferred, full names are the
+  fallback. Reused Settings court cards inherit this; notification rows and
+  their toggle are not edited.
+- Screenshot evidence: `docs/product/design-qa/2026-11-17-compact-courts/`.
+  Approval and native phone check remain pending; no merge or release.
+- Settings row/system redesign, LocalList management, and Schedule corrections
+  remain separate screen-by-screen work. This does not mark them complete.
+
 ## November 17 — screenshot corrections, delivered one slice at a time
 
 - **This branch:** remove temporary drop-down app banners; keep court-name width

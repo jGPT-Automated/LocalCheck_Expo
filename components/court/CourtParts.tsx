@@ -18,6 +18,8 @@ import {
 import Svg, { Path } from "react-native-svg";
 
 import { PressableScale } from "@/components/ui/PressableScale";
+import { CourtArt } from "@/components/court/CourtArt";
+import { CourtName } from "@/components/court/CourtName";
 import { Colors, Radius } from "@/constants/colors";
 import type { CourtSport } from "@/constants/data";
 import { Typography } from "@/constants/typography";
@@ -142,6 +144,7 @@ export function CourtTitleRow({
   live,
   liveAccessibilityLabel,
   onChooseCourt,
+  faintArt = false,
   size = "card",
 }: {
   sport: CourtSport;
@@ -151,6 +154,7 @@ export function CourtTitleRow({
   live: boolean;
   liveAccessibilityLabel?: string;
   onChooseCourt?: () => void;
+  faintArt?: boolean;
   size?: "card" | "page";
 }) {
   const page = size === "page";
@@ -163,14 +167,14 @@ export function CourtTitleRow({
       <View testID="court-title-copy" style={styles.titleBlock}>
         <SportLabel sport={sport} />
         {onChooseCourt ? <Pressable onPress={onChooseCourt} accessibilityRole="button" accessibilityLabel="Choose court" style={styles.titleChoice}>
-        <Text
+        <CourtName
           testID="court-title-name"
           style={[styles.titleName, page && styles.titleNamePage, styles.selectableTitle]}
         >
           {shown}
-        </Text>
+        </CourtName>
         <Feather name="chevron-down" size={18} color={Colors.textSecondary} />
-        </Pressable> : <Text testID="court-title-name" style={[styles.titleName, page && styles.titleNamePage]}>{shown}</Text>}
+        </Pressable> : <CourtName testID="court-title-name" style={[styles.titleName, page && styles.titleNamePage]}>{shown}</CourtName>}
         {place ? <Text numberOfLines={1} style={styles.titlePlace}>{place}</Text> : null}
       </View>
       <View
@@ -179,6 +183,9 @@ export function CourtTitleRow({
         testID="court-live-block"
         style={[styles.liveBlock, page && styles.liveBlockPage]}
       >
+        <View pointerEvents="none" testID="court-live-art" style={[styles.liveArt, page && styles.liveArtPage]}>
+          <CourtArt faint={faintArt} sport={sport} />
+        </View>
         <Text numberOfLines={1} style={[styles.liveValue, page && styles.liveValuePage, live && styles.liveValueOn, { fontSize: Math.max(11, valueSize) }]}>{liveValue}</Text>
         <View style={styles.liveLabelRow}>
           {live ? <LiveDot /> : null}
@@ -448,6 +455,10 @@ const styles = StyleSheet.create({
   // Reserve the same column before/after check-in, including four-digit counts.
   liveBlock: { width: 88, flexShrink: 0, alignItems: "center", justifyContent: "center" },
   liveBlockPage: { width: 96 },
+  // The basketball circle is x=84 in a 160pt trace. Its center shares the
+  // count column's center; vertical placement follows this group, not a page.
+  liveArt: { position: "absolute", width: 160, height: 132, top: "50%", marginTop: -66, right: -32 },
+  liveArtPage: { right: -28 },
   liveValue: { fontFamily: Typography.headingBold, fontSize: 40, lineHeight: 42, letterSpacing: -1.2, color: Colors.text, fontVariant: ["tabular-nums"] },
   liveValuePage: { fontSize: 46, lineHeight: 48, letterSpacing: -1.4 },
   liveValueOn: { color: Colors.liveInk },
