@@ -1,5 +1,18 @@
 # Feedback & polish tracker
 
+## November 22 — approved main Settings checkpoint
+
+Jesse greenlit the scoped main-page row correction and requested screenshots
+on the PR as each checkpoint is verified, plus durable docs for future agents.
+AGENTS.md records that delivery rule. Browser verification passes 23 captures
+and the scoped three-size audit; before/after evidence is archived in
+`docs/product/design-qa/2026-11-22-settings-rows/README.md`. Main-page scope: one shared row layout,
+14/12/11pt hierarchy, 20/16pt gutters, centered intrinsic controls and wrapping
+long values. No switch scaling or notification logic change. Native dimensions
+remain unverified until the phone check. This pass does not redesign LocalList's
+editor. Its management UI is the following checkpoint; persistence/per-court
+auto check-in remain functional backlog. PR #93 stays draft and unmerged.
+
 ## November 18 — finish Explore before the next screen
 
 Jesse rejected the first #93 handoff because it retained already-annotated

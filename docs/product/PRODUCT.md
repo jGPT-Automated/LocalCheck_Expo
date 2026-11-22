@@ -1,5 +1,13 @@
 # Product context
 
+## November 22 — main Settings row correction (on branch)
+
+Main Settings has clearer labels/descriptions, consistent grouping and gutters,
+and long values can wrap without clipping. Push notifications use the existing
+native control and preference handler; this is a layout correction, not a push
+registration/delivery change. LocalList's editor/persistence are not completed
+by this main-page pass. Native phone acceptance remains pending.
+
 ## November 18 — Explore correction on PR #93
 
 Explore clearly separates saved and nearby courts with matching section labels.

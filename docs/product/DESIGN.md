@@ -1,5 +1,21 @@
 # LocalCheck Design System
 
+## November 22 — canonical main Settings rows (approved)
+
+`components/ui/SettingsRow.tsx` owns navigation/value, description and native
+switch rows. Reuse TextStyles.listName/bodySmall/metadata: 14pt primary/value,
+12pt supporting text, existing 11pt section headings. Screen gutter is
+Layout.screenGutter (20), inner padding Space.lg (16), vertical padding Space.md
+(12). Navigation rows have a 56pt minimum; descriptions have a 64pt minimum;
+content may grow. The full navigation row is its touch target; its chevron does
+not need an extra 44pt box. The switch accessory retains a 44pt minimum frame
+without a fixed width or scale. Copy is flexible, values wrap on compact widths,
+and icons/accessories center on the whole row. The native switch remains native;
+RN Web's enabled-thumb property is mapped to the same white thumb color.
+Grouped-row reference: Rebeca Zuccari's Settings Mobile App UI concept, preserving
+LocalCheck colors, type and behavior. LocalList editor changes are a separate
+checkpoint. Browser layout is not native-device acceptance.
+
 ## November 18 — Explore section and shared hero correction
 
 Explore's LOCAL LIST and market headings use the same section-label style,

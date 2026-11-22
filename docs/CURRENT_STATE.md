@@ -1,5 +1,33 @@
 # Current state
 
+## November 22 — resume PR #93: main Settings rows
+
+Branch: `codex/restore-compact-explore-cards`; open draft PR:
+https://github.com/jGPT-Automated/LocalCheck_Expo/pull/93 . Explore's verified
+checkpoint is commit `5da6d72` and its November 18 evidence gallery below.
+Jesse approved that visual direction and the next bounded Settings scope.
+
+**On branch, browser verified:** main Settings uses one canonical
+`components/ui/SettingsRow.tsx` instead of three local row implementations.
+Primary copy is 14pt, supporting copy 12pt; section headings stay 11pt. Screen
+and inner gutters are 20/16pt; long values wrap and rows grow. The native Switch
+keeps its callbacks, track/thumb colors and unscaled intrinsic sizing; its
+wrapper no longer forces 52pt width. RN Web's separate active-thumb property
+keeps the preview thumb white. Existing row actions/order and notification
+logic are preserved. No editor-sheet redesign or backend change in this step.
+
+Verification: 23 strict captures at 320/375/393/430pt; 16pt trailing inset,
+at most 0.5pt accessory centering error, no text overflow. One isolated push-OFF
+callback and Inbox navigation pass. Scoped three-size audit: zero failures or
+baseline increases. `pnpm check` passes. Before/after receipt:
+`docs/product/design-qa/2026-11-22-settings-rows/README.md`.
+Native switch dimensions, Dynamic Type and physical safe areas still need a
+phone check. Next implementation checkpoint is LocalList's management drawer,
+after this main-page review. LocalList persistence and per-court auto check-in
+remain separate functional work before submission. No merge, production OTA or
+native build is authorized. Keep screenshots on the PR and chat at each verified
+checkpoint; AGENTS.md now makes this a standing handoff requirement.
+
 ## November 18 — PR #93 Explore correction (on branch)
 
 Explore uses one section-heading style for LOCAL LIST and the market heading;

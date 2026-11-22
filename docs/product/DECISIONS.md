@@ -1,5 +1,15 @@
 # LocalCheck Design Decisions
 
+## November 22 — Settings scope and resumable visual checkpoints
+
+Jesse approved main Settings first: shared row structure, 14pt primary/12pt
+supporting/11pt section type, 20pt screen and 16pt inner gutters, intrinsic native
+switch placement and wrapping long content. LocalList drawer is the next distinct
+checkpoint; persistence and per-court auto check-in remain functional work.
+Every verified UI checkpoint must add actual screenshots to the active PR as
+well as chat and update the authority docs so future threads can resume without
+chat history. Keep work small and verified. No merge or production release.
+
 ## November 18 — Explore approval requires complete screen and four-surface proof
 
 Jesse requires the known Explore annotations to be resolved before handoff,

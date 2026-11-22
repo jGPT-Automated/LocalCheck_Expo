@@ -108,6 +108,12 @@ force-push shared branches, or include unrelated user changes.
 - Answer direct questions and status requests before continuing tool work.
 - Work one independently verifiable outcome at a time: implement, test, show
   the connected preview or device evidence, then move to the next surface.
+- Keep UI progress resumable at each verified checkpoint: commit actual
+  before/after screenshots under `docs/product/design-qa/`, link them in the
+  active PR comment as well as the chat, and update `docs/CURRENT_STATE.md`
+  and `docs/FEEDBACK_TRACKER.md` in the same push. Record the branch/commit,
+  what passed, what remains unverified, and the next bounded step. A new
+  thread must be able to resume from those docs without the chat history.
 - Treat prior agent summaries, plans, and comments as leads rather than facts.
   Verify current Git, deployed-service, and runtime state directly.
 - Explain external actions before taking them. Production database changes,
