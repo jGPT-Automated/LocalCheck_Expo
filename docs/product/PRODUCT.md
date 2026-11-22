@@ -1,5 +1,14 @@
 # Product context
 
+## November 18 — Explore correction on PR #93
+
+Explore clearly separates saved and nearby courts with matching section labels.
+Default status is attached to its court. Compact court names and live counts fit
+across phone widths; the count sits inside the same court-art circle on Home,
+Explore, court detail and expanded drawer. Search placeholders are readable and
+clear has a full touch target. No selection, persistence, check-in or notification
+policy changes. Screenshot review and native phone acceptance remain distinct.
+
 ## November 17 — compact court-card correction (on branch)
 
 Explore court cards return to a compact single-line name with width-based

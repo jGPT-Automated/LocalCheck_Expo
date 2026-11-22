@@ -18,11 +18,12 @@ import {
 import Svg, { Path } from "react-native-svg";
 
 import { PressableScale } from "@/components/ui/PressableScale";
-import { CourtArt } from "@/components/court/CourtArt";
+import { CourtArt, CourtArtGeometry } from "@/components/court/CourtArt";
 import { CourtName } from "@/components/court/CourtName";
 import { Colors, Radius } from "@/constants/colors";
+import { Space } from "@/constants/layout";
 import type { CourtSport } from "@/constants/data";
-import { Typography } from "@/constants/typography";
+import { FontSizes, Typography } from "@/constants/typography";
 
 export function LiveDot() {
   const pulse = React.useRef(new Animated.Value(0)).current;
@@ -145,6 +146,7 @@ export function CourtTitleRow({
   liveAccessibilityLabel,
   onChooseCourt,
   faintArt = false,
+  isDefaultCourt = false,
   size = "card",
 }: {
   sport: CourtSport;
@@ -155,6 +157,7 @@ export function CourtTitleRow({
   liveAccessibilityLabel?: string;
   onChooseCourt?: () => void;
   faintArt?: boolean;
+  isDefaultCourt?: boolean;
   size?: "card" | "page";
 }) {
   const page = size === "page";
@@ -165,7 +168,10 @@ export function CourtTitleRow({
   return (
     <View testID="court-title-row" style={styles.titleRow}>
       <View testID="court-title-copy" style={styles.titleBlock}>
-        <SportLabel sport={sport} />
+        <View style={styles.identityMeta}>
+          <SportLabel sport={sport} />
+          {isDefaultCourt ? <Feather testID="court-default-marker" accessibilityLabel="Default court" name="star" size={12} color={Colors.textSecondary} /> : null}
+        </View>
         {onChooseCourt ? <Pressable onPress={onChooseCourt} accessibilityRole="button" accessibilityLabel="Choose court" style={styles.titleChoice}>
         <CourtName
           testID="court-title-name"
@@ -183,10 +189,12 @@ export function CourtTitleRow({
         testID="court-live-block"
         style={[styles.liveBlock, page && styles.liveBlockPage]}
       >
-        <View pointerEvents="none" testID="court-live-art" style={[styles.liveArt, page && styles.liveArtPage]}>
-          <CourtArt faint={faintArt} sport={sport} />
+        <View testID="court-live-value-frame" style={styles.liveValueFrame}>
+          <View pointerEvents="none" testID="court-live-art" style={styles.liveArt}>
+            <CourtArt faint={faintArt} sport={sport} />
+          </View>
+          <CourtName testID="court-live-value" style={[styles.liveValue, page && styles.liveValuePage, live && styles.liveValueOn, { fontSize: Math.max(11, valueSize) }]}>{String(liveValue)}</CourtName>
         </View>
-        <Text numberOfLines={1} style={[styles.liveValue, page && styles.liveValuePage, live && styles.liveValueOn, { fontSize: Math.max(11, valueSize) }]}>{liveValue}</Text>
         <View style={styles.liveLabelRow}>
           {live ? <LiveDot /> : null}
           <Text style={styles.liveLabel}>On court</Text>
@@ -394,7 +402,7 @@ const styles = StyleSheet.create({
   },
   sportRow: { flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 1 },
   sportDot: { width: 6, height: 6, borderRadius: 3 },
-  sportText: { fontFamily: Typography.bodyBold, fontSize: 9.5, letterSpacing: 1.5, textTransform: "uppercase", flexShrink: 1 },
+  sportText: { fontFamily: Typography.bodyBold, fontSize: FontSizes.xs, letterSpacing: 1.5, textTransform: "uppercase", flexShrink: 1 },
   markBox: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   markCheckGlow: { textShadowColor: Colors.accent, textShadowRadius: 10 },
   pressed: { opacity: 0.72 },
@@ -434,6 +442,7 @@ const styles = StyleSheet.create({
   pillTextActive: { color: Colors.text },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 16, paddingHorizontal: 20 },
   titleBlock: { flex: 1, minWidth: 0, gap: 6 },
+  identityMeta: { minHeight: Space.lg, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: Space.sm },
   titleChoice: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 },
   selectableTitle: { flex: 1, minWidth: 0 },
   titleName: {
@@ -455,15 +464,18 @@ const styles = StyleSheet.create({
   // Reserve the same column before/after check-in, including four-digit counts.
   liveBlock: { width: 88, flexShrink: 0, alignItems: "center", justifyContent: "center" },
   liveBlockPage: { width: 96 },
-  // The basketball circle is x=84 in a 160pt trace. Its center shares the
-  // count column's center; vertical placement follows this group, not a page.
-  liveArt: { position: "absolute", width: 160, height: 132, top: "50%", marginTop: -66, right: -32 },
-  liveArtPage: { right: -28 },
-  liveValue: { fontFamily: Typography.headingBold, fontSize: 40, lineHeight: 42, letterSpacing: -1.2, color: Colors.text, fontVariant: ["tabular-nums"] },
+  liveValueFrame: { width: 64, height: 64, alignItems: "center", justifyContent: "center" },
+  // Anchor the SVG's circle to the numeral frame, rather than the whole
+  // number + caption group. All four court surfaces share this geometry.
+  liveArt: { position: "absolute", width: CourtArtGeometry.width, height: CourtArtGeometry.height,
+    top: "50%", marginTop: -CourtArtGeometry.circleY,
+    left: "50%", marginLeft: -CourtArtGeometry.circleX },
+  // Oswald numeral ink sits ~2pt below its line-box center at these sizes.
+  liveValue: { width: "100%", textAlign: "center", fontFamily: Typography.headingBold, fontSize: 40, lineHeight: 42, letterSpacing: -1.2, color: Colors.text, fontVariant: ["tabular-nums"], transform: [{ translateY: -2 }] },
   liveValuePage: { fontSize: 46, lineHeight: 48, letterSpacing: -1.4 },
   liveValueOn: { color: Colors.liveInk },
-  liveLabelRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
-  liveLabel: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.textSecondary },
+  liveLabelRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: Space.xs },
+  liveLabel: { fontFamily: Typography.bodyBold, fontSize: FontSizes.xs, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.textSecondary },
   cellLabel: { fontFamily: Typography.bodyBold, fontSize: 7.5, letterSpacing: 0.9, textTransform: "uppercase", color: Colors.textSecondary },
   tabs: { flexDirection: "row", paddingHorizontal: 6, borderBottomWidth: 1, borderBottomColor: Colors.hairline },
   tab: { flex: 1, height: 44, alignItems: "center", justifyContent: "center", borderBottomWidth: 2, borderBottomColor: "transparent" },

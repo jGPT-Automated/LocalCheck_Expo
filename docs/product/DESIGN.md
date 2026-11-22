@@ -1,5 +1,22 @@
 # LocalCheck Design System
 
+## November 18 — Explore section and shared hero correction
+
+Explore's LOCAL LIST and market headings use the same section-label style,
+left gutter and heading-to-card spacing; no extra logo. The default indicator
+is a neutral star inside its court card, not a separate row. Settings management
+retains its controls for the separate Settings pass. Elsewhere LocalList remains
+the product name; LOCAL LIST is the approved Explore section label.
+
+CourtTitleRow owns all four hero surfaces. Its fixed 88/96pt live column holds a
+64pt numeral frame; CourtArtGeometry anchors the existing circle on that frame.
+The number is optically centered using Oswald's measured ink offset and fits
+the circle at large counts. ON COURT sits below the circle, separated by Space.xs.
+Metadata uses the existing 11pt token and a shared minimum row height so the
+optional default star cannot make one card taller. No per-page art offsets.
+Shared SearchField uses the readable muted color and the standard 44pt clear
+target; CompactSelect's default text role uses the existing 11pt minimum.
+
 ## November 17 — restore compact court identities (supersedes wrapping below)
 
 Court identities use the existing short name with full-name fallback and fit

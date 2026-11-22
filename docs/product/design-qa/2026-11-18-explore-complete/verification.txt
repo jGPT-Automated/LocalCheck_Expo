@@ -1,0 +1,9 @@
+pnpm check: PASS
+TypeScript: PASS
+git diff --check: PASS
+Focused journey: 52 rendered states PASS
+Independent first-open/short-name repeat: 18 states PASS
+Check-in zero to one: basketball/pickleball PASS at 375
+Latest scoped visual audit: 15 states, zero clipping/overlap/off-screen failures. Four pre-existing Home baseline exceedances remain; no baseline increase.
+Shared SearchField/CompactSelect caller audit: 30 states, zero clipping/overlap/off-screen failures.
+Browser only; native phone/Dynamic Type NOT RUN.

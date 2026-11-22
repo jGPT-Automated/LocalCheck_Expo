@@ -13,6 +13,7 @@ import {
 } from "react-native";
 
 import { Colors, Radius } from "@/constants/colors";
+import { Layout } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 
 /**
@@ -89,7 +90,7 @@ export function SearchField({
         onFocus={onFocus}
         onSubmitEditing={onSubmitEditing}
         placeholder={placeholder}
-        placeholderTextColor={Colors.mutedDark}
+        placeholderTextColor={Colors.muted}
         returnKeyType={returnKeyType}
         selectTextOnFocus={selectTextOnFocus}
         style={styles.input}
@@ -104,7 +105,7 @@ export function SearchField({
           <Pressable
             accessibilityLabel="Clear search"
             accessibilityRole="button"
-            hitSlop={8}
+            style={styles.clearButton}
             onPress={onClear}
           >
             <Feather color={Colors.muted} name="x" size={15} />
@@ -115,6 +116,7 @@ export function SearchField({
 }
 
 const styles = StyleSheet.create({
+  clearButton: { width: Layout.minTouchTarget, height: Layout.minTouchTarget, alignItems: "center", justifyContent: "center" },
   box: {
     minHeight: 44,
     paddingHorizontal: 12,

@@ -8,8 +8,9 @@ import Svg, { Circle, Defs, G, Line, LinearGradient, Mask, Path, Rect, Stop } fr
 import { Colors } from "@/constants/colors";
 import type { CourtSport } from "@/constants/data";
 
-const W = 160;
-const H = 132;
+export const CourtArtGeometry = { width: 160, height: 132, circleX: 84, circleY: 66 } as const;
+const W = CourtArtGeometry.width;
+const H = CourtArtGeometry.height;
 
 /** `faint` dims the trace further where text sits over it (court page header). */
 export function CourtArt({ sport, top = 0, faint = false }: { sport: CourtSport; top?: number; faint?: boolean }) {

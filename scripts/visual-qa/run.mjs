@@ -102,6 +102,9 @@ for (const vp of VIEWPORTS.filter((v) => !sizes || sizes.includes(v.name))) {
       }
       await page.waitForTimeout(a.wait ?? 800);
     }
+    if (screen.name.startsWith("explore-drawer")) {
+      await page.getByLabel(/, expand$/).waitFor({ state: "visible", timeout: 30000 });
+    }
     await page.screenshot({ path: join(outDir, vp.name, `${screen.name}.png`) });
     const found = await page.evaluate(`(${AUDIT})()`);
     const key = `${vp.name}/${screen.name}`;

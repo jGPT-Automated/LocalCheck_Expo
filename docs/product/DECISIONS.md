@@ -1,5 +1,15 @@
 # LocalCheck Design Decisions
 
+## November 18 — Explore approval requires complete screen and four-surface proof
+
+Jesse requires the known Explore annotations to be resolved before handoff,
+rather than treating the hero-only correction as a completed screen. Use the
+same section-heading treatment for LOCAL LIST and market courts; keep default
+status on its card. Prefer the number centered inside the court-art circle.
+Prove the shared hero on Home, Explore, court detail and the expanded drawer,
+not only a single Explore screenshot. Corrections stay on PR #93; no merge or
+production OTA. This revises the old extra-logo LocalList heading treatment.
+
 ## November 17 — correction: fit court names rather than wrapping
 
 Jesse rejected the wrapped court names introduced in #92: ordinary court cards

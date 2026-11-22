@@ -1,5 +1,7 @@
 # Compact court headers — branch evidence
 
+**Superseded screenshots:** [November 18 Explore correction and all four hero surfaces](../2026-11-18-explore-complete/README.md). The initial measurements below describe the first #93 pass, not its final section/marker/circle layout.
+
 Status: on branch, awaiting Jesse's review and native phone verification. No merge, production OTA, native build or backend mutation.
 
 # Correction

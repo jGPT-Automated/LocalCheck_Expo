@@ -70,7 +70,9 @@ function test(row, col, expr) {
   if (expr.startsWith("not.")) { neg = true; expr = expr.slice(4); }
   const dot = expr.indexOf(".");
   const op = expr.slice(0, dot);
-  const raw = decodeURIComponent(expr.slice(dot + 1));
+  // URLSearchParams already decoded this value; literal ILIKE % wildcards
+  // are not another URI escape sequence.
+  const raw = expr.slice(dot + 1);
   const v = row[col];
   let ok;
   switch (op) {

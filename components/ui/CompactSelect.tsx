@@ -12,7 +12,7 @@ import {
 
 import { Colors, Radius } from "@/constants/colors";
 import { Layout } from "@/constants/layout";
-import { Typography } from "@/constants/typography";
+import { FontSizes, Typography } from "@/constants/typography";
 
 type SelectAnchor = { x: number; y: number; width: number; height: number };
 
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   },
   triggerText: {
     fontFamily: Typography.bodyBold,
-    fontSize: 9,
+    fontSize: FontSizes.xs,
     color: Colors.text,
     letterSpacing: 1,
   },

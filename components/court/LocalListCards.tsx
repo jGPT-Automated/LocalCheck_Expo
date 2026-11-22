@@ -30,10 +30,10 @@ export function LocalListCards({
         const isDefault = court.id === defaultCourt?.id;
         return (
           <View key={court.id} testID={`local-list-${court.id}`}>
-            {manage || isDefault || court.id === selectedId ? (
+            {manage || court.id === selectedId ? (
               <View style={[styles.meta, inset && { marginHorizontal: 0 }]}>
                 <View style={styles.defaultLabel}>
-                  {isDefault ? (
+                  {manage && isDefault ? (
                     <>
                       <Feather name="star" size={12} color={Colors.liveInk} />
                       <Text style={styles.label}>Default</Text>
@@ -83,6 +83,7 @@ export function LocalListCards({
               </View>
             ) : null}
             <CourtListItem
+              isDefaultCourt={!manage && isDefault}
               court={
                 counts[court.id]
                   ? {

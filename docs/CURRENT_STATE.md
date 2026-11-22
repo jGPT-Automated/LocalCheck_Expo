@@ -1,5 +1,24 @@
 # Current state
 
+## November 18 — PR #93 Explore correction (on branch)
+
+Explore uses one section-heading style for LOCAL LIST and the market heading;
+the extra section logo and detached Default row are removed. The default's
+neutral star lives on its saved court card. CourtTitleRow keeps all list cards
+equal-height and centers the numeral in a 64pt court-art circle with its caption
+below. The existing native/web fitting helper now fits both titles and counts,
+including four digits. Home, Explore, court detail, peek and expanded drawer
+share that owner. Court metadata and selector/Explore supporting labels use the
+existing 11pt token. Shared SearchField has readable placeholder contrast and a
+44pt clear target. CourtSheetHost presents after its conditional modal mounts,
+and no longer queues a manual snap with the previous measured position. Gorhom
+owns the detent update; stale presentation frames are canceled.
+Notification toggle is untouched.
+
+Evidence: `docs/product/design-qa/2026-11-18-explore-complete/README.md`.
+This supersedes the initial #93 screenshots below. No merge, production update,
+native build or backend mutation; native phone verification remains pending.
+
 ## November 17 — compact court-header correction (on branch)
 
 On `codex/restore-compact-explore-cards`, the shared court title fits one line

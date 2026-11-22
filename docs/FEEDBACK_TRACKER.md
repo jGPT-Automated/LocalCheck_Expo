@@ -1,5 +1,21 @@
 # Feedback & polish tracker
 
+## November 18 — finish Explore before the next screen
+
+Jesse rejected the first #93 handoff because it retained already-annotated
+LocalList heading/default-row defects and did not show all four hero surfaces.
+On PR #93: remove that extra logo/treatment, use LOCAL LIST with the market's
+heading style, attach the default star to its card, keep row heights equal,
+center numerals inside the circle and keep ON COURT outside it. Verify actual
+four-digit containment, search/clear/filter and two saved courts. Supply Home,
+Explore, court detail and actual expanded-drawer captures at matching widths.
+Evidence: `docs/product/design-qa/2026-11-18-explore-complete/README.md`.
+The four-surface check caught a stale manual snap closing the drawer after its
+measured detent changed. Gorhom now owns that update; presentation follows
+mount, and tests require both visible content and the expanded detent.
+Notification toggle and Settings management are not changed by this pass.
+No merge or production update authorized.
+
 ## November 17 — Explore regression correction under review
 
 - Jesse rejected tall, unequal court cards and asked for width-aware text
