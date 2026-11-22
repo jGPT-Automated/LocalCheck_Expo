@@ -1,6 +1,6 @@
 # Main Settings row checkpoint — November 22, 2026
 
-On branch `codex/restore-compact-explore-cards`, draft [PR #93](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/93). Browser-verified; native acceptance pending.
+On branch `codex/restore-compact-explore-cards`, draft [PR #93](https://github.com/jGPT-Automated/LocalCheck_Expo/pull/93). Implementation and evidence commit: `715893f`. Browser-verified; native acceptance pending.
 
 ## Exact scope
 

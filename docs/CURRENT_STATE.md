@@ -5,6 +5,7 @@
 Branch: `codex/restore-compact-explore-cards`; open draft PR:
 https://github.com/jGPT-Automated/LocalCheck_Expo/pull/93 . Explore's verified
 checkpoint is commit `5da6d72` and its November 18 evidence gallery below.
+The verified main Settings implementation/evidence is commit `715893f`.
 Jesse approved that visual direction and the next bounded Settings scope.
 
 **On branch, browser verified:** main Settings uses one canonical
