@@ -1,5 +1,26 @@
 # Current state
 
+## November 24 — PR #93 as-is audit; no UI edits
+
+Audited application commit `5b877ad` on `codex/restore-compact-explore-cards`.
+Jesse requested screenshots and a systematic list before any more changes.
+Evidence/report: `docs/product/design-qa/2026-11-24-pr93-as-is/README.md`;
+226 accepted web screenshots, 79 named states across 375/393/430 widths, with
+measured boxes, screen index and 14 prioritized review items. Native-only and
+unreached states are explicitly listed; this is not complete device acceptance.
+No application source, dependency, native configuration or backend change.
+
+**Typography acceptance correction:** Jesse rejected the enlarged Settings
+labels (14/12pt on the branch). The November 22 implementation and passing
+geometry checks are not approval of those font sizes. Preserve compactness;
+review exact typography against the prior screenshot before implementation.
+The 17pt Apple default is not this screen’s mandated size.
+
+Next: review Me search/content spacing and long-court text fitting (A01–A04),
+then Settings typography/switch consistency and LocalList management in bounded
+checkpoints. No fixes, merge, production OTA or native build authorized by this
+audit. Maintain the PR screenshot/report trail for future threads.
+
 ## November 22 — resume PR #93: main Settings rows
 
 Branch: `codex/restore-compact-explore-cards`; open draft PR:

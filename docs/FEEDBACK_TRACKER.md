@@ -1,5 +1,18 @@
 # Feedback & polish tracker
 
+## November 24 — visual audit first; Settings type rejected
+
+Jesse rejects the larger Settings labels and wants the existing PR #93 captured
+as-is, with no UI edits. Audit padding above/below, horizontal/vertical alignment,
+balance, proportional sizing and text fitting; prioritize Me search/notifications.
+Audit report: `docs/product/design-qa/2026-11-24-pr93-as-is/README.md`.
+14 review items A01–A14 are proposed, none implemented: Me rhythm/fallback names,
+Settings type and switch consistency, detached LocalList controls/footer, small
+labels/targets, Home roster balance, Schedule selection visibility, body-gutter
+and contrast debts. Distinguish measured defects, preferences and native checks.
+226 accepted web captures; no application code changed. Review items before
+screen-by-screen implementation; retain the approved compact court heroes.
+
 ## November 22 — approved main Settings checkpoint
 
 Jesse greenlit the scoped main-page row correction and requested screenshots

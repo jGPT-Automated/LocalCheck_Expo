@@ -1,5 +1,19 @@
 # LocalCheck Design System
 
+## November 24 — current geometry versus accepted design
+
+The main Settings implementation below remains on PR #93, but Jesse rejected
+its enlarged text. Its 14/12pt values describe branch code rather than approved
+future typography. Resolve compact type, spacing and switch presentation using
+matched screenshots; do not apply a blanket font increase.
+
+As-is audit and proposed changes (not implemented):
+`docs/product/design-qa/2026-11-24-pr93-as-is/README.md`. Measure equal gutters,
+section/row rhythm, control centering and text reflow. Left-aligned text, deliberate
+empty states and pinned primary actions do not need global centering. Confirm
+native safe areas/font scaling separately. Preserve the approved court-hero fit
+and geometry while reviewing the remaining screen-specific spacing.
+
 ## November 22 — canonical main Settings rows (approved)
 
 `components/ui/SettingsRow.tsx` owns navigation/value, description and native

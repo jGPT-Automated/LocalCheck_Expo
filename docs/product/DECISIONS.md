@@ -1,6 +1,19 @@
 # LocalCheck Design Decisions
 
+## November 24 — audit before implementation; compact Settings review
+
+Jesse requested a complete as-is screenshot/placement audit of PR #93, with no
+application edits this turn. He rejected the larger Settings typography and
+clarified the intended correction: switch proportions/inset, consistent text
+roles, fitting, padding and proportional margins. This revises the typography
+acceptance recorded in the November 22 entry below: the branch’s 14/12pt sizes
+are implementation facts, not an accepted target. No global font enlargement
+is authorized. Use the audit evidence/14-item list for review, then work screen
+by screen with actual screenshots and up-to-date PR/resume docs.
+
 ## November 22 — Settings scope and resumable visual checkpoints
+
+(Typography acceptance revised by the November 24 entry above.)
 
 Jesse approved main Settings first: shared row structure, 14pt primary/12pt
 supporting/11pt section type, 20pt screen and 16pt inner gutters, intrinsic native
