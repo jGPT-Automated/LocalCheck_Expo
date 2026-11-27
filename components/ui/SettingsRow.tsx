@@ -73,18 +73,18 @@ export function SettingsRow(props: Props) {
 }
 
 const styles = StyleSheet.create({
-  row: { minHeight: Layout.minTouchTarget + Space.md, paddingHorizontal: Space.lg, paddingVertical: Space.md,
+  row: { minHeight: Layout.minTouchTarget + Space.sm, paddingHorizontal: Space.lg, paddingVertical: Space.md,
     flexDirection: "row", alignItems: "center", gap: Space.md,
     borderBottomWidth: 1, borderBottomColor: Colors.borderSubtle },
-  withDetail: { minHeight: Layout.minTouchTarget + Space.xl },
+  withDetail: { minHeight: Layout.minTouchTarget + Space.lg },
   last: { borderBottomWidth: 0 },
   icon: { width: Space.xl, flexShrink: 0, alignItems: "center", justifyContent: "center" },
   copy: { flex: 1, minWidth: 0 },
-  label: { ...TextStyles.listName, lineHeight: TextStyles.bodySmall.lineHeight, color: Colors.text, letterSpacing: 0.4 },
-  detail: { ...TextStyles.metadata, color: Colors.muted, marginTop: Space.xs },
+  label: { ...TextStyles.label, color: Colors.text, letterSpacing: 0.4 },
+  detail: { ...TextStyles.caption, lineHeight: 16, color: Colors.muted, marginTop: Space.xs },
   valueLine: { flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", columnGap: Space.md, rowGap: Space.xs },
   flexibleLabel: { flexGrow: 1, flexShrink: 1, minWidth: 0 },
-  value: { ...TextStyles.bodySmall, flexGrow: 1, flexShrink: 1, maxWidth: "100%", textAlign: "right", color: Colors.textSecondary },
+  value: { ...TextStyles.metadata, flexGrow: 1, flexShrink: 1, maxWidth: "100%", textAlign: "right", color: Colors.textSecondary },
   muted: { color: Colors.muted },
   // No fixed width or scale: reserve the control's actual layout size.
   accessory: { flexShrink: 0, alignItems: "center", justifyContent: "center" },

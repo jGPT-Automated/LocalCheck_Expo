@@ -30,7 +30,7 @@ import { CompactSelect } from "@/components/ui/CompactSelect";
 import { ModeTabs } from "@/components/ui/ModeTabs";
 import { SearchField } from "@/components/ui/SearchField";
 import { Colors, Radius } from "@/constants/colors";
-import { Layout, Space } from "@/constants/layout";
+import { Space } from "@/constants/layout";
 import { Court, CourtSport } from "@/constants/data";
 import { FontSizes, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
@@ -540,6 +540,8 @@ const styles = StyleSheet.create({
   localSection: { paddingTop: Space.lg },
   discoverySection: { paddingTop: Space.xl },
   sectionHeadingRow: {
+    paddingHorizontal: Space.lg,
+    marginBottom: Space.sm,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -549,12 +551,8 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.textSecondary,
     letterSpacing: 1.3,
-    marginHorizontal: Layout.screenGutter,
-    marginBottom: Space.sm,
   },
   resultCount: {
-    marginRight: 20,
-    marginBottom: 8,
     fontFamily: Typography.bodySemiBold,
     fontSize: FontSizes.xs,
     color: Colors.muted,

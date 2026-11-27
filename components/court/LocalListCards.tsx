@@ -1,11 +1,11 @@
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { CourtListItem } from "@/components/CourtListItem";
 import type { Court } from "@/constants/data";
-import { Colors } from "@/constants/colors";
-import { Typography } from "@/constants/typography";
+import { Colors, Radius } from "@/constants/colors";
+import { Layout, Space } from "@/constants/layout";
 import { useLocalList } from "@/context/LocalListContext";
 import { useCourtCounts } from "@/context/CourtPresenceContext";
 
@@ -29,61 +29,18 @@ export function LocalListCards({
       {courts.map((court) => {
         const isDefault = court.id === defaultCourt?.id;
         return (
-          <View key={court.id} testID={`local-list-${court.id}`}>
-            {manage || court.id === selectedId ? (
-              <View style={[styles.meta, inset && { marginHorizontal: 0 }]}>
-                <View style={styles.defaultLabel}>
-                  {manage && isDefault ? (
-                    <>
-                      <Feather name="star" size={12} color={Colors.liveInk} />
-                      <Text style={styles.label}>Default</Text>
-                    </>
-                  ) : null}
-                  {court.id === selectedId ? (
-                    <Feather name="check" size={14} color={Colors.text} />
-                  ) : null}
-                </View>
-                {manage && canEdit ? (
-                  <View style={styles.actions}>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Make ${court.name} default`}
-                      accessibilityState={{
-                        selected: isDefault,
-                        disabled: isDefault,
-                      }}
-                      disabled={isDefault}
-                      onPress={() => setDefaultCourt(court.id)}
-                      style={styles.target}
-                    >
-                      <Feather
-                        name="star"
-                        size={18}
-                        color={
-                          isDefault ? Colors.liveInk : Colors.textSecondary
-                        }
-                      />
-                    </Pressable>
-                    {!isDefault ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={`Remove ${court.name} from LocalList`}
-                        onPress={() => removeCourt(court.id)}
-                        style={styles.target}
-                      >
-                        <Feather
-                          name="x"
-                          size={18}
-                          color={Colors.textSecondary}
-                        />
-                      </Pressable>
-                    ) : null}
-                  </View>
-                ) : null}
+          <View
+            key={court.id}
+            testID={`local-list-${court.id}`}
+            style={[manage && styles.managementCard, manage && !inset && styles.outset]}
+          >
+            {court.id === selectedId ? (
+              <View style={styles.selection}>
+                <Feather name="check" size={14} color={Colors.text} />
               </View>
             ) : null}
             <CourtListItem
-              isDefaultCourt={!manage && isDefault}
+              isDefaultCourt={isDefault}
               court={
                 counts[court.id]
                   ? {
@@ -94,8 +51,20 @@ export function LocalListCards({
                   : court
               }
               onPress={onSelect}
-              style={inset ? { marginHorizontal: 0 } : undefined}
+              style={manage ? styles.managementHero : inset ? { marginHorizontal: 0 } : undefined}
             />
+            {manage && canEdit && !isDefault ? (
+              <View style={styles.actions}>
+                <Pressable accessibilityRole="button" accessibilityLabel={`Make ${court.name} default`}
+                  onPress={() => setDefaultCourt(court.id)} style={styles.target}>
+                  <Feather name="star" size={18} color={Colors.textSecondary} />
+                </Pressable>
+                <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${court.name} from LocalList`}
+                  onPress={() => removeCourt(court.id)} style={styles.target}>
+                  <Feather name="x" size={18} color={Colors.textSecondary} />
+                </Pressable>
+              </View>
+            ) : null}
           </View>
         );
       })}
@@ -103,20 +72,19 @@ export function LocalListCards({
   );
 }
 const styles = StyleSheet.create({
-  meta: {
-    minHeight: 28,
-    marginHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  managementCard: {
+    marginTop: Space.md,
+    borderRadius: Radius.courtCard,
+    borderWidth: 1,
+    borderColor: Colors.hairlineCard,
+    backgroundColor: Colors.sheet,
+    overflow: "hidden",
   },
-  defaultLabel: { flexDirection: "row", alignItems: "center", gap: 6 },
-  label: {
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 11,
-    color: Colors.textSecondary,
-  },
-  actions: { flexDirection: "row", alignItems: "center" },
+  managementHero: { marginHorizontal: 0, marginVertical: 0, borderWidth: 0 },
+  outset: { marginHorizontal: Space.lg },
+  selection: { minHeight: 28, marginHorizontal: Layout.screenGutter, justifyContent: "center" },
+  actions: { flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: Space.sm,
+    borderTopWidth: 1, borderTopColor: Colors.hairline },
   target: {
     width: 44,
     height: 44,

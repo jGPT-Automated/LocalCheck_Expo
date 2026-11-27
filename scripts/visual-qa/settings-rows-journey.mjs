@@ -54,7 +54,7 @@ try {
     });
     const name=`settings-${state}-${width}-${variant}`;await page.screenshot({path:`${out}/${name}.png`});results.push({name,width,variant,metrics});
     if(strict)assert.equal(await page.getByRole('switch',{name:'PUSH NOTIFICATIONS',exact:true}).evaluate(el=>getComputedStyle(el.previousElementSibling).backgroundColor),'rgb(255, 255, 255)','white switch thumb on and off');
-    if(strict){assert.ok(metrics.length>10,'shared row owns every main Settings row');for(const r of metrics){assert.ok(!r.overflow,`${name}: ${r.label} fits`);assert.ok(Math.abs(r.rightInset-16)<=1,`${name}: ${r.label} trailing inset`);assert.ok(Math.abs(r.centerError)<=1,`${name}: ${r.label} centered accessory`);assert.equal(r.labelSize,14);if(r.detailSize!==null)assert.equal(r.detailSize,12);}}
+    if(strict){assert.ok(metrics.length>10,'shared row owns every main Settings row');for(const r of metrics){assert.ok(!r.overflow,`${name}: ${r.label} fits`);assert.ok(Math.abs(r.rightInset-16)<=1,`${name}: ${r.label} trailing inset`);assert.ok(Math.abs(r.centerError)<=1,`${name}: ${r.label} centered accessory`);assert.equal(r.labelSize,12);if(r.detailSize!==null)assert.equal(r.detailSize,11);}}
    };
    if(variant==='normal')await capture('top');
    await align('PREFERENCES');await capture('preferences');

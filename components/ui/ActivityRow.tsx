@@ -36,7 +36,7 @@ function kindOf(item: FeedItem): Kind {
 }
 
 /**
- * The one shared activity row (court-flow feed): every row the same height,
+ * The one shared activity row (court-flow feed): a consistent minimum row height,
  * an icon tile on the left that says what happened (small orange dot for a
  * check-in, small grey dot for a check-out, VS for a game result, a
  * calendar for a scheduled game), the sentence and a quiet detail line, then
@@ -130,7 +130,7 @@ export function ActivityRow({
       >
         <IconTile item={item} kind={kind} />
         <View style={styles.copy}>
-          <Text numberOfLines={1} style={styles.title}>
+          <Text numberOfLines={2} style={styles.title}>
             {who ? (
               <Text onPress={onActorPress && kind !== "game" ? onActorPress : undefined} style={styles.who}>
                 {who}{" "}
@@ -208,8 +208,8 @@ const styles = StyleSheet.create({
   meta: { fontFamily: Typography.bodyMedium, fontSize: 11, lineHeight: 15, color: Colors.muted },
   side: { flexShrink: 0, alignItems: "flex-end", gap: 2 },
   score: { fontFamily: Typography.headingSemiBold, fontSize: 19, lineHeight: 21, letterSpacing: -0.4, color: Colors.text, fontVariant: ["tabular-nums"] },
-  ago: { fontFamily: Typography.bodySemiBold, fontSize: 10, color: Colors.muted },
+  ago: { fontFamily: Typography.bodySemiBold, fontSize: 11, color: Colors.muted },
   dayHeader: { paddingHorizontal: Layout.screenGutter, paddingTop: Space.xl, paddingBottom: Space.xs },
   dayHeaderFirst: { paddingTop: Space.md },
-  dayText: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
+  dayText: { fontFamily: Typography.bodyBold, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: Colors.textSecondary },
 });

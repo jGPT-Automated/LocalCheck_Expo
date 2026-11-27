@@ -1,5 +1,11 @@
 # Current state
 
+## November 27 — UI polish on PR #93
+
+On the PR branch, onboarding fits both sport choices on one row at standard phone widths. Profile searches share a frame, long court names wrap, and Home and the court drawer distribute the live roster across their available width. Settings uses compact row labels, readable secondary text, and a default star on its court. See the [matched Expo web captures](product/design-qa/2026-11-27-ui-polish/README.md) for the tested states and remaining device checks.
+
+**Next LocalPlus checkpoint.** Jesse requested a clearly anchored default indicator, durable saved courts shared across all four selectors, and per-court auto check-in switches. At the first November 27 checkpoint LocalList is still in memory, and both native registration and the server arrival rules use one local court. The multi-court contract needs a migration before release.
+
 ## November 24 — PR #93 as-is audit; no UI edits
 
 Audited application commit `5b877ad` on `codex/restore-compact-explore-cards`.

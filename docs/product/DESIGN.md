@@ -1,5 +1,13 @@
 # LocalCheck Design System
 
+## November 27 — compact controls and list alignment on PR #93
+
+SettingsRow uses 12pt labels and values, 11pt descriptions, and 52/60pt minimum row heights. Keep the native switch intrinsic, the trailing inset at 16pt and wrapping values aligned right. LocalList management keeps its default indicator within the court hero and its available actions on the corresponding card. The management drawer fits short lists and scrolls at its 82% height cap.
+
+Friends and Inbox search share a 20pt gutter, 12pt top margin and 8pt lower margin. Profile metadata and Activity titles can take a second line. The Here now roster uses equal flexible columns on Home and the expanded drawer. Explore section headings follow the cards’ 16pt outer edge.
+
+Onboarding sport choices share a row at a width of at least 360pt adjusted for font scale. Narrower layouts stack the canonical OptionRows. Field labels and step indicators use the 11pt label role, and supporting text uses the readable muted token. [Screenshots by width](design-qa/2026-11-27-ui-polish/README.md).
+
 ## November 24 — current geometry versus accepted design
 
 The main Settings implementation below remains on PR #93, but Jesse rejected

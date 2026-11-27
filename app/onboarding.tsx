@@ -25,7 +25,7 @@ import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { Colors, Radius } from "@/constants/colors";
 import type { Court, CourtSport } from "@/constants/data";
 import { Layout, Space } from "@/constants/layout";
-import { Typography } from "@/constants/typography";
+import { TextStyles, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useDeviceLocation } from "@/context/DeviceLocationContext";
@@ -60,7 +60,7 @@ const WELCOME_ART = require("@/assets/brand/splash-artwork.png");
 export default function OnboardingScreen() {
   const router = useRouter();
   const { top, bottom } = useSafeAreaInsets();
-  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  const { height: windowHeight, width: windowWidth, fontScale } = useWindowDimensions();
   const { profile, updateUsername, refreshProfile } = useAuth();
   const { setPreferredSport, setLocalCourt } = useApp();
   const { enablePush } = useNotifications();
@@ -279,6 +279,7 @@ export default function OnboardingScreen() {
   const courtName = selectedCourt ? selectedCourt.shortName || selectedCourt.name : "your court";
   // Small phones list two rows so the map keeps its room.
   const nearest = courtOptions.slice(0, windowHeight < 760 ? 2 : 3);
+  const compactSportChoices = windowWidth / fontScale >= 360;
   const heroHeight = Math.round(windowHeight * 0.4);
   // The artwork is 2:3 and its subject (the dunk) sits right of the canvas
   // centre, at 63% of its width. Size it a little wider than the screen and
@@ -353,7 +354,7 @@ export default function OnboardingScreen() {
       {header}
 
       {step === 0 ? (
-        <View style={styles.welcome}>
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.welcome} showsVerticalScrollIndicator={false}>
           {/* The sign-in artwork carries on into the welcome (Oct 17): full
               bleed at the top, fading into the page under the headline. */}
           <View style={[styles.hero, { minHeight: heroHeight }]}>
@@ -404,7 +405,7 @@ export default function OnboardingScreen() {
               />
             </View>
           </View>
-        </View>
+        </ScrollView>
       ) : null}
 
       {/* The court trace from Home and the court page sits behind the step
@@ -433,7 +434,7 @@ export default function OnboardingScreen() {
                 setUsernameError(null);
               }}
               placeholder="username"
-              placeholderTextColor={Colors.mutedDark}
+              placeholderTextColor={Colors.muted}
               style={[styles.input, savingStep1 && styles.inputDisabled]}
               value={username}
             />
@@ -446,10 +447,11 @@ export default function OnboardingScreen() {
 
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Your sport</Text>
-            <View style={styles.sportList}>
+            <View style={[styles.sportList, compactSportChoices && styles.sportColumns]}>
               {SPORT_ROWS.map((row) => (
                 <OptionRow
                   key={row.value}
+                  compact={compactSportChoices}
                   disabled={savingStep1}
                   icon={<SportEmblem sport={row.value} size={18} />}
                   label={row.label}
@@ -473,7 +475,7 @@ export default function OnboardingScreen() {
                 setInviterError(null);
               }}
               placeholder="friend's code or username"
-              placeholderTextColor={Colors.mutedDark}
+              placeholderTextColor={Colors.muted}
               style={[styles.input, (savingStep1 || inviterSaved) && styles.inputDisabled]}
               value={inviter}
             />
@@ -504,7 +506,7 @@ export default function OnboardingScreen() {
                   onChangeText={setCity}
                   onSubmitEditing={() => void handleFindCity()}
                   placeholder="City, State"
-                  placeholderTextColor={Colors.mutedDark}
+                  placeholderTextColor={Colors.muted}
                   returnKeyType="search"
                   style={styles.cityInput}
                   value={city}
@@ -714,7 +716,7 @@ const styles = StyleSheet.create({
   progressSegment: { flex: 1, height: 3, borderRadius: 2, backgroundColor: Colors.surfaceHigh },
   progressFilled: { backgroundColor: Colors.accent },
 
-  welcome: { flex: 1 },
+  welcome: { flexGrow: 1 },
   // The art takes whatever the copy leaves, so the page never shows a gap.
   hero: { flex: 1, position: "relative", overflow: "hidden" },
   heroArt: { position: "absolute", top: 0 },
@@ -732,7 +734,7 @@ const styles = StyleSheet.create({
   },
 
   stepTitle: { gap: Space.sm },
-  eyebrow: { fontFamily: Typography.bodyBold, fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", color: Colors.textSecondary },
+  eyebrow: { ...TextStyles.labelSmall, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.textSecondary },
   title: {
     fontFamily: Typography.headingBold,
     fontSize: 38,
@@ -758,11 +760,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.panel,
   },
   howCopy: { flex: 1, minWidth: 0, gap: 3 },
-  howTitle: { fontFamily: Typography.bodyBold, fontSize: 10.5, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.text },
+  howTitle: { ...TextStyles.label, letterSpacing: 0.8, textTransform: "uppercase", color: Colors.text },
   howBody: { fontFamily: Typography.bodyMedium, fontSize: 13, lineHeight: 18, color: Colors.textSecondary },
 
   field: { gap: Space.sm },
-  fieldLabel: { fontFamily: Typography.bodyBold, fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.textSecondary },
+  fieldLabel: { ...TextStyles.labelSmall, letterSpacing: 1, textTransform: "uppercase", color: Colors.textSecondary },
   input: {
     borderWidth: 1,
     borderColor: Colors.hairlineCard,
@@ -778,6 +780,7 @@ const styles = StyleSheet.create({
   fieldHint: { fontFamily: Typography.bodyMedium, fontSize: 12, lineHeight: 17, color: Colors.muted },
   fieldError: { fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.loss },
   sportList: { gap: Space.sm },
+  sportColumns: { flexDirection: "row" },
   fullButton: { alignSelf: "stretch" },
 
   askCard: {
@@ -794,7 +797,7 @@ const styles = StyleSheet.create({
   },
   askTitle: { fontFamily: Typography.headingSemiBold, fontSize: 20, lineHeight: 22, textTransform: "uppercase", color: Colors.text },
   askBody: { fontFamily: Typography.bodyMedium, fontSize: 12.5, lineHeight: 18, color: Colors.textSecondary, marginBottom: Space.xs },
-  cityLink: { alignSelf: "center", minHeight: 36, justifyContent: "center", paddingHorizontal: Space.md },
+  cityLink: { alignSelf: "center", minHeight: Layout.minTouchTarget, justifyContent: "center", paddingHorizontal: Space.md },
   cityLinkText: { fontFamily: Typography.bodySemiBold, fontSize: 12, color: Colors.textSecondary, textDecorationLine: "underline" },
   cityBar: {
     position: "absolute",

@@ -750,8 +750,9 @@ function LocalCourtEditorSheet({
       onClose={onClose}
       title={localList.canEdit ? "LocalList" : "LOCAL COURT"}
       eyebrow="ANCHORS YOUR RANKINGS & LOG GAME"
+      dynamic={localList.canEdit ? "scrollable" : false}
       snapPoints={["82%"]}
-      contentBottomPadding={64}
+      contentBottomPadding={localList.canEdit ? Space.xl : 64}
     >
       <SearchField
         style={styles.searchBox}
@@ -776,7 +777,7 @@ function LocalCourtEditorSheet({
 
       {current && cooldown.restricted ? (
         <Text style={styles.cooldownNote}>
-          <Feather color={Colors.mutedDark} name="clock" size={11} /> You can change
+          <Feather color={Colors.muted} name="clock" size={11} /> You can change
           your local court again in {formatCooldownRemaining(cooldown.remainingMs)}
           . LocalPlus removes this wait.
         </Text>
@@ -797,12 +798,12 @@ function LocalCourtEditorSheet({
             </Text>
           ) : null}
         </View>
-      ) : (
+      ) : !localList.canEdit ? (
         <Text style={styles.searchHint}>
           Your local court anchors your ranking scope and prefills the court when
           you log a game.
         </Text>
-      )}
+      ) : null}
     </RunFlowSheet>
   );
 }
@@ -870,7 +871,7 @@ function UsernameEditorSheet({
               setError(null);
             }}
             placeholder="username"
-            placeholderTextColor={Colors.mutedDark}
+            placeholderTextColor={Colors.muted}
             style={styles.fieldInput}
             value={value}
           />
@@ -956,7 +957,7 @@ function PasswordEditorSheet({
             setError(null);
           }}
           placeholder="••••••••"
-          placeholderTextColor={Colors.mutedDark}
+          placeholderTextColor={Colors.muted}
           secureTextEntry
           style={styles.fieldInputFull}
           value={password}
@@ -971,7 +972,7 @@ function PasswordEditorSheet({
             setError(null);
           }}
           placeholder="••••••••"
-          placeholderTextColor={Colors.mutedDark}
+          placeholderTextColor={Colors.muted}
           secureTextEntry
           style={styles.fieldInputFull}
           value={confirm}
@@ -1072,7 +1073,7 @@ const styles = StyleSheet.create({
   version: {
     fontFamily: Typography.bodyMedium,
     fontSize: 11,
-    color: Colors.mutedDark,
+    color: Colors.muted,
     letterSpacing: 1.3,
     textAlign: "center",
     marginTop: 2,
@@ -1142,7 +1143,7 @@ const styles = StyleSheet.create({
   },
   cooldownNote: {
     ...TextStyles.caption,
-    color: Colors.mutedDark,
+    color: Colors.muted,
     marginBottom: 10,
     lineHeight: 15,
   },
