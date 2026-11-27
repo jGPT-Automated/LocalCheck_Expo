@@ -1,63 +1,41 @@
-# PR 93 · LocalPlus saved courts database review
+# PR 93 · Saved courts database review, revision 2
 
-**Proposed for LocalCheckProd.** The [complete migration](../../supabase/migrations/20261127120000_saved_courts.sql) is the file to review. It has been applied only to an isolated PostgreSQL fixture. Production application and the PR merge await Jesse’s approval.
+**Ready for review. Production application and merge are pending.** A player who has only their existing default court can keep using automatic check-in without migrating any personal settings. LocalPlus adds saved courts with a separate on/off choice for each. Adding a court starts it off.
 
-| Migration version | SQL file size | SHA-256 of the SQL file |
-| --- | ---: | --- |
-| `20261127120000` | 10,599 bytes | `ad17ecda656c0afecd034a8158b3672b49c7dd647ed9b42a60447cc18205fd4b` |
+[Exact SQL to review](../../supabase/migrations/20261127120000_saved_courts.sql) · [Regression test for a disposable database](../../supabase/scripts/20261127120000_saved_courts_regression.sql)
 
-## What applying the file does
+Migration version `20261127120000` · 12,150 bytes · SHA-256 `f7132687ac6f0b71ec582f1c2744ddded09946154f1228d34ebe3e84c8af6a94`. This replaces the SQL in the first review packet.
 
-The transaction creates an empty membership table, one read policy, three public RPCs and a private eligibility function. It saves the four pre-change function definitions in `private.migration_backups` under version `20261127120000`, patches those functions and sends PostgREST a schema reload notification at commit. Existing profiles, subscriptions, courts and historical check-ins receive zero row updates during installation.
+## What changes for a player
 
-| Object | Exact contract |
-| --- | --- |
-| `public.saved_courts` | Composite primary key `(user_id uuid, court_id uuid)`. Both columns are required foreign keys with cascading deletion from profiles and courts. `auto_check_in boolean` is nullable. `added_at timestamptz` is required and defaults to `now()`. |
-| `read_own_saved_courts` | Row-level security allows authenticated players to select only their own rows. The app roles receive no direct insert, update or delete grant. A lapsed member still owns and can read their stored rows through this policy. |
-| `public.get_local_list()` | A caller-privilege read returns `court jsonb` from `courts_with_stats`, `is_default boolean` and `auto_check_in boolean`. It reads the existing default from `profiles.local_court_id` even with no membership row. It returns up to five visible, unarchived courts, default first, then by date added and court ID. |
-| `public.update_local_list(text, uuid, boolean)` | A privileged write RPC identifies the caller from `auth.uid()` and locks their profile. The third argument defaults to null. It checks entitlement and court eligibility before editing. Archived courts are ineligible, pending-review courts are restricted to their submitter, and test courts follow the existing test-data visibility rules. |
-| `private.allows_auto_court(uuid, uuid)` | Checks court availability and visibility. A paid or TEST player’s default is eligible unless explicitly off. An additional court requires an entitled player and explicit opt-in. Free accounts follow the existing single-default arrival rule. This helper has no execute grant for app roles. |
-| `public.undo_auto_check_in_at(uuid)` | Hide cancels the caller’s pending arrival at that court first. Otherwise it deletes the caller’s most recent automatic check-in at that court within three hours and its linked activity events. It returns whether it found anything. The existing no-argument Hide RPC remains available to installed clients. |
+| Action | Today | With the migration and the new client |
+| --- | --- | --- |
+| Arrive | The server accepts the default court. | It also accepts an enabled court on the player’s list. When the default has no saved preference, the device’s existing opt-in still works. |
+| Stay for five minutes | The server posts the pending check-in. | The same timer checks the list again before posting. Switching the court off during the wait cancels the post. One player has one pending arrival at a time. |
+| Tap “I’m still here” | Resumes at the default court. | Resumes at the court named by the notification if that court is still enabled. |
+| Change default | Ends an automatic visit at the old default. | Keeps the visit there if that court is still enabled. Changing the Home or Schedule view does not change the default. |
+| Tap Hide | The existing client calls the original Hide function. | A new function cancels the pending arrival or removes the most recent automatic visit within three hours at the specified court, including linked activity. Previously sent friend alerts stay sent. |
 
-All three new public RPCs grant execution to `authenticated`. Anonymous clients have no execute grant. The two privileged public RPCs and the private helper use an empty search path.
+## What changed since the first review
 
-## What a player can change
+- **A court outside the picker cannot auto-check someone in.** Reading the list, counting available places and accepting an arrival all consult the same five courts. The default comes first, then saved courts by date added and ID. A private or archived court cannot take up a visible place.
+- **Old apps can still change the default.** If a LocalPlus player already has five visible courts, a direct profile update to a sixth is rejected. The current default and saved choices are preserved. They can choose any of the five or remove one in the new app.
+- **Archiving and restoring a court preserves preferences.** If a player fills the free place while a court is archived, restoring it can leave six stored choices. Only the first five in the order above appear or can trigger check-in. The sixth preference is dormant until a place opens. No saved court is silently deleted.
+- **Off survives subscription expiry.** Extra courts stop qualifying when LocalPlus expires. An explicit Off at the default also stays off. A free player can explicitly switch their own default back on through the new endpoint. Other list edits require LocalPlus or the existing TEST exception.
+- **A changed production function stops installation.** Each of the seven text fragments the migration edits must occur exactly once. A missing or duplicated fragment rolls back the whole transaction.
 
-| Action | Result |
-| --- | --- |
-| Add | Saving an existing member succeeds without creating a duplicate. Adding after the list reaches five is rejected. A new row starts with auto check-in off. With no prior default, the first addition also sets the profile’s local court and preferred sport. |
-| Make default | Requires a member. Sets the profile’s local court and preferred sport. Keeps the former default in the list, preserving any saved preference. If it had no membership row, it is saved with automatic check-in off. |
-| Remove | Removes a non-default membership and cancels its pending arrival. Removing the current default is rejected until the player chooses another. |
-| Auto check-in | Stores an explicit true or false for this court. Turning it off cancels its pending arrival. Neither an opt-out nor a removal retroactively deletes a posted check-in. A separate Hide action handles that. |
+## What the SQL installs
 
-Home and Schedule select which court to view. Browsing either picker does not write a new default. Settings manages the default and per-court switches. Explore and court detail let the player add a court. [Screenshots across three phone widths](../product/design-qa/2026-11-27-locallist/README.md)
+One empty table, `public.saved_courts`, stores player ID, court ID, preference and date added. Players may read their own rows. All app writes go through `update_local_list`. Deleting a player or court cascades to its saved rows. The default remains in `profiles.local_court_id`.
 
-## Four existing functions change at runtime
+The three authenticated public functions are `get_local_list`, `update_local_list` and `undo_auto_check_in_at`. Private functions select eligible courts and protect writes from older clients. Court stats still use the caller’s existing read permissions.
 
-| Function | Change |
-| --- | --- |
-| `public.auto_check_in_arrive(uuid)` | Locks the caller’s profile and consults the eligibility helper. When already checked in, it clears only the pending arrival at that court. The existing pending-arrival table still holds one arrival per player. Entering another eligible court replaces that pending arrival. |
-| `public.resume_auto_check_in(uuid)` | “I’m still here” accepts any currently eligible court. The existing check-in and checkout logic then runs. |
-| `private.post_auto_check_in(uuid)` | After the five-minute hold, consumes the pending arrival and checks eligibility again before posting. Loss of entitlement during the hold prevents a post at an additional court. |
-| `private.end_auto_check_in_on_court_change()` | When the default moves, the trigger clears the old court’s pending arrival and closes an open automatic check-in there only if the old court is no longer eligible. |
+The migration saves the original definitions of `auto_check_in_arrive`, `resume_auto_check_in`, `post_auto_check_in` and `end_auto_check_in_on_court_change` before editing them. Installation updates zero existing player, court or visit records. Lock timeout is five seconds. Statement timeout is sixty seconds.
 
-## Accounts at launch
+## Verification and remaining app work
 
-| Account state | Observable result |
-| --- | --- |
-| Paid or promoted player with `profiles.is_pro = true` | Can manage the full list. A newly purchased entitlement must reach the server through the existing subscription sync before the first saved-court write can succeed. |
-| Free player | Sees their existing default through the list RPC. Additional-court arrivals and all list edits are denied. |
-| Subscription expires | Additional memberships and preferences are retained. The app-facing list returns only the default. Additional-court arrivals, delayed posts and resumes are denied until entitlement returns. The default uses the legacy free-account rule, with monitoring controlled on the device. |
-| Test fixtures | `account_tag = 'TEST'` grants access without a purchase. Other tags, including REVIEWER and FOUNDER, require `is_pro` for list management. |
+On November 27, a read-only production query confirmed all seven fragments matched once, old clients had the default-column write grant, the private-schema usage grant existed, and both the new table and migration version were absent. The migration and regression tests ran against isolated PostgreSQL with the inspected function definitions and a reduced surrounding schema. Checks passed for the older client’s sixth-court write, archive/restore, hidden courts, expiry with Off, explicit re-enable, denied cross-account reads and a duplicated fragment rolling back installation.
 
-## Verified and pending
+**This revision changes SQL and documents the client work.** Before shipping the new client, the main switch needs to follow a default changed on another phone, and the free default switch needs to send explicit changes after a saved preference exists. The client’s local and server-posted check-in notifications also need matching IDs. A first save immediately after a purchase can still arrive before the server receives the entitlement. These are integration points for the saved list. Apple sign-in and purchase processing receive no changes here.
 
-Isolated PostgreSQL tests exercised a paid profile without a TEST tag, a free profile, the TEST exception, a REVIEWER without entitlement, account isolation and anonymous denial. They covered duplicate saves, the sixth-court rejection, a hidden test court, default changes, per-court opt-in, expiry during a pending arrival, court-specific resume and Hide, and preservation of a manual check-in. A deliberately changed function guard aborted the migration and rolled back the new table, backups and earlier function edits.
-
-The fixture used the inspected live function bodies with a reduced surrounding schema. The database test set `is_pro` directly. Store purchase → RevenueCat webhook → profile entitlement and physical iOS background entry/exit still need launch verification. The Expo web journey verified persistence after reload and produced the linked screenshots.
-
-## Deployment and recovery
-
-After approval, use the [project SQL editor procedure](../SUPABASE.md#apply-a-change-to-production-the-sql-editor-flow). Compare the file hash first. The SQL expects the four named routines and the existing private backup table. A missing dependency, existing conflicting object or changed anchor aborts the entire transaction. The lock timeout is five seconds and the statement timeout is sixty seconds. This is a one-time migration.
-
-After commit, verify all four saved definitions, app-role grants, owner-only reads, and an allowed and denied account using rolled-back test transactions. Record the version in the migration ledger per the project procedure. If recovery is needed after writes begin, coordinate the client rollback, retain the membership rows and export the current state before restoring the four saved definitions. Those definitions restore the previous checks. They do not reverse default changes or reconstruct visits a player chose to hide.
+Apply and verify the approved SQL before releasing the client that uses the new Hide function. Physical iPhone testing of the new multi-court flow is pending. For recovery after installation, coordinate the client rollback, disable the new write functions and default guard, and restore the four backed-up definitions. Retain saved rows. Restoring definitions does not undo actual player choices or reconstruct a visit someone hid. [Project deployment procedure](../SUPABASE.md#apply-a-change-to-production-the-sql-editor-flow)

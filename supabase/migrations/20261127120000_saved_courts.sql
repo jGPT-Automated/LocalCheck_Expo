@@ -1,23 +1,7 @@
--- PR 93 / LocalList for LocalPlus. This entire file is the migration for review.
---
--- Apply-time writes: create saved_courts, one owner-read policy, three public
--- RPCs and one private helper. Snapshot four existing functions, then replace
--- their single-court guards. Refresh the PostgREST schema cache at commit.
--- No profile, subscription, saved-court row or check-in is seeded or rewritten.
---
--- Runtime changes: profiles.local_court_id remains the default. A paid player
--- (profiles.is_pro) or a TEST fixture can add up to five visible courts including
--- the default, change it, remove a non-default, or opt in separately per court.
--- New memberships start with auto check-in off. Existing defaults with no saved
--- preference preserve the original single-court behavior. Extra courts require
--- both entitlement and an explicit true preference for automatic arrival.
--- Removing a court or switching it off cancels its pending arrival. The new
--- Hide RPC cancels a pending arrival or removes the player's most recent auto
--- check-in at the specified court within three hours and its activity events.
---
--- Apply once as a single transaction. A missing dependency, conflicting object
--- or changed function anchor aborts the transaction. Review and verification
--- notes are in docs/runbooks/LOCALPLUS_SAVED_COURTS.md.
+-- PR 93: LocalPlus saved courts. Review alongside docs/runbooks/LOCALPLUS_SAVED_COURTS.md.
+-- Installation starts with an empty list table and saves four function definitions.
+-- Each player's existing profile default still works without a saved-court row.
+-- The list, the write limit and automatic arrivals all use the same five visible courts.
 begin;
 set local lock_timeout = '5s';
 set local statement_timeout = '60s';
@@ -44,18 +28,72 @@ grant select on public.saved_courts to authenticated;
 create policy read_own_saved_courts on public.saved_courts for select to authenticated
   using (user_id = (select auth.uid()));
 
+create index saved_courts_court_id_idx on public.saved_courts(court_id);
+
+-- Same court visibility rules as the court read policies, also usable by timers
+-- that run for a player without an auth session.
+create function private.local_list_court_visible(c public.courts, p public.profiles)
+returns boolean language sql immutable set search_path = '' as $$
+  select not c.is_archived
+    and (c.verification_status <> 'needs_review' or c.added_by = p.id)
+    and (not c.is_test or c.added_by = p.id or p.account_tag in ('TEST','REVIEWER','FOUNDER'))
+$$;
+
+-- Only trusted routines may select this list for an arbitrary user.
+create function private.local_list_for(p_user_id uuid)
+returns table(court_id uuid, is_default boolean, auto_check_in boolean, added_at timestamptz)
+language sql stable set search_path = '' as $$
+  select c.id, c.id is not distinct from p.local_court_id, s.auto_check_in, s.added_at
+  from public.profiles p
+  cross join lateral (
+    select p.local_court_id as id where p.local_court_id is not null
+    union all
+    select m.court_id from public.saved_courts m where m.user_id = p.id
+      and m.court_id is distinct from p.local_court_id
+      and (p.is_pro or p.account_tag = 'TEST')
+  ) ids
+  join public.courts c on c.id = ids.id
+  left join public.saved_courts s on s.user_id = p.id and s.court_id = c.id
+  where p.id = p_user_id and private.local_list_court_visible(c, p)
+  order by 2 desc, s.added_at, c.id limit 5
+$$;
+revoke all on function private.local_list_for(uuid),
+  private.local_list_court_visible(public.courts,public.profiles) from public,anon,authenticated;
+
+-- Keep the stats view under the reader's RLS, while the timer and reader use
+-- precisely the same membership rules. This wrapper accepts no user ID.
+create function private.my_local_list()
+returns table(court_id uuid, is_default boolean, auto_check_in boolean, added_at timestamptz)
+language sql stable security definer set search_path = '' as $$
+  select * from private.local_list_for((select auth.uid()))
+$$;
+revoke all on function private.my_local_list() from public,anon;
+grant execute on function private.my_local_list() to authenticated;
+
 create function public.get_local_list()
 returns table(court jsonb, is_default boolean, auto_check_in boolean)
 language sql stable security invoker set search_path = '' as $$
-  select to_jsonb(c), c.id is not distinct from p.local_court_id, s.auto_check_in
-  from public.profiles p
-  join public.courts_with_stats c on c.id = p.local_court_id or exists (
-    select 1 from public.saved_courts m where m.user_id=p.id and m.court_id=c.id
-      and (p.is_pro or p.account_tag='TEST'))
-  left join public.saved_courts s on s.user_id=p.id and s.court_id=c.id
-  where p.id=(select auth.uid()) and not c.is_archived
-  order by 2 desc, s.added_at, c.id limit 5
+  select to_jsonb(c), l.is_default, l.auto_check_in
+  from private.my_local_list() l join public.courts_with_stats c on c.id = l.court_id
+  order by l.is_default desc, l.added_at, c.id
 $$;
+
+-- Older builds change the profile directly. Keep the existing default on a
+-- full LocalPlus list when an older build asks for a sixth court.
+create function private.guard_local_list_default() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  if (select count(*) = 5 and not bool_or(l.court_id = new.local_court_id)
+      from private.local_list_for(old.id) l) then
+    raise exception 'You can add up to 5 courts to LocalList. Remove a court first.';
+  end if;
+  return new;
+end $$;
+revoke all on function private.guard_local_list_default() from public,anon,authenticated;
+create trigger guard_local_list_default before update of local_court_id on public.profiles
+for each row when (old.local_court_id is distinct from new.local_court_id
+  and new.local_court_id is not null and (new.is_pro or new.account_tag = 'TEST'))
+execute function private.guard_local_list_default();
 
 create function public.update_local_list(p_action text, p_court_id uuid, p_enabled boolean default null)
 returns void language plpgsql security definer set search_path = '' as $$
@@ -65,19 +103,19 @@ declare
   member boolean;
   sport text;
 begin
+  if uid is null then raise exception 'Not authenticated' using errcode='42501'; end if;
   select * into strict player from public.profiles where id=uid for update;
-  if not coalesce(player.is_pro or player.account_tag='TEST',false) then
+  if not coalesce(player.is_pro or player.account_tag='TEST',false)
+    and not coalesce(p_action='auto' and p_court_id=player.local_court_id and p_enabled is not null, false) then
     raise exception 'LocalPlus is required.' using errcode='42501';
   end if;
   select c.sport_type into sport from public.courts c where c.id=p_court_id
-    and not c.is_archived and (c.verification_status <> 'needs_review' or c.added_by=uid)
-    and (not c.is_test or c.added_by=uid or private.viewer_sees_test_data());
+    and private.local_list_court_visible(c, player);
   if not found then raise exception 'Court unavailable.'; end if;
-  member := p_court_id is not distinct from player.local_court_id or exists (
-    select 1 from public.saved_courts where user_id=uid and court_id=p_court_id);
+  member := exists (select 1 from private.local_list_for(uid) where court_id=p_court_id);
   if p_action='add' then
     if member then return; end if;
-    if (select count(*) from public.get_local_list()) >= 5 then
+    if (select count(*) from private.local_list_for(uid)) >= 5 then
       raise exception 'You can add up to 5 courts to LocalList.';
     end if;
     insert into public.saved_courts(user_id,court_id,auto_check_in) values(uid,p_court_id,false);
@@ -111,13 +149,8 @@ grant execute on function public.get_local_list(), public.update_local_list(text
 -- Additional regions require both an active entitlement and explicit opt-in.
 create function private.allows_auto_court(uid uuid, cid uuid)
 returns boolean language sql stable security definer set search_path='' as $$
-  select exists (select 1 from public.profiles p
-    join public.courts c on c.id=cid and not c.is_archived
-    left join public.saved_courts s on s.user_id=p.id and s.court_id=cid
-    where p.id=uid and (not c.is_test or c.added_by=uid or p.account_tag in ('TEST','REVIEWER','FOUNDER'))
-      and (c.verification_status <> 'needs_review' or c.added_by=uid)
-      and ((p.local_court_id=cid and (not coalesce(p.is_pro or p.account_tag='TEST',false) or coalesce(s.auto_check_in,true)))
-        or ((p.is_pro or p.account_tag='TEST') and s.auto_check_in)))
+  select exists (select 1 from private.local_list_for(uid) l
+    where l.court_id = cid and coalesce(l.auto_check_in, l.is_default))
 $$;
 revoke all on function private.allows_auto_court(uuid,uuid) from public,anon,authenticated;
 
@@ -127,11 +160,11 @@ declare def text; anchor text;
 begin
   def := pg_get_functiondef('public.auto_check_in_arrive(uuid)'::regprocedure);
   anchor := 'if v_local is distinct from p_court_id or v_name is null then';
-  if strpos(def,anchor)=0 then raise exception 'Unexpected arrival guard'; end if;
+  if cardinality(string_to_array(def,anchor)) <> 2 then raise exception 'Unexpected arrival guard'; end if;
   execute replace(def,anchor,'if not private.allows_auto_court(v_user_id,p_court_id) or v_name is null then');
   def := pg_get_functiondef('public.resume_auto_check_in(uuid)'::regprocedure);
   anchor := 'p.id = v_user_id and p.local_court_id = p_court_id';
-  if strpos(def,anchor)=0 then raise exception 'Unexpected resume guard'; end if;
+  if cardinality(string_to_array(def,anchor)) <> 2 then raise exception 'Unexpected resume guard'; end if;
   execute replace(def,anchor,'p.id = v_user_id and private.allows_auto_court(v_user_id,p_court_id)');
 end $$;
 
@@ -142,24 +175,24 @@ declare def text; anchor text;
 begin
   def := pg_get_functiondef('public.auto_check_in_arrive(uuid)'::regprocedure);
   anchor := 'where p.id = v_user_id;';
-  if strpos(def,anchor)=0 then raise exception 'Unexpected arrival profile read'; end if;
+  if cardinality(string_to_array(def,anchor)) <> 2 then raise exception 'Unexpected arrival profile read'; end if;
   def := replace(def,anchor,'where p.id = v_user_id for update;');
   anchor := 'delete from private.auto_check_in_arrivals where user_id = v_user_id;';
-  if strpos(def,anchor)=0 then raise exception 'Unexpected pending arrival cleanup'; end if;
+  if cardinality(string_to_array(def,anchor)) <> 2 then raise exception 'Unexpected pending arrival cleanup'; end if;
   execute replace(def,anchor,'delete from private.auto_check_in_arrivals where user_id = v_user_id and court_id=p_court_id;');
 
   def := pg_get_functiondef('private.post_auto_check_in(uuid)'::regprocedure);
   anchor := 'delete from private.auto_check_in_arrivals where user_id = p_user_id;';
-  if strpos(def,anchor)=0 then raise exception 'Unexpected delayed arrival function'; end if;
+  if cardinality(string_to_array(def,anchor)) <> 2 then raise exception 'Unexpected delayed arrival function'; end if;
   execute replace(def,anchor,anchor || E'\n  if not private.allows_auto_court(p_user_id,v.court_id) then return ''not_local''; end if;');
 
   def := pg_get_functiondef('private.end_auto_check_in_on_court_change()'::regprocedure);
   anchor := 'if old.local_court_id is distinct from new.local_court_id then';
-  if strpos(def,anchor)=0 then raise exception 'Unexpected default change trigger'; end if;
+  if cardinality(string_to_array(def,anchor)) <> 2 then raise exception 'Unexpected default change trigger'; end if;
   def := replace(def,anchor,'if old.local_court_id is distinct from new.local_court_id
     and not private.allows_auto_court(new.id,old.local_court_id) then');
   anchor := 'delete from private.auto_check_in_arrivals where user_id = new.id;';
-  if strpos(def,anchor)=0 then raise exception 'Unexpected default change cleanup'; end if;
+  if cardinality(string_to_array(def,anchor)) <> 2 then raise exception 'Unexpected default change cleanup'; end if;
   execute replace(def,anchor,'delete from private.auto_check_in_arrivals where user_id=new.id and court_id=old.local_court_id;');
 end $$;
 
