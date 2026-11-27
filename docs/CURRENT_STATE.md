@@ -1,5 +1,9 @@
 # Current state
 
+## November 27 — LocalPlus preview checkpoint on PR 93
+
+[Device review screens](product/design-qa/2026-11-27-locallist/README.md) cover adding, switching, choosing a default and saving independent auto check-in preferences. The branch requires the [saved courts migration](../supabase/migrations/20261127120000_saved_courts.sql). It was exercised with isolated PostgreSQL, including allowed and denied accounts, and has **not been applied to LocalCheckProd**. Expo Go can display the UI. Live multi-court saves require that migration, and geofence entry/exit needs the installed iOS app. The earlier [54 visual comparisons](product/design-qa/2026-11-27-ui-polish/README.md) describe the first checkpoint.
+
 ## November 27 — UI polish on PR #93
 
 On the PR branch, onboarding fits both sport choices on one row at standard phone widths. Profile searches share a frame, long court names wrap, and Home and the court drawer distribute the live roster across their available width. Settings uses compact row labels, readable secondary text, and a default star on its court. See the [matched Expo web captures](product/design-qa/2026-11-27-ui-polish/README.md) for the tested states and remaining device checks.

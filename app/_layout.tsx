@@ -241,7 +241,7 @@ function DataProviders({ children }: { children: React.ReactNode }) {
   // prompt before we even know whether this is a fresh signup.
   const autoResolveLocation = profile ? !profileNeedsOnboarding(profile) : false;
   return (
-    <RealtimeHubProvider>
+    <RealtimeHubProvider key={session.user.id}>
       <NotificationProvider>
         <CourtPresenceProvider>
           <DeviceLocationProvider autoResolve={autoResolveLocation}>

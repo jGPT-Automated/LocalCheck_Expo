@@ -44,7 +44,7 @@ try {
         const req = route.request(), url = req.url();
         if (url.startsWith(base)) return route.continue();
         if (url.includes('cdn.jsdelivr.net/npm/jsqr')) return route.fulfill({ contentType: 'application/javascript', body: qr });
-        const response = url.includes('/rest/v1/') ? handleRest(req.method(), url, req.headers()) : url.includes('/auth/v1/') ? handleAuth(url) : null;
+        const response = url.includes('/rest/v1/') ? handleRest(req.method(), url, req.headers(), req.postDataJSON() ?? {}) : url.includes('/auth/v1/') ? handleAuth(url) : null;
         if (!response) return route.abort();
         return route.fulfill({ status: response.status, body: response.body, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', ...response.headers } });
       });

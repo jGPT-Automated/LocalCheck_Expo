@@ -1,5 +1,9 @@
 # LocalCheck Design System
 
+## LocalPlus selectors on PR 93
+
+Use the word Default in the Explore sport line. Home and Schedule use SavedCourtPicker with the active check on the trailing edge and the default status beneath the court name. Short lists open in content-sized drawers. SavedCourtSettings groups each switch and management action with its court.
+
 ## November 27 — compact controls and list alignment on PR #93
 
 SettingsRow uses 12pt labels and values, 11pt descriptions, and 52/60pt minimum row heights. Keep the native switch intrinsic, the trailing inset at 16pt and wrapping values aligned right. LocalList management keeps its default indicator within the court hero and its available actions on the corresponding card. The management drawer fits short lists and scrolls at its 82% height cap.

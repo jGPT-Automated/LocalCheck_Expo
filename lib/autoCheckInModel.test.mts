@@ -58,3 +58,17 @@ test("clock time: noon, midnight, morning", () => {
   assert.equal(clockTime(new Date(2026, 9, 12, 0, 30)), "12:30 AM");
   assert.equal(clockTime(new Date(2026, 9, 12, 9, 5)), "9:05 AM");
 });
+
+test("saved regions preserve legacy default consent and exclude disabled courts", async () => {
+  const { savedCourtRegions } = await import("./autoCheckInModel.ts");
+  const other = { ...court, id: "c2" };
+  const entries = [
+    { court, isDefault: true, autoCheckIn: null },
+    { court: other, isDefault: false, autoCheckIn: true },
+  ];
+  assert.deepEqual(savedCourtRegions("u", entries, []).map(r => r.identifier), ["u/c2"]);
+  assert.deepEqual(savedCourtRegions("u", entries, [regionFor(court)!]).map(r => r.identifier), ["u/c1", "u/c2"]);
+  entries[0].autoCheckIn = false;
+  assert.deepEqual(savedCourtRegions("u", entries, [regionFor(court)!]).map(r => r.identifier), ["u/c2"]);
+  assert.deepEqual(savedCourtRegions("u", [{ court: { ...court, latitude: 100 }, autoCheckIn: true, isDefault: false }], []), []);
+});

@@ -150,7 +150,7 @@ export function CourtSheetContent({
     try {
       if (waitingToPost) {
         // Not posted yet: checking out means it never happened.
-        await hideAutoCheckIn();
+        await hideAutoCheckIn(court.id);
       } else if (isCheckedIn) {
         await checkOut();
       } else if (await checkIn(court.id)) {

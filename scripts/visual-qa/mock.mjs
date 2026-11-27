@@ -105,10 +105,10 @@ function condTest(row, part) {
   return test(row, part.slice(0, i), part.slice(i + 1));
 }
 
-export function handleRest(method, url, headers) {
+export function handleRest(method, url, headers, params = {}) {
   const u = new URL(url);
   const path = u.pathname.replace(/^\/rest\/v1\//, "");
-  if (path.startsWith("rpc/")) return rpc(path.slice(4), u);
+  if (path.startsWith("rpc/")) return rpc(path.slice(4), u, params);
   if (method !== "GET" && method !== "HEAD") return { status: 201, body: method === "DELETE" ? "" : "[]" };
   const table = path;
   let rows = [...(tables[table] ?? [])];
@@ -145,8 +145,35 @@ export function handleRest(method, url, headers) {
   return { status: 200, body: method === "HEAD" ? "" : JSON.stringify(shaped), headers: { "content-range": contentRange } };
 }
 
-function rpc(name, u) {
+function rpc(name, u, params) {
   switch (name) {
+    case "get_local_list": {
+      const profile = tables.profiles.find(p => p.id === ME);
+      const ids = [...new Set([profile.local_court_id, ...tables.saved_courts.map(row => row.court_id)])];
+      const rows = ids.filter(Boolean).map(id => ({
+        court: tables.courts_with_stats.find(court => court.id === id),
+        is_default: id === profile.local_court_id,
+        auto_check_in: tables.saved_courts.find(row => row.court_id === id)?.auto_check_in ?? null,
+      }));
+      return { status: 200, body: JSON.stringify(rows) };
+    }
+    case "update_local_list": {
+      const profile = tables.profiles.find(p => p.id === ME);
+      const id = params.p_court_id;
+      const save = courtId => {
+        if (!tables.saved_courts.some(row => row.court_id === courtId)) {
+          tables.saved_courts.push({ court_id: courtId, auto_check_in: false });
+        }
+      };
+      switch (params.p_action) {
+        case "add": save(id); profile.local_court_id ??= id; break;
+        case "default": if (profile.local_court_id) save(profile.local_court_id); profile.local_court_id = id; break;
+        case "auto": save(id); tables.saved_courts.find(row => row.court_id === id).auto_check_in = params.p_enabled; break;
+        case "remove": tables.saved_courts = tables.saved_courts.filter(row => row.court_id !== id); break;
+        default: return { status: 400, body: JSON.stringify({ message: "Unknown list action" }) };
+      }
+      return { status: 204, body: "" };
+    }
     case "court_planned_times":
       return { status: 200, body: JSON.stringify(tables.planned_visits.map((v) => v.planned_at)) };
     case "safety_controls_available":

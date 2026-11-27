@@ -1,5 +1,9 @@
 # Product context
 
+## LocalPlus saved courts on PR 93
+
+Players can add up to five courts. Explore lists them first. Home and Schedule each choose which court to view. Settings chooses the default and which individual courts should trigger auto check-in. See the [tested flow](design-qa/2026-11-27-locallist/README.md) and CURRENT_STATE for deployment status.
+
 ## November 22 — main Settings row correction (on branch)
 
 Main Settings has clearer labels/descriptions, consistent grouping and gutters,

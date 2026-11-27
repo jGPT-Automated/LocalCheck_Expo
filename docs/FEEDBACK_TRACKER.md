@@ -1,5 +1,9 @@
 # Feedback & polish tracker
 
+## November 27 — LocalPlus review
+
+The [LocalPlus checkpoint](product/design-qa/2026-11-27-locallist/README.md) replaces the standalone star, aligns the Home and Schedule pickers, and adds individual auto check-in controls with a default action in Settings. Awaiting migration deployment and native review.
+
 ## November 27 — implementation on PR #93
 
 The [screen comparisons](product/design-qa/2026-11-27-ui-polish/README.md) cover onboarding, the Me search and Inbox rhythm (A01–A02), long court context (A03–A04), compact Settings and LocalList (A05–A08), the live roster (A11), Explore gutters (A13), and supporting-text contrast (A14). A09 is partially addressed for onboarding labels, Profile tabs and Activity. The Schedule and purchase targets (A10), initial Schedule time window (A12), remaining shared text roles and native-device acceptance are open.

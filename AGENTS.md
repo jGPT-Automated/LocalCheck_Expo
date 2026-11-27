@@ -11,7 +11,7 @@ session isn't linked to his Mac, use the plan doc and `docs/CURRENT_STATE.md`.
 
 ## PR 93 handoff
 
-Start with [current state](docs/CURRENT_STATE.md) and the [November 27 screenshot index](docs/product/design-qa/2026-11-27-ui-polish/README.md). LocalList is the saved-court collection shared by Home, Schedule, Explore and Settings. Check the latest section of CURRENT_STATE before assuming its membership, default or geofences persist. Read the LocalList provider, the auto check-in provider and the server arrival rules together when changing that flow.
+Start with [current state](docs/CURRENT_STATE.md), the [LocalPlus device review](docs/product/design-qa/2026-11-27-locallist/README.md) and the [November 27 screenshot index](docs/product/design-qa/2026-11-27-ui-polish/README.md). LocalList is the saved-court collection shared by Home, Schedule, Explore and Settings. Check the latest section of CURRENT_STATE before assuming its membership, default or geofences persist. Read the LocalList provider, the auto check-in provider and the server arrival rules together when changing that flow.
 
 ## Docs on every push
 

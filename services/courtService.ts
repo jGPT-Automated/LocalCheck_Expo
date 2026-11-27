@@ -730,3 +730,19 @@ export async function searchCourts(
     return [];
   }
 }
+
+// The RPC returns the same courts_with_stats rows as Explore.
+export async function fetchLocalList() {
+  const { data, error } = await supabase.rpc("get_local_list");
+  if (error) throw new Error(error.message);
+  if (!Array.isArray(data)) throw new Error("Couldn’t load LocalList.");
+  return (data as { court: SupabaseCourtRow; is_default: boolean; auto_check_in: boolean | null }[])
+    .map(row => ({ court: mapRow(row.court), isDefault: row.is_default, autoCheckIn: row.auto_check_in }));
+}
+
+export async function updateLocalList(action: "add" | "remove" | "default" | "auto", courtId: string, enabled?: boolean) {
+  const { error } = await supabase.rpc("update_local_list", {
+    p_action: action, p_court_id: courtId, p_enabled: enabled ?? null,
+  });
+  if (error) throw new Error(error.message);
+}

@@ -97,7 +97,9 @@ export function LocalMark({ active, onPress, list = false }: { active: boolean; 
   }, [active, pop]);
 
   const tappable = Boolean(onPress) && !active;
-  const body = (
+  const body = list ? (
+    <View style={styles.listAction}><Feather name={active ? "check" : "plus"} size={15} color={active ? Colors.accent : Colors.text} /><Text style={styles.listActionText}>{active ? "In LocalList" : "Add to LocalList"}</Text></View>
+  ) : (
     <View style={styles.markBox}>
       {active ? (
         <Animated.View
@@ -168,9 +170,8 @@ export function CourtTitleRow({
   return (
     <View testID="court-title-row" style={styles.titleRow}>
       <View testID="court-title-copy" style={styles.titleBlock}>
-        <View style={styles.identityMeta}>
-          <SportLabel sport={sport} />
-          {isDefaultCourt ? <Feather testID="court-default-marker" accessibilityLabel="Default court" name="star" size={12} color={Colors.textSecondary} /> : null}
+        <View testID={isDefaultCourt ? "court-default-marker" : undefined} style={styles.identityMeta}>
+          <SportLabel sport={sport} suffix={isDefaultCourt ? "Default" : undefined} />
         </View>
         {onChooseCourt ? <Pressable onPress={onChooseCourt} accessibilityRole="button" accessibilityLabel="Choose court" style={styles.titleChoice}>
         <CourtName
@@ -442,6 +443,8 @@ const styles = StyleSheet.create({
   pillTextActive: { color: Colors.text },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 16, paddingHorizontal: 20 },
   titleBlock: { flex: 1, minWidth: 0, gap: 6 },
+  listAction: { minHeight: 44, paddingHorizontal: Space.md, flexDirection: "row", alignItems: "center", gap: Space.sm },
+  listActionText: { color: Colors.text, fontFamily: Typography.bodySemiBold, fontSize: 12 },
   identityMeta: { minHeight: Space.lg, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: Space.sm },
   titleChoice: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 },
   selectableTitle: { flex: 1, minWidth: 0 },

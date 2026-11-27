@@ -215,9 +215,9 @@ export default function CourtProfileScreen() {
           >
             <Feather color={Colors.text} name="arrow-left" size={22} />
           </Pressable>
-          <LocalMark list={hasLocalPlus} active={hasLocalPlus ? localList.courts.some(row => row.id === court.id) : isMyLocal} onPress={() => {
+          <LocalMark list={hasLocalPlus} active={hasLocalPlus ? localList.courts.some(row => row.id === court.id) : isMyLocal} onPress={async () => {
             if (!hasLocalPlus) { void setLocalCourt(court.id, court); return; }
-            try { localList.addCourt(court); }
+            try { await localList.addCourt(court); }
             catch (error) { Alert.alert("LocalList", error instanceof Error ? error.message : "Try again."); }
           }} />
         </View>

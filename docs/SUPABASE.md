@@ -1,5 +1,9 @@
 # Supabase workflow
 
+## Saved courts on PR 93
+
+`20261127120000_saved_courts.sql` is prepared on the branch. Confirmed read-only on November 27 that production had the single-court arrival/resume guards and no saved-court collection. The migration keeps `profiles.local_court_id` as the default, adds owner-only membership reads, and serializes membership, default and auto preference writes through `update_local_list`. `get_local_list` returns visible courts in default-first order. The arrival, resume and delayed posting guards check consent for additional courts. `undo_auto_check_in_at` scopes a notification action to its court. Apply and verify this migration before releasing the client to players. Local SQL tests covered the five-court limit, duplicate adds, toggles, default switching, hidden courts, cross-account reads and denied writes.
+
 Supabase `LocalCheckProd` (`qkrnmyexzvaxiqfxwwfb`) is the only backend.
 
 ```text

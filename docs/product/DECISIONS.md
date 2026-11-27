@@ -1,5 +1,9 @@
 # LocalCheck Design Decisions
 
+## November 27 — LocalPlus defaults and auto check-in
+
+Jesse requested one auto check-in toggle per saved court. Settings selects the default. Explore should clearly connect that status to the court instead of using a standalone star. This resolves the November 14 open question about monitoring every court.
+
 ## November 24 — audit before implementation; compact Settings review
 
 Jesse requested a complete as-is screenshot/placement audit of PR #93, with no

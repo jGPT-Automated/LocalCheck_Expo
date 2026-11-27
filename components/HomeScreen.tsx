@@ -9,8 +9,8 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { HomeCourtCarousel } from "@/components/home/HomeCourtCarousel";
 import { HomeSessionStatus } from "@/components/home/HomeSessionStatus";
 import { homeCheckInStatus } from "@/components/home/homeStatusModel";
-import { LocalListCards } from "@/components/court/LocalListCards";
-import { FormSheet } from "@/components/sheet/FormSheet";
+import { SavedCourtPicker } from "@/components/court/SavedCourtList";
+import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
 import { useLocalList } from "@/context/LocalListContext";
 import { AutoCheckInNote } from "@/components/autoCheckIn/AutoCheckInNote";
 import { CourtDayPlanner } from "@/components/court/CourtDayPlanner";
@@ -109,7 +109,7 @@ export function HomeScreen() {
       if (waitingToPost) {
         // Not posted yet: checking out means it never happened.
         if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        await hideAutoCheckIn();
+        await hideAutoCheckIn(localCourt.id);
       } else if (isCheckedIn) {
         if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         await checkOut();
@@ -130,7 +130,7 @@ export function HomeScreen() {
     if (isChecking) return;
     setIsChecking(true);
     try {
-      if (!(await hideAutoCheckIn())) showToast({ title: "Couldn't cancel", body: "Try again.", icon: "alert-circle" });
+      if (!(await hideAutoCheckIn(localCourt.id))) showToast({ title: "Couldn't cancel", body: "Try again.", icon: "alert-circle" });
     } finally { setIsChecking(false); }
   };
 
@@ -187,11 +187,11 @@ export function HomeScreen() {
           <CourtDayPlanner court={localCourt} games={upcoming} liveCount={activeTotal} onReveal={() => scroll.current?.scrollToEnd({ animated: false })} />
         </View>
       </ScrollView>
-      {pickerOpen ? <FormSheet visible onClose={() => setPickerOpen(false)} title="LocalList">
-        <ScrollView testID="home-court-picker" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: tabFloor }}>
-          <LocalListCards selectedId={localCourt.id} onSelect={court => { setViewCourtId(court.id); setPickerOpen(false); }} />
-        </ScrollView>
-      </FormSheet> : null}
+      {pickerOpen ? <RunFlowSheet dynamic="scrollable" visible onClose={() => setPickerOpen(false)} title="LocalList" contentBottomPadding={Space.xl}>
+        <View testID="home-court-picker">
+          <SavedCourtPicker selectedId={localCourt.id} onSelect={court => { setViewCourtId(court.id); setPickerOpen(false); }} />
+        </View>
+      </RunFlowSheet> : null}
     </ScreenViewport>
   );
 }

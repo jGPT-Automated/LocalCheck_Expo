@@ -1,4 +1,4 @@
-import { LocalListCards } from "@/components/court/LocalListCards";
+import { SavedCourtSettings } from "@/components/court/SavedCourtList";
 import { CourtListItem } from "@/components/CourtListItem";
 import { useLocalList } from "@/context/LocalListContext";
 import Constants from "expo-constants";
@@ -663,7 +663,7 @@ function LocalCourtEditorSheet({
   onClose: () => void;
 }) {
   const localList = useLocalList();
-  const router = useRouter();
+  const auto = useAutoCheckIn();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Court[]>([]);
   const [searching, setSearching] = useState(false);
@@ -703,8 +703,10 @@ function LocalCourtEditorSheet({
   const pick = async (court: Court) => {
     if (busyId) return;
     if (localList.canEdit) {
-      try { localList.addCourt(court); setQuery(""); }
+      setBusyId(court.id);
+      try { await localList.addCourt(court); setQuery(""); }
       catch (error) { Alert.alert("LocalList", error instanceof Error ? error.message : "Try again."); }
+      finally { setBusyId(null); }
       return;
     }
     if (current && current.id !== court.id && cooldown.restricted) {
@@ -758,14 +760,14 @@ function LocalCourtEditorSheet({
         style={styles.searchBox}
         accessibilityLabel="Search for a court"
         autoCapitalize="words"
-        placeholder="Court name, city, or ZIP"
+        placeholder={localList.canEdit ? "Find a court to add" : "Court name, city, or ZIP"}
         value={query}
         onChangeText={setQuery}
         onClear={() => setQuery("")}
         loading={searching}
       />
 
-      {localList.canEdit && term.length < 2 ? <LocalListCards manage inset onSelect={(court) => { onClose(); router.push(`/court/${court.id}`); }} /> : null}
+      {localList.canEdit && term.length < 2 ? <SavedCourtSettings defaultFenceOn={autoCheckInSwitchValue(auto.state)} onToggle={auto.setCourtEnabled} changing={auto.busy} /> : null}
       {!localList.canEdit && current ? (
         <View>
           <CourtListItem court={current} style={{ marginHorizontal: 0 }} />
