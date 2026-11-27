@@ -1,5 +1,36 @@
--- LocalPlus has one profile default and up to four additional saved courts.
--- A null preference preserves a pre-existing native fence at the profile default.
+-- PR 93 / LocalList for LocalPlus. This entire file is the migration for review.
+--
+-- Apply-time writes: create saved_courts, one owner-read policy, three public
+-- RPCs and one private helper. Snapshot four existing functions, then replace
+-- their single-court guards. Refresh the PostgREST schema cache at commit.
+-- No profile, subscription, saved-court row or check-in is seeded or rewritten.
+--
+-- Runtime changes: profiles.local_court_id remains the default. A paid player
+-- (profiles.is_pro) or a TEST fixture can add up to five visible courts including
+-- the default, change it, remove a non-default, or opt in separately per court.
+-- New memberships start with auto check-in off. Existing defaults with no saved
+-- preference preserve the original single-court behavior. Extra courts require
+-- both entitlement and an explicit true preference for automatic arrival.
+-- Removing a court or switching it off cancels its pending arrival. The new
+-- Hide RPC cancels a pending arrival or removes the player's most recent auto
+-- check-in at the specified court within three hours and its activity events.
+--
+-- Apply once as a single transaction. A missing dependency, conflicting object
+-- or changed function anchor aborts the transaction. Review and verification
+-- notes are in docs/runbooks/LOCALPLUS_SAVED_COURTS.md.
+begin;
+set local lock_timeout = '5s';
+set local statement_timeout = '60s';
+
+insert into private.migration_backups (migration, kind, name, definition)
+select '20261127120000', 'function', fn.signature, pg_get_functiondef(fn.signature::regprocedure)
+from (values
+  ('public.auto_check_in_arrive(uuid)'),
+  ('public.resume_auto_check_in(uuid)'),
+  ('private.post_auto_check_in(uuid)'),
+  ('private.end_auto_check_in_on_court_change()')
+) as fn(signature);
+
 create table public.saved_courts (
   user_id uuid not null references public.profiles(id) on delete cascade,
   court_id uuid not null references public.courts(id) on delete cascade,
@@ -150,3 +181,6 @@ begin
 end $$;
 revoke all on function public.undo_auto_check_in_at(uuid) from public,anon;
 grant execute on function public.undo_auto_check_in_at(uuid) to authenticated;
+
+notify pgrst, 'reload schema';
+commit;
