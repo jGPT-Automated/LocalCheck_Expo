@@ -15,7 +15,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { CourtArt } from "@/components/court/CourtArt";
 import { CourtDayPlanner } from "@/components/court/CourtDayPlanner";
 import { HereNowSection, UpNextSection } from "@/components/court/CourtOverviewSections";
 import {
@@ -151,7 +150,7 @@ export function CourtSheetContent({
     try {
       if (waitingToPost) {
         // Not posted yet: checking out means it never happened.
-        await hideAutoCheckIn();
+        await hideAutoCheckIn(court.id);
       } else if (isCheckedIn) {
         await checkOut();
       } else if (await checkIn(court.id)) {
@@ -177,7 +176,6 @@ export function CourtSheetContent({
 
   return (
     <BottomSheetView>
-      <CourtArt sport={court.sport} top={-16} />
       {/* ── Drawer: its measured height owns the first sheet detent ── */}
       <View
         onLayout={(event) => {

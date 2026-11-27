@@ -263,7 +263,7 @@ export default function AuthScreen() {
                       autoCorrect={false}
                       keyboardType="email-address"
                       placeholder="you@example.com"
-                      placeholderTextColor={Colors.mutedDark}
+                      placeholderTextColor={Colors.muted}
                     />
                   </View>
 
@@ -276,7 +276,7 @@ export default function AuthScreen() {
                       secureTextEntry
                       autoCapitalize="none"
                       placeholder="••••••••"
-                      placeholderTextColor={Colors.mutedDark}
+                      placeholderTextColor={Colors.muted}
                     />
                   </View>
 
@@ -325,7 +325,7 @@ export default function AuthScreen() {
                       keyboardType="email-address"
                       textContentType="emailAddress"
                       placeholder="you@example.com"
-                      placeholderTextColor={Colors.mutedDark}
+                      placeholderTextColor={Colors.muted}
                     />
                   </View>
                   <View style={styles.actions}>
@@ -356,7 +356,7 @@ export default function AuthScreen() {
                       autoComplete="one-time-code"
                       maxLength={RESET_CODE_LENGTH}
                       placeholder="123456"
-                      placeholderTextColor={Colors.mutedDark}
+                      placeholderTextColor={Colors.muted}
                     />
                   </View>
                   <View style={styles.field}>
@@ -370,7 +370,7 @@ export default function AuthScreen() {
                       textContentType="newPassword"
                       autoComplete="new-password"
                       placeholder="At least 6 characters"
-                      placeholderTextColor={Colors.mutedDark}
+                      placeholderTextColor={Colors.muted}
                     />
                   </View>
                   <View style={styles.actions}>
@@ -596,8 +596,8 @@ const styles = StyleSheet.create({
   appleBtn: { height: 48, marginBottom: 10 },
   note: {
     fontFamily: Typography.body,
-    fontSize: 10,
-    color: Colors.mutedDark,
+    fontSize: 11,
+    color: Colors.muted,
     letterSpacing: 0.3,
     lineHeight: 14,
     textAlign: "center",

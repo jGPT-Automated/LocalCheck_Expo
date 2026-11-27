@@ -1,0 +1,3618 @@
+{
+  "source": "http://127.0.0.1:8106",
+  "strict": true,
+  "fixtureIsolation": true,
+  "results": [
+    {
+      "name": "settings-top-320-normal",
+      "width": 320,
+      "variant": "normal",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 278,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 278,
+          "height": 80,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 278,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 278,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 278,
+          "height": 68,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 278,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 278,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 278,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-preferences-320-normal",
+      "width": 320,
+      "variant": "normal",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 278,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 278,
+          "height": 80,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 278,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 278,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 278,
+          "height": 68,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 278,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 278,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 278,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-alerts-320-normal",
+      "width": 320,
+      "variant": "normal",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 278,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 278,
+          "height": 80,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 278,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 278,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 278,
+          "height": 68,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 278,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 278,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 278,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-account-320-normal",
+      "width": 320,
+      "variant": "normal",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 278,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 278,
+          "height": 80,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 278,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 278,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 278,
+          "height": 68,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 278,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 278,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 278,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-preferences-320-long",
+      "width": 320,
+      "variant": "long",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 278,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 278,
+          "height": 80,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 278,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 278,
+          "height": 89,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 278,
+          "height": 68,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 278,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 278,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 278,
+          "height": 89,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 278,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-alerts-320-long",
+      "width": 320,
+      "variant": "long",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 278,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 278,
+          "height": 80,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 278,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 278,
+          "height": 89,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 278,
+          "height": 68,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 278,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 278,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 278,
+          "height": 89,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 278,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-account-320-long",
+      "width": 320,
+      "variant": "long",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 278,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 278,
+          "height": 80,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 278,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 278,
+          "height": 89,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 278,
+          "height": 68,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 278,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 278,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 278,
+          "height": 89,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 278,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 278,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-top-375-normal",
+      "width": 375,
+      "variant": "normal",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 333,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 333,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 333,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 333,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 333,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-preferences-375-normal",
+      "width": 375,
+      "variant": "normal",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 333,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 333,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 333,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 333,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 333,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-alerts-375-normal",
+      "width": 375,
+      "variant": "normal",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 333,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 333,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 333,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 333,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 333,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-account-375-normal",
+      "width": 375,
+      "variant": "normal",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 333,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 333,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 333,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 333,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 333,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-push-off-375-normal",
+      "width": 375,
+      "variant": "normal",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 333,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 333,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 333,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 333,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 333,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 333,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-top-393-normal",
+      "width": 393,
+      "variant": "normal",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 351,
+          "height": 65,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 351,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-preferences-393-normal",
+      "width": 393,
+      "variant": "normal",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 351,
+          "height": 65,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 351,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-alerts-393-normal",
+      "width": 393,
+      "variant": "normal",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 351,
+          "height": 65,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 351,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-account-393-normal",
+      "width": 393,
+      "variant": "normal",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 351,
+          "height": 65,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 351,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-preferences-393-long",
+      "width": 393,
+      "variant": "long",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 351,
+          "height": 65,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 351,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 351,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 351,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-alerts-393-long",
+      "width": 393,
+      "variant": "long",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 351,
+          "height": 65,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 351,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 351,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 351,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-account-393-long",
+      "width": 393,
+      "variant": "long",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 351,
+          "height": 65,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 351,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 351,
+          "height": 81,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 351,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 351,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 351,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-top-430-normal",
+      "width": 430,
+      "variant": "normal",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 388,
+          "height": 65,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 388,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 388,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 388,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 388,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-preferences-430-normal",
+      "width": 430,
+      "variant": "normal",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 388,
+          "height": 65,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 388,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 388,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 388,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 388,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-alerts-430-normal",
+      "width": 430,
+      "variant": "normal",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 388,
+          "height": 65,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 388,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 388,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 388,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 388,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "settings-account-430-normal",
+      "width": 430,
+      "variant": "normal",
+      "metrics": [
+        {
+          "label": "LOCALPLUS ACTIVE",
+          "width": 388,
+          "height": 65,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "INVITE FRIENDS",
+          "width": 388,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "VISIBILITY",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PRIMARY SPORT",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOCALLIST",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "AUTO CHECK-IN",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "PUSH NOTIFICATIONS",
+          "width": 388,
+          "height": 69,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "NOTIFICATION INBOX",
+          "width": 388,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "USERNAME",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "CHANGE PASSWORD",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "BLOCKED PLAYERS",
+          "width": 388,
+          "height": 64,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": 12,
+          "overflow": false
+        },
+        {
+          "label": "PRIVACY POLICY",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "TERMS OF SERVICE",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": -0.5,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "HELP & SUPPORT",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        },
+        {
+          "label": "LOG OUT",
+          "width": 388,
+          "height": 56,
+          "rightInset": 16,
+          "centerError": 0,
+          "labelSize": 14,
+          "detailSize": null,
+          "overflow": false
+        }
+      ]
+    }
+  ]
+}

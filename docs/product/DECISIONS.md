@@ -1,5 +1,51 @@
 # LocalCheck Design Decisions
 
+## November 27 — LocalPlus defaults and auto check-in
+
+Jesse requested one auto check-in toggle per saved court. Settings selects the default. Explore should clearly connect that status to the court instead of using a standalone star. This resolves the November 14 open question about monitoring every court.
+
+## November 24 — audit before implementation; compact Settings review
+
+Jesse requested a complete as-is screenshot/placement audit of PR #93, with no
+application edits this turn. He rejected the larger Settings typography and
+clarified the intended correction: switch proportions/inset, consistent text
+roles, fitting, padding and proportional margins. This revises the typography
+acceptance recorded in the November 22 entry below: the branch’s 14/12pt sizes
+are implementation facts, not an accepted target. No global font enlargement
+is authorized. Use the audit evidence/14-item list for review, then work screen
+by screen with actual screenshots and up-to-date PR/resume docs.
+
+## November 22 — Settings scope and resumable visual checkpoints
+
+(Typography acceptance revised by the November 24 entry above.)
+
+Jesse approved main Settings first: shared row structure, 14pt primary/12pt
+supporting/11pt section type, 20pt screen and 16pt inner gutters, intrinsic native
+switch placement and wrapping long content. LocalList drawer is the next distinct
+checkpoint; persistence and per-court auto check-in remain functional work.
+Every verified UI checkpoint must add actual screenshots to the active PR as
+well as chat and update the authority docs so future threads can resume without
+chat history. Keep work small and verified. No merge or production release.
+
+## November 18 — Explore approval requires complete screen and four-surface proof
+
+Jesse requires the known Explore annotations to be resolved before handoff,
+rather than treating the hero-only correction as a completed screen. Use the
+same section-heading treatment for LOCAL LIST and market courts; keep default
+status on its card. Prefer the number centered inside the court-art circle.
+Prove the shared hero on Home, Explore, court detail and the expanded drawer,
+not only a single Explore screenshot. Corrections stay on PR #93; no merge or
+production OTA. This revises the old extra-logo LocalList heading treatment.
+
+## November 17 — correction: fit court names rather than wrapping
+
+Jesse rejected the wrapped court names introduced in #92: ordinary court cards
+must remain compact and equal-height. This revises the November 17 wrapped-name
+instruction below. Use the existing short/full name fields, shrink within the
+available title width, preserve a stable count column and center the artwork
+with the count group through one shared owner. Show rendered screenshots and
+open a PR only. Jesse has not authorized a merge, OTA or native build.
+
 ## November 17 — remove temporary banners; keep court headers aligned
 
 Jesse requested removal of the in-app drop-down action banners for now, rather

@@ -56,13 +56,20 @@ export function CourtSheetProvider({
   const openCourtSheet = useCallback((next: OpenArgs) => {
     isOpen.current = true;
     setArgs(next);
-    // present() after state lands so content renders with the right court
-    requestAnimationFrame(() => modalRef.current?.present());
   }, []);
+
+  useEffect(() => {
+    if (!args) return;
+    // args conditionally mounts the modal. Schedule only after that commit:
+    // an rAF in openCourtSheet can run while the ref is still null.
+    const frame = requestAnimationFrame(() => {
+      if (isOpen.current) modalRef.current?.present();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [args]);
 
   const closeCourtSheet = useCallback(() => {
     isOpen.current = false;
-    resnapPending.current = false;
     modalRef.current?.dismiss();
     // Release the interactive content before navigation; a late layout/snap
     // must not leave an invisible view intercepting the destination's taps.
@@ -86,16 +93,9 @@ export function CourtSheetProvider({
     () => [peekHeight, "92%"],
     [peekHeight],
   );
-  // The drawer opens before its compact block is measured; once the real
-  // height arrives, settle a collapsed drawer onto it so it ends exactly at
-  // the Check in row instead of showing half of the next row.
-  const sheetIndex = useRef(-1);
-  const resnapPending = useRef(false);
-  useEffect(() => {
-    // Next frame: the sheet picks up the new snap points first.
-    if (sheetIndex.current === 0) requestAnimationFrame(() => { if (isOpen.current) modalRef.current?.snapToIndex(0); });
-    else resnapPending.current = true;
-  }, [peekHeight]);
+  // Gorhom already reacts to updated snap points. A queued manual snap can
+  // retain the old position, which is no longer in the new point set and is
+  // interpreted as index -1 (closed). Keep one owner for measurement changes.
 
   return (
     <CourtSheetContext.Provider value={api}>
@@ -104,13 +104,6 @@ export function CourtSheetProvider({
         ref={modalRef}
         snapPoints={snapPoints}
         compactHandle
-        onChange={(index) => {
-          sheetIndex.current = index;
-          if (index === 0 && resnapPending.current && isOpen.current) {
-            resnapPending.current = false;
-            requestAnimationFrame(() => { if (isOpen.current) modalRef.current?.snapToIndex(0); });
-          }
-        }}
         onDismiss={() => { isOpen.current = false; setArgs(null); }}
       >
           <CourtSheetContent

@@ -57,6 +57,17 @@ export function regionFor(court: AutoCheckInCourt): AutoCheckInRegion | null {
   };
 }
 
+export type SavedRegion = { court: AutoCheckInCourt; autoCheckIn: boolean | null; isDefault: boolean };
+
+export function savedCourtRegions(userId: string, entries: SavedRegion[], active: AutoCheckInRegion[]): AutoCheckInRegion[] {
+  return entries.flatMap(({ court, autoCheckIn, isDefault }) => {
+    const identifier = `${userId}/${court.id}`;
+    const alreadyWatching = active.some(r => r.identifier === court.id || r.identifier === identifier);
+    const region = regionFor(court);
+    return region && (autoCheckIn ?? (isDefault && alreadyWatching)) ? [{ ...region, identifier }] : [];
+  });
+}
+
 /**
  * What the phone allows. `unavailable` = Expo Go or a platform without
  * geofencing; `needs_always` = location is only While Using (or Once);

@@ -140,7 +140,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         handledResponseIdRef.current = key;
         const data = response.notification.request.content.data;
         if (data?.kind === "auto_check_in" && response.actionIdentifier === AUTO_CHECK_IN_UNDO_ACTION) {
-          void undoAutoCheckIn().then((ok) => DeviceEventEmitter.emit(AUTO_CHECK_IN_UNDONE_EVENT, ok));
+          void undoAutoCheckIn(typeof data.court_id === "string" ? data.court_id : undefined).then((ok) => DeviceEventEmitter.emit(AUTO_CHECK_IN_UNDONE_EVENT, ok));
         }
         if (
           data?.kind === "auto_check_out" &&

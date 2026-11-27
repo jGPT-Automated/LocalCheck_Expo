@@ -1,5 +1,68 @@
 # Feedback & polish tracker
 
+## November 27 — LocalPlus review
+
+The [LocalPlus checkpoint](product/design-qa/2026-11-27-locallist/README.md) replaces the standalone star, aligns the Home and Schedule pickers, and adds individual auto check-in controls with a default action in Settings. Awaiting migration deployment and native review.
+
+## November 27 — implementation on PR #93
+
+The [screen comparisons](product/design-qa/2026-11-27-ui-polish/README.md) cover onboarding, the Me search and Inbox rhythm (A01–A02), long court context (A03–A04), compact Settings and LocalList (A05–A08), the live roster (A11), Explore gutters (A13), and supporting-text contrast (A14). A09 is partially addressed for onboarding labels, Profile tabs and Activity. The Schedule and purchase targets (A10), initial Schedule time window (A12), remaining shared text roles and native-device acceptance are open.
+
+## November 24 — visual audit first; Settings type rejected
+
+Jesse rejects the larger Settings labels and wants the existing PR #93 captured
+as-is, with no UI edits. Audit padding above/below, horizontal/vertical alignment,
+balance, proportional sizing and text fitting; prioritize Me search/notifications.
+Audit report: `docs/product/design-qa/2026-11-24-pr93-as-is/README.md`.
+14 review items A01–A14 are proposed, none implemented: Me rhythm/fallback names,
+Settings type and switch consistency, detached LocalList controls/footer, small
+labels/targets, Home roster balance, Schedule selection visibility, body-gutter
+and contrast debts. Distinguish measured defects, preferences and native checks.
+226 accepted web captures; no application code changed. Review items before
+screen-by-screen implementation; retain the approved compact court heroes.
+
+## November 22 — approved main Settings checkpoint
+
+Jesse greenlit the scoped main-page row correction and requested screenshots
+on the PR as each checkpoint is verified, plus durable docs for future agents.
+AGENTS.md records that delivery rule. Browser verification passes 23 captures
+and the scoped three-size audit; before/after evidence is archived in
+`docs/product/design-qa/2026-11-22-settings-rows/README.md`. Main-page scope: one shared row layout,
+14/12/11pt hierarchy, 20/16pt gutters, centered intrinsic controls and wrapping
+long values. No switch scaling or notification logic change. Native dimensions
+remain unverified until the phone check. This pass does not redesign LocalList's
+editor. Its management UI is the following checkpoint; persistence/per-court
+auto check-in remain functional backlog. PR #93 stays draft and unmerged.
+
+## November 18 — finish Explore before the next screen
+
+Jesse rejected the first #93 handoff because it retained already-annotated
+LocalList heading/default-row defects and did not show all four hero surfaces.
+On PR #93: remove that extra logo/treatment, use LOCAL LIST with the market's
+heading style, attach the default star to its card, keep row heights equal,
+center numerals inside the circle and keep ON COURT outside it. Verify actual
+four-digit containment, search/clear/filter and two saved courts. Supply Home,
+Explore, court detail and actual expanded-drawer captures at matching widths.
+Evidence: `docs/product/design-qa/2026-11-18-explore-complete/README.md`.
+The four-surface check caught a stale manual snap closing the drawer after its
+measured detent changed. Gorhom now owns that update; presentation follows
+mount, and tests require both visible content and the expanded detent.
+Notification toggle and Settings management are not changed by this pass.
+No merge or production update authorized.
+
+## November 17 — Explore regression correction under review
+
+- Jesse rejected tall, unequal court cards and asked for width-aware text
+  fitting and centered artwork/counts across Explore, Home and court detail.
+- On `codex/restore-compact-explore-cards`: CourtTitleRow owns fitting and the
+  live-art placement. Existing short names are preferred, full names are the
+  fallback. Reused Settings court cards inherit this; notification rows and
+  their toggle are not edited.
+- Screenshot evidence: `docs/product/design-qa/2026-11-17-compact-courts/`.
+  Approval and native phone check remain pending; no merge or release.
+- Settings row/system redesign, LocalList management, and Schedule corrections
+  remain separate screen-by-screen work. This does not mark them complete.
+
 ## November 17 — screenshot corrections, delivered one slice at a time
 
 - **This branch:** remove temporary drop-down app banners; keep court-name width

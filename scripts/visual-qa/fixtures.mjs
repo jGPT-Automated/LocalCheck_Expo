@@ -281,6 +281,7 @@ export function setOnboarding(on) {
 }
 
 export const tables = {
+  saved_courts: [],
   profiles,
   courts,
   courts_with_stats: courts,

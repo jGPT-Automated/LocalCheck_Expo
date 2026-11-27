@@ -9,6 +9,10 @@ preferences) lives outside the repo, in Jesse's folder
 https://claude.ai/code/artifact/7748ed30-34b0-408d-ba7f-2eef59fae0f5. If the
 session isn't linked to his Mac, use the plan doc and `docs/CURRENT_STATE.md`.
 
+## PR 93 handoff
+
+Start with [current state](docs/CURRENT_STATE.md), the [LocalPlus device review](docs/product/design-qa/2026-11-27-locallist/README.md) and the [November 27 screenshot index](docs/product/design-qa/2026-11-27-ui-polish/README.md). LocalList is the saved-court collection shared by Home, Schedule, Explore and Settings. Check the latest section of CURRENT_STATE before assuming its membership, default or geofences persist. Read the LocalList provider, the auto check-in provider and the server arrival rules together when changing that flow.
+
 ## Docs on every push
 
 Every push to a pull request that changes anything outside `docs/` (code,
@@ -108,6 +112,12 @@ force-push shared branches, or include unrelated user changes.
 - Answer direct questions and status requests before continuing tool work.
 - Work one independently verifiable outcome at a time: implement, test, show
   the connected preview or device evidence, then move to the next surface.
+- Keep UI progress resumable at each verified checkpoint: commit actual
+  before/after screenshots under `docs/product/design-qa/`, link them in the
+  active PR comment as well as the chat, and update `docs/CURRENT_STATE.md`
+  and `docs/FEEDBACK_TRACKER.md` in the same push. Record the branch/commit,
+  what passed, what remains unverified, and the next bounded step. A new
+  thread must be able to resume from those docs without the chat history.
 - Treat prior agent summaries, plans, and comments as leads rather than facts.
   Verify current Git, deployed-service, and runtime state directly.
 - Explain external actions before taking them. Production database changes,

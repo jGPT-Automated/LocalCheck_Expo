@@ -1,0 +1,145 @@
+{
+  "source": "https://localcheck-app-preview-git-codex-restore-9694a0-jgpt-automated.vercel.app",
+  "strict": false,
+  "fixtureIsolation": true,
+  "results": [
+    {
+      "name": "settings-top-320-normal",
+      "width": 320,
+      "variant": "normal",
+      "metrics": []
+    },
+    {
+      "name": "settings-preferences-320-normal",
+      "width": 320,
+      "variant": "normal",
+      "metrics": []
+    },
+    {
+      "name": "settings-alerts-320-normal",
+      "width": 320,
+      "variant": "normal",
+      "metrics": []
+    },
+    {
+      "name": "settings-account-320-normal",
+      "width": 320,
+      "variant": "normal",
+      "metrics": []
+    },
+    {
+      "name": "settings-preferences-320-long",
+      "width": 320,
+      "variant": "long",
+      "metrics": []
+    },
+    {
+      "name": "settings-alerts-320-long",
+      "width": 320,
+      "variant": "long",
+      "metrics": []
+    },
+    {
+      "name": "settings-account-320-long",
+      "width": 320,
+      "variant": "long",
+      "metrics": []
+    },
+    {
+      "name": "settings-top-375-normal",
+      "width": 375,
+      "variant": "normal",
+      "metrics": []
+    },
+    {
+      "name": "settings-preferences-375-normal",
+      "width": 375,
+      "variant": "normal",
+      "metrics": []
+    },
+    {
+      "name": "settings-alerts-375-normal",
+      "width": 375,
+      "variant": "normal",
+      "metrics": []
+    },
+    {
+      "name": "settings-account-375-normal",
+      "width": 375,
+      "variant": "normal",
+      "metrics": []
+    },
+    {
+      "name": "settings-push-off-375-normal",
+      "width": 375,
+      "variant": "normal",
+      "metrics": []
+    },
+    {
+      "name": "settings-top-393-normal",
+      "width": 393,
+      "variant": "normal",
+      "metrics": []
+    },
+    {
+      "name": "settings-preferences-393-normal",
+      "width": 393,
+      "variant": "normal",
+      "metrics": []
+    },
+    {
+      "name": "settings-alerts-393-normal",
+      "width": 393,
+      "variant": "normal",
+      "metrics": []
+    },
+    {
+      "name": "settings-account-393-normal",
+      "width": 393,
+      "variant": "normal",
+      "metrics": []
+    },
+    {
+      "name": "settings-preferences-393-long",
+      "width": 393,
+      "variant": "long",
+      "metrics": []
+    },
+    {
+      "name": "settings-alerts-393-long",
+      "width": 393,
+      "variant": "long",
+      "metrics": []
+    },
+    {
+      "name": "settings-account-393-long",
+      "width": 393,
+      "variant": "long",
+      "metrics": []
+    },
+    {
+      "name": "settings-top-430-normal",
+      "width": 430,
+      "variant": "normal",
+      "metrics": []
+    },
+    {
+      "name": "settings-preferences-430-normal",
+      "width": 430,
+      "variant": "normal",
+      "metrics": []
+    },
+    {
+      "name": "settings-alerts-430-normal",
+      "width": 430,
+      "variant": "normal",
+      "metrics": []
+    },
+    {
+      "name": "settings-account-430-normal",
+      "width": 430,
+      "variant": "normal",
+      "metrics": []
+    }
+  ]
+}

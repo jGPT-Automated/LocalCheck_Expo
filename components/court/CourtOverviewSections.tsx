@@ -129,10 +129,10 @@ export function UpNextSection({
 const styles = StyleSheet.create({
   section: { paddingBottom: 14 },
   nextCard: { gap: 8 },
-  hereRow: { height: 67, flexDirection: "row", gap: 8, overflow: "hidden" },
-  hereItem: { width: 58, alignItems: "center", gap: 2 },
-  hereName: { maxWidth: 58, fontFamily: Typography.bodySemiBold, fontSize: 11, lineHeight: 14, color: Colors.inkSoft },
-  hereSub: { fontFamily: Typography.bodySemiBold, fontSize: 11, lineHeight: 11, color: Colors.muted },
+  hereRow: { minHeight: 67, flexDirection: "row", gap: 8 },
+  hereItem: { flex: 1, minWidth: 0, alignItems: "center", gap: 2 },
+  hereName: { maxWidth: "100%", fontFamily: Typography.bodySemiBold, fontSize: 11, lineHeight: 14, color: Colors.inkSoft },
+  hereSub: { fontFamily: Typography.bodySemiBold, fontSize: 11, lineHeight: 14, color: Colors.muted },
   moreTile: {
     width: 40,
     height: 40,

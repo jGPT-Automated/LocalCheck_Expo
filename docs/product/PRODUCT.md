@@ -1,5 +1,34 @@
 # Product context
 
+## LocalPlus saved courts on PR 93
+
+The proposed backend uses the same five visible courts for the picker and auto check-in. If an archived court returns after the player fills its place, a stored court outside the five stays inactive. An explicit Off at the default survives subscription expiry. Players can add up to five courts to the visible list. Explore lists them first. Home and Schedule each choose which court to view. Settings chooses the default and which individual courts should trigger auto check-in. See the [tested flow](design-qa/2026-11-27-locallist/README.md) and CURRENT_STATE for deployment status.
+
+## November 22 — main Settings row correction (on branch)
+
+Main Settings has clearer labels/descriptions, consistent grouping and gutters,
+and long values can wrap without clipping. Push notifications use the existing
+native control and preference handler; this is a layout correction, not a push
+registration/delivery change. LocalList's editor/persistence are not completed
+by this main-page pass. Native phone acceptance remains pending.
+
+## November 18 — Explore correction on PR #93
+
+Explore clearly separates saved and nearby courts with matching section labels.
+Default status is attached to its court. Compact court names and live counts fit
+across phone widths; the count sits inside the same court-art circle on Home,
+Explore, court detail and expanded drawer. Search placeholders are readable and
+clear has a full touch target. No selection, persistence, check-in or notification
+policy changes. Screenshot review and native phone acceptance remain distinct.
+
+## November 17 — compact court-card correction (on branch)
+
+Explore court cards return to a compact single-line name with width-based
+fitting. The same court identity is used by Home, court drawers, full court
+detail and saved-court cards. Existing short names remain preferred. The court
+trace stays aligned to the live-count group. No court selection, check-in,
+notification or persistence behavior changes. Native phone review is pending.
+
 ## November 17 — first screenshot correction on #92
 
 Actions no longer display temporary drop-down banners inside the app. Their

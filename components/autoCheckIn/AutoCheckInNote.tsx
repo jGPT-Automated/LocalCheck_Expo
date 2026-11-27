@@ -26,7 +26,7 @@ export function AutoCheckInNote({ courtId }: { courtId: string }) {
   const hide = async () => {
     if (busy) return;
     setBusy(true);
-    const ok = await hideAutoCheckIn();
+    const ok = await hideAutoCheckIn(courtId);
     setBusy(false);
     showToast(
       ok

@@ -43,9 +43,8 @@ export function RunFlowSheet({
   contentBottomPadding?: number;
   /** Compact task drawers may opt into a smaller fixed detent. Schedule keeps 88%. */
   snapPoints?: Array<string | number>;
-  /** Size the sheet to its content — no fixed detent, no inner scroll. For
-   *  short single-action forms (Add Court steps). */
-  dynamic?: boolean;
+  /** Fit a short form to its content, or allow a growing list to scroll at the height cap. */
+  dynamic?: boolean | "scrollable";
   /** false: the children bring their own scroll view (a form with its own
    *  keyboard handling); the sheet just gives them the space below the title. */
   scroll?: boolean;
@@ -99,7 +98,7 @@ export function RunFlowSheet({
     <AppBottomSheetModal
       ref={modalRef}
       snapPoints={snapPoints}
-      dynamic={dynamic}
+      dynamic={Boolean(dynamic)}
       maxDynamicContentSize={Dimensions.get("window").height * 0.82}
       backdropOpacity={backdropOpacity}
       onDismiss={() => {
@@ -107,7 +106,16 @@ export function RunFlowSheet({
         onClose();
       }}
     >
-      {dynamic ? (
+      {dynamic === "scrollable" ? (
+        <BottomSheetScrollView
+          contentContainerStyle={{ paddingBottom }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {header}
+          <View style={styles.content}>{children}</View>
+        </BottomSheetScrollView>
+      ) : dynamic ? (
         <BottomSheetView style={{ paddingBottom }}>
           {header}
           <View style={styles.content}>{children}</View>

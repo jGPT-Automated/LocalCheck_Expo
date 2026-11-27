@@ -5,7 +5,6 @@ import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CourtSchedulePanel } from "@/components/CourtSchedulePanel";
-import { CourtArt } from "@/components/court/CourtArt";
 import { CourtActivityFeed } from "@/components/court/CourtActivityFeed";
 import type { CourtHourPick } from "@/lib/courtActivityModel";
 import { CourtGamesPanel } from "@/components/court/CourtGamesPanel";
@@ -206,7 +205,6 @@ export default function CourtProfileScreen() {
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: Platform.OS === "web" ? 44 : top }]}>
-        <CourtArt faint sport={court.sport} top={(Platform.OS === "web" ? 44 : top) + 22} />
         <View style={styles.navRow}>
           <Pressable
             accessibilityLabel="Back"
@@ -217,9 +215,9 @@ export default function CourtProfileScreen() {
           >
             <Feather color={Colors.text} name="arrow-left" size={22} />
           </Pressable>
-          <LocalMark list={hasLocalPlus} active={hasLocalPlus ? localList.courts.some(row => row.id === court.id) : isMyLocal} onPress={() => {
+          <LocalMark list={hasLocalPlus} active={hasLocalPlus ? localList.courts.some(row => row.id === court.id) : isMyLocal} onPress={async () => {
             if (!hasLocalPlus) { void setLocalCourt(court.id, court); return; }
-            try { localList.addCourt(court); }
+            try { await localList.addCourt(court); }
             catch (error) { Alert.alert("LocalList", error instanceof Error ? error.message : "Try again."); }
           }} />
         </View>
@@ -227,6 +225,7 @@ export default function CourtProfileScreen() {
             today's busy times above the tabs so every tab shares them. */}
         <View style={styles.titleRow}>
           <CourtTitleRow
+            faintArt
             live={activeCount > 0}
             liveAccessibilityLabel={`${hiddenCount > 0 ? "About " : ""}${activeCount} on court`}
             liveValue={hiddenCount > 0 ? `~${activeCount}` : activeCount}

@@ -1,0 +1,36 @@
+{
+  "375x667/settings": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "LOCALLITE (10px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": []
+    }
+  },
+  "393x852/settings": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "LOCALLITE (10px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        "PUSH NOTIFICATIONS (40x20)"
+      ]
+    }
+  },
+  "430x932/settings": {
+    "fail": [],
+    "debt": {
+      "smallText": [
+        "LOCALLITE (10px)"
+      ],
+      "lowContrast": [],
+      "smallTarget": [
+        "PUSH NOTIFICATIONS (40x20)"
+      ]
+    }
+  }
+}

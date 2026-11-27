@@ -10,6 +10,7 @@ import { TextStyles } from "@/constants/typography";
  *  this rather than maintaining page-local copies. */
 export function OptionRow({
   label,
+  compact = false,
   description,
   icon,
   selected,
@@ -17,6 +18,7 @@ export function OptionRow({
   onPress,
 }: {
   label: string;
+  compact?: boolean;
   description?: string;
   icon?: React.ReactNode;
   selected: boolean;
@@ -30,6 +32,7 @@ export function OptionRow({
       disabled={disabled}
       style={({ pressed }) => [
         styles.option,
+        compact && styles.compact,
         selected && styles.optionSelected,
         pressed && !disabled && styles.pressed,
         disabled && styles.disabled,
@@ -61,6 +64,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
     backgroundColor: Colors.surface,
   },
+  compact: { flex: 1, minWidth: 0, minHeight: 52, paddingHorizontal: 10, gap: 6 },
   optionSelected: {
     borderColor: Colors.accentBorder,
     backgroundColor: Colors.accentDim,

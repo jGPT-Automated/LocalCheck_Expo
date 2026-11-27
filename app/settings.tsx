@@ -1,4 +1,4 @@
-import { LocalListCards } from "@/components/court/LocalListCards";
+import { SavedCourtSettings } from "@/components/court/SavedCourtList";
 import { CourtListItem } from "@/components/CourtListItem";
 import { useLocalList } from "@/context/LocalListContext";
 import Constants from "expo-constants";
@@ -15,7 +15,6 @@ import {
   Pressable,
   Share,
   StyleSheet,
-  Switch,
   Text,
   View,
 } from "react-native";
@@ -28,6 +27,7 @@ import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
 import { MIN_PASSWORD_LENGTH } from "@/lib/passwordReset";
 import { OptionRow } from "@/components/ui/OptionRow";
 import { SearchField } from "@/components/ui/SearchField";
+import { SettingsRow } from "@/components/ui/SettingsRow";
 import { TierPill } from "@/components/ui/TierPill";
 import { Colors, Radius } from "@/constants/colors";
 import { Court, CourtSport } from "@/constants/data";
@@ -354,20 +354,20 @@ export default function SettingsScreen() {
         </Section>
 
         <Section title="PREFERENCES">
-          <DrillRow
+          <SettingsRow
             icon="eye"
             label="VISIBILITY"
             value={privacyLabel}
             onPress={() => setEditor("privacy")}
           />
-          <DrillRow
+          <SettingsRow
             icon="target"
             label="PRIMARY SPORT"
             value={sportLabel(preferredSport)}
             valueMuted={!preferredSport}
             onPress={() => setEditor("sport")}
           />
-          <DrillRow
+          <SettingsRow
             icon="map-pin"
             label={localList.canEdit ? "LOCALLIST" : "LOCAL COURT"}
             value={
@@ -378,7 +378,7 @@ export default function SettingsScreen() {
             valueMuted={!localCourt}
             onPress={() => setEditor("court")}
           />
-          <DrillRow
+          <SettingsRow
             icon="navigation"
             label="AUTO CHECK-IN"
             value={autoCheckInLabel(autoCheckIn.state)}
@@ -389,13 +389,15 @@ export default function SettingsScreen() {
         </Section>
 
         <Section title="ALERTS">
-          <ToggleSettingsRow
+          <SettingsRow
             icon="bell"
             label="PUSH NOTIFICATIONS"
             detail="Run invites, friend updates, and score reviews"
-            disabled={pushSaving}
-            onValueChange={(value) => void setPushNotifications(value)}
-            value={pushValue}
+            toggle={{
+              disabled: pushSaving,
+              onValueChange: (value) => void setPushNotifications(value),
+              value: pushValue,
+            }}
           />
           <SettingsRow
             icon="inbox"
@@ -411,7 +413,7 @@ export default function SettingsScreen() {
             doesn't invite casual username changes the way sitting at the
             top of the screen did. */}
         <Section title="ACCOUNT DETAILS">
-          <DrillRow
+          <SettingsRow
             icon="at-sign"
             label="USERNAME"
             value={profile?.username ? `@${profile.username}` : "NOT SET"}
@@ -569,124 +571,6 @@ function Section({
   );
 }
 
-/** `[icon]  LABEL ......... value  ›` — taps open a focused editor. */
-function DrillRow({
-  icon,
-  label,
-  value,
-  valueMuted,
-  onPress,
-  last,
-}: {
-  icon: React.ComponentProps<typeof Feather>["name"];
-  label: string;
-  value: string;
-  valueMuted?: boolean;
-  onPress: () => void;
-  last?: boolean;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${label}. Currently ${value}.`}
-      style={({ pressed }) => [
-        styles.row,
-        last && styles.rowLast,
-        pressed && styles.pressed,
-      ]}
-      onPress={onPress}
-    >
-      <Feather name={icon} size={17} color={Colors.textSecondary} />
-      <Text style={styles.rowLabel} numberOfLines={1}>
-        {label}
-      </Text>
-      <Text
-        style={[styles.rowValue, valueMuted && styles.rowValueMuted]}
-        numberOfLines={1}
-      >
-        {value}
-      </Text>
-      <Feather name="chevron-right" size={17} color={Colors.muted} />
-    </Pressable>
-  );
-}
-
-function SettingsRow({
-  icon,
-  label,
-  detail,
-  onPress,
-  last,
-}: {
-  icon: React.ComponentProps<typeof Feather>["name"];
-  label: string;
-  detail?: string;
-  onPress: () => void;
-  last?: boolean;
-}) {
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.row,
-        last && styles.rowLast,
-        pressed && styles.pressed,
-      ]}
-      onPress={onPress}
-    >
-      <Feather name={icon} size={17} color={Colors.textSecondary} />
-      <View style={{ flex: 1 }}>
-        <Text style={styles.settingsLabel} numberOfLines={1}>
-          {label}
-        </Text>
-        {detail ? <Text style={styles.settingsDetail}>{detail}</Text> : null}
-      </View>
-      <Feather name="chevron-right" size={17} color={Colors.muted} />
-    </Pressable>
-  );
-}
-
-function ToggleSettingsRow({
-  disabled,
-  icon,
-  label,
-  detail,
-  onValueChange,
-  value,
-  last,
-}: {
-  disabled?: boolean;
-  icon: React.ComponentProps<typeof Feather>["name"];
-  label: string;
-  detail?: string;
-  onValueChange: (value: boolean) => void;
-  value: boolean;
-  last?: boolean;
-}) {
-  return (
-    <View style={[styles.row, last && styles.rowLast]}>
-      <Feather name={icon} size={17} color={Colors.textSecondary} />
-      <View style={{ flex: 1 }}>
-        <Text style={styles.settingsLabel} numberOfLines={1}>
-          {label}
-        </Text>
-        {detail ? <Text style={styles.settingsDetail}>{detail}</Text> : null}
-      </View>
-      <View style={styles.notificationSwitchFrame}>
-        <Switch
-          accessibilityLabel={label}
-          accessibilityHint={`Turns ${label.toLowerCase()} on or off`}
-          disabled={disabled}
-          ios_backgroundColor={Colors.borderLight}
-          onValueChange={onValueChange}
-          thumbColor={Colors.white}
-          trackColor={{ false: Colors.borderLight, true: Colors.accent }}
-          value={value}
-        />
-      </View>
-    </View>
-  );
-}
-
 // ─── Focused editors ─────────────────────────────────────────────────────────
 
 function PrivacyEditorSheet({
@@ -779,7 +663,7 @@ function LocalCourtEditorSheet({
   onClose: () => void;
 }) {
   const localList = useLocalList();
-  const router = useRouter();
+  const auto = useAutoCheckIn();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Court[]>([]);
   const [searching, setSearching] = useState(false);
@@ -819,8 +703,10 @@ function LocalCourtEditorSheet({
   const pick = async (court: Court) => {
     if (busyId) return;
     if (localList.canEdit) {
-      try { localList.addCourt(court); setQuery(""); }
+      setBusyId(court.id);
+      try { await localList.addCourt(court); setQuery(""); }
       catch (error) { Alert.alert("LocalList", error instanceof Error ? error.message : "Try again."); }
+      finally { setBusyId(null); }
       return;
     }
     if (current && current.id !== court.id && cooldown.restricted) {
@@ -866,21 +752,22 @@ function LocalCourtEditorSheet({
       onClose={onClose}
       title={localList.canEdit ? "LocalList" : "LOCAL COURT"}
       eyebrow="ANCHORS YOUR RANKINGS & LOG GAME"
+      dynamic={localList.canEdit ? "scrollable" : false}
       snapPoints={["82%"]}
-      contentBottomPadding={64}
+      contentBottomPadding={localList.canEdit ? Space.xl : 64}
     >
       <SearchField
         style={styles.searchBox}
         accessibilityLabel="Search for a court"
         autoCapitalize="words"
-        placeholder="Court name, city, or ZIP"
+        placeholder={localList.canEdit ? "Find a court to add" : "Court name, city, or ZIP"}
         value={query}
         onChangeText={setQuery}
         onClear={() => setQuery("")}
         loading={searching}
       />
 
-      {localList.canEdit && term.length < 2 ? <LocalListCards manage inset onSelect={(court) => { onClose(); router.push(`/court/${court.id}`); }} /> : null}
+      {localList.canEdit && term.length < 2 ? <SavedCourtSettings defaultFenceOn={autoCheckInSwitchValue(auto.state)} onToggle={auto.setCourtEnabled} changing={auto.busy} /> : null}
       {!localList.canEdit && current ? (
         <View>
           <CourtListItem court={current} style={{ marginHorizontal: 0 }} />
@@ -892,7 +779,7 @@ function LocalCourtEditorSheet({
 
       {current && cooldown.restricted ? (
         <Text style={styles.cooldownNote}>
-          <Feather color={Colors.mutedDark} name="clock" size={11} /> You can change
+          <Feather color={Colors.muted} name="clock" size={11} /> You can change
           your local court again in {formatCooldownRemaining(cooldown.remainingMs)}
           . LocalPlus removes this wait.
         </Text>
@@ -913,12 +800,12 @@ function LocalCourtEditorSheet({
             </Text>
           ) : null}
         </View>
-      ) : (
+      ) : !localList.canEdit ? (
         <Text style={styles.searchHint}>
           Your local court anchors your ranking scope and prefills the court when
           you log a game.
         </Text>
-      )}
+      ) : null}
     </RunFlowSheet>
   );
 }
@@ -986,7 +873,7 @@ function UsernameEditorSheet({
               setError(null);
             }}
             placeholder="username"
-            placeholderTextColor={Colors.mutedDark}
+            placeholderTextColor={Colors.muted}
             style={styles.fieldInput}
             value={value}
           />
@@ -1072,7 +959,7 @@ function PasswordEditorSheet({
             setError(null);
           }}
           placeholder="••••••••"
-          placeholderTextColor={Colors.mutedDark}
+          placeholderTextColor={Colors.muted}
           secureTextEntry
           style={styles.fieldInputFull}
           value={password}
@@ -1087,7 +974,7 @@ function PasswordEditorSheet({
             setError(null);
           }}
           placeholder="••••••••"
-          placeholderTextColor={Colors.mutedDark}
+          placeholderTextColor={Colors.muted}
           secureTextEntry
           style={styles.fieldInputFull}
           value={confirm}
@@ -1156,7 +1043,7 @@ const styles = StyleSheet.create({
     color: Colors.muted,
     letterSpacing: 0.3,
   },
-  section: { paddingHorizontal: 20, marginBottom: 21 },
+  section: { paddingHorizontal: Layout.screenGutter, marginBottom: Space.xl },
   sectionTitle: {
     fontFamily: Typography.bodyBold,
     fontSize: 11,
@@ -1170,52 +1057,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: Radius.md,
     overflow: "hidden",
-  },
-  row: {
-    minHeight: 58,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderSubtle,
-  },
-  rowLast: { borderBottomWidth: 0 },
-  rowLabel: {
-    flex: 1,
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 11,
-    color: Colors.text,
-    letterSpacing: 0.55,
-  },
-  rowValue: {
-    maxWidth: "44%",
-    ...TextStyles.label,
-    color: Colors.textSecondary,
-    letterSpacing: 0.4,
-    textAlign: "right",
-  },
-  rowValueMuted: { color: Colors.muted },
-  settingsLabel: {
-    fontFamily: Typography.bodySemiBold,
-    fontSize: 11,
-    color: Colors.text,
-    letterSpacing: 0.55,
-  },
-  settingsDetail: {
-    ...TextStyles.caption,
-    color: Colors.muted,
-    marginTop: 3,
-  },
-  notificationSwitchFrame: {
-    width: 52,
-    height: 44,
-    alignSelf: "center",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  notificationSwitch: {
-    transform: [{ scale: Platform.OS === "ios" ? 0.82 : 1 }],
   },
   deleteRow: {
     minHeight: Layout.minTouchTarget,
@@ -1234,7 +1075,7 @@ const styles = StyleSheet.create({
   version: {
     fontFamily: Typography.bodyMedium,
     fontSize: 11,
-    color: Colors.mutedDark,
+    color: Colors.muted,
     letterSpacing: 1.3,
     textAlign: "center",
     marginTop: 2,
@@ -1304,7 +1145,7 @@ const styles = StyleSheet.create({
   },
   cooldownNote: {
     ...TextStyles.caption,
-    color: Colors.mutedDark,
+    color: Colors.muted,
     marginBottom: 10,
     lineHeight: 15,
   },

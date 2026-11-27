@@ -3,6 +3,7 @@ import { Alert, AppState, DeviceEventEmitter, Linking } from "react-native";
 
 import { AutoCheckInSheet } from "@/components/autoCheckIn/AutoCheckInSheet";
 import { useToast } from "@/components/ui/Toast";
+import { useLocalList } from "@/context/LocalListContext";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { profileNeedsOnboarding } from "@/lib/onboardingGate";
@@ -18,7 +19,9 @@ import {
   enableAutoCheckIn,
   getAutoCheckInPermission,
   isAutoCheckInAvailable,
-  isAutoCheckInRunning,
+  isWatchingCourt,
+  requestAutoPermission,
+  syncSavedRegions,
   registerUndoAction,
   syncAutoCheckIn,
 } from "@/services/autoCheckInService";
@@ -32,6 +35,7 @@ type AutoCheckInValue = {
   /** Asks iPhone for location and starts the circle (onboarding's own step). */
   turnOn: () => Promise<void>;
   turnOff: () => Promise<void>;
+  setCourtEnabled: (id: string, enabled: boolean) => Promise<void>;
   openSettings: () => void;
 };
 
@@ -43,8 +47,9 @@ const AutoCheckInContext = createContext<AutoCheckInValue | null>(null);
  * picks a local court, and shows the "Undone" toast.
  */
 export function AutoCheckInProvider({ children }: { children: React.ReactNode }) {
-  const { user, profile, isLoading } = useAuth();
+  const { user, profile } = useAuth();
   const { localCourt, refreshCheckedIn } = useApp();
+  const list = useLocalList();
   const { showToast } = useToast();
   const [state, setState] = useState<AutoCheckInState>(isAutoCheckInAvailable() ? "off" : "unavailable");
   const [busy, setBusy] = useState(false);
@@ -64,8 +69,10 @@ export function AutoCheckInProvider({ children }: { children: React.ReactNode })
   );
 
   const hasLocalCourt = Boolean(court);
+  const userId = user?.id;
+  const courtId = court?.id;
   const refresh = useCallback(async () => {
-    const [running, permission] = await Promise.all([isAutoCheckInRunning(), getAutoCheckInPermission()]);
+    const [running, permission] = await Promise.all([userId && courtId ? isWatchingCourt(userId, courtId).catch(() => false) : false, getAutoCheckInPermission()]);
     setState(
       autoCheckInState({
         available: isAutoCheckInAvailable(),
@@ -74,7 +81,7 @@ export function AutoCheckInProvider({ children }: { children: React.ReactNode })
         hasLocalCourt,
       }),
     );
-  }, [hasLocalCourt]);
+  }, [hasLocalCourt, userId, courtId]);
 
   // Status on launch and whenever the app comes back (they may have changed
   // Location in iPhone Settings).
@@ -97,7 +104,7 @@ export function AutoCheckInProvider({ children }: { children: React.ReactNode })
   const courtRef = useRef(court);
   courtRef.current = court;
   useEffect(() => {
-    if (!user || profileCourtId === undefined) return;
+    if (!user || profileCourtId === undefined || list.canEdit || profile?.is_pro) return;
     if (profileCourtId === null) {
       void syncAutoCheckIn(null).then(refresh); // local court removed: stop
       return;
@@ -105,16 +112,18 @@ export function AutoCheckInProvider({ children }: { children: React.ReactNode })
     const current = courtRef.current;
     if (!current || current.id !== profileCourtId) return; // court still loading
     void syncAutoCheckIn(current).then(refresh);
-  }, [courtKey, profileCourtId, user, refresh]);
+  }, [courtKey, profileCourtId, user, refresh, list.canEdit, profile?.is_pro]);
 
-  // Signed out (a real sign-out, not the empty first render): stop watching.
-  const lastUserId = useRef<string | null>(null);
   useEffect(() => {
-    if (isLoading) return;
-    const id = user?.id ?? null;
-    if (lastUserId.current && !id) void disableAutoCheckIn().then(refresh);
-    lastUserId.current = id;
-  }, [isLoading, user, refresh]);
+    if (!list.ready || !userId) return;
+    const reconcile = () => {
+      void syncSavedRegions(userId, list.entries).then(refresh).catch(() =>
+        showToast({ title: "Auto check-in", body: "Couldn’t update monitored courts. Open Settings to retry.", icon: "alert-circle" }));
+    };
+    reconcile();
+    const sub = AppState.addEventListener("change", status => { if (status === "active") reconcile(); });
+    return () => sub.remove();
+  }, [list.ready, list.entries, userId, refresh, showToast]);
 
   // Offer it once when the player picks (or changes) a local court this session.
   const baselineCourt = useRef<string | null | undefined>(undefined);
@@ -164,8 +173,32 @@ export function AutoCheckInProvider({ children }: { children: React.ReactNode })
     void Linking.openSettings();
   }, []);
 
+  const setCourtEnabled = async (id: string, enabled: boolean) => {
+    if (!userId) throw new Error("Sign in to update LocalList.");
+    setBusy(true);
+    try {
+      if (enabled && isAutoCheckInAvailable()) {
+        const permission = await requestAutoPermission();
+        if (permission !== "on") {
+          Alert.alert("Allow location Always", "Auto check-in needs Always location access.", [
+            { text: "Not now", style: "cancel" }, { text: "Open Settings", onPress: openSettings },
+          ]);
+          return;
+        }
+      }
+      await list.setAutoCheckIn(id, enabled);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const turnOn = useCallback(async () => {
     if (!court || busy) return;
+    if (list.canEdit) {
+      try { await setCourtEnabled(court.id, true); setSheetOpen(false); }
+      catch (error) { Alert.alert("Auto check-in", error instanceof Error ? error.message : "Try again."); }
+      return;
+    }
     setBusy(true);
     const result = await enableAutoCheckIn(court);
     setBusy(false);
@@ -185,20 +218,25 @@ export function AutoCheckInProvider({ children }: { children: React.ReactNode })
     } else if (result === "error") {
       showToast({ title: "COULDN'T TURN ON", body: "Try again in a moment.", icon: "alert-circle" });
     }
-  }, [busy, court, openSettings, refresh, showToast]);
+  }, [busy, court, openSettings, refresh, showToast, list.canEdit, setCourtEnabled]);
 
   const turnOff = useCallback(async () => {
+    if (list.canEdit && court) {
+      try { await setCourtEnabled(court.id, false); }
+      catch (error) { Alert.alert("Auto check-in", error instanceof Error ? error.message : "Try again."); }
+      return;
+    }
     await disableAutoCheckIn();
     await refresh();
-  }, [refresh]);
+  }, [court, list.canEdit, setCourtEnabled, refresh]);
 
   const offer = useCallback(() => {
     if (court && isAutoCheckInAvailable()) setSheetOpen(true);
   }, [court]);
 
   const value = useMemo(
-    () => ({ state, busy, courtName: court?.name ?? null, offer, turnOn, turnOff, openSettings }),
-    [state, busy, court?.name, offer, turnOn, turnOff, openSettings],
+    () => ({ state, busy, courtName: court?.name ?? null, offer, turnOn, turnOff, openSettings, setCourtEnabled }),
+    [state, busy, court?.name, offer, turnOn, turnOff, openSettings, setCourtEnabled],
   );
 
   return (

@@ -1,3 +1,4 @@
+import { SavedCourtPicker } from "@/components/court/SavedCourtList";
 import { useLocalList } from "@/context/LocalListContext";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import React, {
@@ -29,6 +30,7 @@ import {
   getSportColor,
 } from "@/constants/data";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { RunFlowSheet } from "@/components/sheet/RunFlowSheet";
 import { FormSheet } from "@/components/sheet/FormSheet";
 import { SlotCard } from "@/components/court/SlotCard";
 import { ScheduleGameSheet } from "@/components/schedule/ScheduleGameSheet";
@@ -545,28 +547,10 @@ function CourtPickerModal({
   localCourt: Court | null;
   onSelect: (c: Court) => void;
 }) {
-  const localList = useLocalList();
   return (
-    <FormSheet visible={visible} onClose={onClose} title="Pick a court">
-      <ScrollView
-        contentContainerStyle={styles.sheetContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        {localList.courts.map(savedCourt => (
-          <Pressable
-            key={savedCourt.id} style={styles.pickerLocalRow}
-            onPress={() => {
-              onSelect(savedCourt);
-              onClose();
-            }}
-          >
-            <Feather name="map-pin" size={14} color={Colors.accent} />
-            <Text style={styles.pickerLocalText}>
-              {savedCourt.name.toUpperCase()}
-            </Text>
-            <Text style={styles.pickerLocalTag}>{savedCourt.id === localList.defaultCourt?.id ? "DEFAULT" : ""}</Text>
-          </Pressable>
-        ))}
+    <RunFlowSheet dynamic="scrollable" visible={visible} onClose={onClose} title="Pick a court" contentBottomPadding={20}>
+        <Text style={[styles.fieldLabel, { marginTop: 0 }]}>LOCALLIST</Text>
+        <SavedCourtPicker selectedId={localCourt?.id} onSelect={court => { onSelect(court); onClose(); }} />
         <Text style={styles.fieldLabel}>SEARCH</Text>
         <CourtField
           selected={null}
@@ -576,8 +560,7 @@ function CourtPickerModal({
           }}
           onClear={() => {}}
         />
-      </ScrollView>
-    </FormSheet>
+    </RunFlowSheet>
   );
 }
 
@@ -1394,7 +1377,7 @@ export default function ScheduleScreen() {
       <CourtPickerModal
         visible={showPicker}
         onClose={() => setShowPicker(false)}
-        localCourt={localCourt}
+        localCourt={court}
         onSelect={setPickedCourt}
       />
     </View>
@@ -1908,33 +1891,6 @@ const styles = StyleSheet.create({
     color: Colors.loss,
     lineHeight: 14,
     letterSpacing: 0.5,
-  },
-
-  // ── Court picker ──
-  pickerLocalRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xs,
-    paddingHorizontal: 12,
-    minHeight: 48,
-    marginTop: 20,
-  },
-  pickerLocalText: {
-    flex: 1,
-    fontFamily: Typography.heading,
-    fontSize: 13,
-    color: Colors.text,
-    letterSpacing: 0.5,
-  },
-  pickerLocalTag: {
-    fontFamily: Typography.bodyBold,
-    fontSize: 8,
-    color: Colors.accent,
-    letterSpacing: 1.5,
   },
 
   // ── Create-run / plan-visit page sheets (used by the modals above) ──

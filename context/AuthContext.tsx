@@ -236,7 +236,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // API request. Profile provisioning is deferred to the next tick.
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
+    } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === "SIGNED_OUT") {
+        void import("@/services/autoCheckInService").then(service => service.clearRegisteredCourts());
+      }
       // Keep the Realtime socket's JWT fresh on SIGNED_IN + TOKEN_REFRESHED
       // (and clear it on SIGNED_OUT). Synchronous — safe inside the callback.
       supabase.realtime.setAuth(s?.access_token ?? null);

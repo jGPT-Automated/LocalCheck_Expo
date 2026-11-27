@@ -1,5 +1,101 @@
 # Current state
 
+## November 27 — LocalPlus preview checkpoint on PR 93
+
+The second SQL revision uses the same five visible courts for selection and arrival. It protects older default writes and preserves an explicit Off after expiry. All seven patch fragments matched once in a November 27 read-only production check. The [database review handoff](runbooks/LOCALPLUS_SAVED_COURTS.md) is ready for Jesse’s reviewer. It includes the SQL checksum and results for paid, free, expired and test accounts. Production application and merge await approval.
+
+[Device review screens](product/design-qa/2026-11-27-locallist/README.md) cover adding, switching, choosing a default and saving independent auto check-in preferences. The branch requires the [saved courts migration](../supabase/migrations/20261127120000_saved_courts.sql). It was exercised with isolated PostgreSQL, including allowed and denied accounts, and has **not been applied to LocalCheckProd**. Expo Go can display the UI. Live multi-court saves require that migration, and geofence entry/exit needs the installed iOS app. The earlier [54 visual comparisons](product/design-qa/2026-11-27-ui-polish/README.md) describe the first checkpoint.
+
+## November 27 — UI polish on PR #93
+
+On the PR branch, onboarding fits both sport choices on one row at standard phone widths. Profile searches share a frame, long court names wrap, and Home and the court drawer distribute the live roster across their available width. Settings uses compact row labels, readable secondary text, and a default star on its court. See the [matched Expo web captures](product/design-qa/2026-11-27-ui-polish/README.md) for the tested states and remaining device checks.
+
+**Next LocalPlus checkpoint.** Jesse requested a clearly anchored default indicator, durable saved courts shared across all four selectors, and per-court auto check-in switches. At the first November 27 checkpoint LocalList is still in memory, and both native registration and the server arrival rules use one local court. The multi-court contract needs a migration before release.
+
+## November 24 — PR #93 as-is audit; no UI edits
+
+Audited application commit `5b877ad` on `codex/restore-compact-explore-cards`.
+Jesse requested screenshots and a systematic list before any more changes.
+Evidence/report: `docs/product/design-qa/2026-11-24-pr93-as-is/README.md`;
+226 accepted web screenshots, 79 named states across 375/393/430 widths, with
+measured boxes, screen index and 14 prioritized review items. Native-only and
+unreached states are explicitly listed; this is not complete device acceptance.
+No application source, dependency, native configuration or backend change.
+
+**Typography acceptance correction:** Jesse rejected the enlarged Settings
+labels (14/12pt on the branch). The November 22 implementation and passing
+geometry checks are not approval of those font sizes. Preserve compactness;
+review exact typography against the prior screenshot before implementation.
+The 17pt Apple default is not this screen’s mandated size.
+
+Next: review Me search/content spacing and long-court text fitting (A01–A04),
+then Settings typography/switch consistency and LocalList management in bounded
+checkpoints. No fixes, merge, production OTA or native build authorized by this
+audit. Maintain the PR screenshot/report trail for future threads.
+
+## November 22 — resume PR #93: main Settings rows
+
+Branch: `codex/restore-compact-explore-cards`; open draft PR:
+https://github.com/jGPT-Automated/LocalCheck_Expo/pull/93 . Explore's verified
+checkpoint is commit `5da6d72` and its November 18 evidence gallery below.
+The verified main Settings implementation/evidence is commit `715893f`.
+Jesse approved that visual direction and the next bounded Settings scope.
+
+**On branch, browser verified:** main Settings uses one canonical
+`components/ui/SettingsRow.tsx` instead of three local row implementations.
+Primary copy is 14pt, supporting copy 12pt; section headings stay 11pt. Screen
+and inner gutters are 20/16pt; long values wrap and rows grow. The native Switch
+keeps its callbacks, track/thumb colors and unscaled intrinsic sizing; its
+wrapper no longer forces 52pt width. RN Web's separate active-thumb property
+keeps the preview thumb white. Existing row actions/order and notification
+logic are preserved. No editor-sheet redesign or backend change in this step.
+
+Verification: 23 strict captures at 320/375/393/430pt; 16pt trailing inset,
+at most 0.5pt accessory centering error, no text overflow. One isolated push-OFF
+callback and Inbox navigation pass. Scoped three-size audit: zero failures or
+baseline increases. `pnpm check` passes. Before/after receipt:
+`docs/product/design-qa/2026-11-22-settings-rows/README.md`.
+Native switch dimensions, Dynamic Type and physical safe areas still need a
+phone check. Next implementation checkpoint is LocalList's management drawer,
+after this main-page review. LocalList persistence and per-court auto check-in
+remain separate functional work before submission. No merge, production OTA or
+native build is authorized. Keep screenshots on the PR and chat at each verified
+checkpoint; AGENTS.md now makes this a standing handoff requirement.
+
+## November 18 — PR #93 Explore correction (on branch)
+
+Explore uses one section-heading style for LOCAL LIST and the market heading;
+the extra section logo and detached Default row are removed. The default's
+neutral star lives on its saved court card. CourtTitleRow keeps all list cards
+equal-height and centers the numeral in a 64pt court-art circle with its caption
+below. The existing native/web fitting helper now fits both titles and counts,
+including four digits. Home, Explore, court detail, peek and expanded drawer
+share that owner. Court metadata and selector/Explore supporting labels use the
+existing 11pt token. Shared SearchField has readable placeholder contrast and a
+44pt clear target. CourtSheetHost presents after its conditional modal mounts,
+and no longer queues a manual snap with the previous measured position. Gorhom
+owns the detent update; stale presentation frames are canceled.
+Notification toggle is untouched.
+
+Evidence: `docs/product/design-qa/2026-11-18-explore-complete/README.md`.
+This supersedes the initial #93 screenshots below. No merge, production update,
+native build or backend mutation; native phone verification remains pending.
+
+## November 17 — compact court-header correction (on branch)
+
+On `codex/restore-compact-explore-cards`, the shared court title fits one line
+again, preferring the existing `shortName` at each caller and falling back to
+`name`. Native uses Text's fitting API with an 11pt floor; the web adapter
+measures the loaded font because React Native Web does not implement that API.
+The existing fixed count column remains stable. CourtArt now belongs to that
+column, centered vertically on the count/label group, rather than separate
+page-specific offsets. Home, Explore, drawer and court detail share this owner;
+Settings' reused court cards inherit it. Notification rows are untouched.
+
+This supersedes the wrapped-name behavior below. Rendered evidence and limits:
+`docs/product/design-qa/2026-11-17-compact-courts/README.md`. No merge or production
+release is authorized by this correction; native phone verification is pending.
+
 ## November 17 — #92 release request
 
 Jesse requested merge to main and an OTA for #92's existing UI plus the banner

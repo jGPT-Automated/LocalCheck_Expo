@@ -62,7 +62,7 @@ for (const [width,height] of [[375,667],[393,852],[430,932]]) {
    for(const row of tables.check_ins)if(row.user_id===ME&&!row.checked_out_at)row.checked_out_at=new Date(now).toISOString();
    response={status:200,body:'{}'};serviceCalls.push('check_out');
   }else if(url.includes('/rest/v1/rpc/mark_all_notifications_read')){for(const row of tables.notifications)row.read_at=new Date(now).toISOString();response={status:200,body:'true'};}
-  else if(url.includes('/rest/v1/'))response=handleRest(req.method(),url,req.headers());
+  else if(url.includes('/rest/v1/'))response=handleRest(req.method(),url,req.headers(),req.postDataJSON() ?? {});
   else if(url.includes('/auth/v1/'))response=handleAuth(url);
   else return route.abort();
   return route.fulfill({status:response.status,body:response.body,headers:{'content-type':'application/json','access-control-allow-origin':'*','access-control-expose-headers':'content-range',...response.headers}});
@@ -155,7 +155,7 @@ for (const [width,height] of [[375,667],[393,852],[430,932]]) {
   await page.getByTestId('schedule-court-selector').click();
   await page.getByText('Pick a court',{exact:true}).waitFor();
   await page.waitForTimeout(400);await capture('schedule-list-picker');
-  await page.getByText(tables.courts.find(c=>c.id===COURT).name.toUpperCase(),{exact:true}).last().click();
+  await page.getByRole('button',{name:`Open ${tables.courts.find(c=>c.id===COURT).name}`,exact:true}).click();
   await page.waitForTimeout(400);await capture('schedule-selected');
   await clickTab('Home');
   assert.equal(await page.getByRole('tab',{name:`Show ${other.name}`}).getAttribute('aria-selected'),'true','Schedule selection does not change Home/default');

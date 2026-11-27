@@ -94,7 +94,7 @@ export function ProfileHero({
             {headline || name}
           </Text>
           <View style={styles.compactMeta}>
-            <Text numberOfLines={1} style={styles.compactHandle}>
+            <Text numberOfLines={2} style={styles.compactHandle}>
               {locationLine}
             </Text>
           </View>

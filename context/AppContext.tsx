@@ -89,7 +89,7 @@ interface AppContextValue {
   /** Arrived at the local court, posting in under 5 minutes (D52). */
   pendingAutoCheckIn: PendingAutoCheckIn | null;
   /** Hide the auto check-in, waiting or posted, as if it never happened. */
-  hideAutoCheckIn: () => Promise<boolean>;
+  hideAutoCheckIn: (courtId: string) => Promise<boolean>;
   lastVisitedCourtId: string | null;
   localCourtId: string | null;
   localCourt: Court | null;
@@ -121,6 +121,7 @@ interface AppContextValue {
   ) => Promise<boolean>;
   refreshPlannedVisits: () => Promise<void>;
   hypeItem: (feedId: string) => Promise<void>;
+  acceptSavedDefault: (court: Court) => void;
   setLocalCourt: (courtId: string | null, courtObj?: Court) => Promise<boolean>;
   setVisibility: (v: Visibility) => Promise<void>;
   setPreferredSport: (sport: CourtSport | null) => Promise<boolean>;
@@ -480,8 +481,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [userId, refreshFeed, refreshRuns, refreshPlannedVisits, refreshCheckInCount, refreshFriends, refreshCheckedIn]);
 
-  const hideAutoCheckIn = useCallback(async () => {
-    const ok = await undoAutoCheckIn();
+  const hideAutoCheckIn = useCallback(async (courtId: string) => {
+    const ok = await undoAutoCheckIn(courtId);
     await refreshCheckedIn();
     void refreshFeed();
     return ok;
@@ -649,6 +650,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const visitCourt = useCallback(async (courtId: string) => {
     setLastVisitedCourtId(courtId);
+  }, []);
+
+  const acceptSavedDefault = useCallback((court: Court) => {
+    setLocalCourtId(court.id);
+    setLocalCourtObj(court);
+    setPreferredSportState(court.sport);
   }, []);
 
   const setLocalCourt = useCallback(async (courtId: string | null, courtObj?: Court): Promise<boolean> => {
@@ -935,6 +942,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         savePlannedVisitBatch,
         refreshPlannedVisits,
         hypeItem,
+        acceptSavedDefault,
         setLocalCourt,
         setVisibility,
         setPreferredSport,

@@ -19,7 +19,6 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { CourtListItem } from "@/components/CourtListItem";
 import { LocalListCards } from "@/components/court/LocalListCards";
-import { LogoMark } from "@/components/brand/LogoMark";
 import { useLocalList } from "@/context/LocalListContext";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { MapScreen } from "@/components/MapScreen";
@@ -31,8 +30,9 @@ import { CompactSelect } from "@/components/ui/CompactSelect";
 import { ModeTabs } from "@/components/ui/ModeTabs";
 import { SearchField } from "@/components/ui/SearchField";
 import { Colors, Radius } from "@/constants/colors";
+import { Space } from "@/constants/layout";
 import { Court, CourtSport } from "@/constants/data";
-import { Typography } from "@/constants/typography";
+import { FontSizes, Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useCourtCounts } from "@/context/CourtPresenceContext";
 import { useDeviceLocation } from "@/context/DeviceLocationContext";
@@ -335,8 +335,8 @@ export function CourtsScreen() {
         >
           {!isSearchMode && listCourts.length > 0 && (
             <View style={styles.localSection}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 20, paddingBottom: 6 }}>
-                <LogoMark size={16} /><Text style={[styles.sectionLabel, { paddingHorizontal: 0, fontSize: 11 }]}>LocalList</Text>
+              <View style={styles.sectionHeadingRow}>
+                <Text style={styles.sectionLabel}>LOCAL LIST</Text>
               </View>
               <LocalListCards onSelect={openCourt} />
             </View>
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   addCourtActionPressed: { opacity: 0.68 },
   addCourtActionText: {
     fontFamily: Typography.bodyBold,
-    fontSize: 10,
+    fontSize: FontSizes.xs,
     color: Colors.textSecondary,
     letterSpacing: 1.2,
   },
@@ -537,26 +537,24 @@ const styles = StyleSheet.create({
   },
   sportMenuItemTextActive: { color: Colors.text },
   list: { flex: 1 },
-  localSection: { paddingTop: 16, paddingBottom: 6 },
-  discoverySection: { paddingTop: 14 },
+  localSection: { paddingTop: Space.lg },
+  discoverySection: { paddingTop: Space.xl },
   sectionHeadingRow: {
+    paddingHorizontal: Space.lg,
+    marginBottom: Space.sm,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
   sectionLabel: {
     fontFamily: Typography.bodyBold,
-    fontSize: 9,
+    fontSize: FontSizes.xs,
     color: Colors.textSecondary,
     letterSpacing: 1.3,
-    marginHorizontal: 20,
-    marginBottom: 8,
   },
   resultCount: {
-    marginRight: 20,
-    marginBottom: 8,
     fontFamily: Typography.bodySemiBold,
-    fontSize: 10,
+    fontSize: FontSizes.xs,
     color: Colors.muted,
   },
   noLocalState: {
@@ -589,7 +587,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontFamily: Typography.bodyMedium,
-    fontSize: 9,
+    fontSize: FontSizes.xs,
     color: Colors.muted,
     letterSpacing: 1.6,
   },
@@ -598,7 +596,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     textAlign: "center",
     fontFamily: Typography.bodyMedium,
-    fontSize: 10,
+    fontSize: FontSizes.xs,
     color: Colors.muted,
     letterSpacing: 1.5,
   },
@@ -617,7 +615,7 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontFamily: Typography.heading,
-    fontSize: 10,
+    fontSize: FontSizes.xs,
     color: Colors.textSecondary,
     letterSpacing: 1.5,
   },

@@ -133,6 +133,7 @@ function ToggleRow({
     <View style={[styles.row, last ? styles.rowLast : null]}>
       <Text style={styles.label}>{label}</Text>
       <Switch
+        {...(Platform.OS === "web" ? { activeThumbColor: Colors.white } : {})}
         accessibilityLabel={label}
         disabled={disabled}
         onValueChange={onChange}

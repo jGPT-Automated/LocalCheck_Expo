@@ -21,7 +21,7 @@ import { PlayerSummaryRow } from "@/components/ui/PlayerSummaryRow";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
 import { displayTag, type FeedItem, type FeedMatchSummary } from "@/constants/data";
-import { Space } from "@/constants/layout";
+import { Layout, Space } from "@/constants/layout";
 import { Typography } from "@/constants/typography";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
@@ -409,7 +409,7 @@ export default function MeScreen() {
       </View>
 
       {activeTab === "inbox" ? (
-        <View style={styles.inboxSearchRow}>
+        <View style={styles.searchWrap}>
           <CompactSelect
             accessibilityLabel="Filter the inbox"
             align="start"
@@ -667,16 +667,14 @@ export default function MeScreen() {
                       ]}
                     />
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.notificationTitle}>
-                        {notification.title}
-                      </Text>
+                      <View style={styles.notificationHeadline}>
+                        <Text style={styles.notificationTitle}>{notification.title}</Text>
+                        <Text style={styles.notificationTime}>{relativeNotificationTime(notification.createdAt)}</Text>
+                      </View>
                       <Text style={styles.notificationBody}>
                         {notification.body}
                       </Text>
                     </View>
-                    <Text style={styles.notificationTime}>
-                      {relativeNotificationTime(notification.createdAt)}
-                    </Text>
                   </Pressable>
                 ))
               : null}
@@ -991,7 +989,7 @@ const styles = StyleSheet.create({
   tabActive: { borderBottomColor: Colors.accent },
   tabText: {
     fontFamily: Typography.bodyBold,
-    fontSize: 9.5,
+    fontSize: 11,
     letterSpacing: 1,
     textTransform: "uppercase",
     color: Colors.muted,
@@ -1004,25 +1002,12 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: Colors.accent,
   },
-  // Filter dropdown + search in one row — same pattern as Explore's court
-  // search, so the two screens feel of a piece and the dropdown has room to
-  // grow more filters later.
-  inboxSearchRow: {
-    minHeight: 44,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-    paddingHorizontal: 16,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
   inboxSearchDivider: { width: 1, height: 18, backgroundColor: Colors.border },
   content: { paddingTop: 0 },
   // One rhythm for every inbox section (CHALLENGES, GAMES / IN REVIEW,
   // FRIEND REQUESTS, RECENTLY SETTLED): air under the search strip, a fixed
   // gap from title to first row, a fixed gap between sections.
-  inboxContent: { paddingTop: Space.lg },
+  inboxContent: { gap: Space.lg },
   activityContent: { paddingTop: 0 },
 
   // ── LocalPlus history gate — a slim note, then blurred games below it ──
@@ -1138,21 +1123,21 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderSubtle,
   },
-  requestGroup: { marginHorizontal: 20, marginBottom: Space.xxl },
-  gameGroup: { marginHorizontal: 20, marginBottom: Space.xxl },
+  requestGroup: { marginHorizontal: Layout.screenGutter },
+  gameGroup: { marginHorizontal: Layout.screenGutter },
   gameCard: { marginBottom: Space.md },
   requestGroupTitle: {
     fontFamily: Typography.bodySemiBold,
     fontSize: 11,
     color: Colors.muted,
     letterSpacing: 1.2,
-    marginBottom: Space.xs,
+    marginBottom: Space.sm,
   },
   searchWrap: {
     minHeight: 46,
-    marginHorizontal: 20,
-    marginTop: 14,
-    marginBottom: 12,
+    marginHorizontal: Layout.screenGutter,
+    marginTop: Space.md,
+    marginBottom: Space.sm,
     paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
@@ -1185,8 +1170,9 @@ const styles = StyleSheet.create({
   },
   notificationRow: {
     minHeight: 72,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    marginHorizontal: Layout.screenGutter,
+    paddingHorizontal: Space.md,
+    paddingVertical: Space.md,
     flexDirection: "row",
     alignItems: "center",
     gap: 11,
@@ -1194,7 +1180,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.borderSubtle,
     backgroundColor: Colors.background,
   },
-  notificationUnread: { backgroundColor: Colors.accentGhost },
+  notificationUnread: { backgroundColor: Colors.surface, borderRadius: Radius.lg },
   notificationDot: {
     width: 7,
     height: 7,
@@ -1202,7 +1188,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent,
   },
   notificationDotRead: { backgroundColor: Colors.borderLight },
+  notificationHeadline: { flexDirection: "row", alignItems: "baseline", gap: Space.sm },
   notificationTitle: {
+    flex: 1,
     fontFamily: Typography.bodySemiBold,
     fontSize: 14,
     lineHeight: 18,

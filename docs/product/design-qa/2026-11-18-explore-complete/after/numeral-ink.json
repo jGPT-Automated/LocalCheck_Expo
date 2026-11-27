@@ -1,0 +1,170 @@
+[
+  {
+    "state": "explore-320-short",
+    "value": "0",
+    "dx": 0.5,
+    "dy": -0.5
+  },
+  {
+    "state": "drawer-expanded-320-short",
+    "value": "0",
+    "dx": 0.25,
+    "dy": -0.16
+  },
+  {
+    "state": "home-320-short",
+    "value": "0",
+    "dx": 0.25,
+    "dy": 0.0
+  },
+  {
+    "state": "court-320-short",
+    "value": "0",
+    "dx": 0.25,
+    "dy": 0.0
+  },
+  {
+    "state": "explore-320-four-digit",
+    "value": "1000",
+    "dx": -0.25,
+    "dy": -1.0
+  },
+  {
+    "state": "home-320-four-digit",
+    "value": "1000",
+    "dx": -0.25,
+    "dy": -2.0
+  },
+  {
+    "state": "court-320-four-digit",
+    "value": "1000",
+    "dx": -0.25,
+    "dy": -2.0
+  },
+  {
+    "state": "explore-375-short",
+    "value": "0",
+    "dx": 0.5,
+    "dy": -0.5
+  },
+  {
+    "state": "drawer-expanded-375-short",
+    "value": "0",
+    "dx": 0.25,
+    "dy": 0.14
+  },
+  {
+    "state": "home-375-short",
+    "value": "0",
+    "dx": 0.25,
+    "dy": 0.0
+  },
+  {
+    "state": "court-375-short",
+    "value": "0",
+    "dx": 0.25,
+    "dy": 0.0
+  },
+  {
+    "state": "explore-375-four-digit",
+    "value": "1000",
+    "dx": -0.25,
+    "dy": -1.0
+  },
+  {
+    "state": "home-375-four-digit",
+    "value": "1000",
+    "dx": -0.25,
+    "dy": -2.0
+  },
+  {
+    "state": "court-375-four-digit",
+    "value": "1000",
+    "dx": -0.25,
+    "dy": -2.0
+  },
+  {
+    "state": "explore-393-short",
+    "value": "0",
+    "dx": 0.5,
+    "dy": -0.5
+  },
+  {
+    "state": "drawer-expanded-393-short",
+    "value": "0",
+    "dx": 0.25,
+    "dy": -0.16
+  },
+  {
+    "state": "home-393-short",
+    "value": "0",
+    "dx": 0.25,
+    "dy": 0.0
+  },
+  {
+    "state": "court-393-short",
+    "value": "0",
+    "dx": 0.25,
+    "dy": 0.0
+  },
+  {
+    "state": "explore-393-four-digit",
+    "value": "1000",
+    "dx": -0.25,
+    "dy": -1.0
+  },
+  {
+    "state": "home-393-four-digit",
+    "value": "1000",
+    "dx": -0.25,
+    "dy": -2.0
+  },
+  {
+    "state": "court-393-four-digit",
+    "value": "1000",
+    "dx": -0.25,
+    "dy": -2.0
+  },
+  {
+    "state": "explore-430-short",
+    "value": "0",
+    "dx": 0.5,
+    "dy": -0.5
+  },
+  {
+    "state": "drawer-expanded-430-short",
+    "value": "0",
+    "dx": 0.25,
+    "dy": -0.16
+  },
+  {
+    "state": "home-430-short",
+    "value": "0",
+    "dx": 0.25,
+    "dy": 0.0
+  },
+  {
+    "state": "court-430-short",
+    "value": "0",
+    "dx": 0.25,
+    "dy": 0.0
+  },
+  {
+    "state": "explore-430-four-digit",
+    "value": "1000",
+    "dx": -0.25,
+    "dy": -1.0
+  },
+  {
+    "state": "home-430-four-digit",
+    "value": "1000",
+    "dx": -0.25,
+    "dy": -2.0
+  },
+  {
+    "state": "court-430-four-digit",
+    "value": "1000",
+    "dx": -0.25,
+    "dy": -2.0
+  }
+]

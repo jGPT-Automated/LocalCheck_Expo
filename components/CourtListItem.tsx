@@ -1,7 +1,6 @@
 import React from "react";
 import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 
-import { CourtArt } from "@/components/court/CourtArt";
 import { CourtTitleRow } from "@/components/court/CourtParts";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Colors, Radius } from "@/constants/colors";
@@ -11,6 +10,7 @@ interface CourtListItemProps {
   court: Court;
   onPress?: (court: Court) => void;
   style?: StyleProp<ViewStyle>;
+  isDefaultCourt?: boolean;
 }
 
 /**
@@ -19,7 +19,7 @@ interface CourtListItemProps {
  * the right). No numbers strip and no local mark: tapping the card opens the
  * court drawer, which carries the same title row plus the strip and actions.
  */
-export function CourtListItem({ court, onPress, style }: CourtListItemProps) {
+export function CourtListItem({ court, onPress, style, isDefaultCourt = false }: CourtListItemProps) {
   const active = court.activeCount ?? 0;
   const distance =
     court.distanceKm != null && !Number.isNaN(court.distanceKm)
@@ -29,16 +29,15 @@ export function CourtListItem({ court, onPress, style }: CourtListItemProps) {
 
   return (
     <PressableScale
-      accessibilityLabel={onPress ? `Open ${court.name}` : undefined}
+      accessibilityLabel={onPress ? `Open ${court.name}${isDefaultCourt ? ", default court" : ""}` : undefined}
       accessibilityRole={onPress ? "button" : undefined}
       disabled={!onPress}
       onPress={onPress ? () => onPress(court) : undefined}
       style={[styles.card, style]}
       testID={`court-${court.id}`}
     >
-      {/* Centred on the name, as it was when the card had the numbers strip. */}
-      <CourtArt sport={court.sport} top={-16} />
       <CourtTitleRow
+        isDefaultCourt={isDefaultCourt}
         live={active > 0}
         liveValue={active}
         name={court.shortName || court.name}

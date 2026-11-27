@@ -1,5 +1,77 @@
 # LocalCheck Design System
 
+## LocalPlus selectors on PR 93
+
+Use the word Default in the Explore sport line. Home and Schedule use SavedCourtPicker with the active check on the trailing edge and the default status beneath the court name. Short lists open in content-sized drawers. SavedCourtSettings groups each switch and management action with its court.
+
+## November 27 — compact controls and list alignment on PR #93
+
+SettingsRow uses 12pt labels and values, 11pt descriptions, and 52/60pt minimum row heights. Keep the native switch intrinsic, the trailing inset at 16pt and wrapping values aligned right. LocalList management keeps its default indicator within the court hero and its available actions on the corresponding card. The management drawer fits short lists and scrolls at its 82% height cap.
+
+Friends and Inbox search share a 20pt gutter, 12pt top margin and 8pt lower margin. Profile metadata and Activity titles can take a second line. The Here now roster uses equal flexible columns on Home and the expanded drawer. Explore section headings follow the cards’ 16pt outer edge.
+
+Onboarding sport choices share a row at a width of at least 360pt adjusted for font scale. Narrower layouts stack the canonical OptionRows. Field labels and step indicators use the 11pt label role, and supporting text uses the readable muted token. [Screenshots by width](design-qa/2026-11-27-ui-polish/README.md).
+
+## November 24 — current geometry versus accepted design
+
+The main Settings implementation below remains on PR #93, but Jesse rejected
+its enlarged text. Its 14/12pt values describe branch code rather than approved
+future typography. Resolve compact type, spacing and switch presentation using
+matched screenshots; do not apply a blanket font increase.
+
+As-is audit and proposed changes (not implemented):
+`docs/product/design-qa/2026-11-24-pr93-as-is/README.md`. Measure equal gutters,
+section/row rhythm, control centering and text reflow. Left-aligned text, deliberate
+empty states and pinned primary actions do not need global centering. Confirm
+native safe areas/font scaling separately. Preserve the approved court-hero fit
+and geometry while reviewing the remaining screen-specific spacing.
+
+## November 22 — canonical main Settings rows (approved)
+
+`components/ui/SettingsRow.tsx` owns navigation/value, description and native
+switch rows. Reuse TextStyles.listName/bodySmall/metadata: 14pt primary/value,
+12pt supporting text, existing 11pt section headings. Screen gutter is
+Layout.screenGutter (20), inner padding Space.lg (16), vertical padding Space.md
+(12). Navigation rows have a 56pt minimum; descriptions have a 64pt minimum;
+content may grow. The full navigation row is its touch target; its chevron does
+not need an extra 44pt box. The switch accessory retains a 44pt minimum frame
+without a fixed width or scale. Copy is flexible, values wrap on compact widths,
+and icons/accessories center on the whole row. The native switch remains native;
+RN Web's enabled-thumb property is mapped to the same white thumb color.
+Grouped-row reference: Rebeca Zuccari's Settings Mobile App UI concept, preserving
+LocalCheck colors, type and behavior. LocalList editor changes are a separate
+checkpoint. Browser layout is not native-device acceptance.
+
+## November 18 — Explore section and shared hero correction
+
+Explore's LOCAL LIST and market headings use the same section-label style,
+left gutter and heading-to-card spacing; no extra logo. The default indicator
+is a neutral star inside its court card, not a separate row. Settings management
+retains its controls for the separate Settings pass. Elsewhere LocalList remains
+the product name; LOCAL LIST is the approved Explore section label.
+
+CourtTitleRow owns all four hero surfaces. Its fixed 88/96pt live column holds a
+64pt numeral frame; CourtArtGeometry anchors the existing circle on that frame.
+The number is optically centered using Oswald's measured ink offset and fits
+the circle at large counts. ON COURT sits below the circle, separated by Space.xs.
+Metadata uses the existing 11pt token and a shared minimum row height so the
+optional default star cannot make one card taller. No per-page art offsets.
+Shared SearchField uses the readable muted color and the standard 44pt clear
+target; CompactSelect's default text role uses the existing 11pt minimum.
+
+## November 17 — restore compact court identities (supersedes wrapping below)
+
+Court identities use the existing short name with full-name fallback and fit
+one line within the flexible title column. Keep equal list-card heights and
+stable 88pt/96pt live columns. Native Text fitting and the web font-measurement
+adapter share an 11pt floor. Longer content must be tested, not approximated by
+character counts. Fitting has a readability floor; arbitrarily long unaliased
+names are not certified to fit. Keep the court-selection chevron outside the
+flexible title. CourtArt is anchored to the live group in CourtTitleRow; its
+basketball circle and the count column share a horizontal center and its
+vertical center follows the group. The full court page retains faint artwork.
+This changes no notification controls, navigation actions, counts or data.
+
 ## November 17 — action feedback and wrapped court titles
 
 Jesse removed the temporary drop-down action banners. Existing useToast calls

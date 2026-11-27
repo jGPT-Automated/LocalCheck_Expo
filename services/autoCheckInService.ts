@@ -12,10 +12,13 @@ import {
   AUTO_CHECK_IN_UNDO_ACTION,
   type AutoCheckInCourt,
   type AutoCheckInPermission,
+  type AutoCheckInRegion,
   AUTO_CHECK_IN_NOTICE_DELAY_SECONDS,
   checkedInNotification,
   postsAt,
   regionFor,
+  savedCourtRegions,
+  type SavedRegion,
 } from "@/lib/autoCheckInModel";
 import { supabase } from "@/lib/supabase";
 
@@ -61,11 +64,11 @@ async function onArrive(courtId: string) {
   const Notifications = await notifications();
   const content = checkedInNotification(result.court_name ?? "your court", postsAt(result.arrived_at));
   await Notifications.scheduleNotificationAsync({
-    identifier: AUTO_CHECK_IN_NOTIFICATION_ID,
+    identifier: `${AUTO_CHECK_IN_NOTIFICATION_ID}-${courtId}`,
     content: {
       ...content,
       categoryIdentifier: AUTO_CHECK_IN_CATEGORY,
-      data: { kind: "auto_check_in", path: `/court/${courtId}` },
+      data: { kind: "auto_check_in", court_id: courtId, path: `/court/${courtId}` },
     },
     // After a minute inside the circle, so driving past shows nothing. The
     // server's "Check-in posted" push later replaces it (same id).
@@ -79,8 +82,9 @@ async function onArrive(courtId: string) {
 async function onLeave(courtId: string) {
   const Notifications = await notifications();
   // Left before it posted: the notice never shows, or is taken away.
-  await Notifications.cancelScheduledNotificationAsync(AUTO_CHECK_IN_NOTIFICATION_ID).catch(() => {});
-  await Notifications.dismissNotificationAsync(AUTO_CHECK_IN_NOTIFICATION_ID).catch(() => {});
+  const noticeId = `${AUTO_CHECK_IN_NOTIFICATION_ID}-${courtId}`;
+  await Notifications.cancelScheduledNotificationAsync(noticeId).catch(() => {});
+  await Notifications.dismissNotificationAsync(noticeId).catch(() => {});
   const { error } = await supabase.rpc("auto_check_in_leave", { p_court_id: courtId });
   if (error) console.warn("auto check-in leave failed", error.message);
 }
@@ -90,7 +94,9 @@ if (isAutoCheckInAvailable()) {
     if (error || !data?.region?.identifier) return;
     const { data: session } = await supabase.auth.getSession();
     if (!session.session) return;
-    const courtId = data.region.identifier;
+    const parts = data.region.identifier.split("/");
+    if (parts.length === 2 && parts[0] !== session.session.user.id) return;
+    const courtId = parts[parts.length - 1];
     if (data.eventType === Location.GeofencingEventType.Enter) await onArrive(courtId);
     else if (data.eventType === Location.GeofencingEventType.Exit) await onLeave(courtId);
   });
@@ -121,6 +127,55 @@ export async function isAutoCheckInRunning(): Promise<boolean> {
 
 export type EnableResult = "on" | "needs_always" | "denied" | "unavailable" | "error";
 
+export async function requestAutoPermission(): Promise<EnableResult> {
+  if (!isAutoCheckInAvailable()) return "unavailable";
+  const foreground = await Location.requestForegroundPermissionsAsync();
+  if (!foreground.granted) return "denied";
+  const background = await Location.requestBackgroundPermissionsAsync();
+  return background.granted ? "on" : "needs_always";
+}
+
+async function registeredRegions(): Promise<AutoCheckInRegion[]> {
+  if (!await isAutoCheckInRunning()) return [];
+  const options = await TaskManager.getTaskOptionsAsync<{ regions?: AutoCheckInRegion[] }>(AUTO_CHECK_IN_TASK);
+  return options?.regions ?? [];
+}
+
+export async function isWatchingCourt(userId: string, courtId: string): Promise<boolean> {
+  return (await registeredRegions()).some(r => r.identifier === courtId || r.identifier === `${userId}/${courtId}`);
+}
+
+let registration: Promise<void> = Promise.resolve();
+export function clearRegisteredCourts(): Promise<void> {
+  registration = registration.catch(() => {}).then(disableAutoCheckIn);
+  return registration;
+}
+
+export function syncSavedRegions(userId: string, entries: SavedRegion[]): Promise<void> {
+  const sync = async () => {
+    if (!isAutoCheckInAvailable()) return;
+    const active = await registeredRegions();
+    const wanted = savedCourtRegions(userId, entries, active);
+    const unchanged = wanted.length === active.length && wanted.every(r => active.some(a =>
+      a.identifier === r.identifier && a.latitude === r.latitude && a.longitude === r.longitude && a.radius === r.radius));
+    if (unchanged) return;
+    if (wanted.length && await getAutoCheckInPermission() === "always") {
+      await Location.startGeofencingAsync(AUTO_CHECK_IN_TASK, wanted);
+    } else if (active.length) {
+      await Location.stopGeofencingAsync(AUTO_CHECK_IN_TASK);
+    }
+    const notices = await notifications();
+    for (const region of active) {
+      const courtId = region.identifier.split("/").pop();
+      if (!wanted.some(r => r.identifier === `${userId}/${courtId}`)) {
+        await notices.cancelScheduledNotificationAsync(`${AUTO_CHECK_IN_NOTIFICATION_ID}-${courtId}`).catch(() => {});
+      }
+    }
+  };
+  registration = registration.catch(() => {}).then(sync);
+  return registration;
+}
+
 /**
  * Ask for location (While Using, then Always) and start watching the court.
  * iOS shows the Always upgrade only once; after that the player has to
@@ -131,10 +186,8 @@ export async function enableAutoCheckIn(court: AutoCheckInCourt): Promise<Enable
   const region = regionFor(court);
   if (!region) return "error";
   try {
-    const foreground = await Location.requestForegroundPermissionsAsync();
-    if (!foreground.granted) return "denied";
-    const background = await Location.requestBackgroundPermissionsAsync();
-    if (!background.granted) return "needs_always";
+    const permission = await requestAutoPermission();
+    if (permission !== "on") return permission;
     await registerUndoAction();
     await Location.startGeofencingAsync(AUTO_CHECK_IN_TASK, [region]);
     return "on";
@@ -147,10 +200,14 @@ export async function enableAutoCheckIn(court: AutoCheckInCourt): Promise<Enable
 export async function disableAutoCheckIn(): Promise<void> {
   if (!isAutoCheckInAvailable()) return;
   try {
-    if (await Location.hasStartedGeofencingAsync(AUTO_CHECK_IN_TASK)) {
-      await Location.stopGeofencingAsync(AUTO_CHECK_IN_TASK);
-    }
+    const regions = await registeredRegions();
+    if (regions.length || await isAutoCheckInRunning()) await Location.stopGeofencingAsync(AUTO_CHECK_IN_TASK);
     const Notifications = await notifications();
+    for (const region of regions) {
+      const id = `${AUTO_CHECK_IN_NOTIFICATION_ID}-${region.identifier.split("/").pop()}`;
+      await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
+      await Notifications.dismissNotificationAsync(id).catch(() => {});
+    }
     await Notifications.cancelScheduledNotificationAsync(AUTO_CHECK_IN_NOTIFICATION_ID).catch(() => {});
   } catch (error) {
     console.warn("disable auto check-in failed", error);
@@ -163,7 +220,10 @@ export async function disableAutoCheckIn(): Promise<void> {
  */
 export async function syncAutoCheckIn(court: AutoCheckInCourt | null): Promise<void> {
   if (!(await isAutoCheckInRunning())) return;
-  const region = court ? regionFor(court) : null;
+  const regions = await registeredRegions();
+  const wasMultiCourt = regions.some(r => r.identifier.includes("/"));
+  const keepDefault = !wasMultiCourt || regions.some(r => r.identifier.endsWith(`/${court?.id}`));
+  const region = court && keepDefault ? regionFor(court) : null;
   if (!region) {
     await disableAutoCheckIn();
     return;
@@ -226,8 +286,10 @@ export async function setAutoCheckInAlerts(prefs: { share?: boolean; receive?: b
 }
 
 /** Remove the latest auto check-in (or a held arrival) as if it never happened. */
-export async function undoAutoCheckIn(): Promise<boolean> {
-  const { data, error } = await supabase.rpc("undo_auto_check_in");
+export async function undoAutoCheckIn(courtId?: string): Promise<boolean> {
+  const { data, error } = courtId
+    ? await supabase.rpc("undo_auto_check_in_at", { p_court_id: courtId })
+    : await supabase.rpc("undo_auto_check_in");
   if (error) {
     console.warn("undo auto check-in failed", error.message);
     return false;

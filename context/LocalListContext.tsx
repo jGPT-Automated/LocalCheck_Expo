@@ -1,106 +1,76 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { createContext, useContext, useEffect, useMemo } from "react";
+import { AppState } from "react-native";
 
 import type { Court } from "@/constants/data";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useLocalPlus } from "@/hooks/useLocalPlus";
-import { addLocalListCourt, orderLocalList } from "@/lib/localListModel";
+import { fetchLocalList, updateLocalList } from "@/services/courtService";
 
-type Draft = {
-  ownerId: string | null;
-  sourceId: string | null;
-  courts: Court[];
-  defaultId: string | null;
-};
 type Value = {
   courts: Court[];
   defaultCourt: Court | null;
+  entries: Awaited<ReturnType<typeof fetchLocalList>>;
+  ready: boolean;
+  error: boolean;
+  reload: () => void;
+  busy: boolean;
   canEdit: boolean;
-  addCourt: (court: Court) => void;
-  removeCourt: (id: string) => void;
-  setDefaultCourt: (id: string) => void;
+  addCourt: (court: Court) => Promise<void>;
+  removeCourt: (id: string) => Promise<void>;
+  setDefaultCourt: (id: string) => Promise<void>;
+  setAutoCheckIn: (id: string, enabled: boolean) => Promise<void>;
 };
 const LocalListContext = createContext<Value | null>(null);
 
-/** UI draft only until the separately approved backend slice. No device persistence or invented RPC. */
 export function LocalListProvider({ children }: { children: React.ReactNode }) {
-  const { localCourt } = useApp();
-  const { user } = useAuth();
+  const { localCourt, acceptSavedDefault } = useApp();
+  const { user, profile, refreshProfile } = useAuth();
   const canEdit = useLocalPlus();
-  const [draft, setDraft] = useState<Draft | null>(null);
-  const ownerId = user?.id ?? null;
-  const sourceId = localCourt?.id ?? null;
-  const seed: Draft = {
-    ownerId,
-    sourceId,
-    courts: localCourt ? [localCourt] : [],
-    defaultId: sourceId,
-  };
-  const current = (previous: Draft | null): Draft => {
-    if (previous?.ownerId !== ownerId) return seed;
-    if (previous.sourceId === sourceId) return previous;
-    if (previous.sourceId === null && localCourt)
-      return {
-        ...previous,
-        sourceId,
-        courts: [
-          localCourt,
-          ...previous.courts.filter((court) => court.id !== sourceId),
-        ],
-        defaultId: previous.defaultId ?? sourceId,
-      };
-    return seed;
-  };
-  const base = current(draft);
-  const courts = useMemo(
-    () => orderLocalList(base.courts, base.defaultId, canEdit),
-    [base.courts, base.defaultId, canEdit],
-  );
+  const cache = useQueryClient();
+  const key = useMemo(() => ["local-list", user?.id], [user?.id]);
+  const enabled = Boolean(user && canEdit);
+  const query = useQuery({ queryKey: key, queryFn: fetchLocalList, enabled, retry: 1 });
+  useEffect(() => {
+    if (!enabled) return;
+    const reload = () => { void cache.invalidateQueries({ queryKey: key }); };
+    reload();
+    const subscription = AppState.addEventListener("change", state => { if (state === "active") reload(); });
+    return () => subscription.remove();
+  }, [cache, enabled, key, profile?.local_court_id]);
+  const entries = useMemo(() => enabled && query.data ? query.data : localCourt
+    ? [{ court: localCourt, isDefault: true, autoCheckIn: null }] : [], [enabled, query.data, localCourt]);
+  const courts = useMemo(() => entries.map(row => row.court), [entries]);
+  const defaultCourt = entries.find(row => row.isDefault)?.court ?? null;
+  const mutation = useMutation({
+    scope: { id: `local-list-${user?.id}` },
+    mutationFn: async (args: Parameters<typeof updateLocalList>) => {
+      await updateLocalList(...args);
+      await cache.cancelQueries({ queryKey: key });
+      const rows = await fetchLocalList();
+      cache.setQueryData(key, rows);
+      if (args[0] === "default" || (args[0] === "add" && !localCourt)) {
+        const next = rows.find(row => row.isDefault)?.court;
+        if (next) acceptSavedDefault(next);
+        await refreshProfile();
+      }
+    },
+    onError: () => { void cache.invalidateQueries({ queryKey: key }); },
+  });
   const value: Value = {
-    courts,
-    defaultCourt: courts[0] ?? null,
-    canEdit,
-    addCourt: (court) => {
-      if (!canEdit)
-        throw new Error("LocalPlus is required to add more courts.");
-      // Validate before scheduling state so the calling control can show its error.
-      addLocalListCourt(base.courts, court);
-      setDraft((previous) => {
-        const row = current(previous);
-        return {
-          ...row,
-          courts:
-            row.courts.length >= 5
-              ? row.courts
-              : addLocalListCourt(row.courts, court),
-          defaultId: row.defaultId,
-        };
-      });
-    },
-    removeCourt: (id) => {
-      if (!canEdit || id === courts[0]?.id) return;
-      setDraft((previous) => {
-        const row = current(previous);
-        return {
-          ...row,
-          courts: row.courts.filter((court) => court.id !== id),
-        };
-      });
-    },
-    setDefaultCourt: (id) => {
-      if (!canEdit || !base.courts.some((court) => court.id === id)) return;
-      setDraft((previous) => ({ ...current(previous), defaultId: id }));
-    },
+    entries, courts, defaultCourt, ready: enabled && query.isSuccess, error: enabled && query.isError,
+    reload: () => { void query.refetch(); }, busy: mutation.isPending, canEdit,
+    addCourt: court => mutation.mutateAsync(["add", court.id]),
+    removeCourt: id => mutation.mutateAsync(["remove", id]),
+    setDefaultCourt: id => mutation.mutateAsync(["default", id]),
+    setAutoCheckIn: (id, on) => mutation.mutateAsync(["auto", id, on]),
   };
-  return (
-    <LocalListContext.Provider value={value}>
-      {children}
-    </LocalListContext.Provider>
-  );
+  return <LocalListContext.Provider value={value}>{children}</LocalListContext.Provider>;
 }
 
 export function useLocalList(): Value {
   const value = useContext(LocalListContext);
-  if (!value) throw new Error("LocalListProvider is required");
+  if (!value) throw new Error("useLocalList must be used inside LocalListProvider");
   return value;
 }
